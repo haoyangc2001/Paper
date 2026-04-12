@@ -9,7 +9,7 @@ from matplotlib.ticker import PercentFormatter
 
 IEEE_COLUMN_WIDTH_IN = 3.5
 SINGLE_FIG_SIZE = (3.3, 2.45)
-GRID_FIG_SIZE = (3.45, 4.45)
+GRID_FIG_SIZE = (3.45, 1.7)
 
 SCENARIOS = [
     "Moderately Cluttered",
@@ -61,13 +61,6 @@ DATA = {
         r"CPPO$_{\beta L}$": [71, 90, 128],
         r"CPPO$_{\beta H}$": [78, 99, 145],
     },
-    "Minimum Clearance": {
-        "HD-MCRA": [0.36, 0.21, 0.26],
-        r"PPO$_{\beta L}$": [0.24, 0.14, 0.15],
-        r"PPO$_{\beta H}$": [0.29, 0.17, 0.18],
-        r"CPPO$_{\beta L}$": [0.39, 0.24, 0.29],
-        r"CPPO$_{\beta H}$": [0.33, 0.22, 0.23],
-    },
 }
 
 METRIC_CONFIG = {
@@ -98,15 +91,6 @@ METRIC_CONFIG = {
         "legend_loc": "upper left",
         "legend_anchor": (0.015, 0.985),
     },
-    "Minimum Clearance": {
-        "ylabel": "Minimum Clearance (m)",
-        "title": "Minimum Clearance",
-        "ylim": (0.0, 0.45),
-        "formatter": "clearance",
-        "filename": "figure_minimum_clearance_grouped",
-        "legend_loc": "upper right",
-        "legend_anchor": (0.985, 0.985),
-    },
 }
 
 
@@ -126,42 +110,27 @@ def configure_fonts() -> None:
 def format_label(value: float, formatter: str) -> str:
     if formatter == "percent":
         return f"{value * 100:.0f}%"
-    if formatter == "clearance":
-        return f"{value:.2f}"
     return f"{value:.0f}"
 
 
 def style_axes(ax: plt.Axes, metric_name: str, compact: bool = True) -> None:
     config = METRIC_CONFIG[metric_name]
-    metric_size = 5.4 if compact else 8.0
-    label_size = 5.2 if compact else 7.0
-    tick_size = 4.6 if compact else 6.0
+    metric_size = 4.7 if compact else 8.0
+    tick_size = 4.0 if compact else 6.0
 
     ax.set_title("")
     ax.set_ylabel("")
-    # Put metric name below the plot and remove "Scenarios" text completely.
-    ax.set_xlabel(config["title"], fontsize=metric_size, labelpad=3, fontweight="bold")
+    ax.set_xlabel(config["title"], fontsize=metric_size, labelpad=2, fontweight="bold")
     ax.set_xticks(np.arange(len(DISPLAY_SCENARIOS)))
     ax.set_xticklabels(DISPLAY_SCENARIOS, fontsize=tick_size)
     ax.set_ylim(*config["ylim"])
     ax.tick_params(axis="y", labelsize=tick_size)
     ax.grid(axis="y", linestyle="--", alpha=0.35, zorder=0)
     ax.set_axisbelow(True)
-    ax.margins(x=0.03)
+    ax.margins(x=0.02)
 
     if config["formatter"] == "percent":
         ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
-
-    if metric_name == "Minimum Clearance":
-        ax.text(
-            0.0,
-            1.01,
-            "(m)",
-            transform=ax.transAxes,
-            ha="left",
-            va="bottom",
-            fontsize=label_size,
-        )
 
 
 def draw_metric(
@@ -175,9 +144,9 @@ def draw_metric(
     metric_data = DATA[metric_name]
 
     x = np.arange(len(SCENARIOS))
-    width = 0.13 if compact else 0.15
-    line_width = 0.5 if compact else 0.8
-    label_font = 4.2 if compact else 8.0
+    width = 0.11 if compact else 0.15
+    line_width = 0.45 if compact else 0.8
+    label_font = 3.8 if compact else 8.0
 
     for idx, method in enumerate(METHODS):
         offset = (idx - (len(METHODS) - 1) / 2) * width
@@ -208,15 +177,15 @@ def draw_metric(
             bbox_to_anchor=config["legend_anchor"],
             ncol=1,
             frameon=True,
-            framealpha=0.95,
+            framealpha=0.9,
             facecolor="white",
             edgecolor="#B0B0B0",
-            fontsize=3.9 if compact else 10,
-            borderaxespad=0.12,
-            labelspacing=0.12,
-            handlelength=0.9,
-            handletextpad=0.28,
-            borderpad=0.16,
+            fontsize=3.4 if compact else 10,
+            borderaxespad=0.08,
+            labelspacing=0.08,
+            handlelength=0.75,
+            handletextpad=0.2,
+            borderpad=0.12,
         )
 
 
@@ -234,9 +203,8 @@ def plot_metric(metric_name: str, output_dir: Path) -> None:
 
 
 def plot_metrics_grid(output_dir: Path) -> None:
-    metric_order = ["SR", "CR", "Average Cost", "Minimum Clearance"]
-    fig, axes = plt.subplots(2, 2, figsize=GRID_FIG_SIZE)
-    axes = axes.flatten()
+    metric_order = ["SR", "CR", "Average Cost"]
+    fig, axes = plt.subplots(1, 3, figsize=GRID_FIG_SIZE)
 
     for ax, metric_name in zip(axes, metric_order):
         draw_metric(
@@ -248,12 +216,11 @@ def plot_metrics_grid(output_dir: Path) -> None:
         )
 
     fig.subplots_adjust(
-        top=0.98,
-        bottom=0.11,
-        left=0.14,
-        right=0.98,
-        hspace=0.52,
-        wspace=0.32,
+        top=0.96,
+        bottom=0.20,
+        left=0.07,
+        right=0.995,
+        wspace=0.28,
     )
 
     png_path = output_dir / "figure_metrics_grid_single_column.png"
@@ -267,7 +234,7 @@ def write_latex_snippet(output_dir: Path) -> None:
     snippet = r"""\begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/figure_metrics_grid_single_column}
-\caption{Performance comparison across three navigation scenarios. From top-left to bottom-right: success rate, collision rate, average cost, and minimum clearance.}
+\caption{Performance comparison across three navigation scenarios. From left to right: success rate, collision rate, and average cost.}
 \label{fig:metrics_grid_single_column}
 \end{figure}
 """

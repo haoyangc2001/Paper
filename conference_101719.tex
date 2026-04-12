@@ -39,7 +39,7 @@ email address or ORCID}
 \maketitle
 
 \begin{abstract}
-This paper studies quadruped robot navigation under strict safety and efficiency requirements. We formulate the task as a minimum-cost reach-avoid problem, where the robot must reach the goal without entering unsafe states while minimizing cumulative execution cost. To make this formulation practical for quadruped systems, we propose HD-MCRA, a hierarchical framework that combines a frozen low-level robust velocity tracker with a high-level budget-conditioned reach-avoid policy, together with two data-driven conservative margins for cost and safety. Representative simulation results show that HD-MCRA achieves a better balance among success rate, collision rate, navigation cost, and obstacle clearance than PPO- and CPPO-based baselines.
+This paper studies quadruped robot navigation under strict safety and efficiency requirements. We formulate the task as a minimum-cost reach-avoid problem, where the robot must reach the goal without entering unsafe states while minimizing cumulative execution cost. To make this formulation practical for quadruped systems, we propose HD-MCRA, a hierarchical framework that combines a frozen low-level robust velocity tracker with a high-level budget-conditioned reach-avoid policy, together with two data-driven conservative margins for cost and safety. Representative simulation results show that HD-MCRA achieves a better balance among success rate, collision rate, and navigation cost than PPO- and CPPO-based baselines.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -209,7 +209,7 @@ This design reserves additional budget against timing fluctuation and execution 
 \begin{equation}
 \mathcal{F}_{\delta}=\{x\in\mathcal{X}\mid d(x,\mathcal{F})\le \delta\},
 \end{equation}
-where $d(x,\mathcal{F})$ denotes the distance from the state to the unsafe set. By replacing $\mathcal{F}$ with $\mathcal{F}_{\delta}$ in training and deployment, the policy is encouraged to maintain a larger obstacle clearance and becomes more robust to lateral tracking deviation.
+where $d(x,\mathcal{F})$ denotes the distance from the state to the unsafe set. By replacing $\mathcal{F}$ with $\mathcal{F}_{\delta}$ in training and deployment, the policy is encouraged to maintain a larger obstacle margin and becomes more robust to lateral tracking deviation.
 
 Importantly, $\alpha$ and $\delta$ are not manually tuned as purely heuristic constants. Instead, they are estimated from domain-randomized rollout statistics of the frozen low-level controller. Let $\varepsilon_c$ denote the relative cost overrun ratio between actual and nominal execution, and let $\varepsilon_d$ denote the trajectory deviation with respect to the nominal body path. We select $\alpha$ and $\delta$ from suitable upper quantiles of their empirical distributions:
 \begin{equation}
@@ -255,13 +255,13 @@ The proposed method is compared with two representative baselines. The first is 
 
 These baselines are also consistent with representative constrained-RL formulations and recent deployment-oriented legged navigation studies \cite{DBLP:conf/icml/AchiamHTA17,DBLP:conf/iclr/TesslerMM19,DBLP:journals/ral/YuanHZBGPS22,DBLP:journals/ral/HuZTRAN21,DBLP:conf/icra/WeerakoonSEM24}.
 
-We report four metrics. \emph{Success Rate} (SR) is the percentage of trials in which the robot reaches the goal without violating safety constraints. \emph{Collision Rate} (CR) is the percentage of runs that enter the unsafe set. \emph{Average Cost} denotes the cumulative execution cost defined in Section II, which mainly reflects travel time and motion expenditure. \emph{Minimum Clearance} records the minimum distance between the robot body and surrounding obstacles along the trajectory, and is used to quantify safety margin.
+We report three metrics. \emph{Success Rate} (SR) is the percentage of trials in which the robot reaches the goal without violating safety constraints. \emph{Collision Rate} (CR) is the percentage of runs that enter the unsafe set. \emph{Average Cost} denotes the cumulative execution cost defined in Section II, which mainly reflects travel time and motion expenditure.
 
 \subsection{Comparison with Baselines}
 
 Figure~\ref{fig:metrics_grid_single_column} reports the scenario-wise comparison across all four metrics. To provide a compact summary, Table~\ref{tab:main_result} further reports the average performance over the three scenarios. Overall, HD-MCRA achieves the best balance among task completion, safety, and efficiency.
 
-\input{figures_updated_from_image_data_v2/figure_metrics_grid_single_column}
+\input{figures/figure_metrics_grid_single_column}
 
 \begin{table}[t]
 \caption{Average performance over the three scenarios.}
@@ -269,23 +269,23 @@ Figure~\ref{fig:metrics_grid_single_column} reports the scenario-wise comparison
 \centering
 \setlength{\tabcolsep}{3.5pt}
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{lccc}
 \hline
-Method & SR (\%) $\uparrow$ & CR (\%) $\downarrow$ & Cost $\downarrow$ & Clr. (m) $\uparrow$ \\
+Method & SR (\%) $\uparrow$ & CR (\%) $\downarrow$ & Cost $\downarrow$ \\
 \hline
-HD-MCRA & 75.0 & 14.3 & 85.3 & 0.28 \\
-PPO$_{\beta L}$ & 62.7 & 27.7 & 107.7 & 0.18 \\
-PPO$_{\beta H}$ & 58.3 & 21.7 & 99.3 & 0.21 \\
-CPPO$_{\beta L}$ & 57.3 & 12.7 & 96.3 & 0.31 \\
-CPPO$_{\beta H}$ & 72.3 & 16.3 & 107.3 & 0.26 \\
+HD-MCRA & 75.0 & 14.3 & 85.3 \\
+PPO$_{\beta L}$ & 62.7 & 27.7 & 107.7 \\
+PPO$_{\beta H}$ & 58.3 & 21.7 & 99.3 \\
+CPPO$_{\beta L}$ & 57.3 & 12.7 & 96.3 \\
+CPPO$_{\beta H}$ & 72.3 & 16.3 & 107.3 \\
 \hline
 \end{tabular}
 \normalsize
 \end{table}
 
-Figure~\ref{fig:metrics_grid_single_column} shows a consistent trend across scenario difficulty. HD-MCRA is the strongest method on the efficiency--completion trade-off: it achieves the highest or near-highest success rate while maintaining the lowest navigation cost in the narrow-passage and densely obstructed scenes, and it remains competitive in the moderately cluttered scene. In contrast, CPPO variants are generally more conservative, often producing lower collision rates and larger clearance, but this advantage is accompanied by either reduced success rate or higher execution cost. PPO baselines are comparatively more aggressive and exhibit the weakest safety performance.
+Figure~\ref{fig:metrics_grid_single_column} shows a consistent trend across scenario difficulty. HD-MCRA is the strongest method on the efficiency--completion trade-off: it achieves the highest or near-highest success rate while maintaining the lowest navigation cost in the narrow-passage and densely obstructed scenes, and it remains competitive in the moderately cluttered scene. In contrast, CPPO variants are generally more conservative, often producing lower collision rates, but this advantage is accompanied by either reduced success rate or higher execution cost. PPO baselines are comparatively more aggressive and exhibit the weakest safety performance.
 
-Table~\ref{tab:main_result} summarizes the overall averages. HD-MCRA attains the highest average success rate ($75.0\%$) and the lowest average cost ($85.3$), while preserving a relatively large minimum clearance ($0.28\,\mathrm{m}$). CPPO$_{\beta L}$ is strongest on pure safety metrics, with the lowest collision rate and the largest clearance, but it sacrifices task completion and efficiency; CPPO$_{\beta H}$ is more competitive on success rate but remains more expensive than HD-MCRA. These results indicate that the proposed MCRA-based policy best preserves the intended balance among safe goal-reaching, execution cost, and obstacle clearance.
+Table~\ref{tab:main_result} summarizes the overall averages. HD-MCRA attains the highest average success rate ($75.0\%$) and the lowest average cost ($85.3$). CPPO$_{\beta L}$ is strongest on collision reduction but sacrifices task completion and efficiency, while CPPO$_{\beta H}$ is more competitive on success rate but remains more expensive than HD-MCRA. These results indicate that the proposed MCRA-based policy best preserves the intended balance between safe goal-reaching and execution efficiency.
 
 \subsection{Ablation on Hierarchy and Conservative Margins}
 
@@ -310,7 +310,7 @@ HD-MCRA (full) & 70.8 & 18.6 & 71.3 \\
 
 As shown in Table~\ref{tab:ablation}, removing the hierarchical structure causes a clear performance drop, with the success rate decreasing from $70.8\%$ to $60.1\%$ and the average cost increasing from $71.3$ to $95.8$. This result supports the main architectural motivation of HD-MCRA: by assigning locomotion tracking to the low-level controller and navigation reasoning to the high-level policy, the learning problem becomes substantially easier and more stable than direct end-to-end decision making.
 
-The two conservative margins also play distinct roles. Removing the cost margin $\alpha$ mainly degrades cost-related performance, as reflected by the increased average cost. This suggests that the margin effectively compensates for budget overrun caused by timing fluctuation and tracking inefficiency. In contrast, removing the safety margin $\delta$ has a stronger impact on collision rate, indicating that the enlarged unsafe set indeed improves obstacle clearance against trajectory deviation. When both margins are removed, performance further deteriorates, showing that the two mechanisms are complementary rather than redundant.
+The two conservative margins also play distinct roles. Removing the cost margin $\alpha$ mainly degrades cost-related performance, as reflected by the increased average cost. This suggests that the margin effectively compensates for budget overrun caused by timing fluctuation and tracking inefficiency. In contrast, removing the safety margin $\delta$ has a stronger impact on collision rate, indicating that the enlarged unsafe set improves robustness against trajectory deviation. When both margins are removed, performance further deteriorates, showing that the two mechanisms are complementary rather than redundant.
 
 
 Overall, the results in this section support the main claim of the paper: HD-MCRA improves quadruped navigation by combining the theoretical semantics of minimum-cost reach-avoid with a deployment-oriented hierarchical implementation. Compared with Reward Shaping and CPPO, the proposed framework achieves a better balance among success, safety, and efficiency.
