@@ -101,8 +101,12 @@ To preserve this semantics, we adopt the augmented-state perspective of \cite{DB
 \end{equation}
 where $y_t$ is a binary safety indicator and $z_t$ is a remaining cost budget. The corresponding augmented dynamics are
 \begin{equation}
-\hat{f}(x_t,y_t,z_t,u_t)=
-\big(f(x_t,u_t),\ \max\{I_{f(x_t,u_t)\in\mathcal{F}},y_t\},\ z_t-c(x_t,u_t)\big),
+\begin{aligned}
+\hat{f}(x_t,y_t,z_t,u_t)
+= \big(&f(x_t,u_t), \\
+&\max\{I_{f(x_t,u_t)\in\mathcal{F}},y_t\}, \\
+&z_t-c(x_t,u_t)\big).
+\end{aligned}
 \end{equation}
 where $I_{b\in\mathcal{B}}$ is the shifted indicator. By construction, $z_t$ evolves as
 \begin{equation}
@@ -153,22 +157,14 @@ u_t^{\mathrm{high}} = \big[v_{x,t}^{\ast}, v_{y,t}^{\ast}, \omega_{z,t}^{\ast}\b
 \end{equation}
 the low-level objective is to minimize the mismatch between the realized robot velocity and the commanded one while maintaining stable locomotion.
 
-The training recipe follows the now-standard combination of PPO and domain randomization that underpins many recent quadruped locomotion systems \cite{DBLP:journals/corr/SchulmanWDRK17,DBLP:conf/iros/TobinFRSZA17}.
-
-We train the low-level policy using Proximal Policy Optimization (PPO). The reward is designed to encourage accurate velocity tracking, smooth actuation, and stable posture maintenance. Denote the realized body velocity by $\bar{u}_t^{\mathrm{body}}=[v_{x,t},v_{y,t},\omega_{z,t}]^{\top}$. A representative tracking reward can be written as
+We train this tracker with PPO under domain randomization \cite{DBLP:journals/corr/SchulmanWDRK17,DBLP:conf/iros/TobinFRSZA17}. Denote the realized body velocity by $\bar{u}_t^{\mathrm{body}}=[v_{x,t},v_{y,t},\omega_{z,t}]^{\top}$. The low-level reward encourages accurate velocity tracking, smooth actuation, and stable posture:
 \begin{equation}
 r_t^{\mathrm{low}}=
 -\lambda_v \left\| \bar{u}_t^{\mathrm{body}}-u_t^{\mathrm{high}} \right\|_2^2
 -\lambda_u \left\| u_t^{\mathrm{joint}} \right\|_2^2
 -\lambda_p \phi_t^{\mathrm{stab}},
 \end{equation}
-where $\phi_t^{\mathrm{stab}}$ penalizes unstable body motions such as excessive roll, pitch, or slippage, and $\lambda_v,\lambda_u,\lambda_p>0$ are weighting coefficients. The PPO objective is then
-\begin{equation}
-\max_{\pi^{\mathrm{low}}}\;
-\mathbb{E}\!\left[\sum_{t=0}^{T_{\mathrm{low}}-1}\gamma^t r_t^{\mathrm{low}}\right].
-\end{equation}
-
-To improve transferability, the low-level policy is trained under domain randomization over mass properties, friction coefficients, actuation delays, and terrain-related disturbances. This design intentionally exposes the controller to execution uncertainty so that the learned tracking interface becomes robust to perturbations that are likely to appear during deployment. After training, $\pi^{\mathrm{low}}$ is frozen and no longer updated in the high-level learning stage. This step is essential because it turns the high-level environment into a much more stable decision layer: instead of directly interacting with highly nonlinear joint-space dynamics, the high-level policy only needs to reason over the effective closed-loop behavior induced by the fixed low-level controller.
+where $\phi_t^{\mathrm{stab}}$ penalizes unstable body motions such as excessive roll, pitch, or slippage. Domain randomization is applied over mass properties, friction coefficients, actuation delays, and terrain-related disturbances so that the learned velocity interface remains robust under execution uncertainty. After training, $\pi^{\mathrm{low}}$ is frozen during high-level learning, yielding a more stable closed-loop interface on which the high-level policy can reason over commanded velocities rather than joint-space dynamics.
 
 \subsection{High-level Budget-conditioned Reach-Avoid Learning}
 
