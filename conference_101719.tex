@@ -273,19 +273,19 @@ Figure~\ref{fig:metrics_grid_single_column} reports the scenario-wise comparison
 \hline
 Method & SR (\%) $\uparrow$ & CR (\%) $\downarrow$ & Cost $\downarrow$ \\
 \hline
-HD-MCRA & 75.0 & 14.3 & 85.3 \\
-PPO$_{\beta L}$ & 62.7 & 27.7 & 107.7 \\
-PPO$_{\beta H}$ & 58.3 & 21.7 & 99.3 \\
-CPPO$_{\beta L}$ & 57.3 & 12.7 & 96.3 \\
-CPPO$_{\beta H}$ & 72.3 & 16.3 & 107.3 \\
+HD-MCRA & 73.3 & 15.0 & 88.3 \\
+PPO$_{\beta L}$ & 67.7 & 23.0 & 99.7 \\
+PPO$_{\beta H}$ & 42.3 & 29.0 & 117.0 \\
+CPPO$_{\beta L}$ & 37.7 & 12.3 & 124.7 \\
+CPPO$_{\beta H}$ & 69.7 & 18.3 & 105.7 \\
 \hline
 \end{tabular}
 \normalsize
 \end{table}
 
-Figure~\ref{fig:metrics_grid_single_column} shows a consistent trend across scenario difficulty. HD-MCRA is the strongest method on the efficiency--completion trade-off: it achieves the highest or near-highest success rate while maintaining the lowest navigation cost in the narrow-passage and densely obstructed scenes, and it remains competitive in the moderately cluttered scene. In contrast, CPPO variants are generally more conservative, often producing lower collision rates, but this advantage is accompanied by either reduced success rate or higher execution cost. PPO baselines are comparatively more aggressive and exhibit the weakest safety performance.
+Figure~\ref{fig:metrics_grid_single_column} shows a consistent trend across scenario difficulty. In the moderately cluttered scene, PPO$_{\beta L}$ and CPPO$_{\beta H}$ achieve slightly higher success rates than HD-MCRA, but HD-MCRA remains competitive while keeping lower collision rate than PPO$_{\beta H}$ and substantially lower cost than the more conservative CPPO variants. As difficulty increases, HD-MCRA becomes the strongest method on the efficiency--completion trade-off: it delivers the highest success rate in both the narrow-passage and densely obstructed scenes while maintaining the lowest navigation cost. In contrast, CPPO variants are generally more conservative and often produce lower collision rates, but this advantage is accompanied by either reduced success rate or higher execution cost. PPO baselines are comparatively more aggressive and exhibit clearly worse safety in the harder scenes.
 
-Table~\ref{tab:main_result} summarizes the overall averages. HD-MCRA attains the highest average success rate ($75.0\%$) and the lowest average cost ($85.3$). CPPO$_{\beta L}$ is strongest on collision reduction but sacrifices task completion and efficiency, while CPPO$_{\beta H}$ is more competitive on success rate but remains more expensive than HD-MCRA. These results indicate that the proposed MCRA-based policy best preserves the intended balance between safe goal-reaching and execution efficiency.
+Table~\ref{tab:main_result} summarizes the overall averages. HD-MCRA attains the highest average success rate ($73.3\%$) and the lowest average cost ($88.3$). CPPO$_{\beta L}$ is strongest on collision reduction, with the lowest average collision rate ($12.3\%$), but it sacrifices task completion and efficiency; CPPO$_{\beta H}$ is more competitive on success rate ($69.7\%$) but remains more expensive than HD-MCRA. These results indicate that the proposed MCRA-based policy best preserves the intended balance between safe goal-reaching and execution efficiency.
 
 \subsection{Ablation on Hierarchy and Conservative Margins}
 
