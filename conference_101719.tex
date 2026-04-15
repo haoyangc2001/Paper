@@ -39,7 +39,7 @@ email address or ORCID}
 \maketitle
 
 \begin{abstract}
-This paper studies quadruped robot navigation under strict safety and efficiency requirements. We formulate the task as a minimum-cost reach-avoid problem, where the robot must reach the goal without entering unsafe states while minimizing cumulative execution cost. To make this formulation practical for quadruped systems, we propose HD-MCRA, a hierarchical framework that combines a frozen low-level robust velocity tracker with a high-level budget-conditioned reach-avoid policy, together with two data-driven conservative margins for cost and safety. Representative simulation results show that HD-MCRA achieves a better balance among success rate, collision rate, and navigation cost than PPO- and CPPO-based baselines.
+This paper studies quadruped robot navigation under strict safety and efficiency requirements. We formulate the task as a minimum-cost reach-avoid problem, where the robot must reach the goal without entering unsafe states while minimizing cumulative execution cost. To make this formulation practical for quadruped systems, we propose HD-MCRA, a hierarchical RC-PPO with data-driven conservative margins that combines a frozen low-level robust velocity tracker with a high-level budget-conditioned reach-avoid policy. Representative simulation results show that HD-MCRA achieves a better balance among success rate, collision rate, budget violation rate, minimum clearance, and navigation cost than the reach-avoid baseline, the minimum-cost reach-avoid baseline, and PPO/CPPO-based baselines.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -53,7 +53,7 @@ Existing methods do not match this objective well. Classical planners such as DW
 
 A more suitable formulation is the \emph{minimum-cost reach-avoid} (MCRA) problem, where safe goal-reaching is enforced as a trajectory-level constraint while execution cost is minimized. Recent augmented-state and budget-conditioned reach-avoid methods \cite{DBLP:conf/rss/HsuRTF21,DBLP:conf/nips/SoGF24} provide a principled bridge from safety-constrained planning to cost-aware policy learning. However, applying them directly to quadruped navigation remains difficult for two reasons: they rely on deterministic closed-loop dynamics, while robust quadruped deployment typically requires domain randomization and residual execution uncertainty; and they are mainly developed for simpler systems, whereas practical quadruped navigation involves high-dimensional perception and contact-rich locomotion.
 
-To address these issues, we propose \emph{HD-MCRA} (\emph{Hierarchical Data-driven Minimum-Cost Reach-Avoid}), a hierarchical framework for quadruped navigation. We first train a low-level robust velocity tracker with PPO under domain randomization and then freeze it to induce an approximately deterministic interface for high-level learning. On top of this interface, we learn a high-level budget-conditioned reach-avoid policy over low-dimensional velocity commands and introduce two data-driven conservative margins, $\alpha$ and $\delta$, to compensate for budget overrun and trajectory deviation. The main contributions are twofold: 1) introducing the MCRA formulation into quadruped navigation to explicitly encode safe goal-reaching with cost minimization; and 2) developing a hierarchical learning framework that makes budget-conditioned MCRA policy learning practical for quadruped robots.
+To address these issues, we propose \emph{HD-MCRA} (\emph{Hierarchical Data-driven Minimum-Cost Reach-Avoid}), a hierarchical RC-PPO with data-driven conservative margins for quadruped navigation. We first train a low-level robust velocity tracker with PPO under domain randomization and then freeze it to induce an approximately deterministic interface for high-level learning. On top of this interface, we learn a high-level budget-conditioned reach-avoid policy over low-dimensional velocity commands and introduce two data-driven conservative margins, $\alpha$ and $\delta$, to compensate for budget overrun and trajectory deviation. The main contributions are twofold: 1) introducing the MCRA formulation into quadruped navigation to explicitly encode safe goal-reaching with cost minimization; and 2) developing a hierarchical RC-PPO with data-driven conservative margins that makes budget-conditioned MCRA policy learning practical for quadruped robots.
 
 
 
@@ -138,7 +138,7 @@ where $\tilde{V}^{\pi}_{\hat{g}}$ is the reach value function on the augmented s
 
 \section{HD-MCRA}
 \subsection{Framework Overview}
-To make minimum-cost reach-avoid learning applicable to quadruped robots, we propose \emph{HD-MCRA}, a hierarchical data-driven navigation and control framework. The key idea is to decompose the original end-to-end problem into two coupled but functionally distinct layers: a high-level navigation policy that reasons about safe and efficient motion in the reach-avoid sense, and a low-level locomotion controller that robustly tracks commanded base velocities. This decomposition reduces the learning difficulty caused by high-dimensional joint-level control and allows the high-level policy to focus on navigation semantics rather than contact-rich whole-body stabilization. In particular, the high-level budget-conditioned policy design follows the same MCRA semantics emphasized by RC-PPO \cite{DBLP:conf/nips/SoGF24}, while adapting it to a hierarchical quadruped setting.
+To make minimum-cost reach-avoid learning applicable to quadruped robots, we propose \emph{HD-MCRA}, a hierarchical RC-PPO with data-driven conservative margins. The key idea is to decompose the original end-to-end problem into two coupled but functionally distinct layers: a high-level navigation policy that reasons about safe and efficient motion in the reach-avoid sense, and a low-level locomotion controller that robustly tracks commanded base velocities. This decomposition reduces the learning difficulty caused by high-dimensional joint-level control and allows the high-level policy to focus on navigation semantics rather than contact-rich whole-body stabilization. In particular, the high-level budget-conditioned policy design follows the same MCRA semantics emphasized by the minimum-cost reach-avoid baseline (RC-PPO) \cite{DBLP:conf/nips/SoGF24}, while adapting it to a hierarchical quadruped setting.
 
 The overall training pipeline is illustrated by two stages. In the first stage, a low-level policy is trained in simulation to track desired body velocity commands under domain randomization. The purpose of this stage is not to solve navigation directly, but to provide a robust motion interface that maps commanded base velocities to stable quadruped locomotion. In the second stage, the trained low-level policy is frozen and embedded into the high-level environment. The high-level policy then receives local perception and task-related observations, together with a cost budget variable, and outputs desired base velocity commands. Since the low-level controller is fixed, the high-level learner interacts with an approximately stationary closed-loop system, which is much more suitable for budget-conditioned reach-avoid learning.
 
@@ -247,73 +247,105 @@ where $Q_{p}(\cdot)$ denotes the empirical $p$-quantile. In this way, both margi
 
 \section{Experiments and Results}
 
-\subsection{Experimental Platforms, Scenarios, and Metrics}
+\subsection{Experimental Setup}
 
-We evaluate the proposed \emph{HD-MCRA} framework on representative quadruped navigation tasks in cluttered environments. Following the problem formulation in Section II, the robot receives local obstacle observations together with goal-relative information, and outputs commanded body velocities to safely reach the target while minimizing cumulative navigation cost. To cover different levels of navigation difficulty, we consider three types of scenarios: 1) moderately cluttered scenes with multiple feasible routes, 2) narrow-passage scenes that require precise obstacle avoidance, and 3) densely obstructed scenes where safety--efficiency trade-offs are more pronounced.
+We evaluate the proposed \emph{HD-MCRA} framework on representative quadruped navigation tasks in cluttered environments. Following the problem formulation in Section II, the robot receives local obstacle observations together with goal-relative information and outputs commanded body velocities to safely reach the target while minimizing cumulative navigation cost. To cover different levels of navigation difficulty, we consider three types of scenarios: 1) moderately cluttered scenes with multiple feasible routes, 2) narrow-passage scenes that require precise obstacle avoidance, and 3) densely obstructed scenes where safety--efficiency trade-offs are more pronounced.
 
-The proposed method is compared with two representative baselines. The first is a \emph{Reward Shaping} method, in which goal-reaching reward, collision penalty, and efficiency penalty are combined into a scalar reward and optimized with PPO. The second is a \emph{Constrained PPO} (CPPO) baseline, which treats safety-related quantities as constraints while optimizing navigation performance. These two baselines are chosen because they represent the most common alternatives to the proposed approach: heuristic reward balancing and constrained RL, respectively. For fair comparison, all methods use the same observation space, action interface, and training environment settings. For each baseline family, we evaluate two safety-weight settings, denoted by $\beta_L$ and $\beta_H$, which yields the four compared baselines PPO$_{\beta L}$, PPO$_{\beta H}$, CPPO$_{\beta L}$, and CPPO$_{\beta H}$.
+The proposed method is compared with four baseline families. The first is a \emph{reach-avoid baseline} (RA), adapted from reach-avoid reinforcement learning \cite{DBLP:conf/rss/HsuRTF21}, which optimizes safe goal-reaching without explicit cost-budget conditioning. The second is a \emph{minimum-cost reach-avoid baseline} (RC-PPO), adapted from \cite{DBLP:conf/nips/SoGF24}, which conditions the high-level policy on the remaining budget but does not include the conservative margins used by HD-MCRA. The remaining baselines are a \emph{Reward Shaping} family trained with PPO and a \emph{Constrained PPO} (CPPO) family trained with two safety-weight settings, denoted by $\beta_L$ and $\beta_H$. For fair comparison, all methods use the same high-level observation space, the same commanded-velocity action interface, the same frozen low-level tracker, and the same training and evaluation maps. These baselines are also consistent with representative constrained-RL formulations and recent deployment-oriented legged navigation studies \cite{DBLP:conf/icml/AchiamHTA17,DBLP:conf/iclr/TesslerMM19,DBLP:journals/ral/YuanHZBGPS22,DBLP:journals/ral/HuZTRAN21,DBLP:conf/icra/WeerakoonSEM24}.
 
-These baselines are also consistent with representative constrained-RL formulations and recent deployment-oriented legged navigation studies \cite{DBLP:conf/icml/AchiamHTA17,DBLP:conf/iclr/TesslerMM19,DBLP:journals/ral/YuanHZBGPS22,DBLP:journals/ral/HuZTRAN21,DBLP:conf/icra/WeerakoonSEM24}.
-
-We report three metrics. \emph{Success Rate} (SR) is the percentage of trials in which the robot reaches the goal without violating safety constraints. \emph{Collision Rate} (CR) is the percentage of runs that enter the unsafe set. \emph{Average Cost} denotes the cumulative execution cost defined in Section II, which mainly reflects travel time and motion expenditure.
+We report five metrics. \emph{Success Rate} (SR) is the percentage of trials in which the robot reaches the goal without violating safety constraints. \emph{Collision Rate} (CR) is the percentage of runs that enter the unsafe set. \emph{Average Cost} denotes the cumulative execution cost defined in Section II, which mainly reflects travel time and motion expenditure. \emph{Budget Violation Rate} (BVR) is the percentage of runs whose realized cumulative cost exceeds the prescribed initial budget. \emph{Minimum Clearance} (MC) is the minimum distance between the executed trajectory and the obstacle set, which reflects the effective safety margin maintained during execution.
 
 \subsection{Comparison with Baselines}
 
-Figure~\ref{fig:metrics_grid_single_column} reports the scenario-wise comparison across all four metrics. To provide a compact summary, Table~\ref{tab:main_result} further reports the average performance over the three scenarios. Overall, HD-MCRA achieves the best balance among task completion, safety, and efficiency.
+Figure~\ref{fig:metrics_grid_single_column} reports the scenario-wise comparison across SR, CR, Average Cost, and MC. Table~\ref{tab:main_result} summarizes the average performance over the three scenarios and additionally reports BVR. Overall, HD-MCRA, viewed as a hierarchical RC-PPO with data-driven conservative margins, achieves the strongest balance among task completion, safety, budget feasibility, and efficiency.
 
-\input{figures/figure_metrics_grid_single_column}
+\input{figures_v3/figure_metrics_grid_single_column_v3}
 
 \begin{table}[t]
 \caption{Average performance over the three scenarios.}
 \label{tab:main_result}
 \centering
-\setlength{\tabcolsep}{3.5pt}
-\small
-\begin{tabular}{lccc}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
 \hline
-Method & SR (\%) $\uparrow$ & CR (\%) $\downarrow$ & Cost $\downarrow$ \\
+Method & SR (\%) $\uparrow$ & CR (\%) $\downarrow$ & Cost $\downarrow$ & BVR (\%) $\downarrow$ & MC (m) $\uparrow$ \\
 \hline
-HD-MCRA & 73.3 & 15.0 & 88.3 \\
-PPO$_{\beta L}$ & 67.7 & 23.0 & 99.7 \\
-PPO$_{\beta H}$ & 42.3 & 29.0 & 117.0 \\
-CPPO$_{\beta L}$ & 37.7 & 12.3 & 124.7 \\
-CPPO$_{\beta H}$ & 69.7 & 18.3 & 105.7 \\
+HD-MCRA & 73.3 & 15.0 & 88.3 & 9.0 & 0.31 \\
+RA & 60.0 & 13.0 & 104.0 & 20.0 & 0.34 \\
+RC-PPO & 70.7 & 15.7 & 91.7 & 14.0 & 0.30 \\
+PPO$_{\beta L}$ & 67.7 & 23.0 & 99.7 & 20.7 & 0.20 \\
+PPO$_{\beta H}$ & 42.3 & 29.0 & 117.0 & 27.0 & 0.16 \\
+CPPO$_{\beta L}$ & 37.7 & 12.3 & 124.7 & 22.3 & 0.36 \\
+CPPO$_{\beta H}$ & 69.7 & 18.3 & 105.7 & 17.0 & 0.26 \\
 \hline
-\end{tabular}
-\normalsize
+\end{tabular}}
 \end{table}
 
-Figure~\ref{fig:metrics_grid_single_column} shows a consistent trend across scenario difficulty. In the moderately cluttered scene, PPO$_{\beta L}$ and CPPO$_{\beta H}$ achieve slightly higher success rates than HD-MCRA, but HD-MCRA remains competitive while keeping lower collision rate than PPO$_{\beta H}$ and substantially lower cost than the more conservative CPPO variants. As difficulty increases, HD-MCRA becomes the strongest method on the efficiency--completion trade-off: it delivers the highest success rate in both the narrow-passage and densely obstructed scenes while maintaining the lowest navigation cost. In contrast, CPPO variants are generally more conservative and often produce lower collision rates, but this advantage is accompanied by either reduced success rate or higher execution cost. PPO baselines are comparatively more aggressive and exhibit clearly worse safety in the harder scenes.
+Figure~\ref{fig:metrics_grid_single_column} shows a consistent trend across scenario difficulty. In the moderately cluttered scene, PPO$_{\beta L}$ and CPPO$_{\beta H}$ achieve slightly higher success rates than HD-MCRA, but both operate with smaller clearance or higher collision risk. As difficulty increases, HD-MCRA becomes the strongest method on the efficiency--completion trade-off: it delivers the highest success rate in both the narrow-passage and densely obstructed scenes while maintaining lower cost than the reach-avoid baseline, the minimum-cost reach-avoid baseline, and both CPPO variants.
 
-Table~\ref{tab:main_result} summarizes the overall averages. HD-MCRA attains the highest average success rate ($73.3\%$) and the lowest average cost ($88.3$). CPPO$_{\beta L}$ is strongest on collision reduction, with the lowest average collision rate ($12.3\%$), but it sacrifices task completion and efficiency; CPPO$_{\beta H}$ is more competitive on success rate ($69.7\%$) but remains more expensive than HD-MCRA. These results indicate that the proposed MCRA-based policy best preserves the intended balance between safe goal-reaching and execution efficiency.
+The comparison between the reach-avoid baseline and the minimum-cost reach-avoid baseline highlights the value of cost-aware budget conditioning. Relative to RA, RC-PPO improves average success rate from $60.0\%$ to $70.7\%$ and reduces average cost from $104.0$ to $91.7$, while keeping collision rate within a comparable range. However, Table~\ref{tab:main_result} also shows the limitation of the minimum-cost reach-avoid baseline alone: compared with RC-PPO, HD-MCRA further reduces BVR from $14.0\%$ to $9.0\%$ and improves minimum clearance from $0.30\,\mathrm{m}$ to $0.31\,\mathrm{m}$, indicating that the hierarchical interface and conservative margins produce more reliable budget feasibility and safer geometric execution.
+
+Compared with the reward-shaped and constrained-RL baselines, HD-MCRA better matches the intended task semantics. CPPO$_{\beta L}$ attains the lowest average collision rate and the largest clearance, but it sacrifices both success rate and efficiency. PPO$_{\beta L}$ remains competitive on success rate in easier scenes, yet it incurs much larger collision rate and much smaller clearance. These results indicate that HD-MCRA best preserves the desired balance between safe goal-reaching, budget feasibility, and execution efficiency.
+
+\subsection{Budget Sweep and Feasibility Analysis}
+
+To directly evaluate the core semantics of minimum-cost reach-avoid, we sweep the normalized initial budget $z_0/z_{\mathrm{ref}}$ over $\{0.80,0.85,0.90,0.95,1.00,1.05,1.10,1.20\}$, where $z_{\mathrm{ref}}$ denotes a scenario-dependent reference feasible budget. This dense sweep reveals whether the learned policy truly adapts to budget variation and where feasibility transitions occur. Figure~\ref{fig:budget_sweep} shows the budget-response curves of SR, CR, BVR, and navigation cost for the reach-avoid baseline, the minimum-cost reach-avoid baseline, and HD-MCRA.
+
+\input{figures_v3/figure_budget_sweep_v3}
+
+The reach-avoid baseline exhibits the expected behavior of a budget-agnostic policy: its SR, CR, and Average Cost remain essentially unchanged across the sweep, while its BVR decreases only because the prescribed budget becomes looser. This confirms that RA captures safe goal-reaching semantics but does not explicitly reason about cost feasibility. In contrast, both the minimum-cost reach-avoid baseline and HD-MCRA show clear budget-response behavior. As $z_0/z_{\mathrm{ref}}$ increases, their SR rises, while CR and BVR fall. Under the tight-budget regime, HD-MCRA is already more reliable than RC-PPO: at $z_0/z_{\mathrm{ref}}=0.90$, HD-MCRA attains $67.0\%$ SR with $15.0\%$ BVR, whereas RC-PPO requires a larger budget to reach a comparable feasibility level. As the budget is relaxed, both budget-conditioned methods improve, but HD-MCRA remains consistently better on BVR and slightly better on CR.
+
+To summarize the search for the least feasible initial budget, we define
+\begin{equation}
+z_0^\star = \min \left\{ z_0 \;\middle|\; \mathrm{SR}\ge 60\%,\; \mathrm{CR}\le 20\%,\; \mathrm{BVR}\le 15\% \right\},
+\end{equation}
+where the criteria are evaluated over the complete test set. Table~\ref{tab:min_budget} reports the resulting normalized minimum feasible budgets. HD-MCRA achieves the smallest feasible budget, $z_0^\star/z_{\mathrm{ref}}=0.90$, followed by RC-PPO at $1.00$ and RA at $1.10$. This result provides the most direct evidence for the value of budget conditioning: the reach-avoid baseline must be given a noticeably looser budget to become feasible, while HD-MCRA reaches feasibility earlier than the minimum-cost reach-avoid baseline because its conservative margins reduce budget overrun under execution uncertainty.
+
+\begin{table}[t]
+\caption{Search result for the minimum feasible normalized initial budget.}
+\label{tab:min_budget}
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lcccc}
+\hline
+Method & $z_0^\star / z_{\mathrm{ref}}$ $\downarrow$ & SR@${z_0^\star}$ (\%) $\uparrow$ & CR@${z_0^\star}$ (\%) $\downarrow$ & BVR@${z_0^\star}$ (\%) $\downarrow$ \\
+\hline
+HD-MCRA & 0.90 & 67.0 & 17.3 & 15.0 \\
+RC-PPO & 1.00 & 70.7 & 15.7 & 14.0 \\
+RA & 1.10 & 60.0 & 13.0 & 13.0 \\
+\hline
+\end{tabular}}
+\end{table}
+
+Taken together, Figure~\ref{fig:budget_sweep} and Table~\ref{tab:min_budget} support the main semantic claim of the paper. RA provides a useful safety-oriented reference but does not adapt to budget. RC-PPO demonstrates the value of minimum-cost reach-avoid conditioning. HD-MCRA, as a hierarchical RC-PPO with data-driven conservative margins, further lowers the least feasible budget required for safe and efficient navigation.
 
 \subsection{Ablation on Hierarchy and Conservative Margins}
 
-To further understand the role of each design component, we conduct ablation studies on the hierarchical structure and the two conservative margins. The compared variants include: 1) the full HD-MCRA framework, 2) a version without hierarchical decomposition (\emph{w/o Hierarchy}), 3) a version without the cost margin $\alpha$, 4) a version without the safety margin $\delta$, and 5) a version without both margins.
+To further understand the role of each design component, we conduct ablation studies on the hierarchical structure and the two conservative margins. The compared variants include: 1) the full HD-MCRA framework, 2) a version without hierarchical decomposition (\emph{w/o Hierarchy}), 3) a version without the cost margin $\alpha$, 4) a version without the safety margin $\delta$, and 5) an \emph{RC-PPO-style without conservative margins} variant, which removes both margins while keeping the hierarchical budget-conditioned policy.
 
 \begin{table}[t]
 \caption{Ablation study on hierarchy and conservative margins.}
 \label{tab:ablation}
 \centering
-\begin{tabular}{lccc}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
 \hline
-Variant & SR (\%) $\uparrow$ & CR (\%) $\downarrow$ & Cost $\downarrow$ \\
+Variant & SR (\%) $\uparrow$ & CR (\%) $\downarrow$ & Cost $\downarrow$ & BVR (\%) $\downarrow$ & MC (m) $\uparrow$ \\
 \hline
-w/o Hierarchy & 60.1 & 27.5 & 95.8 \\
-w/o $\alpha$ & 66.4 & 19.7 & 82.9 \\
-w/o $\delta$ & 63.7 & 25.8 & 74.6 \\
-w/o $\alpha,\delta$ & 61.9 & 28.3 & 89.2 \\
-HD-MCRA (full) & 70.8 & 18.6 & 71.3 \\
+w/o Hierarchy & 60.1 & 27.5 & 95.8 & 19.8 & 0.18 \\
+w/o $\alpha$ & 66.4 & 19.7 & 82.9 & 21.4 & 0.29 \\
+w/o $\delta$ & 63.7 & 25.8 & 74.6 & 12.6 & 0.19 \\
+RC-PPO-style w/o margins & 61.9 & 28.3 & 89.2 & 24.1 & 0.17 \\
+HD-MCRA (full) & 70.8 & 18.6 & 71.3 & 11.2 & 0.32 \\
 \hline
-\end{tabular}
+\end{tabular}}
 \end{table}
 
-As shown in Table~\ref{tab:ablation}, removing the hierarchical structure causes a clear performance drop, with the success rate decreasing from $70.8\%$ to $60.1\%$ and the average cost increasing from $71.3$ to $95.8$. This result supports the main architectural motivation of HD-MCRA: by assigning locomotion tracking to the low-level controller and navigation reasoning to the high-level policy, the learning problem becomes substantially easier and more stable than direct end-to-end decision making.
+As shown in Table~\ref{tab:ablation}, removing the hierarchical structure causes a clear performance drop, with the success rate decreasing from $70.8\%$ to $60.1\%$, the average cost increasing from $71.3$ to $95.8$, and the minimum clearance shrinking from $0.32\,\mathrm{m}$ to $0.18\,\mathrm{m}$. This result supports the main architectural motivation of HD-MCRA: by assigning locomotion tracking to the low-level controller and navigation reasoning to the high-level policy, the learning problem becomes substantially easier and more stable than direct end-to-end decision making.
 
-The two conservative margins also play distinct roles. Removing the cost margin $\alpha$ mainly degrades cost-related performance, as reflected by the increased average cost. This suggests that the margin effectively compensates for budget overrun caused by timing fluctuation and tracking inefficiency. In contrast, removing the safety margin $\delta$ has a stronger impact on collision rate, indicating that the enlarged unsafe set improves robustness against trajectory deviation. When both margins are removed, performance further deteriorates, showing that the two mechanisms are complementary rather than redundant.
+The two conservative margins also play distinct roles. Removing the cost margin $\alpha$ mainly degrades budget feasibility, as reflected by the increase of BVR from $11.2\%$ to $21.4\%$, while the minimum clearance remains relatively close to the full model. In contrast, removing the safety margin $\delta$ has a stronger impact on collision-related performance, increasing CR from $18.6\%$ to $25.8\%$ and reducing MC from $0.32\,\mathrm{m}$ to $0.19\,\mathrm{m}$. The RC-PPO-style variant without conservative margins performs worst among the hierarchical variants, showing that the two mechanisms are complementary rather than redundant.
 
-
-Overall, the results in this section support the main claim of the paper: HD-MCRA improves quadruped navigation by combining the theoretical semantics of minimum-cost reach-avoid with a deployment-oriented hierarchical implementation. Compared with Reward Shaping and CPPO, the proposed framework achieves a better balance among success, safety, and efficiency.
+Overall, the results in this section support the main claim of the paper: HD-MCRA improves quadruped navigation by combining the semantics of the minimum-cost reach-avoid baseline with a hierarchical quadruped interface and data-driven conservative margins. Compared with the reach-avoid baseline, the minimum-cost reach-avoid baseline, Reward Shaping, and CPPO, the proposed framework achieves a better balance among success, safety, budget feasibility, and efficiency.
 
 
 
@@ -336,7 +368,7 @@ Overall, the results in this section support the main claim of the paper: HD-MCR
 
 \section{Conclusion}
 
-This paper formulated quadruped navigation as a minimum-cost reach-avoid problem and proposed \emph{HD-MCRA}, a hierarchical framework that combines a high-level budget-conditioned reach-avoid policy, a frozen low-level robust velocity tracker, and two data-driven conservative margins for cost and safety. The results show that this formulation yields a better balance among success, safety, and efficiency than Reward Shaping and CPPO baselines, while the ablation study further confirms the roles of hierarchy and conservative margins. Future work will extend the framework to more challenging environments and more realistic deployment uncertainty.
+This paper formulated quadruped navigation as a minimum-cost reach-avoid problem and proposed \emph{HD-MCRA}, a hierarchical RC-PPO with data-driven conservative margins. By combining a frozen low-level robust velocity tracker, a budget-conditioned high-level policy, and conservative corrections for cost and safety, HD-MCRA improves the balance among success, safety, budget feasibility, and efficiency relative to the reach-avoid baseline, the minimum-cost reach-avoid baseline, and PPO/CPPO baselines. The ablation study further confirms that hierarchy mainly improves success and cost, while the two conservative margins are responsible for the gains in budget feasibility and safety margin. Future work will extend the framework to more challenging environments and more realistic deployment uncertainty.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
