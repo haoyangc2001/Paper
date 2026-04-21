@@ -12,10 +12,7 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
-\title{HD-MCRA: Hierarchical Reach-Avoid Navigation for Quadruped Robots\\
-
-\thanks{Identify applicable funding agency here. If none, delete this.}
-}
+\title{HD-MCRA: Hierarchical Reach-Avoid Navigation for Quadruped Robots}
 
 \author{\IEEEauthorblockN{1\textsuperscript{st} Given Name Surname}
 \IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
@@ -39,7 +36,7 @@ email address or ORCID}
 \maketitle
 
 \begin{abstract}
-This paper studies quadruped robot navigation under strict safety and efficiency requirements. We formulate the task as a minimum-cost reach-avoid problem, where the robot must reach the goal without entering unsafe states while minimizing cumulative execution cost. To make this formulation practical for quadruped systems, we propose HD-MCRA, a hierarchical RC-PPO with data-driven conservative margins that combines a frozen low-level robust velocity tracker with a high-level budget-conditioned reach-avoid policy. Representative simulation results show that HD-MCRA achieves a better balance among success rate, collision rate, budget violation rate, minimum clearance, and navigation cost than the reach-avoid baseline, the minimum-cost reach-avoid baseline, and PPO/CPPO-based baselines.
+This paper studies quadruped robot navigation under strict safety and efficiency requirements. We formulate the task as a minimum-cost reach-avoid problem, where the robot must reach the goal without entering unsafe states while minimizing cumulative execution cost. To make this formulation practical for quadruped systems, we propose HD-MCRA, a hierarchical minimum-cost reach-avoid framework with data-driven conservative margins that combines a frozen low-level robust velocity tracker with a high-level budget-conditioned reach-avoid policy. Representative simulation results show that HD-MCRA achieves a better balance among success rate, collision rate, budget violation rate, minimum clearance, and navigation cost than the reach-avoid baseline, the minimum-cost reach-avoid baseline, and PPO/CPPO-based baselines.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -49,9 +46,9 @@ quadruped robot, navigation, reach-avoid, hierarchical reinforcement learning, s
 \section{Introduction}
 Recent advances in learning-based quadruped locomotion have substantially improved agile motion and terrain adaptation on physical robots \cite{DBLP:journals/scirobotics/HwangboWK020,DBLP:conf/rss/KumarFPM21,DBLP:journals/scirobotics/MikiLHWKH22}. As a result, the main deployment bottleneck has increasingly shifted from low-level locomotion capability to high-level autonomous navigation in cluttered environments. In practical missions such as inspection, search and rescue, and security patrol, quadruped navigation must satisfy two hard requirements simultaneously: collision-free goal reaching and low execution cost under contact-rich execution and perception uncertainty.
 
-Existing methods do not align well with this objective. Classical planners such as DWA and D* Lite \cite{DBLP:journals/ram/FoxBT97,DBLP:conf/aaai/KoenigL02} rely on modeling and execution assumptions that are difficult to maintain for quadruped platforms, while most reinforcement learning approaches optimize weighted rewards or constrained objectives \cite{DBLP:conf/icml/AchiamHTA17,DBLP:conf/iclr/TesslerMM19,DBLP:journals/ral/YuanHZBGPS22}, which softens safe goal-reaching into a tunable preference or introduces threshold-selection sensitivity. A more suitable formulation is the \emph{minimum-cost reach-avoid} (MCRA) problem, where safe goal-reaching is enforced as a trajectory-level constraint while execution cost is minimized. Recent augmented-state and budget-conditioned reach-avoid methods \cite{DBLP:conf/rss/HsuRTF21,DBLP:conf/nips/SoGF24} provide a principled route to cost-aware policy learning, but they are not directly applicable to quadruped navigation because they rely on deterministic closed-loop dynamics and are mainly developed for simpler systems.
+Existing methods do not align well with this objective. Classical planners such as DWA and D* Lite \cite{DBLP:journals/ram/FoxBT97,DBLP:conf/aaai/KoenigL02} rely on modeling and execution assumptions that are difficult to maintain for quadruped platforms, while most reinforcement learning approaches optimize weighted rewards or constrained objectives \cite{DBLP:conf/icml/AchiamHTA17,DBLP:conf/iclr/TesslerMM19,DBLP:journals/ral/YuanHZBGPS22}, which softens safe goal-reaching into a tunable preference or introduces threshold-selection sensitivity. A more suitable formulation is the \emph{minimum-cost reach-avoid} (MCRA) problem, where safe goal-reaching is enforced as a trajectory-level constraint while execution cost is minimized. Recent reach-avoid methods and the budget-conditioned RC-PPO framework \cite{DBLP:conf/rss/HsuRTF21,DBLP:conf/nips/SoGF24} provide a principled route to cost-aware policy learning, but RC-PPO is built on deterministic-dynamics assumptions that preclude commonly used deployment-oriented techniques such as domain randomization, limiting its direct applicability to quadruped navigation.
 
-To address these issues, we propose \emph{HD-MCRA} (\emph{Hierarchical Data-driven Minimum-Cost Reach-Avoid}), a hierarchical RC-PPO with data-driven conservative margins for quadruped navigation. We first train a low-level robust velocity tracker with PPO under domain randomization and then freeze it to induce an approximately deterministic interface for high-level learning. On top of this interface, we learn a high-level budget-conditioned reach-avoid policy over low-dimensional velocity commands and introduce two data-driven conservative margins, $\alpha$ and $\delta$, to compensate for budget overrun and trajectory deviation. The main contributions are twofold: 1) introducing the MCRA formulation into quadruped navigation to explicitly encode safe goal-reaching with cost minimization; and 2) developing a hierarchical RC-PPO with data-driven conservative margins that makes budget-conditioned MCRA policy learning practical for quadruped robots.
+To address these issues, we propose \emph{HD-MCRA} (\emph{Hierarchical Data-driven Minimum-Cost Reach-Avoid}), a hierarchical minimum-cost reach-avoid framework with data-driven conservative margins for quadruped navigation. We first train a low-level robust velocity tracker with PPO under domain randomization and then freeze it to induce an approximately deterministic interface for high-level learning. On top of this interface, we learn a high-level budget-conditioned reach-avoid policy over low-dimensional velocity commands and introduce two data-driven conservative margins, $\alpha$ and $\delta$, to compensate for budget overrun and trajectory deviation. The main contributions are twofold: 1) introducing the MCRA formulation into quadruped navigation to explicitly encode safe goal-reaching with cost minimization; and 2) developing a hierarchical MCRA framework with data-driven conservative margins that makes budget-conditioned minimum-cost reach-avoid learning practical for quadruped robots.
 
 
 
@@ -83,19 +80,19 @@ where $\mathcal{X}$ denotes the high-level state space, $\mathcal{U}^{\mathrm{hi
 \min_{\pi,T}\quad & \sum_{t=0}^{T-1} c\!\left(x_t,\pi(x_t)\right) \label{eq:mcra_obj}\\
 \mathrm{s.t.}\quad & x_T \in \mathcal{G}, \label{eq:mcra_goal}\\
 & x_t \notin \mathcal{F},\quad \forall t\in\{0,\dots,T\}, \label{eq:mcra_safe}\\
-& x_{t+1}=f\!\left(x_t,\pi(x_t)\right). \label{eq:mcra_dyn}
+& x_{t+1}\sim P\!\left(\cdot\mid x_t,\pi(x_t)\right). \label{eq:mcra_dyn}
 \end{align}
 Moreover, the goal set and the unsafe set can be represented by two signed functions
 $g:\mathcal{X}\rightarrow\mathbb{R}$ and $h:\mathcal{X}\rightarrow\mathbb{R}$ as
 \begin{equation}
-\begin{aligned}
-\mathcal{G} &:= \{x\in\mathcal{X}\mid g(x)\le 0\} \\
-\mathcal{F} &:= \{x\in\mathcal{X}\mid h(x)>0\}
-\end{aligned}
+\mathcal{G} := \{x\in\mathcal{X}\mid g(x)\le 0\}
+\end{equation}
+\begin{equation}
+\mathcal{F} := \{x\in\mathcal{X}\mid h(x)>0\}
 \end{equation}
 This formulation differs fundamentally from reward shaping: goal-reaching and safety are treated as trajectory-level constraints rather than soft preferences in a weighted reward. For quadruped navigation, this distinction is important because surrogate reward or CMDP objectives may not align with the true requirement of safe arrival with minimum cumulative cost \cite{DBLP:conf/nips/SoGF24}.
 
-To preserve this semantics, we adopt the augmented-state perspective of \cite{DBLP:conf/nips/SoGF24}. Define the augmented state as
+The augmented-state derivation used in RC-PPO \cite{DBLP:conf/nips/SoGF24} is developed for deterministic discrete dynamics of the form $x_{t+1}=f(x_t,u_t)$. Accordingly, the transition map $f$ introduced below should be interpreted as a deterministic nominal model used for the MCRA reformulation, rather than as the full stochastic quadruped system in \eqref{eq:mcra_dyn}. To connect our stochastic navigation problem to that framework, we next introduce the standard augmented-state construction for this nominal map and later show how HD-MCRA obtains a practical nominal closed-loop abstraction for quadrupeds. Define the augmented state as
 \begin{equation}
 \hat{x}_t=(x_t,y_t,z_t)\in \hat{\mathcal{X}}:=\mathcal{X}\times\{-1,1\}\times\mathbb{R}
 \end{equation}
@@ -126,12 +123,12 @@ with augmented goal set
 \end{equation}
 Under this construction, reaching $\hat{\mathcal{G}}$ implies that the original system reaches the goal, remains safe along the whole trajectory, and does not exceed the prescribed budget, which is the key theoretical bridge from reach-avoid constraints to cost-aware reachability \cite{DBLP:conf/nips/SoGF24}.
 
-Therefore, the original MCRA problem can be equivalently interpreted as searching for the least feasible initial budget
+Therefore, the corresponding nominal MCRA problem can be equivalently interpreted as searching for the least feasible initial budget
 \begin{align}
 \min_{\pi,z_0}\quad & z_0 \\
 \mathrm{s.t.}\quad & \tilde{V}^{\pi}_{\hat{g}}(x_0,I_{x_0\in\mathcal{F}},z_0)\le 0,
 \end{align}
-where $\tilde{V}^{\pi}_{\hat{g}}$ is the reach value function on the augmented system. This viewpoint explicitly encodes safe goal-reaching and cost feasibility into the problem structure. However, directly applying it to quadruped robots remains difficult because existing augmented-state MCRA methods assume deterministic closed-loop dynamics and are mainly developed for simpler systems, whereas practical quadruped navigation involves execution uncertainty, high-dimensional perception, and contact-rich locomotion. These limitations motivate the hierarchical treatment introduced next.
+where $\tilde{V}^{\pi}_{\hat{g}}$ is the reach value function on the augmented system. This viewpoint explicitly encodes safe goal-reaching and cost feasibility into the problem structure. However, this deterministic nominal reformulation is not yet sufficient for quadruped navigation: the real closed-loop system remains stochastic, contact-rich, and subject to execution variability, and robustness tools such as domain randomization do not fit directly into the deterministic assumptions behind RC-PPO. Bridging this gap requires a quadruped-specific nominal closed-loop abstraction together with conservative corrections for residual mismatch, which motivates the HD-MCRA framework introduced next.
 
 
 
@@ -141,18 +138,16 @@ where $\tilde{V}^{\pi}_{\hat{g}}$ is the reach value function on the augmented s
 
 \section{HD-MCRA}
 \subsection{Framework Overview}
-To make minimum-cost reach-avoid learning applicable to quadruped robots, we propose \emph{HD-MCRA}, a hierarchical RC-PPO with data-driven conservative margins. The key idea is to decompose the original end-to-end problem into two coupled but functionally distinct layers: a high-level navigation policy that reasons about safe and efficient motion in the reach-avoid sense, and a low-level locomotion controller that robustly tracks commanded base velocities. This decomposition reduces the learning difficulty caused by high-dimensional joint-level control and allows the high-level policy to focus on navigation semantics rather than contact-rich whole-body stabilization. In particular, the high-level budget-conditioned policy design follows the same MCRA semantics emphasized by the minimum-cost reach-avoid baseline (RC-PPO) \cite{DBLP:conf/nips/SoGF24}, while adapting it to a hierarchical quadruped setting.
-
-The overall training pipeline is illustrated by two stages. In the first stage, a low-level policy is trained in simulation to track desired body velocity commands under domain randomization. The purpose of this stage is not to solve navigation directly, but to provide a robust motion interface that maps commanded base velocities to stable quadruped locomotion. In the second stage, the trained low-level policy is frozen and embedded into the high-level environment. The high-level policy then receives local perception and task-related observations, together with a cost budget variable, and outputs desired base velocity commands. Since the low-level controller is fixed, the high-level learner interacts with an approximately stationary closed-loop system, which is much more suitable for budget-conditioned reach-avoid learning.
+HD-MCRA makes minimum-cost reach-avoid learning practical for quadruped robots by separating navigation reasoning from locomotion execution. We first train a low-level policy under domain randomization to robustly track commanded base velocities and then freeze it as a motion interface. On top of this fixed interface, a high-level policy receives local perception, task observations, and the remaining budget, and outputs low-dimensional velocity commands. This hierarchy avoids end-to-end joint-space learning, preserves locomotion feasibility, and exposes the high level to a much more stationary closed-loop system for budget-conditioned MCRA learning; the residual mismatch of this nominal interface is handled later by the conservative margins $\alpha$ and $\delta$.
 
 Formally, let the overall policy be written as
 \begin{equation}
-\begin{aligned}
 u_t^{\mathrm{joint}}
-&=\pi^{\mathrm{low}}\big(s_t^{\mathrm{low}},u_t^{\mathrm{high}}\big) \\
+=\pi^{\mathrm{low}}\big(s_t^{\mathrm{low}},u_t^{\mathrm{high}}\big)
+\end{equation}
+\begin{equation}
 u_t^{\mathrm{high}}
-&=\pi^{\mathrm{high}}(o_t,z_t)
-\end{aligned}
+=\pi^{\mathrm{high}}(o_t,z_t)
 \end{equation}
 where $o_t$ denotes the high-level observation, $u_t^{\mathrm{high}}$ denotes the commanded base velocity, $s_t^{\mathrm{low}}$ denotes the low-level locomotion state, and $u_t^{\mathrm{joint}}$ denotes the final joint-level control action. This factorization allows the navigation problem to be solved at a lower action dimension while preserving the physical feasibility of locomotion execution.
 
@@ -179,13 +174,20 @@ On top of the frozen low-level controller, the high-level policy solves the navi
 \begin{equation}
 u_t^{\mathrm{high}}=\pi^{\mathrm{high}}(o_t,z_t)
 \end{equation}
-where $z_t$ is the remaining budget variable. Because the low-level controller is fixed, the effective high-level transition can be written as
+where $z_t$ is the remaining budget variable. With the low-level controller frozen, the high-level process induces a reduced closed-loop transition kernel $P_{\mathrm{cl}}(\cdot\mid x_t,u_t^{\mathrm{high}})$. We approximate this kernel by a nominal closed-loop map and write
 \begin{equation}
-x_{t+1}=f_{\mathrm{cl}}\!\left(x_t,\pi^{\mathrm{high}}(o_t,z_t)\right)
+x_{t+1}=\bar{f}_{\mathrm{cl}}\!\left(x_t,\pi^{\mathrm{high}}(o_t,z_t)\right)
 \end{equation}
-where $f_{\mathrm{cl}}$ denotes the closed-loop dynamics obtained by composing the robot dynamics with the frozen low-level tracker. This closed-loop representation is critical: it provides a practical approximation to the deterministic transition assumption required by the augmented-state MCRA formulation.
+for high-level training, where $\bar{f}_{\mathrm{cl}}$ denotes the nominal closed-loop abstraction obtained by composing the robot dynamics with the frozen low-level tracker. Domain-randomized rollouts indicate that this closed-loop kernel is substantially more concentrated than end-to-end joint-space dynamics, making the nominal abstraction useful at the navigation level.
 
-Following the budget-conditioned learning idea introduced in RC-PPO \cite{DBLP:conf/nips/SoGF24}, the high-level policy is conditioned on the remaining budget $z_t$ so that a single policy can represent behaviors under different cost feasibility levels. Intuitively, a larger budget allows more conservative maneuvers, while a tighter budget encourages shorter and more efficient paths, as long as safety is not violated. The remaining budget is updated according to
+\noindent\textbf{Assumption 1 (Concentrated closed-loop abstraction).}
+With the low-level tracker frozen, the induced high-level closed-loop transition kernel is concentrated around $\bar{f}_{\mathrm{cl}}$. In particular, the one-step deviation
+\(
+e_t:=x_{t+1}-\bar{f}_{\mathrm{cl}}(x_t,u_t^{\mathrm{high}})
+\)
+and the relative cost overrun ratio admit bounded upper quantiles under domain-randomized rollouts.
+
+Following the budget-conditioned MCRA perspective in prior work \cite{DBLP:conf/nips/SoGF24}, the high-level policy is conditioned on the remaining budget $z_t$ so that a single policy can represent behaviors under different cost feasibility levels. Intuitively, a larger budget allows more conservative maneuvers, while a tighter budget encourages shorter and more efficient paths, as long as safety is not violated. The remaining budget is updated according to
 \begin{equation}
 z_{t+1}=z_t-c^{\mathrm{high}}(x_t,u_t^{\mathrm{high}})
 \end{equation}
@@ -197,13 +199,13 @@ x_T \in \mathcal{G}, \;
 x_t \notin \mathcal{F}, \ \forall t\le T .
 \end{align}
 
-In practice, the high-level policy is trained using the augmented-state reachability perspective introduced in Section II and instantiated in RC-PPO \cite{DBLP:conf/nips/SoGF24}. The policy learns to generate navigation commands that satisfy the reach-avoid requirement while respecting budget evolution. Compared with reward-shaped navigation, this formulation encodes the hard-safety semantics more explicitly and aligns the learned behavior with the actual deployment objective.
+In practice, the high-level policy is trained using the augmented-state reachability perspective introduced in Section II and the budget-conditioned MCRA formulation of prior work \cite{DBLP:conf/nips/SoGF24}. The policy is optimized on the nominal abstraction $\bar{f}_{\mathrm{cl}}$, while the residual stochasticity characterized in Assumption 1 is handled by conservative cost and safety corrections introduced next.
 
 \subsection{Data-driven Conservative Margins for Sim-to-Real Robustness}
 
 Although the frozen low-level controller provides a more stable interface, real quadruped deployment still exhibits residual mismatch between simulated and realized trajectories. Two typical failure modes are especially important. First, due to tracking delay or locomotion disturbance, the actual execution time may exceed the planned budget, causing a nominally feasible trajectory to violate the cost constraint. Second, due to body oscillation or lateral deviation, the realized robot trajectory may pass closer to obstacles than expected, causing collision even when the nominal high-level plan is safe.
 
-To address these issues, we introduce two conservative margins: a \emph{cost margin} $\alpha$ and a \emph{safety margin} $\delta$. The cost margin is used to inflate the effective running cost:
+To address these issues, we introduce two conservative margins: a \emph{cost margin} $\alpha$ and a \emph{safety margin} $\delta$. These margins convert the stochastic execution mismatch into a robustified nominal MCRA problem. The cost margin is used to inflate the effective running cost:
 \begin{equation}
 \tilde{c}^{\mathrm{high}}(x_t,u_t^{\mathrm{high}})
 =(1+\alpha)\, c^{\mathrm{high}}(x_t,u_t^{\mathrm{high}})
@@ -220,12 +222,15 @@ where $d(x,\mathcal{F})$ denotes the distance from the state to the unsafe set. 
 
 Importantly, $\alpha$ and $\delta$ are not manually tuned as purely heuristic constants. Instead, they are estimated from domain-randomized rollout statistics of the frozen low-level controller. Let $\varepsilon_c$ denote the relative cost overrun ratio between actual and nominal execution, and let $\varepsilon_d$ denote the trajectory deviation with respect to the nominal body path. We select $\alpha$ and $\delta$ from suitable upper quantiles of their empirical distributions:
 \begin{equation}
-\begin{aligned}
-\alpha &= Q_{p_c}(\varepsilon_c) \\
-\delta &= Q_{p_d}(\varepsilon_d)
-\end{aligned}
+\alpha = Q_{p_c}(\varepsilon_c)
 \end{equation}
-where $Q_{p}(\cdot)$ denotes the empirical $p$-quantile. In this way, both margins are data-driven and directly tied to the execution uncertainty observed under randomized conditions. The final HD-MCRA framework therefore combines hierarchical control decomposition, budget-conditioned reach-avoid learning, and uncertainty-aware conservative correction, making the MCRA formulation practically deployable on quadruped robots.
+\begin{equation}
+\delta = Q_{p_d}(\varepsilon_d)
+\end{equation}
+where $Q_{p}(\cdot)$ denotes the empirical $p$-quantile. The nominal MCRA problem is therefore solved on an uncertainty-aware surrogate model: the transition is represented by $\bar{f}_{\mathrm{cl}}$, the unsafe set is enlarged by $\delta$, and the running cost is inflated by $\alpha$. In this way, both margins are data-driven and directly tied to the residual stochasticity observed under randomized conditions.
+
+\noindent\textbf{Proposition 1 (Quantile-based robustness).}
+If a nominal trajectory generated by $\bar{f}_{\mathrm{cl}}$ reaches $\mathcal{G}$ while remaining outside $\mathcal{F}_{\delta}$ and satisfying the inflated budget update with $\tilde{c}^{\mathrm{high}}$, then the realized trajectory is safe and budget-feasible whenever the tracking deviation and cost overrun stay within the empirical quantiles used to define $\delta$ and $\alpha$. This proposition is not a strict deterministic guarantee; rather, it explains why the data-driven margins provide a principled bridge from stochastic quadruped execution to nominal MCRA training.
 
 
 
@@ -264,7 +269,7 @@ We compare against four baseline families: a \emph{reach-avoid baseline} (RA) \c
 
 \subsection{Comparison with Baselines}
 
-Figure~\ref{fig:metrics_grid_single_column} reports the scenario-wise comparison across SR, CR, Average Cost, and MC. Table~\ref{tab:main_result} summarizes the average performance over the three scenarios and additionally reports BVR. Overall, HD-MCRA, viewed as a hierarchical RC-PPO with data-driven conservative margins, achieves the strongest balance among task completion, safety, budget feasibility, and efficiency.
+Figure~\ref{fig:metrics_grid_single_column} reports the scenario-wise comparison across SR, CR, Average Cost, and MC. Table~\ref{tab:main_result} summarizes the average performance over the three scenarios and additionally reports BVR. Overall, HD-MCRA, viewed as a hierarchical minimum-cost reach-avoid framework with data-driven conservative margins, achieves the strongest balance among task completion, safety, budget feasibility, and efficiency.
 
 \input{figures_v3/figure_metrics_grid_single_column_v3}
 
@@ -371,7 +376,7 @@ As shown in Table~\ref{tab:ablation}, removing the hierarchical structure clearl
 
 \section{Conclusion}
 
-This paper formulated quadruped navigation as a minimum-cost reach-avoid problem and proposed \emph{HD-MCRA}, a hierarchical RC-PPO with data-driven conservative margins. By combining a frozen low-level robust velocity tracker, a budget-conditioned high-level policy, and conservative corrections for cost and safety, HD-MCRA improves the balance among success, safety, budget feasibility, and efficiency relative to the reach-avoid baseline, the minimum-cost reach-avoid baseline, and PPO/CPPO baselines. The ablation study further confirms that hierarchy mainly improves success and cost, while the two conservative margins are responsible for the gains in budget feasibility and safety margin. Future work will extend the framework to more challenging environments and more realistic deployment uncertainty.
+This paper formulated quadruped navigation as a minimum-cost reach-avoid problem and proposed \emph{HD-MCRA}, which combines a frozen low-level tracker, a nominal closed-loop abstraction, a budget-conditioned high-level policy, and conservative cost/safety corrections. This design makes augmented-state MCRA practical for quadruped navigation and improves the balance among success, safety, budget feasibility, and efficiency relative to the considered baselines. The ablation study further confirms that hierarchy mainly improves success and cost, while the conservative margins account for the gains in budget feasibility and geometric safety. Future work will study harder environments and stronger robustness guarantees under deployment uncertainty.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
