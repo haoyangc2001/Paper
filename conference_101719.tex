@@ -1,4 +1,7 @@
-﻿\documentclass[conference]{IEEEtran}
+﻿
+
+
+\documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 \usepackage{cite}
@@ -11,6 +14,13 @@
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
+
+% MDP 、MCRA添加参考文献
+%index 部分结尾处要不要添加 。
+%figure reports -> shows
+% future work 改被动式
+% 主动换被动
+% 避免中式英语-结论部分
 
 \title{HD-MCRA: Hierarchical Reach-Avoid Navigation for Quadruped Robots}
 
@@ -36,7 +46,7 @@ email address or ORCID}
 \maketitle
 
 \begin{abstract}
-This paper studies quadruped robot navigation under strict safety and efficiency requirements. We formulate the task as a minimum-cost reach-avoid problem, where the robot must reach the goal without entering unsafe states while minimizing cumulative execution cost. To make this formulation practical for quadruped systems, we propose HD-MCRA, a hierarchical minimum-cost reach-avoid framework with data-driven conservative margins that combines a frozen low-level robust velocity tracker with a high-level budget-conditioned reach-avoid policy. Representative simulation results show that HD-MCRA achieves a better balance among success rate, collision rate, budget violation rate, minimum clearance, and navigation cost than the reach-avoid baseline, the minimum-cost reach-avoid baseline, and PPO/CPPO-based baselines.
+This paper studies quadruped robot navigation under strict safety and efficiency requirements. We formulate the task as a minimum-cost reach-avoid problem, where the robot must reach the goal without entering unsafe states while minimizing cumulative execution cost. To make this formulation practical for quadruped systems, we propose HD-MCRA, a hierarchical minimum-cost reach-avoid framework with data-driven conservative margins that combines a frozen low-level robust velocity tracker with a high-level budget-conditioned reach-avoid policy. Simulation results show that HD-MCRA achieves a better balance among success rate, collision rate, budget violation rate, minimum clearance, and navigation cost than the reach-avoid baseline, the minimum-cost reach-avoid baseline, and PPO/CPPO-based baselines.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -273,7 +283,7 @@ We compare against four baseline families: a \emph{reach-avoid baseline} (RA) \c
 
 \subsection{Comparison with Baselines}
 
-Figure~\ref{fig:metrics_grid_single_column} reports the scenario-wise comparison across SR, CR, Average Cost, and MC. Table~\ref{tab:main_result} summarizes the average performance over the three scenarios and additionally reports BVR. Overall, HD-MCRA, viewed as a hierarchical minimum-cost reach-avoid framework with data-driven conservative margins, achieves the strongest balance among task completion, safety, budget feasibility, and efficiency.
+Figure~\ref{fig:metrics_grid_single_column} shows the scenario-wise comparison across SR, CR, Average Cost, and MC. Table~\ref{tab:main_result} summarizes the average performance over the three scenarios and additionally reports BVR. Overall, HD-MCRA, viewed as a hierarchical minimum-cost reach-avoid framework with data-driven conservative margins, achieves the strongest balance among task completion, safety, budget feasibility, and efficiency.
 
 \input{figures_v3/figure_metrics_grid_single_column_v3}
 
@@ -380,7 +390,7 @@ As shown in Table~\ref{tab:ablation}, removing the hierarchical structure clearl
 
 \section{Conclusion}
 
-This paper formulated quadruped navigation as a minimum-cost reach-avoid problem and proposed \emph{HD-MCRA}, which combines a frozen low-level tracker, a nominal closed-loop abstraction, a budget-conditioned high-level policy, and conservative cost/safety corrections. This design makes augmented-state MCRA practical for quadruped navigation and improves the balance among success, safety, budget feasibility, and efficiency relative to the considered baselines. The ablation study further confirms that hierarchy mainly improves success and cost, while the conservative margins account for the gains in budget feasibility and geometric safety. Future work will study harder environments and stronger robustness guarantees under deployment uncertainty.
+This paper formulated quadruped navigation as a minimum-cost reach-avoid problem and proposed \emph{HD-MCRA}, which combines a frozen low-level tracker, a nominal closed-loop abstraction, a budget-conditioned high-level policy, and conservative cost/safety corrections. This design makes augmented-state MCRA practical for quadruped navigation and improves the balance among success, safety, budget feasibility, and efficiency relative to the considered baselines. The ablation study further confirms that hierarchy mainly improves success and cost, while the conservative margins account for the gains in budget feasibility and geometric safety. In future work, harder environments and stronger robustness guarantees under deployment uncertainty will be investigated.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
