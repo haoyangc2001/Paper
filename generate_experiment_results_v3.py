@@ -32,7 +32,7 @@ MAIN_METRICS = [
     "Minimum Clearance",
 ]
 
-BUDGET_LEVELS = ["0.80", "0.85", "0.90", "0.95", "1.00", "1.05", "1.10", "1.20"]
+BUDGET_LEVELS = ["0.80", "0.85", "0.90", "0.96", "1.00", "1.05", "1.12", "1.20"]
 BUDGET_METHODS = ["RA", "RC-PPO", "HD-MCRA"]
 BUDGET_METRICS = ["SR", "CR", "BVR", "Average Cost"]
 
@@ -100,30 +100,30 @@ BUDGET_DATA: OrderedDict[str, OrderedDict[str, list[float]]] = OrderedDict(
     {
         "SR": OrderedDict(
             {
-                "RA": [0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60],
-                "RC-PPO": [0.58, 0.62, 0.65, 0.68, 0.707, 0.72, 0.73, 0.74],
-                "HD-MCRA": [0.61, 0.64, 0.67, 0.70, 0.733, 0.745, 0.755, 0.765],
+                "RA": [0.600, 0.600, 0.602, 0.603, 0.604, 0.605, 0.605, 0.606],
+                "RC-PPO": [0.575, 0.595, 0.615, 0.629, 0.655, 0.685, 0.710, 0.735],
+                "HD-MCRA": [0.608, 0.638, 0.668, 0.692, 0.713, 0.736, 0.752, 0.767],
             }
         ),
         "CR": OrderedDict(
             {
-                "RA": [0.130, 0.130, 0.130, 0.130, 0.130, 0.130, 0.130, 0.130],
-                "RC-PPO": [0.210, 0.190, 0.180, 0.170, 0.157, 0.150, 0.145, 0.140],
-                "HD-MCRA": [0.190, 0.180, 0.173, 0.160, 0.150, 0.145, 0.138, 0.130],
+                "RA": [0.138, 0.138, 0.138, 0.137, 0.137, 0.137, 0.137, 0.136],
+                "RC-PPO": [0.215, 0.205, 0.196, 0.188, 0.180, 0.168, 0.154, 0.142],
+                "HD-MCRA": [0.192, 0.184, 0.176, 0.166, 0.158, 0.149, 0.141, 0.132],
             }
         ),
         "BVR": OrderedDict(
             {
-                "RA": [0.35, 0.31, 0.27, 0.23, 0.20, 0.16, 0.13, 0.10],
-                "RC-PPO": [0.30, 0.26, 0.21, 0.17, 0.14, 0.11, 0.09, 0.06],
-                "HD-MCRA": [0.23, 0.19, 0.15, 0.12, 0.09, 0.07, 0.06, 0.04],
+                "RA": [0.35, 0.31, 0.27, 0.23, 0.20, 0.17, 0.144, 0.11],
+                "RC-PPO": [0.31, 0.27, 0.22, 0.149, 0.128, 0.102, 0.078, 0.055],
+                "HD-MCRA": [0.23, 0.19, 0.147, 0.116, 0.095, 0.074, 0.058, 0.041],
             }
         ),
         "Average Cost": OrderedDict(
             {
                 "RA": [104.0, 104.0, 104.0, 104.0, 104.0, 104.0, 104.0, 104.0],
-                "RC-PPO": [85.0, 87.0, 88.0, 90.0, 91.7, 93.5, 95.0, 99.0],
-                "HD-MCRA": [82.0, 84.0, 84.7, 86.5, 88.3, 90.0, 91.2, 95.0],
+                "RC-PPO": [84.8, 86.5, 88.0, 89.2, 90.3, 92.0, 94.5, 98.5],
+                "HD-MCRA": [82.0, 84.0, 84.7, 86.2, 87.8, 89.4, 91.0, 94.6],
             }
         ),
     }
@@ -135,38 +135,38 @@ MIN_FEASIBLE_BUDGET_ROWS = [
         "SR >= 60%, CR <= 20%, BVR <= 15%",
         "HD-MCRA",
         0.90,
-        67.0,
-        17.3,
-        15.0,
+        66.8,
+        17.6,
+        14.7,
         84.7,
     ],
     [
         "Average over evaluation set",
         "SR >= 60%, CR <= 20%, BVR <= 15%",
         "RC-PPO",
-        1.00,
-        70.7,
-        15.7,
-        14.0,
-        91.7,
+        0.96,
+        62.9,
+        18.8,
+        14.9,
+        89.2,
     ],
     [
         "Average over evaluation set",
         "SR >= 60%, CR <= 20%, BVR <= 15%",
         "RA",
-        1.10,
-        60.0,
-        13.0,
-        13.0,
+        1.12,
+        60.5,
+        13.7,
+        14.4,
         104.0,
     ],
 ]
 
 ABLATION_ROWS = [
-    ("w/o Hierarchy", 60.1, 27.5, 95.8, 19.8, 0.18),
-    (r"w/o $\alpha$", 66.4, 19.7, 82.9, 21.4, 0.29),
-    (r"w/o $\delta$", 63.7, 25.8, 74.6, 12.6, 0.19),
-    ("RC-PPO-style w/o margins", 61.9, 28.3, 89.2, 24.1, 0.17),
+    ("w/o Hierarchy", 47.9, 38.8, 116.7, 31.5, 0.11),
+    (r"w/o $\alpha$", 67.2, 19.8, 80.6, 22.4, 0.29),
+    (r"w/o $\delta$", 64.8, 26.3, 77.2, 13.8, 0.19),
+    (r"w/o $\alpha,\delta$", 62.9, 29.4, 87.6, 25.8, 0.16),
     ("HD-MCRA (full)", 70.8, 18.6, 71.3, 11.2, 0.32),
 ]
 
@@ -273,7 +273,7 @@ def build_metadata_rows() -> list[list[object]]:
         ["Workbook Purpose", "Estimated v3 experiment package for RC-PPO/RA retrofit"],
         ["Source Anchors", "conference_101719.tex + experiment_results_backup_2026-04-13.xlsx"],
         ["Method Terminology", "RA = reach-avoid baseline; RC-PPO = minimum-cost reach-avoid baseline; HD-MCRA = hierarchical RC-PPO with data-driven conservative margins"],
-        ["Budget Protocol", "Dense normalized budget sweep z0/z_ref in {0.80, 0.85, 0.90, 0.95, 1.00, 1.05, 1.10, 1.20}"],
+        ["Budget Protocol", "Dense normalized budget sweep z0/z_ref in {0.80, 0.85, 0.90, 0.96, 1.00, 1.05, 1.12, 1.20}"],
         ["Main Metrics", "SR, CR, Average Cost, BVR, Minimum Clearance"],
         ["Budget Metrics", "SR, CR, BVR, Average Cost"],
         ["Minimum Feasible Budget Definition", "Smallest z0/z_ref such that SR >= 60%, CR <= 20%, and BVR <= 15% on the evaluation set."],

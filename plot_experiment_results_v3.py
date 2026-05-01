@@ -35,7 +35,7 @@ MAIN_METHODS = [
     "CPPO_beta_H",
 ]
 BUDGET_METHODS = ["RA", "RC-PPO", "HD-MCRA"]
-BUDGET_LEVELS = ["0.80", "0.85", "0.90", "0.95", "1.00", "1.05", "1.10", "1.20"]
+BUDGET_LEVELS = ["0.80", "0.85", "0.90", "0.96", "1.00", "1.05", "1.12", "1.20"]
 
 DISPLAY_METHODS = {
     "HD-MCRA": "HD-MCRA",
