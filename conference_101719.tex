@@ -10,6 +10,7 @@
 \usepackage{graphicx}
 \usepackage{stfloats}
 \usepackage{textcomp}
+\usepackage{url}
 \usepackage{xcolor}
 \usepackage{multirow}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
@@ -55,9 +56,9 @@ quadruped robot, navigation, reach-avoid, hierarchical reinforcement learning, s
 \end{IEEEkeywords}
 
 \section{Introduction}
-Recent advances in learning-based quadruped locomotion have substantially improved agile motion and terrain adaptation on physical robots \cite{DBLP:journals/scirobotics/HwangboWK020,DBLP:conf/rss/KumarFPM21,DBLP:journals/scirobotics/MikiLHWKH22}. As a result, the primary deployment bottleneck has shifted from low-level locomotion capability to high-level autonomous navigation in cluttered environments. In practical missions such as inspection, search and rescue, and security patrol, quadruped navigation must satisfy two hard requirements simultaneously: collision-free goal reaching and low execution cost under contact-rich execution and perception uncertainty.
+Recent advances in learning-based quadruped locomotion and agile navigation have substantially improved motion capability and terrain adaptation on physical robots \cite{DBLP:journals/scirobotics/HwangboWK020,DBLP:conf/rss/KumarFPM21,DBLP:journals/scirobotics/MikiLHWKH22,Hoeller2024}. As a result, the primary deployment bottleneck has shifted from low-level locomotion capability to high-level autonomous navigation in cluttered environments. In practical missions such as inspection, search and rescue, and security patrol, quadruped navigation must satisfy two hard requirements simultaneously: collision-free goal reaching and low execution cost under contact-rich execution and perception uncertainty.
 
-Existing methods do not fully address this combined objective. Classical planners such as DWA and D* Lite \cite{DBLP:journals/ram/FoxBT97,DBLP:conf/aaai/KoenigL02} rely on modeling and execution assumptions that are difficult to maintain on quadruped platforms. In contrast, many reinforcement learning approaches optimize weighted rewards or constrained objectives \cite{DBLP:conf/icml/AchiamHTA17,DBLP:conf/iclr/TesslerMM19,DBLP:journals/ral/YuanHZBGPS22}, which either relax safe goal-reaching into a tunable preference or introduce sensitivity to constraint-threshold selection. A more suitable formulation is the \emph{minimum-cost reach-avoid} (MCRA) problem, where safe goal-reaching is enforced as a trajectory-level constraint while execution cost is minimized. Recent reach-avoid methods and the budget-conditioned RC-PPO framework \cite{DBLP:conf/rss/HsuRTF21,DBLP:conf/nips/SoGF24} provide a principled approach to cost-aware policy learning. However, RC-PPO assumes deterministic dynamics, which precludes commonly used deployment-oriented techniques such as domain randomization and limits its direct applicability to quadruped navigation.
+Existing methods do not fully address this combined objective. Classical planners such as DWA and D* Lite \cite{DBLP:journals/ram/FoxBT97,DBLP:conf/aaai/KoenigL02} rely on modeling and execution assumptions that are difficult to maintain on quadruped platforms. In contrast, many reinforcement learning approaches optimize weighted rewards or constrained objectives \cite{DBLP:conf/icml/AchiamHTA17,DBLP:conf/iclr/TesslerMM19,DBLP:journals/ral/YuanHZBGPS22}, which either relax safe goal-reaching into a tunable preference or introduce sensitivity to constraint-threshold selection. A more suitable formulation is the \emph{minimum-cost reach-avoid} (MCRA) problem, where safe goal-reaching is enforced as a trajectory-level constraint while execution cost is minimized. Recent reachability-based methods, including reach-avoid RL and the budget-conditioned RC-PPO framework, provide a principled approach to encoding safety, liveness, and cost feasibility beyond additive rewards \cite{DBLP:conf/rss/HsuRTF21,DBLP:conf/nips/SoGF24,Ganai2024HJSurvey,GanaiGYHG23}. However, these formulations are typically developed under deterministic or simplified dynamics, whereas quadruped deployment involves stochastic execution mismatch.
 
 To address these issues, we propose \emph{HD-MCRA} (\emph{Hierarchical Data-driven Minimum-Cost Reach-Avoid}), a hierarchical MCRA framework with data-driven conservative margins for quadruped navigation. We first train a robust low-level velocity tracker with PPO under domain randomization and then freeze it to induce an approximately deterministic interface for high-level learning. On top of this interface, we learn a high-level budget-conditioned reach-avoid policy over low-dimensional velocity commands and introduce two data-driven conservative margins, $\alpha$ and $\delta$, to compensate for budget overrun and trajectory deviation. 
 
@@ -394,18 +395,31 @@ HD-MCRA (full) & 70.8 & 18.6 & 71.3 & 11.2 & 0.32 \\
 \end{tabular}}
 \end{table}
 
-\begin{figure*}[!t]
-\centering
-\includegraphics[width=\textwidth]{office_sequence_candidate_A.jpg}
-\caption{Real-world deployment in a cluttered office environment.}
-\label{fig:office_sequence}
-\end{figure*}
-
 Table~\ref{tab:ablation} shows that removing the hierarchy causes the largest overall degradation. Removing $\alpha$ mainly hurts budget feasibility, whereas removing $\delta$ mainly hurts safety and clearance. Removing both margins further degrades performance, confirming the complementary roles of the hierarchy and the two margins.
 
-\subsection{Real-world Deployment}
+\subsection{Physical Robot Experiments}
 
-We further deploy the learned policy on a Unitree Go2 robot in a cluttered office environment containing chairs, desks, and narrow passages. As illustrated in Figure~\ref{fig:office_sequence}, the robot is able to execute consecutive obstacle-avoidance maneuvers while maintaining stable locomotion under real-world sensing and actuation conditions.
+We deploy the learned HD-MCRA policy on a Unitree Go2 robot in a cluttered office environment containing chairs, narrow passages, and moving obstacles. In one representative setup, we create a chair-defined passage whose width is only about $0.3\,\mathrm{m}$ larger than the robot. The chairs are placed in an alternating left-front, right-front, and left-front pattern, requiring the robot to execute consecutive turning maneuvers. A moving obstacle is further introduced near the goal region to test reactive avoidance under real-world execution mismatch.
+
+For a start-to-goal distance of approximately $15\,\mathrm{m}$, the robot completes four out of five autonomous navigation trials successfully. In the successful trials, it is able to stop and avoid the moving obstacle effectively while maintaining stable locomotion. Figure~\ref{fig:office_sequence} shows a representative deployment sequence.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{office_sequence_candidate_A.jpg}
+\caption{Real-world deployment in a cluttered office environment.}
+\label{fig:office_sequence}
+\end{figure}
+
+In a second office setup, we densely place chair obstacles in a wider corridor so that the shortest route passes through a noticeably narrower passage than alternative longer routes. The robot consistently selects this shorter feasible route and avoids collisions, indicating that the learned policy retains a preference for efficient navigation while respecting local obstacle constraints. Figure~\ref{fig:office_shortest_path} shows a representative sequence from this shortest-path deployment.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{office_shortest_path_strip.png}
+\caption{Representative real-world deployment sequence in the shortest-path scenario.}
+\label{fig:office_shortest_path}
+\end{figure}
+
+The observed failure case occurs when one of the quadruped's feet makes contact with a chair leg. This is likely caused by the combination of weak geometric saliency of these narrow structures and residual real-world execution mismatch. In particular, small trajectory deviations, body sway, or sensing latency can reduce the effective clearance near chair legs even when the nominal high-level path remains collision-free.
 
 
 
