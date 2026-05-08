@@ -48,7 +48,7 @@ email address or ORCID}
 \maketitle
 
 \begin{abstract}
-This paper addresses quadruped robot navigation subject to safety and efficiency requirements. We formulate the task as an MCRA problem, where the robot must reach the goal without entering unsafe sets while minimizing cumulative execution cost. To address this challenge, we propose HD-MCRA, which combines a frozen robust low-level velocity tracker that induces a stable high-level abstraction with data-driven conservative margins that compensate for residual execution mismatch, thereby enabling effective budget-conditioned reach-avoid learning. Simulation results show that HD-MCRA consistently provides a more favorable trade-off among task success, safety, budget feasibility, clearance, and navigation cost than existing baselines.
+Quadruped navigation in cluttered environments requires reaching target locations, avoiding unsafe regions throughout execution, and minimizing cumulative navigation cost. We formulate this task as a minimum-cost reach-avoid problem, which explicitly encodes goal reaching, safety preservation, and cost minimization within a unified trajectory-level objective. To make this formulation practical for quadruped robots, we propose HD-MCRA, a hierarchical framework that combines a frozen robust low-level velocity tracker with a budget-conditioned high-level reach-avoid policy. The low-level tracker induces a stable closed-loop abstraction for high-level planning, while data-driven conservative margins improve robustness in both budget feasibility and safety. Simulation and real-world experiments show that HD-MCRA achieves a more favorable trade-off among task success, safety, budget feasibility, clearance, and navigation cost than representative baselines. 
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -405,7 +405,7 @@ For a start-to-goal distance of approximately $15\,\mathrm{m}$, the robot comple
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{office_sequence_candidate_A.jpg}
+\includegraphics[width=\columnwidth]{office_sequence_candidate_A_numbered.jpg}
 \caption{Real-world deployment in a cluttered office environment.}
 \label{fig:office_sequence}
 \end{figure}
