@@ -1,0 +1,342 @@
+FILE: openreview_paper_page | pages: 5
+
+============================== PAGE 1 ==============================
+Go to CoRL 2026 Conference homepage (/group?id=robot-learning.org/CoRL/2026/Conference)
+25 May 2026 (modified: 05 Sept 2026)
+Submitted to CoRL 2026
+Conference, Senior Area Chairs, Area Chairs, Reviewers, Authors
+Revisions (/revisions?id=6X2Unq5v59)
+BibTeX
+CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+Hierarchical Minimum-Cost
+Reach-Avoid Learning for Safe
+Quadruped Navigation
+ (/pdf?
+id=6X2Unq5v59)
+haoyangcao (/profile?id=~haoyangcao1),
+Yuhua Guo (/profile?email=guoyh%40radi.ac.cn),
+Jingduo Pan (/profile?id=~Jingduo_Pan1), Bai Xue (/profile?id=~Bai_Xue1)
+Abstract: Quadruped navigation in cluttered environments requires reaching target locations, avoiding unsafe regions
+throughout execution, and minimizing cumulative cost. We formulate this task as a minimum-cost reach-avoid problem,
+which explicitly encodes goal reaching, safety preservation, and cost minimization within a unified trajectory-level
+objective. To make this formulation practical for quadruped robots, we propose HD-MCRA, a hierarchical framework that
+combines a frozen robust low-level velocity tracker with a budget-conditioned high-level reach-avoid policy. The low-level
+tracker induces a stable closed-loop abstraction for high-level planning, while data-driven conservative margins improve
+robustness in both budget feasibility and safety. Simulation and real-world experiments show that HD-MCRA achieves a
+better trade-off among task success, safety, budget feasibility, clearance, and navigation cost than representative
+baselines.
+Student Paper:
+Yes
+Primary Keyword: Robot navigation and locomotion
+Secondary Keyword: Robot safety, alignment, and safe learning-based systems
+Free-text Keyword 1: reach-avoid reinforcement learning
+Free-text Keyword 2: safe quadruped navigation
+Limitations Section Confirmation:
+I confirm that this submission includes a Limitations section
+Reciprocal Reviewing Requirement:
+I designate the following author(s) as reviewer (select below)
+Designated Reviewer(s):
+Bai Xue (/profile?id=~Bai_Xue1)
+Generative AI Usage Disclosure:
+Writing assistance (grammar, style, editing, paraphrasing), Literature review and
+reference discovery, Code generation or debugging, Figure or visualization generation
+Brief description of AI usage:
+We used generative AI tools, including ChatGPT, for writing assistance such as
+grammar checking, style editing, and paraphrasing. We also used these tools to assist with literature review and reference
+discovery, code generation and debugging, and figure/visualization preparation, such as layout suggestions and plotting-
+code support. All AI-assisted content, references, code, figures, and analyses were reviewed and verified by the authors.
+Dual Submission Policy:
+This paper is not under review at any other archival venue
+Anonymization Confirmation:
+I confirm that this submission is properly anonymized
+Public Release Confirmation:
+I understand that accepted papers and their reviews will be publicly accessible
+Submission Number: 1530
+Search keywords...
+Sort: Newest First
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Discussion (?id=6X2Unq5v59#discussion)
+Filter by reply type...
+Filter by author...
+−
+＝
+
+≡
+OpenReview.net(/)
+显示简历
+2026/9/14 13:09
+Hierarchical Minimum-Cost Reach-Avoid Learning for Safe Quadruped Navigation | OpenReview
+https://openreview.net/forum?id=6X2Unq5v59&noteId=6X2Unq5v59
+1/5
+
+
+============================== PAGE 2 ==============================
+5 / 5 replies shown
+
+Everyone
+Program Chairs
+Submission1530...
+Submission1530 Area...
+Submission1530...
+Submission1530 Authors
+
+Paper Decision
+Decision by Program Chairs
+04 Aug 2026, 20:40 (modified: 04 Sept 2026, 23:47)
+Program Chairs, Senior Area Chairs, Area Chairs, Reviewers, Authors
+Revisions (/revisions?id=NOpftDf646)
+
+
+
+Decision: Reject
+Meta Review of Submission1530 by Area Chair 8dJw
+Meta Review by Area Chair 8dJw
+23 Jul 2026, 21:10 (modified: 04 Sept 2026, 22:56)
+Senior Area Chairs, Area Chairs, Authors, Reviewers, Program Chairs
+Revisions (/revisions?id=JaNpG9hIXV)
+
+
+
+Metareview:
+The core idea is nice, particularly in how the authors handle fusing the two layers of controllers
+Unfortunately, all reviewers point to the paper being nearly unreadable in terms of presentation and clarity. It is
+hard to understand how this work fits in the current literature, what the key novel contributions are, how the
+method works, and how the empirical results validate the claimed contributions. Essentially every section requires
+an overhaul before it can be properly reviewed and evaluated.
+Pre-Rebuttal Recommendation: First-round reject: All reviewers and the AC scored below weak accept. The
+paper should not proceed to rebuttal.
+Official Review of Submission1530 by Reviewer vkR4
+Official Review by Reviewer vkR4
+15 Jul 2026, 03:59 (modified: 24 Aug 2026, 22:43)
+Program Chairs, Senior Area Chairs, Area Chairs, Reviewers, Authors
+Revisions (/revisions?id=pJnYNYp44e)
+
+
+
+Summary:
+In this paper, the authors introduce a hierarchical RL-based controller for quadruped navigation built around a
+reach-avoid framework. In order to reduce the complexity of learning a controller using the full quadruped
+dynamics, a high-level RL controller designed to solve the overall minimum-cost reach-avoid problem sends
+commands to a low-level controller designed to track the high-level command. The high-level reach-avoid
+controller uses the low-level closed-loop dynamics, along with stochasticity from domain randomization, as part
+of its probabilistic transition map. In order to robustify the interconnection between the high and low-level
+controllers, margins on the cost budget and unsafe set are introduced so that the overall system remains safe.
+Strengths:
+The paper’s idea to simplify the problem of quadruped navigation by making it hierarchical is very interesting and
+compelling, as well as its recognition of the fact that such a hierarchical control architecture may require data-
+driven margins to make the interconnection between the controllers robust. The overall problem is relevant to the
+literature. Also, Figure 1 very nicely encapsulates the proposed method.
+Weaknesses:
+The paper suffers from a lack of clarity, which makes it difficult to exactly discern the contribution. Below are
+some points:
+-Equation 10 - what is C? -What do RC-PPO and CPPO stand for? -For obtaining the data-driven robustness
+margins, where do the empirical distributions come from? Are they produced during training or deployment? Do
+they contain real-world or simulation data? -What are beta_H and beta_L and what is their effect? -What does it
+mean to remove the hierarchy for this method in the ablations? -How are the real-world experiments done - isn’t it
+necessary to know the environment ahead of time for the training? -Experimental parameters are not given -
+what is the total number of trials? What did the environments look like and what simulator was used? Which RL
+algorithm was used for training the high-level controller and what are the associated parameters? -What exactly is
+显示简历
+2026/9/14 13:09
+Hierarchical Minimum-Cost Reach-Avoid Learning for Safe Quadruped Navigation | OpenReview
+https://openreview.net/forum?id=6X2Unq5v59&noteId=6X2Unq5v59
+2/5
+
+
+============================== PAGE 3 ==============================
+the source of stochasticity in the low-level controller? Why does stochasticity need to be handled in the first place?
+Is it because the quadruped needs to navigate through rough or unknown terrain? If so, why is this not studied in
+the experiments?
+Because of these confusions, it is not exactly clear how this method is different from the baselines. Is it only the
+presence of the data-driven robustness margins? Along these lines, isn’t Contribution #1 already done by some of
+the baselines?
+The authors should also please highlight the best numbers in the result tables.
+Questions For Authors:
+Please refer to the questions in the above section.
+Limitations And Broader Impact:
+The authors adequately enumerate limitations of their method, including a lack of strict safety guarantees in spite
+of the reachability formulation.
+Overall Score: 4: Borderline. The paper has interesting ideas but notable weaknesses — e.g., insufficient
+experiments, unclear contribution, or limited novelty. It is unlikely authors could address all the issues in the
+limited period of the rebuttal.
+Confidence Score: 4: High confidence. I am knowledgeable in this area and confident in my assessment.
+Ethical Concerns: None
+LLM Disclosure: No
+Official Review of Submission1530 by Reviewer oWnW
+Official Review by Reviewer oWnW
+14 Jul 2026, 15:45 (modified: 24 Aug 2026, 22:43)
+Program Chairs, Senior Area Chairs, Area Chairs, Reviewers, Authors
+Revisions (/revisions?id=pio49vIPvC)
+
+
+
+Summary:
+The work proposes a hierarchical reinforcement learning-based navigation framework for quadrupeds, focusing
+on collision-free reaching while minimizing execution cost. The key contribution of the work relates to data-driven
+safety and cost margins being used by the high-level policy to account for execution time mismatch of the low-
+level policy due to stochasticity resulting from the contact-rich nature of quadruped locomotion.
+Strengths:
+1. The authors identify that considering cost and safety margins when training the high-level policy is useful for
+practical performance.
+2. The results appear promising
+Weaknesses:
+1. As I understand, the key contribution of this work relates to understanding cost and safety margins to handle
+execution time stochasticity. Assuming this is the case, it should be the center of the reader’s attention. Right
+now, it appears on page 5.
+2. Assuming that the key challenge is stochasticity at execution time, the derivation of the proposed formulation
+is unclear. As written, the extra cost and safety margins are introduced somewhat arbitrarily. As an example,
+uncertainty has been handled in planning from a risk minimization perspective[1,2]. A stronger discussion
+comparing the proposed formulation against these alternatives would help establish that the method is
+addressing a fundamental gap rather than introducing one possible heuristic treatment of execution-time
+variability.
+3. In the introduction: “existing methods do not fully address the quadruped navigation problem: classical
+planners rely on assumptions that are difficult to maintain on quadruped platforms” – please Specify what
+assumptions are being referred to, and possibly provide citations for this.
+4. None of the results appear to have confidence intervals, which makes statistical significance hard to gauge.
+Please provide the confidence intervals.
+5. Assuming the central motivation of the paper is handling execution-time stochasticity of the low-level policy
+when used by a higher-level controller, the real-world experimental evaluation does not appear to highlight
+this aspect sufficiently. The presented environments are relatively structured, and it is unclear whether they
+exhibit the type of execution time uncertainty that motivates the paper. Experiments in more representative
+or challenging environments would strengthen the empirical validation.
+显示简历
+2026/9/14 13:09
+Hierarchical Minimum-Cost Reach-Avoid Learning for Safe Quadruped Navigation | OpenReview
+https://openreview.net/forum?id=6X2Unq5v59&noteId=6X2Unq5v59
+3/5
+
+
+============================== PAGE 4 ==============================
+References:
+[1] Schmittle, Matt, et al. ”Multi-sample long range path planning under sensing uncertainty for off-road
+autonomous driving.” 2024 IEEE International Conference on Robotics and Automation (ICRA). IEEE, 2024.
+[2] Fan, David D., et al. ”Step: Stochastic traversability evaluation and planning for risk-aware off-road navigation.”
+arXiv preprint arXiv:2103.02828 (2021).
+Questions For Authors:
+None.
+Limitations And Broader Impact:
+The paper seems to discuss its limitations.
+Overall Score: 3: Weak reject. Below the acceptance threshold. The paper has identifiable merit but significant
+weaknesses — e.g., missing key comparisons, unconvincing results, or incremental contribution.
+Confidence Score: 3: Moderate confidence. I am familiar with the area but not an expert; some aspects may be
+outside my expertise.
+Ethical Concerns: None
+LLM Disclosure: Yes — please describe below
+LLM Disclosure Details:
+ChatGPT for language polishing. Most words are my own.
+Official Review of Submission1530 by Reviewer opdH
+Official Review by Reviewer opdH
+09 Jul 2026, 20:02 (modified: 24 Aug 2026, 22:43)
+Program Chairs, Senior Area Chairs, Area Chairs, Reviewers, Authors
+Revisions (/revisions?id=4U507r5SR8)
+
+
+
+
+Summary:
+The paper proposes HD-MCRA, a hierarchical method for safe quadruped navigation in cluttered environments. It
+formulates navigation as a minimum-cost reach-avoid problem, where the robot must reach the goal, avoid
+unsafe regions, and minimize execution cost. The method uses a frozen low-level velocity tracker and a budget-
+conditioned high-level policy, with empirical cost and safety margins to improve robustness. The authors evaluate
+the approach in simulation against several safe navigation baselines and also report deployment results on a
+Unitree Go2 robot.
+Strengths:
+1. The problem formulation is meaningful. Modeling quadruped navigation as a minimum-cost reach-avoid
+problem is a principled way to combine goal reaching, safety, and cost minimization.
+2. The hierarchical design is reasonable. Using a frozen low-level velocity tracker and learning a budget-
+conditioned high-level policy makes the reach-avoid problem more practical for a quadruped robot.
+3. The experimental validation is fairly complete. The paper includes comparisons with several relevant
+baselines, budget-feasibility analysis, ablations on the hierarchy and conservative margins, and real-world
+deployment on a Unitree Go2.
+Weaknesses:
+1. The technical novelty is somewhat incremental. The paper combines several existing ideas, including
+hierarchical velocity-command control, reach-avoid learning, budget conditioning, and empirical conservative
+margins. While the combination is useful, the paper should make clearer what the main new algorithmic
+contribution is beyond adapting these components to quadruped navigation.
+2. Some key technical details are under-specified. The paper emphasizes minimum cost and budget feasibility,
+but the exact cost function used in experiments is not clearly described. The high-level learning procedure is
+also not fully specified, including the actor objective, optimization details, and terminal handling. These
+details are important for assessing and reproducing the method.
+3. The safety and robustness claims should be stated more carefully. The conservative margins are estimated
+from empirical quantiles, so they improve robustness under the sampled execution distribution but do not
+provide a strict stochastic reach-avoid guarantee. The paper should avoid implying stronger safety
+guarantees than the method actually supports.
+显示简历
+2026/9/14 13:09
+Hierarchical Minimum-Cost Reach-Avoid Learning for Safe Quadruped Navigation | OpenReview
+https://openreview.net/forum?id=6X2Unq5v59&noteId=6X2Unq5v59
+4/5
+
+
+============================== PAGE 5 ==============================
+OpenReview (/about) is a long-term project to advance science through improved peer
+review with legal nonprofit status. We gratefully acknowledge the support of the
+OpenReview Sponsors (/sponsors). © 2026 OpenReview
+4. The real-world evaluation is useful but still limited. The Unitree Go2 experiments provide evidence of
+deployment, but the hardware results are not as detailed as the simulation results. More quantitative real-
+world metrics, such as collision rate, clearance, cost, budget violation, and failure cases across more
+scenarios, would make the real-robot validation more convincing.
+Questions For Authors:
+1. What is the exact cost function used in the experiments? Since minimum cost and budget feasibility are
+central to the paper, it would be helpful to clarify what terms are included in the cost and how they are
+computed.
+2. Can the authors provide more details about the high-level learning procedure? In particular, what is the exact
+actor objective, how is the reachability critic used during policy optimization, and how are terminal states
+handled?
+3. How sensitive is the method to the choices of the conservative margins  and ? It would be useful to know
+whether the performance changes significantly with different quantile levels or margin values.
+4. Can the authors provide more quantitative real-world results? For example, collision rate, clearance,
+execution cost, budget violation, and failure cases on the Unitree Go2 would make the hardware validation
+stronger.
+5. How should the safety claim be interpreted in practice? Do the authors intend the proposed margins to
+provide only empirical robustness under the training distribution, or any stronger reach-avoid guarantee?
+Limitations And Broader Impact:
+The paper includes a limitations section and acknowledges important issues, including that the robustness
+margins are empirical rather than strict stochastic reach-avoid guarantees, and that LiDAR-based observations
+may be insufficient for thin structures or partially occluded objects.
+However, the discussion could be expanded in two aspects. First, the paper could more clearly discuss the limited
+scope of the real-world evaluation and the remaining uncertainty about robustness outside the tested indoor
+environments. Second, since the method is intended for safe quadruped navigation, potential failure cases in
+more complex real-world settings could be discussed more explicitly.
+Overall Score: 4: Borderline. The paper has interesting ideas but notable weaknesses — e.g., insufficient
+experiments, unclear contribution, or limited novelty. It is unlikely authors could address all the issues in the
+limited period of the rebuttal.
+Confidence Score: 4: High confidence. I am knowledgeable in this area and confident in my assessment.
+Ethical Concerns: None
+LLM Disclosure: Yes — please describe below
+LLM Disclosure Details:
+I used ChatGPT only to help polish the wording and organization of my review. The assessment, score, and final
+judgment are my own.
+α
+δ
+About OpenReview (/about)
+Contact (/contact)
+FAQ (https://docs.openreview.net/getting-
+started/frequently-asked-questions)
+Hosting a Venue (/group?
+id=OpenReview.net/Support)
+Sponsors (/sponsors)
+Terms of Use (/legal/terms) / Privacy Policy
+(/legal/privacy)
+All Venues (/venues)
+Donate (/donate)
+显示简历
+2026/9/14 13:09
+Hierarchical Minimum-Cost Reach-Avoid Learning for Safe Quadruped Navigation | OpenReview
+https://openreview.net/forum?id=6X2Unq5v59&noteId=6X2Unq5v59
+5/5
