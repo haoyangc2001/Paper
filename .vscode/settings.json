@@ -12,6 +12,19 @@
         "-auxdir=%AUXDIR%",
         "%DOC%"
       ]
+    },
+    {
+      "name": "pdflatexmk_local",
+      "command": "D:/app/latex/texlive/2026/bin/windows/latexmk.exe",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-pdf",
+        "-outdir=%OUTDIR%",
+        "-auxdir=%AUXDIR%",
+        "%DOC%"
+      ]
     }
   ],
   "latex-workshop.latex.recipes": [
@@ -20,10 +33,16 @@
       "tools": [
         "xelatexmk_local"
       ]
+    },
+    {
+      "name": "latexmk (pdflatex)",
+      "tools": [
+        "pdflatexmk_local"
+      ]
     }
   ],
-  "latex-workshop.latex.recipe.default": "first",
-  "latex-workshop.latex.outDir": "%WORKSPACE_FOLDER%/output/0710_legacy",
+  "latex-workshop.latex.recipe.default": "latexmk (pdflatex)",
+  "latex-workshop.latex.outDir": "%WORKSPACE_FOLDER%/output/0820_submitted",
   "latex-workshop.message.error.show": true,
   "latex-workshop.message.warning.show": true
 }
