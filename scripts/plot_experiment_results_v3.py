@@ -294,7 +294,7 @@ def plot_main_grid(main_data: dict[str, dict[str, list[float]]], output_dir: Pat
 
     snippet = r"""\begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{../images/figure_metrics_grid_single_column_v3}
+\includegraphics[width=\columnwidth]{../../images/figure_metrics_grid_single_column_v3}
 \caption{Performance comparison across three navigation scenarios. From top-left to bottom-right: success rate, collision rate, average cost, and minimum clearance.}
 \label{fig:metrics_grid_single_column}
 \end{figure}
@@ -363,7 +363,7 @@ def plot_budget_grid(budget_data: dict[str, dict[str, list[float]]], output_dir:
 
     snippet = r"""\begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{../images/figure_budget_sweep_v3}
+\includegraphics[width=\columnwidth]{../../images/figure_budget_sweep_v3}
 \caption{Budget-response curves under normalized initial budgets. All four subplots share the horizontal axis $z_0 / z_{\mathrm{ref}}$. From top-left to bottom-right: success rate, collision rate, budget violation rate, and average cost.}
 \label{fig:budget_sweep}
 \end{figure}
