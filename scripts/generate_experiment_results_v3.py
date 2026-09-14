@@ -417,7 +417,7 @@ def main() -> None:
             "metadata": build_metadata_rows(),
         }
     )
-    output_path = Path(__file__).resolve().parent / "experiment_results_rcppo_ra_v3.xlsx"
+    output_path = Path(__file__).resolve().parent.parent / "data" / "experiment_results_rcppo_ra_v3.xlsx"
     write_xlsx(output_path, workbook_sheets)
     print(f"Saved {output_path.name}")
 
