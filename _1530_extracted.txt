@@ -1,0 +1,638 @@
+===== PAGE 1 =====
+Hierarchical Minimum-Cost Reach-A void Learning
+for Safe Quadruped Navigation
+Anonymous Author(s)
+Affiliation
+Address
+email
+Abstract: Quadruped navigation in cluttered environments requires reaching tar-1
+get locations, avoiding unsafe regions throughout execution, and minimizing cu-2
+mulative cost. We formulate this task as a minimum-cost reach-avoid problem,3
+which explicitly encodes goal reaching, safety preservation, and cost minimiza-4
+tion within a unified trajectory-level objective. To make this formulation practi-5
+cal for quadruped robots, we propose HD-MCRA, a hierarchical framework that6
+combines a frozen robust low-level velocity tracker with a budget-conditioned7
+high-level reach-avoid policy. The low-level tracker induces a stable closed-loop8
+abstraction for high-level planning, while data-driven conservative margins im-9
+prove robustness in both budget feasibility and safety. Simulation and real-world10
+experiments show that HD-MCRA achieves a better trade-off among task suc-11
+cess, safety, budget feasibility, clearance, and navigation cost than representative12
+baselines.13
+Keywords: robot navigation and locomotion, robot safety, reach-avoid reinforce-14
+ment learning15
+1 Introduction16
+Recent advances in learning-based quadruped locomotion and agile navigation have substantially17
+improved motion capability and terrain adaptation on physical robots [1, 2, 3, 4, 5, 6]. As a result,18
+the primary deployment bottleneck has shifted from low-level locomotion capability to high-level19
+autonomous navigation in cluttered environments [7, 8, 9]. In practical missions such as inspection,20
+search and rescue, and security patrol, quadruped navigation must satisfy two hard requirements21
+simultaneously: collision-free goal reaching and low execution cost under contact-rich execution22
+and perception uncertainty.23
+Classical planners such as Dynamic Window Approach (DW A) and D* Lite [10, 11, 12] have pro-24
+vided effective foundations for collision avoidance and goal-directed navigation. Reinforcement25
+learning approaches have further advanced safe navigation through weighted rewards and con-26
+strained objectives [13, 14, 15, 16, 17, 18]. Recent reachability-based methods encode safety, live-27
+ness, and cost feasibility beyond additive rewards, including reach-avoid RL and minimum-cost28
+reach-avoid (MCRA) formulations such as budget-conditioned RC-PPO [19, 20, 21, 22, 23]. How-29
+ever, existing methods do not fully address the quadruped navigation problem: classical planners30
+rely on assumptions that are difficult to maintain on quadruped platforms; RL approaches either re-31
+lax safe goal-reaching into a tunable preference or are sensitive to constraint thresholds; and reach-32
+ability formulations are typically developed under deterministic or simplified dynamics, whereas33
+quadruped deployment still faces stochastic execution mismatches.34
+To overcome these limitations, HD-MCRA (Hierarchical Data-driven Minimum-Cost Reach-35
+Avoid) is proposed as a hierarchical MCRA framework with data-driven conservative margins for36
+quadruped navigation. A robust low-level velocity tracker is first trained with PPO under domain37
+Submitted to the 10th Conference on Robot Learning (CoRL 2026). Do not distribute.
+===== PAGE 2 =====
+randomization and then frozen to induce an approximately deterministic interface for high-level38
+learning. Building on this interface, a high-level budget-conditioned reach-avoid policy is learned39
+over low-dimensional velocity commands, and two data-driven conservative margins, α and δ, are40
+introduced to compensate for budget overrun and trajectory deviation.41
+The main contributions are twofold: 1) quadruped navigation is formulated as an MCRA prob-42
+lem that explicitly encodes safe goal-reaching and cost minimization; and 2) a hierarchical MCRA43
+framework with data-driven conservative margins is developed to make budget-conditioned MCRA44
+learning practical for quadruped robots.45
+The paper is organized as follows. Section 2 introduces the MCRA formulation for quadruped46
+navigation. Section 3 presents the HD-MCRA framework and its learning procedure. Section 447
+evaluates the proposed method in simulation and real-world experiments. Section 5 discusses the48
+main limitations of the current study. Section 6 concludes the paper.49
+2 Problem Formulation50
+To formalize quadruped navigation in cluttered environments, the high-level decision-making pro-51
+cess is modeled as a Markov decision process (MDP)52
+M = ⟨X , U high, P, c, ρ0⟩ (1)
+where X denotes the high-level state space, U high denotes the action space of commanded base53
+velocities, P (·|xt, ut) denotes the transition kernel, c(xt, ut) denotes the instantaneous execution54
+cost, and ρ0 denotes the initial-state distribution.55
+Let G ⊆ X denote the goal set and F ⊆ X denote the unsafe set induced by collision or safety56
+violation. Starting from an initial state x0, the task is to find a policy π and a free terminal time57
+T such that the robot reaches G, avoids F throughout the trajectory, and minimizes the cumulative58
+cost. Motivated by the deterministic MCRA formulation in [21], a stochastic MCRA problem is59
+considered for quadruped navigation [19]:60
+min
+π,T
+T −1X
+t=0
+c(xt, π(xt)) (2)
+s.t. x T ∈ G , (3)
+xt /∈ F , ∀t ∈ {0, . . . , T}, (4)
+xt+1 ∼ P (· | xt, π(xt)) . (5)
+The goal and unsafe sets are represented by two signed functions g : X → R and h : X → R as61
+G := {x ∈ X | g(x) ≤ 0}, F := {x ∈ X | h(x) > 0} (6)
+Unlike reward shaping, this formulation enforces goal-reaching and safety as trajectory-level con-62
+straints rather than soft preferences induced by weighted rewards. This distinction is important in63
+quadruped navigation, where surrogate reward or CMDP objectives may not align with the actual64
+objective of safe goal-reaching with minimum cumulative cost [21].65
+RC-PPO recasts the MCRA problem as a reachability problem on an augmented state space [21].66
+This construction was developed for deterministic discrete-time dynamics of the form xt+1 =67
+f(xt, ut), rather than for the stochastic dynamics in (5). The deterministic augmented-state for-68
+mulation is therefore briefly recalled below.69
+The augmented state is defined as70
+ˆxt = (xt, yt, zt) ∈ ˆX := X × {− 1, 1} × R (7)
+where yt is a binary safety indicator andzt is a remaining cost budget. The corresponding augmented71
+dynamics are72
+ˆf(xt, yt, zt, ut) =
+
+f(xt, ut), max{If (xt,ut)∈F , yt}, z t − c(xt, ut)
+
+(8)
+2
+===== PAGE 3 =====
+Figure 1: Overview of the HD-MCRA framework.
+where Ib∈B is the shifted indicator. By construction, zt evolves as73
+zt+1 = z0 −
+tX
+k=0
+c(xk, uk) (9)
+which means that z0 serves as an upper bound on the cumulative cost incurred along the trajectory.74
+Then the augmented goal function can be defined as75
+ˆg(x, y, z) = max{g(x), Cy, −z} (10)
+with augmented goal set76
+ˆG = {ˆx | ˆg(ˆx) ≤ 0} = {(x, y, z) | x ∈ G , y = −1, z ≥ 0} (11)
+Under this construction, if the augmented state reaches the augmented goal set ˆG, then the original77
+system reaches the goal, remains safe along the whole trajectory, and does not exceed the pre-78
+scribed budget [21]. Accordingly, the deterministic MCRA problem can be equivalently interpreted79
+as searching for the least feasible initial budget80
+min
+π,z0
+z0 s.t. ˜V π
+ˆg (x0, Ix0∈F , z0) ≤ 0, (12)
+where ˜V π
+ˆg is the reach value function on the augmented system.81
+However, this deterministic reformulation alone is insufficient for quadruped navigation, since real-82
+world execution remains stochastic and can lead to budget overruns and trajectory deviations [24].83
+To bridge this gap, we propose HD-MCRA, a hierarchical MCRA framework with a quadruped-84
+specific nominal closed-loop abstraction, budget-conditioned high-level policy learning, and data-85
+driven conservative corrections.86
+3 HD-MCRA87
+3.1 Framework Overview88
+As shown in Figure 1, HD-MCRA consists of a frozen low-level locomotion controller, a budget-89
+conditioned high-level planner, and data-driven conservative margins. This hierarchical structure90
+3
+===== PAGE 4 =====
+reduces the action dimensionality of the navigation problem, preserves locomotion feasibility, and91
+provides a more stationary closed-loop system for high-level MCRA learning [25, 26]. The frozen92
+low-level tracker serves as a stable motion interface, while the conservative marginsα and δ further93
+compensate for residual mismatch in cost and safety.94
+Formally, let the overall policy be written as95
+ujoint
+t = πlow
+slow
+t , uhigh
+t
+
+, u high
+t = πhigh(ot, zt) (13)
+where ot denotes the high-level observation, uhigh
+t denotes the commanded base velocity, slow
+t de-96
+notes the low-level locomotion state, and ujoint
+t denotes the final joint-level control action. This97
+factorization allows the navigation problem to be solved in a lower-dimensional action space while98
+preserving the physical feasibility of locomotion execution.99
+3.2 Hierarchical Budgeted Policy Learning100
+The low-level controller maps proprioceptive observations to actuator commands to track high-level101
+velocity commands while preserving locomotion stability. Its state is slow
+t ∈ S low, which includes102
+joint positions, joint velocities, body orientation, angular velocity, and recent tracking information,103
+and its action is the joint-level command ujoint
+t ∈ U joint. Given a commanded base velocity104
+uhigh
+t =
+
+v∗
+x,t, v∗
+y,t, ω∗
+z,t
+⊤
+(14)
+the controller aims to minimize tracking error while maintaining stable motion.105
+This controller is trained with PPO under domain randomization [27, 28]. Let ¯ubody
+t =106
+[vx,t, vy,t, ωz,t]⊤ denote the realized body velocity. The reward combines velocity-tracking, control-107
+smoothness, and posture-stability terms:108
+rlow
+t = −λv
+¯ubody
+t − uhigh
+t
+
+2
+2
+− λu
+ujoint
+t
+
+2
+2
+− λpϕstab
+t (15)
+where ϕstab
+t penalizes unstable motions such as excessive roll, pitch, or slippage. Randomizing109
+dynamics and terrain parameters improves robustness, and the trained πlow is frozen before high-110
+level learning.111
+With this motion interface fixed, the high-level process induces a reduced closed-loop transition112
+kernel Pcl(· | xt, uhigh
+t ). For high-level training, this kernel is approximated by a nominal closed-113
+loop map, yielding114
+xt+1 = ¯fcl
+
+xt, uhigh
+t
+
+(16)
+where ¯fcl denotes the nominal closed-loop abstraction obtained by composing the robot dynamics115
+with the frozen low-level tracker. Domain-randomized rollouts indicate that this induced kernel is116
+substantially more concentrated than the transition distribution produced by end-to-end joint-space117
+control, making the nominal abstraction useful at the navigation level.118
+Given this fixed interface, the high-level policy solves the navigation problem using the MCRA119
+formulation introduced in Section 2. Let the high-level observation be ot ∈ O, which contains local120
+LiDAR-based obstacle information, relative goal information, and the robot’s state. The high-level121
+action is the commanded base velocity122
+uhigh
+t = πhigh(ot, zt) (17)
+where zt is the remaining budget variable.123
+The high-level policy is conditioned on the remaining budget zt, so that one policy can adapt to124
+different cost-feasibility levels. Intuitively, larger budgets permit more conservative maneuvers,125
+whereas tighter budgets encourage shorter and more efficient motion, provided that safety is pre-126
+served.127
+The high-level objective is to learn a policy that safely reaches the goal within feasible cost budgets128
+while enabling the search for the minimum feasible initial budget:129
+min
+πhigh,z0
+z0 s.t. xT ∈ G , x t /∈ F , ∀t ≤ T. (18)
+4
+===== PAGE 5 =====
+Assumption 1 (Concentrated closed-loop abstraction). With the low-level tracker frozen, the130
+induced high-level closed-loop transition kernel is concentrated around ¯fcl. In particular, the one-131
+step state deviation et := xt+1 − ¯fcl(xt, uhigh
+t ) and the relative cost overrun ratio admit bounded132
+upper quantiles under domain-randomized rollouts.133
+3.3 Data-driven Robustness Margins134
+Despite the concentrated closed-loop abstraction, residual mismatch remains during real-world135
+quadruped execution [29, 30, 31]. This mismatch mainly manifests as cost overruns and trajectory136
+deviations, which can respectively violate budget feasibility and reduce safety margins.137
+To account for this residual mismatch, two conservative margins are introduced: acost margin α for138
+budget robustness and a safety margin δ for geometric robustness.139
+The cost margin inflates the effective running cost:140
+˜chigh(xt, uhigh
+t ) = (1 + α) chigh(xt, uhigh
+t ) (19)
+so that the high-level budget update becomes141
+zt+1 = zt − ˜chigh(xt, uhigh
+t ) (20)
+This design reserves additional budget against execution-induced cost overruns. The margin α is142
+estimated from the upper quantiles of the empirical cost-overrun distribution:143
+α = Qpc(εc) (21)
+where εc denotes the relative cost overrun ratio between actual and nominal execution.144
+The safety margin enlarges the unsafe set as [32, 33]145
+Fδ = {x ∈ X | d(x, F) ≤ δ} (22)
+where d(x, F) denotes the distance from the state to the unsafe set. Replacing F with Fδ encour-146
+ages greater obstacle clearance and improves robustness to trajectory deviations. The margin δ is147
+estimated from the upper quantiles of the empirical trajectory-deviation distribution:148
+δ = Qpd(εd) (23)
+where εd denotes the deviation from the nominal body path. Here, Qp(·) denotes the empirical p-149
+quantile. The resulting surrogate problem is solved on the nominal closed-loop abstraction ¯fcl with150
+inflated running cost ˜chigh and enlarged unsafe set Fδ.151
+Remark 1 (Quantile-based robustness intuition). If a nominal trajectory generated by ¯fcl reaches152
+G while remaining outside Fδ and satisfying the inflated budget update with ˜chigh, then the realized153
+trajectory remains safe and budget-feasible whenever the trajectory deviation and cost overrun stay154
+within the empirical quantile ranges used to define δ and α.155
+3.4 Two-phase Solver156
+Under this robustified formulation, the high-level policy is trained using a two-phase RL procedure.157
+In Phase I, a stochastic policy πhigh
+θ (u | o, z) is trained together with a reachability critic on the158
+augmented state ˆxt = ( xt, yt, zt). On the closed-loop abstraction, the critic is trained with the159
+discounted reachability target160
+˜Vψ(ˆxt) = (1 − γ)ˆg(ˆxt) + γ E
+h
+min
+n
+ˆg(ˆxt), ˜Vψ(ˆxt+1)
+oi
+(24)
+where ˆg(x, y, z) = max {g(x), Cy, −z} and ˆxt+1 is generated by ¯fcl. During training, the initial161
+budget z0 is sampled from a prescribed interval [zmin, zmax].162
+In Phase II, the stochastic actor is converted into a deterministic deployment policy using its mean163
+action, and the value function is re-evaluated under the uncertainty-aware model defined by ˜chigh164
+and Fδ. The minimum feasible initial budget is then obtained by a one-dimensional search over z0165
+for the start state or start-state distribution.166
+5
+===== PAGE 6 =====
+Table 1: Average performance over the three scenarios.
+Method SR (%) ↑ CR (%) ↓ Cost ↓ BVR (%) ↓ MC (m) ↑
+HD-MCRA 73.3 15.0 88.3 9.0 0.31
+RA 60.0 13.0 104.0 20.0 0.34
+RC-PPO 70.7 15.7 91.7 14.0 0.30
+PPO βL 67.7 23.0 99.7 20.7 0.20
+PPO βH 42.3 29.0 117.0 27.0 0.16
+CPPO βL 37.7 12.3 124.7 22.3 0.36
+CPPO βH 69.7 18.3 105.7 17.0 0.26
+4 Experiments167
+4.1 Experimental Setup168
+Experiments were conducted on quadruped navigation tasks in cluttered environments, with three169
+levels of difficulty: moderately cluttered scenes, narrow passages, and densely obstructed scenes.170
+We compare HD-MCRA with RA [20], RC-PPO [21], reward-shaped PPO, and CPPO with two171
+safety weights (βL, βH). For a controlled comparison, all methods were evaluated using the same172
+high-level observations, commanded-velocity action interface, frozen low-level tracker, and train-173
+ing/evaluation maps [13, 14, 18, 34, 35]. Performance is measured by Success Rate (SR), Collision174
+Rate (CR), Average Cost, Budget Violation Rate (BVR), and Minimum Clearance (MC).175
+4.2 Baseline Comparison176
+Figure 2a shows the scenario-wise comparison in terms of SR, CR, Average Cost, and MC. Table 1177
+summarizes the average performance over the three scenarios and also reports BVR.178
+Figure 2a and Table 1 indicate that HD-MCRA achieves the most balanced overall performance179
+across task completion, safety, budget feasibility, and efficiency in the three scenarios. Relative to180
+RA, HD-MCRA achieves a higher success rate and lower cost while maintaining comparable safety.181
+Compared with RC-PPO, HD-MCRA further improves budget feasibility and slightly increases min-182
+imum clearance, while also attaining the best average success rate. The PPO/CPPO baselines exhibit183
+the usual trade-off: some settings remain competitive in easier scenes or improve clearance, but none184
+matches HD-MCRA in terms of success, budget feasibility, and efficiency simultaneously.185
+4.3 Budget Feasibility Analysis186
+To evaluate budget sensitivity, we swept the normalized initial budget z0/zref over187
+{0.80, 0.85, 0.90, 0.96, 1.00, 1.05, 1.12, 1.20}, where zref denotes a scenario-dependent reference188
+feasible budget. Figure 2b shows that RA is largely budget-agnostic, whereas RC-PPO and HD-189
+MCRA exhibit clear budget-response behavior, with HD-MCRA remaining more reliable under190
+tight budgets.191
+To compare budget feasibility across methods, we define the least feasible initial budget192
+z⋆
+0 = min
+n
+z0
+ SR ≥ 60%, CR ≤ 20%, BVR ≤ 15%
+o
+(25)
+where the criteria are evaluated on the complete test set. Table 2 shows that HD-MCRA achieves193
+the smallest feasible budget, z⋆
+0 /zref = 0 .90, compared with 0.96 for RC-PPO and 1.12 for RA,194
+indicating that budget conditioning together with the conservative margins improves cost-feasible195
+navigation under execution uncertainty.196
+4.4 Ablation Study197
+Ablation studies were conducted on the hierarchical structure and the conservative margins α and198
+δ. The compared variants are the full HD-MCRA framework, w/o Hierarchy, w/o α, w/o δ, and199
+6
+===== PAGE 7 =====
+/uni00000033/uni00000055/uni0000004a/uni00000014/uni00000003/uni00000029/uni00000052/uni0000005b/uni0000005a/uni00000014/uni00000034/uni00000047/uni00000058/uni00000058/uni00000055/uni0000005d/uni00000003/uni00000036/uni00000047/uni00000059/uni00000059/uni00000014/uni0000002a/uni0000004b/uni00000054/uni00000059/uni0000004b/uni00000003/uni00000035/uni00000048/uni00000059/uni0000005a/uni00000014
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000039/uni0000005b/uni00000049/uni00000049/uni0000004b/uni00000059/uni00000059/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000039/uni00000038/uni0000000f
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000029/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000029/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000033/uni00000055/uni0000004a/uni00000014/uni00000003/uni00000029/uni00000052/uni0000005b/uni0000005a/uni00000014/uni00000034/uni00000047/uni00000058/uni00000058/uni00000055/uni0000005d/uni00000003/uni00000036/uni00000047/uni00000059/uni00000059/uni00000014/uni0000002a/uni0000004b/uni00000054/uni00000059/uni0000004b/uni00000003/uni00000035/uni00000048/uni00000059/uni0000005a/uni00000014
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000029/uni00000055/uni00000052/uni00000052/uni0000004f/uni00000059/uni0000004f/uni00000055/uni00000054/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000029/uni00000038/uni0000000f
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000029/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000029/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000033/uni00000055/uni0000004a/uni00000014/uni00000003/uni00000029/uni00000052/uni0000005b/uni0000005a/uni00000014/uni00000034/uni00000047/uni00000058/uni00000058/uni00000055/uni0000005d/uni00000003/uni00000036/uni00000047/uni00000059/uni00000059/uni00000014/uni0000002a/uni0000004b/uni00000054/uni00000059/uni0000004b/uni00000003/uni00000035/uni00000048/uni00000059/uni0000005a/uni00000014
+/uni00000016
+/uni0000001b/uni00000016
+/uni00000017/uni00000016/uni00000016
+/uni00000017/uni0000001b/uni00000016
+/uni00000018/uni00000016/uni00000016
+/uni00000018/uni0000001b/uni00000016
+/uni00000019/uni00000016/uni00000016
+/uni00000027/uni0000005c/uni0000004b/uni00000058/uni00000047/uni0000004d/uni0000004b/uni00000003/uni00000029/uni00000055/uni00000059/uni0000005a
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000029/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000029/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000033/uni00000055/uni0000004a/uni00000014/uni00000003/uni00000029/uni00000052/uni0000005b/uni0000005a/uni00000014/uni00000034/uni00000047/uni00000058/uni00000058/uni00000055/uni0000005d/uni00000003/uni00000036/uni00000047/uni00000059/uni00000059/uni00000014/uni0000002a/uni0000004b/uni00000054/uni00000059/uni0000004b/uni00000003/uni00000035/uni00000048/uni00000059/uni0000005a/uni00000014
+/uni00000016/uni00000014/uni00000016
+/uni00000016/uni00000014/uni00000017
+/uni00000016/uni00000014/uni00000018
+/uni00000016/uni00000014/uni00000019
+/uni00000016/uni00000014/uni0000001a
+/uni00000016/uni00000014/uni0000001b
+/uni00000016/uni00000014/uni0000001c
+/uni00000016/uni00000014/uni0000001d
+/uni00000016/uni00000014/uni0000001e
+/uni00000033/uni0000004f/uni00000054/uni0000004f/uni00000053/uni0000005b/uni00000053/uni00000003/uni00000029/uni00000052/uni0000004b/uni00000047/uni00000058/uni00000047/uni00000054/uni00000049/uni0000004b/uni00000003/uni0000000e/uni00000053/uni0000000f
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000029/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000029/uni00000036/uni00000036/uni00000035/uni0000002e
+(a) Performance comparison across three navigation
+scenarios.
+/uni00000016/uni00000014/uni0000001e/uni00000016/uni00000016/uni00000014/uni0000001e/uni0000001b/uni00000016/uni00000014/uni0000001f/uni00000016/uni00000016/uni00000014/uni0000001f/uni0000001b/uni00000017/uni00000014/uni00000016/uni00000016/uni00000017/uni00000014/uni00000016/uni0000001b/uni00000017/uni00000014/uni00000017/uni00000016/uni00000017/uni00000014/uni00000018/uni00000016
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000039/uni0000005b/uni00000049/uni00000049/uni0000004b/uni00000059/uni00000059/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000039/uni00000038/uni0000000f
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000016/uni00000014/uni0000001e/uni00000016/uni00000016/uni00000014/uni0000001e/uni0000001b/uni00000016/uni00000014/uni0000001f/uni00000016/uni00000016/uni00000014/uni0000001f/uni0000001b/uni00000017/uni00000014/uni00000016/uni00000016/uni00000017/uni00000014/uni00000016/uni0000001b/uni00000017/uni00000014/uni00000017/uni00000016/uni00000017/uni00000014/uni00000018/uni00000016
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000029/uni00000055/uni00000052/uni00000052/uni0000004f/uni00000059/uni0000004f/uni00000055/uni00000054/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000029/uni00000038/uni0000000f
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000016/uni00000014/uni0000001e/uni00000016/uni00000016/uni00000014/uni0000001e/uni0000001b/uni00000016/uni00000014/uni0000001f/uni00000016/uni00000016/uni00000014/uni0000001f/uni0000001b/uni00000017/uni00000014/uni00000016/uni00000016/uni00000017/uni00000014/uni00000016/uni0000001b/uni00000017/uni00000014/uni00000017/uni00000016/uni00000017/uni00000014/uni00000018/uni00000016
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000028/uni0000005b/uni0000004a/uni0000004d/uni0000004b/uni0000005a/uni00000003/uni0000003c/uni0000004f/uni00000055/uni00000052/uni00000047/uni0000005a/uni0000004f/uni00000055/uni00000054/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000028/uni0000003c/uni00000038/uni0000000f
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000016/uni00000014/uni0000001e/uni00000016/uni00000016/uni00000014/uni0000001e/uni0000001b/uni00000016/uni00000014/uni0000001f/uni00000016/uni00000016/uni00000014/uni0000001f/uni0000001b/uni00000017/uni00000014/uni00000016/uni00000016/uni00000017/uni00000014/uni00000016/uni0000001b/uni00000017/uni00000014/uni00000017/uni00000016/uni00000017/uni00000014/uni00000018/uni00000016
+/uni00000016
+/uni00000018/uni0000001b
+/uni0000001b/uni00000016
+/uni0000001d/uni0000001b
+/uni00000017/uni00000016/uni00000016
+/uni00000017/uni00000018/uni0000001b
+/uni00000017/uni0000001b/uni00000016
+/uni00000017/uni0000001d/uni0000001b
+/uni00000018/uni00000016/uni00000016
+/uni00000027/uni0000005c/uni0000004b/uni00000058/uni00000047/uni0000004d/uni0000004b/uni00000003/uni00000029/uni00000055/uni00000059/uni0000005a
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+(b) Budget-response curves under normalized initial
+budgets.
+Figure 2: Baseline comparison and budget feasibility analysis.
+Table 2: Search result for the minimum feasible normalized initial budget.
+Method z⋆
+0 /zref ↓ SR@ z⋆
+0 (%) ↑ CR@ z⋆
+0 (%) ↓ BVR@ z⋆
+0 (%) ↓
+HD-MCRA 0.90 66.8 17.6 14.7
+RC-PPO 0.96 62.9 18.8 14.9
+RA 1.12 60.5 13.7 14.4
+Table 3: Ablation study on hierarchy and conservative margins.
+Variant SR (%) ↑ CR (%) ↓ Cost ↓ BVR (%) ↓ MC (m) ↑
+w/o Hierarchy 47.9 38.8 116.7 31.5 0.11
+w/o α 67.2 19.8 80.6 22.4 0.29
+w/o δ 64.8 26.3 77.2 13.8 0.19
+w/o α, δ 62.9 29.4 87.6 25.8 0.16
+HD-MCRA (full) 70.8 18.6 71.3 11.2 0.32
+w/o α, δ. Since this study uses a separate evaluation batch, the values in Table 3 are intended for200
+within-table comparison only.201
+Table 3 shows that removing the hierarchy causes the largest overall degradation. Removing α202
+mainly hurts budget feasibility, whereas removing δ mainly hurts safety and clearance. Removing203
+both margins further degrades performance, confirming the complementary roles of the hierarchy204
+and the two margins.205
+4.5 Physical Robot Experiments206
+The learned HD-MCRA policy was deployed on a Unitree Go2 robot in a cluttered indoor envi-207
+ronment containing chairs, narrow passages, and moving obstacles. In one representative setup, a208
+chair-defined passage was created whose width was only about 0.3 m larger than the robot. The209
+chairs were placed in an alternating left-front, right-front, and left-front pattern, requiring the robot210
+to execute consecutive turning maneuvers. A moving obstacle was further introduced near the goal211
+region to test reactive avoidance under real-world execution mismatch.212
+7
+===== PAGE 8 =====
+(a) Real-world deployment in a cluttered indoor envi-
+ronment.
+(b) Representative real-world deployment sequence
+in the shortest-path scenario.
+Figure 3: Real-world deployment sequences in two indoor scenarios.
+For a start-to-goal distance of approximately 15 m, the robot completed 26 out of 30 autonomous213
+navigation trials successfully while maintaining stable locomotion and avoiding the moving obsta-214
+cle. Figure 3a shows a representative deployment sequence.215
+In a second experimental scenario, chair obstacles were densely placed in a wider corridor so that the216
+shortest route passed through a noticeably narrower passage than alternative longer routes. The robot217
+consistently selected this shorter feasible route and avoided collisions, indicating that the learned218
+policy preferred efficient navigation while respecting local obstacle constraints. Figure 3b shows a219
+representative sequence from this shortest-path deployment.220
+5 Limitations221
+While HD-MCRA improves the trade-off among success, safety, budget feasibility, and efficiency222
+in the considered quadruped navigation tasks, several limitations remain. First, its robustness mech-223
+anism is based on a nominal closed-loop abstraction and empirical quantile corrections rather than a224
+strict stochastic MCRA guarantee. As a result, the conservative marginsα and δ may become insuf-225
+ficient when the execution distribution deviates substantially from the domain-randomized training226
+conditions. Second, the current system focuses on navigation policy design and relies on LiDAR-227
+based observations, which may provide limited geometric saliency for thin structures such as chair228
+legs, especially under partial occlusion or small clearances. Future work will explore more princi-229
+pled stochastic reachability formulations, uncertainty-aware adaptive safety margins, and stronger230
+multimodal perception for geometry-sensitive safety.231
+6 Conclusion232
+In this paper, we formulated quadruped navigation as an MCRA problem and proposed HD-MCRA,233
+which combines a frozen low-level tracker, a nominal closed-loop abstraction, a budget-conditioned234
+high-level policy, and conservative cost and safety corrections. This design makes augmented-state235
+MCRA practical for quadruped navigation and achieves a better trade-off among success, safety,236
+budget feasibility, and efficiency than the evaluated baselines.237
+8
+===== PAGE 9 =====
+References238
+[1] J. Hwangbo, J. Lee, A. Dosovitskiy, D. Bellicoso, V . Tsounis, V . Koltun, and M. Hutter. Learn-239
+ing agile and dynamic motor skills for legged robots. Science Robotics, 4(26), 2019. doi:240
+10.1126/scirobotics.aau5872. URL https://doi.org/10.1126/scirobotics.aau5872.241
+[2] J. Lee, J. Hwangbo, L. Wellhausen, V . Koltun, and M. Hutter. Learning quadrupedal lo-242
+comotion over challenging terrain. Science Robotics , 5(47):eabc5986, 2020. doi:10.1126/243
+scirobotics.abc5986. URL https://doi.org/10.1126/scirobotics.abc5986.244
+[3] A. Kumar, Z. Fu, D. Pathak, and J. Malik. RMA: Rapid motor adaptation for legged robots.245
+In Robotics: Science and Systems , 2021. doi:10.15607/RSS.2021.XVII.011. URL https:246
+//doi.org/10.15607/RSS.2021.XVII.011.247
+[4] T. Miki, J. Lee, J. Hwangbo, L. Wellhausen, V . Koltun, and M. Hutter. Learning robust per-248
+ceptive locomotion for quadrupedal robots in the wild. Science Robotics, 7(62):eabk2822,249
+2022. doi:10.1126/scirobotics.abk2822. URL https://doi.org/10.1126/scirobotics.250
+abk2822.251
+[5] D. Hoeller, N. Rudin, D. V . Sako, and M. Hutter. ANYmal parkour: Learning agile navigation252
+for quadrupedal robots. Science Robotics , 9(88):eadi7566, 2024. doi:10.1126/scirobotics.253
+adi7566. URL https://doi.org/10.1126/scirobotics.adi7566.254
+[6] X. Cheng, K. Shi, A. Agarwal, and D. Pathak. Extreme parkour with legged robots. In IEEE255
+International Conference on Robotics and Automation , pages 11443–11450, 2024. doi:10.256
+1109/ICRA57147.2024.10610200. URL https://doi.org/10.1109/ICRA57147.2024.257
+10610200.258
+[7] S. Chen, M. Yang, H. Mao, J. Zhang, H. Liu, S. He, D. Zhang, Z. Qiu, and C. Zhang. SEA-Nav:259
+Efficient policy learning for safe and agile quadruped navigation in cluttered environments.260
+arXiv preprint arXiv:2603.09460 , 2026. doi:10.48550/arXiv.2603.09460. URL https://261
+arxiv.org/abs/2603.09460.262
+[8] W. Zhang, S. Xu, P. Cai, and L. Zhu. Agile and safe trajectory planning for quadruped263
+navigation with motion anisotropy awareness. arXiv preprint arXiv:2403.10101, 2024. doi:264
+10.48550/arXiv.2403.10101. URL https://arxiv.org/abs/2403.10101.265
+[9] M. Elnoor, A. J. Sathyamoorthy, K. Weerakoon, and D. Manocha. ProNav: Propriocep-266
+tive traversability estimation for legged robot navigation in outdoor environments. IEEE267
+Robotics and Automation Letters , 9(8):7190–7197, 2024. doi:10.1109/LRA.2024.3418270.268
+URL https://doi.org/10.1109/LRA.2024.3418270.269
+[10] D. Fox, W. Burgard, and S. Thrun. The dynamic window approach to collision avoidance.270
+IEEE Robotics & Automation Magazine , 4(1):23–33, 1997. doi:10.1109/100.580977. URL271
+https://doi.org/10.1109/100.580977.272
+[11] S. Koenig and M. Likhachev. D* lite. In Proceedings of the AAAI Conference on Artificial273
+Intelligence, pages 476–483, 2002. URL http://www.aaai.org/Library/AAAI/2002/274
+aaai02-072.php.275
+[12] S. Karaman and E. Frazzoli. Sampling-based algorithms for optimal motion plan-276
+ning. The International Journal of Robotics Research , 30:846–894, 2011. doi:10.1177/277
+0278364911406761. URL https://doi.org/10.1177/0278364911406761.278
+[13] J. Achiam, D. Held, A. Tamar, and P. Abbeel. Constrained policy optimization. InProceedings279
+of the 34th International Conference on Machine Learning, volume 70 of Proceedings of Ma-280
+chine Learning Research , pages 22–31, 2017. URL https://proceedings.mlr.press/281
+v70/achiam17a.html.282
+9
+===== PAGE 10 =====
+[14] C. Tessler, D. J. Mankowitz, and S. Mannor. Reward constrained policy optimization. In283
+International Conference on Learning Representations, 2019. URL https://openreview.284
+net/forum?id=SkfrvsA9FX.285
+[15] Z. Liu, Z. Cen, V . Isenbaev, W. Liu, Z. S. Wu, B. Li, and D. Zhao. Constrained variational286
+policy optimization for safe reinforcement learning. In Proceedings of the 39th International287
+Conference on Machine Learning, volume 162 of Proceedings of Machine Learning Research,288
+2022. URL https://proceedings.mlr.press/v162/liu22b.html.289
+[16] J. Garc ´ıa and F. Fern´andez. A comprehensive survey on safe reinforcement learning. Journal290
+of Machine Learning Research , 16:1437–1480, 2015. URL https://jmlr.org/papers/291
+v16/garcia15a.html.292
+[17] A. Wachi, X. Shen, and Y . Sui. A survey of constraint formulations in safe reinforcement293
+learning. In International Joint Conference on Artificial Intelligence , 2024. URL https:294
+//www.ijcai.org/proceedings/2024/913.295
+[18] M. Guerrier, H. Fouad, and G. Beltrame. Learning control barrier functions and their appli-296
+cation in reinforcement learning: A survey. arXiv preprint arXiv:2404.16879 , 2024. doi:297
+10.48550/arXiv.2404.16879. URL https://arxiv.org/abs/2404.16879.298
+[19] S. Bansal, M. Chen, S. Herbert, and C. J. Tomlin. Hamilton-jacobi reachability: A brief299
+overview and recent advances. arXiv preprint arXiv:1709.07523, 2017. doi:10.48550/arXiv.300
+1709.07523. URL https://arxiv.org/abs/1709.07523.301
+[20] K. Hsu, V . Rubies-Royo, C. J. Tomlin, and J. F. Fisac. Safety and liveness guarantees through302
+reach-avoid reinforcement learning. In Robotics: Science and Systems , 2021. doi:10.15607/303
+RSS.2021.XVII.077. URL https://doi.org/10.15607/RSS.2021.XVII.077.304
+[21] O. So, C. Ge, and C. Fan. Solving minimum-cost reach avoid using reinforcement305
+learning. In Advances in Neural Information Processing Systems , 2024. doi:10.52202/306
+079017-0974. URL https://proceedings.neurips.cc/paper_files/paper/2024/307
+hash/3750e99b522bd36a099d2e8b9f0550c7-Abstract-Conference.html.308
+[22] M. Ganai, S. Gao, and S. L. Herbert. Hamilton-jacobi reachability in reinforcement learning:309
+A survey. arXiv preprint arXiv:2407.09645 , 2024. doi:10.48550/arXiv.2407.09645. URL310
+https://arxiv.org/abs/2407.09645.311
+[23] M. Ganai, Z. Gong, C. Yu, S. L. Herbert, and S. Gao. Iterative reachability esti-312
+mation for safe reinforcement learning. In Advances in Neural Information Process-313
+ing Systems, 2023. URL https://papers.nips.cc/paper_files/paper/2023/hash/314
+dca63f2650fe9e88956c1b68440b8ee9-Abstract-Conference.html.315
+[24] S. Bansal and C. J. Tomlin. Deepreach: A deep learning approach to high-dimensional316
+reachability. arXiv preprint arXiv:2011.02082, 2020. doi:10.48550/arXiv.2011.02082. URL317
+https://arxiv.org/abs/2011.02082.318
+[25] D. Jain, A. Iscen, and K. Caluwaerts. Hierarchical reinforcement learning for quadruped lo-319
+comotion. arXiv preprint arXiv:1905.08926 , 2019. doi:10.48550/arXiv.1905.08926. URL320
+https://arxiv.org/abs/1905.08926.321
+[26] C. Li, M. Vlastelica, S. Blaes, J. Frey, F. Grimminger, and G. Martius. Learning agile322
+skills via adversarial imitation of rough partial demonstrations. In Conference on Robot323
+Learning, volume 205 of Proceedings of Machine Learning Research , 2023. URL https:324
+//proceedings.mlr.press/v205/li23b.html.325
+[27] J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov. Proximal policy optimization326
+algorithms. arXiv preprint arXiv:1707.06347, 2017. URL https://arxiv.org/abs/1707.327
+06347.328
+10
+===== PAGE 11 =====
+[28] J. Tobin, R. Fong, A. Ray, J. Schneider, W. Zaremba, and P. Abbeel. Domain randomization for329
+transferring deep neural networks from simulation to the real world. InIEEE/RSJ International330
+Conference on Intelligent Robots and Systems , pages 23–30, 2017. doi:10.1109/IROS.2017.331
+8202133. URL https://doi.org/10.1109/IROS.2017.8202133.332
+[29] E. Smirnova, E. Dohmatob, and J. Mary. Distributionally robust reinforcement learning. arXiv333
+preprint arXiv:1902.08708, 2019. doi:10.48550/arXiv.1902.08708. URL https://arxiv.334
+org/abs/1902.08708.335
+[30] Y . Wang and S. Zou. Online robust reinforcement learning with model uncertainty. InAdvances336
+in Neural Information Processing Systems , 2021. URL https://proceedings.neurips.337
+cc/paper_files/paper/2021/hash/3a4496776767aaa99f9804d0905fe584-Paper.338
+pdf.339
+[31] Z. Liu, Q. Bai, J. Blanchet, P. Dong, W. Xu, Z. Zhou, and Z. Zhou. Distributionally robust q-340
+learning. In Proceedings of the 39th International Conference on Machine Learning , volume341
+162 of Proceedings of Machine Learning Research , 2022. URL https://proceedings.342
+mlr.press/v162/liu22a.html.343
+[32] V . Renganathan, S. Safaoui, A. Kothari, B. Gravell, I. Shames, and T. Summers. Risk344
+bounded nonlinear robot motion planning with integrated perception & control. Artificial In-345
+telligence, 2023. doi:10.1016/j.artint.2022.103812. URL https://doi.org/10.1016/j.346
+artint.2022.103812.347
+[33] A. Theurkauf, J. Kottinger, N. Ahmed, and M. Lahijanian. Chance-constrained multi-robot348
+motion planning under gaussian uncertainties. arXiv preprint arXiv:2303.11476, 2023. doi:349
+10.48550/arXiv.2303.11476. URL https://arxiv.org/abs/2303.11476.350
+[34] T. Miki, J. Lee, L. Wellhausen, and M. Hutter. Learning to walk in confined spaces using 3d351
+representation. In IEEE International Conference on Robotics and Automation, pages 11987–352
+11993, 2024. doi:10.1109/ICRA57147.2024.10610271. URL https://doi.org/10.1109/353
+ICRA57147.2024.10610271.354
+[35] K. Weerakoon, A. J. Sathyamoorthy, M. Elnoor, and D. Manocha. V APOR: Legged robot355
+navigation in unstructured outdoor environments using offline reinforcement learning. InIEEE356
+International Conference on Robotics and Automation , pages 10344–10350, 2024. doi:10.357
+1109/ICRA57147.2024.10610132. URL https://doi.org/10.1109/ICRA57147.2024.358
+10610132.359
+11
