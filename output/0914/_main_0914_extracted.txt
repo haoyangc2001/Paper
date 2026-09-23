@@ -1,0 +1,569 @@
+===== PAGE 1 =====
+Engineering Minimum-Cost Reach-A void Control for
+Quadruped Navigation
+Anonymous Author(s)
+Aﬀiliation
+Address
+email
+Abstract: This paper studies the engineering of minimum-cost reach-avoid1
+control for a real quadruped robot. We start from the RC-PPO formulation2
+and identify the execution mismatch that appears when its idealized transi-3
+tion model is connected to a learned locomotion controller. We then develop4
+a deployment-oriented interface, data-calibrated cost and safety margins,5
+and a budget-search procedure that together make the formulation usable6
+on hardware. Simulation and physical-robot experiments evaluate each en-7
+gineering module and the resulting navigation behavior. This version is8
+a structure-review draft: all numerical values in the body are explicitly9
+marked as assumed data and are not experimental evidence.10
+Keywords: quadruped navigation, reach-avoid control, safe robot learning11
+1 Introduction12
+Quadruped robots are increasingly used for inspection, exploration, and service tasks in13
+environments where a navigation policy must do more than reach a target. The robot14
+must remain collision-free during the whole maneuver while avoiding unnecessary motion15
+and energy expenditure. These requirements are coupled in cluttered scenes: a short route16
+may pass close to obstacles, whereas a safer route may consume more time and actuation.17
+Treating safety and eﬀiciency as independent reward terms therefore makes the desired18
+trade-off dependent on hand-tuned weights. Minimum-cost reach-avoid (MCRA) control19
+provides a more direct task description by requiring goal reachability and trajectory-wide20
+avoidance while minimizing a cumulative cost [ 1, 2].21
+Recent work has made MCRA learning practical through RC-PPO [ 3]. RC-PPO augments22
+the state with a safety indicator and remaining budget, learns a reachability value function23
+with a budget-conditioned policy, and then searches for the least feasible initial budget.24
+These elements are important for quadruped navigation because they express cost feasibility25
+and safety in the same trajectory objective. They are also the starting point of this paper;26
+we do not introduce a new MCRA objective, augmented-state construction, or reachability-27
+learning theorem.28
+The diﬀiculty appears when the idealized MCRA model is connected to a real quadruped.29
+A high-level action is usually a desired body velocity, not a directly applied state transition.30
+It is realized by a locomotion controller whose tracking error depends on contacts, friction,31
+latency, and sensing. Consequently, a nominal transition used during high-level learning can32
+disagree with the executed motion in two task-relevant ways. First, the executed path may33
+be longer or slower than the nominal path, so the nominal budget update underestimates34
+cumulative cost. Second, the executed body path may deviate toward an obstacle, so a35
+trajectory that is safe in the nominal map may lose its clearance on hardware. These are36
+Submitted to the 10th Conference on Robot Learning (CoRL 2026). Do not distribute.
+===== PAGE 2 =====
+model–execution mismatch problems, rather than shortcomings of the MCRA formulation37
+itself.38
+We present HD-MCRA, a deployment-oriented engineering layer for RC-PPO/MCRA on a39
+quadruped robot. The design follows the failure modes above. A velocity-level interface is40
+created by training a locomotion tracker once and freezing it before high-level learning. This41
+interface reduces the navigation action space and, more importantly, defines a repeatable42
+closed-loop mapping whose residual error can be measured. We collect paired nominal43
+and executed rollouts through that mapping and use the resulting error distributions to44
+calibrate two separate corrections. A cost margin α inflates the running cost used by the45
+budget update, while a safety margin δ enlarges the unsafe set used by reach-avoid learning.46
+The same budget-conditioned policy and two-phase search inherited from RC-PPO are then47
+applied to this calibrated model.48
+The engineering contribution is therefore the deployment pipeline that connects an ideal49
+MCRA learner to a physical closed loop. It is not the low-level PPO tracker, which is50
+a system dependency, nor a claim of strict stochastic safety. Our claims are limited to51
+empirical robustness under the distribution used to calibrate the margins. We evaluate the52
+pipeline with controlled mismatch studies, component-wise ablations, sensitivity tests, and53
+a quantitative physical-robot deployment study. The experiments are designed to answer54
+where direct RC-PPO deployment fails, whether the frozen interface makes the high-level55
+problem repeatable, whether α and δ address different failure modes, and how the complete56
+system behaves on hardware.57
+Our contributions are:58
+1. We identify the model–execution mismatch that must be handled when an MCRA59
+policy is deployed through a quadruped locomotion controller, separating cost over-60
+run from geometric path deviation.61
+2. We develop an execution-calibrated deployment layer consisting of a frozen velocity62
+interface, paired mismatch data, and two corrections that map measured cost and63
+path errors to budget inflation ( α) and unsafe-set dilation ( δ).64
+3. We evaluate the resulting RC-PPO-based system through controlled studies and65
+physical-robot trials, with the protocol and claim boundaries made explicit for each66
+module.67
+The remainder of the paper first positions HD-MCRA relative to MCRA learning, quadruped68
+navigation, and risk-aware planning. We then define the ideal MCRA problem and its69
+closed-loop deployment gap, describe the execution-calibrated system, and evaluate each70
+engineering choice before discussing limitations.71
+2 Related Work72
+2.1 Minimum-Cost Reach-A void Learning73
+Reach-avoid reinforcement learning treats reaching a target and avoiding an unsafe set as74
+trajectory-level requirements rather than competing reward terms [ 1, 4]. RC-PPO extends75
+this view to minimum-cost reach-avoid control by augmenting the state with a safety in-76
+dicator and remaining budget, learning a budget-conditioned policy and reachability critic,77
+and searching for the least feasible initial budget [ 3]. This construction is the algorith-78
+mic foundation used here. Our focus is the interface between its transition model and a79
+quadruped’s executed motion, which is outside the deterministic model assumed by the80
+original formulation.81
+2
+===== PAGE 3 =====
+2.2 Safe Quadruped Navigation82
+Learning-based quadruped systems have demonstrated robust locomotion and navigation83
+over challenging terrain [ 5, 6, 7, 8, 9]. Recent navigation systems improve agility, percep-84
+tion or traversal in confined and unstructured environments [ 10, 11, 12]. Safety is also ad-85
+dressed through constrained policy optimization, control barrier functions, and risk-sensitive86
+objectives [13, 14, 15]. These methods establish useful hardware interfaces and safety mech-87
+anisms, but they do not by themselves calibrate a minimum-cost reach-avoid budget and an88
+avoid-set boundary from the same execution data.89
+2.3 Robust Deployment under Model–Execution Mismatch90
+Domain randomization and robust reinforcement learning reduce sensitivity to model un-91
+certainty [ 16, 17, 18, 19], while chance- constrained and risk-aware planners represent un-92
+certainty explicitly in their traversability or path-selection models [ 20, 21, 22]. These ap-93
+proaches differ from the present deployment layer in both object and mechanism. STEP94
+estimates stochastic traversability for risk-aware off-road planning, and Schmittle et al. use95
+multiple long-range samples under sensing uncertainty; HD-MCRA instead measures paired96
+nominal/executed errors after fixing a velocity interface, then maps upper empirical quan-97
+tiles to the MCRA running cost and unsafe set. The resulting claim is correspondingly98
+narrower: empirical robustness under the calibration distribution, without a new formal99
+stochastic guarantee.100
+The remaining gap is thus practical rather than theoretical: an MCRA learner needs a101
+repeatable closed-loop interface and an explicit procedure for converting its measured ex-102
+ecution mismatch into the two quantities that determine feasibility, namely cumulative103
+budget and geometric clearance.104
+3 Problem Setup: From Ideal MCRA to Quadruped Execution105
+3.1 MCRA and RC-PPO Recap106
+We model the navigation layer as a discrete-time process with state xt ∈ X , high-level veloc-107
+ity command ut ∈ U high, transition kernel P , running cost c, and initial-state distribution108
+ρ0. The MCRA objective is to reach a goal set G, avoid an unsafe set F at every step, and109
+minimize the accumulated cost until a free terminal time T :110
+min
+π,T
+T −1∑
+t=0
+c(xt, π(xt)) (1)
+s.t. x T ∈ G , x t /∈ F ∀ t ≤ T, x t+1 ∼ P (· | xt, π(xt)). (2)
+We represent the sets using signed functions g and h as G = {x : g(x) ≤ 0} and F =111
+{x : h(x) > 0}. Following RC-PPO [ 3], the state is augmented to ˆxt = ( xt, yt, zt), where112
+yt ∈ {−1, 1} records whether the unsafe set has been entered and zt is remaining budget. The113
+shifted indicator is Ib∈B = +1 when b ∈ B and −1 otherwise; thus yt+1 = max{Ixt+1∈F , yt}114
+and zt+1 = zt − c(xt, ut). The augmented goal function is115
+ˆg(x, y, z) = max {g(x), Cy, −z}, (3)
+where C > 0 is an arbitrary safety-violation constant. RC-PPO notes that a practical116
+choice is C = max x∈X g(x) [3]. Reaching the zero sublevel set of ˆg therefore encodes117
+goal reaching, trajectory-wide avoidance, and the upper-bound property z0 ≥ ∑
+t ct. The118
+reachability critic, budget-conditioned actor, and two-phase minimum-budget search used119
+later are inherited from RC-PPO; they are not re-derived as contributions here.120
+3
+===== PAGE 4 =====
+3.2 Quadruped Closed-Loop Execution121
+On hardware, ut is a desired body velocity that is realized by a locomotion controller. Let122
+Pcl denote the induced closed-loop transition after this controller is applied. The nominal123
+model used by high-level learning is xt+1 = ¯fcl(xt, ut), while the executed transition is124
+sampled from Pcl(· | xt, ut). The difference is the deployment gap addressed by HD-MCRA.125
+For a paired nominal/executed rollout, we define the relative cost overrun and a trajectory-126
+deviation statistic as127
+εc = Jexec − Jnom
+Jnom
+, ε d = d(τexec, τnom), (4)
+where the exact cost units, trajectory distance, time window, and pairing protocol are128
+specified with the experiment data. These implementation-level quantities are currently129
+marked TBD pending the original configuration and logs.130
+3.3 Deployment Objective and Scope131
+The deployment objective is to retain the RC-PPO MCRA semantics while accounting for132
+the measured distribution of (εc, εd). HD-MCRA does not extend the deterministic equiva-133
+lence theorem of RC-PPO to a general stochastic system. Instead, it constructs an empirical134
+calibration layer and evaluates whether the resulting policy remains safe and budget-feasible135
+under the calibration and held-out execution conditions. This scope determines the method136
+and experiment design in the next sections.137
+4 Execution-Calibrated HD-MCRA138
+4.1 System Overview139
+Figure 1 summarizes the data flow. Components inherited from RC-PPO or used as system140
+dependencies are kept fixed, while the execution calibration layer is fitted before high-level141
+policy training. Offline rollouts produce paired nominal and executed trajectories. Their142
+cost and geometric errors are converted into α and δ, after which the high-level policy is143
+trained on the corrected model. Online, the policy emits a velocity command and the frozen144
+tracker closes the loop on the robot.145
+4.2 Frozen Velocity-Control Interface146
+The low-level controller receives proprioceptive state and a commanded body velocity147
+ut = [ v∗
+x, v∗
+y, ω∗
+z ]⊤ and returns joint commands. It is trained once with PPO and domain148
+randomization, then frozen before high-level learning. In the draft protocol, the command149
+limits are v∗
+x ∈ [−0.6, 0.6] m/s, v∗
+y ∈ [−0.4, 0.4] m/s and ω∗
+z ∈ [−1.2, 1.2] rad/s (assumed150
+data). The nominal closed-loop map ¯fcl is obtained by rolling out the frozen tracker with151
+nominal dynamics and recording the state at the high-level decision interval. Freezing is an152
+engineering choice: it prevents the transition distribution from changing while the MCRA153
+policy is being learned and makes paired error samples attributable to the deployment in-154
+terface rather than to a moving low-level policy.155
+The tracker is not treated as a contribution. Its only required evidence is that the com-156
+manded velocity is realized with bounded error and that the robot remains locomotion-stable157
+over the command range. The exact network size, reward weights, randomization ranges158
+and update rates remain TBD until the original configuration is restored.159
+4.3 Execution-Mismatch Dataset160
+We construct a calibration set by replaying the same high-level command sequences through161
+the nominal closed-loop model and through perturbed executions. Each pair shares the162
+4
+===== PAGE 5 =====
+Figure 1: HD-MCRA data flow. The frozen velocity tracker supplies the execution interface;
+the highlighted calibration stage maps paired nominal/executed rollouts to the cost margin
+α and safety margin δ.
+initial state, map, goal and command sequence. For a rollout of length T , let Jnom =163 ∑T −1
+t=0 c(xnom
+t , ut) and Jexec = ∑T −1
+t=0 c(xexec
+t , ut). The draft uses 1,200 paired rollouts, with164
+800 for calibration and 400 held out for evaluation (assumed data). Perturbations cover165
+friction, actuation delay, velocity tracking noise and LiDAR dropout; the exact ranges are166
+TBD.167
+We compute the relative cost overrun εc from the paired cumulative costs. For geometric168
+deviation, the draft uses the maximum planar distance between time-aligned body poses,169
+εd = max
+0≤t≤T
+∥pexec
+t − pnom
+t ∥2 , (5)
+where pt is the base position. Samples are split by rollout before quantile estimation to170
+avoid leakage. These definitions and sample counts are placeholders for the real data and171
+are explicitly marked as assumed.172
+4.4 Cost and Safety Calibration173
+The two error channels are calibrated independently because they affect different MCRA174
+constraints. For calibration quantiles pc and pd, we set175
+α = Qpc (εc), δ = Qpd (εd), (6)
+with pc = pd = 0.90 in the draft (assumed data). The resulting values are α = 0.18 (assumed176
+data) and δ = 0 .12 m (assumed data). The calibrated running cost is ˜c(xt, ut) = (1 +177
+α)c(xt, ut), so the remaining budget evolves as zt+1 = zt − ˜c(xt, ut). The safety correction178
+dilates the unsafe set by Fδ = {x : d(x, F) ≤ δ}. If the robot footprint is already included in179
+the map obstacle layer, δ is an additional execution margin rather than a second footprint180
+inflation; this implementation detail is TBD.181
+The interpretation is deliberately limited. A nominal trajectory satisfying the inflated bud-182
+get and avoiding Fδ is expected to remain feasible when its realized errors lie within the183
+5
+===== PAGE 6 =====
+calibration quantiles. This is an empirical coverage statement, not a probability guarantee184
+for arbitrary distribution shift.185
+4.5 Robust MCRA Learning and Deployment186
+With ˜c and Fδ, the high-level learner follows the RC-PPO two-phase procedure. In Phase I,187
+a stochastic actor πθ(u | o, z) and reachability critic Vψ(ˆx) are optimized on the augmented188
+state. The PPO ratio objective is189
+Lclip(θ) = Et
+[
+min
+(
+rt(θ) ˆAt, clip(rt(θ), 1 − ϵ, 1 + ϵ) ˆAt
+)]
+, (7)
+where rt(θ) = πθ(ut | ot, zt)/πθold (ut | ot, zt). The advantage uses the reachability critic and190
+generalized advantage estimation; ϵ is the PPO clipping parameter. The critic target is the191
+discounted reachability Bellman target with the augmented goal function, evaluated using192
+the nominal closed-loop transition and the corrected budget/unsafe-set definitions. At a193
+goal, collision, budget violation or time-limit terminal, the bootstrap term is set to zero;194
+this terminal handling is stated explicitly because it was absent from the 0820 description.195
+The draft samples z0/zref uniformly from [0.8, 1.2] during Phase I and uses γ = 0 .99, ϵ =196
+0.2 and GAE λ = 0 .95 (assumed data). These values are placeholders. In Phase II, the197
+stochastic actor is replaced by its mean action. The least feasible budget is found by scanning198
+the normalized grid {0.80, 0.85, 0.90, 0.96, 1.00, 1.05, 1.12, 1.20} (assumed data) and selecting199
+the smallest value meeting the stated success, collision and budget criteria. This search is200
+inherited from RC-PPO; the engineering change is that the search uses the calibrated closed-201
+loop model.202
+For the assumed-data draft, confidence intervals are intentionally omitted rather than re-203
+constructed from aggregate means or plotted bars. The final protocol should report binomial204
+intervals for SR/CR/BVR, bootstrap intervals for cost and MC, and the quantile estimation205
+uncertainty for α and δ, all computed from the original trial-level records.206
+Execution-calibrated procedure. The draft implementation follows five steps:207
+1. Freeze the velocity tracker and collect paired nominal/executed rollouts.208
+2. Estimate α and δ from held-out calibration quantiles.209
+3. Train the budget-conditioned RC-PPO actor and critic using ˜c and Fδ.210
+4. Convert the actor to mean-action deployment and search the feasible budget grid.211
+5. Execute the selected policy and log goal, safety and cost outcomes.212
+5 Experiments213
+5.1 Experimental Protocol214
+We organize the evaluation around five questions. RQ1 measures the direct nominal-to-215
+executed gap. RQ2 tests whether the frozen interface makes the high-level transition suﬀi-216
+ciently repeatable. RQ3 isolates the roles of α and δ. RQ4 studies sensitivity to the margins217
+and to execution conditions outside calibration. RQ5 evaluates the full pipeline on a Unitree218
+Go2.219
+The draft protocol uses a simulated differential-drive abstraction coupled to the same ve-220
+locity interface and three map families: moderately cluttered, narrow passage and densely221
+obstructed. Each method receives the same local LiDAR scan, relative goal and robot state.222
+The high-level decision interval is 0.2 s and the episode horizon is 30 s (assumed data). We223
+report success rate (SR), collision rate (CR), cumulative cost, budget violation rate (BVR),224
+and minimum clearance (MC). A trial is successful only if it reaches the goal before the225
+6
+===== PAGE 7 =====
+Table 1: Draft average performance over three simulated scenarios (all entries are assumed
+data).
+Method SR (%) CR (%) Cost BVR (%) MC (m)HD-MCRA 73.3 (assumed data) 15.0 (assumed data) 88.3 (assumed data) 9.0 (assumed data) 0.31 (assumed data)RC-PPO 70.7 (assumed data) 15.7 (assumed data) 91.7 (assumed data) 14.0 (assumed data) 0.30 (assumed data)RA 60.0 (assumed data) 13.0 (assumed data) 104.0 (assumed data) 22.0 (assumed data) 0.34 (assumed data)PPOβL 67.7 (assumed data) 23.0 (assumed data) 99.7 (assumed data) 20.7 (assumed data) 0.20 (assumed data)PPOβH 42.3 (assumed data) 29.0 (assumed data) 117.0 (assumed data) 27.0 (assumed data) 0.16 (assumed data)CPPOβL 37.7 (assumed data) 12.3 (assumed data) 124.7 (assumed data) 22.3 (assumed data) 0.36 (assumed data)CPPOβH 69.7 (assumed data) 18.3 (assumed data) 105.7 (assumed data) 17.0 (assumed data) 0.26 (assumed data)
+time limit without entering the unsafe set; a budget violation is recorded when the exe-226
+cuted cumulative cost exceeds the selected initial budget. The exact simulator version and227
+random-seed count are TBD; the draft uses 3 seeds and 300 trials per method (assumed228
+data).229
+For fair comparison, RC-PPO uses the same frozen velocity interface and training budget230
+as HD-MCRA but sets α = 0 and δ = 0 . RA denotes reach-avoid learning without cost231
+conditioning. PPO βL and PPO βH are reward-shaped policies with low and high safety232
+weights; CPPO variants use the same weights in a constrained objective. These baseline233
+implementations are provisional and must be checked against the original configuration.234
+5.2 RQ1: Direct Deployment Gap235
+The first experiment compares nominal and executed rollouts before any margin is applied.236
+Under the draft perturbation distribution, the median relative cost overrun is 0.09 (assumed237
+data) and the 90th percentile is 0.18 (assumed data). The corresponding maximum path238
+deviation has a median of 0.06 m and a 90th percentile of 0.12 m (assumed data). These239
+values motivate the draft settings α = 0 .18 and δ = 0 .12 m; they are not claims about240
+the final robot logs. Direct RC-PPO evaluated without these corrections yields an assumed241
+BVR of 14.0% and CR of 15.7% across the three maps (assumed data), illustrating why242
+nominal feasibility is insuﬀicient.243
+5.3 RQ2: Closed-Loop Interface244
+To isolate hierarchy, we compare the frozen velocity interface with a joint-space variant that245
+exposes the high-level learner to 12 actuator targets. The joint-space variant uses the same246
+PPO optimizer and training steps. In the draft, the frozen interface reduces the command-247
+tracking RMSE from 0.19 to 0.08 (velocity units) and increases converged training runs248
+from 7/10 to 9/10 (assumed data). The comparison is intended to test stationarity and249
+controllability, not to claim a new low-level controller.250
+5.4 RQ3: Cost and Safety Margins251
+Table 1 reports the draft comparison. Every number in this table is an assumed placeholder252
+for structural review and must be replaced by trial-level measurements. The full system im-253
+proves the cost-feasibility metric relative to uncalibrated RC-PPO while retaining a similar254
+collision rate.255
+The component-wise ablation in Table 2 follows the same evaluation batch. Removing α256
+primarily increases BVR, whereas removing δ reduces clearance and increases CR. Removing257
+the hierarchy has the largest combined degradation. These are intended causal patterns;258
+the assumed values must be replaced together with confidence intervals.259
+5.5 RQ4: Sensitivity and Distribution Shift260
+We sweep α ∈ {0, 0.09, 0.18, 0.27} and δ ∈ {0, 0.06, 0.12, 0.18} m (assumed data). The draft261
+trend is monotonic reduction of BVR with increasing α and monotonic reduction of CR262
+7
+===== PAGE 8 =====
+/uni00000033/uni00000055/uni0000004a/uni00000014/uni00000003/uni00000029/uni00000052/uni0000005b/uni0000005a/uni00000014/uni00000034/uni00000047/uni00000058/uni00000058/uni00000055/uni0000005d/uni00000003/uni00000036/uni00000047/uni00000059/uni00000059/uni00000014/uni0000002a/uni0000004b/uni00000054/uni00000059/uni0000004b/uni00000003/uni00000035/uni00000048/uni00000059/uni0000005a/uni00000014
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000039/uni0000005b/uni00000049/uni00000049/uni0000004b/uni00000059/uni00000059/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000039/uni00000038/uni0000000f
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000029/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000029/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000033/uni00000055/uni0000004a/uni00000014/uni00000003/uni00000029/uni00000052/uni0000005b/uni0000005a/uni00000014/uni00000034/uni00000047/uni00000058/uni00000058/uni00000055/uni0000005d/uni00000003/uni00000036/uni00000047/uni00000059/uni00000059/uni00000014/uni0000002a/uni0000004b/uni00000054/uni00000059/uni0000004b/uni00000003/uni00000035/uni00000048/uni00000059/uni0000005a/uni00000014
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000029/uni00000055/uni00000052/uni00000052/uni0000004f/uni00000059/uni0000004f/uni00000055/uni00000054/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000029/uni00000038/uni0000000f
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000029/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000029/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000033/uni00000055/uni0000004a/uni00000014/uni00000003/uni00000029/uni00000052/uni0000005b/uni0000005a/uni00000014/uni00000034/uni00000047/uni00000058/uni00000058/uni00000055/uni0000005d/uni00000003/uni00000036/uni00000047/uni00000059/uni00000059/uni00000014/uni0000002a/uni0000004b/uni00000054/uni00000059/uni0000004b/uni00000003/uni00000035/uni00000048/uni00000059/uni0000005a/uni00000014
+/uni00000016
+/uni0000001b/uni00000016
+/uni00000017/uni00000016/uni00000016
+/uni00000017/uni0000001b/uni00000016
+/uni00000018/uni00000016/uni00000016
+/uni00000018/uni0000001b/uni00000016
+/uni00000019/uni00000016/uni00000016
+/uni00000027/uni0000005c/uni0000004b/uni00000058/uni00000047/uni0000004d/uni0000004b/uni00000003/uni00000029/uni00000055/uni00000059/uni0000005a
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000029/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000029/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000033/uni00000055/uni0000004a/uni00000014/uni00000003/uni00000029/uni00000052/uni0000005b/uni0000005a/uni00000014/uni00000034/uni00000047/uni00000058/uni00000058/uni00000055/uni0000005d/uni00000003/uni00000036/uni00000047/uni00000059/uni00000059/uni00000014/uni0000002a/uni0000004b/uni00000054/uni00000059/uni0000004b/uni00000003/uni00000035/uni00000048/uni00000059/uni0000005a/uni00000014
+/uni00000016/uni00000014/uni00000016
+/uni00000016/uni00000014/uni00000017
+/uni00000016/uni00000014/uni00000018
+/uni00000016/uni00000014/uni00000019
+/uni00000016/uni00000014/uni0000001a
+/uni00000016/uni00000014/uni0000001b
+/uni00000016/uni00000014/uni0000001c
+/uni00000016/uni00000014/uni0000001d
+/uni00000016/uni00000014/uni0000001e
+/uni00000033/uni0000004f/uni00000054/uni0000004f/uni00000053/uni0000005b/uni00000053/uni00000003/uni00000029/uni00000052/uni0000004b/uni00000047/uni00000058/uni00000047/uni00000054/uni00000049/uni0000004b/uni00000003/uni0000000e/uni00000053/uni0000000f
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000036/uni00000036/uni00000035/uni0000002e
+/uni00000029/uni00000036/uni00000036/uni00000035/uni00000032
+/uni00000029/uni00000036/uni00000036/uni00000035/uni0000002e
+Figure 2: Draft scenario-level performance trends. All plotted values are assumed data
+placeholders and must be regenerated from trial logs.
+Table 2: Draft component ablation (all entries are assumed data).
+Variant SR (%) CR (%) Cost BVR (%) MC (m)w/o hierarchy 47.9 (assumed data) 38.8 (assumed data) 116.7 (assumed data) 31.5 (assumed data) 0.11 (assumed data)w/oα 67.2 (assumed data) 19.8 (assumed data) 80.6 (assumed data) 22.4 (assumed data) 0.29 (assumed data)w/oδ 64.8 (assumed data) 26.3 (assumed data) 77.2 (assumed data) 13.8 (assumed data) 0.19 (assumed data)w/o both 62.9 (assumed data) 29.4 (assumed data) 87.6 (assumed data) 25.8 (assumed data) 0.16 (assumed data)HD-MCRA 70.8 (assumed data) 18.6 (assumed data) 71.3 (assumed data) 11.2 (assumed data) 0.32 (assumed data)
+with increasing δ, accompanied by higher path cost and occasional lower SR when margins263
+become excessive. Under a held-out perturbation level 25% larger than calibration, the264
+assumed full system retains SR 65.0% and BVR 16.0%, whereas the uncalibrated baseline265
+reaches SR 58.0% and BVR 24.0% (assumed data). These values illustrate the intended266
+stress test but do not establish a distribution-free guarantee.267
+8
+===== PAGE 9 =====
+/uni00000016/uni00000014/uni0000001e/uni00000016/uni00000016/uni00000014/uni0000001e/uni0000001b/uni00000016/uni00000014/uni0000001f/uni00000016/uni00000016/uni00000014/uni0000001f/uni0000001b/uni00000017/uni00000014/uni00000016/uni00000016/uni00000017/uni00000014/uni00000016/uni0000001b/uni00000017/uni00000014/uni00000017/uni00000016/uni00000017/uni00000014/uni00000018/uni00000016
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000039/uni0000005b/uni00000049/uni00000049/uni0000004b/uni00000059/uni00000059/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000039/uni00000038/uni0000000f
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000016/uni00000014/uni0000001e/uni00000016/uni00000016/uni00000014/uni0000001e/uni0000001b/uni00000016/uni00000014/uni0000001f/uni00000016/uni00000016/uni00000014/uni0000001f/uni0000001b/uni00000017/uni00000014/uni00000016/uni00000016/uni00000017/uni00000014/uni00000016/uni0000001b/uni00000017/uni00000014/uni00000017/uni00000016/uni00000017/uni00000014/uni00000018/uni00000016
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000029/uni00000055/uni00000052/uni00000052/uni0000004f/uni00000059/uni0000004f/uni00000055/uni00000054/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000029/uni00000038/uni0000000f
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000016/uni00000014/uni0000001e/uni00000016/uni00000016/uni00000014/uni0000001e/uni0000001b/uni00000016/uni00000014/uni0000001f/uni00000016/uni00000016/uni00000014/uni0000001f/uni0000001b/uni00000017/uni00000014/uni00000016/uni00000016/uni00000017/uni00000014/uni00000016/uni0000001b/uni00000017/uni00000014/uni00000017/uni00000016/uni00000017/uni00000014/uni00000018/uni00000016
+/uni00000016/uni0000000b
+/uni00000018/uni00000016/uni0000000b
+/uni0000001a/uni00000016/uni0000000b
+/uni0000001c/uni00000016/uni0000000b
+/uni0000001e/uni00000016/uni0000000b
+/uni00000017/uni00000016/uni00000016/uni0000000b
+/uni00000028/uni0000005b/uni0000004a/uni0000004d/uni0000004b/uni0000005a/uni00000003/uni0000003c/uni0000004f/uni00000055/uni00000052/uni00000047/uni0000005a/uni0000004f/uni00000055/uni00000054/uni00000003/uni00000038/uni00000047/uni0000005a/uni0000004b/uni00000003/uni0000000e/uni00000028/uni0000003c/uni00000038/uni0000000f
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+/uni00000016/uni00000014/uni0000001e/uni00000016/uni00000016/uni00000014/uni0000001e/uni0000001b/uni00000016/uni00000014/uni0000001f/uni00000016/uni00000016/uni00000014/uni0000001f/uni0000001b/uni00000017/uni00000014/uni00000016/uni00000016/uni00000017/uni00000014/uni00000016/uni0000001b/uni00000017/uni00000014/uni00000017/uni00000016/uni00000017/uni00000014/uni00000018/uni00000016
+/uni00000016
+/uni00000018/uni0000001b
+/uni0000001b/uni00000016
+/uni0000001d/uni0000001b
+/uni00000017/uni00000016/uni00000016
+/uni00000017/uni00000018/uni0000001b
+/uni00000017/uni0000001b/uni00000016
+/uni00000017/uni0000001d/uni0000001b
+/uni00000018/uni00000016/uni00000016
+/uni00000027/uni0000005c/uni0000004b/uni00000058/uni00000047/uni0000004d/uni0000004b/uni00000003/uni00000029/uni00000055/uni00000059/uni0000005a
+/uni00000038/uni00000027
+/uni00000038/uni00000029/uni00000013/uni00000036/uni00000036/uni00000035
+/uni0000002e/uni0000002a/uni00000013/uni00000033/uni00000029/uni00000038/uni00000027
+Figure 3: Draft budget-response curves. Curves are assumed data placeholders for protocol
+review.
+5.6 RQ5: Physical-Robot Deployment268
+The draft physical study uses a Unitree Go2 in a cluttered indoor environment with chairs,269
+narrow passages and a moving obstacle. The representative route length is approximately 15270
+m and the narrow passage is about 0.3 m wider than the robot body (assumed data, inherited271
+from the 0820 description). The assumed deployment count is 26 successful trials out of 30,272
+corresponding to SR 86.7% (assumed data). The remaining four trials are provisionally273
+classified as two localization failures, one conservative timeout and one contact with a chair274
+leg (assumed data). This classification must be replaced by the actual trial log. We report275
+the deployment as an engineering study, not as a statistical certification.276
+6 Limitations277
+The current manuscript is an engineering draft and has several limitations. First, the nu-278
+merical values in this version are explicitly assumed placeholders; no result should be used279
+for a scientific comparison until replaced by trial-level logs and confidence intervals. Second,280
+9
+===== PAGE 10 =====
+the robustness mechanism uses fixed empirical quantiles and therefore only describes cover-281
+age under the calibration distribution. Temporal correlation, rare contacts and distribution282
+shifts can make the effective coverage lower than the marginal quantile suggests. Third, a283
+fixed α may be overly conservative in open space and insuﬀicient under severe actuator or284
+perception faults, while a fixed δ can remove feasible narrow passages. Fourth, the LiDAR285
+observation can miss thin structures or obstacles behind occlusions. Finally, the current286
+physical study is small and indoor; broader terrain, payload and weather conditions are287
+required before making claims about general quadruped deployment.288
+7 Conclusion289
+This paper reframes the practical use of RC-PPO/MCRA on a quadruped as a deployment290
+problem. The MCRA objective, augmented state and two-phase solver are inherited from291
+prior work. The new engineering layer fixes a velocity-level closed-loop interface, measures292
+paired nominal/executed mismatch, and maps cost overrun and path deviation to separate293
+corrections α and δ. This organization turns an abstract budget-conditioned reach-avoid294
+learner into a pipeline that can be calibrated, tested and deployed on a physical robot. The295
+present numerical results are placeholders marked as assumed data; the final conclusions296
+will be updated after replacing them with verified simulation and Go2 logs. The intended297
+claim is empirical robustness within the calibrated execution distribution, not a new formal298
+stochastic reach-avoid guarantee.299
+References300
+[1] S. Bansal, M. Chen, S. Herbert, and C. J. Tomlin. Hamilton-jacobi reachability: A301
+brief overview and recent advances. arXiv preprint arXiv:1709.07523, 2017. doi:10.302
+48550/arXiv.1709.07523. URL https://arxiv.org/abs/1709.07523.303
+[2] M. Ganai, S. Gao, and S. L. Herbert. Hamilton-jacobi reachability in reinforcement304
+learning: A survey. arXiv preprint arXiv:2407.09645, 2024. doi:10.48550/arXiv.2407.305
+09645. URL https://arxiv.org/abs/2407.09645.306
+[3] O. So, C. Ge, and C. Fan. Solving minimum-cost reach avoid using reinforcement307
+learning. In Advances in Neural Information Processing Systems, 2024. doi:10.52202/308
+079017-0974. URL https://proceedings.neurips.cc/paper_files/paper/2024/309
+hash/3750e99b522bd36a099d2e8b9f0550c7-Abstract-Conference.html .310
+[4] M. Ganai, Z. Gong, C. Yu, S. L. Herbert, and S. Gao. Iterative reachability esti-311
+mation for safe reinforcement learning. In Advances in Neural Information Process-312
+ing Systems, 2023. URL https://papers.nips.cc/paper_files/paper/2023/hash/313
+dca63f2650fe9e88956c1b68440b8ee9-Abstract-Conference.html .314
+[5] J. Hwangbo, J. Lee, A. Dosovitskiy, D. Bellicoso, V. Tsounis, V. Koltun, and315
+M. Hutter. Learning agile and dynamic motor skills for legged robots. Science316
+Robotics, 4(26), 2019. doi:10.1126/scirobotics.aau5872. URL https://doi.org/10.317
+1126/scirobotics.aau5872.318
+[6] J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter. Learning quadrupedal319
+locomotion over challenging terrain. Science Robotics, 5(47):eabc5986, 2020. doi:10.320
+1126/scirobotics.abc5986. URL https://doi.org/10.1126/scirobotics.abc5986.321
+[7] A. Kumar, Z. Fu, D. Pathak, and J. Malik. RMA: Rapid motor adaptation for legged322
+robots. In Robotics: Science and Systems, 2021. doi:10.15607/RSS.2021.XVII.011.323
+URL https://doi.org/10.15607/RSS.2021.XVII.011.324
+[8] T. Miki, J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter. Learning325
+robust perceptive locomotion for quadrupedal robots in the wild. Science Robotics,326
+10
+===== PAGE 11 =====
+7(62):eabk2822, 2022. doi:10.1126/scirobotics.abk2822. URL https://doi.org/10.327
+1126/scirobotics.abk2822.328
+[9] D. Hoeller, N. Rudin, D. V. Sako, and M. Hutter. ANYmal parkour: Learning agile329
+navigation for quadrupedal robots. Science Robotics, 9(88):eadi7566, 2024. doi:10.330
+1126/scirobotics.adi7566. URL https://doi.org/10.1126/scirobotics.adi7566.331
+[10] T. Miki, J. Lee, L. Wellhausen, and M. Hutter. Learning to walk in confined spaces using332
+3d representation. In IEEE International Conference on Robotics and Automation,333
+pages 11987–11993, 2024. doi:10.1109/ICRA57147.2024.10610271. URL https://doi.334
+org/10.1109/ICRA57147.2024.10610271.335
+[11] K. Weerakoon, A. J. Sathyamoorthy, M. Elnoor, and D. Manocha. V APOR: Legged336
+robot navigation in unstructured outdoor environments using offline reinforcement337
+learning. In IEEE International Conference on Robotics and Automation, pages 10344–338
+10350, 2024. doi:10.1109/ICRA57147.2024.10610132. URL https://doi.org/10.339
+1109/ICRA57147.2024.10610132.340
+[12] M. Guerrier, H. Fouad, and G. Beltrame. Learning control barrier functions and their341
+application in reinforcement learning: A survey. arXiv preprint arXiv:2404.16879, 2024.342
+doi:10.48550/arXiv.2404.16879. URL https://arxiv.org/abs/2404.16879.343
+[13] J. Achiam, D. Held, A. Tamar, and P. Abbeel. Constrained policy optimization. In344
+Proceedings of the 34th International Conference on Machine Learning, volume 70345
+of Proceedings of Machine Learning Research, pages 22–31, 2017. URL https://346
+proceedings.mlr.press/v70/achiam17a.html.347
+[14] Z. Liu, Z. Cen, V. Isenbaev, W. Liu, Z. S. Wu, B. Li, and D. Zhao. Constrained348
+variational policy optimization for safe reinforcement learning. In Proceedings of349
+the 39th International Conference on Machine Learning, volume 162 of Proceedings350
+of Machine Learning Research, 2022. URL https://proceedings.mlr.press/v162/351
+liu22b.html.352
+[15] V. Renganathan, S. Safaoui, A. Kothari, B. Gravell, I. Shames, and T. Summers.353
+Risk bounded nonlinear robot motion planning with integrated perception & control.354
+Artificial Intelligence, 2023. doi:10.1016/j.artint.2022.103812. URL https://doi.org/355
+10.1016/j.artint.2022.103812.356
+[16] J. Tobin, R. Fong, A. Ray, J. Schneider, W. Zaremba, and P. Abbeel. Domain ran-357
+domization for transferring deep neural networks from simulation to the real world. In358
+IEEE/RSJ International Conference on Intelligent Robots and Systems, pages 23–30,359
+2017. doi:10.1109/IROS.2017.8202133. URL https://doi.org/10.1109/IROS.2017.360
+8202133.361
+[17] E. Smirnova, E. Dohmatob, and J. Mary. Distributionally robust reinforcement learn-362
+ing. arXiv preprint arXiv:1902.08708, 2019. doi:10.48550/arXiv.1902.08708. URL363
+https://arxiv.org/abs/1902.08708.364
+[18] Y. Wang and S. Zou. Online robust reinforcement learning with model un-365
+certainty. In Advances in Neural Information Processing Systems, 2021.366
+URL https://proceedings.neurips.cc/paper_files/paper/2021/hash/367
+3a4496776767aaa99f9804d0905fe584-Paper.pdf.368
+[19] Z. Liu, Q. Bai, J. Blanchet, P. Dong, W. Xu, Z. Zhou, and Z. Zhou. Distributionally369
+robust q-learning. In Proceedings of the 39th International Conference on Machine370
+Learning, volume 162 of Proceedings of Machine Learning Research, 2022. URL https:371
+//proceedings.mlr.press/v162/liu22a.html.372
+11
+===== PAGE 12 =====
+[20] A. Theurkauf, J. Kottinger, N. Ahmed, and M. Lahijanian. Chance-constrained multi-373
+robot motion planning under gaussian uncertainties. arXiv preprint arXiv:2303.11476,374
+2023. doi:10.48550/arXiv.2303.11476. URL https://arxiv.org/abs/2303.11476.375
+[21] D. D. Fan, K. Otsu, Y. Kubo, A. Dixit, J. W. Burdick, and A.-A. Agha-Mohammadi.376
+STEP: Stochastic traversability evaluation and planning for risk-aware off-road naviga-377
+tion. In Robotics: Science and Systems XVII, 2021. doi:10.15607/RSS.2021.XVII.021.378
+URL https://doi.org/10.15607/RSS.2021.XVII.021.379
+[22] M. Schmittle, R. Baijal, B. Hou, S. Srinivasa, and B. Boots. Multi-sample long range380
+path planning under sensing uncertainty for off-road autonomous driving. In 2024 IEEE381
+International Conference on Robotics and Automation, 2024. doi:10.1109/ICRA57147.382
+2024.10610476. URL https://doi.org/10.1109/ICRA57147.2024.10610476.383
+12
