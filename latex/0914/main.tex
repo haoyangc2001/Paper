@@ -40,24 +40,20 @@ cumulative cost~\citep{bansal2017,ganai2024survey}.
 Recent work has made MCRA learning practical through RC-PPO~\citep{so2024}.
 RC-PPO augments the state with a safety indicator and remaining budget, learns a
 reachability value function with a budget-conditioned policy, and then searches for
-the least feasible initial budget. These elements are important for quadruped
-navigation because they express cost feasibility and safety in the same trajectory
-objective. They are also the starting point of this paper; we do not introduce a
-new MCRA objective, augmented-state construction, or reachability-learning theorem.
-
-The difficulty arises when RC-PPO's nominal deterministic transition model is
-connected to a real quadruped. Its reachability equivalence and budget-feasibility
-conclusions are established for this nominal model, whereas a high-level action is
-not directly applied as a state transition. Instead, it is realized through a
-locomotion controller, making the physical closed-loop transition uncertain and
-dependent on contact conditions, friction, actuation latency, and state-estimation
-error. Consequently, feasibility under the nominal model does not automatically
-imply feasibility during physical execution. The mismatch appears in two
-task-relevant ways. First, the executed path may be longer or slower, causing the
-nominal budget update to underestimate cumulative cost. Second, the executed body
-path may deviate toward an obstacle, causing a trajectory that is safe in the
-nominal map to lose clearance on hardware. This is a deployment model--execution
-mismatch, rather than a deficiency of the MCRA formulation itself.
+the least feasible initial budget. Together, these components provide a unified way
+to represent safety and cost feasibility in the quadruped navigation task. However,
+RC-PPO's reachability equivalence and budget-feasibility conclusions are established
+under a nominal deterministic transition model. When connected to a real
+quadruped, a high-level velocity command is not directly applied as a state
+transition. Instead, it is realized through a locomotion controller, making the
+physical closed-loop transition uncertain and dependent on contact conditions,
+friction, actuation latency, and state-estimation error. Consequently, feasibility
+under the nominal model does not automatically imply feasibility during physical
+execution. This deployment mismatch appears as two task-relevant failures. First,
+the executed path may be longer or slower, causing the nominal model to
+underestimate cumulative cost. Second, the executed body path may deviate toward
+an obstacle, causing a trajectory that is safe in the nominal map to lose clearance
+on hardware.
 
 This work focuses on instantiating RC-PPO/MCRA on a real quadruped by constructing
 a fixed and repeatable closed-loop velocity interface and calibrating
@@ -68,20 +64,21 @@ repeatable closed-loop mapping whose residual error can be measured. We collect
 paired nominal and executed rollouts through that mapping and use the resulting
 error distributions to calibrate two separate corrections. A cost margin $\alpha$
 inflates the running cost used by the budget update, while a safety margin
-$\delta$ enlarges the unsafe set used by reach-avoid learning. The same
-budget-conditioned policy and two-phase search inherited from RC-PPO are then
-applied to this calibrated model.
+$\delta$ enlarges the unsafe set used by reach-avoid learning. We then apply the
+budget-conditioned policy and two-phase search to this calibrated model.
 
-The engineering contribution is therefore the deployment pipeline that connects
-an ideal MCRA learner to a physical closed loop. It is not the low-level PPO
-tracker, which is a system dependency, nor a claim of strict stochastic safety.
-Our claims are limited to empirical robustness under the distribution used to
-calibrate the margins. We evaluate the pipeline with controlled mismatch studies,
-component-wise ablations, sensitivity tests, and a quantitative physical-robot
-deployment study. The experiments are designed to answer where direct RC-PPO
-deployment fails, whether the frozen interface makes the high-level problem
-repeatable, whether $\alpha$ and $\delta$ address different failure modes, and how
-the complete system behaves on hardware.
+Our method builds on RC-PPO's MCRA formulation, augmented-state construction,
+reachability critic, budget-conditioned policy, and two-phase budget search. The
+engineering contribution is instead the deployment pipeline that connects an ideal
+MCRA learner to a physical closed loop. It is not the low-level PPO tracker, which
+is a system dependency, nor a claim of strict stochastic safety. Our claims are
+limited to empirical robustness under the distribution used to calibrate the
+margins. We evaluate the pipeline with controlled mismatch studies, component-wise
+ablations, sensitivity tests, and a quantitative physical-robot deployment study.
+The experiments are designed to answer where direct RC-PPO deployment fails,
+whether the frozen interface makes the high-level problem repeatable, whether
+$\alpha$ and $\delta$ address different failure modes, and how the complete system
+behaves on hardware.
 
 Our contributions are:
 \begin{enumerate}
