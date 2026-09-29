@@ -45,16 +45,19 @@ navigation because they express cost feasibility and safety in the same trajecto
 objective. They are also the starting point of this paper; we do not introduce a
 new MCRA objective, augmented-state construction, or reachability-learning theorem.
 
-The difficulty appears when the idealized MCRA model is connected to a real
-quadruped. A high-level action is usually a desired body velocity, not a directly
-applied state transition. It is realized by a locomotion controller whose tracking
-error depends on contacts, friction, latency, and sensing. Consequently, a nominal
-transition used during high-level learning can disagree with the executed motion in
-two task-relevant ways. First, the executed path may be longer or slower than the
-nominal path, so the nominal budget update underestimates cumulative cost. Second,
-the executed body path may deviate toward an obstacle, so a trajectory that is safe
-in the nominal map may lose its clearance on hardware. These are model--execution
-mismatch problems, rather than shortcomings of the MCRA formulation itself.
+The difficulty arises when RC-PPO's nominal deterministic transition model is
+connected to a real quadruped. Its reachability equivalence and budget-feasibility
+conclusions are established for this nominal model, whereas a high-level action is
+not directly applied as a state transition. Instead, it is realized through a
+locomotion controller, making the physical closed-loop transition uncertain and
+dependent on contact conditions, friction, actuation latency, and state-estimation
+error. Consequently, feasibility under the nominal model does not automatically
+imply feasibility during physical execution. The mismatch appears in two
+task-relevant ways. First, the executed path may be longer or slower, causing the
+nominal budget update to underestimate cumulative cost. Second, the executed body
+path may deviate toward an obstacle, causing a trajectory that is safe in the
+nominal map to lose clearance on hardware. This is a deployment model--execution
+mismatch, rather than a deficiency of the MCRA formulation itself.
 
 This work focuses on instantiating RC-PPO/MCRA on a real quadruped by constructing
 a fixed and repeatable closed-loop velocity interface and calibrating
