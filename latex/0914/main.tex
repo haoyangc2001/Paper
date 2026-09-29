@@ -67,18 +67,16 @@ inflates the running cost used by the budget update, while a safety margin
 $\delta$ enlarges the unsafe set used by reach-avoid learning. We then apply the
 budget-conditioned policy and two-phase search to this calibrated model.
 
-Our method builds on RC-PPO's MCRA formulation, augmented-state construction,
-reachability critic, budget-conditioned policy, and two-phase budget search. The
-engineering contribution is instead the deployment pipeline that connects an ideal
-MCRA learner to a physical closed loop. It is not the low-level PPO tracker, which
-is a system dependency, nor a claim of strict stochastic safety. Our claims are
-limited to empirical robustness under the distribution used to calibrate the
-margins. We evaluate the pipeline with controlled mismatch studies, component-wise
-ablations, sensitivity tests, and a quantitative physical-robot deployment study.
-The experiments are designed to answer where direct RC-PPO deployment fails,
-whether the frozen interface makes the high-level problem repeatable, whether
-$\alpha$ and $\delta$ address different failure modes, and how the complete system
-behaves on hardware.
+Our engineering contribution is an execution-calibrated deployment pipeline that
+connects an ideal MCRA learner to a physical closed loop. We do not claim a strict
+stochastic safety guarantee or extend RC-PPO's deterministic theory to general
+stochastic systems; instead, our claims are limited to empirical robustness under
+the execution distribution used to calibrate the margins. We evaluate the pipeline
+with controlled mismatch studies, component-wise ablations, sensitivity tests, and
+a quantitative physical-robot deployment study. The experiments are designed to
+answer where direct RC-PPO deployment fails, whether the frozen interface makes
+the high-level problem repeatable, whether $\alpha$ and $\delta$ address different
+failure modes, and how the complete system behaves on hardware.
 
 Our contributions are:
 \begin{enumerate}
