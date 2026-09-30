@@ -192,30 +192,30 @@ currently marked \textsc{TBD} pending the original configuration and logs.
 
 \subsection{Deployment Objective and Scope}
 The deployment objective is to retain the RC-PPO MCRA semantics while accounting
-for the measured distribution of $(\varepsilon_c,\varepsilon_d)$. HD-MCRA does not
-extend the deterministic equivalence theorem of RC-PPO to a general stochastic
-system. Instead, it constructs an empirical calibration layer and evaluates whether
-the resulting policy remains safe and budget-feasible under the calibration and
-held-out execution conditions. This scope determines the method and experiment
-design in the next sections.
+for the measured distribution of $(\varepsilon_c,\varepsilon_d)$. HD-MCRA treats
+these quantities as empirical descriptions of the nominal-to-execution gap rather
+than as a new stochastic reachability model. The next section describes how a
+fixed velocity interface, paired rollout data, and calibrated margins are used to
+make this gap actionable for high-level learning and deployment.
 
 \section{Execution-Calibrated HD-MCRA}
 % TASK-010--TASK-012: interface, mismatch dataset, alpha/delta calibration,
 % robustified RC-PPO learning and deployment algorithm.
 \subsection{System Overview}
-Figure~\ref{fig:system_overview} summarizes the data flow. Components inherited
-from RC-PPO or used as system dependencies are kept fixed, while the execution
-calibration layer is fitted before high-level policy training. Offline rollouts
-produce paired nominal and executed trajectories. Their cost and geometric errors
-are converted into $\alpha$ and $\delta$, after which the high-level policy is
-trained on the corrected model. Online, the policy emits a velocity command and
-the frozen tracker closes the loop on the robot.
+Figure~\ref{fig:system_overview} summarizes the deployment pipeline. The problem
+setup in Section~3 defines the nominal-to-execution errors, while this section
+specifies how they are measured and used. Components inherited from RC-PPO are
+kept fixed, and the execution calibration layer is fitted before high-level policy
+training. Offline rollouts produce paired nominal and executed trajectories; their
+cost and geometric errors are converted into $\alpha$ and $\delta$. The corrected
+model is then used for high-level learning and budget search. Online, the policy
+emits a velocity command and the frozen tracker closes the loop on the robot.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.96\columnwidth]{../../images/framework_overview_final.png}
-\caption{HD-MCRA data flow. The frozen velocity tracker supplies the execution
-interface; the highlighted calibration stage maps paired nominal/executed rollouts
+\caption{HD-MCRA deployment pipeline. The frozen velocity tracker supplies the
+execution interface; the calibration stage maps paired nominal/executed rollouts
 to the cost margin $\alpha$ and safety margin $\delta$.}
 \label{fig:system_overview}
 \end{figure}
@@ -242,14 +242,18 @@ configuration is restored.
 \subsection{Execution-Mismatch Dataset}
 We construct a calibration set by replaying the same high-level command sequences
 through the nominal closed-loop model and through perturbed executions. Each pair
-shares the initial state, map, goal and command sequence. For a rollout of length
-$T$, let $J_{\rm nom}=\sum_{t=0}^{T-1}c(x_t^{\rm nom},u_t)$ and
+shares the initial state, map, goal, and command sequence. This operationalizes the
+abstract mismatch variables defined in Section~3. For a rollout of length $T$, let
+$J_{\rm nom}=\sum_{t=0}^{T-1}c(x_t^{\rm nom},u_t)$ and
 $J_{\rm exec}=\sum_{t=0}^{T-1}c(x_t^{\rm exec},u_t)$. The draft uses 1,200 paired
 rollouts, with 800 for calibration and 400 held out for evaluation~\textit{(assumed
-data)}. Perturbations cover friction, actuation delay, velocity tracking noise and
-LiDAR dropout; the exact ranges are \textsc{TBD}.
+data)}. Perturbations cover friction, actuation delay and velocity-tracking noise;
+LiDAR perturbations are evaluated separately because they affect the policy's
+observation rather than the same-command execution mismatch. Exact perturbation
+ranges and their assignment to calibration or held-out conditions remain
+\textsc{TBD}.
 
-We compute the relative cost overrun $\varepsilon_c$ from the paired cumulative
+The relative cost overrun $\varepsilon_c$ is computed from the paired cumulative
 costs. For geometric deviation, the draft uses the maximum planar distance between
 time-aligned body poses,
 \begin{equation}
@@ -276,10 +280,10 @@ already included in the map obstacle layer, $\delta$ is an additional execution
 margin rather than a second footprint inflation; this implementation detail is
 \textsc{TBD}.
 
-The interpretation is deliberately limited. A nominal trajectory satisfying the
-inflated budget and avoiding $\mathcal{F}_\delta$ is expected to remain feasible
-when its realized errors lie within the calibration quantiles. This is an empirical
-coverage statement, not a probability guarantee for arbitrary distribution shift.
+This empirical coverage interpretation is limited to the calibration distribution;
+it does not provide a formal stochastic safety guarantee under arbitrary
+execution shifts. The next subsection describes how the calibrated cost and unsafe
+set are incorporated into the inherited RC-PPO learning and budget-search procedure.
 
 \subsection{Robust MCRA Learning and Deployment}
 With $\tilde c$ and $\mathcal{F}_\delta$, the high-level learner follows the
