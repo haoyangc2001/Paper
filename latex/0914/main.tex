@@ -117,21 +117,23 @@ unstructured environments~\citep{miki2024,weerakoon2024,guerrier2024}. Safety is
 also addressed through constrained policy optimization, control barrier functions,
 and risk-sensitive objectives~\citep{achiam2017,liu2022cvpo,renganathan2023}.
 These methods establish useful hardware interfaces and safety mechanisms, but they
-do not by themselves calibrate a minimum-cost reach-avoid budget and an avoid-set
-boundary from the same execution data.
+do not directly provide the execution-data calibration procedure used here to
+jointly adjust an MCRA budget and an avoid-set boundary.
 
 \subsection{Robust Deployment under Model--Execution Mismatch}
-Domain randomization and robust reinforcement learning reduce sensitivity to model
-uncertainty~\citep{tobin2017,smirnova2019,wang2021,liu2022drql}, while chance-
-constrained and risk-aware planners represent uncertainty explicitly in their
-traversability or path-selection models~\citep{theurkauf2023,fan2021step,schmittle2024}.
-These approaches differ from the present deployment layer in both object and
-mechanism. STEP estimates stochastic traversability for risk-aware off-road
-planning, and Schmittle et al. use multiple long-range samples under sensing
-uncertainty; HD-MCRA instead measures paired nominal/executed errors after fixing a
-velocity interface, then maps upper empirical quantiles to the MCRA running cost and
-unsafe set. The resulting claim is correspondingly narrower: empirical robustness
-under the calibration distribution, without a new formal stochastic guarantee.
+Domain randomization and robust reinforcement learning address model uncertainty by
+broadening the training distribution or optimizing for robustness across perturbed
+dynamics~\citep{tobin2017,smirnova2019,wang2021,liu2022drql}. In contrast,
+chance-constrained and risk-aware planners represent uncertainty at the planning
+level through traversability, path-selection, or violation-risk models
+~\citep{theurkauf2023,fan2021step,schmittle2024}. These approaches differ from the
+present deployment layer in both object and mechanism. STEP estimates stochastic
+traversability for risk-aware off-road planning, and Schmittle et al. use multiple
+long-range samples under sensing uncertainty; HD-MCRA instead measures paired
+nominal/executed errors after fixing a velocity interface, then maps upper empirical
+quantiles to the MCRA running cost and unsafe set. The resulting claim is
+correspondingly narrower: empirical robustness under the calibration distribution,
+without a new formal stochastic guarantee.
 
 The remaining gap is thus practical rather than theoretical: an MCRA learner needs
 a repeatable closed-loop interface and an explicit procedure for converting its
