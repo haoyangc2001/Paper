@@ -221,23 +221,25 @@ to the cost margin $\alpha$ and safety margin $\delta$.}
 \end{figure}
 
 \subsection{Frozen Velocity-Control Interface}
-The low-level controller receives proprioceptive state and a commanded body
-velocity $u_t=[v_x^*,v_y^*,\omega_z^*]^\top$ and returns joint commands. It is
-trained once with PPO and domain randomization, then frozen before high-level
-learning. In the draft protocol, the command limits are $v_x^*\in[-0.6,0.6]$ m/s,
-$v_y^*\in[-0.4,0.4]$ m/s and $\omega_z^*\in[-1.2,1.2]$ rad/s~\textit{(assumed
-data)}. The nominal closed-loop map $\bar f_{\rm cl}$ is obtained by rolling out
-the frozen tracker with nominal dynamics and recording the state at the high-level
-decision interval. Freezing is an engineering choice: it prevents the transition
-distribution from changing while the MCRA policy is being learned and makes paired
-error samples attributable to the deployment interface rather than to a moving
-low-level policy.
+To make the nominal-to-execution gap measurable through a consistent execution
+interface, we first establish a fixed closed-loop velocity interface between the
+high-level navigation policy and the quadruped. The low-level controller maps
+proprioceptive observations and body-velocity commands
+$u_t=[v_x^*,v_y^*,\omega_z^*]^\top$ to joint commands. It is pretrained using PPO
+and domain randomization, then frozen before execution-mismatch calibration and
+high-level learning. Freezing keeps the controller parameters unchanged, avoiding
+interface changes caused by continued low-level policy updates. It does not make
+the physical closed loop deterministic: contact conditions, friction, actuation
+latency, and state-estimation error can still produce residual mismatch.
 
-The tracker is not treated as a contribution. Its only required evidence is that
-the commanded velocity is realized with bounded error and that the robot remains
-locomotion-stable over the command range. The exact network size, reward weights,
-randomization ranges and update rates remain \textsc{TBD} until the original
-configuration is restored.
+We obtain the nominal closed-loop map $\bar f_{\rm cl}$ by rolling out the frozen
+tracker under nominal dynamics and recording the state at the high-level decision
+interval. The same tracker and command domain are used for calibration, high-level
+learning, and deployment, so the measured errors refer to the interface used by the
+navigation policy. Tracking accuracy and locomotion stability must be verified
+within this domain. The next subsection describes how paired nominal and executed
+rollouts measure the remaining cost and trajectory errors. Specific command limits
+and training configurations are listed in Appendix~\ref{app:velocity_interface}.
 
 \subsection{Execution-Mismatch Dataset}
 We construct a calibration set by replaying the same high-level command sequences
@@ -494,6 +496,21 @@ results are placeholders marked as assumed data; the final conclusions will be
 updated after replacing them with verified simulation and Go2 logs. The intended
 claim is empirical robustness within the calibrated execution distribution, not a
 new formal stochastic reach-avoid guarantee.
+
+\clearpage
+\appendix
+\section{Velocity-Interface Implementation Details}
+\label{app:velocity_interface}
+The draft command limits for the frozen velocity tracker are
+$v_x^*\in[-0.6,0.6]$ m/s, $v_y^*\in[-0.4,0.4]$ m/s, and
+$\omega_z^*\in[-1.2,1.2]$ rad/s~\textit{(assumed data)}. These values are
+provisional configuration placeholders and must be verified against the original
+implementation before submission.
+
+The exact network architecture, reward weights, domain-randomization ranges, and
+low-level and high-level control rates remain \textsc{TBD} pending restoration of
+the original configuration. Tracking accuracy and locomotion stability must be
+reported over the command domain used for calibration, learning, and deployment.
 
 \bibliography{references}
 
