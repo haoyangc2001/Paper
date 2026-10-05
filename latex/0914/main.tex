@@ -221,12 +221,12 @@ to the cost margin $\alpha$ and safety margin $\delta$.}
 \end{figure}
 
 \subsection{Frozen Velocity-Control Interface}
-To make the nominal-to-execution gap measurable through a consistent execution
-interface, we first establish a fixed closed-loop velocity interface between the
-high-level navigation policy and the quadruped. The low-level controller maps
+We first train and freeze a velocity tracker to execute the high-level navigation
+policy's velocity commands on the quadruped, providing a common execution interface
+for mismatch measurement, margin calibration, and deployment. The tracker maps
 proprioceptive observations and body-velocity commands
-$u_t=[v_x^*,v_y^*,\omega_z^*]^\top$ to joint commands. It is pretrained using PPO
-and domain randomization, then frozen before execution-mismatch calibration and
+$u_t=[v_x^*,v_y^*,\omega_z^*]^\top$ to joint commands. Training uses PPO and domain
+randomization, and the tracker is frozen before execution-mismatch calibration and
 high-level learning. Freezing keeps the controller parameters unchanged, avoiding
 interface changes caused by continued low-level policy updates. It does not make
 the physical closed loop deterministic: contact conditions, friction, actuation
@@ -237,98 +237,99 @@ tracker under nominal dynamics and recording the state at the high-level decisio
 interval. The same tracker and command domain are used for calibration, high-level
 learning, and deployment, so the measured errors refer to the interface used by the
 navigation policy. Tracking accuracy and locomotion stability must be verified
-within this domain. The next subsection describes how paired nominal and executed
-rollouts measure the remaining cost and trajectory errors. Specific command limits
-and training configurations are listed in Appendix~\ref{app:velocity_interface}.
+within this domain. Specific command limits and training configurations are listed
+in Appendix~\ref{app:velocity_interface}.
 
-\subsection{Execution-Mismatch Dataset}
-We construct a calibration set by replaying the same high-level command sequences
-through the nominal closed-loop model and through perturbed executions. Each pair
-shares the initial state, map, goal, and command sequence. This operationalizes the
-abstract mismatch variables defined in Section~3. For a rollout of length $T$, let
+\subsection{Execution-Mismatch Calibration}
+\label{sec:execution_calibration}
+To convert execution mismatch into cost and safety margins, we collect paired
+nominal and executed rollouts through the frozen velocity interface. Each pair
+uses the same initial state, map, goal, and high-level command sequence, replayed
+through the nominal model and a perturbed execution. For a rollout of length $T$,
+let
 $J_{\rm nom}=\sum_{t=0}^{T-1}c(x_t^{\rm nom},u_t)$ and
-$J_{\rm exec}=\sum_{t=0}^{T-1}c(x_t^{\rm exec},u_t)$. The draft uses 1,200 paired
-rollouts, with 800 for calibration and 400 held out for evaluation~\textit{(assumed
-data)}. Perturbations cover friction, actuation delay and velocity-tracking noise;
-LiDAR perturbations are evaluated separately because they affect the policy's
-observation rather than the same-command execution mismatch. Exact perturbation
-ranges and their assignment to calibration or held-out conditions remain
-\textsc{TBD}.
+$J_{\rm exec}=\sum_{t=0}^{T-1}c(x_t^{\rm exec},u_t)$. Samples are split by rollout
+before quantile estimation, with held-out evaluation rollouts excluded from margin
+selection. Sample counts, perturbation settings, and the separate treatment of
+LiDAR disturbances are detailed in Appendix~\ref{app:calibration_details}.
 
-The relative cost overrun $\varepsilon_c$ is computed from the paired cumulative
-costs. For geometric deviation, the draft uses the maximum planar distance between
-time-aligned body poses,
+For $J_{\rm nom}>0$, the relative cost overrun $\varepsilon_c$ is computed from
+the paired cumulative costs using the definition in Section~3. For geometric
+deviation, the draft uses the maximum planar distance between time-aligned base
+positions,
 \begin{equation}
 \varepsilon_d=\max_{0\leq t\leq T} \left\|p_t^{\rm exec}-p_t^{\rm nom}\right\|_2,
 \end{equation}
-where $p_t$ is the base position. Samples are split by rollout before quantile
-estimation to avoid leakage. These definitions and sample counts are placeholders
-for the real data and are explicitly marked as assumed.
+where $p_t$ is the base position. This measurement convention remains provisional;
+time alignment, rollout duration, and other implementation details are specified
+as draft settings or \textsc{TBD} in Appendix~\ref{app:calibration_details}.
 
-\subsection{Cost and Safety Calibration}
-The two error channels are calibrated independently because they affect different
-MCRA constraints. For calibration quantiles $p_c$ and $p_d$, we set
+The two errors are calibrated separately because they affect different MCRA
+constraints. For quantile levels $p_c$ and $p_d$, we set
 \begin{equation}
 \alpha=Q_{p_c}(\varepsilon_c),\qquad
 \delta=Q_{p_d}(\varepsilon_d),
 \end{equation}
-with $p_c=p_d=0.90$ in the draft~\textit{(assumed data)}. The resulting values are
-$\alpha=0.18$~\textit{(assumed data)} and $\delta=0.12$ m~\textit{(assumed data)}.
-The calibrated running cost is
+where $Q_p$ denotes the empirical $p$-quantile of the calibration samples. The
+calibrated running cost is
 $\tilde c(x_t,u_t)=(1+\alpha)c(x_t,u_t)$, so the remaining budget evolves as
 $z_{t+1}=z_t-\tilde c(x_t,u_t)$. The safety correction dilates the unsafe set by
 $\mathcal{F}_\delta=\{x:d(x,\mathcal{F})\leq\delta\}$. If the robot footprint is
 already included in the map obstacle layer, $\delta$ is an additional execution
-margin rather than a second footprint inflation; this implementation detail is
-\textsc{TBD}.
+margin rather than a second footprint inflation. The draft quantile levels,
+margin values, and unresolved geometry conventions are listed in
+Appendix~\ref{app:calibration_details}.
 
-This empirical coverage interpretation is limited to the calibration distribution;
-it does not provide a formal stochastic safety guarantee under arbitrary
-execution shifts. The next subsection describes how the calibrated cost and unsafe
-set are incorporated into the inherited RC-PPO learning and budget-search procedure.
+The margins are fixed before high-level learning. Their empirical coverage is
+limited to the calibration distribution and does not provide a formal stochastic
+safety guarantee under arbitrary execution shifts. The next subsection describes
+how the calibrated cost and unsafe set enter the inherited RC-PPO learning and
+budget-search procedure.
 
 \subsection{Robust MCRA Learning and Deployment}
-With $\tilde c$ and $\mathcal{F}_\delta$, the high-level learner follows the
-RC-PPO two-phase procedure. In Phase I, a stochastic actor
-$\pi_\theta(u\mid o,z)$ and reachability critic $V_\psi(\hat x)$ are optimized on
-the augmented state. The PPO ratio objective is
-\begin{equation}
-L^{\rm clip}(\theta)=\mathbb{E}_t\left[\min\left(r_t(\theta)\hat A_t,
-\operatorname{clip}(r_t(\theta),1-\epsilon,1+\epsilon)\hat A_t\right)\right],
-\end{equation}
-where $r_t(\theta)=\pi_\theta(u_t\mid o_t,z_t)/\pi_{\theta_{\rm old}}(u_t\mid
-o_t,z_t)$. The advantage uses the reachability critic and generalized advantage
-estimation; $\epsilon$ is the PPO clipping parameter. The critic target is the
-discounted reachability Bellman target with the augmented goal function, evaluated
-using the nominal closed-loop transition and the corrected budget/unsafe-set
-definitions. At a goal, collision, budget violation or time-limit terminal, the
-bootstrap term is set to zero; this terminal handling is stated explicitly because
-it was absent from the 0820 description.
+We use the calibrated cost and unsafe set to learn a budget-conditioned navigation
+policy and select an initial budget for execution through the frozen velocity
+interface. This stage connects the mismatch calibration in the previous subsection
+to navigation decisions: the policy is trained with the corrected budget and safety
+conditions, rather than treating the margins as additional adjustments applied only
+during deployment.
 
-The draft samples $z_0/z_{\rm ref}$ uniformly from $[0.8,1.2]$ during Phase I and
-uses $\gamma=0.99$, $\epsilon=0.2$ and GAE $\lambda=0.95$~\textit{(assumed data)}.
-These values are placeholders. In Phase II, the stochastic actor is replaced by
-its mean action. The least feasible budget is found by scanning the normalized grid
-$\{0.80,0.85,0.90,0.96,1.00,1.05,1.12,1.20\}$~\textit{(assumed data)} and
-selecting the smallest value meeting the stated success, collision and budget
-criteria. This search is inherited from RC-PPO; the engineering change is that the
-search uses the calibrated closed-loop model.
+In Phase I, we retain RC-PPO's augmented-state learning framework. The calibrated
+running cost $\tilde c$ determines the remaining-budget update, while the expanded
+unsafe set $\mathcal{F}_\delta$ determines the safety indicator and the corresponding
+augmented goal. A stochastic actor $\pi_\theta(u\mid o,z)$ is trained together with
+a reachability critic $V_\psi(\hat x)$, using sampled initial budgets to cover
+different feasibility levels. The critic is learned through the discounted
+reachability recursion, and its reachability-based advantages guide policy updates
+toward reaching the augmented goal. The optimization objectives and terminal
+handling are specified in Appendix~\ref{app:learning_details}.
 
-For the assumed-data draft, confidence intervals are intentionally omitted rather
-than reconstructed from aggregate means or plotted bars. The final protocol should
-report binomial intervals for SR/CR/BVR, bootstrap intervals for cost and MC, and
-the quantile estimation uncertainty for $\alpha$ and $\delta$, all computed from
-the original trial-level records.
+In Phase II, we use the actor's mean action to obtain a deterministic deployment
+policy and evaluate it over candidate initial budgets under the calibrated model.
+Following RC-PPO's budget-search principle, the draft implementation selects the
+smallest tested budget satisfying the prescribed goal-reaching, collision, and
+budget-violation criteria. This finite-grid selection provides an operational
+budget threshold, rather than a certified continuous minimum-cost solution. The
+candidate budgets and acceptance criteria are specified in
+Appendix~\ref{app:deployment_search}.
+
+During deployment, the policy receives the navigation observation and remaining
+budget, outputs a body-velocity command, and executes it through the same frozen
+tracker. The remaining budget is updated using the calibrated running cost. Actual
+cumulative cost is recorded separately, and budget violation is evaluated against
+the selected initial budget. Goal-reaching, collision, and clearance outcomes are
+also logged for the empirical evaluation in the next section.
 
 \paragraph{Execution-calibrated procedure.}
 The draft implementation follows five steps:
 \begin{enumerate}
 \item Freeze the velocity tracker and collect paired nominal/executed rollouts.
-\item Estimate $\alpha$ and $\delta$ from held-out calibration quantiles.
+\item Estimate $\alpha$ and $\delta$ from calibration-set quantiles, keeping
+      held-out evaluation rollouts separate.
 \item Train the budget-conditioned RC-PPO actor and critic using $\tilde c$ and
       $\mathcal{F}_\delta$.
-\item Convert the actor to mean-action deployment and search the feasible budget
-      grid.
+\item Convert the actor to mean-action deployment and select the smallest tested
+      budget meeting the acceptance criteria.
 \item Execute the selected policy and log goal, safety and cost outcomes.
 \end{enumerate}
 
@@ -352,6 +353,8 @@ limit without entering the unsafe set; a budget violation is recorded when the
 executed cumulative cost exceeds the selected initial budget. The exact simulator
 version and random-seed count are \textsc{TBD}; the draft uses 3 seeds and 300
 trials per method~\textit{(assumed data)}.
+The statistical reporting protocol and its unresolved settings are detailed in
+Appendix~\ref{app:statistical_evaluation}.
 
 For fair comparison, RC-PPO uses the same frozen velocity interface and training
 budget as HD-MCRA but sets $\alpha=0$ and $\delta=0$. RA denotes reach-avoid
@@ -511,6 +514,119 @@ The exact network architecture, reward weights, domain-randomization ranges, and
 low-level and high-level control rates remain \textsc{TBD} pending restoration of
 the original configuration. Tracking accuracy and locomotion stability must be
 reported over the command domain used for calibration, learning, and deployment.
+
+\section{Execution-Mismatch Calibration Details}
+\label{app:calibration_details}
+\subsection{Paired-Rollout Configuration}
+The draft uses 1,200 paired rollouts, with 800 for calibration and 400 held out for
+evaluation~\textit{(assumed data)}. Perturbations cover friction, actuation delay,
+and velocity-tracking noise. LiDAR perturbations are evaluated separately because
+they affect the policy's observation rather than the same-command execution
+mismatch. Exact perturbation ranges and their assignment to calibration or
+held-out conditions remain \textsc{TBD}. The source of calibration executions,
+rollout duration, and command-sequence sampling protocol also remain \textsc{TBD}
+pending restoration of the original configuration and logs.
+
+\subsection{Measurement and Geometry Conventions}
+The draft trajectory-deviation statistic uses the maximum planar distance between
+time-aligned base positions. This measurement convention is provisional and must
+be verified against the original implementation. The exact cost function, units,
+weights and normalization, trajectory alignment and interpolation rules, and
+handling of unequal rollout lengths remain \textsc{TBD}. The relative cost-overrun
+ratio requires a positive nominal cumulative cost; the treatment of zero-cost
+rollouts must also be specified before finalizing the protocol.
+
+Whether the robot footprint is already included in the map obstacle layer remains
+\textsc{TBD}. If it is included, $\delta$ is an additional execution margin rather
+than a second footprint inflation. The map geometry and footprint convention must
+be verified before interpreting clearance or applying the unsafe-set dilation.
+
+\subsection{Quantile Settings and Draft Margins}
+The draft uses $p_c=p_d=0.90$~\textit{(assumed data)}, with draft margins
+$\alpha=0.18$~\textit{(assumed data)} and $\delta=0.12$ m~\textit{(assumed data)}.
+These values and the sample counts are provisional placeholders, not calibration
+results verified from trial records. They must be replaced with traceable data
+before submission, and the quantile estimation uncertainty must be computed from
+the original rollout-level records rather than inferred from these placeholders.
+
+\section{Learning and Deployment Implementation Details}
+\label{app:learning_details}
+\subsection{Learning Objectives and Optimization Configuration}
+Using the calibrated cost and unsafe set, the augmented state evolves with
+$z_{t+1}=z_t-\tilde c(x_t,u_t)$ and
+$y_{t+1}=\max\{I_{x_{t+1}\in\mathcal{F}_\delta},y_t\}$, initialized with
+$y_0=I_{x_0\in\mathcal{F}_\delta}$. Let
+$\hat g_\delta(x,y,z)=\max\{g(x),Cy,-z\}$, where the safety indicator is defined
+with respect to $\mathcal{F}_\delta$. For a nonterminal nominal transition,
+the discounted reachability target inherited from RC-PPO~\citep{so2024} is
+\begin{equation}
+b_t=(1-\gamma)\hat g_\delta(\hat x_t)+\gamma\min\{
+\hat g_\delta(\hat x_t),V_\psi(\hat x_{t+1})\}.
+\end{equation}
+The next augmented state is evaluated using the nominal closed-loop transition and
+the corrected budget and safety-indicator updates.
+
+The draft uses the following maximization-form PPO clipped objective:
+\begin{equation}
+L^{\rm clip}(\theta)=\mathbb{E}_t\left[\min\left(r_t(\theta)\hat A_t,
+\operatorname{clip}(r_t(\theta),1-\epsilon,1+\epsilon)\hat A_t\right)\right],
+\end{equation}
+where $r_t(\theta)=\pi_\theta(u_t\mid o_t,z_t)/
+\pi_{\theta_{\rm old}}(u_t\mid o_t,z_t)$, and the advantage uses the
+reachability critic and generalized advantage estimation. Because lower
+reachability values are preferred in RC-PPO, the advantage sign must be consistent
+with this maximization-form objective. The exact GAE recursion, sign convention,
+critic loss, optimizer settings, network architecture, and update schedule remain
+\textsc{TBD} pending verification against the original implementation.
+
+The draft samples $z_0/z_{\rm ref}$ uniformly from $[0.8,1.2]$ during Phase I and
+uses $\gamma=0.99$, $\epsilon=0.2$, and GAE $\lambda=0.95$~\textit{(assumed data)}.
+These values are provisional configuration placeholders and must be verified before
+submission. The definition and normalization of $z_{\rm ref}$ remain \textsc{TBD}.
+
+\subsection{Terminal Handling and Budget Accounting}
+\label{app:termination_budget}
+The draft's provisional terminal-handling rule sets the bootstrap term to zero at
+goal reaching, collision, budget violation, or a time limit. This is not a verified
+requirement of RC-PPO. The boundary targets for true terminal states and the
+bootstrap treatment of time-limit truncations must be checked separately; their
+exact definitions remain \textsc{TBD} until the implementation is restored.
+
+During deployment, the policy's remaining budget is updated using $\tilde c$,
+while actual cumulative cost is recorded separately for evaluation. A budget
+violation is recorded when $J_{\rm exec}>z_0$, where $z_0$ is the selected initial
+budget. Whether the running cost used by the internal budget update is evaluated
+from nominal predictions or measured states, and the associated units and
+normalization, remain \textsc{TBD}. The cost function must be made explicit in the
+problem setup or experimental protocol before finalizing the manuscript.
+
+\subsection{Deterministic Deployment and Budget Search}
+\label{app:deployment_search}
+RC-PPO forms a deterministic policy from the stochastic actor's mode, fine-tunes
+its critic, and searches for a feasible budget through one-dimensional
+root finding~\citep{so2024}. The present draft uses mean-action deployment and
+a finite budget grid as an operational adaptation of that budget-search principle.
+The policy distribution, action clipping or transformation, and any critic
+re-evaluation or fine-tuning after policy determinization remain \textsc{TBD}.
+
+The normalized candidate grid is
+$\{0.80,0.85,0.90,0.96,1.00,1.05,1.12,1.20\}$~\textit{(assumed data)}.
+The smallest tested budget meeting the goal-reaching, collision, and
+budget-violation criteria is selected; this does not establish a continuous
+minimum-cost optimum. The numerical acceptance thresholds, budget-selection
+evaluation conditions and trial counts, and handling of cases with no feasible
+candidate remain \textsc{TBD}. Budget-selection data must remain separate from
+the final evaluation used to report performance.
+
+\section{Statistical Evaluation Details}
+\label{app:statistical_evaluation}
+For the assumed-data draft, confidence intervals are intentionally omitted rather
+than reconstructed from aggregate means or plotted bars. The final protocol should
+report binomial intervals for SR/CR/BVR, bootstrap intervals for cost and MC, and
+the quantile estimation uncertainty for $\alpha$ and $\delta$, all computed from
+the original trial-level records. The confidence level, interval estimators,
+resampling procedure, and treatment of dependence across trials, maps, and
+training seeds remain \textsc{TBD} pending restoration of the original logs.
 
 \bibliography{references}
 
