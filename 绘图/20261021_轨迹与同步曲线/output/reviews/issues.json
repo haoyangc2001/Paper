@@ -1,0 +1,170 @@
+{
+  "schema_version": "1.0",
+  "issues": [
+    {
+      "issue_id": "ISSUE-001",
+      "detected_at_review": "REVIEW-001",
+      "description": "原稿差速术语与横向速度动作并存，容易导致场景运动学口径不清",
+      "evidence": [
+        "main.tex experimental setup and command limits",
+        "data/protocol.md"
+      ],
+      "source_task_ids": [
+        "TASK-004"
+      ],
+      "affected_task_ids": [
+        "TASK-005"
+      ],
+      "root_cause": "原稿未核实实现口径",
+      "correction": "明确本图全向平移接口，速度为权威、yaw=0，避免冒称差速仿真",
+      "changed_files_and_versions": [
+        "data/protocol.md v1",
+        "data/schema.md v1"
+      ],
+      "recheck_method": "逐项核对状态积分、命令域与正文假设边界",
+      "recheck_result": "一致；无需改原稿或重开任务，定义已在首次验收前明确",
+      "status": "closed"
+    },
+    {
+      "issue_id": "ISSUE-002",
+      "detected_at_review": "TASK-007 / REVIEW-002",
+      "description": "小段初版提前向上恢复，产生碰撞和终止后运动",
+      "evidence": [
+        "output/pilot_validation_attempt1.json",
+        "data/pilot_attempt1"
+      ],
+      "source_task_ids": [
+        "TASK-007"
+      ],
+      "affected_task_ids": [
+        "REVIEW-002"
+      ],
+      "root_cause": "原始横向运动在绕过障碍之前反向",
+      "correction": "逐点修改vy序列以推迟恢复，未改地图预算或容差",
+      "changed_files_and_versions": [
+        "data/pilot_attempt1",
+        "data/pilot"
+      ],
+      "recheck_method": "从原始点重算全部几何成本并校验",
+      "recheck_result": "output/pilot_validation.json 两方法passed=true",
+      "status": "closed"
+    },
+    {
+      "issue_id": "ISSUE-003",
+      "description": "完整记录在首次到达后仍有运动区间",
+      "source_task_ids": [
+        "TASK-008",
+        "TASK-009"
+      ],
+      "root_cause": "初次编写持续时间超过首次目标进入",
+      "correction": "按既定终止条件移除基线末3行和本方法末5行，保留初版",
+      "evidence": [
+        "output/rcppo_validation_before_trim.json",
+        "output/hd_mcra_validation_before_trim.json"
+      ],
+      "changed_files_and_versions": [
+        "data/attempts",
+        "data/raw_rcppo.csv",
+        "data/raw_hd_mcra.csv"
+      ],
+      "recheck_result": "full_validation与case_audit通过；各自只有一个终止状态",
+      "detected_at_review": "TASK-010",
+      "affected_task_ids": [
+        "TASK-010",
+        "TASK-013",
+        "TASK-014"
+      ],
+      "recheck_method": "核对原始、派生、终止和论证文字",
+      "status": "closed"
+    },
+    {
+      "issue_id": "ISSUE-004",
+      "description": "成本超支很小，单例不能说明alpha减少预算违规",
+      "source_task_ids": [
+        "TASK-004",
+        "TASK-008",
+        "TASK-009"
+      ],
+      "root_cause": "当前预先固定代理成本与近障案例产生温和成本失配",
+      "correction": "保留数据与预算，明确图仅展示计费机制和几何取舍；图注不声称BVR改善",
+      "evidence": [
+        "data/summary.json"
+      ],
+      "changed_files_and_versions": [
+        "output/data_audit_v1.md",
+        "output/reviews/03_full_data_review.md"
+      ],
+      "recheck_result": "实际超支0.417/0.546%，均未超85；明确限制，不修改数据迎合结论",
+      "detected_at_review": "TASK-010",
+      "affected_task_ids": [
+        "TASK-010",
+        "TASK-013",
+        "TASK-014"
+      ],
+      "recheck_method": "核对原始、派生、终止和论证文字",
+      "status": "closed"
+    },
+    {
+      "issue_id": "ISSUE-005",
+      "detected_at_review": "TASK-014",
+      "description": "首版独立图图例靠近xlabel，组合局部xlabel和页脚重叠",
+      "evidence": [
+        "output/trajectory_sync_assumed_v1.png",
+        "output/panels/trajectory_v1.png"
+      ],
+      "source_task_ids": [
+        "TASK-011",
+        "TASK-013"
+      ],
+      "affected_task_ids": [
+        "TASK-011",
+        "TASK-012",
+        "TASK-013",
+        "TASK-014"
+      ],
+      "root_cause": "组合图空间分配不足",
+      "correction": "上移局部图、调整地图位置和页脚，缩短面板标题；摘要由数据读取",
+      "changed_files_and_versions": [
+        "scripts/versions/v1",
+        "scripts/compose_figure.py",
+        "output/trajectory_sync_assumed_v3.pdf"
+      ],
+      "recheck_method": "PDF重新渲染、100dpi尺寸预览、文字边界检查及人工查看",
+      "recheck_result": "无页外文字、图例/坐标/页脚可读，所有受影响任务复验通过",
+      "status": "closed"
+    },
+    {
+      "issue_id": "ISSUE-006",
+      "detected_at_review": "TASK-014",
+      "description": "v1实际速度两位小数导致误差幅值重复偏多",
+      "evidence": [
+        "output/panels/tracking_v1.png",
+        "data/versions/v1/raw_rcppo.csv",
+        "data/versions/v1/raw_hd_mcra.csv"
+      ],
+      "source_task_ids": [
+        "TASK-008",
+        "TASK-009"
+      ],
+      "affected_task_ids": [
+        "TASK-008",
+        "TASK-009",
+        "TASK-010",
+        "TASK-011",
+        "TASK-012",
+        "TASK-013",
+        "TASK-014"
+      ],
+      "root_cause": "逐点编写的速度精度粗且多次使用相似差值",
+      "correction": "逐点细化实际速度为三位小数，依据阶段滞后和恢复；按新首次到达截断；重新计算冻结v2并重绘v3",
+      "changed_files_and_versions": [
+        "data/versions/v1",
+        "data/versions/v2",
+        "output/trajectory_sync_assumed_v3.pdf"
+      ],
+      "recheck_method": "全量校验、独立事件/位移检查、冻结哈希、重新查看曲线",
+      "recheck_result": "full_validation_v2、case_audit_v2通过；误差既有连续阶段又有局部变化，保留交叉和成本代价",
+      "status": "closed"
+    }
+  ]
+}

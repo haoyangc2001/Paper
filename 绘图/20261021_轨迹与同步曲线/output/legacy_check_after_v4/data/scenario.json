@@ -1,0 +1,100 @@
+{
+  "schema_version": "1.0",
+  "data_status": "assumed",
+  "scenario_id": "two_bends_01",
+  "dt_s": 0.2,
+  "horizon_s": 30,
+  "initial_pose": [
+    0,
+    0,
+    0
+  ],
+  "goal_center": [
+    4.6,
+    0
+  ],
+  "goal_radius_m": 0.2,
+  "robot_radius_m": 0.2,
+  "obstacles": [
+    {
+      "id": "O1",
+      "center": [
+        1.9,
+        0.38
+      ],
+      "radius_m": 0.38
+    },
+    {
+      "id": "O2",
+      "center": [
+        3.3,
+        -0.7
+      ],
+      "radius_m": 0.4
+    },
+    {
+      "id": "O3",
+      "center": [
+        3.7,
+        1.1
+      ],
+      "radius_m": 0.3
+    }
+  ],
+  "map_bounds": [
+    -0.5,
+    5.2,
+    -1.6,
+    1.7
+  ],
+  "command_limits": [
+    0.6,
+    0.4,
+    1.2
+  ],
+  "max_actual_linear_speed_mps": 0.8,
+  "max_linear_acceleration_mps2": 1.8,
+  "max_yaw_acceleration_radps2": 4,
+  "initial_budget": 85,
+  "cost": {
+    "unit": "illustrative cost units",
+    "base_rate": 3.6,
+    "speed_squared_weight": 3,
+    "tracking_squared_weight": 20,
+    "clearance_penalty_weight": 2,
+    "clearance_reference_m": 0.45
+  },
+  "methods": {
+    "rcppo": {
+      "label": "RC-PPO",
+      "alpha": 0,
+      "delta_m": 0,
+      "color": "#D55E00"
+    },
+    "hd_mcra": {
+      "label": "HD-MCRA",
+      "alpha": 0.18,
+      "delta_m": 0.12,
+      "color": "#0072B2"
+    }
+  },
+  "events": [
+    {
+      "id": "A",
+      "x_m": 1.9,
+      "description": "Pass O1 on its lower side"
+    },
+    {
+      "id": "B",
+      "x_m": 3.3,
+      "description": "Pass O2 on its upper side"
+    }
+  ],
+  "termination_priority": [
+    "collision",
+    "goal",
+    "timeout"
+  ],
+  "budget_violation_terminal": false,
+  "conventions": "Illustrative sampled kinematics and proxy cost only; budget violation is recorded but does not stop diagnostic trace."
+}
