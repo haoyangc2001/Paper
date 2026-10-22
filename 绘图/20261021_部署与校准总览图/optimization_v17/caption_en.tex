@@ -1,0 +1,15 @@
+Two-stage engineering architecture of HD-MCRA.
+Stage 1 trains and freezes a velocity tracker, then uses paired nominal and executed command rollouts to calibrate cost and trajectory margins; $Q$ denotes the chosen upper empirical quantile for each error.
+The safety scene includes an equal-scale local enlargement of the paired paths; its orange segment connects nominal and executed positions at the same time, and that individual deviation is distinct from the calibrated margin $\delta$.
+Stage 2 uses the same fixed margins: $\tilde c=(1+\alpha)c$ supplies both cost-learning targets and budget updates, while $\mathcal F_\delta=\{x:d(x,\mathcal F)\leq\delta\}$ expands the unsafe region before forming reachability targets.
+The parallel cost and reachability critics support the joint actor update and budget-feasibility evaluation; their dashed branches merge into one learning link to the actor.
+The actor sends high-level velocity commands through the same frozen tracker, which generates low-level joint commands for execution.
+Two compact scene insets, with hierarchy labels, are centered immediately above their corresponding execution arrows: body translation and yaw arrows illustrate the actor's velocity command, while curved arrows at the front-leg joints illustrate the tracker's joint-level commands.
+These local arrows indicate command categories, not measured velocities, joint targets, or torques.
+Solid architecture arrows show the module input and execution chain.
+Three Go2 scene views represent navigation observations, the goal location, and remaining cost budget $z_t$; the route in the budget view illustrates task progress, not battery charge.
+The terminal interaction inset combines three static placements of the same robot at different times along the existing illustrative executed path, with increasing opacity, three obstacles, and the goal.
+Ghost poses indicate time progression rather than multiple robots.
+Observation fan-out and execution feedback connections are omitted for clarity; the controller still operates in closed loop.
+Network nodes and layers are schematic.
+All scene views are static renders, not camera measurements or policy rollouts; displayed paths and underlying example costs are assumed illustrations, not measured calibration statistics.
