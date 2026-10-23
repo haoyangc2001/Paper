@@ -6,7 +6,8 @@
 \usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
-\usepackage{xcolor}
+\usepackage[table]{xcolor}
+\definecolor{methodblue}{HTML}{2376AC}
 \usepackage{url}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -340,20 +341,24 @@ means and additionally includes minimum clearance.}
 \end{figure*}
 
 \begin{table*}[t]
-\caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$ (all entries are assumed data).}
+\caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$ (all entries are assumed data).
+Bold values mark the highest SR/MC and lowest Cost/CR/BVR. Cost is interpreted jointly with SR.}
 \label{tab:main_results}
 \centering
+\setlength{\tabcolsep}{15pt}
+\renewcommand{\arraystretch}{1.12}
 \begin{tabular}{lccccc}
 \hline
-Method & SR (\%) & CR (\%) & Cost & BVR (\%) & MC (m)\\
+Method & SR (\%) $\uparrow$ & Cost & CR (\%) $\downarrow$ & BVR (\%) $\downarrow$ & MC (m) $\uparrow$\\
 \hline
-HD-MCRA & \shortstack{73.3\\\textit{(assumed data)}} & \shortstack{15.0\\\textit{(assumed data)}} & \shortstack{88.3\\\textit{(assumed data)}} & \shortstack{9.0\\\textit{(assumed data)}} & \shortstack{0.31\\\textit{(assumed data)}}\\
-RC-PPO & \shortstack{70.7\\\textit{(assumed data)}} & \shortstack{15.7\\\textit{(assumed data)}} & \shortstack{91.7\\\textit{(assumed data)}} & \shortstack{14.0\\\textit{(assumed data)}} & \shortstack{0.30\\\textit{(assumed data)}}\\
-RA & \shortstack{60.0\\\textit{(assumed data)}} & \shortstack{13.0\\\textit{(assumed data)}} & \shortstack{104.0\\\textit{(assumed data)}} & \shortstack{20.0\\\textit{(assumed data)}} & \shortstack{0.34\\\textit{(assumed data)}}\\
-PPO$_{\beta_L}$ & \shortstack{67.7\\\textit{(assumed data)}} & \shortstack{23.0\\\textit{(assumed data)}} & \shortstack{99.7\\\textit{(assumed data)}} & \shortstack{20.7\\\textit{(assumed data)}} & \shortstack{0.20\\\textit{(assumed data)}}\\
-PPO$_{\beta_H}$ & \shortstack{42.3\\\textit{(assumed data)}} & \shortstack{29.0\\\textit{(assumed data)}} & \shortstack{117.0\\\textit{(assumed data)}} & \shortstack{27.0\\\textit{(assumed data)}} & \shortstack{0.16\\\textit{(assumed data)}}\\
-CPPO$_{\beta_L}$ & \shortstack{37.7\\\textit{(assumed data)}} & \shortstack{12.3\\\textit{(assumed data)}} & \shortstack{124.7\\\textit{(assumed data)}} & \shortstack{22.3\\\textit{(assumed data)}} & \shortstack{0.36\\\textit{(assumed data)}}\\
-CPPO$_{\beta_H}$ & \shortstack{69.7\\\textit{(assumed data)}} & \shortstack{18.3\\\textit{(assumed data)}} & \shortstack{105.7\\\textit{(assumed data)}} & \shortstack{17.0\\\textit{(assumed data)}} & \shortstack{0.26\\\textit{(assumed data)}}\\
+\rowcolor{methodblue!9}
+\textbf{HD-MCRA} & \textbf{73.3} & \textbf{88.3} & 15.0 & \textbf{9.0} & 0.31\\
+RC-PPO & 70.7 & 91.7 & 15.7 & 14.0 & 0.30\\
+RA & 60.0 & 104.0 & 13.0 & 20.0 & 0.34\\
+PPO$_{\beta_L}$ & 67.7 & 99.7 & 23.0 & 20.7 & 0.20\\
+PPO$_{\beta_H}$ & 42.3 & 117.0 & 29.0 & 27.0 & 0.16\\
+CPPO$_{\beta_L}$ & 37.7 & 124.7 & \textbf{12.3} & 22.3 & \textbf{0.36}\\
+CPPO$_{\beta_H}$ & 69.7 & 105.7 & 18.3 & 17.0 & 0.26\\
 \hline
 \end{tabular}
 \end{table*}

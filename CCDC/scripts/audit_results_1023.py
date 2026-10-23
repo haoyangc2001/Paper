@@ -114,9 +114,18 @@ def check():
     tex_tables = {}
     for block in re.findall(r"\\begin\{table\*\}(.*?)\\end\{table\*\}", text, re.S):
         label = re.search(r"\\label\{([^}]+)\}", block)[1]
-        tex_tables[label] = {
-            line.split(" & ")[0]: [float(x) for x in re.findall(r"\\shortstack\{([0-9.]+)", line)]
-            for line in block.splitlines() if r"\shortstack{" in line}
+        rows = {}
+        for line in block.splitlines():
+            cells = line.split(" & ")
+            if len(cells) != 6 or cells[0] in {"Method", "Variant"}:
+                continue
+            method = re.sub(r"\\textbf\{([^}]+)\}", r"\1", cells[0])
+            values = [float(re.search(r"[0-9]+(?:\.[0-9]+)?", cell)[0]) for cell in cells[1:]]
+            if label == "tab:main_results":
+                # Display order SR/Cost/CR/BVR/MC; compare in source metric order.
+                values = [values[i] for i in (0, 2, 1, 3, 4)]
+            rows[method] = values
+        tex_tables[label] = rows
     labels = {"HD-MCRA":"HD-MCRA", "RC-PPO":"RC-PPO", "RA":"RA",
               "PPO_beta_L":r"PPO$_{\beta_L}$", "PPO_beta_H":r"PPO$_{\beta_H}$",
               "CPPO_beta_L":r"CPPO$_{\beta_L}$", "CPPO_beta_H":r"CPPO$_{\beta_H}$"}
