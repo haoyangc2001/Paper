@@ -1,0 +1,502 @@
+===== PDF PAGE 1 =====
+       SEA-Nav: Efficient Policy Learning for Safe and Agile Quadruped
+                      Navigation in Cluttered Environments
+
+                              Shiyi Chen1∗, Mingye Yang2∗, Haiyan Mao1, Jiaqi Zhang1, Haiyi Liu1
+                              Shuheng He1, Debing Zhang1, Zihao Qiu1, Chun Zhang1†
+                                Project Website: https://11chens.github.io/sea-nav/
+
+
+
+
+            Abstract— Efficiently training quadruped robot navigation in
+           densely cluttered environments remains a significant challenge.
+           Existing methods are either limited by a lack of safety and
+             agility in simple obstacle distributions or suffer from slow
+          locomotion in complex environments, often requiring exces-2026     sively long training phases. To this end, we propose SEA-Nav
+            (Safe, Efficient, and Agile Navigation), a reinforcement learning
+         framework  for quadruped  navigation. Within  diverse and
+          dense obstacle environments, a differentiable control barrierMar    function (CBF)-based shield constraints the navigation policy
+            to output safe velocity commands. An adaptive collision replay
+         mechanism and hazardous exploration rewards are introduced10            to increase the probability of learning from critical experiences,
+          guiding efficient exploration and exploitation. Finally, kinematic
+           action constraints are incorporated  to ensure  safe  velocity    Fig. 1: SEA-Nav  is trained in minute-level time and de-
+         commands, facilitating successful physical deployment. To the   ployed zero-shot in a previously unseen maze. The robot
+           best of our knowledge, this is the first approach that achieves    successfully escapes using the  out-of-distribution  built-in
+           highly challenging quadruped navigation in the real world with  MPC controller and onboard sparse LiDAR.
+           minute-level training time.[cs.RO]
+                                      I. INTRODUCTION
+                                                                                     ters) [23]–[25] or stability under multiple constraints, where          Autonomous navigation in dense, cluttered environments
+                                                                                oscillation and conservative “freezing” can occur [26]–[29].          remains a core challenge in robotics. Learning-based meth-
+                                                        More fundamentally, they do not solve the key bottleneck of           ods,  especially  imitation/self-supervised  and  imperative-
+                                                                          high-quality experience sampling in dense-risk regions.           learning paradigms, have shown strong local performance
+         by fitting large-scale experience or learned cost priors [1]–     To address these issues, we propose an end-to-end safe
+            [6]. However, these methods often require expensive labeled  RL navigation framework that combines efficient experience
+          data and can fail catastrophically under out-of-distribution   sampling with a differentiable physical barrier. The frame-
+        (OOD) dense or dynamic obstacles.                      work has three core components:
+          To overcome static-dataset limitations, deep reinforcement       First, we introduce Adaptive Collision-State Initialization
+           learning (DRL) has been widely adopted for its maneuver-   (ACSI) to improve sample utilization in high-density scenes.
+            ability and reactivity [7]–[15]. Yet RL in dense obstacles is   After a collision, the system probabilistically resets the robot
+             difficult: obstacle penalties are hard to tune (large penalties    to a critical pre-collision state in the local high-risk area.
+          cause over-conservative behavior, small penalties increase   Combined with a success-rate-based reset curriculum, thisarXiv:2603.09460v1
+            collisions), and low sample efficiency in long-horizon scenes   focuses training on bottleneck regions and rapidly accumu-
+        makes  it hard  to balance goal reaching and  aggressive    lates valuable avoidance experience.
+          avoidance. As a result, many methods need long training     Second, we propose an end-to-end adaptive LSE-CBF
+          horizons or separate training stages [7], [14], [15], increasing    safety projection layer. Instead of a rigid post-hoc  filter,
+         development and validation cost.                                             it provides an analytical geometric inductive bias in the
+          To inject explicit safety boundaries into RL, recent work    action space. We fuse multiple LiDAR constraints with Log-
+           integrates classical safety control methods such as Velocity   Sum-Exp (LSE) and add a physical damping term εd  to
+          Obstacles (VO) and Control Barrier Functions (CBF) [16]–   avoid numerical singularities and discrete-time “ping-pong”
+           [22]. However, existing schemes still compromise either end-    oscillations in narrow passages. The closed-form projection
+          to-end credit assignment (when used as post-processing fil-   remains differentiable, so rewards backpropagate to adapt the
+                                                                            safety gain α online.
+              *Equal contribution.
+                                                                            Third, we introduce a kinematic action regularization loss              1Tsinghua University, Beijing, China.
+               2Imperial College London, London, UK.                              in the action space to suppress dangerous commands. With
+              †Corresponding author email: zhangchun@tsinghua.edu.cn             high sampling efficiency and differentiable safety constraints,
+
+===== PDF PAGE 2 =====
+our method achieves zero-shot, safe, and agile deployment    this compromises strict analytical geometric constraints in
+in extremely dense environments after only tens of minutes    the action space.
+of training on a single RTX 4090 GPU (Fig. 1).                 In  contrast, CBF formulations map  spatial boundaries
+  The main contributions of this paper are summarized as    directly into control inputs via system dynamics, providing
+follows:                                                    mathematically rigorous forward  invariant  set guarantees
+   • Adaptive  Collision-State  Initialization  (ACSI): A    [18], [19], [22]. More importantly, CBF formulations offer
+    curriculum-guided critical-state replay strategy that ad-    the potential for closed-form analytical solutions, paving
+     dresses the sample-efficiency bottleneck of RL in dense    the way for fully differentiable safety layers. Despite this
+     obstacles.                                                      potential, traditional multi-constraint CBFs rely on the non-
+   • End-to-end Adaptive LSE-CBF Layer: A closed-form    differentiable min operator, which  triggers severe “ping-
+     differentiable safety layer with LSE fusion and physical   pong” control oscillations during boundary switching [21].
+    damping  that suppresses multi-constraint  oscillations   Furthermore, static Class-K parameters (α) fail to adapt to
+    and enables adaptive avoidance aggressiveness.           varying spatial densities, often leading to “Freezing Robot”
+   • Efficient Training and Hardware-Safe Physical De-   deadlocks in narrow passages [26]. Therefore, integrating
+    ployment: A safe action regularization loss that im-   adaptive parameters with smooth fusion mechanisms into a
+    proves Sim-to-Real transfer and enables minute-level    fully differentiable, optimizer-free analytical layer remains a
+     training (tens of minutes) for zero-shot deployment.        critical challenge.
+
+                      II. RELATED WORK                                                   III. METHOD
+A. Learning-Based Robot Navigation                  We design a single-stage RL framework. With efficient ex-
+  Early studies primarily relied on imitation learning and    ploration and exploitation in diverse, highly occupied maps,
+self-supervised learning  (e.g., behavior cloning [30]–[33],   our method completes navigation in dense environments with
+environmental cost prediction [34]–[36]) for end-to-end con-   minute-level training time.
+trol or to assist traditional planners. Although these methods
+                                                            A. Key Challenges & Overview
+perform well in specific static scenarios, they are prone to
+collision failures when encountering OOD dense or dynamic     Exploration-Exploitation Challenge in Dense Environ-
+obstacles. DRL has been widely applied to navigation tasks,   ments: In densely cluttered environments, commonly used
+demonstrating high maneuverability. However, pure RL faces    collision and reaching rewards are hard to balance. Dense
+two severe challenges in dense obstacles. First, the sample    obstacles bring excessive collision penalties, causing con-
+efficiency is extremely low [4], [6], [37]. Collisions typically    servative movement. Furthermore, if an episode terminates
+terminate the episode directly, causing the robot to spend   immediately upon collision or reaching the goal, the propor-
+most of  its exploration time in collision-free free space,    tion of critical experiences drastically decreases. The robot
+making it difficult to accumulate high-value “extreme avoid-    struggles to learn obstacle avoidance in narrow, high-risk
+ance” experiences. Second, pure RL lacks physical safety   environments and goal-reaching in long-horizon tasks. Thus,
+constraints, often leading to conservative behaviors under  we design ACSI to repeatedly replay critical trajectories be-
+high collision penalties [15]. These issues often translate    fore collisions, and set a goal-stay mechanism to deliberately
+into long training schedules before deployment across diverse   prolong the learning of sparse experiences.
+environments. Moreover, several approaches rely on multi-     Safe RL Constraints: Without physical priors, pure RL
+stage or multi-module training [7], [14], [15], [23], which    training is inefficient and unsafe. Moreover, deploying safety
+further increases engineering and validation overhead. De-    barriers exclusively at test-time introduces a severe train-test
+signing an efficient experience sampling mechanism while   mismatch. Unaware of these post-hoc interventions during
+constraining physical safety from the action space remains a    training,  the policy  often generates  actions  that  conflict
+key challenge.                                             with the shield  at deployment, leading  to uncooperative
+  Recent reactive local-avoidance methods improve short-   and suboptimal behaviors. A trainable barrier can shape the
+horizon responsiveness in cluttered scenes, but they  still   navigation policy during  training, helping  it learn safety
+require careful integration with policy learning to maintain   awareness  faster. Our solution  relies on a Differentiable
+global efficiency and safety consistency [38].                  Barrier Layer based on Adaptive Multi-Constraint CBF.
+                                                    Robot Kinematic Constraints: High-speed sharp turns
+B. Safe RL and Barrier Functions                                                                are unsafe and can cause the robot to  fall during  real-
+  To provide explicit safety guarantees, prior works intro-   world deployment. Common action smoothing imposes hard
+duced VO as a post-processing safety shield. While VO    constraints that severely restrict the action space. Thus, we
+can enforce hard kinematic  constraints via optimization,   design an appropriate action loss to constrain unsafe action
+it acts as a non-differentiable external  filter that truncates   generation while ensuring exploration.
+gradient backpropagation. Moreover,  its velocity-cone for-
+                                                            B. System Pipeline & MDP Formulationmulation causes extreme conservatism  in dense obstacle
+scenarios [12]. Other studies attempted “soft guidance” by      This paper proposes a single-stage reinforcement learning
+incorporating VO into the reward function [16], [17], but   framework that couples the Proximal Policy Optimization
+
+===== PDF PAGE 3 =====
+Fig. 2: Overview of the proposed SEA-Nav pipeline. LiDAR rays provide exteroceptive observations that are encoded and
+fused by the Encoder and Backbone into shared features. The Actor maps shared features to a navigation action head and
+a safety-gain α head, producing a nominal velocity command and an adaptive gain; the LSE-CBF Shield then solves for
+a safe velocity command. The Critic directly predicts state value from shared features. The Actor and Critic are optimized
+jointly with PPO, shield intervention, and kinematic regularization losses.
+
+
+
+(PPO) algorithm with a differentiable physical barrier. As        3.0 m. To align with real-world hardware deployment,
+shown in Fig. 2.                                                    the update frequency of exteroception (LiDAR ρ and
+  Our Actor-Critic architecture is designed to be fully end-        goal point pBgoal) is set to 10 Hz, while proprioception
+to-end  differentiable, and  all neural networks within the       (vB,ωB,gB) is maintained at 50 Hz.
+architecture (including the Encoder, Backbone, respective       • Action Space: The high-level navigation policy outputs
+Heads, and Critic) are composed of Multi-Layer Perceptrons        the safe body velocity command us,t ∈R3, which is sent
+(MLPs). In the Actor network, a sequence of historical ob-         to a pre-trained low-level locomotion controller at 50 Hz
+servations Ohist = {ot−H,...,ot−1} (where the history length         to be converted into target joint torques τ ∈R12.
+H = 10 frames) first passes through the Encoder to extract       • Reward Design: Our reward formulation centers on
+a low-dimensional latent feature vector zt. This latent repre-         three key components: a clearance reward  rclear  to
+sentation is then concatenated with the current observation       encourage traversing cluttered regions, a velocity reward
+ot to form the joint state representation xt = [ot,zt], which          rvelo for goal-directed progress, and a stuck penalty rstuck
+is fed into a shared Backbone. The shared feature vector         to facilitate escape from local minima. Due to space
+ ft extracted by the Backbone is subsequently split into two         constraints, the comprehensive formulation is detailed
+parallel network heads: the Navigation Action Head outputs         in Appendix V.
+the desired nominal velocity command ¯ut = [¯vx, ¯vy, ¯ωz]T; the
+Safety Gain Head (α Head) dynamically outputs the barrier   C. Adaptive Collision-State Initialization (ACSI)
+gain parameter αt (ensuring αt > 0 via a Softplus activation
+                                                    To break the exploration bottleneck in high-density obsta-
+function). The outputs of both heads ( ¯ut and αt) are fed
+                                                                   cle environments, we propose an adaptive collision replay
+into the LSE-CBF barrier layer to analytically compute the
+                                                      mechanism. In traditional training, immediate termination
+final safe command us,t = [vx,s,vy,s,ωz,s]T, which drives the
+                                                    upon collision wastes substantial computational resources on
+low-level locomotion controller. The Critic network, on the
+                                                                   obstacle-free, smooth areas. In our mechanism, the system
+other hand, bypasses the safety barrier; it takes the joint state
+                                                              records the interaction history; once a collision occurs, the
+representation xt and passes it through an MLP to directly
+                                                         environment  is not immediately reset to the  initial  state.
+estimate the state value V(xt).
+                                                                  Instead,  it extracts the historical state from a short period
+  The Markov Decision Process (MDP)  for the system
+                                                             before the collision and, with a certain probability, resets
+interacting with the environment is formulated as follows:
+                                                                the robot to the local high-risk area prior to the collision,
+   • Observation Space: The current observation ot ∈Rd    retaining its true pose and velocity at that time.
+     includes the robot’s base linear velocity vB ∈R3, base      This “critical state reloading” mechanism allows the most
+     angular velocity ωB ∈R3, projected gravity vector gB ∈   challenging extreme obstacle avoidance scenarios in naviga-
+    R3, 2D local goal position pBgoal ∈R2 relative to the    tion to be trained repeatedly. To balance the accumulation
+    base frame, and a 2D LiDAR range scan ρ ∈R41. The   of obstacle avoidance experience and global goal reaching,
+     rays ρi cover an angular range of [−2π3 , 2π3 ] rad with a  we created a curriculum reset based on the success rate.
+     resolution of 30π  rad, and a sensing range of 0.1 m to   The  reset probability  Preset  dynamically increases as the
+
+===== PDF PAGE 4 =====
+probability of reaching the goal increases:                   term εd in the closed-form solution, resulting in the modified
+                                                                 safety command us(x):
+          Preset = Pmin +(Pmax −Pmin)·clip Lgoal,0,1       (1)
+                                                                us(x) = ¯u(x)+
+  Where: Pmin and Pmax are the minimum and maximum                                                                          −(⟨Lgh(x), ¯u(x)⟩+α ·h(x))
+reset probabilities. The curriculum update is Lgoal ←Lgoal +         max  0,                                             · Lgh(x) (4)
+                                                                                               ||Lgh(x)||2 +εd1[d < dup]−1[d > ddown].                                                                                                                                                    Direction| {z }
+                                                                   |            Correction {zMagnitude η        }  This curriculum guides the robot to  prioritize moving
+towards  the goal  in  the  early  stages  of  training, while
+                                                     where the max{0,·} operator acts as a logical switch:  it
+forcing it to focus on improving extreme obstacle avoidance
+                                                               leaves safe actions unaltered (η = 0), while generating a
+capabilities in high-risk areas during the later stages.
+                                                                           strictly positive magnitude η to project unsafe actions along
+                                                                the safety gradient Lgh(x). Crucially, the damping term εdD. Differentiable Adaptive LSE-CBF Layer
+                                                                    effectively caps the maximum correction magnitude, pre-
+  To enhance the safety of the policy network in complex                                                             venting velocity explosion when gradients vanish in highly
+environments, this module introduces a fully differentiable                                                              constrained spaces.
+multi-constraint CBF layer.                                                                 3) End-to-End Differentiability as Inductive Bias: Due
+  1) LSE Aggregation for Smooth Safety Constraints: In our                                                                   to discrete-time execution and sensor noise,  this module
+LiDAR-based navigation task, the safety set C is defined by                                                         does not mathematically guarantee absolute zero-collision.
+the intersection of constraints from N = 41 discrete rays.                                                                  Instead, it serves as a differentiable inductive bias. Since (4)
+A direct definition uses h(x) = mini hi(x), where hi(x)  is                                                                              is composed entirely of differentiable operations, gradients
+the distance residue between the i-th ray measurement and                                                      from task rewards can backpropagate through the projection
+the safety radius. The non-differentiable min causes gradient                                                               seamlessly. This allows the network to autonomously learn
+jumps during constraint switching. For instance, in a narrow
+                                                                   to increase α (be aggressive) in open areas and decrease α
+corridor, a marginal shift in proximity (e.g., from a 0.50 m                                                             (be conservative) in narrow spaces, effectively internalizing
+left wall to a 0.51 m right wall) forces the active constraint’s                                                               physical safety constraints into the policy itself.
+spatial gradient to abruptly flip 180◦, triggering directional
+chattering. To address  this, we adopt the Log-Sum-Exp   E. Loss Function Design
+(LSE) formulation—a standard smooth approximation in safe
+                                                    To foster a synergistic relationship between the policy net-
+control [20], [21]—to fuse  all discrete constraints into a
+                                                   work and the LSE-CBF layer, we introduce a Shield Inter-
+global composite safety function h(x):
+                                                          vention Loss (Lshield). This loss minimizes the discrepancy
+                        N        !              between the nominal command ¯ut and the shielded command
+            h(x) = −1                         ln           ∑ exp(−k ·hi(x))            (2)     us,t, while discouraging overly small α that would trigger                    k                              i=1                                                           near-complete shield intervention and introduce dynamics
+where k > 0 is the smoothing coefficient. This formulation    risks:
+ensures that h(x) is continuously differentiable, providing a                   Lshield = ||us,t −¯ut||2 +[αmin −αt]2+          (5)
+smooth gradient landscape for both control execution and
+                                                     where [x]+ = max{0,x} and αmin is a lower bound for theneural network backpropagation.
+                                                              adaptive gain.  2) Damped  Analytical  Safety  Projection:  Given  the
+                                                              Furthermore,   since   the  execution  performance   ofsmoothed safety margin h(x), the CBF layer modulates the
+                                                       quadruped locomotion is highly sensitive to the navigationActor’s nominal action ¯u(x) to satisfy the forward invariance
+condition  ˙h(x,u) ≥−αh(x). This requirement  yields the   commands, we aggregate physical constraints and network
+                                                        smoothness into a unified Kinematic Regularization Lossstandard CBF-QP [20], [39]:
+                                                                          (Lreg). This regularization comprises two sub-components: a
+      1
+   min      −¯u(x)||2    s.t.  ⟨Lgh(x),us⟩+αh(x) ≥0    (3)   range penalty (Lrange) and a smoothness penalty (Lsmooth).      us  2||us                                                               First, to prevent destructive behaviors, the velocity com-
+Here, Lgh(x) = ∇h(x) is the Lie derivative representing the   mand range loss penalizes outputs that exceed the hardware
+gradient direction of the safety margin, and α > 0 is the    safety limits:
+Class-K  parameter.                                                                                                         2
+                                                                                                                               (6)  While LSE resolves directional chattering by smoothly            Lrange = ∑    ujs,t −clip(ujs,t,uminj  ,umaxj   )
+blending gradients,  it introduces a challenge in perfectly                        j∈{x,y,ω}
+symmetric environments. In narrow passages where opposing                                                     where umin,umax ∈R3 are the element-wise lower and upper
+hazard gradients  (e.g., from  left and right walls) equally                                                      bounds of the robot’s kinematic capabilities.
+blend and cancel each other out, the composite gradient                                                           Second, to promote smooth transitions in both action and
+vanishes (||Lgh(x)||2 →0). The closed-form solution of (3)                                                             value predictions, we adopt a Lipschitz continuity constraint
+in [20] then yields a vanishing denominator, causing the                                                                   [40]:
+correction magnitude to blow up and leading to numerical
+divergence. To resolve this, we introduce a physical damping      Lsmooth = λπD(πθ(xt),πθ(¯xt))+λVD Vφ(xt),Vφ(¯xt)    (7)
+
+===== PDF PAGE 5 =====
+Fig. 3: SEA-Nav trajectories in three navigation scenarios of increasing difficulty. Each subfigure shows two distinct start-goal
+trials. SEA-Nav successfully traverses narrow passages and performs timely maneuvering adjustments to avoid entrapment
+in cluttered environments.
+
+           TABLE I: Different difficulty levels are evaluated, with the mean and standard deviation reported over 3 runs.
+
+
+                                            Easy                                Medium                                   Hard
+Method
+                      SR (%) ↑    CR (%) ↓   TR (%) ↓      SR (%) ↑    CR (%) ↓    TR (%) ↓      SR (%) ↑    CR (%) ↓    TR (%) ↓
+
+SEA-Nav (Ours)            100.00 (±0.00)    0.00 (±0.00)    0.00 (±0.00)       97.00 (±0.82)     1.00 (±0.82)     2.00 (±0.00)        90.00 (±1.63)     5.00 (±0.82)     5.00 (±0.82)
+
+SEA-Nav w/o ACSI         100.00 (±0.00)    0.00 (±0.00)    0.00 (±0.00)       93.00 (±0.82)     2.33 (±0.47)     4.67 (±0.47)        83.00 (±2.45)     8.00 (±2.16)     9.00 (±1.63)
+
+SEA-Nav w/o Shield         97.67 (±0.47)     1.33 (±0.47)    1.00 (±0.00)       90.00 (±0.82)     2.67 (±0.94)     7.33 (±1.70)        74.33 (±3.30)    11.67 (±1.70)    14.00 (±2.16)
+
+SEA-Nav w/o Lreg            96.33 (±0.47)     2.67 (±0.47)    1.00 (±0.00)       82.33 (±2.05)     6.00 (±0.82)     11.67 (±1.25)       57.00 (±4.08)    18.00 (±2.16)    25.00 (±2.16)
+
+ABS [7]                     95.00 (±0.00)     4.67 (±0.47)    0.33 (±0.47)       75.33 (±1.25)     9.33 (±0.47)     15.33 (±1.70)       45.33 (±3.40)    22.00 (±1.41)    32.67 (±2.05)
+
+OCR [23]                   95.33 (±0.47)     3.33 (±0.47)    1.33 (±0.47)       67.33 (±2.49)    31.33 (±2.87)    32.67 (±2.49)       56.00 (±3.27)    18.33 (±2.49)    25.67 (±2.49)
+
+SEASAN [14]               95.67 (±0.47)     2.67 (±0.47)    1.33 (±0.47)       71.33 (±3.09)    10.33 (±1.89)    28.67 (±2.16)       77.67 (±4.62)    14.33 (±1.89)    22.33 (±4.19)
+
+
+where  ¯xt = xt + β · (xt+1 −xt) is an interpolated state with                     IV. EXPERIMENTS
+the coefficient β ∼U (−1,1), and D(·,·) denotes the mean                                                            A. Simulation Experiments
+squared error (MSE). Here, πθ and Vφ represent the policy
+                                         We designed rooms with varying occupancy difficulties:and value networks taking the joint state representation xt
+                                                             Easy, Medium, and Hard (Fig. 3). We conducted 100 ex-as input, while λπ and λV are their corresponding weighting
+                                                           periments  for each mode with randomized  start  points,factors. This constraint improves deployment safety by sup-
+                                                      end points, and initial headings. We utilized three metrics:pressing abrupt changes in action and value outputs, thereby
+                                                          Success Rate (SR), Collision Rate (CR), and Timeout Ratereducing the risk of falls and motor overheating during Sim-
+                                                           (TR). Timeout (failing to reach within 30s) reflects whetherto-Real locomotion. The total kinematic regularization is thus
+                                                                the robot is stuck in local minima.given by Lreg = Lrange +Lsmooth.
+                                                    Our  training design achieves a strong balance among   Finally,  these  auxiliary  losses  are  integrated with  the
+                                                                            agility,  safety, and  task  completion,  especially  in  hardstandard PPO objective [41]. The total loss function used
+                                                            environments. The ablation  results in Table  I show  thatto update the entire end-to-end network is formulated as:
+                                               ACSI improves success by repeatedly revisiting high-risk
+              Ltotal = LPPO +λshieldLshield +λregLreg         (8)    states, which  increases  near-obstacle experience and  re-
+                                                         duces collision-induced failures. Removing the differentiablewhere λshield and λreg are the weighting hyperparameters for
+                                                             Shield degrades both safety and task completion, indicatingeach respective loss term.
+                                                                     that shaping  the  action space with  the LSE-CBF  layer
+F. Training in Simulation                                                             provides more efficient avoidance learning and a stronger
+  Using the Isaac Gym platform [42], we  first trained a    safety bias. The kinematic regularization further guides the
+standard  velocity tracking  controller based on  [43]. For   policy toward hardware-feasible velocity commands, improv-
+the navigation  task, we designed 10 × 10 rooms heavily   ing stability and deployment robustness.
+occupied by diverse obstacles, as illustrated in Fig. 2. During
+                                                            B. Case Studytraining, the episode ends only after the robot stays near
+the goal for a period, increasing the proportion of goal-    We further analyze the contributions of ACSI, the Shield,
+reaching experiences. We also expanded the collision bodies   and the kinematic regularization in a challenging scenario
+to enhance collision perception and lower the policy’s safety   with continuous obstacle avoidance and local minima. Fig. 4
+margin.                                                          visualize the trajectories and velocity profiles. With the full
+
+===== PDF PAGE 6 =====
+Fig. 4: (Left) Trajectory plot; (right) velocity profiles. SEA-Nav maintains larger obstacle clearance and smoother speed
+variations. The safety gain α decreases in hazardous regions so the CBF Shield dominates, and increases in safe regions
+where the nominal navigation command takes the lead.
+
+TABLE II: Real-world deployment results. AS: average speed (m/s); SEA-Nav-b: built-in MPC controller and onboard sparse
+LiDAR.
+
+
+                            Cluttered Room                Dynamic Obstacle                   Obstacle Course                    S-Blend Track
+ Method
+            SR (%) ↑ CR (%) ↓ AS (m/s) ↑ SR (%) ↑ CR (%) ↓ AS (m/s) ↑ SR (%) ↑ CR (%) ↓ AS (m/s) ↑ SR (%) ↑ CR (%) ↓ AS (m/s) ↑
+
+ SEA-Nav         100        10          1.6        90        20          1.5        100        10          1.2        100        10          1.4
+ SEA-Nav-b       100        10          0.9        100        20          0.8        90        10          0.7        100        10          0.5
+ ABS [7]          70        50          2.1        60        10          1.7         0        100         0.6        80        20          0.8
+ OCR [23]         90        20          1.7        90        10          1.5        30        100         1.0        90        20          1.3
+ REASAN [14]     90        20          1.3        90        10          1.3        40        100         0.9        90        30          0.9
+ SLAM           100        0           0.5        80        40          0.4        100        0           0.4        80         0           0.3
+
+
+
+                                                                    ception and the built-in MPC controller (max 1 m/s).
+                                                                 2) Using a higher-precision RPLIDAR A2 for perception
+                                                           and our trained agile policy [43] as the controller.
+                                                                Different from prior lidar-based approaches [13], [14], [23],
+                                                     which require high-precision ray measurements and do not
+                                                             support the stock Unitree L1 LiDAR, our first scheme uses
+                                                                the native sensor and controller to enable a plug-and-play,
+                                                             low-cost deployment path with strong real-world viability.
+                                        We summarize the point-cloud differences between the two
+                                            LiDAR setups in Appendix V (Fig. 6). And we also com-
+                                                           pared with the Unitree built-in SLAM algorithm.
+
+Fig. 5: Real-world experimental environments. Ten trials are   D. Results Analysis
+conducted in each environment.                                                             Table II summarizes the quantitative results. Our method
+                                                             achieves safer obstacle avoidance in highly difficult naviga-
+                                                                   tion environments compared to SOTA methods. It performs
+method, the adaptive gain α decreases when the robot en-   exceptionally well in continuous turning and local planning.
+ters narrow passages, increasing shield intervention and en-                                                              In contrast, while some SOTA methods move faster, they
+abling safe passage; the turning phase also exhibits smooth,                                                                     either get stuck or crash at dangerous speeds when facing
+bounded velocity transitions. The stuck-aware reward helps                                                        narrow corners. The SLAM method has a high success rate
+the robot escape local minima, while the regularization loss                                                              but relies on lengthy mapping and moves slowly, failing to
+suppresses aggressive velocity spikes that would otherwise                                                           handle dynamic obstacles.
+lead to unsafe impacts. In contrast, removing regularization
+yields abrupt velocity changes and collisions, and removing                     V. CONCLUSION
+ACSI or the Shield reduces exposure to high-risk  states      In this paper, we proposed SEA-Nav, a highly efficient RL
+or removes explicit safety shaping, resulting in avoidable   navigation framework for quadruped robots that integrates
+collisions in tight regions.                           ACSI experience replay and an end-to-end differentiable
+                                              LSE-CBF shield. It achieves agile and safe deployment with
+C. Hardware Setup
+                                                              minute-level training.
+  We evaluated our method on the Unitree Go2 quadruped      Limitations: The current algorithm only supports  flat-
+robot across different obstacle environments. We designed   ground navigation and lacks detection capabilities for slopes
+two deployment schemes for SEA-Nav:                       or stairs.  It can overcome simple local optima but is  still
+  1) Using the robot’s onboard sparse LiDAR L1 for per-   prone to getting stuck in complex mazes and dead ends.
+
+===== PDF PAGE 7 =====
+  Future Work: We plan to incorporate global navigation   Domain Randomization
+algorithms or memory mechanisms to resolve complex local
+optima and expand terrain adaptability.                        TABLE IV: Domain-randomization parameters.
+
+                                                         Term                            Value
+               APPENDIX                                                                 Rays delay              U (40,80)ms
+                                                                           Gravity noise             U (−0.05,0.05)
+Reward Function                                                       Linear velocity noise         U (−0.1,0.1)m/s
+                                                                     Angular velocity noise        U (−0.1,0.1)rad/s
+                                                                                  Friction coefficient factor       U (−0.2,1.25)
+TABLE III: Reward terms and weights (extracted from the   Mass perturbation          U (−1.5,1.5)kg
+implementation). Let d denote the goal distance; v = [vx,vy]
+the base linear velocity in the horizontal plane; and ω =   Hyper Parameters
+[ωx,ωy,ωz] the base angular velocity. 1[·] is the indicator
+function. θ is the heading error to the goal. φ is the angular
+offset  to the most open ray  direction, and  cfront  is the           TABLE V: Hyper parameters for training.
+minimum ray clearance in a frontal cone. ρi is the i-th ray   Term                            Value
+distance. For collisions, fk  is the contact force magnitude
+                                                                                 Pmin                                  0.1
+on body group k, and βk are body-dependent coefficients                                                                           Pmax                                  0.5
+(omitted for brevity). For stuck detection, we track recent    dup                                   0.5 m
+planar base positions {pt}Tt=1 and define ∆pmax = maxt∥pt −    ddown                                 2.0 m
+                                                                                umin                                       [-0.5, 0.8, 1.0]p1∥2.                                                                          umax                                      [1.7, 0.8, 1.0]
+ Term   Purpose              Compact expression                       Weight      εd                                    1.0
+                                                                                                λshield                                0.1
+                  termination                               cost   1[terminated]                                                                −100  rterm    episode
+           tight goal                    reaching                                            1   1[d < 0.5],                                                               +10     αmin                                  0.1  rreach                                      1+2d2
+  rvelo   move toward goal        cosθ vx + 1+2d21                            +15      λreg                                  1.0
+  rclear    clearance-aware motion    1[d > 1] cosφ vx +1[d ≤1] 1+2d21                +15     λπ                                  0.05
+  rstuck    penalize getting stuck     1[d > 1]1[∆pmax < 0.1]1[vx > 0.0]1[|ωz| < 1.0]     −5     λV                                 0.005
+  rcoll     penalize collisions        1+4(∥v∥22 +ω2z ) ∑k βk 1[∥fk∥> 0.1]          −4     Episode Duration                 60 s
+ rω      reduce angular motion     ∥[ωx,ωy]∥2                                −0.05     Entropy Coefficient                 0.003
+
+
+                                                               REFERENCES
+
+LiDAR Point Cloud Comparison                                          [1] D. Shah, A. Sridhar, A. Bhorkar, N. Hirose, and S. Levine, “Gnm:
+                                                A general navigation model  to  drive any  robot,” arXiv  preprint
+  We compare the native Unitree LiDAR L1 and the external         arXiv:2210.03370, 2022.
+                                                                                     [2] G. Kahn, P. Abbeel, and S. Levine, “Badgr: An autonomous self-
+RPLIDAR A2 used in our two deployment schemes. The L1          supervised learning-based navigation system,” IEEE Robotics and
+provides a sparse, low-cost 3D point cloud that is directly         Automation Letters, vol. 6, no. 2, pp. 1312–1319, 2021.
+supported by the onboard controller, enabling plug-and-play      [3] A. Loquercio, E. Kaufmann, R. Ranftl, M. M¨uller, V. Koltun, and
+                                                                        D. Scaramuzza, “Learning high-speed  flight in the wild,” Science
+deployment. The A2 provides a denser 2D scan that improves          Robotics, vol. 6, no. 59, p. eabg5810, 2021.
+near-obstacle geometry for higher-speed navigation. Fig. 6      [4]  F. Yang, C. Wang, C. Cadena, and M. Hutter, “iPlanner: Imperative
+illustrates the qualitative difference between the two sensing         Path Planning,” in Proceedings of Robotics: Science and Systems,
+                                                                         Daegu, Republic of Korea, July 2023.
+streams.                                                                          [5]  P. Roth, J. Nubert, F. Yang, M. Mittal, and M. Hutter, “Viplanner:
+                                                                                  Visual semantic imperative learning for local navigation,” in 2024
+(a)                                 (b)                                   (c)                         IEEE International Conference on Robotics and Automation (ICRA).
+                                                                        IEEE, 2024, pp. 5243–5249.
+                                                                                     [6] K.-H. Zeng, Z. Zhang, K. Ehsani, R. Hendrix, J. Salvador, A. Herrasti,
+                                                                            R. Girshick, A. Kembhavi, and L. Weihs, “Poliformer: Scaling on-
+                                                                                    policy  rl with transformers results in masterful navigators,” arXiv,
+                                                                             2024.
+                                                                                     [7]  T. He, C. Zhang, W. Xiao, G. He, C. Liu, and G. Shi, “Agile but safe:
+                                                                             Learning collision-free high-speed legged locomotion,” in Robotics:
+                                                                                Science and Systems (RSS), 2024.
+                                                                                     [8] D. Hoeller, N. Rudin, D. Sako, and M. Hutter, “Anymal parkour:
+Fig. 6: Comparison of LIDAR point clouds. The robot’s         Learning agile navigation for quadrupedal robots,” Science Robotics,
+position and orientation are indicated by the gray arrow.           vol. 9, no. 88, p. eadi7566, 2024.
+                                                                                     [9] D. Hoeller, L. Wellhausen, F. Farshidian, and M. Hutter, “Learning
+(a): The robot’s actual environment. (b): Sparse point cloud         a state representation and navigation in cluttered and dynamic envi-
+from the Unitree Go2 robot’s onboard LIDAR, consisting of         ronments,” IEEE Robotics and Automation Letters, vol. 6, no. 3, pp.
+approximately 1,000 3D points per frame. (c): Denser point         5081–5088, 2021.
+                                                                              [10] Z. Zhuang, Z. Fu, J. Wang, C. Atkeson, S. Schwertfeger, C. Finn, and
+cloud from the RPLIDAR A2, consisting of approximately        H. Zhao, “Robot parkour learning,” in Conference on Robot Learning
+2,000 2D points per frame.                                             (CoRL), 2023.
+                                                                              [11] X. Cheng, K. Shi, A. Agarwal, and D. Pathak, “Extreme parkour with
+                                                                               legged robots,” arXiv preprint arXiv:2309.14341, 2023.
+
+===== PDF PAGE 8 =====
+[12] Z. Xu, X. Han, H. Shen, H. Jin, and K. Shimada, “Navrl: Learning safe    [31] M. Pfeiffer, M. Schaeuble,  J. Nieto, R. Siegwart, and C. Cadena,
+       flight in dynamic environments,” arXiv preprint arXiv:2409.15634,        “From perception to decision: A data-driven approach to end-to-end
+     2024.                                                                motion planning for autonomous ground robots,” in IEEE International
+[13] Z. Wang, T. Ma, Y. Jia, X. Yang, J. Zhou, W. Ouyang, Q. Zhang,         Conference on Robotics and Automation (ICRA).   IEEE, 2017, pp.
+     and J. Liang, “Omni-perception: Omnidirectional collision avoidance         1527–1533.
+      for legged locomotion in dynamic environments,” 2025. [Online].    [32]  S. Lv, Y. Gao, J. Che, and Q. Quan, “Autonomous drone racing: time-
+      Available: https://arxiv.org/abs/2505.19214                                   optimal spatial iterative learning control within a virtual tube,” in 2023
+[14] Q. Yuan, Z. Cao, M. Cao, and K. Li, “Reasan: Learning reactive        IEEE International Conference on Robotics and Automation (ICRA).
+      safe  navigation  for  legged  robots,”  2025.  [Online].  Available:        IEEE, 2023, pp. 3197–3203.
+      https://arxiv.org/abs/2512.09537                                         [33] D. Shah, A. Sridhar, N. Dashora, K. Stachowicz, K. Black, N. Hirose,
+[15] Y. Zhong, C. Zhang, T. He, and G. Shi, “Bridging adaptivity and         and S. Levine, “Vint: A foundation model for visual navigation,” arXiv
+      safety: Learning agile collision-free locomotion across varied physics,”          preprint arXiv:2306.14846, 2023.
+     arXiv preprint arXiv:2501.04276, 2025.                                 [34] M. Elnoor, K. Weerakoon, A. J. Sathyamoorthy, T. Guan, V. Rajagopal,
+                                                                        and D. Manocha, “Amco: Adaptive multimodal coupling of vision[16] Z. Xie and P. Dames, “Drl-vo: Learning to navigate through crowded
+                                                                        and  proprioception  for  quadruped  robot  navigation  in  outdoor     dynamic scenes using  velocity  obstacles,” IEEE Transactions on
+                                                                                 environments,” 2024. [Online]. Available: https://arxiv.org/abs/2403.     Robotics,  vol.  39,  no.  4,  p.  2700–2719, Aug.  2023.  [Online].
+                                                                      13235      Available: http://dx.doi.org/10.1109/TRO.2023.3257549
+                                                                              [35]  F. Gao, Z. Chai, and S. Tian, “Local semantic map-based navigation
+[17] R. Han,  S. Chen,  S. Wang,  Z. Zhang, R. Gao, Q. Hao, and
+                                                                           system for quadruped inspection robot in complex terrains,” in 2025
+       J. Pan, “Reinforcement learned  distributed multi-robot navigation
+                                                                                  8th International Conference on Advanced Algorithms and Control
+     with reciprocal velocity obstacle shaped rewards,” 2022. [Online].
+                                                                             Engineering (ICAACE), 2025, pp. 570–575.
+      Available: https://arxiv.org/abs/2203.10229
+                                                                              [36] Q.  Zhu,  Z.  Sun,  S.  Xia,  G.  Liu,  K. Ma,  L.  Pei,  Z. Gong,
+[18] A. Thirugnanam, J. Zeng, and K. Sreenath, “Safety-critical control                                                                        and C. Jin, “Learning-based traversability costmap for autonomous
+     and planning for obstacle avoidance between polytopes with control                                                                                      off-road navigation,” 2024. [Online]. Available: https://arxiv.org/abs/
+      barrier functions,” in 2022 International Conference on Robotics and                                                                         2406.08187
+     Automation (ICRA), 2022, pp. 286–292.                                                                              [37]  J. Ye, D. Batra, A. Das, and E. Wijmans, “Auxiliary tasks and
+[19] E. Sabouni, H. M. S. Ahmad, V. Giammarino, C. G. Cassandras,                                                                                    exploration enable objectnav,” 2021.
+        I. C. Paschalidis, and W. Li, “Reinforcement learning-based receding                                                                              [38] V. Reijgwart, M. Pantic, R. Siegwart, and L. Ott, “Waverider: Lever-
+     horizon control using adaptive control barrier functions for safety-                                                                              aging hierarchical, multi-resolution maps for efficient and reactive ob-
+       critical systems,” 2025. [Online]. Available: https://arxiv.org/abs/2403.                                                                                            stacle avoidance,” in 2024 IEEE International Conference on Robotics
+     17338                                                                      and Automation (ICRA).  IEEE, 2024, pp. 13 157–13 163.
+[20]  T. G. Molnar and A. D. Ames, “Composing control barrier functions    [39] A. D. Ames, X. Xu,  J. W.  Grizzle, and  P. Tabuada,  “Control
+      for complex safety specifications,” IEEE Control Systems Letters,           barrier  function  based  quadratic  programs  for  safety   critical
+      vol. 7, pp. 3615–3620, 2023.                                                 systems,”  IEEE  Transactions  on  Automatic  Control,  vol.  62,
+[21] C. Wang, X. Wang, Y. Dong, L. Song, and X. Guan, “Multi-constraint          no.  8,  p.  3861–3876,  Aug.  2017.  [Online].  Available:  http:
+      safe reinforcement learning via closed-form solution for log-sum-exp         //dx.doi.org/10.1109/TAC.2016.2638961
+     approximation of control barrier functions,” 2025. [Online]. Available:    [40]  T. Kobayashi, “L2c2: Locally lipschitz continuous constraint towards
+      https://arxiv.org/abs/2505.00671                                                  stable and smooth reinforcement learning,” in 2022 IEEE/RSJ Interna-
+[22]  P. Mestres, S. S. Mousavi, P. Ong, L. Yang, E. Das, J. W. Burdick,           tional Conference on Intelligent Robots and Systems (IROS).  IEEE,
+     and A. D. Ames, “Explicit control barrier function-based safety filters         2022, pp. 4032–4039.
+     and  their resource-aware computation,” 2025. [Online]. Available:    [41]  J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov,
+      https://arxiv.org/abs/2512.10118                                           “Proximal   policy   optimization   algorithms,”   arXiv   preprint
+[23] A. Lin, S. Peng, and S. Bansal, “One filter to deploy them all: Robust         arXiv:1707.06347, 2017.
+      safety for quadrupedal navigation in unknown environments,” arXiv    [42] N. Rudin, D. Hoeller, P. Reist, and M. Hutter, “Learning to walk
+      preprint arXiv:2412.09989, 2024.                                                in minutes using massively parallel deep reinforcement learning,” in
+[24] W. Xiao, T. He, J. Dolan, and G. Shi, “Safe deep policy adaptation,”         Conference on Robot Learning.  PMLR, 2022, pp. 91–100.
+      in 2024 IEEE International Conference on Robotics and Automation    [43]  S. Chen, Z. Wan, S. Yan, C. Zhang, W. Zhang, Q. Li, D. Zhang,
+     (ICRA).  IEEE, 2024, pp. 17 286–17 292.                                and F. U. D. Farrukh, “Slr: Learning quadruped locomotion without
+[25] R. Cheng, G. Orosz, R. M. Murray, and J. W. Burdick, “End-to-end          privileged information,” in Proceedings of The 8th Conference on
+      safe reinforcement learning through barrier functions for safety-critical         Robot Learning, vol. 270. PMLR, 06–09 Nov 2025, pp. 3212–3224.
+     continuous control tasks,” in Proceedings of the AAAI conference on          [Online]. Available: https://proceedings.mlr.press/v270/chen25e.html
+       artificial intelligence, vol. 33, no. 01, 2019, pp. 3387–3395.
+[26] Q. Liao, Z. Li, A. Thirugnanam, J. Zeng, and K. Sreenath, “Walking
+      in narrow spaces: Safety-critical locomotion control for quadrupedal
+     robots with duality-based optimization,” in 2023 IEEE/RSJ Interna-
+      tional Conference on Intelligent Robots and Systems (IROS).  IEEE,
+     2023, pp. 2723–2730.
+[27] D. Kim, D. Carballo, J. Di Carlo, B. Katz, G. Bledt, B. Lim, and
+      S. Kim, “Vision aided dynamic exploration of unstructured terrain
+     with a small-scale quadruped robot,” in 2020 IEEE International
+     Conference on Robotics and Automation (ICRA).   IEEE, 2020, pp.
+     2464–2470.
+[28]  T. Dudzik, M. Chignoli, G. Bledt, B. Lim, A. Miller, D. Kim, and
+      S. Kim, “Robust autonomous navigation of a small-scale quadruped
+     robot in real-world environments,” in 2020 IEEE/RSJ International
+     Conference on Intelligent Robots and Systems (IROS).  IEEE, 2020,
+     pp. 3664–3671.
+[29] M. Gaertner, M. Bjelonic, F. Farshidian, and M. Hutter, “Collision-
+      free mpc for legged robots in static and dynamic scenes,” in 2021
+    IEEE International Conference on Robotics and Automation (ICRA).
+     IEEE, 2021, pp. 8266–8272.
+[30] A. Sadat, S. Casas, M. Ren, X. Wu, P. Dhawan, and R. Urtasun, “Per-
+      ceive, predict, and plan: Safe motion planning through interpretable
+     semantic representations,” in European Conference on Computer Vi-
+      sion.  Springer, 2020, pp. 414–430.

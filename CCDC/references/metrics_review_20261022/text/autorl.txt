@@ -1,0 +1,591 @@
+===== PDF PAGE 1 =====
+            Learning Navigation Behaviors End-to-End with AutoRL
+
+                      Hao-Tien Lewis Chiang1,∗, Aleksandra Faust1,∗, Marek Fiser1, Anthony Francis1
+
+
+
+
+            Abstract— We  learn  end-to-end  point-to-point and  path-
+           following navigation behaviors that avoid moving obstacles.
+          These  policies  receive noisy  lidar observations and output
+          robot linear and angular velocities. The policies are trained
+            in small, static environments with AutoRL, an evolutionary
+          automation layer around Reinforcement Learning (RL) that
+           searches for a deep RL reward and neural network architecture
+          with large-scale hyper-parameter optimization. AutoRL ﬁrst
+         ﬁnds a reward that maximizes task completion, and then ﬁnds
+          a neural network architecture that maximizes the cumulative2019            of the found reward. Empirical evaluations, both in simulation
+         and on-robot, show that AutoRL policies do not suffer from
+           the catastrophic forgetfulness that plagues many other deep               (a) Narrow corridor                (b) Unstructured dynamicFeb    reinforcement learning algorithms, generalize to new environ-
+         ments and moving obstacles, are robust to sensor, actuator,     Fig. 1. Navigation behaviors on a Fetch: (a) path following in a
+1         and localization noise, and can serve as robust building blocks   narrow corridor (b) point to point in a dynamic environment.
+            for larger navigation tasks. Our path-following and point-to-
+           point policies are respectively 23% and 26% more successful
+          than comparison methods across new environments. Video at:
+        https://youtu.be/0UwkjpUEcbI.                      end to end polices that directly map sensors to controls,
+                                                               and we show that these policies transfer from simulation
+                                      I. INTRODUCTION                       to physical robots and new environments while robustly[cs.RO]             Assistive robots, last-mile delivery, warehouse navigation,   avoiding obstacles.
+         and robots  in ofﬁces require robust robot navigation  in     To do so, we rely on deep Reinforcement Learning (RL),
+         dynamic environments (Fig. 1). While good methods exist   which has shown great progress in visual navigation [39]
+           for robot navigation sub-tasks such as localization and map-   and video games [28]. RL learns policies that map between
+           ping, motion planning, and control, current local navigation   observations and controls to maximize the cumulative return.
+         methods typically must be tuned for each new robot and   Deep RL has enabled learning tasks that have been difﬁcult
+         environment  [7]. For example, vision-based navigation  is   or impossible to program manually, from matching human
+          robust to noisy sensors but typically relies on high-level   performance [28] to locomotion of humanoid ﬁgures [17].
+         motion primitives, such as “go straight” and “turn left” that   Despite the promise of deep RL, training these policies is
+           abstract away robot dynamics [29]. Robot navigation requires    difﬁcult and requires careful consideration when selecting
+          behaviors that are useful to existing navigation stacks, easily    the reward function and choosing the neural network ar-
+           transfer from simulation to physical robots or new large-    chitecture. Speciﬁcally, training even simple tasks can fail
+           scale environments with minimum tuning, and robustly avoid     if rewards are sparse  - that  is,  if the success conditions
+           obstacles despite noisy sensors and actuators.                  of the true objective are hard to discover [4]; this is truearXiv:1809.10124v2    We deﬁne robot navigation behaviors as intelligent agents    for navigation in large spaces. Reward shaping [38], [21]
+            that depend on the robot’s sensors, actuators, dynamics and   addresses this problem by introducing a proxy reward func-
+          geometry, without relying on foreknowledge of  its envi-    tion that  is less sparse than the true objective. However,
+         ronment [3]. Many navigation tasks can be accomplished   poorly chosen shaped rewards can lead to pathologies where
+          using two basic behaviors:  local planning,  i.e., point  to   agents learn to exploit the reward function or to terminate
+           point, which creates trajectories from the robot’s current    the episode early [31]. Designing good reward functions is
+          conﬁguration to a given target [12], and path following,   well understood for some areas (e.g., video games [28]),
+         which stays near a given guidance path [8]. Both behaviors   but for most tasks, including navigation, it remains a black
+         need to produce dynamically feasible trajectories that are    art. Similarly, selection of neural network architecture often
+          robust to many kinds of noise and inaccuracies, rely only    consists of trial and error, and remains another source of
+         on observations coming from primitive sensors, and avoid    training difﬁculties.
+          unexpected obstacles. In this paper, we present a reliable     Hyperparameter tuning can improve learning behavior:
+         method to implement these navigation behaviors by learning    gradient-free,  evolutionary methods, such  as Covariance
+                                                                   Matrix Adaptation Evolution Strategy (CMA-ES) [18], can
+             1Google     AI,    Mountain     View,   CA     94043,   USA
+          lewispro,faust,mfiser,centaur@google.com                     transform an algorithm that fails to converge into one that
+             ∗Authors contributed equally.                                  produces near-optimal policies. To simplify deep RL training,
+
+===== PDF PAGE 2 =====
+   (a) Training, 23 by 18m                    (b) Building 1, 183 by 66m                    (c) Building 2, 60 by 47m     (d) Building 3, 134 by 93m
+
+Fig. 2. (a) Training and (b, c, d) evaluation environments with 40 moving obstacles (white circles). The evaluation environments are 6.8
+to 30.1 times bigger than the training, generated from real ofﬁce building plans.
+
+
+we present AutoRL, which automates the search for both the   deep learning [7]. Our prior work on PRM-RL uses a point-
+shaped reward and the neural network architecture. AutoRL    to-point policy trained with DDPG as the local planner for
+combines deep RL with gradient-free hyperparameter opti-  PRM [12]. Like these approaches, we map from sensors
+mization. It takes a parameterized reward function along with    to velocity control, but we train with AutoRL, which tunes
+the true objective, and then uses large-scale hyperparameter    the agent’s reward and network architectures to improve the
+optimization to shape the reward. With this reward ﬁxed,   policy performance and time needed for hand-engineering.
+it then optimizes network layer sizes to identify the most   Learning by optimizing multiple objective functions, rules,
+successful policies for the given task. Applied to point-to-   or perceptual features has proven effective for variants of the
+point and path-following tasks, AutoRL learns robust policies   navigation problem [10]; other work uses hierarchical RL
+that cope with both static and dynamic obstacles, even though    to break the problem apart into tractable components [5].
+the tasks are trained in simulation in small environments with   Unlike these methods, we automate the tuning by learning
+only static obstacles. The speciﬁc contributions of this work    the proxy reward function and neural network architecture
+are the AutoRL method as well as point-to-point and path-    instead of imposing it. Some recent work features learning
+following navigation policies.                               based sensor to controls navigation in the presence of moving
+  We evaluate these policies in three large building envi-    obstacles. For example, Intention-Net [15] maps camera
+ronments (Fig. 2) with respect to various noise levels and   observations and intents to controls, while Pfeiffer et  al.
+a number of moving obstacles. Our simulation results show   [32] navigate from  lidar  inputs. Both of those methods
+the path following and point to point policies have higher    require demonstrations for training, while AutoRL learns by
+success rate in novel environments, on average 23% and 26%   reinforcement.
+higher over the baseline, respectively, and are robust to noise.     Reinforcement learning with sparse rewards: Three main
+In experiments on a real robot (Fig. 1), we observe reliable   approaches handle sparse rewards in RL: curriculum learn-
+obstacle avoidance in dynamic environments and collision-    ing, bootstrapping, and reward shaping. Curriculum methods
+free navigation along 80+ m paths.                      make tasks progressively more difﬁcult during training, e.g.,
+                                                    by moving the goal further from the start in navigation [13],
+                      II. RELATED WORK                       [20]. In contrast, AutoRL does not change task difﬁculty
+                                                            during  training. Bootstrapping allows RL  policies  to be
+  Motion planning: Practical robot navigation typically uses                                                                        initialized from either hand-engineered polices or recorded
+a layered navigation stack: given an occupancy map gener-                                                            episodes [37]. AutoRL starts with an uninitialized policy and
+ated by a mapping algorithm such as SLAM [6], a global                                                                      trains  it from scratch. Reward shaping learns from a pa-
+planner such as PRM [22] or RRT [24] ﬁnds a near-optimal                                                             rameterized dense reward [30]. AutoRL is a reward-shaping
+path that a local planner (e.g., [14]) executes. This “stacked”                                                        method. While reward shaping can be done with curriculum
+approach has demonstrated  reliable  operation over long                                                      and bootstrapping [20], [37], AutoRL uses hyperparameter
+distances [26]. Typical planners for dynamic environments                                                              optimization rooted in evolutionary algorithms to accomplish
+include Artiﬁcial Potential Field (APF), velocity obstacle,                                                                             this. Further, curriculum learning and bootstrapping can be
+and sampling-based methods [9]. Many of those methods,                                                              applied in addition to the hyperparameter optimization.
+such as DRT [8] or PEARL [11], require perfect knowledge                                                          Hyper-parameter optimization in deep learning: AutoML
+of obstacle position or dynamics, which is difﬁcult to obtain                                                      methods learn the neural network architecture for a given
+when the robot has limited and noisy sensors,  like 1D                                                          problem. AutoML achieves this with gradient descent [2],
+lidar. Like these approaches, we assume reasonably accurate                                                            reinforcement learning [40], and even hyper-parameter opti-
+localization, but we couple sensing directly with controls to                                                           mization [34]. AutoRL extends the AutoML approach to RL
+remove the need for knowing obstacle location or dynamics.                                                      and subjects both the network architecture and the reward
+  Deep learning for navigation: Machine learning for navi-                                                              function to hyper-parameter optimization.
+gation has seen a recent boom, particularly in point-to-point
+                                                                                                   III. METHODSnavigation with vision [29], [39]. Some approaches discretize
+state and action spaces to enable simple RL algorithms [1],     To learn point-to-point and path-following navigation be-
+whereas others learn low-level controllers end to end using    haviors, we choose continuous reinforcement learning with
+
+===== PDF PAGE 3 =====
+partial state observations, which we model with Partially    sight, but not far enough to require higher-level knowledge
+Observable Markov Decision Process (POMDP). We model   of the environment. For example, we expect  it to navigate
+the agent as an (O, A, D, R, γ) tuple representing a par-   around a corner, but not to a room in a maze of hallways.
+tially observable Markov decision process (POMDP) with     The true objective of P2P is to maximize the probability
+continuous observations and actions. Observations, actions,   of reaching the goal during an episode,
+and dynamics are determined by the robot and are common
+to both tasks; we describe them in Section III-A. Point                GP2P(s) = I(∥s −sg∥< dP2P),            (3)
+to point and path following share observations,  actions,
+                                                     where I is an indicator function, sg  is the goal pose, and
+and dynamics, but have different objectives, that are mod-
+                                                               dP2P the goal size. The goal observation og  is the relative
+eled through rewards in POMDP. Sections III-B and  III-
+                                                            goal position in polar coordinates, which is readily available
+C describe the true task objectives, speciﬁc rewards, and
+                                                      from localization. The reward for P2P is:
+additional observations speciﬁc to each behavior. Section III-
+D describes the hyper-parameters of a reinforcement learning     RθrP2P = θTrP2P[rstep rgoalDist rcollision rturning rclearance rgoal],  (4)
+algorithm, and Section III-E presents the AutoRL algorithm
+that learns both the hyperparameters and the policy.          where rstep is a constant penalty step with value 1, rgoalDist is
+                                                                the negative Euclidean distance to the goal, rcollision is 1 when
+A. POMDP Setup                                                                the agent collides with obstacles and 0 otherwise, rturning is
+  The observations, o = (ol, og)θn ∈O, are θn pairs of    the negative angular speed,  rclearance  is the distance to the
+1-D lidar vectors, ol, and goal set, og, observed over the    closest obstacle, and rgoal is 1 when the agent reaches the
+last θn steps. The agent is a unicycle robot and is controlled   goal and 0 otherwise.
+by a 2-dimensional continuous action vector, a = (v, φ) ∈
+A, that encodes the robot’s linear and angular velocity. The   C. Path-Following (PF) Task
+dynamics, D, is encoded in the simulator or implicit in the     The goal of the PF behavior is to follow a guidance path
+real world. The remaining factors encode the task: γ ∈(0, 1)   represented by a sequence of waypoints in the workspace.
+is a scalar discount factor, whereas the structure of the reward   The collision-free guidance path does not need to be dynam-
+R is more complicated and we discuss it next.                   ically feasible, and can be generated by off-the-shelf path
+  The agent’s goal is to complete a true navigation objective.   planners like PRMs or A*, or even manually. In navigation
+For point-to-point navigation this is arriving at a goal loca-    stack terms, PF is trajectory tracking.
+tion, while for path following this is traversing the entire     Guidance paths for real-world navigation are often long
+path by reaching all its waypoints. We can formalize this   (100+ m) and have many waypoints with varied separation.
+problem as learning a policy that maximizes the probability   The varied input size and non-uniformity pose a challenge
+of reaching the true objective, G,                                for RL methods using neural networks. To address  this
+                                                          problem, we augment the original guidance path Po with                     ˜π = arg max P(G(s)|π),               (1)
+                     π                                  intermediate waypoints that are linearly interpolated with a
+where P(G(s)|π) means that true objective G is reachable   constant separation dws between consecutive waypoints. The
+from the state s under control of policy π. At the same time,    result is a new guidance path P consisting of both original
+RL learns a policy that maximizes the cumulative reward. We   and new waypoints. The separation, dws, between waypoints
+could use the true objective as a reward, but it is sparse, and    is a hyper-parameter that AutoRL searches for. The waypoint
+there are other requirements, such as dynamical feasibility,   wi is considered reached iff 1) the previous waypoint wi−1
+smooth trajectories, avoiding obstacles, and sensory/motor    is already reached and 2) the robot is within dwr of wi.
+limitations. We can formulate these requirements as parame-     The true objective of PF is to reach as many waypoints
+terized atomic rewards which provide more timely feedback   per episode as possible:
+to aid learning. To that end we represent rewards with                                 Pw∈P I(∥s −w∥< dwr)
+                            nr                                     GPF(s) =                                        .         (5)                                                                  ∥P∥
+             Rθr(s, a) = X ri(s, a, θri),             (2)
+                           i=1                           where I is an indicator function that returns 1 if waypoint w
+                                                                              is reached and 0 otherwise. The goal observation of PF, og, is
+where ri(s, a, θri) is a parameterized atomic reward, and
+                                                           a partial path consisting of the Npartial un-reached waypoints.
+θr = [θr1 · · · θrnr ] becomes a hyperparameter to be tuned.                                                  The reward for PF is:
+B. Point-to-Point (P2P) Task
+                                                                       RθrPF = θTrPF[rstep rdist rcollision rclearance].        (6)
+  The goal of the P2P behavior is to navigate a robot to
+a goal position without collision. We assume the robot is   where rstep is a penalty step with value 1. rdist is the Euclidean
+well-localized using traditional methods. The P2P behavior    distance to the ﬁrst un-reached waypoint. rcollision is 1 when
+can be used as a local planner for sampling-based planners    the agent collide with obstacles and 0 otherwise. rclearance is
+[12] in order to navigate large environments. We require the   a penalty with value 1 when the the agent is within dclearace
+agent to navigate to goals that are not within clear line of  m away from obstacles and 0 otherwise.
+
+===== PDF PAGE 4 =====
+D. Reinforcement Learning Parametrization                  (Line 11, Alg. 2). This time, at each trial we train asyn-
+                                                           chronously RL(Actor(θjπ), Critic(θjQ), R(˜θr)) and evalu-  With observations, action space, true objectives, and pa-
+                                                                   ate the objective w.r.t. Eq. (2). For P2P that is Eq. (4), and forrameterized rewards deﬁned, training deep RL requires se-
+                                               PF it is Eq. (6). Lastly the best actor and critic architecturelecting neural network  architecture. Network architecture
+                                                           corresponds to the trial with the best return,affects the quality of the trained agent: the capacity of
+the network determines what the agent can learn. In this                 ˜θπ, ˜θQ = arg max Obj(θjπ, θjQ, ˜θr),         (8)
+work, we use feed-forward fully-connected networks and                                       j
+ﬁx network depth, leaving the size of each layer as our                                                            (Line 17). The ﬁnal policy trained by AutoRL is
+tunable hyperparameter. However, the hyperparameter tuning
+technique can be applied to any network architecture.             ˜π(s|W˜θπ) = RL(Actor(˜θπ), Critic(˜θQ), R(˜θr))    (9)
+  Let FF(θ), for θ ∈Rn be a feed-forward fully-connected
+neural network with RELU units and n layers, where the
+ith layer contains θi neurons. Let us denote the learnable   Algorithm 1 AutoRL
+weights of the feed-forward network FF(θ) with Wθ. Let    Output: π(s|Wθπ): Trained policy.
+                                                                                     1: /* Select best reward.*/
+         RL(Actor(θπ), Critic(θQ), R(θr))                    _, ˜θr, _, _←HPSelector(θr = None)
+                                                                                     2: /* Select best NN architecture. */
+be a parameterized actor-critic reinforcement learning  al-         ˜π,_, θ∗π, θ∗Q ←HPSelector(˜θr)
+                                                                                     3: return  ˜πgorithm  that  learns  policy π(s|Wπ) =  FF(θπ) and
+critic Q(s, a|WQ) = FF(θQ). Actor and critics network
+architectures are parameterized with θπ, θQ, and reward
+function, R given in Eq.  (2), parameterized with vector   Algorithm 2 HPSelector: Hyper-parameter selector
+θr. Let Obj(θπ, θQ, θr|G) ∈R be  the  true  objective   Property: ng: Num. of generations (trials).
+the trained actor π(s|Wπ) achieved for the corresponding   Property: nmc: Num. of parallel trials.
+RL(Actor(θπ), Critic(θQ), R(θr)).                          Property: nmin, nmax: Min. and max. of neurons per layer.
+                                                                Input: θr : Reward hyper-parameters.
+                                                           Output:  ˜π : Policy trained with the selected hyper-parameters.
+E. AutoRL                                                           Output:  ˜θr : Selected reward hyper-parameters.
+  We automate RL hyperparameter selection with the Au-   Output: ˜θπ, ˜θQ : Selected NN architecture hyper-parameters.
+                                                                                     1: T ←∅/* Initialize the experience. */toRL evolutionary search procedure, described in Algorithms
+                                                                                     2:  Initialize NN architecture: nmin ≤θπ, θQ ≤nmax
+1 and 2. We split shaping in two phases, reward shaping       3: for i = 1, · · · ng running nmc trials in parallel. do
+(Line 1, Alg. 1) and network shaping (Line 2), because the       4:     if θr is None /* Tune rewards */ then
+search space grows exponentially in the number of tuning       5:      θir ←Select(min = 0, max = 1, T) with [18]
+parameters.  First, we ﬁnd the best reward function  w.r.t.       6:      θiπ, θiQ ←θπ, θQ /* NN hyper-parameters are ﬁxed.*/
+task’s true objective for a ﬁxed actor and critic. Then, we
+                                                                                     7:      objfn ←true objective (Eq. (3) or Eq. (5))
+ﬁnd the best actor and critic w.r.t. to the previously selected                                                                                     8:    else
+reward (Algorithm 1).                                                        9:      θir ←θr /* Reward hyper-parameters are ﬁxed. */
+  For reward shaping, actor and critic network shapes are     10:      θiπ, θiQ ←Select(nmin, nmax, T) with [18]
+ﬁxed sizes θπ, θQ ∈I(nmin, nmax) where I(a, b) is a     11:      objfn ←cumulative reward.
+                                                                             12:   end if
+closed interval in n-dimensional space bounded by points
+                                                                             13:   /∗Train the agent with the selected hyper-parameters. ∗/
+a, b ∈Rn. We run ng  trials,  at most nmc  in  parallel         πi = RL(Actor(θiπ), Critic(θiQ), r(s, θir))
+(Line  3, Alg.  2). At each  trial  i, we  initialize  the  re-     14:    ei ←Evaluate πi w.r.t. objfn objective function.
+ward function θr(i) from I(0, 1)n, based on all completed     15:   T ←T ∪(ei, πi, θir, θiπ, θiQ) /* Save the trial. */
+trials according to a black-box gradient-free optimization     16: end for
+                                                                             17: /* Select best hyper-parameters according to Eq. (7) or (8). */algorithm [18] (Line 5). The ﬁrst nmc trials select reward                                                                                          ˜π, ˜θr, ˜θπ, ˜θQ ←arg maxe∈T T
+weights randomly. Next, we train asynchronous instances                                                                             18: return  ˜π, ˜θr, ˜θπ, ˜θQ /* Eq. (9) */
+RL(Actor(θπ), Critic(θQ), R(θir)) (Line 13). After each
+agent is trained, its policy is evaluated according to the true
+                                                          Algorithm 2 scales linearly with the number of trials. It istask objective Eq. (1) (Line 14). For P2P that is Eq. (3) and
+                                                            important to note that the number of concurrent trials, nmc,for PF  it is Eq. (5). Upon completion of all ng  trials, the
+                                                         needs to be much smaller than the total number of trials,best reward (Line 17)
+                                                          ng, in order for the algorithm to have enough completed
+                ˜θr = arg max Obj(θπ, θQ, θir)|G)          (7)   experience when selecting the next set of parameters in Lines
+                                   i
+                                                    5 and 10. If there are no completed trials, the parameters
+corresponds to the trial with the highest true objective.        are randomly selected. Overall, the Algorithm requires nmc
+  Next, we repeat a similar process to ﬁnd the best actor and    processors, and runs  ng  times longer than vanilla RL.                                                                          nmc
+critic architecture w.r.t. to ˜θr (Line 2, Alg. 1). In this case, the   Graphical representation of the algorithm  is available in
+optimization objective is to maximize the cumulative reward   Appendix A.
+
+===== PDF PAGE 5 =====
+                     IV. RESULTS
+
+A. Setup
+
+  The training environment, generated from a real building
+ﬂoor plan, is 23m by 18m and contains no moving obstacles
+(Fig. 2a). The simulated differential drive robot a point mass,
+with a 64-beam 1D lidar with 220 degrees ﬁeld of view with
+Gaussian distributed noise N(0, σLidar). The robot’s action          (a) Reward shaping generations.         (b) Reward shaping learn. curve.
+space is the linear and angular velocities with bounds of
+[−0.2, 1.0] m/s and [−1.0, 1.0] radian/s, respectively. The
+training and evaluation details are in Appendix B, while the
+details of our noise model are in the Appendix C.
+  Actor and  critic are  three-layers deep  for both  tasks.
+We choose wide and shallow feed-forward fully-connected
+networks, because  their  fast inference time makes them
+feasible for on-board high frequency robot control. The critic         (c) Network shaping generations.        (d) Network shaping learn. curve.
+consists of a two-layer observation embedding joined with     Fig. 3. Results of AutoRL for the path following policy. Trail numbers over
+                                                                                 objective values (a) and (c). Training steps over objective (b) and (d).
+the action network by two fully connected layers. We select
+DDPG for the learning algorithm, and Vizier [16] with CMA-
+ES [18] for hyperparameter tuning.
+  We compare P2P agent with vanilla hand-tuned DDPG
+[25], artiﬁcial potential ﬁelds (APF) [23], Dynamic Window
+Approach (DWA) [14], and behavior cloning (BC) [33].
+Behavior cloning uses the same neural network architecture
+as learned with AutoRL, but relies on a supervised loss
+instead of a reward. The PF agent is compared with guidance
+paths generated with PRMs [22] with straight line local
+planner, and combined vanilla DDPG, APF, and DWA, to
+guide the robot, resulting in methods PRM-RL [12], PRM-
+APF [8], and PRM-guided DWA, denoted as PRM-DWA       (a) PF with AutoRL (Ours), RL[25], PRM-APF [8], PRM-DWA [14]*, PRM-RL                                                                                           [12]
+[14*] to differentiate from DWA without a guidance path.
+We test the PF and P2P policies in three previously unseen
+large environments (Figs. 2b, 2c, 2d). For the P2P policy,
+the start and goal are randomly selected to be between 5
+and 10 meters apart. For the PF, the starts and goals are
+randomly chosen, requiring  at least 35 meters Euclidean
+distance between start and goal. Appendix D describes the
+baselines in more detail.
+
+B. Training
+
+  We train the P2P and PF agents for 1000 trials, running          (b) P2P with AutoRL (Ours), RL [25], APF [23], DWA [14], BC [33]
+100 agents in parallel, each for 5 million training steps.         Fig. 4. Success rates for PF and P2P tasks in three environments.
+Each agent takes about 12 hours to train, with the complete
+AutoRL run completing in several days. For reproducibility,
+Appendix D contains the parameters found by AutoRL.       an objective of 0.26. The P2P agent trained with AutoRL
+   Fig. 3 shows the impact of the AutoRL on the PF task.   has training objective of 0.90, while the hand-tuned one is
+Across both reward and network shaping there are certain    0.54. This is a promising result for the utility of AutoRL.
+parameter values where the agent does not perform well
+                                                         C. Generalization to New Environments(Figs. 3a and  3c), although during the network shaping
+there are fewer bad trials. The learning curve of the non-      1) PF: AutoRL has near perfect success  rate, 98.7%
+shaped objective resembles the one depicted in Fig. 3b. The   on average, across  all three environments (Fig. 4a), and
+best agent after reward shaping (Fig. 3b) shows signs on    is the only method that can transfer to unseen, large, real
+catastrophic forgetting that plagues DDPG training. Notice,   building sized environments. PF with AutoRL is 11% more
+that the best agent after both shaping phases (Fig. 3d) does    successful than hand tuned policy that has average success
+not exhibit such forgetfulness, and the training could have    rate of 88.3%; and 23% more successful than best non-
+been terminated sooner. The PF AutoRL policy achieves a   learned baseline (PRM-DWA with 80% success rate). PRM-
+true objective of 0.56, while the non-shaped policy reaches  APF is consistently under performing. The primary failure
+
+===== PDF PAGE 6 =====
+                                                 AutoRL PF performs uniformly across path guidance
+                                                               lengths up to 80 meters, and decreases slightly in the pres-
+                                                         ence of moving obstacles, while PRM-APF degrades rapidly
+                                                           with guidance path length (Figs. 6b and 6c). PRM-DWA’s
+                                                             success is also uniform across the guidance path lengths, but
+                                                                              is lower than AutoRL’s.
+                                   (a) AutoRL                                2) P2P: P2P policy’s success degrades with the goal
+                                                                distance increase (Fig. 7) and its success rate is not affected
+                                                           with the number of obstacles (Fig. 7b). Hand tuned RL,
+                                                    APF’s and DWA’s performance degrade rapidly with goal
+                                                                distance as well, which indicates that the main P2P failure
+                                                               cause, regardless of its implementation, is the inability to
+                                                              navigate among complex static obstacles rather than collision
+                                                           with moving obstacles. This is not surprising, since local
+                           (b) Handed tuned DDPG
+                                                             planners are not designed to avoid complex static obstacles.
+Fig. 5. PF policy sample trajectories (red) and guidance paths (black) found
+by (a) AutoRL and (b) hand-tuned RL.
+                                                            E. Robustness to Noise
+
+                                                                    Fig. 8 isolates one noise source at a time in order to
+causes for both PRM-APF and PRM-DWA are wall collisions                                                                   investigate the impact on performance in an environment
+and getting stuck in a local minimum, especially when the                                                           with 20 moving obstacles. Results show that PF and P2P
+guidance path generated by PRM is close to obstacles, which                                                                   policies are resilient to noise, even when the lidar noise is
+creates a local minimum [8]. PRM-RL performs worse than                                                   more than three times the radius of the robot  (σlidar = 1
+PRM-DWA and AutoRL, since it does not use hyperparam-                                                         m). On the other hand, lidar noise heavily inﬂuences the
+eter tuning.                                                             success of APF and DWA (for both PRM and local planner
+  Curiously, the hand-tuned policy creates longer trajectories                                                                      variants). This is expected since obstacle clearance is used
+than the AutoRL one. Inspecting the trajectories (Fig. 5),                                                                   to compute the repulsive potential for APF and compute the
+it is clear that DDPG learns completely different behaviors                                                                 objective function of DWA. In addition, the action of APF
+under the two parameterizations. The AutoRL policy exhibits                                                                              is computed by taking the gradient of the potential; such a
+smooth, forward-moving behavior while the hand-tuned pol-                                                         greedy approach often guides the robot to collision or local
+icy alternates between forward and reverse motion, resulting                                                       minima.
+in a twirling behavior with longer paths. Since the 220 degree
+ﬁeld of view lidar cannot detect obstacles in the back, the                                                                        F. Physical Robot Experiments
+twirling behavior has a lower success rate.
+  2) P2P: Fig. 4b shows that P2P’s generalization results       First, we investigate the difference between simulation and
+                                                                       reality when PF and P2P policies were deployed on the Fetchare consistent with path following’s. The AutoRL policy’s
+                                                              robot [27]. For the PF task (Fig. 9a), we manually specifysuccess rate of 89% is highest (on average 71%, 26%, and
+                                                           a sequence of waypoints (black dots) as the guidance path27% higher than APF, DWA, and BC respectively) across
+                                                              (80.6 m in length). For the P2P task (Fig. 9a) the start andall environments. AutoRL exhibits smooth forward motion,
+                                                            goal are about 13.4 m apart. The robot reaches the goalwhile the failure cases are mostly due to complex static ob-
+                                                            without collision in all three runs, navigating roughly 240stacles. Once again, despite promising success rate of 86.5%,
+                                 m without collision. Figs. 9a and 9b (magenta) show onethe hand-tuned policy exhibits twirling, leading to high path
+                                                              of robot trajectories. These trajectories are very close to thelengths and subpar performance in noisy conditions.
+                                                            simulated ones (green for PF and red for P2P) but exhibit
+D. Moving Obstacle Avoidance                         more turning than simulation, likely caused by the delay
+  We evaluate the shaped PF and P2P policies in a large   between sensing and action execution.
+environment (Fig. 2c) among up to 40 moving obstacles.      Next, we  test the policy’s performance in a very nar-
+The moving obstacles motion follows the social force model   row corridor (only 0.3 m wider than the robot, which is
+(SFM) [19] to mimic pedestrian motion (See Appendix C).    0.3 m in diameter), and with moving obstacles (Fig. 1a),
+  1) PF: AutoRL policy outperforms hand-tuned DPPG    qualitatively over four trials. Video at:https://youtu.
+and both PRM-APF and PRM-DWA  in  all numbers of  be/0UwkjpUEcbI demonstrates the Fetch robot executing
+obstacles (Fig. 6a). Note that although SFM avoids collision    these policies. The robot reliably navigates in the corridor
+with the robot, simply executing the path using PRM-APF    all four times. We also execute the P2P policy in a highly
+without reacting to obstacles (no repulsive potential) results   unstructured dynamic environment with a person playing
+in no success. This implies the robot must also partake in   with a dog (Fig. 1b). The robot stops and avoids obstacles
+collision avoidance with moving obstacles. PRM-DWA can    reliably. Notice in the video how the agent adapts when
+avoid moving obstacles and its performance is steady as the   blocked, moves away from the goal, and around obstacles.
+number of obstacles increases.                          The only  failure case we observed was caused by  the
+
+===== PDF PAGE 7 =====
+                   (a) Path following                                 (b) 0 moving obstacles                                (c) 20 moving obstacles
+
+Fig. 6. PF success rate over (a) number of moving obstacles, (b) guidance path length with no obstacles, and (c) guidance path length with 20 moving
+obstacles for AutoRL (Ours), hand tuned RL [25], PRM-APF [8], and PRM-DWA [14]*.
+
+
+                                                                  integration between the controls and sensor, are brittle in the
+                                                            presence of noise.
+                                                            Robustness to noise has an additional perk of overcom-
+                                                             ing guidance path imperfections. We have observed during
+                                                          hand-tuned training that path following is very sensitive to
+                                                               appropriate waypoint spacing and waypoint radius. It is only
+                                                                       after including these parameters in reward tuning that the
+                                                              path-following agents learn high-quality behaviors. This is
+                                                                     likely because the tuning ﬁnds the optimal distance from
+                                                           a waypoint w.r.t. to robot’s noise and abilities, essentially
+                           (a) P2P, 0 moving obstacles                       deciding to give a credit to reaching a waypoint for what is
+                                                                   feasible on that particular robot.
+                                                    The P2P policy found by AutoRL is more robust to local
+                                                   minima than APF and DWA, likely because the agent learned
+                                                                     that following a wall usually leads to completing the goal.
+                                               As demonstrated in the video, the agent is also willing to
+                                               move away from the goal to avoid local minima. The failure
+                                                               point of P2P policy remains its inability to avoid large-scale
+                                                                   local minima, such as moving from one room to another,
+                                                     which it was not designed to do.
+
+                         (b) P2P, 20 moving obstacles                                     VI. CONCLUSIONS
+Fig. 7. P2P policy: AutoRL (Ours), hand tuned RL [25], APF [23], and      This paper presents AutoRL, a drop-in adaptation of deep
+DWA [14] success rates (a) without and (b) with 20 moving obstacles over  RL that automates reward and network architecture selec-
+goal distance.
+                                                                   tion with large-scale hyperparameter optimization. AutoRL
+                                                                              is used to learn two navigation building blocks, P2P and
+obstacles undetectable by the 1D lidar such as human feet,   PF end-to-end behaviors. The resulting policies, although
+which are below lisar’s ﬁeld of view.                         computationally expensive to train, exhibit more desirable
+                                                             behaviors compared to RL with hand-crafted hyperparam-
+                   V. DISCUSSION                          eters and non-learned baselines. They generalize to new
+  AutoRL is not sample efﬁcient:  it took 12 days to train   environments with moving obstacles, are robust to noise and
+1000 agents. However, AutoRL learns high-quality naviga-    are deployed to a physical robot without tuning. In the future,
+tion behaviors that transfer well across environments and  we plan to evaluate AutoRL on kinodynamic robots and high
+are easy to deploy on-robot. For navigation agents, the extra   dimensional robots such as mobile manipulators.
+training cost is justiﬁed by better quality policies.
+  End-to-end  learning  with AutoRL  effectively  creates           ACKNOWLEDGMENT
+tightly-coupled perception, planning and controls. The end-     The authors thank J. Chase Kew, Oscar Ramirez, Lydia Tapia,
+to-end POMDP  setup  enables  robustness  to  noise. The    Vincent Vanhoucke, and Chris Harris for helpful discussions.
+comparison with the agents on the opposite side of the
+                                                      APPENDIXspectrum, traditional and learned, highlights the beneﬁts of
+end-to-end learning. The hand-tuned DDPG agent, although   A. AutoRL diagram
+it produces suboptimal trajectories, is  still robust to noise      Figure 10 depicts a graphical representation of the AutoRL
+(8). The traditional APF and DWA, not designed for tight    algorithm.
+
+===== PDF PAGE 8 =====
+                      (a) PF lidar noise                                (b) PF localization noise                                (c) PF process noise
+
+
+
+
+
+                    (d) P2P lidar noise                                 (e) P2P localization noise                                   (f) P2P process noise
+
+Fig. 8. Success rate over (left) lidar, (middle) localization noise, and (right) process noise with 20 moving obstacles. (top) Path Following compared to the
+hand tuned RL, PRM-APF [8] and PRM-DWA [14]*. (bottom) P2P compared to hand tuned RL [25], APF [23] and DWA [14] navigating from random
+starts to goals, 5-10 m apart.
+
+
+
+
+
+                                      (a) Path following                                                             (b) P2P
+
+Fig. 9. (a) Path Following and (b) P2P on a real robot in an ofﬁce building. The actual robot trajectories (magenta), the guidance path (black) and the
+trajectory in simulation (green for Path Following and red for P2P) overlaid over the 2D lidar map.
+
+
+B. Setup                                        We test the PF and P2P policies in three previously unseen large
+                                                                  environments. All simulated evaluations are repeated 100 times.
+  The agent operates  at 5 Hz. The  training episodes  for both                                                               For the P2P policy the start and goal are randomly selected to be
+P2P and PF tasks are 100 seconds long. We use TF Agents [36]                                                             between 5 and 10 meters apart. For the PF policy, the start and
+for training. In the evaluation, we extend the episode duration to                                                                    goals are randomly chosen requiring at least 35 meters Euclidean
+accommodate longer trajectories. The localization and orientation                                                                       distance between a start and goal.
+observations are provided by the ROS navigation stack.
+  For the P2P task, the goal size is 0.25 m. The parameters found
+by AutoRL are shown in Table I.
+
+===== PDF PAGE 9 =====
+Fig. 10. Training end-to-end policies with AutoRL. AutoRL shapes the reward function w.r.t. task’s true objective with a ﬁxed network
+architecture (d), then shapes the network architecture with a ﬁxed reward function (e). AutoRL runs nmc parameterized vanilla DDPG
+agents in parallel (c). After each agent’s training is complete, its performance is evaluated w.r.t. the true goal objective and stored in the
+database. Gradient-free optimization selects the next set of reward and network parameters, and a new agent is spawned. At the same time,
+the agent outputs the current best policy. Each individual agent is initialized with reward and network weights and trained with vanilla
+DDPG (b). The actor and critic of the vanilla DDPG are multi-layered feed-forward networks with parameterized layer widths (a).
+
+
+
+C. Robot noise modelling                                           positions without collision. We use PRMs to generate the guidance
+                                                                    paths in maps generated from ﬂoor plans or lidar.  To simulate robot process noise, we added Gaussian distributed
+process noise N(0, σSpeed) and N(0, σTurning) to both the linear     The behavior cloning baseline (BC) uses the APF method for
+and angular velocities. We assume the robot can localize itself but    generating supervised data. Training dataset consists of 100 000
+has a Gaussian distributed localization noise N(0, σLocalize). Unless    transitions (pairs of observations and actions) sampled from ran-
+otherwise speciﬁed, the noise is set to σLidar = 0.3 m, σSpeed = 0.1   domly generated paths of lengths 5-10 m. Only transitions on
+m/s, σTurning = 0.1 rad/s, σLocalize = 0.1 m.                            successful paths were added to the dataset. Test set had 10 000
+                                                                               transitions. Neural network architecture and environment settings
+                     TABLE I                            were the same as the RL point-to-point task. We trained for 300
+                                                                   epochs, each training 20 batches of size 512. Final train accuracy
+           HYPERPARAMETERS FOUND BY AUTORL
+                                                          on the test set was 92%.
+
+       P2P auto-tuned params.   Values                           E. Moving obstacles setup
+         θrP2P                       [-0.446, 0.333, -0.120,
+                                     0.153, 0.671, 16.081]             We use a path guidance similar to [8] to create a guidance
+         dP2P                       1.0 m                               path for each moving obstacle and compute the desired velocity
+       θn                    3                              component in Social Force Model (SFM), alleviating the SFM
+         Actor network              [50, 20, 10]                            limitation of moving obstacles getting trapped in local minima [35].
+          Critic obs. network         [50, 20]
+          Critic joint network        [10, 10]
+                                                               REFERENCES
+       PF auto-tuned params.     Values
+                                                                                     [1] N. Altuntas¸, E. Imal, N. Emanet, and C. N. ¨Ozt¨urk. Reinforcement
+         θrPF                       [-0.0351, -0.90976, -34.158,                                                                                   learning-based mobile robot navigation. Turkish Journal of Electrical                                     -4.769]
+                                                                             Engineering & Computer Sciences, 24(3):1747–1767, 2016.            dclearance                 0.5344 m
+                                                                                     [2] M. Andrychowicz, M. Denil, S. Gomez, M. W. Hoffman, D. Pfau,         dwr                      0.371 m
+                                                                                        T. Schaul, and N. de Freitas. Learning to learn by gradient descent         dws                      1.821 m
+                                                                      by gradient descent.  In Advances in Neural Information Processing           Npartial                 2
+                                                                                  Systems, pages 3981–3989, 2016.       θn                    4
+                                                                                     [3] E. A. Antonelo and B. Schrauwen. On learning navigation behaviors         Actor network             [323, 47, 560]
+                                                                                          for small mobile robots with reservoir computing architectures. IEEE          Critic obs. network        [522, 41]
+                                                                                   Trans. on Neural Net. and Learn. Systems, 26(4):763–780, 2015.          Critic joint network        [62, 1]
+                                                                                     [4] M. Bellemare, S. Srinivasan, G. Ostrovski, T. Schaul, D. Saxton, and
+                                                                            R. Munos. Unifying count-based exploration and intrinsic motivation.
+                                                                                    In Proc. of Neural Inform. Process. Systems, pages 1471–1479, 2016.
+D. Baselines                                                                    [5] B. Bischoff, D. Nguyen-Tuong, I. Lee, F. Streichert, A. Knoll, et al.
+                                                                                     Hierarchical reinforcement learning for robot navigation. In Proc. of
+   Table II shows the baselines used for comparison of PF anf P2P        European Symposium on Artiﬁcial Neural Networks, 2013.
+policies.                                                                           [6] C. Cadena, L. Carlone, H. Carrillo, Y. Latif, D. Scaramuzza, J. Neira,
+  We chose APF and DWA because they are fast, well compared              I. Reid, and J. J. Leonard.  Past, present, and future of simultaneous
+[9], and utilize only clearance information which can be obtained           localization and mapping: Toward the robust-perception age. Trans-
+from 1D lidar. Many popular motion planners for dynamic envi-          actions on Robotics, 32(6):1309–1332, 2016.
+                                                                                     [7] C. Chen, A. Seff, A. Kornhauser, and J. Xiao. Deepdriving: Learning
+ronments are not suitable since they require knowledge of obstacle
+                                                                                  affordance for direct perception in autonomous driving.  In Proc. of
+velocity or dynamics while we use only a 1D lidar sensor. To                                                                IEEE Intl. Conference on Computer Vision, pages 2722–2730, 2015.
+avoid the local minima problem that often plagues APF and DWA      [8] H.-T. Chiang, N. Malone, K. Lesser, M. Oishi, and L. Tapia.  Path-
+methods, we implemented path-guidance similar to [8], where the         guided  artiﬁcial potential ﬁelds with stochastic reachable sets for
+attractive potential is computed along a guidance path. Guidance         motion planning in highly dynamic environments. In Proc. IEEE Int.
+paths are sequences of x, y positions connecting the start to goal         Conf. Robot. Autom. (ICRA), pages 2347–2354, 2015.
+
+===== PDF PAGE 10 =====
+                                               TABLE II
+                                                       BASELINES
+
+
+         Name          Citation     Baseline for   Comment
+        RL            [25] [12]   P2P          Hand-tuned DDPG like the local planner used in [12].
+         APF           [23]       P2P            Artiﬁcial potential ﬁelds.
+       DWA          [14]       P2P         Dynamic Window Approach (DWA) .
+        BC            [33]       P2P           Behavior cloning. Same neural network architecture and environment.
+        RL            [25]      PF          Same as the AutoRL PF, buth with the hand-selected parameters.
+         PRM-APF     [8]       PF           Guidance path provided by PRMs, and APF follows the path.
+        PRM-DWA    [14]*      PF           Guidance path provided by PRMs, and DWA follows the path.
+         PRM-RL      [12]      PF           Guidance path provided by PRMs, and RL follows the path between the waypoints.
+
+
+
+
+ [9] H.-T. L. Chiang, B. HomChaudhuri, L. Smith, and L. Tapia. Safety,    [26] E. Marder-Eppstein, E. Berger, T. Foote, B. Gerkey, and K. Konolige.
+      challenges, and performance of motion planners in dynamic environ-        The ofﬁce marathon: Robust navigation in an indoor ofﬁce environ-
+     ments.  In Proc. of International Symposium of Robotics Research,         ment. In Proc. IEEE Int. Conf. Robot. Autom. (ICRA), pages 300–307,
+     pages 1–16, 2017.                                                        2010.
+[10]  F. Fathinezhad, V. Derhami, and M. Rezaeian.  Supervised fuzzy    [27] D. K. E. D. Melonee Wise, Michael Ferguson and D. Dymesich.
+     reinforcement learning for robot navigation. Applied Soft Computing,         Fetch & freight: Standard platforms for service robot applications.
+     40:33–41, 2016.                                                              In Workshop on Autonomous Mobile Service Robots held at the 2016
+[11] A. Faust, H.-T. Chiang, N. Rackley, and L. Tapia. Avoiding moving          International Joint Conference on Artiﬁcial Intelligence, 2016.
+      obstacles with stochastic hybrid dynamics using pearl: preference    [28] V. Mnih, K. Kavukcuoglu, D. Silver, A. A. Rusu, J. Veness, M. G.
+      appraisal reinforcement learning.  In Proc. IEEE Int. Conf. Robot.         Bellemare, A. Graves, M. Riedmiller, A. K. Fidjeland, G. Ostrovski,
+     Autom. (ICRA), pages 484–490, 2016.                                               et  al.  Human-level control through deep reinforcement learning.
+[12] A. Faust, O. Ramirez, M. Fiser, K. Oslund, A. Francis, J. Davidson,          Nature, 518(7540):529–533, 2015.
+     and L. Tapia.  PRM-RL: Long-range robotic navigation tasks by    [29] A. Mousavian, A. Toshev, M. Fiser,  J. Kosecka, and  J. Davidson.
+     combining reinforcement learning and sampling-based planning.  In          Visual representations for semantic target driven navigation. CoRR,
+     Proc. IEEE  Int. Conf. Robot. Autom. (ICRA), pages 5113–5120,         abs/1805.06066, 2018.
+     Brisbane, Australia, 2018.                                               [30] A. Y. Ng, D. Harada, and S. Russell. Policy invariance under reward
+                                                                                     transformations: Theory and application to reward shaping. In ICML,[13] C. Florensa, D. Held, M. Wulfmeier, M. Zhang, and P. Abbeel. Reverse
+                                                                      volume 99, pages 278–287, 1999.     curriculum generation  for reinforcement  learning.   In S. Levine,
+                                                                              [31] M. Olsen, N. Siegelmann-Danieli, and H. Siegelmann. Robust artiﬁcial     V. Vanhoucke, and K. Goldberg, editors, Proceedings of the 1st Annual
+                                                                                                        life via artiﬁcial programmed death.  Artif. Intell., 172(6):884 – 898,     Conference on Robot Learning, volume 78 of Proceedings of Machine
+                                                                             2008.     Learning Research, pages 482–495. PMLR, 13–15 Nov 2017.
+                                                                              [32] M. Pfeiffer, M. Schaeuble, J. I. Nieto, R. Siegwart, and C. Cadena.
+[14] D. Fox, W. Burgard, and S. Thrun. The dynamic window approach to
+                                                                From perception to decision: A data-driven approach to end-to-end
+      collision avoidance. IEEE Robot. Auto. Mag., 4(1):23–33, Mar 1997.
+                                                                          motion planning for autonomous ground robots. Proc. IEEE Int. Conf.
+[15] W. Gao, D. Hsu, W. S. Lee, S. Shen, and K. Subramanian. Intention-                                                                               Robot. Autom. (ICRA), pages 1527–1533, 2017.
+      net: Integrating planning and deep learning  for goal-directed au-                                                                              [33] D. A. Pomerleau.  Efﬁcient training of artiﬁcial neural networks for
+     tonomous navigation. In S. Levine, V. Vanhoucke, and K. Goldberg,                                                                       autonomous navigation. Neural Comput., 3(1):88–97, Mar. 1991.
+      editors, Proceedings of the 1st Annual Conference on Robot Learning,                                                                              [34] E. Real, S. Moore, A. Selle, S. Saxena, Y. L. Suematsu,  J. Tan,
+     volume 78 of Proceedings of Machine Learning Research, pages 185–                                                                        Q. V. Le, and A. Kurakin. Large-scale evolution of image classiﬁers.
+     194. PMLR, 13–15 Nov 2017.                                                                                    In D. Precup and Y. W. Teh, editors, Proceedings of the 34th Intl.
+[16] D. Golovin, B.  Solnik,  S. Moitra, G. Kochanski,  J. Karro, and         Conference on Machine Learning, volume 70 of Proceedings of Ma-
+     D. Sculley. Google vizier: A service for black-box optimization. In          chine Learning Research, pages 2902–2911, International Convention
+     Proc. of ACM Intl. Conference on Knowledge Discovery and Data          Centre, Sydney, Australia, 06–11 Aug 2017. PMLR.
+     Mining, pages 1487–1495. ACM, 2017.                                 [35]  J. H. Reif and H. Wang.   Social  potential ﬁelds: A  distributed
+[17] A.  Graves,  M.  G.  Bellemare,   J.  Menick,  R.  Munos,  and          behavioral control for autonomous robots. Robotics and Autonomous
+     K. Kavukcuoglu. Automated curriculum learning for neural networks.          Systems, 27(3):171–194, 1999.
+      In Intl. Conference on Machine Learning, pages 1311–1320, 2017.       [36] Sergio Guadarrama, Anoop Korattikara, Oscar Ramirez, Pablo Cas-
+[18] N. Hansen, A. Ostermeier, and A. Gawelczyk. On the adaptation            tro, Ethan Holly, Sam Fishman, Ke Wang, Ekaterina Gonina, Chris
+      of arbitrary normal mutation distributions in evolution strategies: The          Harris, Vincent Vanhoucke, Eugene Brevdo.  TF-Agents: A library
+     generating set adaptation. In Proc. of the Intl. Conference on Genetic           for reinforcement learning in tensorﬂow. https://github.com/
+     Algorithms, pages 57–64, 1995.                                  tensorflow/agents, 2018.
+[19] D. Helbing and P. Molnar. Social force model for pedestrian dynamics.    [37] W. D. Smart and L. P. Kaelbling.  Effective reinforcement learning
+     Physical review E, 51(5):4282, 1995.                                            for mobile robots.  In Robotics and Automation, 2002. Proceedings.
+[20] B. Ivanovic, J. Harrison, A. Sharma, M. Chen, and M. Pavone. Barc:         ICRA’02. IEEE International Conference on, volume 4, pages 3404–
+     Backward reachability curriculum for robotic reinforcement learning.         3410. IEEE, 2002.
+    CoRR, abs/1806.06161, 2018.                                           [38]  P. Su, D. Vandyke, M.  Gaˇsi´c, N. Mrkˇsi´c, T. Wen, and S. Young.
+[21] K. Judah, A. P. Fern, P. Tadepalli, and R. Goetschalckx.  Imitation        Reward shaping with recurrent neural networks for speeding up on-
+      learning with demonstrations and shaping rewards. In C. E. Brodley           line policy learning in spoken dialogue systems. In Proc. of Special
+     and P. Stone, editors, AAAI, pages 1890–1896, 2014.                            Interest Group on Discourse and Dialogue, pages 417–421, 2015.
+[22] L. E. Kavraki, P. ˇSvestka, J. C. Latombe, and M. H. Overmars. Proba-    [39] A. Tamar, Y. Wu, G. Thomas, S. Levine, and P. Abbeel. Value iteration
+       bilistic roadmaps for path planning in high-dimensional conﬁguration         networks. In Proc. of Neural Info. Proc. Sys., pages 2154–2162, 2016.
+      spaces. IEEE Trans. Robot. Automat., 12(4):566–580, 1996.             [40]  J. X. Wang, Z. Kurth-Nelson, D. Tirumala, H. Soyer, J. Z. Leibo,
+                                                                            R. Munos, C. Blundell, D. Kumaran, and M. Botvinick. Learning to[23] O. Khatib. Real-time obstacle avoidance for manipulators and mobile
+                                                                                 reinforcement learn. arXiv preprint arXiv:1611.05763, 2016.      robots. Int. J. Robot. Res., 5(1):90–98, 1986.
+[24]  S. M. LaValle and J. James J. Kuffner.  Randomized kinodynamic
+     planning. Int. J. Robot. Res., 20(5):378–400, 2001.
+[25]  T. P. Lillicrap, J. J. Hunt, A. Pritzel, N. Heess, T. Erez, Y. Tassa,
+     D. Silver, and D. Wierstra. Continuous control with deep reinforce-
+     ment learning. arXiv preprint arXiv:1509.02971, 2015.

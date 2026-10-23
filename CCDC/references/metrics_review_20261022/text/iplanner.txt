@@ -1,0 +1,603 @@
+===== PDF PAGE 1 =====
+            iPlanner: Imperative Path Planning
+
+                             Fan Yang1, Chen Wang2, Cesar Cadena1, and Marco Hutter1
+
+
+
+           Abstract—The problem of path planning has been studied for
+          years. Classic planning pipelines, including perception, mapping,
+        and path searching, can result in latency and compounding errors
+        between modules. While recent studies have demonstrated the
+          effectiveness of end-to-end learning methods in achieving high
+         planning efficiency, these methods often struggle to match the
+          generalization abilities of classic approaches in handling different
+         environments. Moreover, end-to-end training of policies often
+          requires a large number of labeled data or training iterations to
+         reach convergence. In this paper, we present a novel Imperative2023
+         Learning (IL) approach. This approach leverages a differentiable
+          cost map to provide implicit supervision during policy training,
+          eliminating the need for demonstrations or labeled trajectories.
+         Furthermore, the policy training adopts a Bi-Level OptimizationMay
+        (BLO) process, which combines network update and metric-based
+24   trajectorypath towardoptimization,the goal basedto generateon a singlea smoothdepth measurement.and collision-freeThe
+         proposed method allows task-level costs of predicted trajectories
+          to be backpropagated through  all components to update the
+        network through direct gradient descent. In our experiments, the    Fig. 1.  Experiment of planning through static and dynamic obstacles with a
+        method demonstrates around 4× faster planning than the classic   legged robot, with A, B, and C representing three planning events. The goal is
+        approach and robustness against localization noise. Additionally,    set outside the door from the start. The green curve shows the robot’s trajectory
+          the IL approach enables the planner to generalize to various un-    as it (A) avoids a static obstacle, (B) avoids a moving human, and (C) climbs
+         seen environments, resulting in an overall 26-87% improvement    stairs to reach the goal. The blue curve represents human movement. The[cs.RO]
+          in SPL performance compared to baseline learning methods.      bottom images illustrate the depth measurements and the predicted trajectories
+                                                                              from our method for these three events.
+
+                                        I. INTRODUCTION
+
+           Path planning is one of the significant tasks in the field   cause compounding effects by subsequent modules, potentially
+         of robotics. In structured environments, deploying a pre-built   leading to system failure.
+         high-quality (HQ) map has pushed the  limit and enabled     Researchers have been exploring end-to-end learning meth-
+         robots to conduct daily tasks in environments shared with   ods [23, 27] that can directly map sensory observations into
+        humans, e.g., autonomous driving [2]. However, for environ-   trajectories or actions, as a way to improve the planning
+        ments without a pre-built map, the robots can only rely on their   pipeline. Shah et al. [23] trains the planning policies to mimic
+        onboard sensors for navigation. With limited sensor range,   reference trajectories using supervised learning. However, this
+         scene occlusions, and dynamic changes, the robots must react  method  relies on having diverse data to function well in
+           fast and re-plan efficiently to avoid collisions and navigate   various scenarios, which is a common limitation of explicit
+          safely to their destinations.                                    supervised training. On the other hand, non-supervised ap-
+                                                                    proaches like reinforcement learning (RL) [27], which allowsarXiv:2302.11434v3    The classic planning pipeline is based on a modular frame-
+       work that includes perception, mapping, and path searching [5,   for random exploration, can lead to better generalizability.
+          26]. This setup introduces latency as information is shared   But, it struggles with low sampling efficiency and slow con-
+        between modules and results in slower system response times.   vergence, particularly in planning tasks with sparse task-level
+       The planning performance is also limited by the information   rewards. To address these issues, Pfeiffer et al. [21] combined
+         processed and preserved by each module, such as post-filtering   supervised learning and RL, using prior demonstrations to
+        and low-resolution perception. Maintaining a high-resolution   improve training efficiency through better weight initialization
+        map, on the other hand, can be computationally intensive   using  prior demonstrations. Recent  studies  [30, 32] have
+        and affect real-time performance. Additionally, if one module   utilized auxiliary tasks to boost RL’s training efficiency with
+         has errors or inaccuracies, these issues can be amplified and   external supervised signals. However, this approach still faces
+                                                                          the risk of overfitting to the training data due to the use
+            1Fan Yang, Cesar Cadena, and Marco Hutter are with Robotic Systems Lab,   of explicit training labels. Additionally, the auxiliary losses,
+       ETH Zurich, 8092 Z¨urich, Switzerland. Emails: {fanyang1, cesarc,  which may not align with the main navigation objective, can
+        mahutter}@ethz.ch
+                                                                                steer the policy toward suboptimal solutions.           2Chen Wang is with Spatial AI and Robotics Lab, State University of New
+          York at Buffalo, NY 14260, USA. Email: chenwang@dr.com            To address this challenge, we introduce “imperative learn-
+
+===== PDF PAGE 2 =====
+ing” (IL), a non-supervised approach aimed at improving the   a shift towards end-to-end policies that directly map sensory
+training efficiency and generalization of the policy. The policy   inputs to planning paths or control actions [4, 8, 10, 14, 18, 20,
+includes network prediction and metric-based optimization,   22, 23, 24, 27, 28, 30, 32]. This is due to the challenges posed
+forming a BLO process during training. The IL approach  by modularized systems, such as increased overall latency [18]
+trains the policy end-to-end without needing demonstrations  and lack of robustness against noise or errors in real-world
+or labeled references. Fig. 2 illustrates the overall process of   missions. However, the generalizability and reliability of these
+the IL-based training for the planning policy. The core of IL   learning methods may  still lag behind classic approaches,
+lies in using differentiable metric-based optimization to direct   especially in scenarios that have not been encountered during
+network updates, resulting in an unsupervised “imperative”   training.
+loss function. During training, a pre-built differentiable cost     Supervised Learning: A common method for training an
+map provides traversability cost to guide the policy’s behavior.   end-to-end policy is to copy expert or “ground truth” trajecto-
+When deployed, the policy decodes the traversability infor-    ries, such as works done by Bojarski et al. [4], Loquercio et al.
+mation directly from the input ego-centric observation and   [18], Pfeiffer et al. [20], Sadat et al. [22], Shah et al. [23], Xiao
+plans on top of  it. Due to end-to-end training, the observa-   et al. [28]. The policy is trained to associate input sensory
+tion features extracted during deployment can be optimized   data with ground truth labels, which are obtained either by
+specifically for the planning objective. Overall, the proposed   demonstrations from experts or statistical sampling. However,
+IL approach can offer advantages over both end-to-end RL   the explicitly supervised policy may not generalize well to
+and supervised learning methods. In comparison to the end-   diverse environments because of limited data diversity and
+to-end RL, instead of stochastically sampling the policy, the   richness. Shah et al. [23] uses 60 hours of navigation data
+pre-computed cost map can guide the optimization process  from multiple robots and environments to improve generaliza-
+through direct gradient descent, improving training efficiency.   tion, but its performance is  still limited by scene coverage.
+In contrast to supervised learning, the IL approach utilizes   Moreover, relying on expert  trajectories [22] or  explicitly
+task-level loss without any explicit labels or demonstrations,   labeled references may limit the performance of the planner,
+resulting in increased exploration of the action space, leading   leading it to converge towards sub-optimal solutions due to the
+to better generalization. This paper presents the IL approach   limitations of the optimalities of the expert paths. Loquercio
+as a novel solution to overcome the limitations of previous   et al. [18] used simulated environments to train a planning
+methods for training a perceptive planning policy. Its main   policy for fast-flying drones. The simulated depth is estimated
+contributions are summarized as follows:                      using stereo matching to reduce the gap between simulation
+  • A new non-supervised learning approach to train a per-  and  reality, allowing the network to be exposed to more
+     ceptive planning policy with “imperative” supervision   training data with less effort in real-world data collection.
+     through direct gradient descent.                            Nevertheless, the use of a sampling-based planning algorithm
+  • An end-to-end training pipeline to map the single depth   to generate reference paths may limit the performance of the
+    measurement  to  the  trajectory by  leveraging a BLO   network by the optimality of the sampling-planning results.
+     process with network update and metric-based trajectory     Reinforcement  Learning:  Recently,  deep  reinforcement
+     optimization.                                               learning has gained popularity for training planning policies,
+  • Benchmarking  the planning performance of  learning-   as demonstrated in studies by Hoeller et al. [8], Kahn et al.
+    based methods with the classic approach in handling   [10], Kim et al. [14], Shi et al. [24], Wijmans et al. [27], Ye
+     different types of unseen environments.                       et al. [30], Zhu et al. [32]. As mentioned above, RL can utilize
+                                                                     task-level loss. With simulated environments, using RL can  The iPlanner will be open-sourced1 to promote research for
+                                                             save the effort of collecting and labeling data and generatelearning navigation autonomy.
+                                                               various scenarios to improve the generalization of the policy.
+                        II. RELATED WORK                     Moreover, the unsupervised nature of RL does not depend on
+                                                                 the optimalities of expert labels and allows the network to  Nowadays, classic planning frameworks, such as those done
+                                                              explore the action space for better solutions. However, thereby Cao et al. [5], Wellhausen and Hutter [26], Yang et al.
+                                                                 are challenges in training with RL. One issue is the difficulty in[29], have demonstrated effective and reliable performance in
+                                                                  creating a perfect simulator. To overcome the sim-to-real gap,autonomous navigation in unseen terrains. For example, the
+                                                                 researchers may need to collect data in the real world [10]navigation system, done by Cao et al. [5], incorporating map-
+                                                               or pre-process the simulated inputs based on heuristics [8].ping, terrain analysis, and motion-primitive path search[31],
+                                                                 Additionally, RL’s low sample efficiency makes it challengingis deployed successfully during the DARPA Subterranean
+                                                                    to train large policies end-to-end from dense inputs such asChallenge. The work of Wellhausen and Hutter [26] employs
+                                                        images or depth measurements. Training may take several daysa pipeline with a learned terrain estimator and executes a lazy-
+                                                         even with multiple GPUs [27]. To reduce the complexity ofPRM [12] path search, similar to the approach of Yang et al.
+                                                                       training, researchers have adopted strategies such as separating[29] who uses a learned terrain cost and performs PRM* [11]
+                                                               perception training from policy training [8] or using auxiliarywith additional path optimization. Recently, there has been
+                                                                  tasks with heuristics-based loss functions [30, 32]. However,
+  1iPlanner: https://github.com/leggedrobotics/iPlanner                     the success of these methods is contingent upon the accuracy
+
+===== PDF PAGE 3 =====
+Fig. 2. An overview of training the planning policy using IL. The pipeline consists of two parts, forming a BLO process with upper-level network update and
+lower-level trajectory optimization. During inference, the perception and planning network first encodes the depth measurement and goal position to predict a
+key-point path toward the goal with an associated collision probability. During training, the trajectory cost and task-level ”fear” loss are propagated back to
+provide direct gradients for updating both the perception and planning networks simultaneously.
+
+
+and optimality of the heuristics employed.                  where τ ∗is the optimized trajectory under a constraint set T,
+  This paper explores a novel non-supervised IL approach   based on the objective C. We next discuss the intuition of (1)
+to  train a planning policy from depth measurements end-   in detail.
+to-end. This IL method uses task-level loss, eliminating the
+                                                             A. Perception and Planning Network
+need  for  explicit  labeling during  training. By  utilizing a
+                                                                Perception Network: At each time stamp  t, the robot re-differentiable cost map, the IL loss function can guide the
+                                                                ceives a depth measurement Dt sampled from the space Q.network update through direct gradient descent to improve the
+                                                   The front-head perception network encodes the observationtraining efficiency.
+                                                 Dt from the time t into a perception embedding Ot ∈RC×M,
+                       III. METHODOLOGY                      preserving spatial and geometric information for the planning.
+  Problem Definition: Define Q ⊂R3 as the workspace for  Our method utilizes the backbone of the ResNet, proposed
+the robot to navigate. Let the subset Qobs ⊂Q represent the  by He  et  al.  [7], a classic and popular CNN architecture
+obstacles in the space that the robot cannot traverse through.   that is widely used as a feature extractor for image data. We
+Given a depth observation Dt ∈RH×W from the current time   adopt the efficient architecture: ResNet-18, to extract a feature
+stamp t and a goal pGt ∈R3 in the robot frame, a trajectory τ t   representation for path planning from the perception input Dt.
+can be generated to guide the robot from the current position     Planning Network: The planning network takes the percep-
+pRt ∈R3 towards to the goal pGt  while avoiding obstacles   tion embedding Ot ∈RC×M, derived from the depth measure-
+Qobs. Here, we also denote a cost function C of a given  ment Dt, and the goal position pGt ∈R3 to find an collision-
+trajectory τ, and an overall task-level loss function F, such   free to the goal. Here, C denotes the channel dimension of
+that F = C+L, where L is an arbitrary non-negative function.   the embedding Ot, and M represents the dimension of the
+  System Overview: The process of planning and imperative   feature space. The goal position, with a dimension of 3, is
+learning is illustrated in Figure 2. The pipeline consists of    first mapped into a higher dimensional feature embedding
+three modules. Firstly, a convolutional neural network (CNN)  Pt ∈RC∗×M, where C∗≥3 using a linear layer. The
+based [16] perception front-end transforms the depth input   perception embedding Ot and the expanded goal feature Pt
+into an observation embedding. This embedding, combined   are concatenated to form ˆOt ∈R(C+C∗)×M as the observation
+with the goal waypoint feature, is then input into a planning   input. The planning network uses a combination of CNN and
+network that predicts a key-point path, Kt, towards the goal,  MLP with ReLU activation to process ˆOt and predict a key-
+which consists of n key points. Afterward, a metric-based   point path Kt ∈Rn×3 containing n key points. The path Kt is
+trajectory optimizer  further optimizes and  interpolates the   then interpolated and optimized by a metric-based trajectory
+key-point path based on the cost C on the cost map H to   optimizer.
+generate the trajectory τ t. The optimized cost C, with other   B. Trajectory Optimization (TO)
+task loss L, is then backpropagated through the network to
+                                                     To enforce the safety and smoothness of the trajectory
+update  its parameters θ. Together, the network update and
+                                                             generated by the planner, the key-point path K predicted by
+trajectory optimization form a nested BLO process. The aim
+                                                                 the planning network, is optimized by a trajectory optimizer.
+of the pipeline is to enforce a trajectory optimization-based
+                                                   The objective is to minimize the trajectory cost C on a pre-
+supervision (unsupervised optimization) on the perception and
+                                                               defined cost map H, which will be discussed in more detail
+planning network f parameterized by θ. We hereby formulate
+                                                                                later. The optimization takes the predicted key-point path K as
+the BLO model as follows:
+                                                                 the initial input and output the trajectory τ ∗under a constraint
+            min                  F(fθ, τ ∗)                                     set T, formulated as follow:                   θ
+                                                              (1)
+                         s.t. τ ∗= arg min C(fθ, τ),                        τ ∗= arg min C(K, τ), where K ←fθ         (2)                          τ∈T                                         τ∈T
+
+===== PDF PAGE 4 =====
+                                                                  cost value. The formulation of the obstacle cost CO is shown
+                                                               as follows:
+                                                        CO(τ t) = X H(pi)  pi ∈τ t, |i=m×n,                                                                                                                                  (3)
+                                                                                                                              i
+                                                      where H(pi) represents the value of position pi on the cost
+                                              map H. Secondly, we use the Euclidean distance from the
+     (a) Environment Point Cloud              (b) ESDF Cost Map            final position of the trajectory τ t  to the goal pGt  as the
+                                                         second cost term CG. It encourages the trajectory to be close
+Fig. 3.  An illustration of a training environment and its ESDF cost map
+                                                                    to the destination and punishes the one that deviated away.generated from the Matterport3D [6] dataset. (a) depicts the point cloud
+reconstructed from collected depth images within a Matterport3D room. (b)  The destination cost CG is hereby denoted as follow:
+shows the smoothed ESDF cost map produced from the point cloud with
+Gaussian filtering.                                                CG(τ t) = E(pi, pGt )  pi ∈τ t |i=m×n,        (4)
+
+                                                      where function E calculates the Euclidean distance between
+                                                     two given positions. Finally, the cost term CM  is used to
+                                                                evaluate the motion smoothness of the trajectory. We assume
+                                                                      that the same amount of time is taken to travel between two
+                                                        key points pKi  , pKi+1|i=0...n−1 on the key-point path Kt and
+Fig. 4.  The mathematically BLO pipeline of the imperative training for the   perform equal-time interpolation during the TO process. The
+planning policy. The network function fθ predicts a path as the input for
+the TO process. The TO minimizes the cost C with the optimized trajectory   objective of minimizing the cost CM is to reduce the difference
+τ ∗. The trajectory cost C, combined with additional loss terms, forms the   in length of trajectory intervals on τ t, thereby minimizing
+total training loss F, and F  is then backpropagated to update the network   overall acceleration. The Euclidean distance from the current
+parameter θ.
+                                                               robot position pRt  to the goal pGt  is used to regulate the overall
+                                                                     trajectory length and rewards a shorter motion. The motion
+                                                                  cost CM is formulated as follow:Notice that the pre-built cost map  is utilized only during
+                                                                     n−2
+training.        During               deployment,                              the TO                                       interpolates and                                              smooths                                                             E(pR                                                                                                                                 t                                                                                                                                               , pGt )                        X |                                                           −Eτ t(pKi  , pKi+1) |,                                           CM(τ t, pRt , pGt ) =the key-point              path                      to generate                               a dynamically                                                    feasible                                                                     tra-                                                                n                                                    −1
+jectory τ t under a system constraint. Specifically, here, we                      i=0                                     (5)
+use Cubic-Spline [19] to construct a third-order polynomial                                                      where function Eτ t  returns the length of a path  interval
+to pass through key points as a constraint. It interpolates m                                                       between two given positions on the trajectory τ t. The tra-
+intermediate points in between every two key points in Kt and   jectory cost C, as the objective of TO, is then formulated as a
+generates a dynamically feasible trajectory τ t ∈R(mn+1)×3   combination of CO ∈R+0 , CG ∈R+, and CM ∈R+:
+that passes through  all the key  points, with zero second
+derivatives on the  start and endpoints, as per the natural    C(τ t) =α CO(τ t) + β CG(τ t) + γ CM(τ t, pRt , pGt ),     (6)
+boundary conditions. This optimization problem can be solved                                                      where α, β, and γ ∈R+ are hyperparameters used to balance
+as a symmetric tridiagonal system with a linear solution [3].                                                                 the cost between different terms.
+Here, we create the cubic-spline function as a differentiable                                                                  2) Fear Loss: In addition to the trajectory cost, the planning
+layer using PyPose [25] library to record the gradients of the                                                         network predicts a collision probability µt for each trajectory
+output trajectory τ t to the input constraints Kt predicted by                                                                    to assess its risk of collision with obstacles. This is referred
+the network.                                                                    to as “fear loss”. In some scenarios, the local planning policy
+                                                         can be trapped in a local minimum. Instead of setting largeC. Optimization Objective and Training Loss
+                                                                obstacle costs that could result in an over-conservative policy,
+  1) Trajectory Cost: The trajectory cost includes three dif-                                                           having this task-level loss in addition to the trajectory cost
+ferentiable terms that assess the quality of the output trajectory                                                              provides the planner with the flexibility to escape from those
+τ t. The first term, obstacle cost CO, checks if the trajectory                                                                scenarios and ensures safety. When deploying, the planner will
+collides or  is too close  to obstacles. To  this end, before                                                           only execute the trajectory with associated collision probability
+training, we reconstruct the environment offline based on the                                                          µt < 0.5. The fear loss L(τ t) is calculated using binary cross
+collected depth images, and their associated camera poses, as                                                             entropy (BCE):
+shown in Fig. 3(a). Then, based on the reconstructed environ-
+                                       (BCELoss( µt, 1.0 )  τ t collides w. Qobsment, we build a Euclidean Signed Distance Field (ESDF) to
+                                                    L(τ t) =                                                 (7)
+label the distance to the nearest free (non-obstacle) space for              BCELoss( µt, 0.0 )           otherwise.
+each position in the environment. The ESDF is then smoothed
+                                                     The final training loss F is then formulated as the generalwith a Gaussian  filter to make  it locally differentiable and
+                                                     summation of trajectory cost C and task-level fear loss L:create a cost map H with non-negative cost values, shown in
+Fig. 3(b). To generate the cost CO, each coordinate pi on the             F = C(τ t) + L(τ t).                  (8)
+trajectory τ t will be projected on this cost map H to get a
+
+===== PDF PAGE 5 =====
+                                                                           TABLE I
+                                                            PLANNING PERFORMANCE ACROSS FOUR TYPES OF ENVIRONMENTS
+
+
+                                                                                  SPL % - Success weighted by Path Length
+                                                                                                                       Forest    Garage    Indoor    Matterport    Overall
+
+                                                       MP [31] (LiDAR)    95.09     89.42     85.82      74.18       86.13
+                                                                     SL [18]              65.58     46.70     50.03      28.87       47.80
+                                                               RL [8] (Tilt)         95.08     69.43     61.10      59.24       71.21
+                                                                                  Ours (Tilt)           95.66     73.49     68.87      76.67       78.67
+                   (a)                                     (b)                          Ours                96.37     88.85     90.36      82.51       89.52
+
+Fig. 5.   Illustration of depth observation from simulation and the real world.
+(a) A depth image generated from the Gazebo simulation in the Matterport3D                        TABLE II
+environment. (b) A depth observation obtained from Intel RealSense D435         PLANNING LATENCY IN [MS] FOR DIFFERENT METHODS
+during real-world experiments.
+                                                                      SL [18]     RL [8]     MP [31]        Ours      Ours (Jetson)
+                                                                                            13.5 (±1.8)    3.6 (±0.3)    24.9 (±4.2)    5.9 (±0.4)     11.4 (±0.6)
+     10                                            100
+
+                                                   80
+   Loss  8                                                        as follows:
+                                                   60                                                            [%]                ∂F   ∂C  ∂f   ∂C ∂τ
+      6                                          ∇θF =    +      +           .        (11)
+                                                   40  SPL                    ∂f    ∂f  ∂θ   ∂τ ∂θ
+                                                       Train
+      4                                               Validation                                  IV. EXPERIMENTS
+                                                   20          Train/Validation                                   SPL
+                                          We assess our method through both simulated and real-
+      2                                            0        world evaluations, comparing it to classic and learning-based
+       0       20      40      60      80      100
+                       Epoch                                baselines. The simulations are run on a 2.6GHz i9 laptop with
+                                                        an NVIDIA RTX 3080 GPU. Our real-world tests are carried
+Fig. 6.   Example of training and validation loss throughout the training   out using the ANYmal legged robot [9] equipped with an
+process. The SPL (Success Weighted by Path Length) is evaluated in the  NVIDIA Jetson Orin for the execution of our planning method.
+garage simulation environment after specific epochs of training.
+                                                     The classic motion primitives (MP) planner, as proposed by
+                                                    Zhang et al. [31], integrates with a modularized pipeline [5]
+D. Training and Bi-Level Optimization (BLO)               and uses a 360◦view LiDAR.  It  is considered the  state-
+                                                                      of-the-art (SOTA) non-learning method in terms of success
+  As described above, the pipeline of the IL forms a nested
+                                                                      rate and efficiency, serving as a performance reference for
+BLO process, where the TO, as the lower-level task, takes
+                                                                learning methods. As learning-based approaches, the super-
+the output of the network to generate the trajectory τ. Then,
+                                                               vised learning (SL) method by Loquercio et al. [18] and the
+given the output τ, the upper-level process of BLO finds the
+                                                             reinforcement learning (RL) method by Hoeller et al. [8] servenetwork parameter θ to minimize the final training loss F.
+                                                               as baselines. Both our method and the learning baselines use
+Fig. 4 shows the pipeline in a mathematical formulation. To
+                                                           a front-facing stereo-depth camera with a frame rate of 15Hz.
+solve the BLO problem, we adopt the concept of Proxy-Based
+                                                   The RL method requires a downward-tilted camera view of
+Explicit Gradient for Best-Response (EGBR) [17] by using
+                                                              30◦, while the SL method requires a forward-looking camera.
+approximated BR mapping. Specifically, instead of explicitly
+                                                   Our method is tested with both camera settings using the same
+solving the optimization of the lower-level task TO, which can
+                                                                policy weights.
+be computationally expensive, we approximate a sub-optimal
+             sub                                           Our method is trained using a combination of data collectedsolution τ   by directly using the output of the cubic-spline
+                                                                    in both simulated and real-world environments. We gather ap-interpolation and its projection cost on map H as the trajectory
+                                                            proximately 20k depth images from various camera positionscost Csub:
+               τ sub ∼arg min C(fθ, τ)                 (9)   in the Matterport3D [6] environment as well as in simulated                        τ∈T                                                    campus and tunnel [5] environments using Gazebo [15]. Addi-
+where τ sub is an approximation to the optimal solution τ ∗.   tionally, we collect 10k images in real-world environments to
+With the trajectory τ sub, the corresponding cost Csub of the TO   adjust the policy for real-world perception noise. An example
+objective, together with the task-level loss Lsub, are propagated   of depth observation in a simulated environment versus a real-
+back to optimize the network parameter θ using gradient   world environment can be seen in Fig. 5. The training takes
+decent and solves the BLO problem iteratively:                about 20 hours (100 epochs) using 30k images and a single
+                                                      sub              NVIDIA 3090 Ti GPU, without pre-trained ResNet weights.
+              θi+1 ←θi −ω∇θiF(fθi, τ i  ),           (10)                                                               After just 20 epochs (4 hours), the policy can demonstrate a
+where ω is a hyperparameter of the learning rate. The gradient   high success rate in navigating through the unseen simulated
+of the training loss F to the network parameter θ is denoted   environment, as shown in Fig. 6.
+
+===== PDF PAGE 6 =====
+              A
+
+
+
+
+                                                                                C
+
+
+
+
+                              B
+
+                                                                      B
+                                                                A                        C
+
+        A              B              C                 A               B              C
+
+
+
+
+
+                                           (a) Indoor                                                              (b) Garage
+
+
+
+
+                  C
+
+
+
+
+                                                                B
+                    A                                                              C
+                                 B
+                                                                    A
+
+
+
+        A              B               C                 A              B             C
+
+
+
+
+
+                                           (c) Forest                                                            (d) Matterport
+
+Fig. 7.  Planning examples in simulation experiments: (a) Indoor, (b) Garage, (c) Forest, (d) Matterport3D. The bottom images show the depth measurements
+for the corresponding marked trajectories on the cost maps. The key points (green), along with the trajectories (red) shown in the depth images, or on cost
+maps, are generated by our method from the current robot positions (gray dot) to the goals (yellow/orange box), with the current depth images. The trajectories
+shown in the depth measurements are projected onto the image frame for visualization purposes.
+
+
+
+
+
+                    Goal                                                                                                                     Depth Cloud
+                                                                                                                           Trajectory
+
+
+
+                                    Path in Collision
+                                                                                                                                               Goal    Camera View
+
+
+                                                                                                                                                                                     Planned Path
+
+                                    Camera View
+
+                                                                                                             (a)                                     (b)
+
+                                                                                   Fig. 9.  Experiment against localization errors. (a) illustrates the compounding
+                                                                                        effect of the classic MP method with the modularized pipeline. The point
+                                                                          cloud in red depicts the obstacles detected by the terrain analysis module. (b)
+                                                                   shows the planning result of our method. In the same conditions, a feasible
+Fig. 8.  An illustration of a local minimum scenario. The point cloud, in   path (green) to the goal is planned based on the current depth observation
+white, depicts the surrounding environment. The robot is trapped in a corner    displayed in the camera view image.
+where no collision-free path to the goal (purple) exists within the FOV. The
+network predicts a path (red) with a high collision probability, which triggers
+the protective behavior to stop the robot.
+                                                        port3D room, as shown in Fig. 7, using the Autonomous
+                                                             Exploration Development Environment [5]. The testing envi-
+A. Simulation Experiments                                                         ronments are not seen by the learning-based planning policies
+  The simulated experiments are conducted in four different   during training. In each environment, 30 pairs of start and goal
+types of environments: indoor, garage, forest, and a Matter-   positions are selected in traversable areas and given to the
+
+===== PDF PAGE 7 =====
+  F                E               D                C               B                A
+
+
+
+
+
+                                                         5m
+         F                      D                 C
+               E                                        B                                                                     A
+
+
+
+
+
+  F                E               D                C               B                A
+
+
+
+
+
+Fig. 10.  Real-world experiment with the legged robot, with the red curve indicating the robot’s trajectory starting from right to left. The robot begins inside
+a building and navigates to the outside. Green boxes A-F mark different planning events during the route. The robot follows a series of waypoints (shown in
+blue) and plans in between to: (A) pass through doorways, (B, D, E) circumvent static/dynamic obstacles, and (B, F) ascend and descend stairs.
+
+
+robot. The robot uses onboard sensing to search for collision-   latency and sensitivity to noise, e.g., localization errors. To
+free paths and navigate to reach the goal.                       assess this, we add random localization noise with a standard
+  Table.  I presents the results of experiments. The perfor-   deviation of 5cm to the system. This causes false-positive
+mance of the planning methods is evaluated using SPL [1]   obstacle detections on the ground due to compounding effects
+(Success weighted by Path Length). In the experiments, the SL   between the mapping and terrain analysis modules, as shown
+method is found to be inferior in generalizing to the four un-   in Fig 9. With these false detections, the MP planner cannot
+seen testing environments. On the other hand, the RL method   find a “collision-free” path to the goal. Our proposed method
+performs well in the forest but struggles in the other three   demonstrates high robustness, even in the presence of random
+environments. This is due to its overfitted perception header   localization noise, through its end-to-end pipeline that takes
+trained with a downward-tilted camera, resulting in limited   instantaneous sensor input for planning. Despite not using
+field-of-view (FOV) for planning effectively in complex envi-   a panoramic sensor like LiDAR, our method offers similar
+ronments. Furthermore, the perception header of the RL policy   generalization and even better performance than the classic MP
+is trained using a self-supervised approach, not specifically   method. Table II shows our method’s computational efficiency
+optimized for planning. In contrast, our method demonstrates  and small planning latency, which is more than 4 times faster
+consistent and high performance across  all different types   than the MP method but slightly slower than the RL approach.
+of unseen environments and outperforms even the  classic
+                                                             B. Real-World Experiment with Legged Robotmethod with a 360◦degree FOV LiDAR. Furthermore, our
+policy is capable of directly generalizing to different camera    Our experiment evaluates the effectiveness of our method
+settings. Even with the same downward-tilted camera as the   in real-world scenarios using the legged robot ANYmal [9].
+RL method, our policy can still achieve the best performance  The robot is equipped with an Intel Realsense D435 front
+among  all learning-based methods, shown in Table  I. On   depth camera for depth measurement. The experimental setup
+the other hand, the robot’s performance can be impacted by   involves both dynamic and static obstacles, with the robot
+local minimal scenarios when its FOV is limited. For those   navigating from indoor to outdoor environments following
+cases, our network predicts “fear” values to detect trajectory   sequential waypoint commands from a human operator, as
+collisions and stop the robot before crashing, as demonstrated  shown in Fig. 10. The planner navigates the robot through
+in Fig. 8. In summary, our proposed planner has the capability   doorways, around both dynamic and static obstacles, and up
+to achieve, on average, 87% better performance than the SL  and down stairs. The indoor and outdoor environments have
+method and 26% better performance than the RL method in   different lighting conditions, which results in varying levels of
+terms of SPL to reach destinations.                            noise in the depth measurements. Here, our planner relies on
+  The MP approach models the environment using a metric-   a localization method [13] to translate the goal into the robot
+based method and offers superior performance and generaliza-   frame for the planning network.
+tion compared to learning-based baselines [8, 18] as shown in   We also conducted experiments in various environmental
+Table I. However, its modularized pipeline can result in high   settings to assess the generalization and efficiency of our
+
+===== PDF PAGE 8 =====
+                                                       camera configurations, and being robust against perception and
+                                                                    localization errors.
+
+                                                                            VI. DISCUSSION
+
+                                                              This paper presents a novel framework for training a percep-
+                                                                        tive planning policy that relies solely on depth measurement as
+                                                                     input. While RGB images can offer supplementary information
+            (a) Underground                       (b) Laboratory             beneficial for planning, images collected from simulation may
+                                                                       result in a significant difference between real environments.
+                                                           Thus, further research is required. Additionally, we realize that
+                                                          adding memory structure to the perception network could have
+                                                        improved the performance of the planning in the static envi-
+                                                           ronment. However, utilizing the current pipeline, the memory
+                                                                    structure may compromise the safety of the planning to avoid
+                                                      dynamic obstacles. To address this issue, it may be necessary
+       (c) Human-made “Maze”                     (d) Terrace               to incorporate a time-variable cost map in formulating the
+                                                                    training  loss. Overall,  this work aims  to demonstrate the
+Fig. 11.   Planning method testing in different unseen environments, indoor   innovative concept of using the imperative learning approach,
+and outdoor, with various obstacle setups and lighting conditions.
+                                                       and the result can be considered preliminary.
+
+                                                                          VII. ACKNOWLEDGEMENT
+planning policy, as  illustrated in Fig. 11. In human-made
+                                                              This research was supported by: the Swiss National Science
+mazes, the goal may be hidden from the start, requiring the
+                                                          Foundation (SNSF) under project 188596, the National Cen-
+robot to navigate around obstacles. Outdoors, the robot must
+                                                                           tre of Competence in Research Robotics (NCCR Robotics),
+traverse various terrains, such as snow, grass, and plants, to
+                                                       and the European Union’s Horizon 2020 research and inno-
+reach  its destinations. In the underground environment, the
+                                                                vation program via grant agreements No. 101016970, No.
+robot encounters different lighting conditions and unfamiliar
+                                                        101070405, and No. 852044. Additionally,  this work also
+obstacle shapes. Despite these challenges, our method guides
+                                                                 benefited from the ETH Zurich Research Grant.
+the robot successfully to  its destinations while maintaining
+a low average latency of 11.4ms on the Nvidia Jetson Orin                    REFERENCES
+onboard computer. Furthermore, our method, which  relies     [1] Peter Anderson, Angel Chang, Devendra Singh Chaplot, Alexey
+solely on a single depth frame, can operate independently of         Dosovitskiy, Saurabh Gupta, Vladlen Koltun, Jana Kosecka,
+the localization module if the goal is set in the robot frame.         Jitendra Malik, Roozbeh Mottaghi, Manolis Savva, et al. On
+                                                                             evaluation of embodied navigation  agents.   arXiv  preprint
+We use a joystick command to set the goal in the robot frame
+                                                                       arXiv:1807.06757, 2018.
+as directional guidance, and the method then calculates safe     [2] Zhibin Bao, Sabir Hossain, Haoxiang Lang, and Xianke Lin.
+paths in the local frame for the robot to follow.                        High-definition map generation technologies for autonomous
+                                                                                driving: a review. arXiv preprint arXiv:2206.05400, 2022.
+                    V. CONCLUSION                              [3] Richard H Bartels, John C Beatty, and Brian A Barsky. An intro-
+                                                                          duction to splines for use in computer graphics and geometric  In this paper, we present an end-to-end planning framework
+                                                                       modeling. Morgan Kaufmann, 1995.
+based on a novel imperative learning (IL) approach. The                                                                             [4] Mariusz  Bojarski, Davide Del  Testa, Daniel Dworakowski,
+method involves a bi-level optimization (BLO) process that        Bernhard  Firner, Beat  Flepp, Prasoon Goyal, Lawrence D
+combines network update and metric-based trajectory opti-         Jackel, Mathew Monfort, Urs Muller,  Jiakai Zhang,  et  al.
+mization during training to produce smooth and collision-free       End  to end learning  for  self-driving  cars.   arXiv  preprint
+                                                                       arXiv:1604.07316, 2016.trajectories using only a single depth measurement. The IL
+                                                                             [5] Chao Cao, Hongbiao Zhu, Fan Yang, Yukun Xia, Howie Choset,
+is able to utilize task-level loss and optimize through direct                                                                       Jean Oh, and Ji Zhang. Autonomous exploration development
+gradient descent. This allows the method to be trained in        environment and the planning algorithms. In 2022 International
+an efficient unsupervised manner, eliminating the need for        Conference on Robotics and Automation (ICRA), pages 8921–
+explicit trajectory labels. In the experiment, we benchmark        8928. IEEE, 2022.
+                                                                             [6] Angel Chang, Angela Dai, Thomas Funkhouser, Maciej Halber,the performance of our planner with the SOTA classic non-
+                                                                        Matthias Niessner, Manolis Savva, Shuran Song, Andy Zeng,
+learning method [31] and learning baselines  [8, 18]. Our                                                                  and Yinda Zhang. Matterport3d: Learning from rgb-d data in
+experiments demonstrate  that the  resulting policy has the        indoor environments.  International Conference on 3D Vision
+capability to achieve efficient planning and generalize to var-        (3DV), 2017.
+ious unseen environments compared to previous approaches.     [7] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+                                                            Deep residual learning for image recognition. In ProceedingsFurther, we evaluate our method in various real-world settings,
+                                                                                 of the IEEE conference on computer vision and pattern recog-
+including dynamic environments and different camera settings.                                                                                     nition, pages 770–778, 2016.
+The results indicate the effectiveness of our method in real-     [8] David  Hoeller, Lorenz Wellhausen, Farbod  Farshidian, and
+world deployment, generalizing to novel environments and       Marco Hutter.  Learning a state representation and navigation
+
+===== PDF PAGE 9 =====
+      in cluttered and dynamic environments.  IEEE Robotics and   [25] Chen Wang, Dasong Gao, Kuan Xu, Junyi Geng, Yaoyu Hu,
+     Automation Letters, 6(3):5081–5088, 2021.                       Yuheng Qiu, Bowen  Li, Fan Yang, Brady Moon, Abhinav
+ [9] Marco Hutter, Christian Gehring, Dominic Jud, Andreas Lauber,        Pandey, Aryan, Jiahe Xu, Tianhao Wu, Haonan He, Daning
+   C Dario Bellicoso, Vassilios Tsounis, Jemin Hwangbo, Karen       Huang, Zhongqiang Ren, Shibo Zhao, Taimeng Fu, Pranay
+     Bodie, Peter Fankhauser, Michael Bloesch, et  al.  Anymal-        Reddy, Xiao Lin, Wenshan Wang, Jingnan Shi, Rajat Talak,
+     a highly mobile and dynamic quadrupedal robot.   In 2016      Kun Cao, Yi Du, Han Wang, Huai Yu, Shanzhao Wang, Siyu
+    IEEE/RSJ international conference on intelligent robots and        Chen, Ananth Kashyap, Rohan Bandaru, Karthik Dantu, Jiajun
+     systems (IROS), pages 38–44. IEEE, 2016.                      Wu, Lihua Xie, Luca Carlone, Marco Hutter, and Sebastian
+[10] Gregory Kahn, Pieter Abbeel, and Sergey Levine. Badgr: An         Scherer. PyPose: A library for robot learning with physics-based
+     autonomous self-supervised learning-based navigation system.         optimization. In IEEE/CVF Conference on Computer Vision and
+    IEEE Robotics and Automation Letters, 6(2):1312–1319, 2021.         Pattern Recognition (CVPR), 2023.
+[11] Sertac Karaman and Emilio Frazzoli.  Sampling-based algo-   [26] Lorenz Wellhausen and Marco Hutter. Rough terrain navigation
+     rithms for optimal motion planning. The international journal         for legged robots using reachability planning and template learn-
+      of robotics research, 30(7):846–894, 2011.                               ing. In 2021 IEEE/RSJ International Conference on Intelligent
+[12] L Kavraki and R Bohlin. Path planning using lazy prm. In In-        Robots and Systems (IROS), pages 6914–6921. IEEE, 2021.
+     ternational Conference on Robotics and Automation, volume 1,   [27] Erik Wijmans, Abhishek Kadian, Ari Morcos, Stefan Lee, Irfan
+     pages 521–528, 2000.                                                 Essa, Devi Parikh, Manolis Savva, and Dhruv Batra.  Dd-
+[13] Shehryar Khattak, Huan Nguyen, Frank Mascarich, Tung Dang,        ppo: Learning near-perfect pointgoal navigators from 2.5 billion
+     and Kostas Alexis. Complementary multi–modal sensor fusion        frames. arXiv preprint arXiv:1911.00357, 2019.
+      for resilient robot pose estimation in subterranean environments.   [28] Xuesu Xiao, Tingnan Zhang, Krzysztof Choromanski, Edward
+     In 2020 International Conference on Unmanned Aircraft Sys-        Lee, Anthony Francis, Jake Varley, Stephen Tu, Sumeet Singh,
+     tems (ICUAS), pages 1024–1029. IEEE, 2020.                     Peng Xu, Fei Xia, et al. Learning model predictive controllers
+[14] Yunho Kim, Chanyoung Kim, and Jemin Hwangbo. Learning        with real-time attention for real-world navigation. arXiv preprint
+     forward dynamics model and informed trajectory sampler for        arXiv:2209.10780, 2022.
+      safe quadruped navigation.  arXiv preprint arXiv:2204.08647,   [29] Bowen Yang, Lorenz Wellhausen, Takahiro Miki, Ming Liu,
+     2022.                                                        and Marco Hutter. Real-time optimal navigation planning using
+[15] Nathan Koenig and Andrew Howard. Design and use paradigms        learned motion costs. In 2021 IEEE International Conference
+      for gazebo, an open-source multi-robot simulator.   In 2004       on Robotics and Automation (ICRA), pages 9283–9289. IEEE,
+    IEEE/RSJ International Conference on Intelligent Robots and        2021.
+     Systems (IROS)(IEEE Cat. No. 04CH37566), volume 3, pages   [30] Joel Ye, Dhruv  Batra, Abhishek Das, and  Erik Wijmans.
+     2149–2154. IEEE, 2004.                                             Auxiliary tasks and exploration enable objectgoal navigation.
+[16] Yann LeCun, Yoshua Bengio, et al. Convolutional networks for         In Proceedings of the IEEE/CVF International Conference on
+     images, speech, and time series. The handbook of brain theory       Computer Vision, pages 16117–16126, 2021.
+    and neural networks, 3361(10):1995, 1995.                      [31]  Ji Zhang, Chen Hu, Rushat Gupta Chadha, and Sanjiv Singh.
+[17] Risheng Liu, Jiaxin Gao, Jin Zhang, Deyu Meng, and Zhouchen         Falco: Fast likelihood-based collision avoidance with extension
+     Lin. Investigating bi-level optimization for learning and vision         to human-guided navigation. Journal of Field Robotics, 37(8):
+     from a  unified  perspective: A survey and beyond.  IEEE       1300–1313, 2020.
+     Transactions on Pattern Analysis and Machine Intelligence, 44   [32] Fengda Zhu, Yi Zhu, Xiaojun Chang, and Xiaodan Liang.
+     (12):10045–10067, 2021.                                            Vision-language navigation with self-supervised auxiliary rea-
+[18] Antonio Loquercio,  Elia Kaufmann,  Ren´e  Ranftl, Matthias        soning tasks. In Proceedings of the IEEE/CVF Conference on
+      M¨uller, Vladlen Koltun, and Davide Scaramuzza.  Learning       Computer Vision and Pattern Recognition, pages 10012–10022,
+     high-speed flight in the wild. Science Robotics, 6(59):eabg5810,        2020.
+     2021.
+[19] Sky McKinley and Megan Levine. Cubic spline interpolation.
+     College of the Redwoods, 45(1):1049–1060, 1998.
+[20] Mark Pfeiffer, Michael Schaeuble, Juan Nieto, Roland Siegwart,
+     and Cesar Cadena. From perception to decision: A data-driven
+     approach to end-to-end motion planning for autonomous ground
+      robots.  In IEEE International Conference on Robotics and
+     Automation (ICRA), page 1527–1533. IEEE, 2017.
+[21] Mark Pfeiffer, Samarth Shukla, Matteo Turchetta, Cesar Cadena,
+     Andreas Krause, Roland Siegwart, and Juan Nieto. Reinforced
+      imitation: Sample  efficient deep reinforcement  learning  for
+     mapless navigation by leveraging prior demonstrations. IEEE
+     Robotics and Automation Letters, 3(4):4423–4430, 2018.
+[22] Abbas Sadat, Sergio Casas, Mengye Ren, Xinyu Wu, Pranaab
+    Dhawan, and Raquel Urtasun. Perceive, predict, and plan: Safe
+     motion planning through interpretable semantic representations.
+     In European Conference on Computer Vision, pages 414–430.
+     Springer, 2020.
+[23] Dhruv Shah, Ajay Sridhar, Arjun Bhorkar, Noriaki Hirose, and
+     Sergey Levine. Gnm: A general navigation model to drive any
+      robot. arXiv preprint arXiv:2210.03370, 2022.
+[24] Haobin Shi, Lin Shi, Meng Xu, and Kao-Shing Hwang. End-
+     to-end navigation strategy with deep reinforcement learning for
+     mobile robots. IEEE Transactions on Industrial Informatics, 16
+     (4):2393–2402, 2019.

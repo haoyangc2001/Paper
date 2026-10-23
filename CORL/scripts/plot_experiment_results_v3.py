@@ -131,6 +131,10 @@ def configure_fonts() -> None:
 
 def parse_workbook(path: Path) -> dict[str, list[list[str]]]:
     with ZipFile(path) as archive:
+        shared_strings = []
+        if "xl/sharedStrings.xml" in archive.namelist():
+            strings = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+            shared_strings = ["".join(node.itertext()) for node in strings]
         workbook = ET.fromstring(archive.read("xl/workbook.xml"))
         rels = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
         rel_map = {
@@ -144,9 +148,13 @@ def parse_workbook(path: Path) -> dict[str, list[list[str]]]:
                 "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
             ]
             target = rel_map[rel_id].replace("\\", "/")
-            sheet_xml = ET.fromstring(archive.read(f"xl/{target}"))
+            member = target.lstrip("/") if target.startswith("/") else f"xl/{target}"
+            sheet_xml = ET.fromstring(archive.read(member))
             rows: list[list[str]] = []
             for row in sheet_xml.findall("main:sheetData/main:row", NS_MAIN):
+                row_number = int(row.attrib.get("r", len(rows) + 1))
+                while len(rows) < row_number - 1:
+                    rows.append([])
                 values: list[str] = []
                 current_col = 1
                 for cell in row.findall("main:c", NS_MAIN):
@@ -168,6 +176,8 @@ def parse_workbook(path: Path) -> dict[str, list[list[str]]]:
                     else:
                         value_node = cell.find("main:v", NS_MAIN)
                         text = value_node.text if value_node is not None else ""
+                        if cell_type == "s":
+                            text = shared_strings[int(text)]
                     values.append(text)
                     current_col += 1
                 rows.append(values)

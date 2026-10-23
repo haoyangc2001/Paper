@@ -1,0 +1,224 @@
+"""Reconcile assumed-data exports and audit the current CCDC manuscript.
+
+Does not invent trial records or interval endpoints. Commands:
+prepare: export expected workbook tables for the narrow Artifact Tool update;
+render: refresh the budget plot and install the approved comparison plot;
+check: compare actual workbook, JSONL, TeX tables, and included figure files;
+pages: render the compiled PDF using local Poppler for visual inspection.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import re
+import runpy
+import shutil
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+REVIEW = ROOT / "CCDC/output/1020/consistency_review"
+WORKBOOK = ROOT / "CORL/data/experiment_results_rcppo_ra_v3.xlsx"
+SOURCE = ROOT / "CORL/scripts/generate_experiment_results_v3.py"
+POINT_DIR = ROOT / "绘图/20261023_多方法指标对比"
+TEX = ROOT / "CCDC/latex/1020/main.tex"
+
+
+def modules():
+    return (runpy.run_path(str(SOURCE), run_name="read_only"),
+            runpy.run_path(str(ROOT / "CORL/scripts/plot_experiment_results_v3.py"), run_name="read_only"))
+
+
+def tables(source):
+    return {name: source[builder]() for name, builder in {
+        "main_long_format": "build_main_long_rows",
+        "main_metric_wide": "build_main_metric_wide_rows",
+        "main_scenario_averages": "build_main_average_rows",
+        "budget_long_format": "build_budget_long_rows",
+        "budget_metric_wide": "build_budget_metric_wide_rows",
+        "minimum_feasible_budget": "build_min_feasible_budget_rows",
+        "metadata": "build_metadata_rows",
+    }.items()}
+
+
+def write_json(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def prepare():
+    source, plot = modules()
+    write_json(REVIEW / "workbook_before.json", plot["parse_workbook"](WORKBOOK))
+    write_json(REVIEW / "workbook_payload.json", {
+        "workbook": str(WORKBOOK), "review_dir": str(REVIEW), "sheets": tables(source)})
+    print(REVIEW / "workbook_payload.json")
+
+
+def render():
+    _, plot = modules()
+    protocol = json.loads((POINT_DIR / "data/protocol.json").read_text(encoding="utf-8"))
+    plot["COLORS"].update({row["id"]: row["color"] for row in protocol["methods"]})
+    plot["configure_fonts"]()
+    image_dir = ROOT / "CCDC/images/1020"
+    plot["plot_budget_grid"](plot["build_budget_data"](WORKBOOK), image_dir)
+    shutil.copy2(POINT_DIR / "output/metrics_comparison_assumed.pdf", image_dir)
+    write_json(REVIEW / "figure_sources.json", {
+        "budget_data": plot["build_budget_data"](WORKBOOK),
+        "budget_workbook_sha256": digest(WORKBOOK),
+        "budget_figure_sha256": digest(image_dir / "figure_budget_sweep_v3.pdf"),
+        "comparison_sha256": digest(image_dir / "metrics_comparison_assumed.pdf"),
+        "colors": plot["COLORS"],
+    })
+    print("Refreshed budget figure and installed full-width comparison figure.")
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def check():
+    source, plot = modules()
+    workbook = plot["parse_workbook"](WORKBOOK)
+    expected = tables(source)
+    assert list(workbook) == list(expected), "Workbook sheet order changed"
+    cell_count = 0
+    for name, rows in expected.items():
+        for r, row in enumerate(rows):
+            for c, value in enumerate(row):
+                actual = workbook[name][r][c] if r < len(workbook[name]) and c < len(workbook[name][r]) else ""
+                if name == "metadata" and r == 1:  # export timestamp is not a scientific value
+                    continue
+                if isinstance(value, (int, float)):
+                    assert math.isclose(float(actual), value, abs_tol=1e-9), (name, r+1, c+1, actual, value)
+                else:
+                    assert actual == ("" if value is None else str(value)), (name, r+1, c+1, actual, value)
+                cell_count += 1
+    # Main scene values must survive the workbook update unchanged.
+    before_path = REVIEW / "workbook_before.json"
+    if before_path.exists():
+        before = json.loads(before_path.read_text(encoding="utf-8"))
+        for name in ["main_long_format", "main_metric_wide", "main_scenario_averages"]:
+            for r, row in enumerate(before[name]):
+                for c, old in enumerate(row):
+                    now = workbook[name][r][c]
+                    try:
+                        assert math.isclose(float(now), float(old), abs_tol=1e-12)
+                    except ValueError:
+                        assert now == old
+
+    metric_check = runpy.run_path(str(POINT_DIR / "scripts/plot_metrics_comparison.py"), run_name="read_only")
+    protocol, points, _, point_audit = metric_check["load_and_check"](POINT_DIR / "data")
+    text = TEX.read_text(encoding="utf-8")
+    tex_tables = {}
+    for block in re.findall(r"\\begin\{table\*\}(.*?)\\end\{table\*\}", text, re.S):
+        label = re.search(r"\\label\{([^}]+)\}", block)[1]
+        tex_tables[label] = {
+            line.split(" & ")[0]: [float(x) for x in re.findall(r"\\shortstack\{([0-9.]+)", line)]
+            for line in block.splitlines() if r"\shortstack{" in line}
+    labels = {"HD-MCRA":"HD-MCRA", "RC-PPO":"RC-PPO", "RA":"RA",
+              "PPO_beta_L":r"PPO$_{\beta_L}$", "PPO_beta_H":r"PPO$_{\beta_H}$",
+              "CPPO_beta_L":r"CPPO$_{\beta_L}$", "CPPO_beta_H":r"CPPO$_{\beta_H}$"}
+    for method, label in labels.items():
+        expected_row = list(source["main_average_row"](label, method)[1:])
+        assert tex_tables["tab:main_results"][label] == expected_row, method
+    ablation_labels = ["w/o hierarchy", r"w/o $\alpha$", r"w/o $\delta$", "w/o both (RC-PPO)", "HD-MCRA"]
+    for label, row in zip(ablation_labels, source["ABLATION_ROWS"]):
+        assert tex_tables["tab:ablation_draft"][label] == list(row[1:]), label
+    assert tex_tables["tab:ablation_draft"]["HD-MCRA"] == tex_tables["tab:main_results"]["HD-MCRA"]
+    assert tex_tables["tab:ablation_draft"]["w/o both (RC-PPO)"] == tex_tables["tab:main_results"]["RC-PPO"]
+
+    for method in source["BUDGET_METHODS"]:
+        for metric in source["BUDGET_METRICS"]:
+            values = source["BUDGET_DATA"][metric][method]
+            assert math.isclose(values[4], sum(source["MAIN_DATA"][metric][method])/3, abs_tol=1e-12)
+            if method == "RA" and metric != "BVR":
+                assert max(values)-min(values) < 1e-12
+        for sr, cr in zip(source["BUDGET_DATA"]["SR"][method], source["BUDGET_DATA"]["CR"][method]):
+            assert 0 <= sr <= 1 and 0 <= cr <= 1 and sr+cr <= 1
+    for method in source["MAIN_METHODS"]:
+        for sr, cr in zip(source["MAIN_DATA"]["SR"][method], source["MAIN_DATA"]["CR"][method]):
+            assert sr+cr <= 1 + 1e-12
+    for row in source["ABLATION_ROWS"]:
+        assert row[1]+row[2] <= 100
+    assert source["minimum_feasible_budget_rows"]() == source["MIN_FEASIBLE_BUDGET_ROWS"]
+
+    trajectory_root = ROOT / "绘图/20261021_轨迹与同步曲线"
+    scenario = json.loads((trajectory_root / "data/versions/v2/scenario.json").read_text(encoding="utf-8"))
+    summary = json.loads((trajectory_root / "output/publication_v4_final/data/summary.json").read_text(encoding="utf-8"))
+    overview_root = ROOT / "绘图/20261021_部署与校准总览图/optimization_v17"
+    style = json.loads((overview_root / "config/style.json").read_text(encoding="utf-8"))
+    assert style["alpha"] == scenario["methods"]["hd_mcra"]["alpha"] == .18
+    assert style["delta_m"] == scenario["methods"]["hd_mcra"]["delta_m"] == .12
+    assert scenario["dt_s"] == .2 and scenario["horizon_s"] == 30
+    assert scenario["command_limits"] == [.6, .4, 1.2]
+    assert not scenario["budget_violation_terminal"]
+    for method, row in summary["methods"].items():
+        alpha = scenario["methods"][method]["alpha"]
+        assert math.isclose(row["J_charged"], (1+alpha)*row["J_nom"], abs_tol=1e-8)
+        assert math.isclose(row["relative_cost_overrun"], max(0,row["J_exec"]-row["J_nom"])/row["J_nom"], abs_tol=1e-8)
+        assert row["budget_violation"] == (row["J_exec"] > row["budget"])
+    images = ROOT / "CCDC/images/1020"
+    for match in re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]+)\}", text):
+        assert (TEX.parent / match).is_file(), match
+    assert digest(images / "metrics_comparison_assumed.pdf") == digest(POINT_DIR / "output/metrics_comparison_assumed.pdf")
+    assert digest(images / "deployment_calibration_overview.pdf") == digest(overview_root / "output/final/deployment_calibration_overview.pdf")
+    figure_sources = json.loads((REVIEW / "figure_sources.json").read_text(encoding="utf-8"))
+    assert figure_sources["budget_workbook_sha256"] == digest(WORKBOOK)
+    assert figure_sources["budget_figure_sha256"] == digest(images / "figure_budget_sweep_v3.pdf")
+    assert figure_sources["budget_data"] == plot["build_budget_data"](WORKBOOK)
+    assert digest(TEX.parent / "IEEEtran.cls") == digest(ROOT / "CCDC/latex/template/Conference-LaTeX-template_10-17-19/IEEEtran.cls")
+    from pypdf import PdfReader
+    pdf = ROOT / "CCDC/output/1020/main.pdf"
+    pages = PdfReader(pdf).pages
+    assert len(pages) == 8, "Manuscript no longer fits the eight-page draft limit"
+    pdf_text = " ".join(page.extract_text() for page in pages)
+    assert "w/o both (RC-PPO)" in pdf_text and "73.3" in pdf_text
+    assert pdf.stat().st_mtime >= TEX.stat().st_mtime, "Compiled manuscript is stale"
+    log = pdf.with_suffix(".log").read_text(encoding="utf-8", errors="replace")
+    assert not re.search(r"Overfull|LaTeX Warning|undefined references|^!", log, re.M)
+    report = {
+        "status":"passed", "data_status":"hypothetical", "empirical_validation":False,
+        "workbook_cells_checked":cell_count, "main_table_values":35, "ablation_table_values":25,
+        "point_intervals":len(points), "reference_budget_anchors":12,
+        "minimum_feasible_budgets":source["MIN_FEASIBLE_BUDGET_ROWS"],
+        "trajectory_accounting":"passed; separate illustrative single case, not aggregate experiment",
+        "calibration_cross_figure_values":{"alpha":.18,"delta_m":.12},
+        "main_scene_data_preserved":True, "template_class_unchanged":True,
+        "compiled_pages":len(pages), "compiled_pdf_sha256":digest(pdf),
+        "remaining_unknowns":protocol["unresolved_for_empirical_replacement"],
+        "sha256":{"manuscript":digest(TEX),"workbook":digest(WORKBOOK),"source":digest(SOURCE)},
+    }
+    write_json(REVIEW / "audit.json", report)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+def pages():
+    from PIL import Image, ImageDraw
+    output = ROOT / "CCDC/output/1020"
+    preview = output / "review"
+    preview.mkdir(exist_ok=True)
+    staging = ROOT / "_tmp_build_consistency/pdf_pages"
+    staging.mkdir(parents=True, exist_ok=True)
+    poppler = Path("C:/Users/smile/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/poppler/Library/bin/pdftoppm.exe")
+    subprocess.run([str(poppler),"-r","110","-png",str(output/"main.pdf"),str(staging/"page")],check=True)
+    from pypdf import PdfReader
+    count = len(PdfReader(output/"main.pdf").pages)
+    sheet = Image.new("RGB", (1296, 586*math.ceil(count/3)), "#e9edf1")
+    draw = ImageDraw.Draw(sheet)
+    for i in range(count):
+        shutil.copy2(staging/f"page-{i+1}.png", preview/f"page-{i+1}.png")
+        page = Image.open(preview/f"page-{i+1}.png").convert("RGB")
+        page.thumbnail((412,533))
+        x,y = 10+432*(i%3),22+586*(i//3)
+        sheet.paste(page,(x,y))
+        draw.text((x,y-17),f"Page {i+1}",fill="black")
+    sheet.save(preview/"contact-sheet.png")
+    print(f"Rendered {count} manuscript pages")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("command", choices=["prepare","render","check","pages"])
+    globals()[parser.parse_args().command]()

@@ -98,11 +98,6 @@ Our contributions are:
       for each module.
 \end{enumerate}
 
-The remainder of the paper first positions HD-MCRA relative to MCRA learning,
-quadruped navigation, and risk-aware planning. We then define the ideal MCRA
-problem and its closed-loop deployment gap, describe the execution-calibrated
-system, and evaluate each engineering choice before discussing limitations.
-
 \section{Related Work}
 \subsection{Minimum-Cost Reach-Avoid Learning}
 Reach-avoid reinforcement learning treats reaching a target and avoiding an unsafe
@@ -218,14 +213,18 @@ cost and geometric errors are converted into $\alpha$ and $\delta$. The correcte
 model is then used for high-level learning and budget search. Online, the policy
 emits a velocity command and the frozen tracker closes the loop on the robot.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.96\columnwidth]{../../images/1020/framework_overview_final.png}
-\caption{HD-MCRA deployment pipeline. The frozen velocity tracker supplies the
-execution interface; the calibration stage maps paired nominal/executed rollouts
-to the cost margin $\alpha$ and safety margin $\delta$.}
+\includegraphics[width=\textwidth]{../../images/1020/deployment_calibration_overview.pdf}
+\caption{Two-stage engineering architecture of HD-MCRA. Stage 1 freezes the
+velocity tracker and calibrates cost and safety margins from paired nominal and
+executed rollouts. Stage 2 uses $\tilde c=(1+\alpha)c$ for cost-learning targets
+and budget updates, and the expanded unsafe set $\mathcal{F}_\delta$ for
+reachability targets. The actor sends velocity commands through the same frozen
+tracker, which produces joint commands. Scene views are static renders and paths
+are illustrative; ghost poses depict one robot at successive times.}
 \label{fig:system_overview}
-\end{figure}
+\end{figure*}
 
 \subsection{Frozen Velocity-Control Interface}
 We first train and freeze a velocity tracker to execute the high-level navigation
@@ -327,20 +326,55 @@ cumulative cost is recorded separately, and budget violation is evaluated agains
 the selected initial budget. Goal-reaching, collision, and clearance outcomes are
 also logged for the empirical evaluation in the next section.
 
-\paragraph{Execution-calibrated procedure.}
-The draft implementation follows five steps:
-\begin{enumerate}
-\item Freeze the velocity tracker and collect paired nominal/executed rollouts.
-\item Estimate $\alpha$ and $\delta$ from calibration-set quantiles, keeping
-      held-out evaluation rollouts separate.
-\item Train the budget-conditioned RC-PPO actor and critic using $\tilde c$ and
-      $\mathcal{F}_\delta$.
-\item Convert the actor to mean-action deployment and select the smallest tested
-      budget meeting the acceptance criteria.
-\item Execute the selected policy and log goal, safety and cost outcomes.
-\end{enumerate}
-
 \section{Experiments}
+% Queue full-width result floats early so they stay near the experimental discussion.
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{../../images/1020/metrics_comparison_assumed.pdf}
+\caption{Scenario-level SR, CR, BVR, and executed cost at the common reference
+budget. Markers distinguish scenarios; colors distinguish methods. Points and
+horizontal ranges are assumed placeholders; the ranges are not measured standard
+deviations or confidence intervals. Table~\ref{tab:main_results} reports equal-scene
+means and additionally includes minimum clearance.}
+\label{fig:metrics_draft}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$ (all entries are assumed data).}
+\label{tab:main_results}
+\centering
+\begin{tabular}{lccccc}
+\hline
+Method & SR (\%) & CR (\%) & Cost & BVR (\%) & MC (m)\\
+\hline
+HD-MCRA & \shortstack{73.3\\\textit{(assumed data)}} & \shortstack{15.0\\\textit{(assumed data)}} & \shortstack{88.3\\\textit{(assumed data)}} & \shortstack{9.0\\\textit{(assumed data)}} & \shortstack{0.31\\\textit{(assumed data)}}\\
+RC-PPO & \shortstack{70.7\\\textit{(assumed data)}} & \shortstack{15.7\\\textit{(assumed data)}} & \shortstack{91.7\\\textit{(assumed data)}} & \shortstack{14.0\\\textit{(assumed data)}} & \shortstack{0.30\\\textit{(assumed data)}}\\
+RA & \shortstack{60.0\\\textit{(assumed data)}} & \shortstack{13.0\\\textit{(assumed data)}} & \shortstack{104.0\\\textit{(assumed data)}} & \shortstack{20.0\\\textit{(assumed data)}} & \shortstack{0.34\\\textit{(assumed data)}}\\
+PPO$_{\beta_L}$ & \shortstack{67.7\\\textit{(assumed data)}} & \shortstack{23.0\\\textit{(assumed data)}} & \shortstack{99.7\\\textit{(assumed data)}} & \shortstack{20.7\\\textit{(assumed data)}} & \shortstack{0.20\\\textit{(assumed data)}}\\
+PPO$_{\beta_H}$ & \shortstack{42.3\\\textit{(assumed data)}} & \shortstack{29.0\\\textit{(assumed data)}} & \shortstack{117.0\\\textit{(assumed data)}} & \shortstack{27.0\\\textit{(assumed data)}} & \shortstack{0.16\\\textit{(assumed data)}}\\
+CPPO$_{\beta_L}$ & \shortstack{37.7\\\textit{(assumed data)}} & \shortstack{12.3\\\textit{(assumed data)}} & \shortstack{124.7\\\textit{(assumed data)}} & \shortstack{22.3\\\textit{(assumed data)}} & \shortstack{0.36\\\textit{(assumed data)}}\\
+CPPO$_{\beta_H}$ & \shortstack{69.7\\\textit{(assumed data)}} & \shortstack{18.3\\\textit{(assumed data)}} & \shortstack{105.7\\\textit{(assumed data)}} & \shortstack{17.0\\\textit{(assumed data)}} & \shortstack{0.26\\\textit{(assumed data)}}\\
+\hline
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Component ablation at the same reference budget as Table~\ref{tab:main_results} (all entries are assumed data).}
+\label{tab:ablation_draft}
+\centering
+\begin{tabular}{lccccc}
+\hline
+Variant & SR (\%) & CR (\%) & Cost & BVR (\%) & MC (m)\\
+\hline
+w/o hierarchy & \shortstack{47.9\\\textit{(assumed data)}} & \shortstack{38.8\\\textit{(assumed data)}} & \shortstack{116.7\\\textit{(assumed data)}} & \shortstack{31.5\\\textit{(assumed data)}} & \shortstack{0.11\\\textit{(assumed data)}}\\
+w/o $\alpha$ & \shortstack{67.2\\\textit{(assumed data)}} & \shortstack{19.8\\\textit{(assumed data)}} & \shortstack{80.6\\\textit{(assumed data)}} & \shortstack{22.4\\\textit{(assumed data)}} & \shortstack{0.29\\\textit{(assumed data)}}\\
+w/o $\delta$ & \shortstack{64.8\\\textit{(assumed data)}} & \shortstack{26.3\\\textit{(assumed data)}} & \shortstack{77.2\\\textit{(assumed data)}} & \shortstack{13.8\\\textit{(assumed data)}} & \shortstack{0.19\\\textit{(assumed data)}}\\
+w/o both (RC-PPO) & \shortstack{70.7\\\textit{(assumed data)}} & \shortstack{15.7\\\textit{(assumed data)}} & \shortstack{91.7\\\textit{(assumed data)}} & \shortstack{14.0\\\textit{(assumed data)}} & \shortstack{0.30\\\textit{(assumed data)}}\\
+HD-MCRA & \shortstack{73.3\\\textit{(assumed data)}} & \shortstack{15.0\\\textit{(assumed data)}} & \shortstack{88.3\\\textit{(assumed data)}} & \shortstack{9.0\\\textit{(assumed data)}} & \shortstack{0.31\\\textit{(assumed data)}}\\
+\hline
+\end{tabular}
+\end{table*}
+
 % Evaluation: overall performance, calibration mechanisms, budget sensitivity,
 % execution perturbations, and hardware deployment.
 \subsection{Experimental Setup and Evaluation Protocol}
@@ -350,17 +384,23 @@ component effects, budget and margin sensitivity, execution perturbations, and
 hardware deployment. All numerical results in this draft are assumed placeholders
 and require verification from trial-level records.
 
-The simulated protocol uses a differential-drive abstraction coupled to the velocity
+The simulated protocol uses a planar body-velocity model coupled to the velocity
 interface and three map families: moderately cluttered, narrow passage, and densely
 obstructed. Each method receives the same local LiDAR scan, relative goal, and robot
 state. The high-level decision interval is 0.2 s and the episode horizon is
-30 s~\textit{(assumed data)}; the draft uses 3 training seeds and 300 trials per
-method~\textit{(assumed data)}. We report success rate (SR), collision rate (CR),
-cumulative cost, budget violation rate (BVR), and minimum clearance (MC). Success
-requires reaching the goal before timeout without entering the unsafe set; budget
-violation occurs when actual cumulative cost exceeds the selected initial budget.
-The exact cost function, units, simulator version, and closed-loop simulation
-configuration remain \textsc{TBD}.
+30 s~\textit{(assumed data)}. The planned evaluation uses 3 training seeds and
+300 trials per method; allocation across seeds and maps remains \textsc{TBD}.
+We report success rate (SR), physical collision rate (CR), mean executed cost,
+budget violation rate (BVR), and mean per-trial minimum clearance (MC).
+Success requires reaching the goal before timeout without physical collision;
+budget compliance is a separate event. CR and MC use a common physical robot
+footprint, not each method's inflated planning set. Under the adopted draft
+convention, cost and MC average all trials up to goal, collision, or timeout;
+exceeding the budget records a violation but does not terminate evaluation.
+The main and ablation tables use a common reference budget within each scenario,
+$z_0/z_{\rm ref}=1$, and equal weighting across the three scenarios. Absolute
+reference budgets, cost units and function, and the simulator configuration remain
+\textsc{TBD}; these conventions have not been verified against trial logs.
 
 RC-PPO uses the same frozen velocity tracker and training budget as HD-MCRA with
 $\alpha=\delta=0$. RA omits cost conditioning. PPO$_{\beta_L}$ and
@@ -378,32 +418,7 @@ averages, HD-MCRA has higher SR and lower cost and BVR than uncalibrated RC-PPO,
 with a similar collision rate. RA and CPPO$_{\beta_L}$ attain lower CR or greater
 clearance at the expense of other metrics. These assumed values illustrate the
 joint success--safety--cost trade-off; they do not establish statistical superiority.
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{../../images/1020/figure_metrics_grid_single_column_v3.pdf}
-\caption{Draft scenario-level performance trends. All plotted values are assumed
-data placeholders and must be regenerated from trial logs.}
-\label{fig:metrics_draft}
-\end{figure}
 
-\begin{table*}[t]
-\caption{Draft average performance over three simulated scenarios (all entries are assumed data).}
-\label{tab:main_results}
-\centering
-\begin{tabular}{lccccc}
-\hline
-Method & SR (\%) & CR (\%) & Cost & BVR (\%) & MC (m)\\
-\hline
-HD-MCRA & \shortstack{73.3\\\textit{(assumed data)}} & \shortstack{15.0\\\textit{(assumed data)}} & \shortstack{88.3\\\textit{(assumed data)}} & \shortstack{9.0\\\textit{(assumed data)}} & \shortstack{0.31\\\textit{(assumed data)}}\\
-RC-PPO & \shortstack{70.7\\\textit{(assumed data)}} & \shortstack{15.7\\\textit{(assumed data)}} & \shortstack{91.7\\\textit{(assumed data)}} & \shortstack{14.0\\\textit{(assumed data)}} & \shortstack{0.30\\\textit{(assumed data)}}\\
-RA & \shortstack{60.0\\\textit{(assumed data)}} & \shortstack{13.0\\\textit{(assumed data)}} & \shortstack{104.0\\\textit{(assumed data)}} & \shortstack{22.0\\\textit{(assumed data)}} & \shortstack{0.34\\\textit{(assumed data)}}\\
-PPO$_{\beta_L}$ & \shortstack{67.7\\\textit{(assumed data)}} & \shortstack{23.0\\\textit{(assumed data)}} & \shortstack{99.7\\\textit{(assumed data)}} & \shortstack{20.7\\\textit{(assumed data)}} & \shortstack{0.20\\\textit{(assumed data)}}\\
-PPO$_{\beta_H}$ & \shortstack{42.3\\\textit{(assumed data)}} & \shortstack{29.0\\\textit{(assumed data)}} & \shortstack{117.0\\\textit{(assumed data)}} & \shortstack{27.0\\\textit{(assumed data)}} & \shortstack{0.16\\\textit{(assumed data)}}\\
-CPPO$_{\beta_L}$ & \shortstack{37.7\\\textit{(assumed data)}} & \shortstack{12.3\\\textit{(assumed data)}} & \shortstack{124.7\\\textit{(assumed data)}} & \shortstack{22.3\\\textit{(assumed data)}} & \shortstack{0.36\\\textit{(assumed data)}}\\
-CPPO$_{\beta_H}$ & \shortstack{69.7\\\textit{(assumed data)}} & \shortstack{18.3\\\textit{(assumed data)}} & \shortstack{105.7\\\textit{(assumed data)}} & \shortstack{17.0\\\textit{(assumed data)}} & \shortstack{0.26\\\textit{(assumed data)}}\\
-\hline
-\end{tabular}
-\end{table*}
 
 \subsection{Execution Mismatch and Component Analysis}
 \label{sec:mismatch_analysis}
@@ -427,48 +442,34 @@ Table~\ref{tab:ablation_draft} isolates the cost and safety corrections by remov
 $\alpha$, $\delta$, or both, and includes the joint-space variant. Within these
 assumed values, removing $\alpha$ increases BVR, while removing $\delta$ increases
 CR and reduces clearance. The joint-space variant shows the largest overall
-reduction in performance. The main and ablation tables contain distinct draft
-values; their evaluation batches and configuration equivalence must be verified
-before cross-table comparisons (Appendix~\ref{app:statistical_evaluation}).
-\begin{table*}[t]
-\caption{Draft component ablation (all entries are assumed data).}
-\label{tab:ablation_draft}
-\centering
-\begin{tabular}{lccccc}
-\hline
-Variant & SR (\%) & CR (\%) & Cost & BVR (\%) & MC (m)\\
-\hline
-w/o hierarchy & \shortstack{47.9\\\textit{(assumed data)}} & \shortstack{38.8\\\textit{(assumed data)}} & \shortstack{116.7\\\textit{(assumed data)}} & \shortstack{31.5\\\textit{(assumed data)}} & \shortstack{0.11\\\textit{(assumed data)}}\\
-w/o $\alpha$ & \shortstack{67.2\\\textit{(assumed data)}} & \shortstack{19.8\\\textit{(assumed data)}} & \shortstack{80.6\\\textit{(assumed data)}} & \shortstack{22.4\\\textit{(assumed data)}} & \shortstack{0.29\\\textit{(assumed data)}}\\
-w/o $\delta$ & \shortstack{64.8\\\textit{(assumed data)}} & \shortstack{26.3\\\textit{(assumed data)}} & \shortstack{77.2\\\textit{(assumed data)}} & \shortstack{13.8\\\textit{(assumed data)}} & \shortstack{0.19\\\textit{(assumed data)}}\\
-w/o both & \shortstack{62.9\\\textit{(assumed data)}} & \shortstack{29.4\\\textit{(assumed data)}} & \shortstack{87.6\\\textit{(assumed data)}} & \shortstack{25.8\\\textit{(assumed data)}} & \shortstack{0.16\\\textit{(assumed data)}}\\
-HD-MCRA & \shortstack{70.8\\\textit{(assumed data)}} & \shortstack{18.6\\\textit{(assumed data)}} & \shortstack{71.3\\\textit{(assumed data)}} & \shortstack{11.2\\\textit{(assumed data)}} & \shortstack{0.32\\\textit{(assumed data)}}\\
-\hline
-\end{tabular}
-\end{table*}
+reduction in SR. The full and zero-margin rows reuse HD-MCRA and RC-PPO from
+Table~\ref{tab:main_results}. The single-margin rows remain separate assumptions:
+their effects are non-additive, and lower cost can accompany more failed or
+shorter trials. Thus, these placeholders do not establish monotonic improvement
+from adding either margin in isolation.
 
 \subsection{Budget Selection and Margin Sensitivity}
 \label{sec:budget_sensitivity}
 Figure~\ref{fig:budget_draft} presents the draft response to normalized initial
-budget. The budget-search procedure selects the smallest tested value meeting the
-goal-reaching, collision, and budget-violation criteria, using the candidate grid
-in Appendix~\ref{app:deployment_search}. This operational threshold is evaluated
-on separate trials and is not a continuous minimum-cost optimum.
+budget, with the reference point $z_0/z_{\rm ref}=1$ tied to
+Table~\ref{tab:main_results}. RA reuses the same trajectories across thresholds,
+so only its BVR changes. Under the draft criteria SR $\geq60\%$, CR $\leq20\%$,
+and BVR $\leq15\%$, the smallest feasible tested ratios are $0.90$ for HD-MCRA,
+$0.96$ for RC-PPO, and $1.12$ for RA~\textit{(assumed data)}. These grid values
+are not continuous optima; selected policies require a separate final evaluation.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/figure_budget_sweep_v3.pdf}
-\caption{Draft budget-response curves. Curves are assumed data placeholders for
-protocol review.}
+\caption{Assumed budget-response curves, averaged equally across scenarios.
+All panels use $z_0/z_{\rm ref}$; values at 1.00 match Table~\ref{tab:main_results}.}
 \label{fig:budget_draft}
 \end{figure}
 
-We separately vary $\alpha\in\{0,0.09,0.18,0.27\}$ and
-$\delta\in\{0,0.06,0.12,0.18\}$ m~\textit{(assumed data)}. The draft trend is
-lower BVR with increasing $\alpha$ and lower CR with increasing $\delta$, together
-with higher path cost or lower SR when margins become excessive. These parameter
-sweeps examine the conservatism--feasibility trade-off separately from the initial
-budget response; the policy-training convention for each setting remains
-\textsc{TBD} (Appendix~\ref{app:statistical_evaluation}).
+The planned margin sweep uses $\alpha\in\{0,0.09,0.18,0.27\}$ and
+$\delta\in\{0,0.06,0.12,0.18\}$ m~\textit{(assumed settings)}. It will test
+whether lower BVR or CR offsets reduced feasibility under larger margins.
+No sweep-level results are available; the training convention for each setting
+remains \textsc{TBD}. This planned test is distinct from the budget sweep.
 
 \subsection{Robustness to Execution Perturbations}
 \label{sec:execution_robustness}
@@ -495,80 +496,57 @@ BVR, and clearance remain \textsc{TBD}; the available description is a prelimina
 deployment study rather than a certification of safety or budget feasibility.
 
 \section{Limitations}
-The current manuscript is an engineering draft and has several limitations. First,
-the numerical values in this version are explicitly assumed placeholders; no result
-should be used for a scientific comparison until replaced by trial-level logs and
-confidence intervals. Second, the robustness mechanism uses fixed empirical
-quantiles and therefore only describes coverage under the calibration distribution.
-Temporal correlation, rare contacts and distribution shifts can make the effective
-coverage lower than the marginal quantile suggests. Third, a fixed $\alpha$ may be
-overly conservative in open space and insufficient under severe actuator or
-perception faults, while a fixed $\delta$ can remove feasible narrow passages.
-Fourth, the LiDAR observation can miss thin structures or obstacles behind
-occlusions. Finally, the current physical study is small and indoor; broader
-terrain, payload and weather conditions are required before making claims about
-general quadruped deployment.
+All numerical results are assumed placeholders requiring trial logs and empirical
+intervals before scientific comparison. Calibration quantiles do not guarantee
+coverage under temporal correlation, rare contacts, or distribution shift.
+A fixed $\alpha$ can be excessive in open space yet insufficient under actuator
+or perception faults; a fixed $\delta$ can eliminate feasible narrow passages.
+LiDAR can miss thin or occluded structures. The small indoor hardware study also
+requires extension across terrain, payload, and weather conditions.
 
 \section{Conclusion}
-This paper reframes the practical use of RC-PPO/MCRA on a quadruped as a deployment
-problem. The MCRA objective, augmented state and two-phase solver are inherited
-from prior work. The new engineering layer fixes a velocity-level closed-loop
-interface, measures paired nominal/executed mismatch, and maps cost overrun and
-path deviation to separate corrections $\alpha$ and $\delta$. This organization
-turns an abstract budget-conditioned reach-avoid learner into a pipeline that can
-be calibrated, tested and deployed on a physical robot. The present numerical
-results are placeholders marked as assumed data; the final conclusions will be
-updated after replacing them with verified simulation and Go2 logs. The intended
-claim is empirical robustness within the calibrated execution distribution, not a
-new formal stochastic reach-avoid guarantee.
+HD-MCRA connects the inherited RC-PPO objective and solver to a quadruped through
+a frozen velocity interface and paired execution calibration. Cost overrun and
+path deviation determine separate corrections $\alpha$ and $\delta$. This
+engineering layer targets empirical robustness within the calibration distribution,
+without a new stochastic reach-avoid guarantee. Final conclusions await verified
+simulation and Go2 logs replacing the assumed results.
 
 \appendices
 \section{Velocity-Interface Implementation Details}
 \label{app:velocity_interface}
 The draft command limits for the frozen velocity tracker are
 $v_x^*\in[-0.6,0.6]$ m/s, $v_y^*\in[-0.4,0.4]$ m/s, and
-$\omega_z^*\in[-1.2,1.2]$ rad/s~\textit{(assumed data)}. These values are
-provisional configuration placeholders and must be verified against the original
-implementation before submission.
+$\omega_z^*\in[-1.2,1.2]$ rad/s~\textit{(assumed data)}.
 
 The exact network architecture, reward weights, domain-randomization ranges, and
-low-level and high-level control rates remain \textsc{TBD} pending restoration of
-the original configuration. Tracking accuracy and locomotion stability must be
-reported over the command domain used for calibration, learning, and deployment.
+control rates remain \textsc{TBD}. Configuration verification and tracking/stability
+evaluation must cover the command domain used throughout the pipeline.
 
 \section{Execution-Mismatch Calibration Details}
 \label{app:calibration_details}
 \subsection{Paired-Rollout Configuration}
 The draft uses 1,200 paired rollouts, with 800 for calibration and 400 held out for
 evaluation~\textit{(assumed data)}. Perturbations cover friction, actuation delay,
-and velocity-tracking noise. LiDAR perturbations are evaluated separately because
-they affect the policy's observation rather than the same-command execution
-mismatch. Exact perturbation ranges and their assignment to calibration or
-held-out conditions remain \textsc{TBD}. The source of calibration executions,
-rollout duration, and command-sequence sampling protocol also remain \textsc{TBD}
-pending restoration of the original configuration and logs.
+and velocity-tracking noise. LiDAR perturbations are tested separately as observation
+errors. Execution source, perturbation ranges and split, rollout duration, and
+command sampling remain \textsc{TBD}.
 
 \subsection{Measurement and Geometry Conventions}
-The draft trajectory-deviation statistic uses the maximum planar distance between
-time-aligned base positions. This measurement convention is provisional and must
-be verified against the original implementation. The exact cost function, units,
-weights and normalization, trajectory alignment and interpolation rules, and
-handling of unequal rollout lengths remain \textsc{TBD}. The relative cost-overrun
-ratio requires a positive nominal cumulative cost; the treatment of zero-cost
-rollouts must also be specified before finalizing the protocol.
+Deviation is provisionally the maximum distance between time-aligned planar base
+positions. Cost function, units, weights, normalization, trajectory alignment,
+interpolation, unequal-length handling, and treatment of zero nominal cost remain
+\textsc{TBD}; the overrun ratio requires positive nominal cost.
 
-Whether the robot footprint is already included in the map obstacle layer remains
-\textsc{TBD}. If it is included, $\delta$ is an additional execution margin rather
-than a second footprint inflation. The map geometry and footprint convention must
-be verified before interpreting clearance or applying the unsafe-set dilation.
+Map geometry and footprint inclusion remain \textsc{TBD}. The physical footprint
+must be accounted for once, with $\delta$ providing additional execution clearance.
 
 \subsection{Quantile Settings and Draft Margins}
 The draft uses $p_c=p_d=0.90$~\textit{(assumed data)}, with draft margins
 $\alpha=0.18$~\textit{(assumed data)} and $\delta=0.12$ m~\textit{(assumed data)}.
-These values and the sample counts are provisional placeholders, not calibration
-results verified from trial records. They must be replaced with traceable data
-before submission, and the quantile estimation uncertainty must be computed from
-the original rollout-level records rather than inferred from these placeholders.
+These are placeholders; quantiles and their uncertainty require original
+rollout-level records. The few illustrative paths in Fig.~\ref{fig:system_overview}
+do not estimate these distributional quantiles.
 
 \section{Learning and Deployment Implementation Details}
 \label{app:learning_details}
@@ -603,23 +581,21 @@ critic loss, optimizer settings, network architecture, and update schedule remai
 The draft samples $z_0/z_{\rm ref}$ uniformly from $[0.8,1.2]$ during Phase I and
 uses $\gamma=0.99$, $\epsilon=0.2$, and GAE $\lambda=0.95$~\textit{(assumed data)}.
 These values are provisional configuration placeholders and must be verified before
-submission. The definition and normalization of $z_{\rm ref}$ remain \textsc{TBD}.
+submission. Absolute, scenario-specific reference budgets remain \textsc{TBD};
+the comparison convention is given in Section~\ref{sec:experimental_setup}.
 
 \subsection{Terminal Handling and Budget Accounting}
 \label{app:termination_budget}
-The draft's provisional terminal-handling rule sets the bootstrap term to zero at
-goal reaching, collision, budget violation, or a time limit. This is not a verified
-requirement of RC-PPO. The boundary targets for true terminal states and the
-bootstrap treatment of time-limit truncations must be checked separately; their
-exact definitions remain \textsc{TBD} until the implementation is restored.
+Learning-time boundary targets, treatment of budget exhaustion, and bootstrap
+handling of time-limit truncations remain \textsc{TBD} pending implementation
+verification. They must be distinguished from the evaluation convention, which
+stops at goal, physical collision, or timeout and records budget violations
+without early termination.
 
-During deployment, the policy's remaining budget is updated using $\tilde c$,
-while actual cumulative cost is recorded separately for evaluation. A budget
-violation is recorded when $J_{\rm exec}>z_0$, where $z_0$ is the selected initial
-budget. Whether the running cost used by the internal budget update is evaluated
-from nominal predictions or measured states, and the associated units and
-normalization, remain \textsc{TBD}. The cost function must be made explicit in the
-problem setup or experimental protocol before finalizing the manuscript.
+The policy debits $\tilde c$ from its remaining budget; evaluation separately
+records $J_{\rm exec}>z_0$ as a violation. Whether internal debits use nominal
+predictions or measured states remains \textsc{TBD}, as do cost units and
+normalization. These implementation choices must be verified before submission.
 
 \subsection{Deterministic Deployment and Budget Search}
 \label{app:deployment_search}
@@ -635,23 +611,25 @@ $\{0.80,\allowbreak 0.85,\allowbreak 0.90,\allowbreak 0.96,\allowbreak
 1.00,\allowbreak 1.05,\allowbreak 1.12,\allowbreak 1.20\}$~\textit{(assumed data)}.
 The smallest tested budget meeting the goal-reaching, collision, and
 budget-violation criteria is selected; this does not establish a continuous
-minimum-cost optimum. The numerical acceptance thresholds, budget-selection
-evaluation conditions and trial counts, and handling of cases with no feasible
-candidate remain \textsc{TBD}. Budget-selection data must remain separate from
-the final evaluation used to report performance.
+minimum-cost optimum. Draft acceptance thresholds are SR $\geq60\%$, CR
+$\leq20\%$, and BVR $\leq15\%$. If none passes, the search reports no feasible
+tested candidate. Absolute budgets and selection-set trial counts remain
+\textsc{TBD}. Budget-selection data must remain separate from the final
+evaluation used to report performance.
 
 \section{Statistical Evaluation Details}
 \label{app:statistical_evaluation}
-For the assumed-data draft, confidence intervals are intentionally omitted rather
-than reconstructed from aggregate means or plotted bars. The final protocol should
+Figure~\ref{fig:metrics_draft} uses manually specified hypothetical ranges for
+layout review, not empirical confidence intervals, standard deviations, or
+standard errors. They are marginal ranges and cannot determine joint feasibility.
+The final protocol should
 report binomial intervals for SR/CR/BVR, bootstrap intervals for cost and MC, and
 the quantile estimation uncertainty for $\alpha$ and $\delta$, all computed from
 the original trial-level records. The confidence level, interval estimators,
 resampling procedure, and treatment of dependence across trials, maps, and
 training seeds remain \textsc{TBD} pending restoration of the original logs.
 
-% IEEEtran's documented column-break hook balances the last reference page.
-\IEEEtriggeratref{14}
+% Let IEEEtran flow references naturally after the full-width overview update.
 \bibliographystyle{IEEEtran}
 \bibliography{references}
 

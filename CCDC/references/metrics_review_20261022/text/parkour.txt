@@ -1,0 +1,858 @@
+===== PDF PAGE 1 =====
+    ANYmal Parkour: Learning Agile Navigation for
+                 Quadrupedal Robots
+
+
+                 David Hoeller             Nikita Rudin           Dhionis Sako         Marco Hutter
+               ETH Zurich            ETH Zurich          ETH Zurich          ETH Zurich
+                   NVIDIA                NVIDIA              dsako@ethz.ch          mahutter@ethz.ch
+                    dhoeller@ethz.ch            rudinn@ethz.ch
+                  Equal contribution          Equal contribution
+
+
+
+
+           Abstract—Performing agile navigation with four-legged robots   the capabilities of our robots which in return paves the road for
+             is a challenging task due to the highly dynamic motions, contacts  many new applications such as search and rescue in collapsed
+         with various parts of the robot, and the limited field of view of2023                                                                   buildings or complex natural terrains.
+          the perception sensors. In this paper, we propose a fully-learned
+                                                                           In such scenarios, the robot must sense its environment to        approach to train such robots and conquer scenarios that are
+         reminiscent of parkour challenges. The method involves training   develop an understanding of the rapidly changing surroundingJun   advanced locomotion skills for several types of obstacles, such   scene and select a feasible path and sequence of motions
+          as walking, jumping, climbing, and crouching, and then using   based on its set of skills. In the case of large and challenging
+        a high-level policy to select and control those skills across the26                                                                      obstacles, it has to perform dynamic maneuvers at the limits of
+          terrain. Thanks to our hierarchical formulation, the navigation
+                                                                          actuation while accurately controlling the motion of the base          policy is aware of the capabilities of each skill, and it will adapt
+             its behavior depending on the scenario at hand. Additionally,  and limbs. All of the above must be achieved in real-time
+        a perception module  is trained to reconstruct obstacles from   with limited onboard computing and using its exteroceptive
+          highly occluded and noisy sensory data and endows the pipeline   sensors’ partial and noisy information.
+         with scene understanding. Compared to previous attempts, our                                                            The complexity of the task exacerbates many of the chal-
+        method can plan a path for challenging scenarios without expert[cs.RO]                                                                 lenges commonly faced by mobile robots:         demonstration, offline computation, a priori knowledge of the
+         environment, or taking contacts explicitly into account. While     • The locomotion controller cannot rely on a stable and pe-
+          these modules are trained from simulated data only, our real-        riodic gait but must use completely different motions and
+         world experiments demonstrate successful transfer on hardware,      make contact with its limbs depending on the obstacles
+        where the robot navigates and crosses consecutive challenging
+                                                                                         at hand.          obstacles with speeds of up to two meters per second. The
+         supplementary video can be found on  the  project  website:     •  State estimation is prone to heavy drift due to high-impact
+          https://sites.google.com/leggedrobotics.com/agile-navigation              forces and contacts on various parts of the robot.
+           Index Terms—navigation, locomotion, perception, reinforce-     • Perceiving  the  environment   is  difficult  since  self-
+        ment learning                                                      occlusions and the limited field of view of the sensors
+                                                                                       result in a partial view of the scene.
+                                        I. INTRODUCTION                           • The planner has to reason about the environment, under-
+              1  Parkour,  also known  as  free-running,  is a  discipline        stand the kinematic and dynamic capabilities of the robot
+          originating in the late 80s that has gained in popularity with the       and know the limitations of its low-level controllers to
+         advent of the internet. Free-runners perform acrobatic stunts       produce feasible trajectories.
+        where the goal is to attain a hard-to-reach location in the most     • Any latency in the system can be catastrophic during fastarXiv:2306.14874v1
+         elegant and efficient manner. It involves navigating through the       motions. As such, the processing of sensory data and the
+        environment by walking, running, climbing, and jumping over        inference of controllers must be performed with minimal
+          obstacles, and the athlete must coordinate these agile skills in        delays.
+         a precisely-timed sequence. This discipline requires years of
+                                                                      A. Method overview
+          practice to develop the necessary competencies, intuitions, and
+          reflexes and is considered particularly dangerous.                This work aims to solve the above-mentioned challenges
+          While legged robots aspire to be as nimble and agile as  and proposes a method to perform agile navigation with a
+       humans or animals, we are  still  far from fully exploiting   quadrupedal robot in parkour-like settings (Fig. 1). Based on
+          their capabilities to achieve similar behaviors. By aiming to   state-of-the-art methods for mapping, planning, and locomo-
+        match the agility of free-runners, we can better understand the   tion, the robot  is trained to navigate and locomote in an
+          limitations of each component in the pipeline from perception   environment to reach a specific target location. Limiting the
+          to actuation, circumvent those limits, and generally increase   allocated time forces the robot to overcome the course at high
+                                                                    speeds and demonstrate fast decision-making.
+            1Under Review                               We split the pipeline into three interconnected components:
+
+===== PDF PAGE 2 =====
+Fig. 1: Deployment of the pipeline on the quadrupedal robot ANYmal D. The robot performs highly dynamic maneuvers and
+makes contacts with its limbs where necessary.
+
+===== PDF PAGE 3 =====
+a perception module, a locomotion module, and a navigation        use symmetry augmentation to increase the policies’
+module (Fig. 2). The perception module receives point cloud        performance.
+measurements from the onboard cameras and the LiDAR and     3) We develop a neural terrain reconstruction method that
+computes an estimate of the terrain around the robot, as well        can handle the challenging conditions of our task. We
+as a compact latent vector that represents the belief state       augment the approach described in [3] with a multi-
+of the scene. The locomotion module contains a catalog of         resolution scheme  to combine precise reconstruction
+locomotion skills that can overcome specific terrains. For this        near the robot with a coarse larger-scale map to have
+work, we train five policies that can walk on irregular terrain,        a larger view of the scene. We also modify the network
+jump over gaps, climb up and down high obstacles, and crouch         architecture to allow for efficient inference with large
+in narrow passages. Using the latent tensor of the perception        batch sizes during RL  training. We demonstrate the
+module, the navigation module guides the locomotion module         applicability of the method  to complex scenes with
+in the environment by selecting which skill to activate and        overhanging obstacles.
+providing intermediate commands. Each of these learning-     4) We deploy all modules in the real world on the ANY-
+based modules is trained in simulation.                         mal D robot. We test the capabilities of the system on
+  We design randomized obstacle fields containing stairs, in-        a variety of obstacle arrangements in both indoor and
+clined surfaces, boxes, gaps, and tables. While the locomotion        outdoor settings.
+policies are trained on single obstacles, the perception and
+                                                          C. Related worknavigation modules are trained on various arrangements of
+these obstacles.                                                     a) Locomotion: Perceptive legged locomotion has been
+   Finally, after training in simulation,  all the modules are   tackled by multiple approaches ranging from model-based
+deployed in the real world.                                       to fully learned techniques. Model predictive control (MPC)
+                                                         can be used to traverse challenging terrains requiring precise
+B. Contributions                                                                  foot placement [4]–[6], but the approach  is limited by the
+  In our experimental validation, we demonstrate the sys-   underlying model. MPC tends to fail in cases of slippage or
+tem’s ability to solve the problem autonomously, resulting in   imperfect terrain perception. Furthermore, current MPC ap-
+behaviors not shown before with such platforms. The robot   proaches make strong assumptions about the contact schedule
+can cross difficult terrains with speeds of up to 2 m/s and   of the feet, proscribing any other contact between the robot and
+make the right navigation decisions to reach the target in    its environment. Deep reinforcement learning has proven to be
+time. The locomotion controllers perform precise and agile   an effective solution for robust perceptive locomotion [7]–[9].
+movements, sometimes on narrow boxes barely the size of   Nevertheless, it is still far from exploiting its potential.
+the robot’s footprint, and leverage the system’s full range of     Agile locomotion has been of strong interest since the first
+motion to pass higher obstacles. The mapping pipeline, which   legged robots [10]. More recently, the research continued with
+provides updates at a high frequency, correctly reconstructs   quadrupedal robots running [11] and jumping over obstacles
+the scene despite state estimation and sensing noise stemming   [12], [13]. In recent years, with the combined democratization
+from the robot’s fast speeds. Finally, the planner uses the   of commercially available quadrupedal platforms and openly
+available information and  its  intrinsic knowledge of each   available deep reinforcement learning frameworks, various
+skill’s capabilities to guide the robot around the course on  new tasks have been demonstrated. Notable examples include
+a feasible path. All of these components are designed with   jumping and climbing [2], performing cat-like landing motions
+efficiency in mind. They scale properly when training with   [14], [15], recovering from falls [16], [17], and dribbling with
+thousands of agents in simulation and operate in real-time   a football [18], [19].
+on the real robot. We show that the complete pipeline can     In parallel, bipedal robots have also demonstrated their agile
+be deployed sim-to-real achieving high  agility despite the   capabilities by walking blindly on rough  terrain [20] and
+harsh conditions of the real world. We can summarize our   jumping on obstacles [21].
+contributions as follows:                                            b) Navigation and Hierarchical Learning: Navigation is
+  1) We propose a novel learned navigation approach that   typically achieved with a hierarchical set-up, where a planner
+      uses the belief state of the terrain reconstruction network   computes a feasible and collision-free path, which a controller
+      to plan a path through intricate scenes while selecting   then tracks. While sampling-based methods are commonly
+     from a library of locomotion skills. Thanks to the simple   used to create such a path [22], employing such techniques
+      architecture, inference is in the order of milliseconds.   with legged robots is challenging due to the system’s complex
+    We modify the PPO [1] algorithm to have a hybrid  and hybrid nature. The robot must constantly make and break
+      actor output with a Gaussian distribution for the low-   contact with the environment to influence its motion, which
+      level commands and a categorical distribution for skill   leads to the combinatorial explosion of the set of possible
+      selection.                                                    solutions. As a result, the problem is usually simplified to keep
+  2) We train new and more capable locomotion skills by    it tractable. In [23], a solution is proposed to plan maneuvers in
+      extending the position-based formulation  in  [2]. We   challenging environments for several legged robots. A path is
+      define new terrains, include a heading command, and    first sampled using primitive collision shapes, and a sequence
+
+===== PDF PAGE 4 =====
+Fig. 2: Description of our approach. We decompose the problem into three components: The perception module receives the
+point cloud measurements to estimate the scene’s layout and produces a latent tensor and a map. The locomotion module
+contains several low-level skills that can overcome specific scenarios. The navigation module is given a target goal and uses
+the latent to plan a path and select the correct skill.
+
+
+of contacts that are statically stable is planned. The procedure  overcome obstacles of 0.1 m with speeds of 0.33 m/s.
+takes a few seconds to converge, requires a priori knowledge
+of the environment, and results in statically stable motions,     Arguably, learning-based methods can break down such
+making it infeasible for our task. The authors in [24] propose   complexity and provide a more straightforward way to guide
+a real-time capable approach to plan a path on rough terrain   the robot from a point A to B. Previous works have trained
+with a quadrupedal robot. They constrain the solution space   navigation policies from expert demonstration [25], [26], using
+by estimating appropriate footholds from an elevation map   reinforcement learning [27]–[29], or fully self-supervised [30].
+but also simplify the problem by using a primitive robot   For legged robots, the authors of [31] proposed to combine
+morphology and assuming that the robot is always in contact   sampling-based planning with a learned motion cost for global
+with its feet. More related to parkour, [6] deploys a model-   path planning, resulting in a planner aware of the underlying
+based system to walk on rough terrain and jump on boxes.   controller’s capabilities. Unfortunately, the method requires
+However, the plan  is computed  offline, the switch to the   access to a global map beforehand and operates on elevation
+jumping controller is hard-coded, and the system can only   maps, meaning that the resulting plan cannot pass underneath
+                                                                   obstacles. Recently, [32] demonstrated  that a quadrupedal
+
+===== PDF PAGE 5 =====
+robot can solve an obstacle course inspired by dog agility   perceive the environment, it is equipped with a total of six Intel
+competitions using a hierarchical learning approach. Despite   Realsense depth cameras (two in the front, two in the back,
+the promising results and the close similarity to our method,  one left, one right), and a Velodyne Puck LiDAR. The whole
+this work requires human-designed path and skill selection   system is implemented in several ROS nodes across different
+and  is limited to a single pre-mapped environment with a   onboard computers. The locomotion and navigation modules
+motion capture system. To the best of our knowledge, we   operate synchronously in a single node on the onboard com-
+propose the first system that can perform agile navigation with   puter. The perception module is implemented on an NVIDIA
+a quadrupedal robot in such challenging scenarios without a   Jetson Orin and operates asynchronously with the rest of the
+priori planning or mapping.                                   system, i.e., the navigation and locomotion policies take the
+  Hierarchical reinforcement learning has gained attention in   last received message from the perception module to infer their
+the field of robotics as it enables robots to acquire, combine,   respective networks. The supplementary video summarizes the
+and reuse versatile skills in order to solve complex tasks.   proposed approach and shows indoor and outdoor experiments
+Pre-training low-level skills with imitation learning and then  on the real robot.
+controlling them through latent actions has been proposed for    The three learning-based modules operate together without
+both character animation [33] and robotics [18]. Combining   expert demonstration, offline computation, or a priori knowl-
+multiple expert policies has also been explored by switching   edge of the environment and enable the robot to reliably reach
+between policies trained to imitate fragments of motions [34]   a target across different arrangements of randomized obstacles.
+or by fusing locomotion policies with gating neural networks   Fig. 3 shows two trajectories and the corresponding profiles
+[35].                                                           of the robot’s speed, the selected skills, and the joint positions
+  In this work, we train locomotion skills using the position-  and torques for one of the leg’s hip flexion-extension (HFE)
+based task formulation of [2]. Similar to [34], the navigation  and knee flexion-extension (KFE) motors. The robot crosses
+module then learns to steer and switch between those skills.    the terrain swiftly and chooses suitable skills at every time-
+     c) Perception for navigation and locomotion: Navigation   step.  It reaches speeds of up to 2 m/s and undergoes fast
+and locomotion pipelines for legged robots heavily rely on   accelerations and decelerations (Fig. 3 (A1) and (B1)). The
+elevation maps  [4], [7], [9], [31], [36]. However, noise and   system leverages a large portion of the motor’s range and often
+inaccurate state estimation lead to unclean maps. To overcome   reaches maximum torque. Along trajectory A, the HFE motor
+these limitations, the authors in [7] use a teacher-student set-up   deflects by more than 160◦(Fig. 3 (A2)), which is necessary
+to train locomotion policies, where the student learns to deal   for the leg to reach the other side of the gap and catch the fall
+with mapping inaccuracies. The approach in [37] improves   of the robot during the climb down maneuver. In trajectory B,
+standard elevation mapping [38] by adding various filtering   the policy saturates the motor during the climb to propel the
+operations and post-processing  steps, which can  explicitly   robot onto the 0.9 m high platform (Fig. 3 (B3)).
+realign the map to compensate for drift in the z-direction,  The system is able to control the robot precisely despite the
+and performs additional visibility checks to clean up outliers.   high speeds. In scenario A, the robot reaches the leftmost
+We compare the reconstructions against this method in our  box after the stairs with a speed of 1.5 m/s. With a width
+experiments. Elevation maps, however, have drawbacks that   of 0.8 m, the box  is smaller than the robot’s footprint in
+limit their deployment for our task: They cannot represent   standing configuration. At  this location,  it has to perform
+the full 3D configuration of the world and cannot extrapolate   precise foothold placement to pass the last step and prepare
+beyond visible data, which is necessary to pass below obstacles   for the jump, despite the out-of-distribution scenario for the
+or to reconstruct the top surfaces of higher obstacles. For nav-   jumping skill, which has been trained with boxes double the
+igation, signed distance fields  [39] are commonly used since   size. This shows that the low-level skills can cope with more
+they can easily be integrated into the problem formulation to   intricate scenes than what they have been trained on with our
+avoid elements in the scene. While these approaches produce   method.
+a separate representation, the exteroceptive measurements can   In scenario B, the skill selection scheme of the navigation
+also be directly provided as input to the policy  [8], [40].  module is non-trivial. At several locations along the path, it
+These methods, however, involve multiple stages that provide   chooses skills that have not been designed for the specific
+direct supervision to the perceptive part. In this work, we   setting at hand. Indeed, it favors the jumping skill to quickly
+take inspiration from [3] to reconstruct the environment in 3D   turn the robot on the spot in the narrow passages after the
+from point cloud data. We augment the method with a multi-    first step down or before the climb. This can be explained
+resolution scheme to have a higher resolution near the robot  by the jumping skill’s training set-up, where  it has to jump
+and a lower resolution further away to have a larger view of  from one box to another, and the initial and target headings
+the scene.                                                       are randomized. The skill learns to turn on the spot in tight
+                                                             spaces and is more capable in such scenarios compared to
+                             II. RESULTS                                                                other skills. The navigation module is able to discover such
+  We deploy the pipeline on the quadrupedal robot ANY-   strengths during  its training process and exploits them on
+mal D.  It weighs around 55 kg and has 12 series  elastic   deployment. It is worth mentioning that the switches of the
+actuators capable of producing a torque of 85 N m each. To   low-level skills are smooth and unnoticeable on the real robot.
+
+===== PDF PAGE 6 =====
+    A
+
+
+
+
+
+    B
+
+
+
+
+
+                                  walk        jump         climb down         climb up        crouch       HFE        KFE
+        A1                                  B1
+               (m/s)
+               Speed
+
+        A2                                  B2
+
+
+
+
+
+        A3                                  B3
+
+
+
+
+
+Fig. 3: Deployment of the pipeline on the robot ANYmal D. (A) Trajectory on the real robot. (B) Trajectory in simulation. (A1)-
+(A3) and (B1)-(B3) depict the profiles of the robot’s speed, the selected skills, and two joint angles and torques corresponding
+to (A) and (B), respectively. The system leverages the motor’s full torque capabilities and uses large deflections of the joints
+to reach high speeds and overcome challenging obstacles.
+
+===== PDF PAGE 7 =====
+  The pipeline is also able to recover from disturbances or   the robot can use its knee to recover without falling back to
+crashes. We show that the robot stands up and completes the   the ground.
+course after falling down from a box, and that it can pass a        d) Crouching: The robot must reach a target located on
+table after heavily slipping due to low ground friction. More-   the other side of a narrow passage with a minimum height of
+over, the system is able to quickly readapt its trajectory when   0.4 m. When it crosses a table, the robot adopts the expected
+obstacles are pulled away from the robot during execution,   behavior of lowering  its base while walking in the desired
+despite the fact that all the components are trained with static   direction. With a low base height, it must adapt its gait and
+environments only. This is due to the fast reaction times of   use both hip motors to lift its feet off the ground.
+each component, and the ability of the perception module to        e) Walking: The robot must traverse various irregular
+quickly correct its output when there is a mismatch between   terrains  consisting of  stairs,  slopes, and randomly placed
+its belief state and the current measurements.                  small obstacles. These diverse terrains are traversable with a
+  In the following analysis, we delve into each component of  common walking policy and are similar to the terrains used
+our proposed approach, revealing how such behaviors can be   in previous perceptive legged locomotion works [7], [41]. The
+effectively achieved.                                            policy is capable of scaling and descending short slopes of
+                                                              40◦, climbing steps of 0.25 m step height, and running on flat
+A. Locomotion Module                                    ground at 2 m/s. Due to the diversity of training scenarios,
+                                                                         this policy generalizes well to unseen terrains such as narrow
+   First, we analyze the performance and emerging behavior                                                                              stairs, slopes, or combinations of different obstacles.
+of each locomotion policy separately. In Fig. 4, we show                                                                     Fig. 4 (F) shows the success rate of each skill across a range
+the training setup with the corresponding learned behavior of                                                               of corresponding  obstacles with  increasing  difficulty. The
+each skill and evaluate the performance of the policies across                                                              displayed range covers 0% to 120% of the maximum obstacle
+obstacles of increasing difficulty.                                                                        difficulty during training. All skills perform well up to 90%
+     a) Jumping: The robot starts on a box and must jump to   of their respective difficulty. After that, the crouching skill’s
+a neighboring box separated by a gap of up to 1 m. In order   performance drops the quickest when the passage becomes
+to perform a successful jump, the robot approaches the gap   narrower than the height of the robot. The performances of
+sideways and carefully places its feet as close as possible to   jumping, climbing, and climbing down skills also drop sharply
+the edge before using the full actuation power to leap to the  due to the physical limits of the robot. Finally, the walking
+other side. It uses three legs to propel itself, while the fourth is   skill extrapolates well beyond the training range of difficulties
+extended to land on the other side. The robot then transfers two   since the corresponding terrains are less challenging.
+diagonal legs before bringing the last leg across the gap. Due
+                                                             B. Navigation Moduleto randomization, the policy keeps the feet at a safe distance
+from the edge and can recover from missteps and slippage by   We examine  the emerging behaviors  of  the  navigation
+transferring the robot’s weight between the non-leaping legs.   module and show that it exhibits the following desired char-
+     b) Climbing Down: The robot starts on a box with a   acteristics:
+height of up to 1 m and must climb down to reach a target     1) Terrain-adapted path selection: The planner is able to
+on the ground. Since we penalize high impacts on its feet to          select sub-goals based on its instantaneous measurement
+prevent motor damage, the robot first goes on its knees on the         of the terrain by extracting 3D information from the
+edge and brings its center of gravity as low as possible. It then          latent space of the perception module. For similar envi-
+jumps down to land on its front legs holding its weight with        ronment configurations, it adapts the path depending on
+the back knees on top of the box. It then takes a few steps         the obstacles’ dimensions.
+forward on the front legs to re-position itself and allow the     2) Low-level policy switching and control: The high-level
+back legs to come down gently. The policy learns to be robust       module selects the most appropriate policy based on the
+to small shifts in the perceived terrain by slowly pushing its          terrain and can send the right commands to control the
+feet over the edge until it makes contact with its knees. It then         robot’s trajectory. It takes into account the capabilities
+uses the conveniently L-shaped shank and knees of the robot         of each skill.
+as a hook on the edge of the box.                        Upon convergence, the navigation policy can fully control
+     c) Climbing Up: The robot starts on the ground and must   the  five locomotion  skills across the course  to solve the
+climb on top of a box with a height of up to 1 m. To climb to   problem (Fig. 3 and Fig. 5). This task is not trivial due to
+the top, the robot puts one of its front feet on the top surface   the position-based formulation these policies are trained with.
+and uses  it to  lift itself to an upright configuration. It then   Indeed, each low-level policy can modulate the robot’s move-
+re-positions itself before jumping to land with a hind leg on  ment freely within the allocated time and must only comply
+the top while balancing by pushing against the vertical surface   with the position and heading commands when the time is
+with the fourth leg. Finally, it propels the whole body up and   over. For example, it could track the orientation command at
+brings the fourth leg on top. While the robot only uses its feet   any time along the trajectory. Therefore, the navigation policy
+and shanks when possible, it also learns to use its knees when   has to learn how to properly combine the position, heading,
+needed. For example, if the third leg slips or misses the edge,  and timing commands for each skill to achieve the desired
+
+===== PDF PAGE 8 =====
+Fig. 4: Training scenarios of the locomotion skills with the resulting behaviors. (A) Jumping. (B) Climbing down. (C) Climbing
+up. (D) Crouching. (E) Walking. (F) Success rate of each skill for obstacles of varying difficulty. (G) Ranges of parameters
+used during training (0% to 100% in F).
+
+
+motion of the robot. This is particularly important when the   disturbances we add during high-level training, which have a
+robot arrives at high speeds on a narrow obstacle. It often has   stronger impact on the climb up skill. (B) and (C) show the
+to quickly decelerate the robot and then turn on the spot to   resulting trajectories on the real robot for h = 0.75 m, and (D)
+get to the next obstacle.                                  and (E) for h = 1.15 m.
+  The navigation module  is aware of the capabilities and     Another example where the robot has to distance itself from
+limitations of each skill and uses this knowledge to adapt the   the target to reach distant goals is described in supplementary
+trajectory. This is primarily visible with the climb up, climb   section S4.
+down, and crouch skills, where depending on the configuration   We compare the performance of our method against a man-
+of the obstacle, it will modify its output. When a box is too   ually computed trajectory (Table I) for the different terrains
+high, the policy does not go up or down directly since it would   depicted in Fig. 7. For the manual trajectory, we hard-code the
+result in failure. For tables that are too low,  it will climb  commands and skills along the course based on the sequence
+over them rather than crouch underneath. Such adaptation is   of obstacles, which amounts to human expert demonstrations.
+depicted in Fig. 5, where the robot starts on the ground and  The study is performed on three randomly selected scenarios
+we command the policy to reach the target box in the back   with 1000 roll-outs each, where the obstacles’ difficulty is
+(up) and then command it back to the starting position (down).   close to the maximum defined during low-level training (100%
+In (A), we show the likelihood that the robot takes the direct   in Fig.  4). The table shows that manually placing targets
+path as a function of the height of the box. It can be seen   performs well in certain scenarios, but fails in other cases
+that when the height of the box increases, the policy is more  where the locomotion policies require finer-grained control.
+likely to choose a longer but safer path. Indeed, the policy   Moreover, our high-level policy learns to dynamically adjust
+sends the robot down directly until a height of 1 m, after which   the  targets by placing them  further away  to increase the
+it increasingly prefers to take the longer route. On the other   speed of the robot. Manual demonstrations with targets at
+hand, it switches much more quickly to the longest route when   key locations (i.e. in the middle of obstacles) lead to lower
+going up. This difference can be explained by the different   speeds thus requiring a longer time to reach the target. Finally,
+
+===== PDF PAGE 9 =====
+ A                                                                                 100
+
+                                                                                    80
+                                 up   B                 D
+              h                                                                     60  direct path
+                                                                                                           selection
+                             down   C                      E                 40  likelihood (%)
+
+                                                                                    20
+                                                0.7    0.8    0.9    1.0    1.1    1.2    1.3
+                                                   h (m)
+                                                                                    0
+ h = 0.75 m
+  BB                                    C
+
+
+
+
+
+                                       0.75 m
+
+
+
+ h = 1.15 m
+ D                                         E
+
+
+
+
+
+                                       1.15 m
+
+
+
+
+Fig. 5: Adaptive path selection. The robot starts on the ground and is given a target on top of the box in the back, and then
+commanded back to the initial position. (A) Likelihood of going up and down along the direct path (red line) as a function
+of the height of the box. (B) and (C) Deployment on the robot for h = 0.75 m. (D) and (E) Deployment on the robot for
+h = 1.15 m. For the same targets and box placement, the navigation policy chooses a different path depending on the height
+of the boxes to reach the goal.
+
+===== PDF PAGE 10 =====
+TABLE I: Comparison of the navigation policy’s performance                                                             voxels and noisy measurements along some of the obstacles’
+against a manually hard-coded trajectory.                                                               edges. In (A), for example, while the estimated height of
+                                                                 the box  to the  left of the robot  is  correct, the width  is                                   Ours    Manual
+                   Terrain: Fig. 7 - A   98.2%   95.3%                 approximately 8 cm too large. However, nearby the robot, the
+                   Terrain: Fig. 7 - B   96.3%   60.9%                    refiner can deal with such inaccuracies and further enhances
+                   Terrain: Fig. 7 - C   97.6%   75.3%
+                                                                 the reconstruction. This can be seen in (D), where the refiner
+                                                           produces cleaner stairs than the coarse map.
+                                                     The importance of the auto-regressive feedback can behuman demonstrations do not scale well when randomizing the
+                                                            witnessed when the robot crouches under the table in (C).terrain, since it requires hand labeling each new case.
+                                                            Despite the sparsity of the measurements on the top surface,  We provide an ablation study of the policy’s action space
+                                                                 the network remembers this region since  it could be seenin supplementary section S5.
+                                                             during the approach in previous time steps. Of course, the
+C. Perception module                                                                baseline method  is not designed to handle such scenarios
+  The perception module can process the noisy and occluded   with overhangs. It produces a mix containing the top surface
+point cloud measurements to produce a meaningful  latent   at some locations and the ground at others, resulting in an
+for the navigation module and a clean reconstruction for the   erroneous map.
+locomotion module. As mentioned earlier, the module operates    The robustness to state estimation drift can be seen in (B)
+asynchronously with the rest of the system on deployment.  and (D) by comparing with the baseline. In (B), the robot’s
+This differs from our training set-up, where we assume that   position estimate suddenly jumped to the left. Our network
+the perceptive information and the resulting reconstruction   detects such situations and immediately corrects the map. The
+and latent are available at the exact time of inference. The   elevation map, on the other hand, cannot cope with the drift
+performance does not seem to be affected by such delays in  and the knees of the robot and the hind leg are inside the
+the real system.                                        map. The same happens in (D), where the hind leg is inside
+  We analyze the reconstructions and compare them against   the elevation map.
+an elevation mapping baseline [37] that runs alongside our
+network. This method provides several improvements to the
+commonly used framework described in [38], making  it a                             III. DISCUSSION
+stronger contender for the parkour task. It can detect drift in z-
+direction to realign the map to the correct height and performs     This work aims to extend the capabilities of legged robots
+additional  visibility checks  to remove  outliers. While we  on highly challenging terrains. We have presented a complete
+mainly qualitatively evaluate the reconstruction performance,   pipeline for robotic parkour, including specially developed
+we refer the reader to [29] for a quantitative analysis for this   low-level locomotion skills, a high-level navigation module,
+type of approach.                                        and a perception module. The proposed approach allows the
+  Several outputs of the network for scenarios Fig. 5 (D) and   robot to move with unprecedented agility. It can now evolve
+Fig. 3 (A) are presented in Fig. 6 (real-world data). The first   in complex scenes where  it must climb and jump on large
+column corresponds to the measurements, the second to the   obstacles while selecting a non-trivial path toward its target
+baseline map visualized as a point cloud, and the last to our   location. The dynamic nature of the task poses multiple chal-
+reconstruction. Since the baseline  is an elevation map, the   lenges that render existing approaches unsuitable. It requires
+corresponding point cloud does not contain vertical surfaces.   non-standard locomotion skills at the actuation limit, a planner
+Our approach produces a multi-resolution output and we color   with an intrinsic understanding of the locomotion capabilities
+the high-resolution output (refinement process 2 m around the   with respect to the surrounding obstacles, and a perception
+robot) in red, and the coarse-resolution output in blue for better  module capable of inferring the three-dimensional topology
+distinction. Note that the coarse-resolution output (blue points)   of the terrain based on the partial observations provided by
+within the red regions is only shown for comprehension and   the sensors.
+is not used by the rest of the pipeline.                  We propose a fully learned approach where each module
+  From the various outputs, it can be seen that the network is  employs one or multiple neural networks. The networks are
+able to cope with sparse measurements and correctly estimate   trained in simulation and transferred to the real world. We
+the layout of the scene. In (A), the points falling on the edge   demonstrate that our task can be solved without pre-mapping
+of the boxes are used as evidence to reconstruct the upper   or offline planning, and all required computations can happen
+parts at the right height. The surface on the right of the robot   onboard the robot in real-time. Using learning-based modules
+is correctly identified as a wall and reconstructed accordingly.    is advantageous for real-world deployment. The complexity
+On the other hand, the baseline does not consider the regions   of solving the task is shifted to the learning stage. Once the
+on top of the higher boxes since no measurements have yet   relatively small networks are trained, they display complex
+reached these locations.                                       behaviors  at almost no cost compared  to optimization or
+  The coarse network produces less precise reconstructions   sampling-based methods, without resorting to limiting assump-
+further away from the robot due to the lower resolution of the   tions or simplifications.
+
+===== PDF PAGE 11 =====
+Fig. 6: Terrain reconstructions for different scenarios (real-world data). The first column shows the point cloud measurements,
+the second the baseline elevation map [37] viewed as a point cloud, and the last corresponds to the reconstruction with our
+method. For our method, we show the coarse-resolution output in blue and the high-resolution output (refinement process) in
+red.
+
+===== PDF PAGE 12 =====
+A. Current Limitations                                                generalization of the perception and navigation modules
+                                                                          to realistic scenarios.
+  The pipeline has some limitations that remain to be tackled
+                                                                  2) (B) A parkour line consisting of a long winding platform
+for deployment in realistic and unstructured scenarios. First,
+                                                                 with multiple obstacles on the way. The robot must
+the scalability of the method to more diverse scenarios remains
+                                                                          traverse the obstacles without falling off the platform.
+to be tested. We showcase the system’s capabilities in a limited
+                                                        The shape of the platform, the sequence of obstacles,
+range of scenarios, utilizing a handful of distinct modules
+                                                            and their parameters are randomized.
+within the environment. In order to scale to complex envi-
+                                                                  3) (C) A simplified version of the parkour line for real-
+ronments such as a collapsed building or even a real parkour
+                                                              world deployment. Instead of a winding platform, the
+course would require the robot to perceive, navigate, and cross
+                                                                       obstacles are arranged in a straight line on the ground,
+a wider variety of obstacles. While we can always train more
+                                                            and the robot  is not allowed to walk around them.
+low-level skills, provide more data to the perception module
+                                                                Again, the sequence and parameters of obstacles are
+and train the navigation module in more diverse scenarios,
+                                                                randomized. We also add walls and distracting objects
+it remains to be seen how well these different modules can
+                                                                    next to the line.
+generalize to completely new scenarios.
+                                                       Each terrain displays different capabilities of the pipeline.  Furthermore,  training  the whole  pipeline can be  time-
+                                                            Scenario A demonstrates the general applicability to realisticconsuming since it uses a total of eight neural networks, each
+                                                               but relatively constrained scenarios. The navigation modulerequiring separate tuning. Some of them are interdependent,
+                                                           has to understand the capabilities of the locomotion skills andmeaning that modifying one requires retraining the others. For
+                                                         choose the path accordingly. Even though the obstacles ar-instance, the navigation module can only receive the latent
+                                                         rangements are fairly constrained, the robot can start anywheretensor of the specific perception module it was trained on and
+                                                     on the  terrain and must choose different paths dependinghas to use the same locomotion policies. In turn, the perception
+                                                     on the target location and obstacle parameters. On the othermodule needs to be re-trained  if a skill adopts a different
+                                                            hand, scenario B shows generalization to more randomizedmotion or  if a new  obstacle  is introduced. Simultaneous
+                                                                scenarios with different platform shapes and obstacle arrange-training of the different components might be necessary in
+                                                            ments. While there is only one possible path, the sequencethe future.
+                                                               of obstacles leads to various cases that the navigation and   Finally, since the navigation module must make a series
+                                                               perception modules must learn to handle correctly. Finally,of correct decisions to reach the goal with many possibilities
+                                                               scenario C allows us to force the robot to climb on theleading to failure, the algorithm requires many iterations to
+                                                                 obstacles without having to recreate a high winding platformconverge. We develop a specific curriculum to overcome this
+                                                           with gaps on either side for real-world deployment. Due to thelimitation. Without this step, the robot struggles to discover the
+                                                                      different formulation, we use a separate navigation policy forcorrect behaviors and gets stuck in front of larger obstacles. A
+                                                                      that scenario.possible solution would be to pre-train the navigation module
+using expert demonstrations, for example by finding candidate   B. Pipeline
+solutions with brute-force search.
+                                                     The  pipeline  consists  of  three  learning-based modules,
+                                                      which are described in the following subsections. Supplemen-
+              IV. MATERIALS AND METHODS                                                                    tary sections S1 and S2 define the observations, actions, and
+A. Overview                                               rewards of the locomotion and navigation policies and provide
+                                                                    further implementation details.
+  The goal of the agent  is  to navigate and locomote  in                                                                  1) Perception Module:  The perception module plays a
+an environment to reach a specific target location within a                                                                    crucial role for the downstream pipeline and endows the robot
+short amount of time. We constrain the task  to  different                                                           with scene understanding. The navigation and locomotion
+configurations of pallet-sized boxes, allowing us to keep the                                                       modules both use  its output to make path planning, policy
+main challenges of agile navigation while having a feasible,                                                                     selection, foothold placement, and contact decisions. It ingests
+structured, and repeatable scenario.                                                                point clouds of the scene coming from depth cameras and
+  We create three different terrain types presented in Fig. 7:                                             LiDAR to produce an estimate of the terrain around the robot.
+  1) (A) Different arrangements of boxes, where the robot  The measurements from these sensors are noisy and heavily
+     might have to climb and jump over a gap to reach the   occluded by obstacles in the environment or the robot itself.
+       target. The dimensions of these elements and the target’s    To overcome these challenges, we opt for a data-driven
+     and robot’s initial position are randomized. The robot  method with an encoder-decoder architecture inspired by [3].
+     must reach any of the boxes starting from the ground   However, here, we develop a multi-resolution scheme that con-
+      or reach a target on the ground starting from one of the   sists of two networks operating at different scales, see Fig. 2.
+      boxes. Depending on the setting, the robot can either    It allows us to balance the trade-off between reconstruction
+      reach the target directly, or it might need to go around   accuracy and map size. Indeed, close to the robot, the map is
+      the environment to find a lower box to climb on first.   smaller and has a higher resolution since this region is essential
+     Walls and distracting objects are added to increase the   for locomotion. Further away, the resolution is lower, allowing
+
+===== PDF PAGE 13 =====
+Fig. 7: Types of environments used for training. The dimensions of the individual obstacles and the arrangements are randomized.
+
+
+for a broader view of the scene. The navigation module in   robot passes below a table, the module can use the aggregated
+these areas only needs the approximate configuration of the   information from previous frames to estimate the layout of
+scene for path planning and policy selection, making a lower   the table and reconstruct the top surface, even if it is currently
+resolution sufficient.                                          not visible to the sensors. This is also necessary with certain
+                                                          maneuvers, such as climbing, where the robot’s limbs often  The encoder takes in the point cloud and compresses it into
+                                                           block a  large portion of  the  left and  right cameras, seea compact representation. The decoder uses this representation
+                                                          supplementary section S6.and generates an output that completes the missing information
+and filters out the noise. Additionally, the coarse-resolution    The measurements are first converted to a voxel grid around
+network benefits from an auto-regressive feedback, where the   the robot. In each occupied voxel, a feature describes the
+previous output  is transformed into the current frame and   position of the centroid of the points that fall within that voxel.
+concatenated with the measurement. This allows the module  The features of unoccupied voxels are set to 0. Dense 3D
+to accumulate evidence over time and reconstruct the scene’s   convolutions are performed over the dense voxel grid. While
+elements that are no longer visible. For example, when the   the authors in [3] use a sparse implementation,  it does not
+
+===== PDF PAGE 14 =====
+scale well with the reinforcement learning set-up with 4000   reported in [2] and lead to more robust policies. We describe
+robots. Surprisingly, the dense formulation can handle such a   this procedure in the supplementary section S3. While the
+large batch size with sufficient speeds but this comes at the   navigation module receives a full 3D representation of the
+cost of high memory requirements (approximately 45 GB GPU  map, it is impractical for the locomotion policies due to their
+memory).                                                   high update rate and the corresponding computational cost
+  The decoder outputs the voxel occupancy probability as well   during training. We resort to using a 2.5D elevation map
+as the position of the centroid for each cell. The reconstructed   around the robot, which can directly be computed from the
+point cloud can then be recovered by pruning the cells whose   point cloud output of the perception module. To bridge the
+occupancy probability is below a user-defined threshold. Con-   reality gap, we perturb the elevation map during training by
+trary to [3], we do not use skip connections to produce a   adding noise to individual points and shifting the map up to
+more informative latent that the navigation module can directly   7.5 cm in all directions. This forces the policies to adopt a safer
+use. While this might limit the generalization performance, we   behavior and encourages robustness to slight imperfections in
+found that it works well for our task with randomized parkour   the map reconstructions.
+worlds.                                                     Below, we delineate the various skills and, if applicable, the
+  The high-resolution network uses the features of the coarse-   modifications made to the training configuration:
+resolution network’s last layer as input, along with the point        a) Walking: The robot must traverse various irregular
+cloud measurements. Note  that  it does not use an  auto-   terrains consisting of stairs, slopes, and randomly placed small
+regressive feedback, since temporal information  is already   obstacles, similar to the ones commonly used in previous
+contained in its input.                                       legged locomotion works [7], [41].
+  As mentioned  earlier, the goal of the coarse-resolution                                                                    b) Jumping: The robot starts on a box and must jump to
+network is to provide a broad view of the scene. Therefore,                                                           a neighboring box separated by a gap of up to 1 m. We use a
+we use a voxel size of 12.5 cm, resulting in a map of 4 m                                                            curriculum on the size of the gap.
+along each axis of the robot. The high-resolution voxels have
+                                                                         c) Climbing down: The robot starts on a box with a
+a size of 6.25 cm resulting in a map size of 2 m.
+                                                               height of up to 1 m and must climb down to reach a target
+  We train these networks in an unsupervised fashion from
+                                                     on the ground. We use a curriculum on the height of the box.
+simulated data on a total of 2000 trajectories with 100 time-
+                                        We add a termination condition on high impact forces on the
+steps each. We equally split the data set across the different
+                                                                           feet. This termination is essential to get a transferable motion.
+parkour scenarios. The occupancy output is trained using a
+                                                         Without it, the robot learns to jump down from the top, which
+binary cross-entropy loss, while the centroids are trained using
+                                                                               is possible in simulation but leads to potential damage on the
+the Euclidean distance to the ground truth. We follow the same
+                                                                      real robot.
+data augmentation procedure described in [3]. It consists of
+                                                                    d) Climbing up: The robot  starts on the ground andperturbing the position of the points, adding random blobs,
+                                                      must climb on top of a box with a height of up to 1 m.removing patches of points, and noisifying the robot’s position.
+                                        We use a curriculum on the height of the box. We allow theAs we show in the results, this is key to make the pipeline
+                                                               robot to make contact with the base and knees by reducingrobust to noise and drift.
+                                                                 the weights of the corresponding penalties. This leads to the  2) Locomotion Module:  The locomotion module  is an
+                                                                   natural progression where the policy first learns to climb usinginterface that exposes the low-level skills to the rest of the
+                                                                                    its knees and then starts using its feet instead when possible.pipeline and operates at 50 Hz. It contains a catalog of policies,
+each trained for a specific locomotion skill: walking, climbing        e) Crouching: The crouching policy has the specificity
+up, climbing down, crouching, and jumping. These skills are   of dealing with overhanging obstacles. The robot must reach a
+trained using reinforcement learning and output joint position   target located on the other side of a narrow horizontal passage
+commands  for the motors. The module receives a  signal   with a minimum height of 0.4 m. We use a curriculum on the
+indicating which skill to activate.                               height of the passage. We provide the same 2.5D map as the
+  As input, the policies receive the current proprioceptive   other policies. As such, it sees the obstacle from the top and
+state, a local map of the surrounding terrain, an intermediate   cannot differentiate a table from a box. This does not pose
+command, and output position commands to the motors. The   a problem since it is only trained in such scenarios and will
+skills are trained separately and share the observation and   always try to go under the obstacle.
+action spaces but require different flavors of rewards and     While the walking policy is trained on a mix of terrains
+termination conditions in order to be trained efficiently. The  (60%  stairs, 20% slopes, and 20% randomized obstacles),
+training set-up closely resembles [2] and uses position-based   the other specialized skills are all trained with 80% of their
+commands. Instead of tracking velocity commands, the robot   corresponding obstacle and 20% of random rough  terrain.
+must reach a target position within a given time. In addition   This leads to more natural gaits and better performance upon
+to the position and time commands, we add a heading target,   deployment.
+specifying the yaw orientation the robot must adopt by the     3) Navigation Module: The navigation module guides the
+end of the trajectory. Furthermore, we implement symmetry   robot around the terrain to reach the target within the allocated
+augmentations and find that they solve the asymmetry issues   time.
+
+===== PDF PAGE 15 =====
+  The network is trained in a hierarchical set-up using re-                    REFERENCES
+inforcement learning.  It consists of an outer loop running
+the navigation policy at 5 Hz and an inner loop running the     [1]  J. Schulman,  F. Wolski,  P. Dhariwal, A. Radford, and O. Klimov,
+                                                                             “Proximal policy optimization algorithms,” arXiv:1707.06347, 2017.
+locomotion module at 50 Hz. The locomotion policies of the     [2] N. Rudin, D. Hoeller, M. Bjelonic, and M. Hutter, “Advanced skills by
+inner loop are frozen throughout training. At every high-level         learning locomotion and local navigation end-to-end,” in 2022 IEEE/RSJ
+time step, the navigation policy receives the relative position         International Conference on Intelligent Robots and Systems (IROS),
+                                                                              2022, pp. 2497–2503.
+of the final goal, the remaining time to accomplish the task,     [3] D.  Hoeller, N. Rudin, C. Choy, A. Anandkumar, and M.  Hutter,
+the robot’s base velocity, orientation, and the latent tensor        “Neural scene representation for locomotion on structured terrain,” IEEE
+of the perception module. It then selects a locomotion skill         Robotics and Automation Letters, vol. 7, no. 4, pp. 8667–8674, 2022.
+                                                                                      [4] R. Grandia, F. Jenelten, S. Yang, F. Farshidian, and M. Hutter, “Per-
+and guides the latter with a local position, heading, and time         ceptive locomotion through nonlinear model predictive control,” IEEE
+command. Similar to the training of locomotion policies, we         Transactions on Robotics, 2023-05.
+employ the time-dependent command formulation described     [5]  F. Jenelten, R. Grandia, F. Farshidian, and M. Hutter, “Tamols: Terrain-
+                                                                           aware motion optimization for legged systems,” IEEE Transactions on
+in [2]. The agent is given a fixed time to reach the goal, and the         Robotics, vol. 38, no. 6, pp. 3395–3413, 2022.
+distance-to-goal penalty is only activated on the last time-step     [6] D. Kim, D. Carballo,  J. Di Carlo, B. Katz, G. Bledt, B. Lim, and
+of the episode. This sparse formulation allows the policy to         S. Kim, “Vision aided dynamic exploration of unstructured terrain with
+                                                                               a small-scale quadruped robot,” in 2020 IEEE International Conference
+explore the terrain to find safer paths and take its time where                                                                       on Robotics and Automation (ICRA), 2020, pp. 2464–2470.
+needed. The episode is also terminated if the robot falls or     [7]  T. Miki, J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter,
+the contact forces are too high. To speed up convergence, we        “Learning robust perceptive locomotion for quadrupedal robots in the
+                                                                                        wild,” Science Robotics, vol. 7, no. 62, p. eabk2822, 2022.
+employ a curriculum where we first place the global targets
+                                                                                      [8] A. Loquercio, A. Kumar, and J. Malik, “Learning Visual Locomotion
+close to the robots’ starting positions and then move them         with Cross-Modal Supervision,” in arXiv, 2022.
+further away on the terrain as the reward increases.                  [9]  S. Gangapurwala, M. Geisert, R. Orsolino, M. Fallon, and I. Havoutis,
+  To accommodate for the formulation, we modify the PPO         “Rloc: Terrain-aware legged locomotion using reinforcement learning
+                                                                         and optimal control,” IEEE Transactions on Robotics, pp. 1–20, 2022.
+algorithm and augment the actor’s multilayer perceptron with    [10] M. H. Raibert, Legged robots that balance.  MIT press, 1986.
+a hybrid output. The last layer’s features are split to form    [11] D. Kim, J. D. Carlo, B. Katz, G. Bledt, and S. Kim, “Highly dynamic
+a Gaussian distribution for the commands and a categorical        quadruped locomotion  via whole-body impulse  control and model
+                                                                                         predictive control,” arXiv:1909.06586, 2019.
+distribution for skill activation. The categorical distribution                                                                               [12] H.-W. Park,  P. M. Wensing, and S. Kim, “Jumping over obstacles
+assigns a selection probability for each of the low-level skills.         with mit cheetah  2,” Robotics and Autonomous Systems,  vol. 136,
+During training, the actions are sampled from the respective          p. 103703, 2021. [Online]. Available: https://www.sciencedirect.com/
+                                                                                  science/article/pii/S0921889020305431
+distributions to enable exploration. On deployment, we use the                                                                               [13] Q. Nguyen, M. J. Powell, B. Katz, J. D. Carlo, and S. Kim, “Optimized
+mean of the Gaussian and select the policy with the highest        jumping on the mit cheetah 3 robot,” in 2019 International Conference
+assigned probability.                                                  on Robotics and Automation (ICRA), 2019, pp. 7448–7454.
+                                                                               [14] N. Rudin, H. Kolvenbach, V. Tsounis, and M. Hutter, “Cat-like jumping
+  Compared to other approaches such as [29], which deploy                                                                         and landing of legged robots in low gravity using deep reinforcement
+simplified kinematic models in the inner loop, rolling out          learning,” IEEE Transactions on Robotics, 2021.
+the actual low-level policies during training is necessary to    [15]  S. H. Jeon, S. Kim, and D. Kim, “Real-time optimal landing control of
+perform agile navigation. Indeed, the agent can make informed         the mit mini cheetah,” 2021.
+                                                                               [16]  J. Hwangbo, J. Lee, A. Dosovitskiy, D. Bellicoso, V. Tsounis, V. Koltun,
+decisions taking  into account the mode of operation, the        and M. Hutter, “Learning agile and dynamic motor skills for legged
+capabilities, and the limitations of each low-level controller.          robots,” Science Robotics, vol. 4, no. 26, p. eaau5872, 2019. [Online].
+It can infer when a box is too high to climb on and first move         Available: https://www.science.org/doi/abs/10.1126/scirobotics.aau5872
+                                                                               [17] Y. Ma, F. Farshidian, and M. Hutter, “Learning arm-assisted fall damage
+towards a lower one. It carefully places the target on narrow         reduction and recovery for legged mobile manipulators,” 2023.
+passages to enable fine-grained foot placement. It favors the    [18]  S. Bohez, S. Tunyasuvunakool, P. Brakel, F. Sadeghi, L. Hasenclever,
+climb-down policy on lower boxes, to step down to avoid high         Y. Tassa, E. Parisotto, J. Humplik, T. Haarnoja, R. Hafner, M. Wulfmeier,
+                                                              M. Neunert, B. Moran, N. Siegel, A. Huber, F. Romano, N. Batchelor,
+contact forces.                                                                             F. Casarini, J. Merel, R. Hadsell, and N. Heess, “Imitate and repurpose:
+Since the low-level skills are trained with the position-based        Learning  reusable robot movement  skills from human and animal
+formulation, the navigation policy must carefully combine and         behaviors,” 2022.
+                                                                               [19] Y. Ji, G. B. Margolis, and P. Agrawal, “Dribblebot: Dynamic legged
+adjust the time, position, and heading commands to achieve                                                                                manipulation in the wild,” 2023.
+the desired motion.                                                        [20]  J.  Siekmann,  K.  Green,  J.  Warila,  A.  Fern,  and  J. W.  Hurst,
+                                                                               “Blind bipedal stair traversal via sim-to-real reinforcement learning,”
+                V. ACKNOWLEDGMENTS                             arXiv:2105.08328, 2021.
+                                                                               [21] Z. Li, X. B. Peng, P. Abbeel, S. Levine, G. Berseth, and K. Sreenath,
+  Funding The project was funded by NVIDIA, the Swiss        “Robust and versatile bipedal jumping control through multi-task rein-
+National Science Foundation (SNF) through  the National        forcement learning,” 2023.
+Centre of Competence in Research Robotics, the European    [22]  S. Karaman and E. Frazzoli, “Sampling-based algorithms for optimal
+                                                                           motion planning,” The International Journal  of Robotics Research,
+Research Council (ERC) under the European Union’s Horizon          vol. 30, no. 7, pp. 846–894, 2011.
+2020 research and innovation program grant agreement No    [23]  S. Tonneau, A. Del  Prete,  J.  Pettr´e, C.  Park, D. Manocha, and
+852044 and No 780883. The work has been conducted as        N. Mansard, “An efficient acyclic contact planner for multiped robots,”
+                                                                 IEEE Transactions on Robotics, vol. 34, no. 3, pp. 586–601, 2018.
+part of ANYmal Research, a community to advance legged    [24] L. Wellhausen and M. Hutter, “Rough terrain navigation for legged
+robotics.                                                                          robots using  reachability planning and template  learning,”  in 2021
+
+===== PDF PAGE 16 =====
+     IEEE/RSJ International Conference on Intelligent Robots and Systems    [35] C. Yang, K. Yuan, Q. Zhu, W. Yu, and Z. Li, “Multi-expert learning
+     (IROS).  IEEE, 2021, pp. 6914 – 6921.                                        of adaptive legged locomotion,” Science Robotics, vol. 5, no. 49, p.
+[25] M.  Pfeiffer, M. Schaeuble,  J. Nieto, R. Siegwart, and C. Cadena,        eabb2174, 2020. [Online]. Available: https://www.science.org/doi/abs/
+    “From perception to decision: A data-driven approach to end-to-end         10.1126/scirobotics.abb2174
+     motion planning for autonomous ground robots,” in IEEE International    [36] R. O. Chavez-Garcia,  J. Guzzi, L. M. Gambardella, and A. Giusti,
+     Conference on Robotics and Automation (ICRA).   IEEE, 2017, p.        “Learning ground traversability from simulations,” IEEE Robotics and
+     1527–1533.                                                             Automation Letters, vol. 3, no. 3, pp. 1695–1702, 2018.
+[26] E. Kaufmann, A. Loquercio, R. Ranftl, A. Dosovitskiy, V. Koltun, and    [37]  T. Miki, L. Wellhausen, R. Grandia, F. Jenelten, T. Homberger, and
+     D. Scaramuzza, “Deep drone racing: Learning agile flight in dynamic       M. Hutter, “Elevation mapping for locomotion and navigation using
+     environments,” in CoRL, 2018.                                                gpu,” in 2022 IEEE/RSJ International Conference on Intelligent Robots
+[27]  F. Sadeghi and S. Levine, “CAD2RL: real single-image flight without a        and Systems (IROS).  IEEE, 2022, pp. 2273 – 2280.
+      single real image,” in Robotics: Science and Systems XIII, Massachusetts    [38]  P. Fankhauser, M. Bloesch, and M. Hutter, “Probabilistic terrain mapping
+      Institute of Technology, Cambridge, Massachusetts, USA, 2017.                  for mobile robots with uncertain  localization,” IEEE Robotics and
+[28]  F. Sadeghi, “Divis: Domain invariant visual servoing for collision-free        Automation Letters (RA-L), vol. 3, no. 4, pp. 3019–3026, 2018.
+     goal reaching,”  in Robotics: Science and Systems XV, Freiburg im    [39] H. Oleynikova, Z. Taylor, M. Fehr, R. Siegwart, and J. Nieto, “Voxblox:
+     Breisgau, Germany, A. Bicchi, H. Kress-Gazit, and S. Hutchinson, Eds.,         Incremental 3d euclidean signed  distance  fields  for on-board mav
+     2019.                                                                           planning,” in IEEE/RSJ International Conference on Intelligent Robots
+[29] D. Hoeller, L. Wellhausen, F. Farshidian, and M. Hutter, “Learning a        and Systems (IROS), 2017.
+      state representation and navigation in cluttered and dynamic environ-    [40] A. Agarwal, A. Kumar, J. Malik, and D. Pathak, “Legged locomotion in
+     ments,” IEEE Robotics and Automation Letters, vol. 6, no. 3, pp. 5081–         challenging terrains using egocentric vision,” in 6th Annual Conference
+     5088, 2021.                                                        on Robot Learning, 2022.
+[30] G. Kahn, P. Abbeel, and S. Levine, “BADGR: an autonomous self-    [41] N. Rudin, D. Hoeller,  P. Reist, and M. Hutter, “Learning to walk
+     supervised learning-based navigation system,” arXiv:2002.05700, 2020.          in minutes using massively parallel deep reinforcement learning,” in
+[31] B. Yang, L. Wellhausen, T. Miki, M. Liu, and M. Hutter, “Real-time        Proceedings of the 5th Conference on Robot Learning, ser. Proceedings
+     optimal navigation planning using learned motion costs,” in 2021 IEEE         of Machine Learning Research, A. Faust, D. Hsu, and G. Neumann,
+      International Conference on Robotics and Automation (ICRA), 2021, pp.         Eds.,  vol. 164.  PMLR, 08–11 Nov 2022,  pp. 91–100.  [Online].
+     9283 – 9289.                                                                    Available: https://proceedings.mlr.press/v164/rudin22a.html
+[32] K. Caluwaerts, A. Iscen, J. C. Kew, W. Yu, T. Zhang, D. Freeman, K.-H.    [42] V. Makoviychuk, L. Wawrzyniak, Y. Guo, M. Lu, K. Storey, M. Macklin,
+     Lee, L. Lee, S. Saliceti, V. Zhuang, N. Batchelor, S. Bohez, F. Casarini,        D. Hoeller, N. Rudin, A. Allshire, A. Handa, and G. State, “Isaac gym:
+       J. E. Chen, O. Cortes, E. Coumans, A. Dostmohamed, G. Dulac-Arnold,        High performance GPU based physics simulation for robot learning,”
+     A. Escontrela, E. Frey, R. Hafner, D. Jain, B. Jyenis, Y. Kuang, E. Lee,          in Thirty-fifth Conference on Neural Information Processing Systems
+     L. Luu, O. Nachum, K. Oslund,  J. Powell, D. Reyes,  F. Romano,         Datasets and Benchmarks Track (Round 2), 2021.
+      F. Sadeghi, R. Sloat, B. Tabanpour, D. Zheng, M. Neunert, R. Hadsell,    [43] M. Macklin, “Warp: A high-performance python framework for gpu
+     N. Heess, F. Nori, J. Seto, C. Parada, V. Sindhwani, V. Vanhoucke, and         simulation and graphics,” https://github.com/nvidia/warp, March 2022,
+       J. Tan, “Barkour: Benchmarking animal-level agility with quadruped       nVIDIA GPU Technology Conference (GTC).
+      robots,” 2023.                                                            [44]  F. Abdolhosseini, H. Y. Ling, Z. Xie, X. B. Peng, and M. Van de Panne,
+[33] X. B. Peng, Y. Guo, L. Halper, S. Levine, and S. Fidler, “Ase: Large-       “On learning symmetric locomotion,” in Proceedings of the 12th ACM
+      scale reusable adversarial  skill embeddings for physically simulated      SIGGRAPH Conference on Motion, Interaction and Games, 2019, pp.
+      characters,” ACM Trans. Graph., vol. 41, no. 4, jul 2022. [Online].        1–10.
+      Available: https://doi.org/10.1145/3528223.3530110
+[34]  J.  Merel,  A.  Ahuja,  V.  Pham,  S.  Tunyasuvunakool,  S.  Liu,
+     D.  Tirumala, N.  Heess, and G. Wayne,  “Hierarchical visuomotor
+      control  of  humanoids,”  in  International  Conference on  Learning
+      Representations,  2019.  [Online].  Available:  https://openreview.net/
+     forum?id=BJfYvo09Y7
+
+===== PDF PAGE 17 =====
+                                              TABLE S5: Navigation and Locomotion Actions           SUPPLEMENTARY MATERIALS
+
+                                                                                 Module      Action
+S1. Observations, actions, and rewards definitions                                   Locomotion      q∗
+                                                                                                  Navigation    s, r∗, t∗, ψ∗
+
+             TABLE S1: Symbols.
+                                                               S2. Implementation details
+    Symbol   Description
+                                          We  train  all  the  policies and  collect  the  data  for  the        r, r∗    Current and local target base positions
+      ψ, ψ∗    Current and local target base headings                    perception module using the Isaac Gym simulator [42], where
+          t∗   Remaining time to reach the local target             we deploy 4096 agents in parallel. To generate and prepare the
+        r∗G   Global target position                                                                perceptive data for the perception network, we develop custom          t∗G   Remaining time to reach the global target
+       α   Angle between base z-axis and gravity            CUDA kernels using Warp [43]. At every time-step, these
+     vb, ωb   Base linear and angular velocities in base frame            kernels perform raycasting for the six depth cameras and the
+        gb    Gravity vector in base frame                                             LiDAR for each robot (≈140 million rays total) and directly  q, ˙q, ˙qlim    Joint positions, velocities, and velocity limits
+     q∗, qd    Desired and default joint positions                       convert them to the voxel grid inputs without copying memory.
+    τ, τ lim    Joint Torques and torque limits                                   It is worth mentioning that on the real robot, the point cloud
+    vf, Ff    Feet linear velocity and contact force                                                        messages of the six Realsense cameras reach the perception       h   2 m × 1 m grid of height measurements around the robot
+               l   Scene belief state (perception module latent tensor)        node with a delay of up to 250 ms, which is prohibitively long
+          s   Index of the selected locomotion skill                      for fast maneuvers such as climbing. Therefore, we disabled
+       SL    Target reached (locomotion)                                                                point cloud publishing for these cameras and directly subscribe           SL = 1∥rxy−r∗xy∥<0.251∥ψ−ψ∗∥<0.5
+      SN    Target reached (navigation)                               to the depth image messages instead, reducing the delay to
+          SN = 1∥r−r∗G∥<0.4                            25 ms. We project the images to point clouds and merge
+                                                     them with the LiDAR measurements within the node. In the
+                                                                following, we provide the rewards for the policies.
+
+                                                               S3. Symmetric data augmentation for locomotion training
+         TABLE S2: Locomotion Rewards.
+
+       Reward Term            Expression           Weight
+        Position tracking   1t∗<1(1 −0.5∥rxy −r∗xy∥)   10                        Original                 Y symmetry
+      Heading tracking    1t∗<1(1 −0.5∥ψ −ψ∗∥)    5
+            Joint velocity               ∥˙q∥2                -0.001
+               Torque            ∥τ∥2               -0.00001
+      Joint velocity limit   P12i=1 max(| ˙qi| −˙qlim, 0)     -1
+           Torque limit   P12i=1 max(|τ i| −τlim, 0)     -0.2
+             Base acc.         ∥˙v∥2 + 0.02∥˙ω∥2         -0.001
+               Feet acc.       P4f=1∥˙vf∥            -0.002
+            Action rate        ∥q∗t −q∗t−1∥2           -0.01
+      Feet contact force  P4f=1 max(∥Ff∥−700, 0)2   -0.00001
+            Don’t wait       1(∥vb∥< 0.2)           -1                  X symmetry                X+Y symmetry
+     Move in direction          cos⟨vb, r∗−r⟩         1
+         Stand at target        SL∥q −qd∥             -0.5
+                Collision            1knee/shank collision           -1
+              Stumble        1∥Ff,xy∥>2∥Ff,z∥         -1
+            Termination      1base collision + 1Ff >1500      -200
+
+
+
+         TABLE S3: Navigation Rewards.
+
+        Reward Term          Expression          Weight
+                                                                   Fig. S1: Representation of the symmetric state augmentation.
+         Position tracking   1t∗=0(40SN −∥r −r∗G∥)   0.15
+            Termination     1α<π/2 + 1Ff >2500       -0.5          The original state (top-left) is augmented into four symmetric
+                                                                       states using the X and Y symmetries of the robot.
+
+                                                     The position-tracking formulation of the locomotion train-  TABLE S4: Locomotion and Navigation Observations.
+                                                              ing does not constrain the robot’s trajectory between the initial
+              Observation   Locomotion   Navigation              and target positions. This allows the robot to learn complex
+                     vb    ×       ×
+                                                             behaviors but also leads to asymmetric motions. For example,                  ωb    ×
+                     gb    ×       ×                    the climbing policy only learns to climb forwards and prefers
+                      q, ˙q    ×                                  to turn the robot around  if facing an obstacle backward,
+                 r∗, t∗, ψ∗    ×
+                  r∗G, t∗G            ×                   leading to unfavorable situations when the robot must cross
+                 h    ×                                multiple obstacles with different skills. We solve these issues
+                                  l            ×                by exploiting the symmetric nature of the robot. Based on the
+
+===== PDF PAGE 18 =====
+                                          TABLE S6: Comparison of the navigation policy’s perfor-
+                                                   mance against different formulations. (No T): no time output.
+                                                   (No H): no heading output. (No H, No T): no heading or time
+                                                                  output.
+
+                                                                                            Ours   No T   No H   No H, No T
+                                                                                          Terrain: Fig. 7 - A   98.2%   94.7%   89.5%     81.1%
+                                                                                          Terrain: Fig. 7 - B   96.3%   89.4%   88.1%     71.9%
+                                                                                          Terrain: Fig. 7 - C   97.6%   91.6%   94.6%     94.0%
+
+
+
+                                                               robot cannot perceive the top surface at the beginning. During
+                                                                 the climb,  large occluded regions occur because of limb
+Fig. S2: The planner can reach remote targets, even if it has   obstructions. It can also be seen that the camera arrangement is
+to distance itself from the goal first.                           not particularly favorable for locomotion since there are blind
+                                                                spots immediately below the robot.
+
+duplication method of [44], we augment each environment
+transition with  all symmetric variants by transforming the
+observations and actions accordingly.  Specifically, we use
+front-back and left-right symmetries of the ANYmal D robot.
+  The authors in [44], however, mention that their duplication
+method suffers from poor convergence due to the off-policy
+nature of the mirrored  states. Indeed, these augmentations
+result in low probabilities for the transformed actions for not
+fully trained policies. We resolve this issue by setting the
+probability of the original actions to all symmetric variants.
+Intuitively, we bootstrap the learning process of a randomly
+initialized policy since we know that at convergence symmetric
+states will lead to symmetric actions with equal probability.
+
+S4. Navigation across long ranges
+
+   Fig. S2 depicts a scenario with a distant goal in a U-shaped
+                                                                                         (a) Measurement                   (b) Ground truthterrain. The planner understands that it cannot cross the wide
+gap by jumping, and it must first distance itself from the target   Fig. S3: Measurement blind spots occurring during a box
+to solve the task.                                            climbing maneuver. The sensors do not perceive  the top
+                                                                surface at the beginning (top row). The perception module has
+S5. Ablation study of the navigation module’s output
+                                                                    to use the points on the edge of the front surface to estimate the
+  In Table S6, we analyze the importance of the different com-                                                               height of the box and correctly reconstruct the top. During the
+ponents of the navigation policy’s action space. We remove                                                          climb (bottom row), the limbs obstruct the cameras resulting
+the timer output and set a fixed time for the low-level policies                                                                    in large occluded areas.
+(No T); we remove the heading output and set it to be in the
+direction of the next target (No H); we remove both (No H, No
+T). The study is performed under the same conditions as the   S7. Incorrect terrain reconstructions
+comparison with the manually coded trajectory (Table I). The
+results show that using the heading and time commands for
+the low-level skills increases the performance of the system.
+Specifically, we can see that adding the heading command
+increases the success rate on terrains where the robot must
+quickly turn multiple times on the spot (Terrain Fig. 7 (A)),
+while the time command leads to better performance in longer
+terrains (Terrain Fig. 7 (B) & (C)), where the high-level policy
+must use fast motions on simple obstacles, but slow down in
+risky parts.
+
+S6. Description of the measurement blind spots                 Fig. S4: Incorrect reconstructions with our method, highlighted
+                                                                    in yellow. On the left, the network hallucinates a stair. On the  Measurement blind spots during a box climbing maneuver
+                                                                          right, it inflates the shape of the table.can be seen in Fig. S3. Due to the height of the box, the
+
+===== PDF PAGE 19 =====
+  There are situations where the network produces wrong
+outputs  (Fig. S4). When climbing on the  first box  (left),
+the network tends  to  hallucinate a  stair behind  it  in the
+measurement blind spot, probably due to a data-set imbalance.
+This does not impede the performance of the navigation and
+locomotion modules since the network quickly corrects this
+erroneous output once  it has a better view of the situation.
+Also, the table is sometimes inflated when the robot crawls
+underneath (right). This comes from a combination of mea-
+surement sparsity on the top surface and state estimation drift,
+which is more pronounced for crouching maneuvers. Again,
+this does not pose a problem to complete the task, since the
+robot would stay crouched for longer in the worst case.

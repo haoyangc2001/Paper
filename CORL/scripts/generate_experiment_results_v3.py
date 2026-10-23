@@ -96,78 +96,90 @@ MAIN_DATA: OrderedDict[str, OrderedDict[str, list[float]]] = OrderedDict(
     }
 )
 
-BUDGET_DATA: OrderedDict[str, OrderedDict[str, list[float]]] = OrderedDict(
+# None marks the reference-budget slot, filled from MAIN_DATA immediately below.
+BUDGET_DATA = OrderedDict(
     {
         "SR": OrderedDict(
             {
-                "RA": [0.600, 0.600, 0.602, 0.603, 0.604, 0.605, 0.605, 0.606],
-                "RC-PPO": [0.575, 0.595, 0.615, 0.629, 0.655, 0.685, 0.710, 0.735],
-                "HD-MCRA": [0.608, 0.638, 0.668, 0.692, 0.713, 0.736, 0.752, 0.767],
+                "RA": [0.600, 0.600, 0.600, 0.600, None, 0.600, 0.600, 0.600],
+                "RC-PPO": [0.575, 0.595, 0.615, 0.629, None, 0.716, 0.725, 0.735],
+                "HD-MCRA": [0.608, 0.638, 0.668, 0.692, None, 0.736, 0.752, 0.767],
             }
         ),
         "CR": OrderedDict(
             {
-                "RA": [0.138, 0.138, 0.138, 0.137, 0.137, 0.137, 0.137, 0.136],
-                "RC-PPO": [0.215, 0.205, 0.196, 0.188, 0.180, 0.168, 0.154, 0.142],
-                "HD-MCRA": [0.192, 0.184, 0.176, 0.166, 0.158, 0.149, 0.141, 0.132],
+                "RA": [0.130, 0.130, 0.130, 0.130, None, 0.130, 0.130, 0.130],
+                "RC-PPO": [0.215, 0.205, 0.196, 0.188, None, 0.152, 0.148, 0.142],
+                "HD-MCRA": [0.192, 0.184, 0.176, 0.166, None, 0.149, 0.141, 0.132],
             }
         ),
         "BVR": OrderedDict(
             {
-                "RA": [0.35, 0.31, 0.27, 0.23, 0.20, 0.17, 0.144, 0.11],
-                "RC-PPO": [0.31, 0.27, 0.22, 0.149, 0.128, 0.102, 0.078, 0.055],
-                "HD-MCRA": [0.23, 0.19, 0.147, 0.116, 0.095, 0.074, 0.058, 0.041],
+                "RA": [0.35, 0.31, 0.27, 0.23, None, 0.17, 0.144, 0.11],
+                "RC-PPO": [0.31, 0.27, 0.22, 0.149, None, 0.102, 0.078, 0.055],
+                "HD-MCRA": [0.23, 0.19, 0.147, 0.116, None, 0.074, 0.058, 0.041],
             }
         ),
         "Average Cost": OrderedDict(
             {
-                "RA": [104.0, 104.0, 104.0, 104.0, 104.0, 104.0, 104.0, 104.0],
-                "RC-PPO": [84.8, 86.5, 88.0, 89.2, 90.3, 92.0, 94.5, 98.5],
-                "HD-MCRA": [82.0, 84.0, 84.7, 86.2, 87.8, 89.4, 91.0, 94.6],
+                "RA": [104.0, 104.0, 104.0, 104.0, None, 104.0, 104.0, 104.0],
+                "RC-PPO": [84.8, 86.5, 88.0, 89.2, None, 92.0, 94.5, 98.5],
+                "HD-MCRA": [82.0, 84.0, 84.7, 86.2, None, 89.4, 91.0, 94.6],
             }
         ),
     }
 )
 
-MIN_FEASIBLE_BUDGET_ROWS = [
-    [
-        "Average over evaluation set",
-        "SR >= 60%, CR <= 20%, BVR <= 15%",
-        "HD-MCRA",
-        0.90,
-        66.8,
-        17.6,
-        14.7,
-        84.7,
-    ],
-    [
-        "Average over evaluation set",
-        "SR >= 60%, CR <= 20%, BVR <= 15%",
-        "RC-PPO",
-        0.96,
-        62.9,
-        18.8,
-        14.9,
-        89.2,
-    ],
-    [
-        "Average over evaluation set",
-        "SR >= 60%, CR <= 20%, BVR <= 15%",
-        "RA",
-        1.12,
-        60.5,
-        13.7,
-        14.4,
-        104.0,
-    ],
-]
+# Draft reconciliation, 2026-10-23: the reference-budget point and the two
+# repeated ablation configurations reuse MAIN_DATA, never independent estimates.
+# These are assumptions for manuscript consistency, not recovered observations.
+REFERENCE_BUDGET_INDEX = BUDGET_LEVELS.index("1.00")
+for _metric in BUDGET_METRICS:
+    for _method in BUDGET_METHODS:
+        BUDGET_DATA[_metric][_method][REFERENCE_BUDGET_INDEX] = (
+            sum(MAIN_DATA[_metric][_method]) / len(SCENARIOS)
+        )
+
+FEASIBILITY_THRESHOLDS = {"SR_min": 0.60, "CR_max": 0.20, "BVR_max": 0.15}
+
+
+def minimum_feasible_budget_rows() -> list[list[object]]:
+    rows = []
+    for method in ["HD-MCRA", "RC-PPO", "RA"]:
+        for index, level in enumerate(BUDGET_LEVELS):
+            sr, cr, bvr, cost = [BUDGET_DATA[m][method][index] for m in BUDGET_METRICS]
+            if (sr >= FEASIBILITY_THRESHOLDS["SR_min"] - 1e-12
+                    and cr <= FEASIBILITY_THRESHOLDS["CR_max"]
+                    and bvr <= FEASIBILITY_THRESHOLDS["BVR_max"]):
+                rows.append(["Equal mean over three scenarios",
+                             "SR >= 60%, CR <= 20%, BVR <= 15%", method,
+                             float(level), round(100 * sr, 1), round(100 * cr, 1),
+                             round(100 * bvr, 1), round(cost, 1)])
+                break
+        else:
+            rows.append(["Equal mean over three scenarios",
+                         "SR >= 60%, CR <= 20%, BVR <= 15%", method,
+                         "No feasible tested candidate", None, None, None, None])
+    return rows
+
+
+def main_average_row(label: str, method: str) -> tuple:
+    values = []
+    for metric in MAIN_METRICS:
+        mean = sum(MAIN_DATA[metric][method]) / len(SCENARIOS)
+        scale = 100 if metric in {"SR", "CR", "BVR"} else 1
+        values.append(round(scale * mean, 2 if metric == "Minimum Clearance" else 1))
+    return (label, *values)
+
+
+MIN_FEASIBLE_BUDGET_ROWS = minimum_feasible_budget_rows()
 
 ABLATION_ROWS = [
     ("w/o Hierarchy", 47.9, 38.8, 116.7, 31.5, 0.11),
     (r"w/o $\alpha$", 67.2, 19.8, 80.6, 22.4, 0.29),
     (r"w/o $\delta$", 64.8, 26.3, 77.2, 13.8, 0.19),
-    (r"w/o $\alpha,\delta$", 62.9, 29.4, 87.6, 25.8, 0.16),
-    ("HD-MCRA (full)", 70.8, 18.6, 71.3, 11.2, 0.32),
+    main_average_row(r"w/o $\alpha,\delta$", "RC-PPO"),
+    main_average_row("HD-MCRA (full)", "HD-MCRA"),
 ]
 
 
@@ -273,16 +285,22 @@ def build_metadata_rows() -> list[list[object]]:
         ["Workbook Purpose", "Estimated v3 experiment package for RC-PPO/RA retrofit"],
         ["Source Anchors", "conference_101719.tex + experiment_results_backup_2026-04-13.xlsx"],
         ["Method Terminology", "RA = reach-avoid baseline; RC-PPO = minimum-cost reach-avoid baseline; HD-MCRA = hierarchical RC-PPO with data-driven conservative margins"],
-        ["Budget Protocol", "Dense normalized budget sweep z0/z_ref in {0.80, 0.85, 0.90, 0.96, 1.00, 1.05, 1.12, 1.20}"],
+        ["Budget Protocol", "Assumed common reference budget within each scenario; main/ablation use z0/z_ref = 1.00. Sweep uses {0.80, 0.85, 0.90, 0.96, 1.00, 1.05, 1.12, 1.20}. Absolute z_ref remains TBD."],
         ["Main Metrics", "SR, CR, Average Cost, BVR, Minimum Clearance"],
         ["Budget Metrics", "SR, CR, BVR, Average Cost"],
         ["Minimum Feasible Budget Definition", "Smallest z0/z_ref such that SR >= 60%, CR <= 20%, and BVR <= 15% on the evaluation set."],
         ["Literature Basis", "Hsu et al. RSS 2021; So et al. NeurIPS 2024; Achiam et al. ICML 2017; Tessler et al. ICLR 2019; Hu et al. RA-L 2021; Weerakoon et al. ICRA 2024"],
-        ["Notes", "Existing PPO/CPPO/HD-MCRA SR-CR-Cost values are preserved whenever possible; new values are estimated for internal consistency and paper drafting."],
+        ["Notes", "All values are hypothetical. 2026-10-23 reconciliation preserves main scene values; repeated baseline rows/reference-budget points are derived from them. Single-margin ablations remain separate assumptions with non-additive effects. See CCDC/submission/1023数据一致性核查.md."],
         [],
         ["Ablation Variant", "SR (%)", "CR (%)", "Cost", "BVR (%)", "Minimum Clearance (m)"],
     ]
     rows.extend([list(row) for row in ABLATION_ROWS])
+    rows.extend([
+        [],
+        ["Evaluation accounting", "Draft convention: equal scene means; success excludes physical collision but budget compliance is separate; cost and footprint clearance average all trials through goal/collision/timeout; budget violation does not terminate evaluation."],
+        ["RA sweep", "Same assumed RA rollouts re-scored under different budget thresholds: SR/CR/cost fixed, only BVR changes."],
+        ["Intervals", "Figure horizontal ranges are manually specified hypothetical ranges, not SD/SE or confidence intervals; original trial counts and cost units remain unverified."],
+    ])
     return rows
 
 

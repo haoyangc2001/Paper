@@ -1,0 +1,473 @@
+===== PDF PAGE 1 =====
+    NoMaD: Goal Masked Diffusion Policies for Navigation and Exploration
+
+
+                             Ajay Sridhar, Dhruv Shah, Catherine Glossop, Sergey Levine
+                                   UC Berkeley
+
+
+                                   NoMaD Model
+
+
+
+
+                                           Goal Image                                                                 (Optional)                                                                                                                        Transformer
+
+                                                                                         Diffusion Policy
+
+          RGB Observations                                                                             Candidate Actions
+                                                                                                                                                                 Undirected & Goal-Conditioned2023            in Unseen Environment                   Goal Masking
+
+            Fig. 1: NoMaD is the first flexibly conditioned diffusion model of robot actions that can perform both goal-conditioned navigation andOct    undirected exploration in previously unseen environments. It uses goal masking to condition on an optional goal image, and a diffusion
+            policy to model complex, multimodal action distributions in challenging real-world environments.
+11            Abstract— Robotic  learning  for  navigation  in  unfamiliar   environment is unfamiliar, the task requires exploration, or
+          environments needs to provide policies for both task-oriented    the direction provided by the user  is incomplete. In this
+           navigation  (i.e., reaching a goal that the robot has located),                                                                  work, we study a particularly important instance of  this
+         and task-agnostic exploration  (i.e., searching for a goal in a
+                                                                problem in the domain of robotic navigation, where the           novel setting). Typically, these roles are handled by separate
+          models, for example by using subgoal proposals, planning, or   user might specify a destination visually (i.e., via a picture),
+           separate navigation strategies. In this paper, we describe how   and the robot must locate this destination by searching its[cs.RO]   we can train a single unified diffusion policy to handle both   environment. In such settings, standard multi-task policies
+           goal-directed navigation and goal-agnostic exploration, with                                                                            trained to perform the user-specified task are not enough
+           the latter providing the ability to search novel environments,
+                                                             by themselves: we also need some way for the robot to         and the former providing the ability to reach a user-specified
+           goal once  it has been  located. We show  that  this  unified    explore,  potentially  trying  different  tasks  (e.g.,  different
+           policy results in better overall performance when navigating    possible destinations for searching the environment), before
+            to visually indicated goals in novel environments, as compared    figuring out how to perform the desired task (i.e., locating
+            to approaches  that use subgoal proposals from generative                                                                          the object of interest). Prior works have often addressed this
+          models, or prior methods based on latent variable models. We
+                                                                       challenge by training a separate high-level policy or goal            instantiate our method by using a large-scale Transformer-
+          based policy trained on data from multiple ground robots,   proposal system that generates suitable exploratory tasks, for
+          with a diffusion model decoder to flexibly handle both goal-   example using high-level planning [1], hierarchical reinforce-
+           conditioned and goal-agnostic navigation. Our experiments,   ment learning [2], and generative models [3]. However, this
+          conducted on a real-world mobile robot platform, show effective                                                                         introduces additional complexity and often necessitates task-
+           navigation in unseen environments in comparison with  five
+                                                                               specific mechanisms. Can we instead train a single highly            alternative methods, and demonstrate significant improvements
+            in performance and lower  collision  rates,  despite  utilizing   expressive policy that can represent both task-specific and
+           smaller models than state-of-the-art approaches.                 task-agnostic behavior, utilizing the task-agnostic behaviorarXiv:2310.07896v1
+                                                                              for exploration and switching to task-specific behavior as
+                                                                needed to solve the task?
+                                        I. INTRODUCTION                          In this paper, we present a design for such a policy by
+            Robotic learning provides us with a powerful tool for   combining a Transformer backbone for encoding the high-
+          acquiring multi-task policies that, when conditioned on a   dimensional stream of visual observations with diffusion
+          goal  or another  task  specification, can perform a wide   models for modeling a sequence of future actions and instan-
+           variety of different behaviors. Such policies are appealing    tiate it for the particular problem of visual exploration and
+          not only because of their flexibility, but because they can   goal-seeking in novel environments. Our main insight is that
+          leverage data from a variety of tasks and domains and,   such an architecture is uniquely suited for modeling task-
+         by sharing knowledge across these settings, acquire policies    specific and task-agnostic pathways since  it provides high
+            that are more performant and more generalizable. However,   capacity (both for modeling perception and control) and the
+           in practical settings, we might encounter situations where    ability to represent complex, multimodal distributions.
+           the robot doesn’t know which task to perform because the     The main contribution of our work  is Navigation with
+                                                              Goal Masked Diffusion, or NoMaD, a novel architecture
+              For videos and code, see general-navigation-models.github.io.             for robotic navigation in previously unseen environments
+
+===== PDF PAGE 2 =====
+that uses a  unified  diffusion  policy  to  jointly  represent    action distributions. Prior work has addressed this by ex-
+exploratory task-agnostic behavior and goal-directed task-    ploring different action representations, such as autoregres-
+specific behavior in a framework that combines graph search,    sive predictions of quantized actions [24–27], using latent
+frontier exploration, and highly expressive policies. We eval-    variable models [17, 21], switching to an implicit policy
+uate the performance of NoMaD on both undirected and    representation [28], and, most recently, using conditional
+goal-conditioned experiments across challenging indoor and    diffusion models for planning and control [29–34]. State-
+outdoor environments, and report improvements over the   or observation-conditioned diffusion models of action [30,
+state-of-the-art, while also being 15× more computationally   31] are particularly powerful, since they enable modeling
+efficient. To the best of our knowledge, NoMaD is the first   complex action distributions without the cost and added
+successful instantiation of a goal-conditioned action diffusion   complexity of inferring future states/observations. NoMaD
+model, as well as a unified model for both task-agnostic and   extends  this formulation by additionally conditioning the
+task-oriented behavior, deployed on a physical robot.          action distribution on both the robot’s observations and the
+                                                               optional goal information, giving the first instantiation of a
+                        II. RELATED WORK                       “diffusion policy” that can work in both goal-conditioned
+                                                      and undirected modes.
+  Exploring a new environment  is often framed as the
+                                                                                                 III. PRELIMINARIESproblem of efficient mapping, posed in terms of information
+maximization  to guide the robot  to new  regions. Some     Our objective is to design a control policy π for visual
+prior exploration methods use local strategies for generating   navigation that takes the robot’s current and past RGB obser-
+control actions for the robots [4–7], while others use global    vations as input ot := ot−P :t and outputs a distribution over
+strategies based on the frontier method  [8–10]. However,    future actions at := at:t+H. The policy may additionally
+building high-fidelity geometric maps can be hard without   have access to an RGB image of a goal og, which can
+reliable depth information. Inspired by prior work [1, 11, 12],   be used to specify the navigation task. When a goal og  is
+we factorize the exploration problem into (i) learned control   provided, π must take actions that make progress towards
+policies that can take diverse, short-horizon actions, and (ii)    the goal, and eventually reach it. In an unseen environment,
+a high-level planner based on a topological graph that uses    the goal image og may not be available, and π must explore
+the policy for long-horizon goal-seeking.                       the environment by taking safe and reasonable navigation
+  Several  prior works have proposed learning-based ap-    actions (e.g., avoiding obstacles, following hallways etc.),
+proaches for robotic exploration by leveraging privileged   while providing sufficient coverage of the valid behaviors in
+information in simulation [13–16] or learn directly from real-    the environment. To facilitate long-horizon exploration and
+world experience [17]. These policies have been trained with    goal-seeking, we follow the setup of ViKiNG [35] and pair
+reinforcement  learning  to maximize coverage,  predicting   π(ot) with a topological memory of the environment M, and
+semantically rich regions, intrinsic rewards [13, 14, 18, 19],   a high-level planner that encourages the robot to explore the
+or by using planning in conjunction with latent variable and   environment by navigating to unexplored regions.
+affordance models [17, 20, 21]. However, policies trained   Visual goal-conditioned policies: To train goal-conditioned
+in simulation tend to transfer poorly to real-world environ-    policies for visual inputs, we follow a large body of prior
+ments [16, 22], and our experiments reveal that even the   work on training high-capacity policies based on the Trans-
+best exploration policies trained on real-world data perform   former  architecture  [3, 36–38].  Specifically, we use  the
+poorly in complex indoor and outdoor environments.          Visual Navigation Transformer (ViNT) [3] policy as the
+  The closest related work to NoMaD is ViNT, which uses   backbone for processing the robot’s visual observations ot
+a goal-conditioned navigation policy in conjunction with   and goal og. ViNT uses an EfficientNet-B0 encoder [39]
+a separate high-capacity subgoal proposal model [3]. The   ψ(oi) to process each observation image i ∈{t −P, . . . , t}
+subgoal proposal model is instantiated as a 300M parameter   independently, as well as a goal fusion encoder ϕ(ot, og)
+image diffusion model [23], generating candidate subgoal    to tokenize the inputs. These tokens are processed using
+images conditioned on the robot’s current observation. No-   multi-headed attention layers f(ψ(oi), ϕ(ot, og)) to obtain
+MaD uses diffusion models differently: rather than gener-   a sequence of context vectors that are concatenated to obtain
+ating subgoal images with diffusion and conditioning on    the final context vector ct. The context vector is then used
+these generations, we directly model actions conditioned on    to predict future actions at = fa(ct) and temporal distance
+the robot’s observation with diffusion. Empirically, we find   between the observation and the goal d(ot, og) = fd(ct),
+that NoMaD outperforms the ViNT system by over 25%   where fa, fc are fully-connected layers. The policy is trained
+in undirected exploration. Furthermore, since NoMaD does   using supervised learning using a maximum likelihood objec-
+not generate high-dimensional images, it requires over 15×    tive, corresponding to regression to the ground-truth actions
+fewer parameters, providing a more compact and efficient   and temporal distance. While ViNT shows state-of-the-art
+approach that can run directly on the less powerful onboard   performance in goal-conditioned navigation,  it cannot per-
+computers (e.g., NVIDIA Jetson Orin).                    form undirected exploration and requires an external subgoal
+ A key challenge with predicting sequences of robot actions   proposal mechanism. NoMaD extends ViNT to enable both
+for exploration  is the  difficulty  in modeling multimodal   goal-conditioned and undirected navigation.
+
+===== PDF PAGE 3 =====
+   Observations
+                                            7 Tokens
+    Past 5 timesteps
+                                                                            x 256-D
+     96x96x3 RGB
+
+                                       x6                                                                                                                       Temporal Distance
+
+                                               Transformer
+                                                                                                                    10 denoising steps
+                                                      4 Layers, 4 Heads
+       Goal                                    5M Parameters
+         Optional
+
+                                                                                                                       8 Future
+                                                                          Context                                                       Actions
+                                                                                                      Average Pooled
+                                                  Goal Masking
+
+Fig. 2: Model Architecture. NoMaD uses two EfficientNet encoders ψ, ϕ to generate input tokens to a Transformer decoder. We use
+goal masking to jointly reason about task-agnostic and task-oriented behaviors through the observation context ct. We use action diffusion
+conditioned on the context ct to obtain a highly expressive policy that can be used in both a goal-conditioned and undirected manner.
+
+Exploration   with   topological  maps:  While   goal-   on (or masking out) an optional goal image og; and  (ii)
+conditioned  policies can  exhibit  useful  affordances and   a diffusion policy, which provides an expressive prior over
+collision-avoidance behavior, they may be insufficient for    collision-free actions that the robot can take. Figure 2 shows
+navigation in large environments that require reasoning over   an overview of the NoMaD architecture, and we describe
+long time horizons. To facilitate long-horizon exploration   each component in detail below.
+and goal-seeking in large environments, we follow the setup
+of ViKiNG [35] and  integrate  the policy with episodic   A. Goal Masking
+memory M  in the form of a topological graph of the
+                                                                 In order to train a shared policy for goal-reaching androbot’s experience in the environment. M  is represented
+                                                              undirected exploration, we modify the ViNT architecture
+by  a  graph  structure  with nodes  corresponding  to  the
+                                                             described in Section III by introducing a binary “goal mask”
+robot’s visual observations in the environment, and edges
+                                              m, such that ct = f(ψ(oi), ϕ(ot, og), m). m can be used tocorresponding  to  navigable  paths  between  two  nodes,
+                                                 mask out the goal token ϕ(ot, og), thus blocking the goal-as determined by  the  policy’s  goal-conditioned  distance
+                                                             conditioned pathway of the policy. We implement masked
+predictions. When  navigating  large  environments,  the
+                                                                   attention by setting the goal mask m = 1, such that the
+robot’s visual observations ot may not be sufficient to plan
+                                                      downstream computation of ct does not attend to the goallong-horizon  trajectories  to  the  goal.  Instead,  the  robot
+                                                               token. We implement unmasked attention by setting m =can use the topological map M to plan a sequence of
+                                                                     0, such that the goal token is used alongside observation
+subgoals that guide the robot to the goal. When exploring
+                                                            tokens in the downstream computation of ct. During training,previously unseen environments, we construct M online
+                                                                the goal mask m is sampled from a Bernoulli distribution
+while  the  robot  searches  the  environment  for  a  goal.
+                                                           with probability pm. We use a fixed pm =  0.5 duringBeyond undirected coverage exploration, this graph-based
+                                                                      training, corresponding to equal number of training samples
+framework also supports the ability to reach high-level goals
+                                                           corresponding to goal-reaching and undirected exploration.
+G, which may be arbitrarily far away and specified as GPS
+                                                    At test time, we set m corresponding to the desired behavior:
+positions, locations on a map, language instructions, etc. In
+                              m = 1 for undirected exploration, and m = 0 for reaching
+this work, we focus on frontier-based exploration, which
+                                                                  user-specified goal images. We find that this simple masking
+tests the ability of NoMaD to propose diverse subgoals and
+                                                                  strategy is very effective for training a single policy for both
+search unseen environments. We largely follow the setup of
+                                                              goal-reaching and undirected exploration.
+prior work [35], swapping the learned policy with NoMaD.
+
+                      IV. METHOD                         B. Diffusion Policy
+
+  Unlike prior work that uses separate policies for goal-     While goal masking allows  for a convenient way  to
+conditioned navigation and open-ended exploration [3], we   condition the policy on a goal image, the distribution over
+posit that learning a single model for both behaviors is more    actions that results from this, particularly when a goal is not
+efficient and generalizable. Training a shared policy across   provided, can be very complex. For example, at a junction,
+both behaviors allows the model to learn a more expressive    the policy might need to assign high probabilities to left
+prior over actions at, which can be used for both conditional   and right turns, but low probability to any action that might
+and unconditional inference. In this section, we describe our    result in a collision. Training a single policy to model such
+proposed NoMaD architecture, which is a goal-conditioned   complex, multimodal distributions over action sequences is
+diffusion policy that can be used for both goal-reaching and    challenging. To effectively model such complex distributions,
+undirected exploration. The NoMaD architecture has two  we use a diffusion model [23] to approximate the conditional
+key components:  (i) attention-based goal-masking, which    distribution p(at|ct), where ct  is the observation context
+provides a flexible mechanism for conditioning the policy   obtained after goal masking.
+
+===== PDF PAGE 4 =====
+                                                            samples. The diffusion policy  is trained with the Square
+                                                        Cosine Noise Scheduler [42] and K = 10 denoising steps.
+                                        We uniformly sample a denoising iteration k, and we also
+                                                       sample a corresponding noise ϵk with the variance defined
+                                                                        at iteration k. The noise prediction network, ϵθ, consists of a
+                                           1D conditional U-Net [29, 31] with 15 convolutional layers.
+                                         We use the AdamW optimizer [43] with a learning rate
+                                                              of 10−4 and train NoMaD for 30 epochs with a batch size
+                                                              of 256. We use cosine scheduling and warmup to stabi-
+                                                                        lize the training process and follow other hyperparameters
+Fig. 3: Visualizing the task-agnostic (yellow) and goal-directed
+                                                      from ViNT [3]. For the ViNT observation encoder, we usepathways for two goal images (green, blue) learned by NoMaD.
+NoMaD predicts a bimodal distribution of collision-free actions in   EfficientNet-B0 [39] to tokenize observations and goals into
+the absence of a goal, and snaps to a narrower distribution after   256-dimensional embeddings, followed by a Transformer
+conditioning on two different goal images.                       decoder with 4 layers and 4 heads.
+
+                                                                              V. EVALUATION
+  We sample a sequence of  future  actions aKt  from a
+Gaussian distribution and perform K iterations of denoising    We evaluate NoMaD in 6 distinct indoor and outdoor
+to produce a series of intermediate action sequences with   environments, and formulate our experiments to answer the
+decreasing levels of noise {aKt  , aK−1t     , . . . , a0t}, until the de-   following questions:
+sired noise-free output a0t is formed. The iterative denoising   Q1. How does NoMaD compare to prior work for visual ex-
+process follows the equation                                         ploration and goal-reaching in real-world environments?
+                                                   Q2. How does a joint task-agnostic and task-specific policy
+      ak−1t  = α · (akt −γϵθ(ct, akt , k) + N(0, σ2I))    (1)                                                         compare to the individual behavior policies?
+where k  is the number of denoising steps, ϵθ  is a noise   Q3. How important is the choice of visual encoder and goal
+prediction network parameterized by θ, and α, γ and σ are       masking to the performance of NoMaD?
+functions of the noise schedule.
+                                                            A. Benchmarking Performance
+  The noise prediction network εθ  is conditioned on the
+observation context ct, which may or may not include goal     Towards understanding Q1, we compare NoMaD to six
+information, as determined by the mask m. Note that we   performant baselines for exploration and navigation in 6
+model the conditional (and not  joint) action distribution,   challenging real-world environments. We follow the experi-
+excluding ct from the output of the denoising process, which   mental setup of ViNT [3] and evaluate the methods on their
+enables real-time control and end-to-end  training of the    ability to (i) explore a novel environment effectively in search
+diffusion process and visual encoder. During training, we   of a goal position, or (ii) reach a goal indicated by an image
+train εθ by adding noise to ground truth action sequences.    in a previously explored environment, where the robot uses
+The predicted noise is compared to the actual noise through    the policy to create a topological graph as episodic memory.
+the mean squared error (MSE) loss.                           All baselines are trained on a combination of GNM and
+                                          SACSoN datasets for 20 epochs, and we perform minimal
+C. Training Details                                                          hyperparameter tuning to ensure stable training for each
+  The NoMaD model architecture is illustrated in Figure 2.    baseline. We report the mean success rate for each baseline,
+We train NoMaD on a combination of GNM and SACSoN   as well as the mean number of collisions per experiment.
+datasets,  large heterogeneous  datasets  collected across a                                                 VIB: We use the authors’ implementation of a latent goal
+diverse set of environments and robotic platforms, including                                                    model for exploration [17], which uses a variational infor-
+pedestrian-rich environments, spanning over 100 hours of                                                        mation bottleneck (VIB) to model a distribution of actions
+real-world trajectories [40, 41]. NoMaD is trained end-to-end                                                             conditioned on observations.
+with supervised learning using the following loss function:
+                                              Masked ViNT: We integrate our goal masking with the ViNT
+                                                               policy [3] to flexibly condition on the observation context
+ LNoMaD(ϕ, ψ, f, θ, fd) = MSE(εk, εθ(ct, a0t + εk, k))          ct. This baseline predicts point estimates of future actions                                                            (2)
+              + λ · MSE(d(ot, og), fd(ct))       conditioned on ct, rather than modeling the distribution.
+  where ψ, ϕ correspond to visual encoders for the obser-   Autoregressive: This baseline uses autoregressive predic-
+vation and goal images, f corresponds to the Transformer    tions over a discretized action space  to  better represent
+layers, θ corresponds to the parameters of the diffusion pro-   multimodal action distributions. Our implementation uses
+cess, and fd corresponds to the temporal distance predictor.   a categorical representation of the action distribution, goal
+λ = 10−4  is a hyperparameter that controls the relative   masking, and the same visual encoder design.
+weight of the temporal distance loss. During training, we use   Subgoal Diffusion: We use the authors’ implementation of
+a goal masking probability pm = 0.5, corresponding to an    the ViNT system [3] that pairs a goal-conditioned policy with
+equal number of goal-reaching and undirected exploration   an image diffusion model for generating candidate subgoal
+
+===== PDF PAGE 5 =====
+Fig. 4: Visualizing rollouts of NoMaD deployed in challenging indoor (top) and outdoor (bottom) environments on the LoCoBot platform,
+showcasing successful exploration trajectories. Future action samples from the undirected mode are shown in yellow, and the action
+selected by the high-level planner is shown in blue. The predicted actions follow implicit navigational affordances, such as following
+hallways, and become multimodal at decision points, such as intersections in the hallway.
+
+
+                                     Exploration     Navigation         Method               Params   Undirected   Goal-Conditioned
+   Method               Params   Success    Coll.     Success             Diffusion Policy [31]   15M     98%           ✗
+                                                            ViNT Policy [3]      16M       ✗          92%
+   Masked ViNTm       15M    50%      1.0     30%                                                    NoMaD            19M     98%         92%
+   VIB [17]           6M     30%      4.0     15%
+   Autoregressivem       19M    90%      2.0     60%                                            TABLE II: Despite having comparable model capacities, NoMaD
+   Random Subgoals [3]   30M    70%      2.7     90%
+                                                              matches the performance of the best individual behavior policies   Subgoal Diffusion [3]   335M    77%      1.7     90%
+  NoMaD            19M    98%      0.2     90%           for undireced exploration adn goal-conditioned navigation.
+
+TABLE I: NoMaD paired with a topological graph consistently
+outperforms all baselines for the task of exploration in previously   matches the performance of the best published baseline,
+unseen environments, and navigation in known environments. Most   while  also requiring a 15× smaller model and running
+notably, NoMaD outperforms the state-of-the-art (Subgoal Diffu-    entirely on-the-edge. Figure 4 shows example rollouts of
+sion) by 25%, while also avoiding collisions and requiring 15×
+                                                                the NoMaD policy exploring unknown indoor and outdoorfewer parameters. mThese baselines that use goal masking.
+                                                          environments in search for the goal.
+                                                          Analyzing the policy predictions across baselines (seeimages, which are used by the policy to predict exploration
+                                                            Figure  5), we  find  that while the Autoregressive policyactions. This  is the best published baseline we compare
+                                                                representation can (in principle) express multimodal distribu-against, but uses a 15× larger model than NoMaD.
+                                                                       tions, the predictions are largely unimodal, equivalent to the
+Random Subgoals: A variation of the above ViNT system                                                               policy learning the average action distribution. The Subgoal
+which replaces subgoal diffusion with randomly sampling the                                                             Diffusion baseline tends to represent the multiple modes
+training data for a candidate subgoal, which is passed to the                                                                  well, but is not very robust. NoMaD consistently captures the
+goal-conditioned policy to predict exploration actions. This                                                        multimodal distribution, and also makes accurate predictions
+baseline does not use image diffusion, and has comparable                                                when conditioned on a goal image.
+parameter-count to NoMaD.
+  Table  I summarizes the  results of our experiments in   B. Unified v/s Dedicated Policies
+5 challenging indoor and outdoor environments. VIB and
+                                                       With the flexibility that a policy with task-specific and
+Masked ViNT struggle in all the environments we tested and
+                                                                task-agnostic capabilities offers, Q2 aims to understand the
+frequently end in collisions, likely due to challenges with
+                                                         impact of goal masking on the individual behaviors learned
+effectively modeling multimodal action distributions. The
+                                                    by the policy. Specifically, we compare the performance of
+Autoregressive baseline uses a more expressive policy class
+                                                                the jointly trained NoMaD model to the best-performing
+and outperforms these baselines, but struggles in complex
+                                                             goal-conditioned and undirected models. We report the mean
+environments. Furthermore, the deployed policy tends to
+                                                             success rate for each baseline.
+be jerky and slow to respond to dynamic obstacles in the
+                                                           Diffusion Policy: We train a diffusion policy [31] with theenvironment, likely due to the discretized action space (see
+                                                   same visual encoder as NoMaD and m = 0. This is the bestsupplemental video for experiments). NoMaD consistently
+                                                               exploration baseline, outperforming both VIB and IBC.outperforms all baselines and results in smooth, reactive poli-
+cies. For exploratory goal discovery, NoMaD outperforms the  ViNT Policy: We use the authors’ published checkpoint
+best published baseline (Subgoal Diffusion) by over 25%   of the ViNT navigation policy  [3], which predicts point
+in terms of both efficiency and collision avoidance, and   estimates of future actions conditioned on observations and
+succeeds in all but the hardest environment. For navigation   a goal. This is the best navigation baseline.
+in known environments, using a topological graph, NoMaD     Comparing the unified NoMaD policy to the above, we
+
+===== PDF PAGE 6 =====
+     Goal 1 (left)        Goal 2 (right)
+
+
+
+
+
+                         NoMaD (Ours)      Subgoal Diffusion†   Random Subgoals†      Autoregressive
+
+Fig. 5: Examples of action predictions from NoMaD and baselines in undirected mode (yellow) and goal-directed mode with two different
+goal images (blue towards left, green towards right). Only NoMaD can consistently represent multimodal undirected predictions while
+avoiding collisions with pillars or walls, as well as correctly predicting the goal-conditioned action predictions for the two goals. †Note
+that Subgoal Diffusion and Random Subgoals baselines only represent point estimates when conditioned on a goal image.
+
+
+              Visual Encoder       Success   # Collisions              outperforms both the ViT- and CNN-based architectures, suc-
+             Late Fusion CNN    52%          3.2                   cessfully reaching the goal while avoiding collisions. CNN
+              Early Fusion CNN    68%          1.5                 with early fusion outperforms late fusion, confirming similar
+            ViT              32%          2.5
+         NoMaD          98%         0.2                   analysis in prior work [3, 38], but struggles to effectively
+                                                              condition on goal information. Despite  it’s high capacity,
+TABLE III: The performance of NoMaD depends on the choice of    the ViT encoder struggled learn a good policy, likely due to
+visual encoder and goal masking strategy. The ViNT encoder with                                                              optimization challenges in training end-to-end with diffusion.
+attention-based goal masking outperforms all alternatives.
+
+                                                                          VI. DISCUSSIONfind that despite having comparable model capacities, the
+unified policy trained with goal masking matches the perfor-    We presented NoMaD, the  first instantiation of a goal-
+mance of ViNT policy for goal-conditioned navigation and   conditioned diffusion policy, that can perform both task-
+DP for undirected exploration. This suggests that training for   agnostic exploration and task-oriented navigation. Our uni-
+these two behaviors involves learning shared representations    fied  navigation  policy uses a  high-capacity Transformer
+and affordances, and a single policy can indeed excel at both   encoder with masked attention approach to flexibly condition
+task-agnostic and task-oriented behaviors simultaneously.     on the task, such as goal images for navigation, and models
+                                                                the actions conditioned on observations using a diffusionC. Visual Encoder and Goal Masking
+                                                         model. We study the performance of this unified model in
+  We explore variations of the visual encoder and goal                                                                the context of long-horizon exploration and navigation in
+masking architectures to understand Q3. We consider two                                                              previously unseen indoor and outdoor environments, demon-
+alternative visual encoder designs based on CNN and ViT                                                                     strating over 25% improvements in performance over the
+backbones, and implement goal masking in different ways.                                                                      state-of-the-art  in previously unseen  settings, while  also
+We report the mean success rate for each baseline, as well                                                                requiring 15× fewer computational resources.
+as the mean number of collisions per experiment.
+                                                       While our experiments provide a proof of concept that
+Early/Late Fusion CNN: We use convolutional encoders    unified policies can provide more effective navigation in
+followed by an MLP to encode the observation and goal   new environments, our system has a number of limitations
+images, and use dropout on the goal embeddings followed    that could be addressed in future work. The navigation tasks
+by another MLP block to flexibly condition the observation    are specified via goal images which, though quite general,
+context ct on the goal. ct obtained after dropout is used    are sometimes not the most natural modalities for users to
+for conditioning the diffusion model in the same manner as   employ. Extending our approach into a complete navigation
+NoMaD. We use a straight-through estimator [44] for propa-   system that can accommodate a variety of goal modalities,
+gating gradients to the observation and goal encoders during   including language and spatial coordinates, would make our
+training. The goal can be combined with the observations   approach more broadly applicable. Additionally, our explo-
+either before or after the final MLP layers.                      ration method uses a standard frontier-based exploration
+ViT: We divide the observation and goal images into 6 × 6    strategy for high-level planning, leveraging our policy to
+patches, and encode them using a Vision Transformer [45]   explore at the frontier. Intelligently selecting which regions
+into observation context ct. We use attention masks to block    to explore, such as strategies based on semantics and prior
+the goal patches from propagating information downstream.   knowledge, could further improve performance. We hope
+  We find the choice of visual encoder to be crucial for train-    that these directions would lead to even more practical and
+ing diffusion policies, as summarized in Table III. NoMaD   capable systems, enabled by our policy representation.
+
+===== PDF PAGE 7 =====
+            ACKNOWLEDGMENTS                        [15] H. Tan, L. Yu, and M. Bansal, “Learning to navigate unseen
+                                                                       environments: Back translation with environmental dropout,”
+  This  research was  partly  supported by ARL DCIST          in 2019 Conference of the North American Chapter of the
+CRA W911NF-17-2-0181, ARO W911NF-21-1-0097, IIS-         Association for Computational Linguistics (NAACL)), 2019.
+2150826, and compute from Google TPU Research Cloud,    [16] A. Kadian, J. Truong, A. Gokaslan, A. Clegg, E. Wijmans,
+NSF CloudBank, and the Berkeley Research Computing         S. Lee, M. Savva, S. Chernova, and D. Batra, “Sim2Real
+                                                                                  Predictivity: Does Evaluation  in Simulation Predict Real-
+program. The authors would like to thank Kyle Stachowicz                                                               World Performance?” IEEE Robotics and Automation Letters,
+for useful discussions in early stages of the project, and         2020. 2
+Cheng Chi for help with reproducing the diffusion policy.    [17] D. Shah, B. Eysenbach, N. Rhinehart, and S. Levine, “Rapid
+The authors would also like to thank Michael Equi, Nathaniel         exploration for open-world navigation with latent goal mod-
+Simon, and Anirudha Majumdar, for testing and providing           els,” in Conference on Robot Learning (CoRL), 2021.  2, 4,
+                                                              5
+feedback on preliminary versions of the NoMaD model.                                                                     [18] D. S. Chaplot, R. Salakhutdinov, A. Gupta, and S. Gupta,
+                                                                     “Neural topological slam for visual navigation,” in Conference
+                 REFERENCES                             on Computer Vision and Pattern Recognition (CVPR), 2020.
+ [1] A.  Faust, K. Oslund, O. Ramirez, A.  Francis, L.  Tapia,        2
+    M.  Fiser, and  J.  Davidson,  “Prm-rl: Long-range  robotic    [19] D. Pathak, P. Agrawal, A. A. Efros, and T. Darrell, “Curiosity-
+     navigation tasks by combining reinforcement learning and         driven exploration by self-supervised prediction,” in Interna-
+     sampling-based planning,” in 2018 International Conference          tional Conference on Machine Learning, 2017. 2
+    on Robotics and Automation (ICRA), 2018. 1, 2                [20] A. Khazatsky, A. Nair, D. Jing, and S. Levine, “What can i do
+ [2] C. Li, F. Xia, R. Mart´ın-Mart´ın, and S. Savarese, “HRL4IN:         here? learning new skills by imagining visual affordances,” in
+      hierarchical reinforcement learning for interactive navigation       IEEE International Conference on Robotics and Automation
+     with mobile manipulators,” in 3rd Annual Conference on         (ICRA), 2021. 2
+     Robot Learning (CoRL), 2019. 1                                [21] K. Fang, P. Yin, A. Nair, H. R. Walke, G. Yan, and S. Levine,
+ [3] D. Shah, A. Sridhar, N. Dashora, K. Stachowicz, K. Black,         “Generalization with  lossy  affordances: Leveraging broad
+     N.  Hirose, and  S. Levine, “ViNT: A Foundation Model          offline data for learning visuomotor tasks,” in 6th Annual
+      for Visual Navigation,” in 7th Annual Conference on Robot        Conference on Robot Learning, 2022. 2
+     Learning (CoRL), 2023. 1, 2, 3, 4, 5, 6                         [22] T. Gervet, S. Chintala, D. Batra, J. Malik, and D. S. Chaplot,
+ [4] B. Kuipers and Y.-T. Byun, “A robot exploration and mapping         “Navigating to objects in the real world,” Science Robotics,
+      strategy based on a semantic hierarchy of spatial representa-         2023. 2
+      tions,” Robotics and Autonomous Systems, 1991, special Issue    [23]  J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilis-
+    Toward Learning Robots. 2                                                     tic models,” in Neural Information Processing Systems, 2020.
+ [5]  F. Bourgault, A. A. Makarenko, S. B. Williams, B. Grochol-          2, 3
+      sky, and H. F. Durrant-Whyte, “Information based adaptive    [24] L. Metz,  J.  Ibarz, N.  Jaitly, and  J. Davidson,  “Discrete
+     robotic exploration,” in IEEE/RSJ International Conference         sequential prediction of continuous actions for deep rl,” 2019.
+    on Intelligent Robots and Systems (IROS), 2002.                  2
+ [6] T. Kollar and N. Roy, “Efficient optimization of information-    [25] R. Dadashi, L. Hussenot, D. Vincent, S. Girgin, A. Raichuk,
+      theoretic exploration in slam,” in AAAI Conference on Artifi-       M. Geist, and O. Pietquin, “Continuous control with action
+      cial Intelligence (AAAI), 2008.                                        quantization from demonstrations,” in 39th International Con-
+ [7] W.  Tabib, K. Goel,  J. Yao, M. Dabhi, C. Boirum, and         ference on Machine Learning (ICML), 2022.
+     N. Michael, “Real-time information-theoretic exploration with    [26] N. M. M. Shafiullah, Z. J. Cui, A. Altanzaya, and L. Pinto,
+     gaussian mixture model maps.”  in Robotics: Science and        “Behavior transformers: Cloning $k$ modes with one stone,”
+     Systems, 2019. 2                                                        in  Advances  in  Neural  Information  Processing  Systems
+ [8] B. Yamauchi, “A frontier-based approach  for autonomous         (NeurIPS), A. H. Oh, A. Agarwal, D. Belgrave, and K. Cho,
+      exploration,” in IEEE International Symposium on Computa-          Eds., 2022.
+      tional Intelligence in Robotics and Automation (CIRA), 1997.    [27] Y. Chebotar et al., “Q-transformer: Scalable offline reinforce-
+    2                                                         ment learning via autoregressive q-functions,” in 7th Annual
+ [9] B. Charrow, S. Liu, V. Kumar, and N. Michael, “Information-        Conference on Robot Learning (CoRL), 2023. 2
+      theoretic mapping using cauchy-schwarz quadratic mutual    [28]  P. Florence, C. Lynch, A. Zeng, O. A. Ramirez, A. Wahid,
+     information,” in International Conference on Robotics and         L. Downs, A. Wong, J. Lee,  I. Mordatch, and J. Tompson,
+     Automation (ICRA), 2015.                                             “Implicit behavioral cloning,” in 5th Annual Conference on
+[10] D. Holz, N. Basilico, F. Amigoni, and S. Behnke, “A com-        Robot Learning (CoRL), 2021. 2
+      parative evaluation of exploration strategies and heuristics to    [29] M. Janner, Y. Du, J. Tenenbaum, and S. Levine, “Planning
+     improve them,” 2011. 2                                           with diffusion for flexible behavior synthesis,” in International
+[11] D. Shah, B. Eysenbach, G. Kahn, N. Rhinehart, and S. Levine,        Conference on Machine Learning (ICML), 2022. 2, 4
+    “ViNG: Learning Open-World Navigation with Visual Goals,”    [30] Z. Wang, J. J. Hunt, and M. Zhou, “Diffusion policies as an
+      in  International Conference on Robotics and Automation         expressive policy class for offline reinforcement learning,” in
+     (ICRA), 2021. 2                                            The Eleventh International Conference on Learning Represen-
+[12] X. Meng, N. Ratliff, Y. Xiang, and D. Fox, “Scaling Local          tations (ICLR), 2023. 2
+     Control to Large-Scale Topological Navigation,” in Interna-    [31] C. Chi, S. Feng, Y. Du, Z. Xu, E. Cousineau, B. Burchfiel,
+      tional Conference on Robotics and Automation (ICRA), 2020.        and S. Song, “Diffusion policy: Visuomotor policy learning
+    2                                                                      via action diffusion,” in Robotics: Science and Systems (RSS),
+[13] D. S. Chaplot, H. Jiang, S. Gupta, and A. Gupta, “Semantic         2023. 2, 4, 5
+      curiosity for active visual learning,” in ECCV, 2020. 2          [32] T. Pearce, T. Rashid, A. Kanervisto, D. Bignell, M. Sun,
+[14] T. Chen, S. Gupta, and A. Gupta, “Learning exploration poli-        R. Georgescu,  S. V. Macua,  S. Z. Tan,  I. Momennejad,
+      cies for navigation,” in International Conference on Learning        K. Hofmann, and S. Devlin, “Imitating human behaviour with
+     Representations (ICLR), 2019. 2                                       diffusion models,” in The Eleventh International Conference
+
+===== PDF PAGE 8 =====
+    on Learning Representations (ICLR), 2023.                  “GNM: A General Navigation Model to Drive Any Robot,” in
+[33] M. Reuss, M. Li, X. Jia, and R. Lioutikov, “Goal conditioned         International Conference on Robotics and Automation (ICRA),
+      imitation learning using score-based diffusion policies,” in         2023. 4
+     Robotics: Science and Systems (RSS), 2023.                     [41] N. Hirose, D. Shah, A. Sridhar, and S. Levine, “Sacson:
+[34]  P. Hansen-Estruch, I. Kostrikov, M. Janner, J. G. Kuba, and         Scalable autonomous data collection for social navigation,”
+      S. Levine, “Idql: Implicit q-learning as an actor-critic method         arXiv, 2023. 4
+     with diffusion policies,” 2023. 2                                [42] A. Q. Nichol and P. Dhariwal, “Improved denoising diffusion
+[35] D. Shah and S. Levine, “ViKiNG: Vision-Based Kilometer-          probabilistic models,” in International Conference on Machine
+     Scale Navigation with Geographic Hints,” in Robotics: Sci-        Learning (ICML), 2021. 4
+     ence and Systems (RSS), 2022. 2, 3                             [43]  I. Loshchilov and F. Hutter, “Decoupled weight decay regu-
+[36] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones,          larization,” in International Conference on Learning Repre-
+     A. N. Gomez, L. Kaiser, and I. Polosukhin, “Attention is all         sentations (ICLR), 2019. 4
+    you need,” 2017. 2                                             [44] Y. Bengio, N. L´eonard, and A. C. Courville, “Estimating or
+[37] A. Brohan et al., “Rt-1: Robotics transformer for real-world         propagating gradients through stochastic neurons for condi-
+     control at scale,” arXiv preprint, 2022.                                  tional computation,” ArXiv, 2013. 6
+[38] N. Nayakanti, R. Al-Rfou, A. Zhou, K. Goel, K. S. Refaat,    [45] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn,
+     and B. Sapp, “Wayformer: Motion forecasting via simple and        X.  Zhai,  T.  Unterthiner,  M.  Dehghani,  M.  Minderer,
+      efficient attention networks,” 2022. 2, 6                          G. Heigold, S. Gelly, J. Uszkoreit, and N. Houlsby, “An image
+[39] M. Tan and Q. V. Le, “Efficientnet: Rethinking model scaling           is worth 16x16 words: Transformers for image recognition at
+      for convolutional neural networks,” 2020. 2, 4                          scale,” in International Conference on Learning Representa-
+[40] D. Shah, A. Sridhar, A. Bhorkar, N. Hirose, and S. Levine,          tions (ICLR), 2021. 6

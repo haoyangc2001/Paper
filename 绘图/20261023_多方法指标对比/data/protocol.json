@@ -1,0 +1,55 @@
+{
+  "version": "assumed-preview-v2-compact-family-colors",
+  "date": "2026-10-23",
+  "data_status": "hypothetical",
+  "purpose": "Publication-layout preview; all point estimates and interval endpoints are assumptions, not experimental observations.",
+  "interval_kind": "hypothetical_estimate_range",
+  "confidence_level": null,
+  "sample_count_verified": false,
+  "verify_legacy_centers": true,
+  "empirical_sources": [],
+  "empirical_caption_en": null,
+  "empirical_caption_zh": null,
+  "interval_note": "Manually reasoned, point-specific illustrative ranges. Not SD, SE, measured min/max, or empirical confidence intervals. No trial-level observations were generated.",
+  "centers_source": "CORL/data/experiment_results_rcppo_ra_v3.xlsx: main_metric_wide; checked against CORL/scripts/generate_experiment_results_v3.py",
+  "source_script": "CORL/scripts/generate_experiment_results_v3.py",
+  "manuscript": "CCDC/latex/1020/main.tex",
+  "methods": [
+    {"id": "HD-MCRA", "label": "HD-MCRA", "color": "#2376AC"},
+    {"id": "RC-PPO", "label": "RC-PPO", "color": "#D98035"},
+    {"id": "RA", "label": "RA", "color": "#B65F78"},
+    {"id": "PPO_beta_L", "label": "PPO (beta L)", "color": "#9A80B5"},
+    {"id": "PPO_beta_H", "label": "PPO (beta H)", "color": "#6B4B8E"},
+    {"id": "CPPO_beta_L", "label": "CPPO (beta L)", "color": "#4C9A80"},
+    {"id": "CPPO_beta_H", "label": "CPPO (beta H)", "color": "#26705D"}
+  ],
+  "scenarios": [
+    {"id": "moderate", "source_label": "Moderately Cluttered", "label": "Moderate clutter", "label_zh": "普通障碍", "marker": "o", "offset": -0.23},
+    {"id": "narrow", "source_label": "Narrow-Passage", "label": "Narrow passage", "label_zh": "窄通道", "marker": "^", "offset": 0.0},
+    {"id": "dense", "source_label": "Densely Obstructed", "label": "Dense obstacles", "label_zh": "密集障碍", "marker": "s", "offset": 0.23}
+  ],
+  "metrics": [
+    {"id": "SR", "source_label": "SR", "label": "Success rate", "label_zh": "成功率", "unit": "%", "direction": "higher", "source_scale": 100, "limits": [0, 100], "ticks": [0, 25, 50, 75, 100]},
+    {"id": "CR", "source_label": "CR", "label": "Collision rate", "label_zh": "碰撞率", "unit": "%", "direction": "lower", "source_scale": 100, "limits": [0, 55], "ticks": [0, 10, 20, 30, 40, 50]},
+    {"id": "BVR", "source_label": "BVR", "label": "Budget violation", "label_zh": "预算违规率", "unit": "%", "direction": "lower", "source_scale": 100, "limits": [0, 55], "ticks": [0, 10, 20, 30, 40, 50]},
+    {"id": "Cost", "source_label": "Average Cost", "label": "Execution cost", "label_zh": "执行成本", "unit": "draft units", "axis_label": "Cost units", "direction": "conditional", "source_scale": 1, "limits": [45, 190], "ticks": [50, 100, 150]}
+  ],
+  "layout": {"width_mm": 181.0, "height_mm": 90.0, "top_margin_mm": 10.0, "bottom_margin_mm": 19.5, "font_family": "DejaVu Sans", "font_pt": 8.0, "dpi": 300},
+  "interpretation": {
+    "SR": "Fraction reaching the goal before timeout without collision; budget compliance is a separate event in this draft.",
+    "CR": "Fraction with at least one collision under a common physical collision definition; do not redefine collisions using each method's inflated planning map.",
+    "BVR": "Fraction whose actual cumulative cost exceeds the assigned initial budget. Adopted draft protocol: a common scenario-specific reference budget for every method, z0/z_ref = 1. Budget violation does not terminate evaluation; absolute budgets require verification.",
+    "Cost": "Assumed all-trial mean cumulative execution cost through goal, physical collision, or timeout. This accounting convention was adopted for consistency on 2026-10-23, not recovered from logs. Exact running cost and units remain unresolved; no physical-unit or energy claim.",
+    "intervals": "Each interval is marginal; endpoints of different metrics are not a jointly sampled outcome and cannot be combined to infer joint feasibility.",
+    "precision": "One decimal is used to support reproducible layout only, not to claim measurement precision.",
+    "width_rationale": "Finite repeated evaluations at roughly a hundred trials per scenario motivate broad percentage-point scales only. No actual count, coverage probability, seed count, or estimator is inferred or verified. Individual endpoints are specified manually, never generated from this heuristic."
+  },
+  "unresolved_for_empirical_replacement": [
+    "Actual trial counts and training-seed/map clustering",
+    "Verify the adopted common-reference-budget convention and absolute scenario-specific budgets",
+    "Cost definition and units; verify adopted all-trial averaging and failure accounting against logs",
+    "Physical collision and timeout definitions",
+    "Choice of empirical interval estimator and confidence level"
+  ],
+  "reconciliation": {"method": "RA", "metric": "BVR", "old_manuscript_mean_percent": 22.0, "adopted_assumed_mean_percent": 20.0, "reason": "Existing scene values 12, 20, 28 and the existing workbook both give an equal-scene average of 20. No inferred scene replacement is needed."}
+}
