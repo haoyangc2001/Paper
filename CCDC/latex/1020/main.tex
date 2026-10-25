@@ -214,9 +214,9 @@ cost and geometric errors are converted into $\alpha$ and $\delta$. The correcte
 model is then used for high-level learning and budget search. Online, the policy
 emits a velocity command and the frozen tracker closes the loop on the robot.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{../../images/1020/deployment_calibration_overview.pdf}
+\includegraphics[width=\columnwidth]{../../images/1020/deployment_calibration_overview.pdf}
 \caption{Two-stage engineering architecture of HD-MCRA. Stage 1 freezes the
 velocity tracker and calibrates cost and safety margins from paired nominal and
 executed rollouts. Stage 2 uses $\tilde c=(1+\alpha)c$ for cost-learning targets
@@ -225,7 +225,7 @@ reachability targets. The actor sends velocity commands through the same frozen
 tracker, which produces joint commands. Scene views are static renders and paths
 are illustrative; ghost poses depict one robot at successive times.}
 \label{fig:system_overview}
-\end{figure*}
+\end{figure}
 
 \subsection{Frozen Velocity-Control Interface}
 We first train and freeze a velocity tracker to execute the high-level navigation
@@ -328,17 +328,17 @@ the selected initial budget. Goal-reaching, collision, and clearance outcomes ar
 also logged for the empirical evaluation in the next section.
 
 \section{Experiments}
-% Queue full-width result floats early so they stay near the experimental discussion.
-\begin{figure*}[t]
+% Queue the result figure and full-width tables near the experimental discussion.
+\begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{../../images/1020/metrics_comparison_assumed.pdf}
+\includegraphics[width=\columnwidth]{../../images/1020/metrics_comparison_assumed.pdf}
 \caption{Scenario-level SR, CR, BVR, and executed cost at the common reference
 budget. Markers distinguish scenarios; colors distinguish methods. Points and
 horizontal ranges are assumed placeholders; the ranges are not measured standard
 deviations or confidence intervals. Table~\ref{tab:main_results} reports equal-scene
 means and additionally includes minimum clearance.}
 \label{fig:metrics_draft}
-\end{figure*}
+\end{figure}
 
 \begin{table*}[t]
 \caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$ (all entries are assumed data).
@@ -424,6 +424,28 @@ with a similar collision rate. RA and CPPO$_{\beta_L}$ attain lower CR or greate
 clearance at the expense of other metrics. These assumed values illustrate the
 joint success--safety--cost trade-off; they do not establish statistical superiority.
 
+Figure~\ref{fig:trajectory_sync} illustrates how the calibrated interface affects
+navigation behavior in one assumed paired example. HD-MCRA maintains greater
+obstacle clearance along a slightly longer, more costly route. The synchronized
+curves relate obstacle passages to clearance, execution cost, and tracking error;
+the corrected nominal charge shows how $\alpha$ enters budget accounting.
+Both methods remain within the common budget, so this case illustrates the
+safety--cost trade-off rather than a reduction in BVR. Its illustrative cost
+scale is not directly comparable with Table~\ref{tab:main_results}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../../images/1020/trajectory_sync.pdf}
+\caption{Same-scene trajectories and synchronized diagnostics (assumed data).
+HD-MCRA (blue) and RC-PPO (orange) share the frozen tracker, start, goal,
+footprint, and initial budget of 85 illustrative cost units.
+(a) Executed (solid) and nominal (dashed) paths, with additional margin
+$\delta=0.12$ m. (b) Physical clearance. (c) Cumulative costs, common budget,
+and corrected charge $(1+\alpha)J_{\rm nom}$, $\alpha=0.18$.
+(d) Linear-velocity tracking error. A/B mark each method's own obstacle
+passages; traces end at their respective terminations.}
+\label{fig:trajectory_sync}
+\end{figure}
 
 \subsection{Execution Mismatch and Component Analysis}
 \label{sec:mismatch_analysis}

@@ -173,6 +173,8 @@ def check():
         assert (TEX.parent / match).is_file(), match
     assert digest(images / "metrics_comparison_assumed.pdf") == digest(POINT_DIR / "output/metrics_comparison_assumed.pdf")
     assert digest(images / "deployment_calibration_overview.pdf") == digest(overview_root / "output/final/deployment_calibration_overview.pdf")
+    assert digest(images / "trajectory_sync.pdf") == digest(trajectory_root / "output/publication_v4_final/trajectory_sync.pdf")
+    assert r"\begin{figure*}" not in text, "Figures must use the requested single-column placement"
     figure_sources = json.loads((REVIEW / "figure_sources.json").read_text(encoding="utf-8"))
     assert figure_sources["budget_workbook_sha256"] == digest(WORKBOOK)
     assert figure_sources["budget_figure_sha256"] == digest(images / "figure_budget_sweep_v3.pdf")
@@ -181,7 +183,7 @@ def check():
     from pypdf import PdfReader
     pdf = ROOT / "CCDC/output/1020/main.pdf"
     pages = PdfReader(pdf).pages
-    assert len(pages) == 8, "Manuscript no longer fits the eight-page draft limit"
+    assert len(pages) <= 8, "Manuscript no longer fits the eight-page draft limit"
     pdf_text = " ".join(page.extract_text() for page in pages)
     assert "w/o both (RC-PPO)" in pdf_text and "73.3" in pdf_text
     assert pdf.stat().st_mtime >= TEX.stat().st_mtime, "Compiled manuscript is stale"
