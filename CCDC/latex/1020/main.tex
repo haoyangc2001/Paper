@@ -470,14 +470,28 @@ pretraining; it does not isolate controller freezing. The RMSE definition and
 convergence criterion remain \textsc{TBD}.
 
 Table~\ref{tab:ablation_draft} isolates the cost and safety corrections by removing
-$\alpha$, $\delta$, or both, and includes the joint-space variant. Within these
-assumed values, removing $\alpha$ increases BVR, while removing $\delta$ increases
-CR and reduces clearance. The joint-space variant shows the largest overall
+$\alpha$, $\delta$, or both, and includes the joint-space variant.
+Figure~\ref{fig:ablation_margins} visualizes the margin comparisons with the same
+frozen tracker. Within these assumed values, removing $\alpha$ increases BVR by
+13.4 percentage points, while removing $\delta$ increases CR by 11.3 percentage
+points and reduces clearance. The joint-space variant shows the largest overall
 reduction in SR. The full and zero-margin rows reuse HD-MCRA and RC-PPO from
 Table~\ref{tab:main_results}. The single-margin rows remain separate assumptions:
 their effects are non-additive, and lower cost can accompany more failed or
 shorter trials. Thus, these placeholders do not establish monotonic improvement
 from adding either margin in isolation.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../../images/1020/ablation_horizontal.pdf}
+\caption{Margin ablation at the common reference budget (assumed data).
+Checks/crosses indicate enabled/disabled margins; disabling both gives RC-PPO.
+Blue filled points show full HD-MCRA, with reference values above each panel;
+colored hollow points show the deletion variants. Lines connect aggregate centers,
+not uncertainty intervals; pp denotes percentage points. Axes use local ranges.
+Cost must be interpreted jointly with SR.}
+\label{fig:ablation_margins}
+\end{figure}
 
 \subsection{Budget Selection and Margin Sensitivity}
 \label{sec:budget_sensitivity}

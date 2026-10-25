@@ -1,0 +1,1939 @@
+{
+  "document": {
+    "name": "模块消融图横向四面板逐点审查与视觉优化计划",
+    "version": "1.2.0",
+    "created_at": "2026-10-25",
+    "source_plan": "C:/Users/smile/Desktop/paper/CCDC/references/ablation_review_20261025/模块消融图调研与设计建议.md",
+    "mode": "completed",
+    "refinement_note": "用户确认的本轮视觉修改已完成：追加ABL-035至037均已验收。保留1×4及所有数据，新版本保存至output/refined_v2；原34项历史记录和原final产物不变。",
+    "execution_note": "2026-10-25用户授权逐项执行至完成；34项全部完成。25个原有假设中心保留，10个锚点一致，最终横排图与独立复现通过，详见每项work_records。",
+    "creation_note": "本轮仅创建计划和说明，34个执行任务全部未开始；最新用户要求1×4横排覆盖原调研文档的2×2布局建议。",
+    "status_definition": {
+      "false": "未完成、部分完成、验证失败或受阻",
+      "true": "目标实现、全部验收通过、记录与证据齐备"
+    },
+    "update_rule": "按依赖顺序执行，每项先追加结构化work_records和verification_result，再将status改为true；历史记录不可覆盖。"
+  },
+  "background": {
+    "business_context": "本文工程核心是将RC-PPO/MCRA接入真实四足执行闭环，以冻结速度接口和由执行失配校准的α/δ修正分别处理成本与几何偏差。",
+    "current_capability": "已完成总览、主结果、轨迹同步和预算扫描图，当前消融表5行×5指标共25个已有假设值。4个裕度配置的SR/Cost/BVR/CR共16点可用于新图，尚未找到专用区间或逐试验分布。",
+    "problem_to_solve": "需逐点、跨指标、跨配置、跨图检查数据的自然性和逻辑一致性，允许经论证的合理假设修订；再将三组删除比较画为横向一行四个配对点子图，避免简陋、重复及缩小后不可读。"
+  },
+  "goal": {
+    "primary": "建立逐点可追溯且跨图一致的消融假设数据，生成横向1×4、可用于单栏排版且可复现维护的配对点图。",
+    "success_equation": "25点独立审查 + 16个绘图点/12个差值正确 + 10个外部锚点一致 + 阶段问题闭环 + 1×4单栏可读 + 明确保留假设性质 + 独立复现",
+    "deliverables": [
+      "独立绘图项目下data的原值基线、25点审查后输入、协议及来源",
+      "reviews的逐点推理、阶段/跨图/数据/视觉/复现审查证据",
+      "scripts校验和绘图代码、config横排样式",
+      "output/final的PDF/SVG/PNG、图注和渲染清单",
+      "项目README、绘图索引及实测数据替换说明"
+    ]
+  },
+  "scope": {
+    "included": [
+      "审查16个主绘图点和9个关联辅助点，逐项推理并按证据或已授权假设推演修订",
+      "核查概率、成本、几何、参考预算、场景汇总及跨图一致性，追加记录回溯修正",
+      "按SR、Cost、BVR、CR固定次序生成1×4配对点图，保留三行删除比较",
+      "使用本机现有Conda环境进行校验、预览、分阶段复核、完整出图及复现",
+      "创建本项目数据/脚本/配置/审查/输出及说明，追加绘图索引"
+    ],
+    "excluded": [
+      "创建计划后立即执行绘图任务",
+      "运行真实仿真或机器人试验以补本图结果、调用远程服务器截图",
+      "用同一生成公式、随机噪声或统一模板替代逐点推理，补造试验次数/日志/训练曲线",
+      "为美观修改既有锚点、强制每个模块单调改善，或凭4个配置插值连续热图",
+      "默认添加缺少配置专属依据的误差棒、分布或置信区间",
+      "改变当前论文/其他绘图项目/原工作簿/旧图，整篇编译或Git提交推送"
+    ]
+  },
+  "global_constraints": [
+    "遵守最新用户确认：横向一行四个子图，指标依次SR、Cost、BVR、CR；保持论文单栏使用要求。旧调研2×2建议已被覆盖。",
+    "每个主点及辅助点独立判断，综合全部相关历史判断、其他指标/配置和跨图信息；不得用规则批量造数、随机加噪或模板化理由代替。",
+    "用户已授权基于上下文合理推演并修订假设数据，正常逐点修订和版式迭代无需重复确认；修订须留下原值、依据、关联影响和追加记录。",
+    "尚未由用户或本计划授权的不确定决策，如果改变范围、统计语义、核心依赖、已有产物、远程状态或外部成本，必须暂停受影响任务并询问用户。",
+    "本轮只创建计划；新任务status=false、work_records=[]、verification_result为空，不得把此前研究当成本计划执行完成。",
+    "现有原始文件、其他图和论文均只读；在新项目和新版本目录输出。只允许执行阶段按计划追加绘图根README入口及工作记录。",
+    "假设数据及后续推演始终在协议、元数据、审查和配套图注中清楚标示，不当作真实实验结果；视觉自然不等于实测验证。",
+    "允许非单调、指标取舍和模块交互，不强制完整方法Cost最低；SR/CR/BVR不可简单相加，MC均值不等于轨迹安全保证。",
+    "当前中心值为默认出图范围，连接线表示配置中心差，不表示误差或逐试验配对。缺消融专属区间时不直接借用主结果图区间。",
+    "全精度锚点与显示精度分开；完整/无裕度与主表、场景等权平均和预算参考点一致，轨迹示意只检查适用的语义关联。",
+    "每阶段完成后回顾本阶段和此前关联任务，发现错误追加回溯修订并重验；未决值不得成为最终输入。",
+    "使用apply_patch编辑文本与脚本，脚本只做读取、检查、计算、绘图；不增加外部费用和计划外远程写入。",
+    "每条工作记录保留timestamp、summary、actions、files_changed、commands、results、evidence、remaining_work、blockers字段；无内容用空数组，不写入凭证。"
+  ],
+  "uncertainty_policy": {
+    "rule": "先检查既有授权。已明确的来源、范围、单点假设推演和排版正常推进；未获授权且实质改变统计口径、依赖、既有成果或范围的未知情况，暂停受影响任务并询问用户，保持status=false。",
+    "must_pause_and_ask": [
+      "来源间冲突无法由原文定位/确定精度解释，且需选择不同主表锚点或权威来源",
+      "需改变成本定义/单位、事件定义、场景权重、预算口径、对照训练条件或验收标准",
+      "横排与既定单栏下经过常规精简仍不能可读，需要改变已确认布局或版面要求",
+      "需覆盖、移动、删除或重新生成本任务未授权的既有文件及历史产物",
+      "需修改计划外核心依赖、引入费用/外部API/远程写入，或进行未授权Git提交推送",
+      "验证不一致无法解释，或无法区分数据问题和环境问题"
+    ],
+    "routine_choices_already_authorized": [
+      "按已核对来源建立本项目快照及唯一data入口",
+      "逐点合理推演、保留或修订项目内假设值，并记录全部关联与影响；不把主表外部锚点静默改掉",
+      "调整颜色、形状、线宽、字号、刻度、间距及重点差值位置并输出新版本",
+      "中心值版本先完成正式版式，缺少专属区间时如实不加误差棒",
+      "阶段性复查、回溯、复现和追加本项目及计划记录"
+    ],
+    "question_format": "说明任务ID、已确认事实、未定问题、依据、选项与对数据/图/文件/结论的影响，并说明触发的具体规则；用户答复前不执行相关依赖动作。"
+  },
+  "paths": {
+    "workspace": "C:/Users/smile/Desktop/paper",
+    "plan": "C:/Users/smile/Desktop/paper/plan/ablation_figure_20261025_plan.json",
+    "guide": "C:/Users/smile/Desktop/paper/plan/ablation_figure_20261025_说明.md",
+    "project": "C:/Users/smile/Desktop/paper/绘图/20261025_模块消融图",
+    "data": "C:/Users/smile/Desktop/paper/绘图/20261025_模块消融图/data",
+    "reviews": "C:/Users/smile/Desktop/paper/绘图/20261025_模块消融图/reviews",
+    "scripts": "C:/Users/smile/Desktop/paper/绘图/20261025_模块消融图/scripts",
+    "config": "C:/Users/smile/Desktop/paper/绘图/20261025_模块消融图/config",
+    "output": "C:/Users/smile/Desktop/paper/绘图/20261025_模块消融图/output",
+    "research_read_only": "C:/Users/smile/Desktop/paper/CCDC/references/ablation_review_20261025/模块消融图调研与设计建议.md",
+    "snapshot_read_only": "C:/Users/smile/Desktop/paper/CCDC/references/ablation_review_20261025/current_ablation_snapshot.json",
+    "original_figure_review_read_only": "C:/Users/smile/Desktop/paper/CCDC/submission/1020审稿视角_结果缺口与绘图建议.md",
+    "manuscript_read_only": "C:/Users/smile/Desktop/paper/CCDC/latex/1020/main.tex",
+    "source_script_read_only": "C:/Users/smile/Desktop/paper/CORL/scripts/generate_experiment_results_v3.py",
+    "source_workbook_read_only": "C:/Users/smile/Desktop/paper/CORL/data/experiment_results_rcppo_ra_v3.xlsx",
+    "main_metrics_data_read_only": "C:/Users/smile/Desktop/paper/绘图/20261023_多方法指标对比/data",
+    "budget_data_read_only": "C:/Users/smile/Desktop/paper/绘图/20261025_预算扫描图/data",
+    "trajectory_data_read_only": "C:/Users/smile/Desktop/paper/绘图/20261021_轨迹与同步曲线/data",
+    "overview_data_read_only": "C:/Users/smile/Desktop/paper/绘图/20261021_部署与校准总览图/data",
+    "drawing_index_append_only": "C:/Users/smile/Desktop/paper/绘图/README.md",
+    "python_preferred": "D:/codesoftware/Miniconda/python.exe",
+    "skill": "C:/Users/smile/.codex/skills/create-plan-worklog",
+    "outputs_note": "tasks.planned_outputs相对project；../README.md指绘图根索引。源文件只读，执行阶段才新建绘图项目。"
+  },
+  "data_contract": {
+    "data_status": "hypothetical",
+    "reference_budget_ratio": 1,
+    "configurations": [
+      {
+        "id": "FULL",
+        "label": "HD-MCRA",
+        "alpha_on": true,
+        "delta_on": true,
+        "display_reference": {
+          "SR": 73.3,
+          "Cost": 88.3,
+          "BVR": 9,
+          "CR": 15,
+          "MC": 0.31
+        }
+      },
+      {
+        "id": "NO_ALPHA",
+        "label": "w/o alpha",
+        "alpha_on": false,
+        "delta_on": true,
+        "display_reference": {
+          "SR": 67.2,
+          "Cost": 80.6,
+          "BVR": 22.4,
+          "CR": 19.8,
+          "MC": 0.29
+        }
+      },
+      {
+        "id": "NO_DELTA",
+        "label": "w/o delta",
+        "alpha_on": true,
+        "delta_on": false,
+        "display_reference": {
+          "SR": 64.8,
+          "Cost": 77.2,
+          "BVR": 13.8,
+          "CR": 26.3,
+          "MC": 0.19
+        }
+      },
+      {
+        "id": "ZERO",
+        "label": "w/o both (RC-PPO)",
+        "alpha_on": false,
+        "delta_on": false,
+        "display_reference": {
+          "SR": 70.7,
+          "Cost": 91.7,
+          "BVR": 14,
+          "CR": 15.7,
+          "MC": 0.3
+        }
+      }
+    ],
+    "hierarchy_support_display_reference": {
+      "SR": 47.9,
+      "Cost": 116.7,
+      "BVR": 31.5,
+      "CR": 38.8,
+      "MC": 0.11
+    },
+    "metric_order": [
+      "SR",
+      "Cost",
+      "BVR",
+      "CR"
+    ],
+    "support_metrics": [
+      "MC"
+    ],
+    "row_order": [
+      "NO_ALPHA",
+      "NO_DELTA",
+      "ZERO"
+    ],
+    "expected_main_points": 16,
+    "expected_support_points": 9,
+    "expected_total_points": 25,
+    "expected_external_anchor_cells": 10,
+    "expected_comparison_segments": 12,
+    "expected_rendered_marker_instances": 24,
+    "canonical_rate_unit": "percent",
+    "rate_difference_unit": "percentage points",
+    "precision_note": "以上仅记录现有显示基线；不预设必须维持当前差值。若有来源全精度则保留，显示到一位小数不得反推样本数或测量精度。",
+    "interpretation_rules": [
+      "三行重复完整方法点是同一参照，不是三次独立试验；细连接不是误差棒。",
+      "SR与CR在相同试验且成功排除碰撞的定义下不能重叠；只有明确终止事件完备且互斥时才用100-SR-CR算超时，不能默认。",
+      "BVR可与SR或CR同时发生，超预算不立即终止；相同参考预算按场景定义，不在缺绝对预算时反推成本分布。",
+      "Cost为假设的全试验累计成本均值，低值可由早失败造成；没有成功条件成本记录时不把它改写为成功回合成本。",
+      "MC用统一物理足迹；δ为规划额外膨胀，不能与MC均值机械比较。",
+      "仅单裕度差于无裕度不自动视为录入错误；模块互动和策略变化只是候选解释，不等同已验证机制。"
+    ],
+    "review_record_required_fields": [
+      "point_id",
+      "revision",
+      "role",
+      "configuration",
+      "metric",
+      "source_file",
+      "source_location",
+      "baseline_value",
+      "unit",
+      "related_point_ids",
+      "cross_figure_sources",
+      "reasoning",
+      "decision",
+      "adopted_value",
+      "decision_basis",
+      "affected_points",
+      "supersedes_revision"
+    ],
+    "intervals_policy": "当前中心值足够完成正式版式；本计划不默认新增消融误差区间或虚构逐试验分布。未来新增假设区间须逐项依据并保留假设性质，实测区间需真实记录支持。"
+  },
+  "visual_contract": {
+    "layout": "1x4",
+    "panel_order": [
+      "SR",
+      "Cost",
+      "BVR",
+      "CR"
+    ],
+    "comparison_rows": [
+      "w/o alpha",
+      "w/o delta",
+      "w/o both"
+    ],
+    "width": "以论文真实单栏宽度约88至89mm为准，绘制时直接按最终尺寸设计，不以超宽图缩小替代。",
+    "initial_height_mm": [
+      38,
+      48
+    ],
+    "target_font_pt": [
+      7,
+      8
+    ],
+    "critical_text_min_pt": 6.5,
+    "style": "轻网格、细轴、稳定行对齐、颜色加形状、少量差值标注、共享必要图例；视觉丰富靠层次与精细排版。",
+    "full_color": "#2376AC",
+    "zero_color": "#D98035",
+    "key_annotations": "由最终数据计算，优先BVR去α行和CR去δ行，不硬编码现有差值。",
+    "reuse_and_provenance": "正式版式图内保持简洁，配套图注/协议/元数据保留假设性质和替换实测数据要求。",
+    "supersedes": "原调研文档第5节的2×2建议，仅布局被用户最新确认的1×4覆盖，其数据逻辑和来源仍适用。"
+  },
+  "tasks": [
+    {
+      "id": "ABL-001",
+      "phase": "基线与口径",
+      "goal": "建立来源、既有成果及本机绘图环境的可追溯基线",
+      "status": true,
+      "depends_on": [],
+      "planned_outputs": [
+        "reviews/baseline.json",
+        "reviews/environment.md",
+        "data/source_manifest.json"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:04:06.616Z",
+          "summary": "来源与环境基线建立，核对25个消融显示值",
+          "actions": [
+            "来源与环境基线建立，核对25个消融显示值"
+          ],
+          "files_changed": [
+            "scripts/source_audit.py",
+            "reviews/baseline.json",
+            "data/source_manifest.json",
+            "reviews/environment.md"
+          ],
+          "commands": [
+            "python -B scripts/source_audit.py"
+          ],
+          "results": [
+            "15个来源文件已记录SHA256；论文25值与源码一致。",
+            "现有工作簿无消融sheet，已明确只作主结果来源；未升级依赖。"
+          ],
+          "evidence": [
+            "15个来源文件已记录SHA256；论文25值与源码一致。",
+            "现有工作簿无消融sheet，已明确只作主结果来源；未升级依赖。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "读取现有论文、脚本、工作簿和图项目数据，记录定位及SHA256，不执行旧脚本中的写文件入口。",
+        "优先使用D:/codesoftware/Miniconda/python.exe及已装绘图依赖，不升级环境；只新建本绘图项目。"
+      ],
+      "acceptance_criteria": [
+        "记录25个消融表单元格的现有入口、主表与跨图来源和未决统计口径。",
+        "保存原始文件哈希、Git状态和环境信息，明确当前论文为CCDC/latex/1020/main.tex。"
+      ],
+      "verification_result": "15个来源文件已记录SHA256；论文25值与源码一致。；现有工作簿无消融sheet，已明确只作主结果来源；未升级依赖。"
+    },
+    {
+      "id": "ABL-002",
+      "phase": "基线与口径",
+      "goal": "确定四配置、指标及假设数据逐点审查契约",
+      "status": true,
+      "depends_on": [
+        "ABL-001"
+      ],
+      "planned_outputs": [
+        "data/baseline_points.json",
+        "data/review_protocol.json",
+        "reviews/数据审查契约.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:04:46.502Z",
+          "summary": "确认25点身份、全精度与显示精度和分类对照协议",
+          "actions": [
+            "确认25点身份、全精度与显示精度和分类对照协议"
+          ],
+          "files_changed": [
+            "data/baseline_points.json",
+            "data/review_protocol.json",
+            "reviews/数据审查契约.md"
+          ],
+          "commands": [],
+          "results": [
+            "25点中16主点9辅助点，10个锚点保留场景平均精度。",
+            "明确成功/碰撞排他和BVR交叠，成本及MC使用已有假设口径。"
+          ],
+          "evidence": [
+            "25点中16主点9辅助点，10个锚点保留场景平均精度。",
+            "明确成功/碰撞排他和BVR交叠，成本及MC使用已有假设口径。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "16个主绘图点与9个关联辅助点均给稳定ID；四配置不当作连续时间或参数序列。",
+        "完整方法和RC-PPO的全精度来源优先按已核实场景等权汇总读取；论文一位小数只作为显示锚点。",
+        "图内连接为汇总中心差值，不是逐试验配对、误差线、因果强度或变化过程。"
+      ],
+      "acceptance_criteria": [
+        "25个点标注配置、指标、单位、来源、基线值、精度和main/support角色；16个绘图点无遗漏。",
+        "明确SR与CR关系、BVR可与二者交叠、Cost全试验计费口径、MC物理足迹口径和未决项。"
+      ],
+      "verification_result": "25点中16主点9辅助点，10个锚点保留场景平均精度。；明确成功/碰撞排他和BVR交叠，成本及MC使用已有假设口径。"
+    },
+    {
+      "id": "ABL-003",
+      "phase": "基线与口径",
+      "goal": "建立逐点审查记录及一致性检查工具",
+      "status": true,
+      "depends_on": [
+        "ABL-002"
+      ],
+      "planned_outputs": [
+        "scripts/check_ablation_data.py",
+        "reviews/point_review.jsonl",
+        "reviews/validator_checks.json"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:05:41.447Z",
+          "summary": "建立数据与映射检查器，错误样例均正确拒绝",
+          "actions": [
+            "建立数据与映射检查器，错误样例均正确拒绝"
+          ],
+          "files_changed": [
+            "scripts/check_ablation_data.py",
+            "reviews/point_review.jsonl",
+            "reviews/validator_checks.json"
+          ],
+          "commands": [],
+          "results": [
+            "有效25点基线通过；7类错误：遗漏、重复、百分比误缩放、错误单位、越界概率、负成本和绘图错映射均被检测。"
+          ],
+          "evidence": [
+            "有效25点基线通过；7类错误：遗漏、重复、百分比误缩放、错误单位、越界概率、负成本和绘图错映射均被检测。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "脚本只读取、验证、计算差值和导出，不生成或随机扰动中心值及区间。",
+        "审查记录追加不覆盖；每个点独立写明关联点、跨图来源、推理、保留或修订结论和影响。",
+        "检查器只约束确定的数据定义；不能强制完整方法全指标最优、四配置单调或两个裕度独立可加。"
+      ],
+      "acceptance_criteria": [
+        "检查器可检测重复/遗漏ID、单位混用、越界概率、负成本/间隙、锚点差异、错误绘图映射及未决点。",
+        "用少量内存样例验证遗漏点、百分比尺度错误和锚点不一致能够报错；不落盘制造实验日志。"
+      ],
+      "verification_result": "有效25点基线通过；7类错误：遗漏、重复、百分比误缩放、错误单位、越界概率、负成本和绘图错映射均被检测。"
+    },
+    {
+      "id": "ABL-004",
+      "phase": "阶段复核一",
+      "goal": "复核数据入口、口径及检查工具，关闭基础歧义",
+      "status": true,
+      "depends_on": [
+        "ABL-003"
+      ],
+      "planned_outputs": [
+        "reviews/stage_reviews.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:05:43.453Z",
+          "summary": "完成基线阶段复核，关闭来源和布局歧义",
+          "actions": [
+            "完成基线阶段复核，关闭来源和布局歧义"
+          ],
+          "files_changed": [
+            "reviews/stage_reviews.md"
+          ],
+          "commands": [],
+          "results": [
+            "校验器负例验证通过；25点入口确定，16点顺序任务可执行。",
+            "已确认用户1×4覆盖旧版建议，数据假设性质和统计口径完整。"
+          ],
+          "evidence": [
+            "校验器负例验证通过；25点入口确定，16点顺序任务可执行。",
+            "已确认用户1×4覆盖旧版建议，数据假设性质和统计口径完整。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "核对用户最新1×4布局覆盖旧调研中2×2建议；不修改此前调研历史文件。",
+        "已有会话明确授权的逐点假设推演、合理修订与常规排版不重复确认。"
+      ],
+      "acceptance_criteria": [
+        "阶段记录包含发现、证据、修正和后续影响，无未决来源混入主绘图点。",
+        "确认后续16点均能按确定依赖逐个进入审查。"
+      ],
+      "verification_result": "校验器负例验证通过；25点入口确定，16点顺序任务可执行。；已确认用户1×4覆盖旧版建议，数据假设性质和统计口径完整。"
+    },
+    {
+      "id": "ABL-005",
+      "phase": "完整方法审查",
+      "goal": "逐点审查完整HD-MCRA的SR",
+      "status": true,
+      "depends_on": [
+        "ABL-004"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:06:20.117Z",
+          "summary": "完成 FULL_SR 独立审查，保留现有值",
+          "actions": [
+            "完成 FULL_SR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "85、73、62三个场景的等权成功率为73.333333%，显示73.3。与CR15合计88.333%，留出11.667%的其他失败空间；BVR9可包含成功或失败，不能相加。其SR高于无裕度70.667而差距不大，单裕度67.2/64.8不构成强制单调排序。保留来源全精度，不把3个场景的成功案例当300次日志。",
+            "采用值：73.33333333333334 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "85、73、62三个场景的等权成功率为73.333333%，显示73.3。与CR15合计88.333%，留出11.667%的其他失败空间；BVR9可包含成功或失败，不能相加。其SR高于无裕度70.667而差距不大，单裕度67.2/64.8不构成强制单调排序。保留来源全精度，不把3个场景的成功案例当300次日志。",
+            "采用值：73.33333333333334 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线假设值：73.3%是论文显示值；核查原场景85%、73%、62%的等权汇总及显示舍入。",
+        "关联FULL_CR、FULL_COST、FULL_BVR、主表、主结果图及预算1.00锚点；不把一次轨迹成功当总体SR依据。",
+        "逐点判断已有全部相关配置和跨图数据，不局限于前一个数值；缺失原始记录的解释只列为可能机制。"
+      ],
+      "acceptance_criteria": [
+        "点FULL_SR有单独追加记录，说明原值、来源、关联依据、推理、结论、采用值及数据性质。",
+        "如发现可修正的假设或确定性错误，记录原因和影响清单；不能用统一规则生成替代人工判断。"
+      ],
+      "verification_result": "85、73、62三个场景的等权成功率为73.333333%，显示73.3。与CR15合计88.333%，留出11.667%的其他失败空间；BVR9可包含成功或失败，不能相加。其SR高于无裕度70.667而差距不大，单裕度67.2/64.8不构成强制单调排序。保留来源全精度，不把3个场景的成功案例当300次日志。；采用值：73.33333333333334 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-006",
+      "phase": "完整方法审查",
+      "goal": "逐点审查完整HD-MCRA的Cost",
+      "status": true,
+      "depends_on": [
+        "ABL-005"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:06:41.244Z",
+          "summary": "完成 FULL_COST 独立审查，保留现有值",
+          "actions": [
+            "完成 FULL_COST 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "三个场景64、80、121均值88.333333，显示88.3，与预算参考点相同；0.96的86.2到1.05的89.4跨过本点，口径相容。成本低于RC-PPO91.667但高于两个单裕度80.6/77.2，结合其更高SR可理解为失败截断混合差异，不能证明成功回合更贵或更便宜。轨迹单例61.59的尺度不同且该例比RC-PPO贵，不能强行用均值覆盖个例。",
+            "采用值：88.33333333333333 draft cost units；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "三个场景64、80、121均值88.333333，显示88.3，与预算参考点相同；0.96的86.2到1.05的89.4跨过本点，口径相容。成本低于RC-PPO91.667但高于两个单裕度80.6/77.2，结合其更高SR可理解为失败截断混合差异，不能证明成功回合更贵或更便宜。轨迹单例61.59的尺度不同且该例比RC-PPO贵，不能强行用均值覆盖个例。",
+            "采用值：88.33333333333333 draft cost units；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线假设值：88.3是显示值，保留来源原有精度；检查全试验平均与失败终止计费。",
+        "关联FULL_SR及三个场景成本、参考预算BVR；成本未明确物理单位时不得改称能耗或距离。",
+        "逐点判断已有全部相关配置和跨图数据，不局限于前一个数值；缺失原始记录的解释只列为可能机制。"
+      ],
+      "acceptance_criteria": [
+        "点FULL_COST有单独追加记录，说明原值、来源、关联依据、推理、结论、采用值及数据性质。",
+        "如发现可修正的假设或确定性错误，记录原因和影响清单；不能用统一规则生成替代人工判断。"
+      ],
+      "verification_result": "三个场景64、80、121均值88.333333，显示88.3，与预算参考点相同；0.96的86.2到1.05的89.4跨过本点，口径相容。成本低于RC-PPO91.667但高于两个单裕度80.6/77.2，结合其更高SR可理解为失败截断混合差异，不能证明成功回合更贵或更便宜。轨迹单例61.59的尺度不同且该例比RC-PPO贵，不能强行用均值覆盖个例。；采用值：88.33333333333333 draft cost units；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-007",
+      "phase": "完整方法审查",
+      "goal": "逐点审查完整HD-MCRA的BVR",
+      "status": true,
+      "depends_on": [
+        "ABL-006"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:06:57.141Z",
+          "summary": "完成 FULL_BVR 独立审查，保留现有值",
+          "actions": [
+            "完成 FULL_BVR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "5、9、13的均值为9%，与预算扫描0.96的11.6%、1.00的9%、1.05的7.4%相接，没有参考点冲突。固定α0.18修正名义核算，无法保证执行BVR为零；比去α22.4低与修正方向相符。相同执行成本均值不决定尾部超过各场景预算的概率；单例未违规也不能否定总体9%。",
+            "采用值：9.000000000000002 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "5、9、13的均值为9%，与预算扫描0.96的11.6%、1.00的9%、1.05的7.4%相接，没有参考点冲突。固定α0.18修正名义核算，无法保证执行BVR为零；比去α22.4低与修正方向相符。相同执行成本均值不决定尾部超过各场景预算的概率；单例未违规也不能否定总体9%。",
+            "采用值：9.000000000000002 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线假设值：9.0%对应参考预算，不与SR/CR组成总和100%的互斥分类。",
+        "关联FULL_COST、FULL_SR、固定α及预算扫描1.00与邻近预算；不从均值直接反推违规概率。",
+        "逐点判断已有全部相关配置和跨图数据，不局限于前一个数值；缺失原始记录的解释只列为可能机制。"
+      ],
+      "acceptance_criteria": [
+        "点FULL_BVR有单独追加记录，说明原值、来源、关联依据、推理、结论、采用值及数据性质。",
+        "如发现可修正的假设或确定性错误，记录原因和影响清单；不能用统一规则生成替代人工判断。"
+      ],
+      "verification_result": "5、9、13的均值为9%，与预算扫描0.96的11.6%、1.00的9%、1.05的7.4%相接，没有参考点冲突。固定α0.18修正名义核算，无法保证执行BVR为零；比去α22.4低与修正方向相符。相同执行成本均值不决定尾部超过各场景预算的概率；单例未违规也不能否定总体9%。；采用值：9.000000000000002 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-008",
+      "phase": "完整方法审查",
+      "goal": "逐点审查完整HD-MCRA的CR",
+      "status": true,
+      "depends_on": [
+        "ABL-007"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:07:30.486Z",
+          "summary": "完成 FULL_CR 独立审查，保留现有值",
+          "actions": [
+            "完成 FULL_CR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "8、15、22平均15%，和SR73.333的物理成功定义相容。完整MC0.313333是各回合最小间隙的平均，正均值与15%撞击并不矛盾；δ0.12是额外规划裕度，不能改变碰撞判定。对RC-PPO的CR改善仅0.666667个百分点，并且普通场景8%还高于7%，因此保留有限改善，不声称全面或显著安全优势。",
+            "采用值：15 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "8、15、22平均15%，和SR73.333的物理成功定义相容。完整MC0.313333是各回合最小间隙的平均，正均值与15%撞击并不矛盾；δ0.12是额外规划裕度，不能改变碰撞判定。对RC-PPO的CR改善仅0.666667个百分点，并且普通场景8%还高于7%，因此保留有限改善，不声称全面或显著安全优势。",
+            "采用值：15 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线假设值：15.0%按统一物理足迹判碰撞；δ扩大的规划危险集不能改变CR定义。",
+        "关联FULL_SR、FULL_MC及三个场景、预算图；核对SR+CR≤100%所需同批次及排他定义。",
+        "逐点判断已有全部相关配置和跨图数据，不局限于前一个数值；缺失原始记录的解释只列为可能机制。"
+      ],
+      "acceptance_criteria": [
+        "点FULL_CR有单独追加记录，说明原值、来源、关联依据、推理、结论、采用值及数据性质。",
+        "如发现可修正的假设或确定性错误，记录原因和影响清单；不能用统一规则生成替代人工判断。"
+      ],
+      "verification_result": "8、15、22平均15%，和SR73.333的物理成功定义相容。完整MC0.313333是各回合最小间隙的平均，正均值与15%撞击并不矛盾；δ0.12是额外规划裕度，不能改变碰撞判定。对RC-PPO的CR改善仅0.666667个百分点，并且普通场景8%还高于7%，因此保留有限改善，不声称全面或显著安全优势。；采用值：15 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-009",
+      "phase": "阶段复核二",
+      "goal": "复核完整方法四点和跨图锚点",
+      "status": true,
+      "depends_on": [
+        "ABL-008"
+      ],
+      "planned_outputs": [
+        "reviews/stage_reviews.md",
+        "reviews/cross_figure_check.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:07:33.254Z",
+          "summary": "完成完整方法阶段复核及跨图说明",
+          "actions": [
+            "完成完整方法阶段复核及跨图说明"
+          ],
+          "files_changed": [
+            "reviews/stage_reviews.md",
+            "reviews/cross_figure_check.md"
+          ],
+          "commands": [],
+          "results": [
+            "4点有独立记录；与主表/场景/预算参考点一致，保留原全精度。",
+            "确认单例与汇总的尺度和取舍，未强制统一排序。"
+          ],
+          "evidence": [
+            "4点有独立记录；与主表/场景/预算参考点一致，保留原全精度。",
+            "确认单例与汇总的尺度和取舍，未强制统一排序。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "检查当前四点与主表、主结果图、预算参考点的一致性，区分全精度与显示舍入。",
+        "有证据的解释与假设机制分开；关联前面判断出错时追加修订。"
+      ],
+      "acceptance_criteria": [
+        "FULL四点均有有效结论；范围、单位和跨图检查通过。",
+        "确认双裕度的固定含义、非互斥事件定义以及成本统计边界，无遗留歧义带入下一阶段。"
+      ],
+      "verification_result": "4点有独立记录；与主表/场景/预算参考点一致，保留原全精度。；确认单例与汇总的尺度和取舍，未强制统一排序。"
+    },
+    {
+      "id": "ABL-010",
+      "phase": "去掉α逐点审查",
+      "goal": "逐点审查去掉α版本的SR",
+      "status": true,
+      "depends_on": [
+        "ABL-009"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:10:00.455Z",
+          "summary": "完成 NO_ALPHA_SR 独立审查，保留现有值",
+          "actions": [
+            "完成 NO_ALPHA_SR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "67.2与碰撞19.8合计87.0，存在13.0%的其他未成功空间，不超概率边界。低于完整73.333，也低于无裕度70.667，说明仅几何膨胀并非自动改善到达；路径限制和策略差异是可能解释，但无试验日志不归因为某个具体失败事件。成本80.6与更低SR可以相容，保留67.2而不为单调趋势抬高。",
+            "采用值：67.2 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "67.2与碰撞19.8合计87.0，存在13.0%的其他未成功空间，不超概率边界。低于完整73.333，也低于无裕度70.667，说明仅几何膨胀并非自动改善到达；路径限制和策略差异是可能解释，但无试验日志不归因为某个具体失败事件。成本80.6与更低SR可以相容，保留67.2而不为单调趋势抬高。",
+            "采用值：67.2 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线为假设值67.2%；保留可追溯原值，不预设必须改变或保住特定增益。",
+        "与完整73.3%、仅α64.8%、无裕度70.7%及其CR19.8%共同判断；不强制单裕度胜过无裕度。",
+        "可在已授权的假设推演范围内逐项修订，需写出与全部相关点的关系；影响其他点则列入回溯清单。"
+      ],
+      "acceptance_criteria": [
+        "点NO_ALPHA_SR有独立审查记录和采用值，关联至少覆盖自身其他指标、其余相关配置及可比跨图资料。",
+        "结论没有机械复制上一点理由，没有通过补造分布、试验次数或失败日志解释中心值。"
+      ],
+      "verification_result": "67.2与碰撞19.8合计87.0，存在13.0%的其他未成功空间，不超概率边界。低于完整73.333，也低于无裕度70.667，说明仅几何膨胀并非自动改善到达；路径限制和策略差异是可能解释，但无试验日志不归因为某个具体失败事件。成本80.6与更低SR可以相容，保留67.2而不为单调趋势抬高。；采用值：67.2 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-011",
+      "phase": "去掉α逐点审查",
+      "goal": "逐点审查去掉α版本的Cost",
+      "status": true,
+      "depends_on": [
+        "ABL-010"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:10:21.405Z",
+          "summary": "完成 NO_ALPHA_COST 独立审查，保留现有值",
+          "actions": [
+            "完成 NO_ALPHA_COST 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "80.6低于完整88.333和无裕度91.667，却高于去δ77.2。67.2%成功与19.8%碰撞意味着失败混合可能降低全试验成本；δ引起的潜在绕行成本并不要求这个全试验均值提高。BVR22.4%较高与均值较低并非直接冲突：均值不能限定未指定预算/场景混合的尾部概率。缺条件成本记录时不能推断每条成功轨迹耗费80.6。",
+            "采用值：80.6 draft cost units；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "80.6低于完整88.333和无裕度91.667，却高于去δ77.2。67.2%成功与19.8%碰撞意味着失败混合可能降低全试验成本；δ引起的潜在绕行成本并不要求这个全试验均值提高。BVR22.4%较高与均值较低并非直接冲突：均值不能限定未指定预算/场景混合的尾部概率。缺条件成本记录时不能推断每条成功轨迹耗费80.6。",
+            "采用值：80.6 draft cost units；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线为假设值80.6；保留可追溯原值，不预设必须改变或保住特定增益。",
+        "关联其SR67.2%、CR19.8%、BVR22.4%及完整88.3；低成本可能源于早失败，不能据此判效率最优。",
+        "可在已授权的假设推演范围内逐项修订，需写出与全部相关点的关系；影响其他点则列入回溯清单。"
+      ],
+      "acceptance_criteria": [
+        "点NO_ALPHA_COST有独立审查记录和采用值，关联至少覆盖自身其他指标、其余相关配置及可比跨图资料。",
+        "结论没有机械复制上一点理由，没有通过补造分布、试验次数或失败日志解释中心值。"
+      ],
+      "verification_result": "80.6低于完整88.333和无裕度91.667，却高于去δ77.2。67.2%成功与19.8%碰撞意味着失败混合可能降低全试验成本；δ引起的潜在绕行成本并不要求这个全试验均值提高。BVR22.4%较高与均值较低并非直接冲突：均值不能限定未指定预算/场景混合的尾部概率。缺条件成本记录时不能推断每条成功轨迹耗费80.6。；采用值：80.6 draft cost units；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-012",
+      "phase": "去掉α逐点审查",
+      "goal": "逐点审查去掉α版本的BVR",
+      "status": true,
+      "depends_on": [
+        "ABL-011"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:10:39.195Z",
+          "summary": "完成 NO_ALPHA_BVR 独立审查，保留现有值",
+          "actions": [
+            "完成 NO_ALPHA_BVR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "22.4%相对完整9%增加13.4个百分点，与删除成本核算修正的方向相容。相比无裕度14%反而更高，是需要保留的交互现象：保留δ改变几何限制和策略，不能套用固定轨迹只变核算的推断。低均值80.6不排除较高违规尾部，绝对预算和分布未给出，故不生成满足22.4的伪轨迹。保留原占位数及这一解释边界。",
+            "采用值：22.4 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "22.4%相对完整9%增加13.4个百分点，与删除成本核算修正的方向相容。相比无裕度14%反而更高，是需要保留的交互现象：保留δ改变几何限制和策略，不能套用固定轨迹只变核算的推断。低均值80.6不排除较高违规尾部，绝对预算和分布未给出，故不生成满足22.4的伪轨迹。保留原占位数及这一解释边界。",
+            "采用值：22.4 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线为假设值22.4%；保留可追溯原值，不预设必须改变或保住特定增益。",
+        "关联完整9.0%、无裕度14.0%、其成本与参考预算；缺成本修正可影响违规，但不声称由均值唯一推导。",
+        "可在已授权的假设推演范围内逐项修订，需写出与全部相关点的关系；影响其他点则列入回溯清单。"
+      ],
+      "acceptance_criteria": [
+        "点NO_ALPHA_BVR有独立审查记录和采用值，关联至少覆盖自身其他指标、其余相关配置及可比跨图资料。",
+        "结论没有机械复制上一点理由，没有通过补造分布、试验次数或失败日志解释中心值。"
+      ],
+      "verification_result": "22.4%相对完整9%增加13.4个百分点，与删除成本核算修正的方向相容。相比无裕度14%反而更高，是需要保留的交互现象：保留δ改变几何限制和策略，不能套用固定轨迹只变核算的推断。低均值80.6不排除较高违规尾部，绝对预算和分布未给出，故不生成满足22.4的伪轨迹。保留原占位数及这一解释边界。；采用值：22.4 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-013",
+      "phase": "去掉α逐点审查",
+      "goal": "逐点审查去掉α版本的CR",
+      "status": true,
+      "depends_on": [
+        "ABL-012"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:10:59.247Z",
+          "summary": "完成 NO_ALPHA_CR 独立审查，保留现有值",
+          "actions": [
+            "完成 NO_ALPHA_CR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "19.8%与SR67.2相容，低于去δ的26.3但高于完整15和无裕度15.667。MC0.29接近完整0.313而CR有差别，均值间隙不能固定触碰尾部，故不是数值矛盾。保留δ而仍比无裕度更常碰撞，意味着该假设集不能支持单独δ总是更安全；只表达完整与去α的条件对照。",
+            "采用值：19.8 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "19.8%与SR67.2相容，低于去δ的26.3但高于完整15和无裕度15.667。MC0.29接近完整0.313而CR有差别，均值间隙不能固定触碰尾部，故不是数值矛盾。保留δ而仍比无裕度更常碰撞，意味着该假设集不能支持单独δ总是更安全；只表达完整与去α的条件对照。",
+            "采用值：19.8 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线为假设值19.8%；保留可追溯原值，不预设必须改变或保住特定增益。",
+        "关联保留δ情况下MC0.29m、完整CR15.0%及自身SR；风险不能由平均间隙唯一确定。",
+        "可在已授权的假设推演范围内逐项修订，需写出与全部相关点的关系；影响其他点则列入回溯清单。"
+      ],
+      "acceptance_criteria": [
+        "点NO_ALPHA_CR有独立审查记录和采用值，关联至少覆盖自身其他指标、其余相关配置及可比跨图资料。",
+        "结论没有机械复制上一点理由，没有通过补造分布、试验次数或失败日志解释中心值。"
+      ],
+      "verification_result": "19.8%与SR67.2相容，低于去δ的26.3但高于完整15和无裕度15.667。MC0.29接近完整0.313而CR有差别，均值间隙不能固定触碰尾部，故不是数值矛盾。保留δ而仍比无裕度更常碰撞，意味着该假设集不能支持单独δ总是更安全；只表达完整与去α的条件对照。；采用值：19.8 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-014",
+      "phase": "阶段复核三",
+      "goal": "复核去掉α四点与前阶段关系并回溯修正",
+      "status": true,
+      "depends_on": [
+        "ABL-013"
+      ],
+      "planned_outputs": [
+        "reviews/stage_reviews.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:11:02.154Z",
+          "summary": "去α四点复核闭环，保留非单调取舍",
+          "actions": [
+            "去α四点复核闭环，保留非单调取舍"
+          ],
+          "files_changed": [
+            "reviews/stage_reviews.md"
+          ],
+          "commands": [],
+          "results": [
+            "4个去α值均有独立理由，事件约束无冲突。",
+            "低均值/高BVR不是必然矛盾；现有数据不能验证具体失败机制，限制已记录。"
+          ],
+          "evidence": [
+            "4个去α值均有独立理由，事件约束无冲突。",
+            "低均值/高BVR不是必然矛盾；现有数据不能验证具体失败机制，限制已记录。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "检查BVR上升和成本/成功率同时降低的口径可相容性，区分合理解释与已验证事实。",
+        "涉及完整方法的疑点回溯ABL-005至008，以追加记录保留历史。"
+      ],
+      "acceptance_criteria": [
+        "四点均有独立结论，变化说明与最新采用值一致。",
+        "没有为使α显得有效而硬定13.4个百分点；如果变化，后续标注必须重新计算。"
+      ],
+      "verification_result": "4个去α值均有独立理由，事件约束无冲突。；低均值/高BVR不是必然矛盾；现有数据不能验证具体失败机制，限制已记录。"
+    },
+    {
+      "id": "ABL-015",
+      "phase": "去掉δ逐点审查",
+      "goal": "逐点审查去掉δ版本的SR",
+      "status": true,
+      "depends_on": [
+        "ABL-014"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:11:19.846Z",
+          "summary": "完成 NO_DELTA_SR 独立审查，保留现有值",
+          "actions": [
+            "完成 NO_DELTA_SR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "64.8%与CR26.3合计91.1，留有8.9%其他失败空间。相较完整73.333下降8.533个百分点，同时平均间隙从0.313降到0.19，几何风险方向相容。其SR低于仅δ67.2和无裕度70.667不能按简单删模块排序改高；保持成本77.2的全试验含义，不推断每个失败都是碰撞。",
+            "采用值：64.8 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "64.8%与CR26.3合计91.1，留有8.9%其他失败空间。相较完整73.333下降8.533个百分点，同时平均间隙从0.313降到0.19，几何风险方向相容。其SR低于仅δ67.2和无裕度70.667不能按简单删模块排序改高；保持成本77.2的全试验含义，不推断每个失败都是碰撞。",
+            "采用值：64.8 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线为假设值64.8%；允许有依据的合理推演修订，完整保留决策过程。",
+        "联系其CR26.3%、MC0.19m、Cost77.2和完整73.3%，核查失败与成功关系。",
+        "检查当前点时回看全部已审查点和未审查相关原值；不凭单点好看或所有指标整齐改善判合理。"
+      ],
+      "acceptance_criteria": [
+        "点NO_DELTA_SR有独立审查记录和采用值，说明几何风险、预算风险与成本/成功关系。",
+        "相关前值如果需要调整，追加回溯记录并列清影响；不存在未决采用值。"
+      ],
+      "verification_result": "64.8%与CR26.3合计91.1，留有8.9%其他失败空间。相较完整73.333下降8.533个百分点，同时平均间隙从0.313降到0.19，几何风险方向相容。其SR低于仅δ67.2和无裕度70.667不能按简单删模块排序改高；保持成本77.2的全试验含义，不推断每个失败都是碰撞。；采用值：64.8 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-016",
+      "phase": "去掉δ逐点审查",
+      "goal": "逐点审查去掉δ版本的Cost",
+      "status": true,
+      "depends_on": [
+        "ABL-015"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:11:40.617Z",
+          "summary": "完成 NO_DELTA_COST 独立审查，保留现有值",
+          "actions": [
+            "完成 NO_DELTA_COST 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "77.2是四裕度配置最低成本，同时SR64.8最低、CR26.3最高。去δ可能允许更近的路线，更多早碰撞也可能截断计费，但两种解释均未从日志得到验证；它们说明低成本与低成功并非矛盾，不能把最低成本标成整体最佳。保留77.2，不为突出完整方法而增加该值。",
+            "采用值：77.2 draft cost units；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "77.2是四裕度配置最低成本，同时SR64.8最低、CR26.3最高。去δ可能允许更近的路线，更多早碰撞也可能截断计费，但两种解释均未从日志得到验证；它们说明低成本与低成功并非矛盾，不能把最低成本标成整体最佳。保留77.2，不为突出完整方法而增加该值。",
+            "采用值：77.2 draft cost units；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线为假设值77.2；允许有依据的合理推演修订，完整保留决策过程。",
+        "对照其低SR及高CR，同时看仅δ80.6和无裕度91.7；不把最便宜自动标成最佳。",
+        "检查当前点时回看全部已审查点和未审查相关原值；不凭单点好看或所有指标整齐改善判合理。"
+      ],
+      "acceptance_criteria": [
+        "点NO_DELTA_COST有独立审查记录和采用值，说明几何风险、预算风险与成本/成功关系。",
+        "相关前值如果需要调整，追加回溯记录并列清影响；不存在未决采用值。"
+      ],
+      "verification_result": "77.2是四裕度配置最低成本，同时SR64.8最低、CR26.3最高。去δ可能允许更近的路线，更多早碰撞也可能截断计费，但两种解释均未从日志得到验证；它们说明低成本与低成功并非矛盾，不能把最低成本标成整体最佳。保留77.2，不为突出完整方法而增加该值。；采用值：77.2 draft cost units；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-017",
+      "phase": "去掉δ逐点审查",
+      "goal": "逐点审查去掉δ版本的BVR",
+      "status": true,
+      "depends_on": [
+        "ABL-016"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:11:59.617Z",
+          "summary": "完成 NO_DELTA_BVR 独立审查，保留现有值",
+          "actions": [
+            "完成 NO_DELTA_BVR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "13.8%比完整9高4.8个百分点，与无裕度14%仅相差0.2个百分点。保留α不保证所有成功/失败轨迹都守预算；均值77.2也不能唯一确定违规尾部。相对零裕度几乎不变应如实显示，不人为拉大点距或把0.2解释为已证实的α收益。保留该微小差异和缺乏重复试验的限制。",
+            "采用值：13.8 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "13.8%比完整9高4.8个百分点，与无裕度14%仅相差0.2个百分点。保留α不保证所有成功/失败轨迹都守预算；均值77.2也不能唯一确定违规尾部。相对零裕度几乎不变应如实显示，不人为拉大点距或把0.2解释为已证实的α收益。保留该微小差异和缺乏重复试验的限制。",
+            "采用值：13.8 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线为假设值13.8%；允许有依据的合理推演修订，完整保留决策过程。",
+        "保留α不代表BVR必为零或必低于所有其他配置；关联完整9.0%、无裕度14.0%及任务终止时长口径。",
+        "检查当前点时回看全部已审查点和未审查相关原值；不凭单点好看或所有指标整齐改善判合理。"
+      ],
+      "acceptance_criteria": [
+        "点NO_DELTA_BVR有独立审查记录和采用值，说明几何风险、预算风险与成本/成功关系。",
+        "相关前值如果需要调整，追加回溯记录并列清影响；不存在未决采用值。"
+      ],
+      "verification_result": "13.8%比完整9高4.8个百分点，与无裕度14%仅相差0.2个百分点。保留α不保证所有成功/失败轨迹都守预算；均值77.2也不能唯一确定违规尾部。相对零裕度几乎不变应如实显示，不人为拉大点距或把0.2解释为已证实的α收益。保留该微小差异和缺乏重复试验的限制。；采用值：13.8 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-018",
+      "phase": "去掉δ逐点审查",
+      "goal": "逐点审查去掉δ版本的CR",
+      "status": true,
+      "depends_on": [
+        "ABL-017"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:12:29.902Z",
+          "summary": "完成 NO_DELTA_CR 独立审查，保留现有值",
+          "actions": [
+            "完成 NO_DELTA_CR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "26.3%比完整15%增加11.3个百分点，对应MC从0.313333降到0.19且SR从73.333降到64.8，三个方向共同支持当前几何消融示意。它也高于无裕度15.667，说明仅α对策略的影响不是简单叠加；δ的作用只按保留α的条件比较。保留原值，不用90%校准分位数宣称碰撞率应小于10%。",
+            "采用值：26.3 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "26.3%比完整15%增加11.3个百分点，对应MC从0.313333降到0.19且SR从73.333降到64.8，三个方向共同支持当前几何消融示意。它也高于无裕度15.667，说明仅α对策略的影响不是简单叠加；δ的作用只按保留α的条件比较。保留原值，不用90%校准分位数宣称碰撞率应小于10%。",
+            "采用值：26.3 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前基线为假设值26.3%；允许有依据的合理推演修订，完整保留决策过程。",
+        "与完整15.0%、仅δ19.8%、无裕度15.7%及MC对照；确认非加性表现如实保留且不冒充统计显著。",
+        "检查当前点时回看全部已审查点和未审查相关原值；不凭单点好看或所有指标整齐改善判合理。"
+      ],
+      "acceptance_criteria": [
+        "点NO_DELTA_CR有独立审查记录和采用值，说明几何风险、预算风险与成本/成功关系。",
+        "相关前值如果需要调整，追加回溯记录并列清影响；不存在未决采用值。"
+      ],
+      "verification_result": "26.3%比完整15%增加11.3个百分点，对应MC从0.313333降到0.19且SR从73.333降到64.8，三个方向共同支持当前几何消融示意。它也高于无裕度15.667，说明仅α对策略的影响不是简单叠加；δ的作用只按保留α的条件比较。保留原值，不用90%校准分位数宣称碰撞率应小于10%。；采用值：26.3 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-019",
+      "phase": "阶段复核四",
+      "goal": "复核去掉δ结果及两种单裕度间的非加性关系",
+      "status": true,
+      "depends_on": [
+        "ABL-018"
+      ],
+      "planned_outputs": [
+        "reviews/stage_reviews.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:12:32.816Z",
+          "summary": "完成12个主点的阶段回顾，确认指标取舍边界",
+          "actions": [
+            "完成12个主点的阶段回顾，确认指标取舍边界"
+          ],
+          "files_changed": [
+            "reviews/stage_reviews.md"
+          ],
+          "commands": [],
+          "results": [
+            "12个已审查主点各有理由，无未决采用值。",
+            "去δ的11.3个百分点CR差和MC变化一致，未夸大为独立或显著效应。"
+          ],
+          "evidence": [
+            "12个已审查主点各有理由，无未决采用值。",
+            "去δ的11.3个百分点CR差和MC变化一致，未夸大为独立或显著效应。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "α修正成本核算，δ修正危险集合，但两者通过策略影响多种结果；不能宣称指标彼此解耦。",
+        "不强求无裕度到单裕度到双裕度逐级改善，不以理论预期替代数据审查。"
+      ],
+      "acceptance_criteria": [
+        "已审查12个主点均有独立记录；删除δ后的风险和性能取舍叙述与采用值一致。",
+        "对已有异常与相互影响给出已解决/保留假设边界/待确认的明确分类，待确认点不得进入成图。"
+      ],
+      "verification_result": "12个已审查主点各有理由，无未决采用值。；去δ的11.3个百分点CR差和MC变化一致，未夸大为独立或显著效应。"
+    },
+    {
+      "id": "ABL-020",
+      "phase": "无裕度逐点审查",
+      "goal": "逐点审查无裕度RC-PPO的SR",
+      "status": true,
+      "depends_on": [
+        "ABL-019"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:12:55.024Z",
+          "summary": "完成 ZERO_SR 独立审查，保留现有值",
+          "actions": [
+            "完成 ZERO_SR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "84、72、56的均值70.666667显示70.7，优于两个单裕度而略低于完整73.333；SR与CR15.666667合计86.333333，概率约束成立。预算0.96的62.9到1.00此值存在非均匀变化，但这是已审查预算图的同一个锚点，消融不能另建70.7之外的新值来平滑扫描。",
+            "采用值：70.66666666666667 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "84、72、56的均值70.666667显示70.7，优于两个单裕度而略低于完整73.333；SR与CR15.666667合计86.333333，概率约束成立。预算0.96的62.9到1.00此值存在非均匀变化，但这是已审查预算图的同一个锚点，消融不能另建70.7之外的新值来平滑扫描。",
+            "采用值：70.66666666666667 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前论文显示基线为假设值70.7%，以已核实来源和显示精度规则检查。",
+        "核查场景84%、72%、56%的等权精度及主表/主图/预算锚点；与单裕度SR比较不强制单调。",
+        "无裕度版本应与完整方法共享冻结跟踪器及评估口径，不能混为去掉层级接口。"
+      ],
+      "acceptance_criteria": [
+        "点ZERO_SR有独立记录、正确锚点映射及采用值。",
+        "与主表、综合图、预算参考点的差异能够由一致数据或明确精度解释；不能静默改动外部图表来掩盖冲突。"
+      ],
+      "verification_result": "84、72、56的均值70.666667显示70.7，优于两个单裕度而略低于完整73.333；SR与CR15.666667合计86.333333，概率约束成立。预算0.96的62.9到1.00此值存在非均匀变化，但这是已审查预算图的同一个锚点，消融不能另建70.7之外的新值来平滑扫描。；采用值：70.66666666666667 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-021",
+      "phase": "无裕度逐点审查",
+      "goal": "逐点审查无裕度RC-PPO的Cost",
+      "status": true,
+      "depends_on": [
+        "ABL-020"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:13:11.977Z",
+          "summary": "完成 ZERO_COST 独立审查，保留现有值",
+          "actions": [
+            "完成 ZERO_COST 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "67、84、124均值91.666667显示91.7；与完整88.333333精确相差3.333333，而不是把显示91.7减88.3后误写3.4为全精度差。两方法SR接近但并非完全相同，不能断言单位成功任务节约该成本。单例RC-PPO56.91小于HD61.59不冲突，个例的统计单位和成本尺度不同。",
+            "采用值：91.66666666666667 draft cost units；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "67、84、124均值91.666667显示91.7；与完整88.333333精确相差3.333333，而不是把显示91.7减88.3后误写3.4为全精度差。两方法SR接近但并非完全相同，不能断言单位成功任务节约该成本。单例RC-PPO56.91小于HD61.59不冲突，个例的统计单位和成本尺度不同。",
+            "采用值：91.66666666666667 draft cost units；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前论文显示基线为假设值91.7，以已核实来源和显示精度规则检查。",
+        "与完整88.3和两种单裕度的成功率、碰撞率联系；统一失败计费并保留原汇总精度。",
+        "无裕度版本应与完整方法共享冻结跟踪器及评估口径，不能混为去掉层级接口。"
+      ],
+      "acceptance_criteria": [
+        "点ZERO_COST有独立记录、正确锚点映射及采用值。",
+        "与主表、综合图、预算参考点的差异能够由一致数据或明确精度解释；不能静默改动外部图表来掩盖冲突。"
+      ],
+      "verification_result": "67、84、124均值91.666667显示91.7；与完整88.333333精确相差3.333333，而不是把显示91.7减88.3后误写3.4为全精度差。两方法SR接近但并非完全相同，不能断言单位成功任务节约该成本。单例RC-PPO56.91小于HD61.59不冲突，个例的统计单位和成本尺度不同。；采用值：91.66666666666667 draft cost units；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-022",
+      "phase": "无裕度逐点审查",
+      "goal": "逐点审查无裕度RC-PPO的BVR",
+      "status": true,
+      "depends_on": [
+        "ABL-021"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:13:28.189Z",
+          "summary": "完成 ZERO_BVR 独立审查，保留现有值",
+          "actions": [
+            "完成 ZERO_BVR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "场景8、14、20均值14%，与预算0.96的14.9和1.05的10.2顺接且参考点相同。比完整9高5个百分点、比去δ13.8仅高0.2，但低于去α22.4。保留这组非加性排名，不利用BVR与SR相加制造超过100%的伪矛盾，也不借用单次未违规案例将14归零。",
+            "采用值：14.000000000000002 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "场景8、14、20均值14%，与预算0.96的14.9和1.05的10.2顺接且参考点相同。比完整9高5个百分点、比去δ13.8仅高0.2，但低于去α22.4。保留这组非加性排名，不利用BVR与SR相加制造超过100%的伪矛盾，也不借用单次未违规案例将14归零。",
+            "采用值：14.000000000000002 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前论文显示基线为假设值14.0%，以已核实来源和显示精度规则检查。",
+        "核对三个场景8%、14%、20%的等权均值及预算1.00；与13.8%、22.4%比较时不人为拉开小差距。",
+        "无裕度版本应与完整方法共享冻结跟踪器及评估口径，不能混为去掉层级接口。"
+      ],
+      "acceptance_criteria": [
+        "点ZERO_BVR有独立记录、正确锚点映射及采用值。",
+        "与主表、综合图、预算参考点的差异能够由一致数据或明确精度解释；不能静默改动外部图表来掩盖冲突。"
+      ],
+      "verification_result": "场景8、14、20均值14%，与预算0.96的14.9和1.05的10.2顺接且参考点相同。比完整9高5个百分点、比去δ13.8仅高0.2，但低于去α22.4。保留这组非加性排名，不利用BVR与SR相加制造超过100%的伪矛盾，也不借用单次未违规案例将14归零。；采用值：14.000000000000002 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-023",
+      "phase": "无裕度逐点审查",
+      "goal": "逐点审查无裕度RC-PPO的CR",
+      "status": true,
+      "depends_on": [
+        "ABL-022"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:13:43.403Z",
+          "summary": "完成 ZERO_CR 独立审查，保留现有值",
+          "actions": [
+            "完成 ZERO_CR 独立审查，保留现有值"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "7、15、25均值15.666667显示15.7，与完整15仅相差0.666667个百分点。SR70.666667+CR15.666667小于100%，MC0.30较完整0.313略小，两者排序相容但不证明尾部分布相同。保留接近点，不在绘图中抖动拉开，也不声称显著差别；RC-PPO仍使用相同冻结跟踪器。",
+            "采用值：15.666666666666664 percent；未生成新观测或区间。"
+          ],
+          "evidence": [
+            "7、15、25均值15.666667显示15.7，与完整15仅相差0.666667个百分点。SR70.666667+CR15.666667小于100%，MC0.30较完整0.313略小，两者排序相容但不证明尾部分布相同。保留接近点，不在绘图中抖动拉开，也不声称显著差别；RC-PPO仍使用相同冻结跟踪器。",
+            "采用值：15.666666666666664 percent；未生成新观测或区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "当前论文显示基线为假设值15.7%，以已核实来源和显示精度规则检查。",
+        "核查主表与场景值、MC0.30m及SR；完整与无裕度仅约0.7个百分点差异不作显著性宣称。",
+        "无裕度版本应与完整方法共享冻结跟踪器及评估口径，不能混为去掉层级接口。"
+      ],
+      "acceptance_criteria": [
+        "点ZERO_CR有独立记录、正确锚点映射及采用值。",
+        "与主表、综合图、预算参考点的差异能够由一致数据或明确精度解释；不能静默改动外部图表来掩盖冲突。"
+      ],
+      "verification_result": "7、15、25均值15.666667显示15.7，与完整15仅相差0.666667个百分点。SR70.666667+CR15.666667小于100%，MC0.30较完整0.313略小，两者排序相容但不证明尾部分布相同。保留接近点，不在绘图中抖动拉开，也不声称显著差别；RC-PPO仍使用相同冻结跟踪器。；采用值：15.666666666666664 percent；未生成新观测或区间。"
+    },
+    {
+      "id": "ABL-024",
+      "phase": "关联辅助数据",
+      "goal": "逐项审查4个MC和5个去层级对照值，验证主点解释",
+      "status": true,
+      "depends_on": [
+        "ABL-023"
+      ],
+      "planned_outputs": [
+        "reviews/point_review.jsonl",
+        "reviews/supporting_data_review.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:15:17.711Z",
+          "summary": "25点全部完成独立审查，辅助9点保留",
+          "actions": [
+            "25点全部完成独立审查，辅助9点保留"
+          ],
+          "files_changed": [
+            "reviews/point_review.jsonl",
+            "reviews/supporting_data_review.md"
+          ],
+          "commands": [],
+          "results": [
+            "25条记录、25个独立ID，16主点9辅助点。",
+            "MC均值与碰撞边界及接口对照的混杂因素已说明，未改实验值。"
+          ],
+          "evidence": [
+            "25条记录、25个独立ID，16主点9辅助点。",
+            "MC均值与碰撞边界及接口对照的混杂因素已说明，未改实验值。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "辅助点共9个：FULL/NO_ALPHA/NO_DELTA/ZERO各自MC，NO_HIERARCHY的SR/Cost/BVR/CR/MC；每个也独立记录。",
+        "MC为全试验最小间隙的均值，不是每条轨迹的安全下界，不能要求其必等于或大于δ。",
+        "去层级对照同时改变接口和预训练，不能当作单独冻结效应或与α/δ同一受控因素。"
+      ],
+      "acceptance_criteria": [
+        "总计25个点均有独立、可追溯的最新有效记录，主点与辅助点范围正确。",
+        "有关碰撞/间隙、成功/失败/成本的解释无口径冲突；辅助点不挤入第五个面板。"
+      ],
+      "verification_result": "25条记录、25个独立ID，16主点9辅助点。；MC均值与碰撞边界及接口对照的混杂因素已说明，未改实验值。"
+    },
+    {
+      "id": "ABL-025",
+      "phase": "全局数据复核",
+      "goal": "完成25点全局、跨图和阶段回溯审查，关闭数据问题",
+      "status": true,
+      "depends_on": [
+        "ABL-024"
+      ],
+      "planned_outputs": [
+        "reviews/global_data_review.md",
+        "reviews/cross_figure_check.md",
+        "reviews/stage_reviews.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:18:35.584Z",
+          "summary": "关闭25点全局及跨图审查问题",
+          "actions": [
+            "关闭25点全局及跨图审查问题"
+          ],
+          "files_changed": [
+            "reviews/global_data_review.md",
+            "reviews/cross_figure_check.md",
+            "reviews/cross_source_check.json",
+            "reviews/stage_reviews.md"
+          ],
+          "commands": [
+            "python scripts/check_ablation_data.py --cross-sources"
+          ],
+          "results": [
+            "25点均保留；10个锚点全部通过，15个原来源哈希不变。",
+            "明确原平均差值与舍入显示差值的区别，图形使用原精度计算。"
+          ],
+          "evidence": [
+            "25点均保留；10个锚点全部通过，15个原来源哈希不变。",
+            "明确原平均差值与舍入显示差值的区别，图形使用原精度计算。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "逐项检查概率边界、SR与CR排他条件、BVR交叠、成本预算口径、辅助MC和非单调关系。",
+        "检查完整及RC-PPO的8个主图锚点和2个MC表格锚点；无来源的方差、场景拆分或时间序列不得凭空增加。",
+        "轨迹示例、总览示意与汇总表成本尺度不同，只核语义和匹配条件，不强求数值相等。",
+        "修订一个点时回查所有相关点、差值、图注和结论，追加记录直至闭环。"
+      ],
+      "acceptance_criteria": [
+        "25/25点有最终结论；16个主点、9个辅助点和10个外部锚点检查结果可追溯。",
+        "没有未解决的数据选择进入发布输入，非加性与低成本失败的解释边界明确。"
+      ],
+      "verification_result": "25点均保留；10个锚点全部通过，15个原来源哈希不变。；明确原平均差值与舍入显示差值的区别，图形使用原精度计算。"
+    },
+    {
+      "id": "ABL-026",
+      "phase": "数据发布",
+      "goal": "整理唯一绘图输入、协议和动态差值摘要",
+      "status": true,
+      "depends_on": [
+        "ABL-025"
+      ],
+      "planned_outputs": [
+        "data/reviewed_points.jsonl",
+        "data/plot_protocol.json",
+        "data/reviewed_summary.json",
+        "data/README.md",
+        "reviews/data_acceptance.json"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:19:52.132Z",
+          "summary": "发布审查后唯一输入与动态差值摘要",
+          "actions": [
+            "发布审查后唯一输入与动态差值摘要"
+          ],
+          "files_changed": [
+            "data/reviewed_points.jsonl",
+            "data/plot_protocol.json",
+            "data/reviewed_summary.json",
+            "data/README.md",
+            "reviews/data_acceptance.json"
+          ],
+          "commands": [],
+          "results": [
+            "检查器通过：25点、16主点、9辅助点、10锚点、12个差值，25条审查与输入逐项相符。",
+            "绘图入口及真实数据替换步骤明确，中心值未改，无新增区间。"
+          ],
+          "evidence": [
+            "检查器通过：25点、16主点、9辅助点、10锚点、12个差值，25条审查与输入逐项相符。",
+            "绘图入口及真实数据替换步骤明确，中心值未改，无新增区间。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "绘图只读取本项目data中的reviewed_points.jsonl和plot_protocol.json，不绕回旧工作簿或复制的候选数据。",
+        "保留25点并以role筛选16个主点；12个配置差值和重点注释由采用值计算，不手写固定13.4/11.3。",
+        "默认中心值版本；没有四配置可比的专用区间则不添加误差棒，不从假设均值反推经验分布。"
+      ],
+      "acceptance_criteria": [
+        "主输入含来源、数据性质、精度和关联审查版本；校验结果25点齐全、16点用于画图、12个比较差值正确。",
+        "data说明清楚改数据的位置、哪些锚点不可独立变更，以及如何以后替换实测数据。"
+      ],
+      "verification_result": "检查器通过：25点、16主点、9辅助点、10锚点、12个差值，25条审查与输入逐项相符。；绘图入口及真实数据替换步骤明确，中心值未改，无新增区间。"
+    },
+    {
+      "id": "ABL-027",
+      "phase": "视觉规范",
+      "goal": "确定1×4配对点图的最终单栏视觉规范",
+      "status": true,
+      "depends_on": [
+        "ABL-026"
+      ],
+      "planned_outputs": [
+        "config/style_horizontal.json",
+        "reviews/design_spec.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:21:51.537Z",
+          "summary": "确定88.9mm单栏横排视觉规范",
+          "actions": [
+            "确定88.9mm单栏横排视觉规范"
+          ],
+          "files_changed": [
+            "config/style_horizontal.json",
+            "reviews/design_spec.md"
+          ],
+          "commands": [],
+          "results": [
+            "明确1×4顺序、三行删除配置、蓝色实心参照与彩色空心对照。",
+            "关键文字不低于6.5pt，参考线/网格/差值标注有明确分工，无成本无条件最优标记。"
+          ],
+          "evidence": [
+            "明确1×4顺序、三行删除配置、蓝色实心参照与彩色空心对照。",
+            "关键文字不低于6.5pt，参考线/网格/差值标注有明确分工，无成本无条件最优标记。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "固定顺序SR、Cost、BVR、CR，横排一行，不切回四宫格；每面板三行删除配置。",
+        "按实际栏宽约88至89mm原尺寸设计，优先共享行名/图例及缩短标题，字号目标7至8pt，关键字不低于6.5pt。",
+        "细轴、浅网格、清楚点形、适度留白和少量重点差值标注；不用装饰照片、渐变、雷达图或连环箭头堆信息。",
+        "完整方法沿用蓝色#2376AC，无裕度RC-PPO沿用橙色#D98035；两种单裕度用协调且可区分的颜色/形状。"
+      ],
+      "acceptance_criteria": [
+        "规范明确最终物理尺寸、字体、点径、线宽、行距、各轴范围/刻度、图例与重点注释。",
+        "蓝点重复为同一完整参照，线段为差值；成本不无条件加最优箭头/标记，不同量纲独立坐标。"
+      ],
+      "verification_result": "明确1×4顺序、三行删除配置、蓝色实心参照与彩色空心对照。；关键文字不低于6.5pt，参考线/网格/差值标注有明确分工，无成本无条件最优标记。"
+    },
+    {
+      "id": "ABL-028",
+      "phase": "绘图实现",
+      "goal": "实现数据驱动的横排配对点图脚本",
+      "status": true,
+      "depends_on": [
+        "ABL-027"
+      ],
+      "planned_outputs": [
+        "scripts/plot_ablation.py"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:21:55.557Z",
+          "summary": "实现只读取审查数据的横排绘图脚本",
+          "actions": [
+            "实现只读取审查数据的横排绘图脚本"
+          ],
+          "files_changed": [
+            "scripts/plot_ablation.py"
+          ],
+          "commands": [],
+          "results": [
+            "脚本语法检查通过；数值和差值全部从data读取，颜色/尺寸从config读取。",
+            "构建12组配置中心对照，支持小批SR/BVR和完整4图、PDF/SVG/PNG及映射清单；实际导出在后续任务验证。"
+          ],
+          "evidence": [
+            "脚本语法检查通过；数值和差值全部从data读取，颜色/尺寸从config读取。",
+            "构建12组配置中心对照，支持小批SR/BVR和完整4图、PDF/SVG/PNG及映射清单；实际导出在后续任务验证。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "点值与差值从data读取，样式从config读取；脚本不生成数据，不硬编码实验数值。",
+        "保留三个相同行位置，完整方法与删模块各一点且有细连接；四面板共12段、24个点标记来自16个不同主值。",
+        "只第一面板写行标签，必要时在图例统一解释颜色，避免四份长图例。"
+      ],
+      "acceptance_criteria": [
+        "脚本可按输出目录导出矢量PDF/SVG和高分辨率PNG，并保存输入哈希、尺寸、渲染映射。",
+        "单个输入改动可追踪到正确面板、行和点；重复完整参照未当作新独立数据。"
+      ],
+      "verification_result": "脚本语法检查通过；数值和差值全部从data读取，颜色/尺寸从config读取。；构建12组配置中心对照，支持小批SR/BVR和完整4图、PDF/SVG/PNG及映射清单；实际导出在后续任务验证。"
+    },
+    {
+      "id": "ABL-029",
+      "phase": "小批预览",
+      "goal": "先在完整横排布局中预览SR和BVR，验证尺度与关键表达",
+      "status": true,
+      "depends_on": [
+        "ABL-028"
+      ],
+      "planned_outputs": [
+        "output/pilot_v1/ablation_pilot.pdf",
+        "output/pilot_v1/ablation_pilot.png",
+        "output/pilot_v1/render_manifest.json"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:22:57.803Z",
+          "summary": "在最终四格宽度完成SR/BVR小批预览",
+          "actions": [
+            "在最终四格宽度完成SR/BVR小批预览"
+          ],
+          "files_changed": [
+            "output/pilot_v1/ablation_pilot.pdf",
+            "output/pilot_v1/ablation_pilot.png",
+            "output/pilot_v1/ablation_pilot.svg",
+            "output/pilot_v1/render_manifest.json",
+            "output/pilot_v1/pdf_preview_150dpi.png"
+          ],
+          "commands": [
+            "python scripts/plot_ablation.py --pilot",
+            "pdftoppm -r 150"
+          ],
+          "results": [
+            "6个对照12个标记映射通过，尺寸88.9×41.5mm，最低字号6.5pt，文字未出边界。",
+            "视觉检查发现底部协议说明与单位过近，记录为下一阶段修正项。"
+          ],
+          "evidence": [
+            "6个对照12个标记映射通过，尺寸88.9×41.5mm，最低字号6.5pt，文字未出边界。",
+            "视觉检查发现底部协议说明与单位过近，记录为下一阶段修正项。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "预览占用最终1×4的真实面板宽度，另两格可留空占位，不能用半宽图冒充最终可读性。",
+        "只用通过审查的中心值，关键风险变化由数据算出。"
+      ],
+      "acceptance_criteria": [
+        "SR/BVR的各6个标记、3段连接与输入完全对应，轴和行顺序正确。",
+        "按原尺寸和放大图检查字体、图例、标注、点距及局部重合。"
+      ],
+      "verification_result": "6个对照12个标记映射通过，尺寸88.9×41.5mm，最低字号6.5pt，文字未出边界。；视觉检查发现底部协议说明与单位过近，记录为下一阶段修正项。"
+    },
+    {
+      "id": "ABL-030",
+      "phase": "阶段复核五",
+      "goal": "复核小批预览并修正横排可读性及映射问题",
+      "status": true,
+      "depends_on": [
+        "ABL-029"
+      ],
+      "planned_outputs": [
+        "reviews/pilot_review.md",
+        "reviews/stage_reviews.md",
+        "output/pilot_review_v1/"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:23:36.027Z",
+          "summary": "修正小批图底部拥挤并完成原尺寸审查",
+          "actions": [
+            "修正小批图底部拥挤并完成原尺寸审查"
+          ],
+          "files_changed": [
+            "scripts/plot_ablation.py",
+            "scripts/audit_render.py",
+            "output/pilot_review_v1/",
+            "reviews/pilot_review.md",
+            "reviews/stage_reviews.md"
+          ],
+          "commands": [],
+          "results": [
+            "PDF88.9×41.5mm，最低6.5pt，6比较12标记数据映射通过。",
+            "移除图内重复协议页脚后，无文字重叠或裁切；150dpi PDF预览通过。"
+          ],
+          "evidence": [
+            "PDF88.9×41.5mm，最低6.5pt，6比较12标记数据映射通过。",
+            "移除图内重复协议页脚后，无文字重叠或裁切；150dpi PDF预览通过。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "允许调整间距、刻度数、行名缩写、标题和标注位置；保持1×4与单栏边界。",
+        "点接近时允许重叠按真实位置呈现，不移动数值、不加入随机抖动制造差异。",
+        "若合理排版仍无法同时满足固定横排/单栏/可读性，记录实测字号和截图后提出具体选择，不擅改布局。"
+      ],
+      "acceptance_criteria": [
+        "问题清单逐项关闭，有原尺寸视觉证据和修订版本；无点线遮挡或文字重叠影响理解。",
+        "若触发未获授权的布局取舍，任务保持false并说明原因；否则进入完整出图。"
+      ],
+      "verification_result": "PDF88.9×41.5mm，最低6.5pt，6比较12标记数据映射通过。；移除图内重复协议页脚后，无文字重叠或裁切；150dpi PDF预览通过。"
+    },
+    {
+      "id": "ABL-031",
+      "phase": "完整成图",
+      "goal": "输出横向四面板的完整候选图及正式图注",
+      "status": true,
+      "depends_on": [
+        "ABL-030"
+      ],
+      "planned_outputs": [
+        "output/candidate_v1/ablation_horizontal.pdf",
+        "output/candidate_v1/ablation_horizontal.svg",
+        "output/candidate_v1/ablation_horizontal.png",
+        "output/candidate_v1/caption.md",
+        "output/candidate_v1/render_manifest.json"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:25:09.038Z",
+          "summary": "完成横排四面板候选及中英文图注",
+          "actions": [
+            "完成横排四面板候选及中英文图注"
+          ],
+          "files_changed": [
+            "output/candidate_v1/ablation_horizontal.pdf",
+            "output/candidate_v1/ablation_horizontal.svg",
+            "output/candidate_v1/ablation_horizontal.png",
+            "output/candidate_v1/caption.md",
+            "output/candidate_v1/render_manifest.json"
+          ],
+          "commands": [],
+          "results": [
+            "12个比较24标记来自16个不同中心值，PDF/SVG/PNG均导出。",
+            "图注明确假设、共同预算/接口、重复参照及Cost口径；关键差值13.4和11.3由数据计算。"
+          ],
+          "evidence": [
+            "12个比较24标记来自16个不同中心值，PDF/SVG/PNG均导出。",
+            "图注明确假设、共同预算/接口、重复参照及Cost口径；关键差值13.4和11.3由数据计算。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "保留SR和Cost前两格，BVR/CR后两格；四图各三行，所有数据按最新唯一输入。",
+        "图注说明假设数据、同一参考预算和冻结接口、重复完整参照、连接线含义及成本统计边界。",
+        "图内不堆与正式版式无关的说明，数据性质在配套图注/元数据清楚保留。"
+      ],
+      "acceptance_criteria": [
+        "PDF/SVG/PNG内容一致；12段连接、24个点与16个不同主值逐项对应。",
+        "图注与结果方向、差值、指标单位和假设性质一致。"
+      ],
+      "verification_result": "12个比较24标记来自16个不同中心值，PDF/SVG/PNG均导出。；图注明确假设、共同预算/接口、重复参照及Cost口径；关键差值13.4和11.3由数据计算。"
+    },
+    {
+      "id": "ABL-032",
+      "phase": "完整成图复核",
+      "goal": "完成全部数值、跨图关联与最终尺寸视觉审查",
+      "status": true,
+      "depends_on": [
+        "ABL-031"
+      ],
+      "planned_outputs": [
+        "reviews/final_consistency_check.json",
+        "reviews/final_visual_review.md",
+        "reviews/stage_reviews.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:25:13.277Z",
+          "summary": "完成全量数据及原尺寸视觉验收",
+          "actions": [
+            "完成全量数据及原尺寸视觉验收"
+          ],
+          "files_changed": [
+            "reviews/final_consistency_check.json",
+            "reviews/cross_source_final.json",
+            "reviews/final_visual_review.md",
+            "reviews/stage_reviews.md",
+            "output/candidate_v1/render_audit.json"
+          ],
+          "commands": [
+            "check_ablation_data.py --render ...",
+            "check_ablation_data.py --cross-sources",
+            "audit_render.py ..."
+          ],
+          "results": [
+            "25点、10外部锚点、12绘图比较全部通过，原15来源未变。",
+            "PDF88.9×41.5mm、最低6.5pt、文字框无重叠/出界；人工检查600/150dpi通过。"
+          ],
+          "evidence": [
+            "25点、10外部锚点、12绘图比较全部通过，原15来源未变。",
+            "PDF88.9×41.5mm、最低6.5pt、文字框无重叠/出界；人工检查600/150dpi通过。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "复查25点审查与发布状态、8个主锚点/2个MC锚点、差值符号及单位，避免优化排版后映射回归。",
+        "检查四轴不误导比例、图例只有必要内容、颜色/形状可区分、接近点未被虚移。",
+        "不把假设值自然、图形精美或逻辑相容写成实测真实性和统计显著性。"
+      ],
+      "acceptance_criteria": [
+        "全量数据检查通过；原尺寸截图可读，无裁切、重叠和标签串行。",
+        "分阶段问题均追溯到修正和复验，最终审查没有未解决项目。"
+      ],
+      "verification_result": "25点、10外部锚点、12绘图比较全部通过，原15来源未变。；PDF88.9×41.5mm、最低6.5pt、文字框无重叠/出界；人工检查600/150dpi通过。"
+    },
+    {
+      "id": "ABL-033",
+      "phase": "复现与说明",
+      "goal": "完成独立复现、最终文件整理与修改使用说明",
+      "status": true,
+      "depends_on": [
+        "ABL-032"
+      ],
+      "planned_outputs": [
+        "output/final/ablation_horizontal.pdf",
+        "output/final/ablation_horizontal.svg",
+        "output/final/ablation_horizontal.png",
+        "output/final/caption.md",
+        "output/final/render_manifest.json",
+        "output/reproduction_v1/",
+        "reviews/reproduction_check.json",
+        "README.md",
+        "../README.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:27:32.209Z",
+          "summary": "完成最终图、独立复现及详细维护文档",
+          "actions": [
+            "完成最终图、独立复现及详细维护文档"
+          ],
+          "files_changed": [
+            "output/final/",
+            "output/reproduction_v1/",
+            "reviews/reproduction_check.json",
+            "scripts/check_reproduction.py",
+            "scripts/plot_ablation.py",
+            "README.md",
+            "../README.md"
+          ],
+          "commands": [],
+          "results": [
+            "最终与独立重绘7项比较全部通过：输入、脚本、映射、文字位置、图注、PNG像素和PDF渲染。",
+            "最终PDF88.9×41.5mm、最低6.5pt，无文字重叠/裁切；图注差值改为自动生成。",
+            "README明确data入口、改数据/样式、校验/复现命令和真实数据替换步骤；索引已追加。"
+          ],
+          "evidence": [
+            "最终与独立重绘7项比较全部通过：输入、脚本、映射、文字位置、图注、PNG像素和PDF渲染。",
+            "最终PDF88.9×41.5mm、最低6.5pt，无文字重叠/裁切；图注差值改为自动生成。",
+            "README明确data入口、改数据/样式、校验/复现命令和真实数据替换步骤；索引已追加。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "用相同data/config在新目录重跑，比较数值/映射和可比渲染，不以PDF时间戳字节差异误判失败。",
+        "所有旧图、历史审查和既有论文文件保留；项目README区分改数值、改外观和替换真实实验。",
+        "绘图根README只追加本图入口，不改动现有项目内容或Git远程。"
+      ],
+      "acceptance_criteria": [
+        "复现使用相同25点输入与样式，16点主数据、12个差值及画面一致，记录版本和哈希。",
+        "最终文件、数据入口、来源、命令、图注及后续接入论文步骤均有可用说明。"
+      ],
+      "verification_result": "最终与独立重绘7项比较全部通过：输入、脚本、映射、文字位置、图注、PNG像素和PDF渲染。；最终PDF88.9×41.5mm、最低6.5pt，无文字重叠/裁切；图注差值改为自动生成。；README明确data入口、改数据/样式、校验/复现命令和真实数据替换步骤；索引已追加。"
+    },
+    {
+      "id": "ABL-034",
+      "phase": "最终验收",
+      "goal": "审视全部任务、数据逻辑、图形目标和交付物，完成本阶段",
+      "status": true,
+      "depends_on": [
+        "ABL-033"
+      ],
+      "planned_outputs": [
+        "reviews/final_acceptance.md"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-25T03:28:26.754Z",
+          "summary": "完成全部34项任务并交付独立消融图工程",
+          "actions": [
+            "完成全部34项任务并交付独立消融图工程"
+          ],
+          "files_changed": [
+            "reviews/final_acceptance.md",
+            "reviews/stage_reviews.md",
+            "reviews/delivery_data_check.json"
+          ],
+          "commands": [],
+          "results": [
+            "前33项计划产物全部存在，最终25点/16主点/12比较映射通过；本项最终验收文档已完成。",
+            "10锚点一致、15源文件未变，数据/图/说明/复现证据齐备；全部34项有记录且无待办或阻塞。"
+          ],
+          "evidence": [
+            "前33项计划产物全部存在，最终25点/16主点/12比较映射通过；本项最终验收文档已完成。",
+            "10锚点一致、15源文件未变，数据/图/说明/复现证据齐备；全部34项有记录且无待办或阻塞。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "逐条对照用户最新要求：1×4、逐点并参考全局、关联一致、视觉丰富清楚、脚本与数据独立可维护。",
+        "不在本任务中替换论文、修改现有主表/旧图、编译整篇或提交推送Git；后续按明确指令处理。",
+        "只在每项验收证据满足后标true，工作记录追加不覆盖。"
+      ],
+      "acceptance_criteria": [
+        "34项任务全部通过且有结构化记录和证据，最终图/数据/文档可打开、可复现。",
+        "交付说明列出保留/修订数值及原因、跨图检查结果和实测替换待办，没有将假设产物写成实验结论。"
+      ],
+      "verification_result": "前33项计划产物全部存在，最终25点/16主点/12比较映射通过；本项最终验收文档已完成。；10锚点一致、15源文件未变，数据/图/说明/复现证据齐备；全部34项有记录且无待办或阻塞。"
+    },
+    {
+      "id": "ABL-035",
+      "goal": "确认本轮视觉改动范围与原值、旧图基线",
+      "status": true,
+      "depends_on": ["ABL-034"],
+      "constraints_and_notes": ["沿用本项目唯一data入口；用户授权视觉改进，不改值或新增区间。", "保留旧final，使用独立配置与refined_v2输出目录。"],
+      "acceptance_criteria": ["记录数据、协议、旧图和论文哈希。", "明确状态列、参考值、点值和关键差值的排版与来源。"],
+      "work_records": [{
+        "timestamp": "2026-10-25T12:01:00+08:00",
+        "summary": "核对旧版数据与渲染工程，确定本轮视觉契约并保存基线",
+        "actions": ["完整读取原计划并校验；核查绘图脚本、样式、协议及说明", "保存输入、旧图和论文5个SHA256，明确α/δ状态列及动态标值"],
+        "files_changed": ["reviews/refinement_v2.md", "plan/ablation_figure_20261025_plan.json"],
+        "commands": ["Get-FileHash -Algorithm SHA256", "validate_worklog.py --mode update"],
+        "results": ["原34项均完成、计划结构有效", "新输出refined_v2和独立样式确定，数据与论文保持原状"],
+        "evidence": ["reviews/refinement_v2.md基线表与版式决策"],
+        "remaining_work": [], "blockers": []
+      }],
+      "verification_result": "5个基线哈希已记录，数据唯一入口及状态/标值契约明确；原计划校验通过。"
+    },
+    {
+      "id": "ABL-036",
+      "goal": "完成数据驱动的新样式及单栏视觉复核",
+      "status": true,
+      "depends_on": ["ABL-035"],
+      "constraints_and_notes": ["1×4、88.9mm、字号不低于6.5pt；不移动数据点。", "所有数值标注自动计算；关键差值与点值分层；成本不标单纯越低越好。", "依据预览微调并记录；输出新目录，旧图不覆盖。"],
+      "acceptance_criteria": ["PDF/SVG/PNG导出，16点12组映射通过。", "状态列正确、数值可读、PDF文字框无重叠裁切，人工审阅原尺寸和放大图。"],
+      "work_records": [{
+        "timestamp": "2026-10-25T12:02:09+08:00",
+        "summary": "完成新样式，修复候选4处文字相交并验收单栏输出",
+        "actions": ["增加独立v2样式和--style入口，自动生成状态列及18个数值标注", "检查候选后重新分配纵向空间，渲染最终PDF并查看150/600dpi图片"],
+        "files_changed": ["config/style_horizontal_v2.json", "scripts/plot_ablation.py", "output/refined_v2/", "reviews/refinement_v2.md"],
+        "commands": ["plot_ablation.py --style config/style_horizontal_v2.json --output output/refined_v2", "audit_render.py output/refined_v2", "pdftoppm -singlefile -r 150 -png"],
+        "results": ["88.9×43.5mm，最低字号6.5pt，文字重叠和出界均为零", "16个中心值、12组对照和24个标记映射通过；状态列及近邻点位置正确"],
+        "evidence": ["output/refined_v2/render_audit.json", "output/refined_v2/pdf_preview_150dpi.png", "reviews/refinement_v2.md"],
+        "remaining_work": [], "blockers": []
+      }],
+      "verification_result": "新图三格式导出，自动映射/文字检查通过，已人工查看高分辨率与单栏PDF预览；候选4处相交已修复。"
+    },
+    {
+      "id": "ABL-037",
+      "goal": "完成新版本数据关联验收与维护说明",
+      "status": true,
+      "depends_on": ["ABL-036"],
+      "constraints_and_notes": ["保持假设性质说明；不提交Git或替换论文。", "追加原计划工作记录和新版本使用入口，保留历史证据。"],
+      "acceptance_criteria": ["数据、旧图、论文哈希不变，10个跨图锚点校验通过。", "图注与状态列一致；README包含新版本入口和生成命令。", "计划校验通过，新增任务均有完成证据。"],
+      "work_records": [{
+        "timestamp": "2026-10-25T12:04:08+08:00",
+        "summary": "完成新图全部标签、跨图锚点及旧文件保护检查，补齐维护文档",
+        "actions": ["独立核对18个数值标签与PDF文字、12组新旧映射和状态矩阵", "复验10个跨图锚点、15个来源及5个基线哈希", "更新项目README、绘图索引、计划说明和阶段复核"],
+        "files_changed": ["reviews/cross_source_refined_v2.json", "reviews/refinement_v2.md", "README.md", "../README.md", "plan/ablation_figure_20261025_说明.md"],
+        "commands": ["check_ablation_data.py --cross-sources --report reviews/cross_source_refined_v2.json", "独立Python核对numeric_labels、PDF文字和旧manifest", "PowerShell逐项比较5个SHA256", "git diff --check", "validate_worklog.py --mode update"],
+        "results": ["18标签和12组比较均正确，10锚点一致，15来源和5基线哈希未变", "新图注、配置参数及复现命令齐备；本轮未修改论文或提交Git"],
+        "evidence": ["reviews/cross_source_refined_v2.json", "reviews/refinement_v2.md", "output/refined_v2/render_audit.json", "README.md第二轮视觉优化说明"],
+        "remaining_work": [], "blockers": []
+      }],
+      "verification_result": "数值标签、跨图锚点和文件哈希检查全部通过；新图三格式、图注、说明及审查证据齐备；新增3项完成。"
+    }
+  ],
+  "visual_refinement_20261025": {
+    "authorization": "用户：可以开始一轮修改；承接已确认的数值标注、α/δ状态列、视觉轻重和两处重点差值方案。",
+    "output": "output/refined_v2",
+    "constraints": ["仅优化本图，输入数据和统计口径不变；旧图保留。", "不增加缺少依据的误差区间；不改变点坐标。", "新配置独立保存，现有脚本增加可选样式入口；论文和Git远程不在本轮范围。"],
+    "acceptance": ["单栏88.9mm、一行四图、最低字号6.5pt；文字无重叠裁切。", "4个完整方法参考值、12个消融点值及2个差值均由原输入计算。", "α/δ状态与配置一致，PDF/SVG/PNG及使用说明齐备。"]
+  },
+  "final_acceptance": [
+    "34项任务依赖顺序正确且全部完成，每项均有验收证据和追加式work_records。",
+    "25点独立审查和全局回顾完成，16点为主图输入、9点为辅助；10个跨图锚点无未解释冲突。",
+    "图为横向一行SR/Cost/BVR/CR，三行配置比较，12段线与24个标记来自16个不同主值，无数据位置造假。",
+    "删除α/δ的作用及成功-成本-风险取舍清楚，不夸大可加收益、单调改善、因果或统计显著性。",
+    "最终单栏尺寸可读、无重叠裁切，颜色/形状一致，图注清楚说明假设数据及线段含义。",
+    "data为唯一输入，脚本/样式/输出分离，PDF/SVG/PNG一致并通过新目录复现。",
+    "原工作簿、论文和已完成图保持原状；本阶段不包含论文替换、全篇编译或Git提交推送。",
+    "项目README和计划说明可指导后续逐项改数据、复查关联、替换实测区间和重新出图。"
+  ]
+}

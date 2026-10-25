@@ -177,7 +177,20 @@ def check():
     assert r"\begin{figure*}" not in text, "Figures must use the requested single-column placement"
     assert r"\begin{table*}" not in text, "Tables must use the requested single-column placement"
     graphic_options = re.findall(r"\\includegraphics\[([^]]*)\]", text)
-    assert len(graphic_options) == 4 and all(r"width=\columnwidth" in value for value in graphic_options)
+    assert len(graphic_options) == 5 and all(r"width=\columnwidth" in value for value in graphic_options)
+    ablation_render = ROOT / "绘图/20261025_模块消融图/output/refined_v2"
+    assert r"../../images/1020/ablation_horizontal.pdf" in text
+    assert digest(images / "ablation_horizontal.pdf") == digest(ablation_render / "ablation_horizontal.pdf")
+    ablation_manifest = json.loads((ablation_render / "render_manifest.json").read_text(encoding="utf-8"))
+    assert ablation_manifest["distinct_main_centers"] == 16
+    assert len(ablation_manifest["comparisons"]) == 12
+    variant_labels = {"NO_ALPHA":r"w/o $\alpha$", "NO_DELTA":r"w/o $\delta$", "ZERO":"w/o both (RC-PPO)"}
+    metric_columns = {"SR":0, "CR":1, "Cost":2, "BVR":3}
+    for comparison in ablation_manifest["comparisons"]:
+        column = metric_columns[comparison["metric"]]
+        assert round(comparison["full_value"], 1) == tex_tables["tab:ablation_draft"]["HD-MCRA"][column]
+        variant = variant_labels[comparison["configuration"]]
+        assert round(comparison["ablated_value"], 1) == tex_tables["tab:ablation_draft"][variant][column]
     budget_project = ROOT / "绘图/20261025_预算扫描图"
     budget_render = budget_project / "output/horizontal_v1"
     assert r"../../images/1020/budget_sweep_horizontal.pdf" in text
@@ -214,6 +227,8 @@ def check():
         "main_scene_data_preserved":True, "template_class_unchanged":True,
         "single_column_figures":len(graphic_options), "single_column_tables":len(tex_tables),
         "budget_figure":"budget_sweep_horizontal.pdf", "budget_points_checked":96,
+        "ablation_figure":"ablation_horizontal.pdf", "ablation_centers_checked":16,
+        "ablation_comparisons_checked":12,
         "compiled_pages":len(pages), "compiled_pdf_sha256":digest(pdf),
         "remaining_unknowns":protocol["unresolved_for_empirical_replacement"],
         "sha256":{"manuscript":digest(TEX),"workbook":digest(WORKBOOK),"source":digest(SOURCE)},

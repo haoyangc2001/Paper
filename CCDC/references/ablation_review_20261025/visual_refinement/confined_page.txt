@@ -1,0 +1,53 @@
+Fig. 4.
+Success rate of different overhanging obstacle height and obstacle box height from the ground. The x axis show different methods and y axis shows
+the different parameters of the obstacles. For the obstacle + overhanging, we used the obstacle height of 0.25m and varied the height of the overhanging
+box. The baseline methods which always walk at normal height (High) and always walk with crouching (Low) was compared against our method. The
+results show that the combination of overhanging and rough terrain needs an adaptive body height control.
+Fig. 5.
+Sequence on evaluation terrains. We have evaluated the policy’s
+performance on the evaluation terrains where it has three terrain types
+with different parameters. Overhanging has an overhanging box in the
+middle, and Obstacle has a box on the ground, Overhanging + obstacle
+is a combination of both obstacle and overhanging boxes.
+trained on procedurally generated terrains, not to policies
+specifically trained on the evaluation setup. The results are
+detailed in Figure 4. We compared the performance against
+two baselines both employ simple strategy without the high-
+level policy. One is the policy which always walk at normal
+height (High), and the another one always crouching on the
+ground (Low). The result shows that the student policy could
+handle three types of the terrains fairly well and closely
+matched the performance of the teacher policy. On the other
+hand, the Low baseline could traverse overhanging obstacles
+but failed to overcome obstacle on the ground and High
+baseline could traverse obstacles on the ground but failed
+to go through overhanging obstacle.
+Fig. 6.
+Tracking performance of a low-level policy when responding to
+simultaneous commands for body height, pitch, and linear x velocity. The
+results confirm that the policy can effectively manage combined actions
+such as crouching, tilting, and walking simultaneously.
+B. Real-World Experiments
+Our
+trained
+policies
+were
+empirically
+tested
+using
+ANYmal-C and ANYmal-D robots equipped with either
+dome LiDARs or depth cameras. Depth sensor data were
+transformed into voxel structures - achieved by voxel map-
+ping for depth cameras and straightforward voxelization in
+the LiDAR configuration.
+1) Low-level policy:
+First, we evaluate the low-level
+policy’s capabilities with the operator giving commands to
+guide the robot’s behavior. The robot effectively followed
+the combinations of different commands as shown in Figure
+6. Even under complex conditions, such as maintaining a
+crouched position while traversing stairs, steps and uneven
+terrain, the robot was able to adjust its body height and
+orientation according to the operator’s instructions. These
+empirical results, illustrated in Figure 7, show the robustness
+and adaptability of our low-level policy.
