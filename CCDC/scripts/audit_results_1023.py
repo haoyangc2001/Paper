@@ -121,7 +121,7 @@ def check():
                 continue
             method = re.sub(r"\\textbf\{([^}]+)\}", r"\1", cells[0])
             values = [float(re.search(r"[0-9]+(?:\.[0-9]+)?", cell)[0]) for cell in cells[1:]]
-            if label == "tab:main_results":
+            if label in {"tab:main_results", "tab:ablation_draft"}:
                 # Display order SR/Cost/CR/BVR/MC; compare in source metric order.
                 values = [values[i] for i in (0, 2, 1, 3, 4)]
             rows[method] = values
@@ -132,8 +132,10 @@ def check():
     for method, label in labels.items():
         expected_row = list(source["main_average_row"](label, method)[1:])
         assert tex_tables["tab:main_results"][label] == expected_row, method
-    ablation_labels = ["w/o hierarchy", r"w/o $\alpha$", r"w/o $\delta$", "w/o both (RC-PPO)", "HD-MCRA"]
-    for label, row in zip(ablation_labels, source["ABLATION_ROWS"]):
+    # Keep the historical hierarchy row in the source, outside the current paper.
+    ablation_labels = [r"w/o $\alpha$", r"w/o $\delta$", "w/o both (RC-PPO)", "HD-MCRA"]
+    assert set(tex_tables["tab:ablation_draft"]) == set(ablation_labels)
+    for label, row in zip(ablation_labels, source["ABLATION_ROWS"][1:]):
         assert tex_tables["tab:ablation_draft"][label] == list(row[1:]), label
     assert tex_tables["tab:ablation_draft"]["HD-MCRA"] == tex_tables["tab:main_results"]["HD-MCRA"]
     assert tex_tables["tab:ablation_draft"]["w/o both (RC-PPO)"] == tex_tables["tab:main_results"]["RC-PPO"]
@@ -177,7 +179,31 @@ def check():
     assert r"\begin{figure*}" not in text, "Figures must use the requested single-column placement"
     assert r"\begin{table*}" not in text, "Tables must use the requested single-column placement"
     graphic_options = re.findall(r"\\includegraphics\[([^]]*)\]", text)
-    assert len(graphic_options) == 5 and all(r"width=\columnwidth" in value for value in graphic_options)
+    assert len(graphic_options) == 8 and all(r"width=\columnwidth" in value for value in graphic_options)
+    for name in ("office_sequence_candidate_A_numbered.jpg", "office_shortest_path_sequence_final.png"):
+        assert digest(images / name) == digest(ROOT / "CORL/images" / name)
+    placement_owners = {
+        "fig:system_overview":"System Overview",
+        "tab:main_results":"Overall Navigation Performance",
+        "fig:metrics_draft":"Overall Navigation Performance",
+        "fig:trajectory_sync":"Overall Navigation Performance",
+        "fig:margin_calibration":"Execution Mismatch and Component Analysis",
+        "tab:ablation_draft":"Execution Mismatch and Component Analysis",
+        "fig:ablation_margins":"Execution Mismatch and Component Analysis",
+        "fig:budget_draft":"Budget Selection and Margin Sensitivity",
+        "fig:hardware_sequences":"Physical-Robot Deployment and Failure Analysis",
+    }
+    placed_labels = set()
+    for match in re.finditer(r"\\begin\{(figure|table)\}\[([^]]+)\](.*?)\\end\{\1\}", text, re.S):
+        assert match[2] == "H", "Figures/tables must remain at their discussion points"
+        label = re.search(r"\\label\{([^}]+)\}", match[3])[1]
+        prefix = text[:match.start()]
+        owner = re.findall(r"\\subsection\{([^}]+)\}", prefix)[-1]
+        assert owner == placement_owners[label], (label, owner)
+        assert rf"\ref{{{label}}}" in prefix, f"{label} precedes its introduction"
+        placed_labels.add(label)
+    assert placed_labels == set(placement_owners)
+    assert digest(images / "margin_calibration.pdf") == digest(ROOT / "绘图/20261025_裕度校准与独立检验图/output/final/margin_calibration.pdf")
     ablation_render = ROOT / "绘图/20261025_模块消融图/output/refined_v2"
     assert r"../../images/1020/ablation_horizontal.pdf" in text
     assert digest(images / "ablation_horizontal.pdf") == digest(ablation_render / "ablation_horizontal.pdf")
@@ -211,25 +237,35 @@ def check():
     from pypdf import PdfReader
     pdf = ROOT / "CCDC/output/1020/main.pdf"
     pages = PdfReader(pdf).pages
-    assert len(pages) <= 8, "Manuscript no longer fits the eight-page draft limit"
+    page_limit = 8
+    within_page_limit = len(pages) <= page_limit
+    assert text.index(r"\bibliography{references}") < text.index(r"\clearpage") < text.index(r"\appendices")
     pdf_text = " ".join(page.extract_text() for page in pages)
     assert "w/o both (RC-PPO)" in pdf_text and "73.3" in pdf_text
     assert pdf.stat().st_mtime >= TEX.stat().st_mtime, "Compiled manuscript is stale"
     log = pdf.with_suffix(".log").read_text(encoding="utf-8", errors="replace")
     assert not re.search(r"Overfull|LaTeX Warning|undefined references|^!", log, re.M)
     report = {
-        "status":"passed", "data_status":"hypothetical", "empirical_validation":False,
-        "workbook_cells_checked":cell_count, "main_table_values":35, "ablation_table_values":25,
+        "status":"passed" if within_page_limit else "content_checks_passed_page_limit_exceeded",
+        "data_status":"hypothetical", "empirical_validation":False,
+        "workbook_cells_checked":cell_count, "main_table_values":35,
+        "ablation_table_values":sum(len(row) for row in tex_tables["tab:ablation_draft"].values()),
+        "hierarchy_ablation":"archived source only; excluded from current manuscript",
         "point_intervals":len(points), "reference_budget_anchors":12,
         "minimum_feasible_budgets":source["MIN_FEASIBLE_BUDGET_ROWS"],
         "trajectory_accounting":"passed; separate illustrative single case, not aggregate experiment",
         "calibration_cross_figure_values":{"alpha":.18,"delta_m":.12},
         "main_scene_data_preserved":True, "template_class_unchanged":True,
-        "single_column_figures":len(graphic_options), "single_column_tables":len(tex_tables),
+        "single_column_figures":7, "single_column_image_assets":len(graphic_options),
+        "single_column_tables":len(tex_tables), "anchored_to_own_subsections":placement_owners,
+        "hardware_photo_sources":"byte-identical to the two original CoRL image assets",
         "budget_figure":"budget_sweep_horizontal.pdf", "budget_points_checked":96,
         "ablation_figure":"ablation_horizontal.pdf", "ablation_centers_checked":16,
         "ablation_comparisons_checked":12,
-        "compiled_pages":len(pages), "compiled_pdf_sha256":digest(pdf),
+        "compiled_pages":len(pages), "submission_page_limit":page_limit,
+        "within_submission_page_limit":within_page_limit,
+        "appendix_placement":"after references, starting on a new page",
+        "compiled_pdf_sha256":digest(pdf),
         "remaining_unknowns":protocol["unresolved_for_empirical_replacement"],
         "sha256":{"manuscript":digest(TEX),"workbook":digest(WORKBOOK),"source":digest(SOURCE)},
     }

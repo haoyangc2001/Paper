@@ -5,6 +5,8 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
+% Keep single-column figures and tables at their discussion points.
+\usepackage{float}
 \usepackage{textcomp}
 \usepackage[table]{xcolor}
 \definecolor{methodblue}{HTML}{2376AC}
@@ -25,7 +27,7 @@
 \maketitle
 
 \begin{abstract}
-This paper studies how to instantiate minimum-cost reach-avoid control on a real quadruped robot. Starting from RC-PPO, we identify the execution mismatch that appears when its idealized transition model is connected to a learned locomotion controller. To address this deployment gap, we construct a fixed and repeatable closed-loop velocity interface and calibrate execution-induced cost and trajectory errors into cost and safety margins. Simulation and physical-robot experiments evaluate each engineering module and the resulting navigation behavior.
+This paper studies how to instantiate minimum-cost reach-avoid control on a real quadruped robot. Starting from RC-PPO, we identify the execution mismatch that appears when its idealized transition model is connected to a learned locomotion controller. To address this deployment gap, we construct a fixed closed-loop velocity interface and calibrate execution-induced cost and trajectory errors into cost and safety margins. Simulation and physical-robot experiments evaluate the calibration mechanisms and the resulting navigation behavior.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -63,11 +65,11 @@ an obstacle, causing a trajectory that is safe in the nominal map to lose cleara
 on hardware.
 
 This work focuses on instantiating RC-PPO/MCRA on a real quadruped by constructing
-a fixed and repeatable closed-loop velocity interface and calibrating
+a fixed closed-loop velocity interface and calibrating
 execution-induced cost and trajectory errors. Following the failure modes above,
 we train a locomotion tracker once and freeze it before high-level learning. This
-interface reduces the navigation action space and, more importantly, defines a
-repeatable closed-loop mapping whose residual error can be measured. We collect
+interface reduces the navigation action space and keeps the controller used for
+calibration, high-level learning, and deployment unchanged. We collect
 paired nominal and executed rollouts through that mapping and use the resulting
 error distributions to calibrate two separate corrections. A cost margin $\alpha$
 inflates the running cost used by the budget update, while a safety margin
@@ -81,9 +83,9 @@ stochastic systems; instead, our claims are limited to empirical robustness unde
 the execution distribution used to calibrate the margins. We evaluate the pipeline
 with controlled mismatch studies, component-wise ablations, sensitivity tests, and
 a quantitative physical-robot deployment study. The experiments are designed to
-answer where direct RC-PPO deployment fails, whether the frozen interface makes
-the high-level problem repeatable, whether $\alpha$ and $\delta$ address different
-failure modes, and how the complete system behaves on hardware.
+quantify execution mismatch through this fixed interface, assess whether
+$\alpha$ and $\delta$ address different failure modes, and evaluate how the
+complete system behaves on hardware.
 
 Our contributions are:
 \begin{enumerate}
@@ -138,7 +140,7 @@ correspondingly narrower: empirical robustness under the calibration distributio
 without a new formal stochastic guarantee.
 
 The remaining gap is thus practical rather than theoretical: an MCRA learner needs
-a repeatable closed-loop interface and an explicit procedure for converting its
+a common closed-loop velocity interface and an explicit procedure for converting its
 measured execution mismatch into the two quantities that determine feasibility,
 namely cumulative budget and geometric clearance.
 
@@ -214,7 +216,7 @@ cost and geometric errors are converted into $\alpha$ and $\delta$. The correcte
 model is then used for high-level learning and budget search. Online, the policy
 emits a velocity command and the frozen tracker closes the loop on the robot.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/deployment_calibration_overview.pdf}
 \caption{Two-stage engineering architecture of HD-MCRA. Stage 1 freezes the
@@ -328,62 +330,6 @@ the selected initial budget. Goal-reaching, collision, and clearance outcomes ar
 also logged for the empirical evaluation in the next section.
 
 \section{Experiments}
-% Queue single-column figures and tables near the experimental discussion.
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{../../images/1020/metrics_comparison_assumed.pdf}
-\caption{Scenario-level SR, CR, BVR, and executed cost at the common reference
-budget. Markers distinguish scenarios; colors distinguish methods. Points and
-horizontal ranges are assumed placeholders; the ranges are not measured standard
-deviations or confidence intervals. Table~\ref{tab:main_results} reports equal-scene
-means and additionally includes minimum clearance.}
-\label{fig:metrics_draft}
-\end{figure}
-
-\begin{table}[t]
-\caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$ (all entries are assumed data).
-Bold values mark the highest SR/MC and lowest Cost/CR/BVR. Cost is interpreted jointly with SR.}
-\label{tab:main_results}
-\centering
-\small
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.12}
-\begin{tabular}{@{}lccccc@{}}
-\hline
-Method & \shortstack{SR\\(\%) $\uparrow$} & Cost & \shortstack{CR\\(\%) $\downarrow$} & \shortstack{BVR\\(\%) $\downarrow$} & \shortstack{MC\\(m) $\uparrow$}\\
-\hline
-\rowcolor{methodblue!9}
-\textbf{HD-MCRA} & \textbf{73.3} & \textbf{88.3} & 15.0 & \textbf{9.0} & 0.31\\
-RC-PPO & 70.7 & 91.7 & 15.7 & 14.0 & 0.30\\
-RA & 60.0 & 104.0 & 13.0 & 20.0 & 0.34\\
-PPO$_{\beta_L}$ & 67.7 & 99.7 & 23.0 & 20.7 & 0.20\\
-PPO$_{\beta_H}$ & 42.3 & 117.0 & 29.0 & 27.0 & 0.16\\
-CPPO$_{\beta_L}$ & 37.7 & 124.7 & \textbf{12.3} & 22.3 & \textbf{0.36}\\
-CPPO$_{\beta_H}$ & 69.7 & 105.7 & 18.3 & 17.0 & 0.26\\
-\hline
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\caption{Component ablation at the same reference budget as Table~\ref{tab:main_results} (all entries are assumed data).}
-\label{tab:ablation_draft}
-\centering
-\small
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.12}
-\begin{tabular}{@{}lccccc@{}}
-\hline
-Variant & \shortstack{SR\\(\%)} & \shortstack{CR\\(\%)} & Cost & \shortstack{BVR\\(\%)} & \shortstack{MC\\(m)}\\
-\hline
-w/o hierarchy & 47.9 & 38.8 & 116.7 & 31.5 & 0.11\\
-w/o $\alpha$ & 67.2 & 19.8 & 80.6 & 22.4 & 0.29\\
-w/o $\delta$ & 64.8 & 26.3 & 77.2 & 13.8 & 0.19\\
-w/o both (RC-PPO) & 70.7 & 15.7 & 91.7 & 14.0 & 0.30\\
-HD-MCRA & 73.3 & 15.0 & 88.3 & 9.0 & 0.31\\
-\hline
-\end{tabular}
-\end{table}
-
 % Evaluation: overall performance, calibration mechanisms, budget sensitivity,
 % execution perturbations, and hardware deployment.
 \subsection{Experimental Setup and Evaluation Protocol}
@@ -428,6 +374,41 @@ with a similar collision rate. RA and CPPO$_{\beta_L}$ attain lower CR or greate
 clearance at the expense of other metrics. These assumed values illustrate the
 joint success--safety--cost trade-off; they do not establish statistical superiority.
 
+\begin{table}[H]
+\caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$ (all entries are assumed data).
+Bold values mark the highest SR/MC and lowest Cost/CR/BVR. Cost is interpreted jointly with SR.}
+\label{tab:main_results}
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}lccccc@{}}
+\hline
+Method & \shortstack{SR\\(\%) $\uparrow$} & Cost & \shortstack{CR\\(\%) $\downarrow$} & \shortstack{BVR\\(\%) $\downarrow$} & \shortstack{MC\\(m) $\uparrow$}\\
+\hline
+\rowcolor{methodblue!9}
+\textbf{HD-MCRA} & \textbf{73.3} & \textbf{88.3} & 15.0 & \textbf{9.0} & 0.31\\
+RC-PPO & 70.7 & 91.7 & 15.7 & 14.0 & 0.30\\
+RA & 60.0 & 104.0 & 13.0 & 20.0 & 0.34\\
+PPO$_{\beta_L}$ & 67.7 & 99.7 & 23.0 & 20.7 & 0.20\\
+PPO$_{\beta_H}$ & 42.3 & 117.0 & 29.0 & 27.0 & 0.16\\
+CPPO$_{\beta_L}$ & 37.7 & 124.7 & \textbf{12.3} & 22.3 & \textbf{0.36}\\
+CPPO$_{\beta_H}$ & 69.7 & 105.7 & 18.3 & 17.0 & 0.26\\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{../../images/1020/metrics_comparison_assumed.pdf}
+\caption{Scenario-level SR, CR, BVR, and executed cost at the common reference
+budget. Markers distinguish scenarios; colors distinguish methods. Points and
+horizontal ranges are assumed placeholders; the ranges are not measured standard
+deviations or confidence intervals. Table~\ref{tab:main_results} reports equal-scene
+means and additionally includes minimum clearance.}
+\label{fig:metrics_draft}
+\end{figure}
+
 Figure~\ref{fig:trajectory_sync} illustrates how the calibrated interface affects
 navigation behavior in one assumed paired example. HD-MCRA maintains greater
 obstacle clearance along a slightly longer, more costly route. The synchronized
@@ -437,7 +418,7 @@ Both methods remain within the common budget, so this case illustrates the
 safety--cost trade-off rather than a reduction in BVR. Its illustrative cost
 scale is not directly comparable with Table~\ref{tab:main_results}.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/trajectory_sync.pdf}
 \caption{Same-scene trajectories and synchronized diagnostics (assumed data).
@@ -463,7 +444,7 @@ coverages assess the error allowances used in budget accounting and obstacle
 inflation; they do not imply joint coverage or navigation success. The calibration
 protocol is given in Appendix~\ref{app:calibration_details}.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/margin_calibration.pdf}
 \caption{Execution-error calibration and held-out assessment (assumed data).
@@ -474,27 +455,41 @@ including ties.}
 \label{fig:margin_calibration}
 \end{figure}
 
-We also compare the frozen velocity interface with a joint-space variant exposing
-12 actuator targets to the high-level learner, using the same PPO optimizer and
-training steps. The draft tracking RMSE changes from $0.19$ to $0.08$ (velocity
-units), and converged training runs from $7/10$ to $9/10$~\textit{(assumed data)}.
-This comparison measures the combined effect of the action interface and
-pretraining; it does not isolate controller freezing. The RMSE definition and
-convergence criterion remain \textsc{TBD}.
-
 Table~\ref{tab:ablation_draft} isolates the cost and safety corrections by removing
-$\alpha$, $\delta$, or both, and includes the joint-space variant.
-Figure~\ref{fig:ablation_margins} visualizes the margin comparisons with the same
-frozen tracker. Within these assumed values, removing $\alpha$ increases BVR by
+$\alpha$, $\delta$, or both while retaining the same frozen velocity tracker.
+Figure~\ref{fig:ablation_margins} visualizes these comparisons. Within these
+assumed values, removing $\alpha$ increases BVR by
 13.4 percentage points, while removing $\delta$ increases CR by 11.3 percentage
-points and reduces clearance. The joint-space variant shows the largest overall
-reduction in SR. The full and zero-margin rows reuse HD-MCRA and RC-PPO from
+points and reduces clearance. The full and zero-margin rows reuse HD-MCRA and RC-PPO from
 Table~\ref{tab:main_results}. The single-margin rows remain separate assumptions:
 their effects are non-additive, and lower cost can accompany more failed or
 shorter trials. Thus, these placeholders do not establish monotonic improvement
 from adding either margin in isolation.
 
-\begin{figure}[t]
+\begin{table}[H]
+\caption{Margin ablation with the same frozen tracker and reference budget as
+Table~\ref{tab:main_results} (all entries are assumed data).
+Bold values mark the highest SR/MC and lowest Cost/CR/BVR.
+Cost is interpreted jointly with SR.}
+\label{tab:ablation_draft}
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}lccccc@{}}
+\hline
+Variant & \shortstack{SR\\(\%) $\uparrow$} & Cost & \shortstack{CR\\(\%) $\downarrow$} & \shortstack{BVR\\(\%) $\downarrow$} & \shortstack{MC\\(m) $\uparrow$}\\
+\hline
+\rowcolor{methodblue!9}
+\textbf{HD-MCRA} & \textbf{73.3} & 88.3 & \textbf{15.0} & \textbf{9.0} & \textbf{0.31}\\
+w/o both (RC-PPO) & 70.7 & 91.7 & 15.7 & 14.0 & 0.30\\
+w/o $\alpha$ & 67.2 & 80.6 & 19.8 & 22.4 & 0.29\\
+w/o $\delta$ & 64.8 & \textbf{77.2} & 26.3 & 13.8 & 0.19\\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/ablation_horizontal.pdf}
 \caption{Margin ablation at the common reference budget (assumed data).
@@ -515,7 +510,7 @@ so only its BVR changes. Under the draft criteria SR $\geq60\%$, CR $\leq20\%$,
 and BVR $\leq15\%$, the smallest feasible tested ratios are $0.90$ for HD-MCRA,
 $0.96$ for RC-PPO, and $1.12$ for RA~\textit{(assumed data)}. These grid values
 are not continuous optima; selected policies require a separate final evaluation.
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/budget_sweep_horizontal.pdf}
 \caption{Assumed budget-response curves, averaged equally across scenarios.
@@ -546,7 +541,11 @@ establish coverage under arbitrary distribution shift.
 \subsection{Physical-Robot Deployment and Failure Analysis}
 \label{sec:hardware_deployment}
 The draft hardware study uses a Unitree Go2 in a cluttered indoor environment with
-chairs, narrow passages, and a moving obstacle. The representative route is
+chairs, narrow passages, and a moving obstacle. Figure~\ref{fig:hardware_sequences}(a)
+illustrates navigation among office-chair obstacles, while
+Fig.~\ref{fig:hardware_sequences}(b) shows a second traversal through a
+chair-defined passage. The sequences document physical deployment and successive
+obstacle-negotiation maneuvers. The representative route is
 approximately 15 m, with a narrow passage about 0.3 m wider than the robot
 body~\textit{(assumed data, inherited from the 0820 description)}. The draft count
 is 26 successful trials out of 30, corresponding to SR $86.7\%$~\textit{(assumed
@@ -555,6 +554,22 @@ failures, one conservative timeout, and one chair-leg contact~\textit{(assumed d
 These counts and categories require trial-log verification. Hardware CR, cost,
 BVR, and clearance remain \textsc{TBD}; the available description is a preliminary
 deployment study rather than a certification of safety or budget feasibility.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{../../images/1020/office_sequence_candidate_A_numbered.jpg}
+\par\smallskip
+{\footnotesize (a) Navigation among office-chair obstacles.\par}
+\medskip
+\includegraphics[width=\columnwidth]{../../images/1020/office_shortest_path_sequence_final.png}
+\par\smallskip
+{\footnotesize (b) Traversal through a chair-defined passage.\par}
+\caption{Physical deployment of Unitree Go2 in two cluttered indoor settings.
+Each panel contains six successive frames, numbered in temporal order; red arrows
+in (b) indicate the intended travel direction. The sequences illustrate obstacle
+negotiation through the frozen velocity interface.}
+\label{fig:hardware_sequences}
+\end{figure}
 
 \section{Limitations}
 All numerical results are assumed placeholders requiring trial logs and empirical
@@ -573,6 +588,11 @@ engineering layer targets empirical robustness within the calibration distributi
 without a new stochastic reach-avoid guarantee. Final conclusions await verified
 simulation and Go2 logs replacing the assumed results.
 
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+% Start the appendices on a new page after the complete reference list.
+\clearpage
 \appendices
 \section{Velocity-Interface Implementation Details}
 \label{app:velocity_interface}
@@ -689,9 +709,5 @@ the quantile estimation uncertainty for $\alpha$ and $\delta$, all computed from
 the original trial-level records. The confidence level, interval estimators,
 resampling procedure, and treatment of dependence across trials, maps, and
 training seeds remain \textsc{TBD} pending restoration of the original logs.
-
-% Let IEEEtran flow references naturally with single-column floats.
-\bibliographystyle{IEEEtran}
-\bibliography{references}
 
 \end{document}
