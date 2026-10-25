@@ -328,7 +328,7 @@ the selected initial budget. Goal-reaching, collision, and clearance outcomes ar
 also logged for the empirical evaluation in the next section.
 
 \section{Experiments}
-% Queue the result figure and full-width tables near the experimental discussion.
+% Queue single-column figures and tables near the experimental discussion.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/metrics_comparison_assumed.pdf}
@@ -340,16 +340,17 @@ means and additionally includes minimum clearance.}
 \label{fig:metrics_draft}
 \end{figure}
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$ (all entries are assumed data).
 Bold values mark the highest SR/MC and lowest Cost/CR/BVR. Cost is interpreted jointly with SR.}
 \label{tab:main_results}
 \centering
-\setlength{\tabcolsep}{15pt}
+\small
+\setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.12}
-\begin{tabular}{lccccc}
+\begin{tabular}{@{}lccccc@{}}
 \hline
-Method & SR (\%) $\uparrow$ & Cost & CR (\%) $\downarrow$ & BVR (\%) $\downarrow$ & MC (m) $\uparrow$\\
+Method & \shortstack{SR\\(\%) $\uparrow$} & Cost & \shortstack{CR\\(\%) $\downarrow$} & \shortstack{BVR\\(\%) $\downarrow$} & \shortstack{MC\\(m) $\uparrow$}\\
 \hline
 \rowcolor{methodblue!9}
 \textbf{HD-MCRA} & \textbf{73.3} & \textbf{88.3} & 15.0 & \textbf{9.0} & 0.31\\
@@ -361,24 +362,27 @@ CPPO$_{\beta_L}$ & 37.7 & 124.7 & \textbf{12.3} & 22.3 & \textbf{0.36}\\
 CPPO$_{\beta_H}$ & 69.7 & 105.7 & 18.3 & 17.0 & 0.26\\
 \hline
 \end{tabular}
-\end{table*}
+\end{table}
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Component ablation at the same reference budget as Table~\ref{tab:main_results} (all entries are assumed data).}
 \label{tab:ablation_draft}
 \centering
-\begin{tabular}{lccccc}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}lccccc@{}}
 \hline
-Variant & SR (\%) & CR (\%) & Cost & BVR (\%) & MC (m)\\
+Variant & \shortstack{SR\\(\%)} & \shortstack{CR\\(\%)} & Cost & \shortstack{BVR\\(\%)} & \shortstack{MC\\(m)}\\
 \hline
-w/o hierarchy & \shortstack{47.9\\\textit{(assumed data)}} & \shortstack{38.8\\\textit{(assumed data)}} & \shortstack{116.7\\\textit{(assumed data)}} & \shortstack{31.5\\\textit{(assumed data)}} & \shortstack{0.11\\\textit{(assumed data)}}\\
-w/o $\alpha$ & \shortstack{67.2\\\textit{(assumed data)}} & \shortstack{19.8\\\textit{(assumed data)}} & \shortstack{80.6\\\textit{(assumed data)}} & \shortstack{22.4\\\textit{(assumed data)}} & \shortstack{0.29\\\textit{(assumed data)}}\\
-w/o $\delta$ & \shortstack{64.8\\\textit{(assumed data)}} & \shortstack{26.3\\\textit{(assumed data)}} & \shortstack{77.2\\\textit{(assumed data)}} & \shortstack{13.8\\\textit{(assumed data)}} & \shortstack{0.19\\\textit{(assumed data)}}\\
-w/o both (RC-PPO) & \shortstack{70.7\\\textit{(assumed data)}} & \shortstack{15.7\\\textit{(assumed data)}} & \shortstack{91.7\\\textit{(assumed data)}} & \shortstack{14.0\\\textit{(assumed data)}} & \shortstack{0.30\\\textit{(assumed data)}}\\
-HD-MCRA & \shortstack{73.3\\\textit{(assumed data)}} & \shortstack{15.0\\\textit{(assumed data)}} & \shortstack{88.3\\\textit{(assumed data)}} & \shortstack{9.0\\\textit{(assumed data)}} & \shortstack{0.31\\\textit{(assumed data)}}\\
+w/o hierarchy & 47.9 & 38.8 & 116.7 & 31.5 & 0.11\\
+w/o $\alpha$ & 67.2 & 19.8 & 80.6 & 22.4 & 0.29\\
+w/o $\delta$ & 64.8 & 26.3 & 77.2 & 13.8 & 0.19\\
+w/o both (RC-PPO) & 70.7 & 15.7 & 91.7 & 14.0 & 0.30\\
+HD-MCRA & 73.3 & 15.0 & 88.3 & 9.0 & 0.31\\
 \hline
 \end{tabular}
-\end{table*}
+\end{table}
 
 % Evaluation: overall performance, calibration mechanisms, budget sensitivity,
 % execution perturbations, and hardware deployment.
@@ -486,9 +490,12 @@ $0.96$ for RC-PPO, and $1.12$ for RA~\textit{(assumed data)}. These grid values
 are not continuous optima; selected policies require a separate final evaluation.
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{../../images/1020/figure_budget_sweep_v3.pdf}
+\includegraphics[width=\columnwidth]{../../images/1020/budget_sweep_horizontal.pdf}
 \caption{Assumed budget-response curves, averaged equally across scenarios.
-All panels use $z_0/z_{\rm ref}$; values at 1.00 match Table~\ref{tab:main_results}.}
+All panels use $z_0/z_{\rm ref}$; values at 1.00 match Table~\ref{tab:main_results}.
+Dashed horizontal lines show the acceptance thresholds; outlined points mark the
+smallest tested budgets meeting all three criteria. SR and cost axes have nonzero
+lower bounds. Lines connect tested candidates without implying continuous feasibility.}
 \label{fig:budget_draft}
 \end{figure}
 
@@ -656,7 +663,7 @@ the original trial-level records. The confidence level, interval estimators,
 resampling procedure, and treatment of dependence across trials, maps, and
 training seeds remain \textsc{TBD} pending restoration of the original logs.
 
-% Let IEEEtran flow references naturally after the full-width overview update.
+% Let IEEEtran flow references naturally with single-column floats.
 \bibliographystyle{IEEEtran}
 \bibliography{references}
 

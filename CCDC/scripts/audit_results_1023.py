@@ -112,7 +112,7 @@ def check():
     protocol, points, _, point_audit = metric_check["load_and_check"](POINT_DIR / "data")
     text = TEX.read_text(encoding="utf-8")
     tex_tables = {}
-    for block in re.findall(r"\\begin\{table\*\}(.*?)\\end\{table\*\}", text, re.S):
+    for block in re.findall(r"\\begin\{table\*?\}(.*?)\\end\{table\*?\}", text, re.S):
         label = re.search(r"\\label\{([^}]+)\}", block)[1]
         rows = {}
         for line in block.splitlines():
@@ -175,6 +175,21 @@ def check():
     assert digest(images / "deployment_calibration_overview.pdf") == digest(overview_root / "output/final/deployment_calibration_overview.pdf")
     assert digest(images / "trajectory_sync.pdf") == digest(trajectory_root / "output/publication_v4_final/trajectory_sync.pdf")
     assert r"\begin{figure*}" not in text, "Figures must use the requested single-column placement"
+    assert r"\begin{table*}" not in text, "Tables must use the requested single-column placement"
+    graphic_options = re.findall(r"\\includegraphics\[([^]]*)\]", text)
+    assert len(graphic_options) == 4 and all(r"width=\columnwidth" in value for value in graphic_options)
+    budget_project = ROOT / "绘图/20261025_预算扫描图"
+    budget_render = budget_project / "output/horizontal_v1"
+    assert r"../../images/1020/budget_sweep_horizontal.pdf" in text
+    assert digest(images / "budget_sweep_horizontal.pdf") == digest(budget_render / "budget_sweep.pdf")
+    budget_manifest = json.loads((budget_render / "render_manifest.json").read_text(encoding="utf-8"))
+    assert budget_manifest["points_rendered"] == 96
+    for point in budget_manifest["plotted_points"]:
+        metric = "Average Cost" if point["metric"] == "Cost" else point["metric"]
+        index = source["BUDGET_LEVELS"].index(f"{point['x']:.2f}")
+        expected_value = source["BUDGET_DATA"][metric][point["method"]][index]
+        assert math.isclose(point["value"], expected_value, abs_tol=1e-12)
+    # Retain and check the archived old figure and its original data snapshot too.
     figure_sources = json.loads((REVIEW / "figure_sources.json").read_text(encoding="utf-8"))
     assert figure_sources["budget_workbook_sha256"] == digest(WORKBOOK)
     assert figure_sources["budget_figure_sha256"] == digest(images / "figure_budget_sweep_v3.pdf")
@@ -197,6 +212,8 @@ def check():
         "trajectory_accounting":"passed; separate illustrative single case, not aggregate experiment",
         "calibration_cross_figure_values":{"alpha":.18,"delta_m":.12},
         "main_scene_data_preserved":True, "template_class_unchanged":True,
+        "single_column_figures":len(graphic_options), "single_column_tables":len(tex_tables),
+        "budget_figure":"budget_sweep_horizontal.pdf", "budget_points_checked":96,
         "compiled_pages":len(pages), "compiled_pdf_sha256":digest(pdf),
         "remaining_unknowns":protocol["unresolved_for_empirical_replacement"],
         "sha256":{"manuscript":digest(TEX),"workbook":digest(WORKBOOK),"source":digest(SOURCE)},

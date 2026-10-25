@@ -1,0 +1,67 @@
+{
+  "passed": true,
+  "points": 96,
+  "reference_anchors": 12,
+  "minimum_feasible": {
+    "HD-MCRA": {
+      "budget_ratio": 0.9,
+      "SR": 0.668,
+      "Cost": 84.7,
+      "BVR": 0.147,
+      "CR": 0.176
+    },
+    "RC-PPO": {
+      "budget_ratio": 0.96,
+      "SR": 0.629,
+      "Cost": 89.2,
+      "BVR": 0.149,
+      "CR": 0.188
+    },
+    "RA": {
+      "budget_ratio": 1.12,
+      "SR": 0.6,
+      "Cost": 104,
+      "BVR": 0.144,
+      "CR": 0.13
+    }
+  },
+  "scope": "Internal consistency of assumed aggregate values; not empirical validation",
+  "boundary_checks": [
+    {
+      "case": "duplicate_id",
+      "detected": true
+    },
+    {
+      "case": "percent_as_fraction",
+      "detected": true
+    },
+    {
+      "case": "RA_metric_drift",
+      "detected": true
+    },
+    {
+      "case": "anchor_mismatch",
+      "detected": true
+    },
+    {
+      "case": "RA_BVR_increase",
+      "detected": true
+    },
+    {
+      "case": "inclusive_boundary",
+      "detected": true
+    },
+    {
+      "case": "SR_fails_despite_BVR_pass",
+      "detected": true
+    },
+    {
+      "case": "CR_fails_despite_BVR_pass",
+      "detected": true
+    },
+    {
+      "case": "no_feasible_candidate",
+      "detected": true
+    }
+  ]
+}
