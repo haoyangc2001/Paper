@@ -1,6 +1,31 @@
 # 多方法、多场景指标对比图
 
-日期：2026-10-23。当前版本：`assumed-preview-v2-compact-family-colors`。
+## 最新尺寸修订：220×90mm
+
+按用户反馈恢复旧四列图的90mm高度，宽度由旧图181mm扩到220mm，为第五列留空间。字体、点和线恢复接近旧版比例；105个点和210端点均不变。当前数据入口为[data/mc_extension_v2](data/mc_extension_v2/README.md)，当前成图为[PDF](output/mc_extension_v2/metrics_comparison_assumed.pdf)、[PNG](output/mc_extension_v2/metrics_comparison_assumed.png)、[SVG](output/mc_extension_v2/metrics_comparison_assumed.svg)。已同步论文，继续单栏等比插入；旧四列版与89×70mm五列版均保留。
+
+维护当前版时将下方命令中的`mc_extension_v1`换为`mc_extension_v2`；MC核查脚本默认检查v2，指定`--data-dir`可检查历史v1。下方为第一版完成记录，其89×70mm尺寸和入口不再代表当前版。
+
+日期：2026-10-23。2026-10-25 当前版本：`assumed-mc-extension-v1`。
+
+## 当前五指标版
+
+当前图片：[PDF](output/mc_extension_v1/metrics_comparison_assumed.pdf)、[PNG](output/mc_extension_v1/metrics_comparison_assumed.png)、[SVG](output/mc_extension_v1/metrics_comparison_assumed.svg)。沿用方法行、颜色及场景点形，顺序与表一一致：**SR、Cost、CR、BVR、MC**；图幅89×70mm，供论文单栏直接插入。已接入CCDC的1020稿件，为第5页图二；本轮前后全文均为9页。原四列成果保留在原`output/`位置，下面的原版说明作为历史记录。
+
+新版共105点和210个端点：原84条记录不变，新增MC001—021；21个MC中心沿用原脚本，42个端点逐点人工推敲。MC是各次试验全程最小物理机身—障碍间距的均值，按全部试验统计，单位m，不是膨胀地图的距离，也不是δ。区间为假设估计范围，不是实测CI、SD、SE或单次试验分布。较大MC不保证较低碰撞率或更高成功率。
+
+数据唯一入口为[data/mc_extension_v1](data/mc_extension_v1/README.md)中的JSONL；CSV和明细为导出副本。表一对应五项指标的三个场景等权平均，35项均已核对；不平均区间端点。21个点的关联依据在[推演明细](output/mc_extension_v1/推演明细.md)，阶段检查见[本轮审查](reviews/mc_extension_v1.md)。
+
+从仓库根目录检查、重绘：
+
+```powershell
+& 'D:/codesoftware/Miniconda/python.exe' -X utf8 -B '绘图/20261023_多方法指标对比/scripts/audit_mc_extension.py' --self-test
+& 'D:/codesoftware/Miniconda/python.exe' -X utf8 -B '绘图/20261023_多方法指标对比/scripts/plot_metrics_comparison.py' --data-dir '绘图/20261023_多方法指标对比/data/mc_extension_v1' --output-dir '绘图/20261023_多方法指标对比/output/mc_extension_v1'
+```
+
+改值先改新版JSONL，再重绘并将导出CSV同步到新版data目录；改样式改同目录protocol.json。每项指标配置单位、显示精度、范围、刻度和短标题；MC保留两位小数。真实数据替换应另建版本，填写真实来源、统计口径与区间估计方式，不能只改假设标签；旧中心一致性审查仅用于本次保留假设数据的版本。默认不传`--data-dir`仍读取原四列数据；维护新版时请明确指定上述路径，避免误绘旧版。
+
+## 原四列版说明（历史）
 
 本图是论文版式预览：七种方法、三个场景、四项指标，共84个点及84条横向区间。中心值沿用已有假设数据，168个左右端点逐点指定并保留理由。它们不是实测数据，也不是具有95%覆盖概率的置信区间。
 

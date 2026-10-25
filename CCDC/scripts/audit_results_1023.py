@@ -23,6 +23,8 @@ REVIEW = ROOT / "CCDC/output/1020/consistency_review"
 WORKBOOK = ROOT / "CORL/data/experiment_results_rcppo_ra_v3.xlsx"
 SOURCE = ROOT / "CORL/scripts/generate_experiment_results_v3.py"
 POINT_DIR = ROOT / "绘图/20261023_多方法指标对比"
+POINT_DATA = POINT_DIR / "data/mc_extension_v2"
+POINT_OUTPUT = POINT_DIR / "output/mc_extension_v2"
 TEX = ROOT / "CCDC/latex/1020/main.tex"
 
 
@@ -58,12 +60,12 @@ def prepare():
 
 def render():
     _, plot = modules()
-    protocol = json.loads((POINT_DIR / "data/protocol.json").read_text(encoding="utf-8"))
+    protocol = json.loads((POINT_DATA / "protocol.json").read_text(encoding="utf-8"))
     plot["COLORS"].update({row["id"]: row["color"] for row in protocol["methods"]})
     plot["configure_fonts"]()
     image_dir = ROOT / "CCDC/images/1020"
     plot["plot_budget_grid"](plot["build_budget_data"](WORKBOOK), image_dir)
-    shutil.copy2(POINT_DIR / "output/metrics_comparison_assumed.pdf", image_dir)
+    shutil.copy2(POINT_OUTPUT / "metrics_comparison_assumed.pdf", image_dir)
     write_json(REVIEW / "figure_sources.json", {
         "budget_data": plot["build_budget_data"](WORKBOOK),
         "budget_workbook_sha256": digest(WORKBOOK),
@@ -71,7 +73,7 @@ def render():
         "comparison_sha256": digest(image_dir / "metrics_comparison_assumed.pdf"),
         "colors": plot["COLORS"],
     })
-    print("Refreshed budget figure and installed full-width comparison figure.")
+    print("Refreshed budget figure and installed the single-column five-metric comparison figure.")
 
 
 def digest(path):
@@ -109,7 +111,10 @@ def check():
                         assert now == old
 
     metric_check = runpy.run_path(str(POINT_DIR / "scripts/plot_metrics_comparison.py"), run_name="read_only")
-    protocol, points, _, point_audit = metric_check["load_and_check"](POINT_DIR / "data")
+    protocol, points, _, point_audit = metric_check["load_and_check"](POINT_DATA)
+    original_points = [json.loads(line) for line in (POINT_DIR / "data/assumed_intervals.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert points[:84] == original_points and len(points) == 105
+    assert [metric["id"] for metric in protocol["metrics"]] == ["SR", "Cost", "CR", "BVR", "MC"]
     text = TEX.read_text(encoding="utf-8")
     tex_tables = {}
     for block in re.findall(r"\\begin\{table\*?\}(.*?)\\end\{table\*?\}", text, re.S):
@@ -173,7 +178,7 @@ def check():
     images = ROOT / "CCDC/images/1020"
     for match in re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]+)\}", text):
         assert (TEX.parent / match).is_file(), match
-    assert digest(images / "metrics_comparison_assumed.pdf") == digest(POINT_DIR / "output/metrics_comparison_assumed.pdf")
+    assert digest(images / "metrics_comparison_assumed.pdf") == digest(POINT_OUTPUT / "metrics_comparison_assumed.pdf")
     assert digest(images / "deployment_calibration_overview.pdf") == digest(overview_root / "output/final/deployment_calibration_overview.pdf")
     assert digest(images / "trajectory_sync.pdf") == digest(trajectory_root / "output/publication_v4_final/trajectory_sync.pdf")
     assert r"\begin{figure*}" not in text, "Figures must use the requested single-column placement"
@@ -257,6 +262,8 @@ def check():
         "ablation_table_values":sum(len(row) for row in tex_tables["tab:ablation_draft"].values()),
         "hierarchy_ablation":"archived source only; excluded from current manuscript",
         "point_intervals":len(points), "reference_budget_anchors":12,
+        "main_figure_metric_order":[metric["id"] for metric in protocol["metrics"]],
+        "mc_points":21, "legacy_84_point_records_preserved":True,
         "minimum_feasible_budgets":source["MIN_FEASIBLE_BUDGET_ROWS"],
         "trajectory_accounting":"passed; separate illustrative single case, not aggregate experiment",
         "calibration_cross_figure_values":{"alpha":.18,"delta_m":.12},
