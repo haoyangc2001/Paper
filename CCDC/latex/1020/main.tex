@@ -453,13 +453,26 @@ passages; traces end at their respective terminations.}
 
 \subsection{Execution Mismatch and Component Analysis}
 \label{sec:mismatch_analysis}
-Paired nominal and executed rollouts quantify the deployment gap before margin
-correction. The draft relative cost-overrun distribution has a median of $0.09$
-and a 90th percentile of $0.18$~\textit{(assumed data)}. Maximum path deviation
-has a median of $0.06$ m and a 90th percentile of $0.12$ m~\textit{(assumed data)}.
-These provisional quantiles correspond to the draft margins $\alpha=0.18$ and
-$\delta=0.12$ m; the calibration protocol is given in
-Appendix~\ref{app:calibration_details}.
+Figure~\ref{fig:margin_calibration} summarizes execution mismatch using 800
+calibration and 400 held-out paired rollouts~\textit{(assumed data)}. The
+calibration medians are $0.09$ for relative cost overrun and $0.06$ m for maximum
+planar position deviation; their 90th percentiles set $\alpha=0.18$ and
+$\delta=0.12$ m. With these margins fixed, held-out coverage is $353/400$
+($88.25\%$) for cost and $346/400$ ($86.50\%$) for position. These marginal
+coverages assess the error allowances used in budget accounting and obstacle
+inflation; they do not imply joint coverage or navigation success. The calibration
+protocol is given in Appendix~\ref{app:calibration_details}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../../images/1020/margin_calibration.pdf}
+\caption{Execution-error calibration and held-out assessment (assumed data).
+Blue solid and orange dashed curves show calibration and held-out empirical CDFs.
+Vertical lines mark the calibration 90th percentiles; horizontal lines mark the
+90\% target. Circles and diamonds indicate coverage at the fixed thresholds,
+including ties.}
+\label{fig:margin_calibration}
+\end{figure}
 
 We also compare the frozen velocity interface with a joint-space variant exposing
 12 actuator targets to the high-level learner, using the same PPO optimizer and

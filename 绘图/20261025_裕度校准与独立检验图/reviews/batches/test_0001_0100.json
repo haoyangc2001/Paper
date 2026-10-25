@@ -1,0 +1,61 @@
+{
+  "source": "data\\authored\\test_0001_0100.txt",
+  "split": "held_out",
+  "start": 1,
+  "end": 100,
+  "n_added": 100,
+  "authored_checkpoints": [
+    {
+      "after_rows": 20,
+      "assessment": "留出20组回顾：15双项轻度越界、20单项几何越界均保留。没有按校准行拷贝微调；新命令仍属冻结条件范围，未根据覆盖率安排后续值。"
+    },
+    {
+      "after_rows": 40,
+      "assessment": "留出40组回顾：25成本单项超界、30几何单项超界，与同条件不同命令可产生不同取舍的协议相符。负超支保留，不为接近90%修改任何记录。"
+    },
+    {
+      "after_rows": 60,
+      "assessment": "留出60组回顾：55空间单项超界、60成本单项超界；基准起步4.6%与低速滑移8.5%范围不同但不依条件固定。留出阈值一直来自冻结清单。"
+    },
+    {
+      "after_rows": 80,
+      "assessment": "留出80组回顾：TEST-0070的207mm超出校准最大值仍保留，校准最大值从未被当作硬界；75等号成本按<=计入，几何仍超界。"
+    },
+    {
+      "after_rows": 100,
+      "assessment": "留出100组回顾：全批保留低误差、负成本、等号和超过校准最大值的新尾部；校准文件未改。只检查记录及条件逻辑，不把本批覆盖率作为后续取值目标。"
+    }
+  ],
+  "checks": [],
+  "cumulative": {
+    "n": 100,
+    "metrics": {
+      "cost_overrun": {
+        "min": -0.016,
+        "max": 0.272,
+        "median": 0.092,
+        "q90": 0.179,
+        "threshold": 0.18,
+        "covered_n": 91,
+        "coverage": 0.91,
+        "exceed_n": 9,
+        "negative_n": 2,
+        "equal_threshold_n": 1
+      },
+      "max_deviation_m": {
+        "min": 0.019,
+        "max": 0.207,
+        "median": 0.061,
+        "q90": 0.122,
+        "threshold": 0.12,
+        "covered_n": 88,
+        "coverage": 0.88,
+        "exceed_n": 12,
+        "negative_n": 0,
+        "equal_threshold_n": 0
+      }
+    },
+    "joint_covered_n": 86
+  },
+  "timestamp": "2026-10-25T07:59:44.940417+00:00"
+}

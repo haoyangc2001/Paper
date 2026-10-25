@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "data_status": "hypothetical",
+  "purpose": "A manually reasoned illustrative collection for figure and workflow review; no simulations or physical trials were run.",
+  "controller_id": "assumed_frozen_velocity_tracker_v1",
+  "controller_weights_available": false,
+  "counts": {"calibration": 800, "held_out": 400},
+  "condition_assignment": "Twenty conditions in condition_catalog.csv. Assign IDs in catalog order, cycling 40 times for calibration and 20 times for held-out. Each condition has calibration n=40 and held-out n=20. This assigns conditions only, never errors or costs.",
+  "command_id": "Unique assumed command-program ID per pair; the same program is shared within the nominal/executed pair, not between different pairs.",
+  "command_limits": {"vx_mps": [-0.6, 0.6], "vy_mps": [-0.4, 0.4], "yaw_rate_radps": [-1.2, 1.2]},
+  "scenes": {
+    "S": {"label": "straight with speed changes", "duration_s": 12, "features": "forward tracking and acceleration; small heading changes"},
+    "A": {"label": "broad arc", "duration_s": 16, "features": "sustained turning; lateral drift can persist"},
+    "L": {"label": "alternating bends", "duration_s": 20, "features": "opposite turns can cancel endpoint drift; maximum deviation remains"},
+    "T": {"label": "stop then turn", "duration_s": 14, "features": "transient braking and reacceleration; localized peak displacement"}
+  },
+  "perturbations": {
+    "B": {"friction_coefficient": 0.8, "actuation_delay_s": 0.02, "tracking_noise_scale_mps": 0.01},
+    "F": {"friction_coefficient": 0.55, "actuation_delay_s": 0.02, "tracking_noise_scale_mps": 0.015},
+    "D": {"friction_coefficient": 0.8, "actuation_delay_s": 0.10, "tracking_noise_scale_mps": 0.01},
+    "N": {"friction_coefficient": 0.8, "actuation_delay_s": 0.02, "tracking_noise_scale_mps": 0.04},
+    "M": {"friction_coefficient": 0.55, "actuation_delay_s": 0.10, "tracking_noise_scale_mps": 0.04}
+  },
+  "conditions_status": "All numerical conditions are hypothetical design labels, not restored experiment settings. Noise scale describes assumed magnitude; no random noise is sampled by the data preparation scripts.",
+  "pairing": "Identical initial state, map and command program within each nominal/executed pair; same frozen controller in every executed record.",
+  "measurement": {"geometry": "maximum planar distance at time-aligned base positions across the paired common window", "time_grid_s": 0.2, "cost": "paired cumulative positive illustrative cost, signed ratio (J_exec-J_nom)/J_nom", "cost_unit": "illustrative_cost_units"},
+  "termination": "This illustrative calibration collection assumes each command program runs for its preassigned common duration; no goal/success filtering and no selection by error magnitude. Actual early-stop records will require a predeclared paired-window rule before real-data substitution.",
+  "raw_logs": "Not provided or fabricated; only run-level hypothetical aggregates are authored.",
+  "quantile": {"method": "inverted_cdf", "level": 0.9, "index": "ceil(n*p), one-based", "conformal_correction": false},
+  "median": "mean of the two central order statistics for even n",
+  "coverage": "count(error <= fixed threshold) / n",
+  "held_out_rule": "Same predeclared condition mix, separate authored records after calibration freeze. No target held-out percentage and no calibration changes based on held-out results.",
+  "lidar": "Not included; perception perturbations are separate from this execution calibration."
+}

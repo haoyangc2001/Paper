@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "data_status": "hypothetical",
+  "origin": "Individually authored illustrative paired-rollout summaries; no robot or simulator sampling was performed.",
+  "canonical_input": "paired_rollouts.csv",
+  "source_sha256": "292910afc8e2ce728be73e6fb58c14f4924fa3b3ce2eba9121bdf66d3022b03b",
+  "counts": {"calibration": 800, "held_out": 400},
+  "authored_source": "authored/*.txt",
+  "review_source": "../reviews/point_reviews.jsonl",
+  "calibration_freeze": "calibration_freeze.json",
+  "cost_units": "illustrative_cost_units; not numerically interchangeable with main-table Cost",
+  "cost_overrun_definition": "(J_exec - J_nom) / J_nom; signed; J_nom > 0",
+  "geometry_definition": "maximum time-aligned planar base-position discrepancy under matched initial conditions and commands, in metres; only the summary is hypothetical, no time series is fabricated",
+  "quantile_method": "empirical inverted CDF: sorted[ceil(n*p)-1], p=0.9; no conformal finite-sample correction",
+  "median_method": "mean of two central order statistics for even sample counts",
+  "threshold_source": "calibration only; alpha=0.18 and delta=0.12 m",
+  "coverage_definition": "integer count(error <= fixed threshold) / group count",
+  "held_out_use": "Illustrates application of frozen thresholds; not real independent experimental validation.",
+  "limitations": [
+    "Four published hypothetical calibration anchors constrain this illustrative construction.",
+    "Strong positive cost/geometry association and condition-dependent structure reflect authored assumptions, not recovered physical noise.",
+    "No raw controller weights, command time series, paired position logs or measured execution costs exist for these records.",
+    "Marginal error coverage does not imply joint coverage, navigation success, collision rate or formal safety.",
+    "Real replacements require new calibration and frozen thresholds; never force real records to retain hypothetical anchors."
+  ]
+}

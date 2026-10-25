@@ -1,0 +1,61 @@
+{
+  "source": "data\\authored\\test_0101_0200.txt",
+  "split": "held_out",
+  "start": 101,
+  "end": 200,
+  "n_added": 100,
+  "authored_checkpoints": [
+    {
+      "after_rows": 20,
+      "assessment": "留出120组回顾：105成本越界但空间未越界，115相反，说明两个误差不可互换；与前100组同条件范围有重叠，无新分布假设。"
+    },
+    {
+      "after_rows": 40,
+      "assessment": "留出140组回顾：135保留较长尾，134为低成本较高峰值；较低成本不代表没有位置误差。负值未裁零，校准冻结不变。"
+    },
+    {
+      "after_rows": 60,
+      "assessment": "留出160组回顾：145几何等于阈值应计覆盖，155成本等号也计覆盖；150长尾不截断，160体现另一项单独越界。"
+    },
+    {
+      "after_rows": 80,
+      "assessment": "留出180组回顾：168延迟场景可接近空间阈值而不必成本极端，175仅成本越界；176负超支并不消除几何风险。"
+    },
+    {
+      "after_rows": 100,
+      "assessment": "留出200组回顾：190低于成本阈值但空间超限，与130等同类机制一致；195为双项尾部。100个新值均按条件逐项判断，没有为覆盖率回调。"
+    }
+  ],
+  "checks": [],
+  "cumulative": {
+    "n": 200,
+    "metrics": {
+      "cost_overrun": {
+        "min": -0.016,
+        "max": 0.272,
+        "median": 0.094,
+        "q90": 0.183,
+        "threshold": 0.18,
+        "covered_n": 179,
+        "coverage": 0.895,
+        "exceed_n": 21,
+        "negative_n": 4,
+        "equal_threshold_n": 2
+      },
+      "max_deviation_m": {
+        "min": 0.019,
+        "max": 0.207,
+        "median": 0.063,
+        "q90": 0.125,
+        "threshold": 0.12,
+        "covered_n": 175,
+        "coverage": 0.875,
+        "exceed_n": 25,
+        "negative_n": 0,
+        "equal_threshold_n": 1
+      }
+    },
+    "joint_covered_n": 170
+  },
+  "timestamp": "2026-10-25T08:05:48.966238+00:00"
+}
