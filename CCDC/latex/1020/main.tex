@@ -50,26 +50,32 @@ Recent work has made MCRA learning practical through RC-PPO~\cite{so2024}.
 RC-PPO augments the state with a safety indicator and remaining budget, learns a
 reachability value function with a budget-conditioned policy, and then searches for
 the least feasible initial budget. Together, these components provide a unified way
-to represent safety and cost feasibility in the quadruped navigation task. However,
+to represent safety and cost feasibility in the quadruped navigation task.
+
+Deploying this formulation on a physical quadruped requires connecting navigation
+decisions to joint-level motion. With direct joint commands, the policy must learn
+balance and gait coordination together with collision-free goal reaching. Although
+falls, excessive body tilt, and obstacle collisions can be encoded as unsafe
+states, these constraints alone do not fully specify coordinated and smooth
+locomotion. During early training, unstable motion may prevent the robot from
+completing informative navigation rollouts, making route selection and cost
+optimization harder to learn. We therefore pretrain a low-level velocity tracker
+to address balance, gait coordination, and action smoothness, and freeze it before
+high-level learning. RC-PPO then learns navigation through a fixed velocity-command
+interface.
+
+Low-level feedback is intended to attenuate contact and friction disturbances,
+while freezing keeps the controller unchanged across calibration, high-level
+learning, and deployment. Neither removes residual execution uncertainty.
 RC-PPO's reachability equivalence and budget-feasibility conclusions are established
-under a nominal deterministic transition model. When connected to a real
-quadruped, a high-level velocity command is not directly applied as a state
-transition. Instead, it is realized through a locomotion controller, making the
-physical closed-loop transition uncertain and dependent on contact conditions,
-friction, actuation latency, and state-estimation error. Consequently, feasibility
-under the nominal model does not automatically imply feasibility during physical
-execution. This deployment mismatch appears as two task-relevant failures. First,
-the executed path may be longer or slower, causing the nominal model to
-underestimate cumulative cost. Second, the executed body path may deviate toward
-an obstacle, causing a trajectory that is safe in the nominal map to lose clearance
-on hardware.
+under a nominal deterministic transition model; feasibility under that model does
+not automatically imply feasibility during physical execution. Contact conditions,
+actuation latency, and state-estimation error can still cause additional cost or
+body-path deviation, leading to budget overruns or reduced obstacle clearance.
 
 This work focuses on instantiating RC-PPO/MCRA on a real quadruped by constructing
-a fixed closed-loop velocity interface and calibrating
-execution-induced cost and trajectory errors. Following the failure modes above,
-we train a locomotion tracker once and freeze it before high-level learning. This
-interface reduces the navigation action space and keeps the controller used for
-calibration, high-level learning, and deployment unchanged. We collect
+a fixed closed-loop velocity interface and calibrating its residual
+execution-induced cost and trajectory errors. We collect
 paired nominal and executed rollouts through that mapping and use the resulting
 error distributions to calibrate two separate corrections. A cost margin $\alpha$
 inflates the running cost used by the budget update, while a safety margin
@@ -232,11 +238,16 @@ are illustrative; ghost poses depict one robot at successive times.}
 \subsection{Frozen Velocity-Control Interface}
 We first train and freeze a velocity tracker to execute the high-level navigation
 policy's velocity commands on the quadruped, providing a common execution interface
-for mismatch measurement, margin calibration, and deployment. The tracker maps
+for mismatch measurement, margin calibration, and deployment. Low-level pretraining
+targets velocity tracking, balance, gait coordination, and action smoothness,
+allowing the high-level learner to focus on reach-avoid navigation and cost.
+The tracker maps
 proprioceptive observations and body-velocity commands
 $u_t=[v_x^*,v_y^*,\omega_z^*]^\top$ to joint commands. Training uses PPO and domain
 randomization, and the tracker is frozen before execution-mismatch calibration and
-high-level learning. Freezing keeps the controller parameters unchanged, avoiding
+high-level learning. Closed-loop feedback is intended to reject execution
+disturbances within the trained command domain. Freezing keeps the controller
+parameters unchanged, avoiding
 interface changes caused by continued low-level policy updates. It does not make
 the physical closed loop deterministic: contact conditions, friction, actuation
 latency, and state-estimation error can still produce residual mismatch.
