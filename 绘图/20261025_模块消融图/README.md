@@ -2,6 +2,22 @@
 
 完成日期：2026-10-25。对应计划：`../../plan/ablation_figure_20261025_plan.json`。
 
+## 当前版本：加入 MC 的五面板图（2026-10-25）
+
+最新图片位于 `output/mc_v2/`：[PDF](output/mc_v2/ablation_horizontal.pdf)、[PNG](output/mc_v2/ablation_horizontal.png)、[SVG](output/mc_v2/ablation_horizontal.svg)。它已替换 CCDC 稿件中的 `CCDC/images/1020/ablation_horizontal.pdf`。
+
+- 面板顺序与论文消融表一致：**SR、Cost、CR、BVR、MC**。
+- MC 直接使用现有四个配置的已审查中心值：完整 HD-MCRA 0.31 m、w/o α 0.29 m、w/o δ 0.19 m、w/o both 0.30 m；未新增假设数据或误差线。
+- 保持原图高度 43.5 mm，宽度扩展为 110.0 mm，以容纳第五面板；最低字号仍为 6.5 pt。
+- 新版包含 15 组汇总中心比较和 30 个标记；PDF 边界、文字重叠和数据映射审查均通过。
+
+新版使用 `config/style_horizontal_mc_v1.json`，绘图命令为：
+
+```powershell
+& 'D:/codesoftware/Miniconda/python.exe' -B '绘图/20261025_模块消融图/scripts/plot_ablation.py' --metrics 'SR,Cost,CR,BVR,MC' --style '绘图/20261025_模块消融图/config/style_horizontal_mc_v1.json' --output '绘图/20261025_模块消融图/output/mc_v2'
+& 'D:/codesoftware/Miniconda/python.exe' -B '绘图/20261025_模块消融图/scripts/audit_render.py' '绘图/20261025_模块消融图/output/mc_v2'
+```
+
 ## 当前版本：第二轮视觉优化
 
 最新图片位于`output/refined_v2/`：[PDF](output/refined_v2/ablation_horizontal.pdf)、[PNG](output/refined_v2/ablation_horizontal.png)、[SVG](output/refined_v2/ablation_horizontal.svg)。旧`output/final/`保持原样。

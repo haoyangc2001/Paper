@@ -18,11 +18,13 @@ PROJECT = Path(__file__).resolve().parents[1]
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
-def build(out, pilot=False, style_path=None):
+def build(out, pilot=False, style_path=None, metric_order=None):
     data_path = PROJECT / 'data/reviewed_points.jsonl'
     protocol_path = PROJECT / 'data/plot_protocol.json'
     style_path = style_path or PROJECT / 'config/style_horizontal.json'
     points, protocol, style = read_lines(data_path), read_json(protocol_path), read_json(style_path)
+    if metric_order:
+        protocol['metric_order'] = list(metric_order)
     reviews = read_lines(PROJECT / 'reviews/point_review.jsonl')
     errors = validate(points, protocol, reviews)
     if errors:
@@ -88,9 +90,10 @@ def build(out, pilot=False, style_path=None):
             ax.text(.5,.5,'',transform=ax.transAxes)
             continue
         full = values['FULL_'+metric.upper()]
+        decimals = int(panel.get('decimals', 1))
         if 'reference_labels' in style:
             ref = style['reference_labels']
-            label = f"{ref['prefix']}{full:.1f}"
+            label = f"{ref['prefix']}{full:.{decimals}f}"
             ax.text(.5,ref['y'],label,transform=ax.transAxes,ha='center',va='center',
                     color=style['colors']['FULL'],fontsize=ref['font_pt'])
             numeric_labels.append({'kind':'reference','metric':metric,'value':full,'text':label})
@@ -106,7 +109,7 @@ def build(out, pilot=False, style_path=None):
             mapping.append({'metric':metric,'configuration':cfg,'full_value':full,'ablated_value':val,'difference':val-full,'row_y':y})
             if 'value_labels' in style:
                 labels = style['value_labels']
-                label = f'{val:.1f}'
+                label = f'{val:.{decimals}f}'
                 ax.annotate(label,(val,y),xytext=(0,labels['offset_pt']),textcoords='offset points',
                             ha='center',va='bottom',color=color,fontsize=labels['font_pt'])
                 numeric_labels.append({'kind':'ablated','metric':metric,'configuration':cfg,'value':val,'text':label})
@@ -134,8 +137,9 @@ def build(out, pilot=False, style_path=None):
     for ext in ['pdf','svg','png']:
         metadata = {'Title':'Module ablation - hypothetical centers', 'Creator':'plot_ablation.py'} if ext=='pdf' else ({'Title':'Module ablation - hypothetical centers'} if ext=='svg' else {'Description':'Hypothetical centers; not experimental observations.'})
         fig.savefig(out/(base+'.'+ext),dpi=style['dpi'],facecolor=style['background'],metadata=metadata)
-    manifest={'data_status':'hypothetical','active_metrics':active,'layout':'1x4','width_mm':style['width_mm'],'height_mm':style['height_mm'],
-              'comparisons':mapping,'distinct_main_centers':len({('FULL',r['metric']) for r in mapping}|{(r['configuration'],r['metric']) for r in mapping}),
+    distinct_centers = len({('FULL',r['metric']) for r in mapping}|{(r['configuration'],r['metric']) for r in mapping})
+    manifest={'data_status':'hypothetical','active_metrics':active,'layout':f"1x{len(active)}",'width_mm':style['width_mm'],'height_mm':style['height_mm'],
+              'comparisons':mapping,'distinct_main_centers':distinct_centers,
               'marker_instances':2*len(mapping),'inputs':{str(p.relative_to(PROJECT)):sha(p) for p in [data_path,protocol_path,style_path]},
               'numeric_labels':numeric_labels,'module_states':state_matrix['states'] if state_matrix else None,
               'script_sha256':sha(Path(__file__)),'text_boxes':text_boxes,'files':[base+'.'+e for e in ['pdf','svg','png']],
@@ -173,12 +177,12 @@ def build(out, pilot=False, style_path=None):
             f'去δ的CR变化为{collision_difference:+.1f}个百分点。'
             '成本统计所有试验截至终止的累计执行成本，需要结合成功率解释。坐标采用局部范围。\n\n'
             '## Reading notes\n\n'
-            '- Panel order: SR, Cost, BVR, CR. Rates are percentages; highlighted differences use percentage points.\n'
+            '- Panel order: ' + ', '.join(active) + '. Rates are percentages; highlighted differences use percentage points.\n'
             '- Three deletion rows are categories, not time or a parameter sweep.\n'
             '- Full and RC-PPO use equal-scene means at z0/zref = 1. Cost units remain draft units.\n'
-            '- 12 segments and 24 markers reuse 16 distinct centers; no measured confidence intervals are supplied.\n'
+            f'- {len(mapping)} segments and {2*len(mapping)} markers reuse {distinct_centers} distinct centers; no measured confidence intervals are supplied.\n'
             '- Single-margin settings need not improve monotonically over the no-margin setting.\n'
-            '- MC and the joint-space interface comparison remain in the existing table.\n'
+            '- MC is the mean per-trial minimum physical clearance; it is shown as a supporting safety panel.\n'
             '- Replace assumptions only with verified trial/seed/map data and matching statistical definitions.\n'
         )
         (out/'caption.md').write_text(caption,encoding='utf-8')
@@ -191,5 +195,7 @@ if __name__=='__main__':
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--pilot',action='store_true')
     parser.add_argument('--style',type=Path,help='Optional project style JSON; defaults to the original v1 style.')
+    parser.add_argument('--metrics',help='Optional comma-separated panel order, e.g. SR,Cost,CR,BVR,MC.')
     args=parser.parse_args()
-    build(args.output.resolve(),args.pilot,args.style.resolve() if args.style else None)
+    metric_order = [m.strip() for m in args.metrics.split(',') if m.strip()] if args.metrics else None
+    build(args.output.resolve(),args.pilot,args.style.resolve() if args.style else None,metric_order)

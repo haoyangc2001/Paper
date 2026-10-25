@@ -213,19 +213,21 @@ def check():
         placed_labels.add(label)
     assert placed_labels == set(placement_owners)
     assert digest(images / "margin_calibration.pdf") == digest(ROOT / "绘图/20261025_裕度校准与独立检验图/output/final/margin_calibration.pdf")
-    ablation_render = ROOT / "绘图/20261025_模块消融图/output/refined_v2"
+    ablation_render = ROOT / "绘图/20261025_模块消融图/output/mc_v2"
     assert r"../../images/1020/ablation_horizontal.pdf" in text
     assert digest(images / "ablation_horizontal.pdf") == digest(ablation_render / "ablation_horizontal.pdf")
     ablation_manifest = json.loads((ablation_render / "render_manifest.json").read_text(encoding="utf-8"))
-    assert ablation_manifest["distinct_main_centers"] == 16
-    assert len(ablation_manifest["comparisons"]) == 12
+    assert ablation_manifest["distinct_main_centers"] == 20
+    assert len(ablation_manifest["comparisons"]) == 15
     variant_labels = {"NO_ALPHA":r"w/o $\alpha$", "NO_DELTA":r"w/o $\delta$", "ZERO":"w/o both (RC-PPO)"}
-    metric_columns = {"SR":0, "CR":1, "Cost":2, "BVR":3}
+    # tex_tables normalizes rows to the historical source order SR/CR/Cost/BVR/MC.
+    metric_columns = {"SR":0, "CR":1, "Cost":2, "BVR":3, "MC":4}
     for comparison in ablation_manifest["comparisons"]:
         column = metric_columns[comparison["metric"]]
-        assert round(comparison["full_value"], 1) == tex_tables["tab:ablation_draft"]["HD-MCRA"][column]
+        precision = 2 if comparison["metric"] == "MC" else 1
+        assert round(comparison["full_value"], precision) == tex_tables["tab:ablation_draft"]["HD-MCRA"][column]
         variant = variant_labels[comparison["configuration"]]
-        assert round(comparison["ablated_value"], 1) == tex_tables["tab:ablation_draft"][variant][column]
+        assert round(comparison["ablated_value"], precision) == tex_tables["tab:ablation_draft"][variant][column]
     budget_project = ROOT / "绘图/20261025_预算扫描图"
     budget_render = budget_project / "output/horizontal_v1"
     assert r"../../images/1020/budget_sweep_horizontal.pdf" in text
@@ -274,8 +276,8 @@ def check():
         "underfull_vbox_warnings":0,
         "hardware_photo_sources":"byte-identical to the two original CoRL image assets",
         "budget_figure":"budget_sweep_horizontal.pdf", "budget_points_checked":96,
-        "ablation_figure":"ablation_horizontal.pdf", "ablation_centers_checked":16,
-        "ablation_comparisons_checked":12,
+        "ablation_figure":"ablation_horizontal.pdf", "ablation_centers_checked":20,
+        "ablation_comparisons_checked":15,
         "compiled_pages":len(pages), "submission_page_limit":page_limit,
         "within_submission_page_limit":within_page_limit,
         "appendix_placement":"after references, starting on a new page",
