@@ -194,13 +194,17 @@ def check():
         "fig:hardware_sequences":"Physical-Robot Deployment and Failure Analysis",
     }
     placed_labels = set()
+    assert r"\usepackage{flafter}" in text and r"\usepackage{placeins}" in text
     for match in re.finditer(r"\\begin\{(figure|table)\}\[([^]]+)\](.*?)\\end\{\1\}", text, re.S):
-        assert match[2] == "H", "Figures/tables must remain at their discussion points"
+        assert match[2] == "!htbp", "Use bounded local floats to avoid stretched gaps"
         label = re.search(r"\\label\{([^}]+)\}", match[3])[1]
         prefix = text[:match.start()]
         owner = re.findall(r"\\subsection\{([^}]+)\}", prefix)[-1]
         assert owner == placement_owners[label], (label, owner)
         assert rf"\ref{{{label}}}" in prefix, f"{label} precedes its introduction"
+        remaining = text[match.end():]
+        next_heading = re.search(r"\\(?:subsection|section)\{", remaining)
+        assert next_heading and r"\FloatBarrier" in remaining[:next_heading.start()], label
         placed_labels.add(label)
     assert placed_labels == set(placement_owners)
     assert digest(images / "margin_calibration.pdf") == digest(ROOT / "绘图/20261025_裕度校准与独立检验图/output/final/margin_calibration.pdf")
@@ -245,6 +249,7 @@ def check():
     assert pdf.stat().st_mtime >= TEX.stat().st_mtime, "Compiled manuscript is stale"
     log = pdf.with_suffix(".log").read_text(encoding="utf-8", errors="replace")
     assert not re.search(r"Overfull|LaTeX Warning|undefined references|^!", log, re.M)
+    assert r"Underfull \vbox" not in log, "Unresolved vertical column stretch"
     report = {
         "status":"passed" if within_page_limit else "content_checks_passed_page_limit_exceeded",
         "data_status":"hypothetical", "empirical_validation":False,
@@ -258,6 +263,8 @@ def check():
         "main_scene_data_preserved":True, "template_class_unchanged":True,
         "single_column_figures":7, "single_column_image_assets":len(graphic_options),
         "single_column_tables":len(tex_tables), "anchored_to_own_subsections":placement_owners,
+        "float_placement":"after introduction, flexible within subsection, barrier before next heading",
+        "underfull_vbox_warnings":0,
         "hardware_photo_sources":"byte-identical to the two original CoRL image assets",
         "budget_figure":"budget_sweep_horizontal.pdf", "budget_points_checked":96,
         "ablation_figure":"ablation_horizontal.pdf", "ablation_centers_checked":16,
