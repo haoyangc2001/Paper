@@ -42,11 +42,17 @@ def load_inputs(data_dir, style_path):
     review_check(read_points(data_dir/"baseline_points.json"),records)
     latest = {r["point_id"]:r for r in records}
     assert all(p["value"] == latest[p["point_id"]]["adopted_value"] for p in points)
+    if protocol.get('completion_version'):
+        for p in points:
+            if p['metric']!='Cost':
+                assert p['n']==900 and abs(p['value']-p['count']/900)<1e-10
     return points,protocol,read_json(style_path),audit
 
 
 def caption(protocol, audit):
     selected = ", ".join(f"{m}: {v['budget_ratio']:.2f}" for m,v in audit["minimum_feasible"].items())
+    if protocol.get('completion_version'):
+        return '# 内部模拟稿预算图\n\n合成数据；不是实测记录。900例分母的计数一致性修订，旧输入保留。\n\nBudget-response curves with equal-scene averaging; SR/Cost/BVR/CR; reference budgets120/140/190 a.u.;900 conditional trials per setting. The reference point reproduces the main table. Smallest passing tested ratios: '+selected+'. No continuous-optimum or significance claim.\n'
     return f"""# 预算扫描图配套图注
 
 ## English caption

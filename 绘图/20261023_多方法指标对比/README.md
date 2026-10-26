@@ -1,3 +1,9 @@
+## 2026-10-26 当前论文版本
+最新数据为data/manuscript_completion_20261026，输出为output/manuscript_completion_20261026/metrics_comparison.pdf。保持220×90mm、SR/Cost/CR/BVR/MC、原配色和单栏插入方式。
+105中心不变，新区间由合成充分统计量计算：n300，Wilson95%比例区间、t均值区间；并非真实实验CI。原mc_extension_v2人工范围及来源不覆盖。逐项SD理由在新版data/continuous_sd.csv，完整判断在CCDC/data/manuscript_completion_20261026/main_result_ledger.jsonl。
+重绘：从仓库根运行D:/codesoftware/Miniconda/python.exe -B 绘图/20261023_多方法指标对比/scripts/plot_metrics_comparison.py --data-dir 绘图/20261023_多方法指标对比/data/manuscript_completion_20261026 --output-dir <新输出目录>。
+真实替换应使用empirical模式并提供可核实的计数/区间/来源；不得只改data_status。下文保留历史记录。
+
 # 多方法、多场景指标对比图
 
 ## 最新尺寸修订：220×90mm

@@ -1,0 +1,7 @@
+# 内部模拟配置与数据
+
+全部新增配置及结果为authored_example或computed_from_synthetic，不是实测。protocol.json为本轮说明契约；inference_ledger记录67项决策，main_result_ledger记录105点；margin_sweep.csv保存16×5逐项理由。主比较区间依据continuous_sd.csv及明确计数计算，旧人工端点保留在main_results.json的legacy_interval。
+
+main_results、calibration_results、ablation_budget_results、margin_sweep_results、hardware_results是审计脚本由已审查输入计算的派生产物；perturbation_results为逐项内部示例。不能把这些文件改名为empirical后当成采集证据。
+
+读稿入口：../../output/1020/main.pdf。完整定义与真实替换映射：../../submission/manuscript_completion_20261026/README.md、replacement_map.md。图二与预算图的最终绘图输入也各自保存在对应绘图工程data/manuscript_completion_20261026中。

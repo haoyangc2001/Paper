@@ -1,0 +1,1441 @@
+{
+  "document": {
+    "name": "CCDC完整内部模拟终稿：逐项配置与结果补齐、全文一致性和阶段审查计划",
+    "version": "1.0.0",
+    "created_at": "2026-10-26",
+    "source_plan": "本会话用户确认的完整内部工作稿要求；以当前main.tex直接修改，逐项推断和审查，后续由用户替换真实实验数据。",
+    "mode": "execute",
+    "status_definition": {
+      "false": "未执行、部分完成、验证未通过或受阻",
+      "true": "依赖完成、全部验收通过且有追加的工作记录和验证证据"
+    },
+    "update_rule": "按tasks顺序选第一个依赖完成且status=false的任务；只追加work_records；不得将计划、执行意图或命令运行本身当作完成证据。创建阶段全部任务false、记录空数组、验证结果空字符串。"
+  },
+  "background": {
+    "business_context": "将RC-PPO/MCRA工程化接入真实四足机器人；核心是冻结底层速度接口、成本超支alpha修正和几何偏差delta补偿。",
+    "current_capability": "CCDC/latex/1020/main.tex及7图2表已形成；图二五列220×90mm、图五五列110×43.5mm；主表、消融、预算及校准已有合成数据与审查记录。Git基线3634354，创建计划前工作区干净，编译稿9页。",
+    "problem_to_solve": "上一轮仅清理局部标签，仍有16处TBD和draft/provisional等写作占位；实现细节、样本组织、统计方案、成本尺度、双critic图文对应、裕度扫描及硬件指标没有形成完整一致描述。",
+    "known_issues": [
+      "主结果样本设定3 seeds/300 trials和部分消融百分比67.2等不能未经定义直接作为汇总二项比例。",
+      "图二现有105点210端点为逐项人工范围，confidence_level=null；CI模拟稿需另建统计契约和版本，不能伪造原始采集历史。",
+      "轨迹图独立成本函数与预算85尚未与主表成本建立统一口径。",
+      "总览图双critic与正文只展开reachability critic的工程说明不一致。",
+      "800/400校准与留出已有构造记录；4×4裕度扫描仍缺逐设置结果。",
+      "扰动强25%的物理定义、真机CR/BVR/Cost/MC及实现配置待补齐。",
+      "现有9页超过已核实8页上限；本计划不擅自改模板或另行大幅压缩内容。"
+    ]
+  },
+  "goal": {
+    "primary": "在原main.tex中完成一份内容、配置、结果和统计描述完整的内部模拟终稿，逐项补齐缺口并统一方法、正文、附录、数据及图片，提供清晰的真实数据替换清单。",
+    "success_equation": "核心方法与图文工程实现一致 + 缺口逐项闭合 + 数值逐项有依据 + 样本与统计口径自洽 + 全部图表/正文对齐 + 六次阶段复查 + 编译视觉检查 + 来源及替换位置可追溯",
+    "deliverables": [
+      "更新后的CCDC/latex/1020/main.tex和CCDC/output/1020/main.pdf",
+      "CCDC/submission/manuscript_completion_20261026下的缺口表、配置/统计契约、逐项推定台账、审查与替换文档",
+      "受影响绘图项目data子目录的新版本最终输入、必要脚本更新和保持现有布局的图片",
+      "论文及绘图README、审查报告和可复现命令",
+      "本JSON计划追加的逐任务执行记录"
+    ]
+  },
+  "scope": {
+    "included": [
+      "现状来源与理论/代码核对",
+      "成本、几何、状态、动作和预算计费定义",
+      "逐项配置推定和统计协议补齐",
+      "主比较区间、校准留出、消融、预算、裕度扫描、扰动和实机结果的内部示例完善",
+      "阶段复查与回修",
+      "原LaTeX主稿、相关图表数据与说明同步",
+      "数值复算、编译和全页视觉检查",
+      "内部来源记录和真实替换映射"
+    ],
+    "excluded": [
+      "本轮创建计划后自动执行论文任务",
+      "真实训练、物理仿真采样或机器人实验",
+      "伪造真实采集日志、实验日期、设备序列号或已验证的实测来源",
+      "将内部合成数据状态改成empirical以冒充原始测量",
+      "更换论文核心方法、重新加入无分层消融",
+      "改官方模板、跨栏或大规模重设计已确认图片",
+      "删除CORL历史稿、旧数据与审查历史",
+      "未授权的Git提交/推送、远程服务器写入、投稿或外部发布",
+      "为满足8页强制删减核心内容的独立压篇任务"
+    ]
+  },
+  "global_constraints": [
+    "本轮只创建计划；后续收到执行指令后按依赖逐任务验证，不跳过阶段复查。",
+    "用户已授权直接修改原main.tex、逐项推定缺失的内部示例设置与数值、同步相关图表和文档并重新编译；这些范围内的常规选择不重复请求确认。",
+    "全文保持工程学术论文风格，突出冻结接口及alpha/delta部署校准；理论和低层控制来自既有工作，不包装成新增理论贡献。",
+    "内部模拟稿正文按用户要求使用完整最终稿句式，清理假设/预计/暂定/TBD等写作占位。模拟来源集中记录在配套台账、数据元信息和说明中，交付描述明确内部模拟稿用途。",
+    "用户要求的实测/95%CI式结果表达只作为内部模拟终稿的示例文本；不能声称本次实际完成测量或验证。内部记录必须区分人工示例范围、基于合成样本计算的区间和真实实验区间，历史来源不可篡改。",
+    "数值与配置逐项判断：参考相关的前后多个点、同组指标、其他场景/方法、物理约束及全文；禁止一条规则、统一比例或随机噪声一次批量造完所有缺失数据。",
+    "程序允许导入已逐项决定的值、计算派生量和统计量、校验及绘图；由同一定义唯一确定的派生量必须计算，不能再独立猜测。",
+    "每项设定记录旧值/新值、单位、样本层级、依据、来源、关联条目、冲突及修订、所有正文与图表位置和真实替换方法；记录只追加。",
+    "已有结果优先保留，但用户授权为逻辑自洽做必要修正。修改必须以明确冲突为依据，同步所有依赖，不能为了制造优势、平滑或显著性调整。",
+    "保留SR/CR/BVR事件区别、Cost/MC全试验统计、等场景汇总和公平比较；不能以失败提前结束造成的低Cost单独声称效率提升。",
+    "核心主线保持，具体工程定义需补齐并核对原论文/代码。双critic职责和alpha/delta进入训练的位置须用证据说明，不能仅照总览图补一句。",
+    "数学假设、方法示意图描述及真实科学边界不是写作占位：冻结不消除随机性，校准边际覆盖不等于联合安全，有限网格不是连续最优；这些含义保留。",
+    "数据和统计语义变动需新版本，旧输入/图/历史审查保留；每图最终绘图输入在其data子目录。主稿仍使用main.tex/main.pdf，不创建main_preview。",
+    "图表单栏、现有顺序和视觉风格保持；图二220×90mm，图五110×43.5mm。因必要数值/标签更新可重新导出，不能默默改变尺寸或布局。",
+    "正文篇幅保持简洁，配置细节主要归入附录；保留参考文献后新页开始附录。记录页数与8页限制，不以模板缩字号解决。",
+    "利用已有Python/LaTeX环境；不安装或升级核心依赖，不访问远程机器人、不运行真实训练，不新增付费服务。",
+    "每次阶段审查记录问题、关联任务、修订和复验；依赖设定改变后，所有受影响成果重新验证，不改写历史完成证据。",
+    "遇到超出已有授权的来源歧义、核心方法或统计口径变更、历史产物覆盖、外部成本或远程状态改变等不确定决策，必须暂停并询问用户。暂停只阻塞相关依赖，仍可完成独立已授权工作。"
+  ],
+  "uncertainty_policy": {
+    "rule": "优先使用本会话明确授权、已验证路径和逐项推定准则；无法在这些约束内解决且会影响范围、数据语义、依赖、输出或已有工作的不确定决策，暂停并询问用户。",
+    "already_authorized": [
+      "对指定当前主稿及相应图片重新写作和导出",
+      "为完整内部示例逐项确定缺失参数与结果",
+      "有依据的一致性修正并更新关联文件",
+      "建立内部来源/替换台账和按图存放新版本数据",
+      "在本机现有工具链上计算、检查、绘图、编译"
+    ],
+    "must_pause_and_ask": [
+      "多个输入来源冲突，无法根据版本/定义/舍入/已确认路径确定权威来源",
+      "需要实质变更RC-PPO/MCRA方法或用户确认的实验比较语义",
+      "现有数据无法满足已确定统计契约，且可选处理会改变核心实验规模、主要结果或对比结论并超出例行一致性修正",
+      "需要覆盖删除明确保留的历史产物或出现无法绕开的用户编辑冲突",
+      "检查失败无法区分数据定义问题与基础设施问题，或基线差异无法解释",
+      "需要调整依赖版本、外部API、费用、远程写入、投稿或未授权Git操作",
+      "现有单栏布局无法容纳必要内容，需改变图幅/模板或进行大幅压篇"
+    ],
+    "question_format": "说明当前任务ID、已确认事实和证据、不确定点、可选方案及各自影响；保持status=false并追加blockers，等待明确选择。"
+  },
+  "paths": {
+    "workspace": "C:/Users/smile/Desktop/paper",
+    "plan": "C:/Users/smile/Desktop/paper/plan/manuscript_completion_20261026_plan.json",
+    "readme": "C:/Users/smile/Desktop/paper/plan/manuscript_completion_20261026_说明.md",
+    "paper_tex": "C:/Users/smile/Desktop/paper/CCDC/latex/1020/main.tex",
+    "paper_pdf": "C:/Users/smile/Desktop/paper/CCDC/output/1020/main.pdf",
+    "paper_readme": "C:/Users/smile/Desktop/paper/CCDC/latex/1020/README.md",
+    "paper_images": "C:/Users/smile/Desktop/paper/CCDC/images/1020",
+    "review_directory": "C:/Users/smile/Desktop/paper/CCDC/submission/manuscript_completion_20261026",
+    "core_reference": "C:/Users/smile/Desktop/paper/CORL/references/Solving Minimum-Cost Reach Avoid using Reinforcement Learning.pdf",
+    "reference_text": "C:/Users/smile/Desktop/paper/CORL/references/reading_exports/mcra-reading.txt",
+    "reference_code": "C:/Users/smile/Desktop/paper/RC-PPO/src",
+    "historical_manuscript": "C:/Users/smile/Desktop/paper/CORL/latex/0820_submitted/main.tex",
+    "main_source_script": "C:/Users/smile/Desktop/paper/CORL/scripts/generate_experiment_results_v3.py",
+    "main_workbook": "C:/Users/smile/Desktop/paper/CORL/data/experiment_results_rcppo_ra_v3.xlsx",
+    "main_figure_data": "C:/Users/smile/Desktop/paper/绘图/20261023_多方法指标对比/data/mc_extension_v2",
+    "trajectory_data": "C:/Users/smile/Desktop/paper/绘图/20261021_轨迹与同步曲线/data/versions/v2",
+    "calibration_data": "C:/Users/smile/Desktop/paper/绘图/20261025_裕度校准与独立检验图/data",
+    "ablation_data": "C:/Users/smile/Desktop/paper/绘图/20261025_模块消融图/data",
+    "budget_data": "C:/Users/smile/Desktop/paper/绘图/20261025_预算扫描图/data",
+    "overview_project": "C:/Users/smile/Desktop/paper/绘图/20261021_部署与校准总览图",
+    "planned_config_data": "C:/Users/smile/Desktop/paper/CCDC/data/manuscript_completion_20261026",
+    "planned_new_figure_version": "受影响绘图工程/data/manuscript_completion_20261026与output/manuscript_completion_20261026",
+    "build_script": "C:/Users/smile/Desktop/paper/CCDC/scripts/build-1020.ps1",
+    "existing_audit": "C:/Users/smile/Desktop/paper/CCDC/scripts/audit_results_1023.py",
+    "planned_audit": "C:/Users/smile/Desktop/paper/CCDC/scripts/audit_manuscript_completion_20261026.py",
+    "python": "D:/codesoftware/Miniconda/python.exe",
+    "latex_bin": "D:/app/latex/texlive/2026/bin/windows",
+    "skill_validator": "C:/Users/smile/.codex/skills/create-plan-worklog/scripts/validate_worklog.py"
+  },
+  "item_record_contract": {
+    "storage": "inference_ledger.jsonl逐项追加；gap_register.json列出当前映射",
+    "required_fields": [
+      "id",
+      "revision",
+      "category",
+      "source_status",
+      "source_paths",
+      "original_value",
+      "chosen_value",
+      "unit",
+      "statistical_population",
+      "denominator_or_weighting",
+      "reasoning",
+      "related_ids",
+      "checks",
+      "conflicts_and_resolution",
+      "paper_locations",
+      "data_consumers",
+      "replacement_instructions"
+    ],
+    "source_status_values": [
+      "verified_source",
+      "authored_example",
+      "derived_from_synthetic_inputs",
+      "empirical_after_future_verification"
+    ],
+    "rule": "每个缺口对应稳定ID；涉及数值/配置时每项独立记录。合成区间计算不证明真实实验精度，人工范围不得改写来源为原始测量。"
+  },
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "phase": "现状",
+      "goal": "建立主稿、图表及数据来源基线",
+      "status": true,
+      "depends_on": [],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:35:13Z",
+          "summary": "建立当前稿件及输入文件哈希基线，确认本机工具链。",
+          "actions": [
+            "建立当前稿件及输入文件哈希基线，确认本机工具链。"
+          ],
+          "files_changed": [
+            "CCDC/scripts/audit_manuscript_completion_20261026.py",
+            "CCDC/submission/manuscript_completion_20261026/baseline.json"
+          ],
+          "commands": [
+            "python -B CCDC/scripts/audit_manuscript_completion_20261026.py baseline"
+          ],
+          "results": [
+            "7图2表、9页、16处TBD断言通过；20项来源文件可读取并记录SHA256；Python/Matplotlib/PyMuPDF及TeX可用。"
+          ],
+          "evidence": [
+            "7图2表、9页、16处TBD断言通过；20项来源文件可读取并记录SHA256；Python/Matplotlib/PyMuPDF及TeX可用。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "记录当前Git HEAD、工作区状态、main.tex/main.pdf、模板、图片及数据入口的哈希；确认本机Python和TeX工具可用。",
+        "以CCDC/latex/1020为当前稿，CORL历史稿只读参考；不得启动训练或远程采样。"
+      ],
+      "acceptance_criteria": [
+        "基线清单列明7张图、2张表、当前9页和已知8页限制。",
+        "已有用户改动及文件来源明确，必要输入均可读取。"
+      ],
+      "planned_outputs": [
+        "baseline.json"
+      ],
+      "verification_result": "7图2表、9页、16处TBD断言通过；20项来源文件可读取并记录SHA256；Python/Matplotlib/PyMuPDF及TeX可用。"
+    },
+    {
+      "id": "TASK-002",
+      "phase": "现状",
+      "goal": "建立逐项缺口及措辞清单",
+      "status": true,
+      "depends_on": [
+        "TASK-001"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:36:18Z",
+          "summary": "逐段核对主稿并建立28项缺口及措辞分类。",
+          "actions": [
+            "逐段核对主稿并建立28项缺口及措辞分类。"
+          ],
+          "files_changed": [
+            "CCDC/submission/manuscript_completion_20261026/gap_register.json"
+          ],
+          "commands": [
+            "rg -n TBD|draft|provisional|assum|verification CCDC/latex/1020/main.tex"
+          ],
+          "results": [
+            "16处TBD全部入表且分配前置任务；额外覆盖双critic、统计分母、成本、消融、扫描、实机和作者身份。",
+            "作者身份为真正未知，不在实验补齐中编造；数学假设/静态示意/TeX标签单列保留。"
+          ],
+          "evidence": [
+            "16处TBD全部入表且分配前置任务；额外覆盖双critic、统计分母、成本、消融、扫描、实机和作者身份。",
+            "作者身份为真正未知，不在实验补齐中编造；数学假设/静态示意/TeX标签单列保留。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "通读正文及附录，覆盖16处TBD以及assumed、draft、provisional、placeholder、待验证等语义，不仅机械搜索。",
+        "每项以稳定ID标注章节、LaTeX标签/上下文、现值、缺失信息、数据消费者与替换位置；正常数学用语和方法边界单列。"
+      ],
+      "acceptance_criteria": [
+        "已知16处TBD全部有对应项；新增发现亦入表。",
+        "缺口分为来源可恢复、需要写作设定、派生计算、真正未知四类，无凭空声称已恢复配置。"
+      ],
+      "planned_outputs": [
+        "gap_register.json"
+      ],
+      "verification_result": "16处TBD全部入表且分配前置任务；额外覆盖双critic、统计分母、成本、消融、扫描、实机和作者身份。；作者身份为真正未知，不在实验补齐中编造；数学假设/静态示意/TeX标签单列保留。"
+    },
+    {
+      "id": "TASK-003",
+      "phase": "现状",
+      "goal": "核对RC-PPO理论、工程网络和当前方法图的一致性",
+      "status": true,
+      "depends_on": [
+        "TASK-002"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:42:38Z",
+          "summary": "核对原论文与本地双critic实现，形成方法契约。",
+          "actions": [
+            "核对原论文与本地双critic实现，形成方法契约。"
+          ],
+          "files_changed": [
+            "CCDC/submission/manuscript_completion_20261026/method_contract.md"
+          ],
+          "commands": [
+            "PDF正文文本读取；actorcritic/EC-EFPPO/gae/EFPPO_utils/root_finding/arguments/utils逐文件核对"
+          ],
+          "results": [
+            "明确alpha→cost targets及预算、delta→reach targets、actor→冻结tracker；记录理论单critic和工程双critic近似差别及PPO符号。"
+          ],
+          "evidence": [
+            "明确alpha→cost targets及预算、delta→reach targets、actor→冻结tracker；记录理论单critic和工程双critic近似差别及PPO符号。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "阅读本地原论文和RC-PPO/src中actorcritic、EC-EFPPO、gae、root_finding及参数配置。",
+        "核对Cost critic、Reachability critic、actor的输入、目标、符号和部署职责；原方法实现不等于本项目已经部署实现。"
+      ],
+      "acceptance_criteria": [
+        "给出冻结接口、两个裕度、网络及预算搜索的对应关系与代码/论文定位。",
+        "单critic正文与双critic总览的差异有证据及修订方案，核心贡献保持工程部署主线。"
+      ],
+      "planned_outputs": [
+        "method_contract.md"
+      ],
+      "verification_result": "明确alpha→cost targets及预算、delta→reach targets、actor→冻结tracker；记录理论单critic和工程双critic近似差别及PPO符号。"
+    },
+    {
+      "id": "TASK-004",
+      "phase": "阶段审查",
+      "goal": "阶段复查一：确认来源和补齐边界",
+      "status": true,
+      "depends_on": [
+        "TASK-003"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:42:47Z",
+          "summary": "完成阶段审查一，确定来源优先级和补齐边界。",
+          "actions": [
+            "完成阶段审查一，确定来源优先级和补齐边界。"
+          ],
+          "files_changed": [
+            "CCDC/submission/manuscript_completion_20261026/stage_reviews.md"
+          ],
+          "commands": [],
+          "results": [
+            "28项缺口均已分工；双critic差异有修订路线；保留历史与真实未知身份。"
+          ],
+          "evidence": [
+            "28项缺口均已分工；双critic差异有修订路线；保留历史与真实未知身份。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "复查前三项；多个来源冲突先查版本、精度、定义及依赖，不凭文件名选择。",
+        "方法主线保持；必要实现口径细化属于本轮范围，实质更换算法需询问。"
+      ],
+      "acceptance_criteria": [
+        "所有缺口有责任任务和来源优先级。",
+        "未解决冲突记录原因与影响，阻塞项解决后才进入配置推定。"
+      ],
+      "planned_outputs": [
+        "stage_reviews.md"
+      ],
+      "verification_result": "28项缺口均已分工；双critic差异有修订路线；保留历史与真实未知身份。"
+    },
+    {
+      "id": "TASK-005",
+      "phase": "契约",
+      "goal": "确定成本、几何和预算计费契约",
+      "status": true,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:47:00Z",
+          "summary": "逐项确定代理成本、配对、物理几何和预算双账本。",
+          "actions": [
+            "逐项确定代理成本、配对、物理几何和预算双账本。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/protocol.json",
+            "CCDC/data/manuscript_completion_20261026/inference_ledger.jsonl"
+          ],
+          "commands": [
+            "核对compute_metrics.py与scenario.json"
+          ],
+          "results": [
+            "同公式统一a.u.而非能耗；图三为独立短地图；仿真disc与hardware envelope分开；alpha名义计费与BVR实际账本清楚。"
+          ],
+          "evidence": [
+            "同公式统一a.u.而非能耗；图三为独立短地图；仿真disc与hardware envelope分开；alpha名义计费与BVR实际账本清楚。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "逐项定义状态/观测、非负运行成本、单位、采样步长、累计终点、名义与执行成本、预算扣减依据。",
+        "对照轨迹案例的3.6/3/20/2成本参数及预算85，检查能否与主实验共享定义；若不同须明确映射或诊断指标身份。",
+        "footprint只计一次，delta为额外裕度；物理碰撞/MC与规划危险集合分开定义。"
+      ],
+      "acceptance_criteria": [
+        "成本、时间、几何与单位可按明确定义复算。",
+        "轨迹、主表、预算曲线的可比性被解释；禁止只删illustrative unit便宣称同尺度。"
+      ],
+      "planned_outputs": [
+        "protocol.json",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "同公式统一a.u.而非能耗；图三为独立短地图；仿真disc与hardware envelope分开；alpha名义计费与BVR实际账本清楚。"
+    },
+    {
+      "id": "TASK-006",
+      "phase": "契约",
+      "goal": "确定样本组织、事件定义与统计方案",
+      "status": true,
+      "depends_on": [
+        "TASK-005"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:48:52Z",
+          "summary": "确定900总试验、场景分层与合成区间统计契约。",
+          "actions": [
+            "确定900总试验、场景分层与合成区间统计契约。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/protocol.json",
+            "CCDC/submission/manuscript_completion_20261026/statistical_contract.md"
+          ],
+          "commands": [
+            "逐项复算605/900、178/900、202/900、583/900、237/900、124/900"
+          ],
+          "results": [
+            "所有现有消融显示比例可保留；旧人工端点与新计算CI版本分离；明确固定策略条件区间，禁止跨种子泛化。"
+          ],
+          "evidence": [
+            "所有现有消融显示比例可保留；旧人工端点与新计算CI版本分离；明确固定策略条件区间，禁止跨种子泛化。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "逐项检查种子、场景、每设置试验数、汇总权重、成功/碰撞/超时/预算超限的重叠关系。",
+        "检查300次和67.2%等数是否兼容；不能只把百分比乘样本数当成已有计数。",
+        "确定目标置信水平、比例区间和连续指标区间的方法、重采样层级；区分种子均值与汇总比例。"
+      ],
+      "acceptance_criteria": [
+        "每组百分比的分母、权重、显示精度有一致方案。",
+        "图二现有人工区间与拟用统计方案差异有逐点处理规则；置信区间不能通过简单重命名获得。"
+      ],
+      "planned_outputs": [
+        "protocol.json",
+        "statistical_contract.md"
+      ],
+      "verification_result": "所有现有消融显示比例可保留；旧人工端点与新计算CI版本分离；明确固定策略条件区间，禁止跨种子泛化。"
+    },
+    {
+      "id": "TASK-007",
+      "phase": "配置",
+      "goal": "逐项补齐冻结底层的配置设定",
+      "status": true,
+      "depends_on": [
+        "TASK-006"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:51:16Z",
+          "summary": "逐项补齐低层网络、时钟、控制、奖励与随机化。",
+          "actions": [
+            "逐项补齐低层网络、时钟、控制、奖励与随机化。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/protocol.json",
+            "CCDC/data/manuscript_completion_20261026/inference_ledger.jsonl"
+          ],
+          "commands": [
+            "本地0820与配置文件搜索"
+          ],
+          "results": [
+            "48维输入与12维动作闭合；200/50/5Hz整除；平衡/协调/平滑分别有奖励项；配置来源明确为内部设定。"
+          ],
+          "evidence": [
+            "48维输入与12维动作闭合；200/50/5Hz整除；平衡/协调/平滑分别有奖励项；配置来源明确为内部设定。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "优先恢复现有配置；不足处按观察输入、网络、关节输出、控制频率、命令界限、奖励项和随机化范围逐项推定。",
+        "记录每值证据/设计理由、量纲、相关值与适用范围，不批量套模板；不把RC-PPO其他机器人配置描述成Go2实测配置。"
+      ],
+      "acceptance_criteria": [
+        "命令域、控制频率与高层0.2s节拍可对应。",
+        "低层平衡、步态和平滑的职责明确；冻结减弱扰动影响而不消除随机性。"
+      ],
+      "planned_outputs": [
+        "protocol.json",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "48维输入与12维动作闭合；200/50/5Hz整除；平衡/协调/平滑分别有奖励项；配置来源明确为内部设定。"
+    },
+    {
+      "id": "TASK-008",
+      "phase": "配置",
+      "goal": "逐项补齐高层训练与部署配置设定",
+      "status": true,
+      "depends_on": [
+        "TASK-007"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:51:38Z",
+          "summary": "补齐双critic训练、PPO符号、终止与确定化部署细节。",
+          "actions": [
+            "补齐双critic训练、PPO符号、终止与确定化部署细节。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/protocol.json",
+            "CCDC/data/manuscript_completion_20261026/inference_ledger.jsonl"
+          ],
+          "commands": [
+            "核对代码目标及优化器；复算64×150×2084"
+          ],
+          "results": [
+            "同一停止目标、无量纲合成残差、latent动作概率及终止bootstrap明确；有限网格不伪称理论连续最优。"
+          ],
+          "evidence": [
+            "同一停止目标、无量纲合成残差、latent动作概率及终止bootstrap明确；有限网格不伪称理论连续最优。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "核对两个critic及actor的结构、损失、GAE符号、PPO设置、归一化、学习率、批次和更新安排。",
+        "补齐训练终止、预算耗尽、时间截断bootstrap、动作分布/裁剪、确定化后的处理及有限预算搜索。",
+        "沿用证据支持的既有值；推定新值必须说明与现有配置的联系。"
+      ],
+      "acceptance_criteria": [
+        "可从附录描述复原训练和执行的步骤；网络职责与总览一致。",
+        "内部预算计费与BVR定义不混淆；有限网格不声称连续最优。"
+      ],
+      "planned_outputs": [
+        "protocol.json",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "同一停止目标、无量纲合成残差、latent动作概率及终止bootstrap明确；有限网格不伪称理论连续最优。"
+    },
+    {
+      "id": "TASK-009",
+      "phase": "配置",
+      "goal": "逐项补齐场景和基线比较设置",
+      "status": true,
+      "depends_on": [
+        "TASK-008"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:53:36Z",
+          "summary": "逐场景及基线补齐地图、观测、预算和公平比较设置。",
+          "actions": [
+            "逐场景及基线补齐地图、观测、预算和公平比较设置。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/protocol.json"
+          ],
+          "commands": [
+            "按成本基项检查30s最低108；按footprint+delta检查通道"
+          ],
+          "results": [
+            "120/140/190参考预算避免timeout与BVR矛盾；RA/PPO/CPPO配置和独立划分明确；全部沿用同一物理评价。"
+          ],
+          "evidence": [
+            "120/140/190参考预算避免timeout与BVR矛盾；RA/PPO/CPPO配置和独立划分明确；全部沿用同一物理评价。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "补齐三个场景、地图规模、障碍/目标分布、传感器、初始状态、基线训练规模和beta设置。",
+        "相同参考预算、物理碰撞规则、观测和冻结控制器的公平性逐项检查。",
+        "校准集、预算选择集、最终评价集以及种子组织分别定义。"
+      ],
+      "acceptance_criteria": [
+        "所有比较方法有完整可解释的配置和数据归属。",
+        "论文已采用的等场景均值、全试验Cost/MC口径被保留或有明确的一致性修订记录。"
+      ],
+      "planned_outputs": [
+        "protocol.json",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "120/140/190参考预算避免timeout与BVR矛盾；RA/PPO/CPPO配置和独立划分明确；全部沿用同一物理评价。"
+    },
+    {
+      "id": "TASK-010",
+      "phase": "阶段审查",
+      "goal": "阶段复查二：检查配置与统计方案闭合",
+      "status": true,
+      "depends_on": [
+        "TASK-009"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:53:48Z",
+          "summary": "阶段审查二通过：时钟、统计精度、成本预算和几何一致。",
+          "actions": [
+            "阶段审查二通过：时钟、统计精度、成本预算和几何一致。"
+          ],
+          "files_changed": [
+            "CCDC/submission/manuscript_completion_20261026/contract_audit.json",
+            "CCDC/submission/manuscript_completion_20261026/stage_reviews.md"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py contract"
+          ],
+          "results": [
+            "契约校验通过；发现的85预算误用与300分母歧义已通过显式新协议处理，不改既有显示中心。"
+          ],
+          "evidence": [
+            "契约校验通过；发现的85预算误用与300分母歧义已通过显式新协议处理，不改既有显示中心。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "检查成本是否能产生现有数值尺度、预算是否合理、频率/时长/距离是否可兼容。",
+        "检查分母精度、样本重用、独立性声明及双critic职责；发现冲突回到对应条目追加修订。"
+      ],
+      "acceptance_criteria": [
+        "配置约束、统计方案及方法描述没有未解决的逻辑冲突。",
+        "逐项推定记录完整；通过后才进入结果补齐。"
+      ],
+      "planned_outputs": [
+        "stage_reviews.md"
+      ],
+      "verification_result": "契约校验通过；发现的85预算误用与300分母歧义已通过显式新协议处理，不改既有显示中心。"
+    },
+    {
+      "id": "TASK-011",
+      "phase": "结果",
+      "goal": "小批验证逐项结果推定与审查流程",
+      "status": true,
+      "depends_on": [
+        "TASK-010"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:57:22Z",
+          "summary": "五指标小批与故意错误检测通过。",
+          "actions": [
+            "五指标小批与故意错误检测通过。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/pilot.json",
+            "CCDC/submission/manuscript_completion_20261026/pilot_audit.json",
+            "CCDC/submission/manuscript_completion_20261026/pilot_review.md"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py pilot"
+          ],
+          "results": [
+            "5中心/10端点可重算；3种算术/单位/事件错误被检出；校准样本比值验证通过。"
+          ],
+          "evidence": [
+            "5中心/10端点可重算；3种算术/单位/事件错误被检出；校准样本比值验证通过。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-10-26T09:57:56Z",
+          "summary": "纠正上一条过早完成记录：运行因当前Python未安装scipy而失败，尚未通过验收。",
+          "actions": [
+            "纠正上一条过早完成记录：运行因当前Python未安装scipy而失败，尚未通过验收。"
+          ],
+          "files_changed": [
+            "CCDC/scripts/audit_manuscript_completion_20261026.py"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py pilot"
+          ],
+          "results": [
+            "ModuleNotFoundError: scipy；不安装依赖，改用标准库正态分位数与明确t临界值。"
+          ],
+          "evidence": [
+            "ModuleNotFoundError: scipy；不安装依赖，改用标准库正态分位数与明确t临界值。"
+          ],
+          "remaining_work": [
+            "继续完成当前任务验收"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-10-26T09:58:06Z",
+          "summary": "移除不必要scipy依赖后小批复验通过。",
+          "actions": [
+            "移除不必要scipy依赖后小批复验通过。"
+          ],
+          "files_changed": [
+            "CCDC/scripts/audit_manuscript_completion_20261026.py",
+            "CCDC/submission/manuscript_completion_20261026/pilot_audit.json"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py pilot"
+          ],
+          "results": [
+            "5点CI实际计算成功；arithmetic/units/event overlap三类错误实际被检测；CAL-0001比值通过。"
+          ],
+          "evidence": [
+            "5点CI实际计算成功；arithmetic/units/event overlap三类错误实际被检测；CAL-0001比值通过。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "选择一个方法×场景的五指标以及一组校准记录作代表性小批；每项独立写依据。",
+        "程序可做派生运算、校验和绘图，不用统一比例或随机噪声批量生成所缺结果。",
+        "统计区间若需计算，仅在明确标记的合成统计输入和既定估计器上计算，不虚构采集日志。"
+      ],
+      "acceptance_criteria": [
+        "小批的中心、范围、分母、单位、方法和其他指标关系全部可查。",
+        "检查流程能发现故意设定的算术/单位/引用错误，修正后通过。"
+      ],
+      "planned_outputs": [
+        "pilot_review.md",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "5点CI实际计算成功；arithmetic/units/event overlap三类错误实际被检测；CAL-0001比值通过。"
+    },
+    {
+      "id": "TASK-012",
+      "phase": "结果",
+      "goal": "逐项完成主比较数据与区间的内部模拟版本",
+      "status": true,
+      "depends_on": [
+        "TASK-011"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T09:59:58Z",
+          "summary": "逐项复核105中心并由合成计数/独立SD计算210端点。",
+          "actions": [
+            "逐项复核105中心并由合成计数/独立SD计算210端点。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/continuous_sd.csv",
+            "CCDC/data/manuscript_completion_20261026/main_results.json",
+            "CCDC/data/manuscript_completion_20261026/main_result_ledger.jsonl",
+            "CCDC/submission/manuscript_completion_20261026/main_results_audit.json"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py main"
+          ],
+          "results": [
+            "105中心全部保持；42连续离散程度独立判断；63比例按确定计数计算Wilson；21组事件和方差必要条件通过，35均值复算，旧人工区间未覆盖。"
+          ],
+          "evidence": [
+            "105中心全部保持；42连续离散程度独立判断；63比例按确定计数计算Wilson；21组事件和方差必要条件通过，35均值复算，旧人工区间未覆盖。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "按7方法×3场景×5指标逐条复查105个中心及210端点；每条关联同方法其他场景、同场景其他方法与五指标。",
+        "既有值优先保留，确有冲突时记录旧值、新值、原因和全部受影响位置；旧版人工区间记录不覆盖。",
+        "目标95%CI写法与数值生成方式单独记在内部统计契约中；内部数据状态继续标记synthetic/hypothetical。"
+      ],
+      "acceptance_criteria": [
+        "105点逐项有判定；如调整区间，明确是否由合成输入计算或仅为模拟示例。",
+        "主表35个均值可重算；不能用平均区间端点充当总体CI，不凭区间重叠宣称显著。"
+      ],
+      "planned_outputs": [
+        "inference_ledger.jsonl",
+        "main_results.json"
+      ],
+      "verification_result": "105中心全部保持；42连续离散程度独立判断；63比例按确定计数计算Wilson；21组事件和方差必要条件通过，35均值复算，旧人工区间未覆盖。"
+    },
+    {
+      "id": "TASK-013",
+      "phase": "结果",
+      "goal": "逐项核对配对校准与留出检验设置及结果",
+      "status": true,
+      "depends_on": [
+        "TASK-012"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:02:48Z",
+          "summary": "核对1200配对记录并计算固定混合条件下分位数区间。",
+          "actions": [
+            "核对1200配对记录并计算固定混合条件下分位数区间。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/calibration_results.json",
+            "CCDC/data/manuscript_completion_20261026/protocol.json"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py calibration"
+          ],
+          "results": [
+            "1200比值/成本下界/20条件划分均通过；alpha.18 delta.12及727/722/353/346/336计数复算；2000次分层bootstrap仅重采样已有合成汇总。"
+          ],
+          "evidence": [
+            "1200比值/成本下界/20条件划分均通过；alpha.18 delta.12及727/722/353/346/336计数复算；2000次分层bootstrap仅重采样已有合成汇总。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "继承800校准/400留出、Q90及现有条件目录，补齐时间对齐、共同窗口、扰动参数、命令采样及零名义成本处理。",
+        "检查alpha=0.18、delta=0.12m、353/400和346/400的关系、分位数算法及阈值并列值。",
+        "缺少的不确定性统计从明确的合成样本计算，不能把静态总览路线当校准样本。"
+      ],
+      "acceptance_criteria": [
+        "1200条现有合成记录及全部已引用统计可复算。",
+        "校准/留出角色、边际覆盖与联合覆盖及导航成功的区别清楚。"
+      ],
+      "planned_outputs": [
+        "calibration_results.json",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "1200比值/成本下界/20条件划分均通过；alpha.18 delta.12及727/722/353/346/336计数复算；2000次分层bootstrap仅重采样已有合成汇总。"
+    },
+    {
+      "id": "TASK-014",
+      "phase": "阶段审查",
+      "goal": "阶段复查三：检查主结果与校准的跨图关联",
+      "status": true,
+      "depends_on": [
+        "TASK-013"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:02:56Z",
+          "summary": "阶段审查三通过，主结果与校准语义及数值对齐。",
+          "actions": [
+            "阶段审查三通过，主结果与校准语义及数值对齐。"
+          ],
+          "files_changed": [
+            "CCDC/submission/manuscript_completion_20261026/stage_reviews.md"
+          ],
+          "commands": [],
+          "results": [
+            "105/210、35均值、1200校准与三种图职责清楚；记录delay域边界，未把静态或单案例当统计证据。"
+          ],
+          "evidence": [
+            "105/210、35均值、1200校准与三种图职责清楚；记录delay域边界，未把静态或单案例当统计证据。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "核对主表、图二、轨迹案例、总览和校准结果的定义、数值及claim边界。",
+        "确认数据在旧版与新版之间的转换有记录，任何改值都可追溯到单项原因。"
+      ],
+      "acceptance_criteria": [
+        "主比较均值、裕度及统计语义一致，无同名异义。",
+        "小批和完整数据之间的审查标准一致，待修正项已逐项闭合。"
+      ],
+      "planned_outputs": [
+        "stage_reviews.md"
+      ],
+      "verification_result": "105/210、35均值、1200校准与三种图职责清楚；记录delay域边界，未把静态或单案例当统计证据。"
+    },
+    {
+      "id": "TASK-015",
+      "phase": "结果",
+      "goal": "逐项核对消融与预算扫描结果",
+      "status": true,
+      "depends_on": [
+        "TASK-014"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:05:08Z",
+          "summary": "核对20消融和96预算，修正概率计数精度但保持主要结果。",
+          "actions": [
+            "核对20消融和96预算，修正概率计数精度但保持主要结果。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/ablation_budget_results.json",
+            "CCDC/submission/manuscript_completion_20261026/ablation_budget_review.md"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py ablation_budget"
+          ],
+          "results": [
+            "旧25点含历史无分层，按当前图样式只取20点；900分母下少数显示修正0.1pp，全部12锚点及0.90/0.96/1.12阈值保持。"
+          ],
+          "evidence": [
+            "旧25点含历史无分层，按当前图样式只取20点；900分母下少数显示修正0.1pp，全部12锚点及0.90/0.96/1.12阈值保持。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "只保留完整方法、无alpha、无delta、无双裕度；不恢复无分层消融。",
+        "完整方法和无双裕度分别锚定HD-MCRA与RC-PPO；预算比1.00锚定主表。",
+        "逐点检查RA固定轨迹仅BVR随阈值变化、最小通过预算、失败早停导致成本降低及非加性模块影响。"
+      ],
+      "acceptance_criteria": [
+        "消融20中心、预算96点及所有共享锚点一致。",
+        "0.90/0.96/1.12候选阈值可按既定规则复算，变动需联动正文。"
+      ],
+      "planned_outputs": [
+        "ablation_budget_review.md",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "旧25点含历史无分层，按当前图样式只取20点；900分母下少数显示修正0.1pp，全部12锚点及0.90/0.96/1.12阈值保持。"
+    },
+    {
+      "id": "TASK-016",
+      "phase": "结果",
+      "goal": "逐设置补齐裕度扫描内部示例结果",
+      "status": true,
+      "depends_on": [
+        "TASK-015"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:08:26Z",
+          "summary": "逐设置补齐16组裕度扫描，各五指标独立解释。",
+          "actions": [
+            "逐设置补齐16组裕度扫描，各五指标独立解释。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/margin_sweep.csv",
+            "CCDC/data/manuscript_completion_20261026/margin_sweep_results.json"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py margin"
+          ],
+          "results": [
+            "16设置80条指标理由；四个已有锚点保持；每设置重训高层三网络，低层固定；保留非单调性。"
+          ],
+          "evidence": [
+            "16设置80条指标理由；四个已有锚点保持；每设置重训高层三网络，低层固定；保留非单调性。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "沿稿中alpha={0,0.09,0.18,0.27}、delta={0,0.06,0.12,0.18}逐设置处理16个组合，逐指标判断而非插值生成整张网格。",
+        "先确定每设置重训还是仅部署修改，与正文训练中使用裕度的机制一致。",
+        "在相同协议成立时，对齐完整、无alpha、无delta和双零四个锚点；允许非单调，不强行证明每个裕度都改善全部指标。"
+      ],
+      "acceptance_criteria": [
+        "16组设置均有配置、五指标及逐项依据。",
+        "扫描、校准、预算扫描各自回答的问题不同，正文简洁报告必要发现而非新增无关大图。"
+      ],
+      "planned_outputs": [
+        "margin_sweep_results.json",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "16设置80条指标理由；四个已有锚点保持；每设置重训高层三网络，低层固定；保留非单调性。"
+    },
+    {
+      "id": "TASK-017",
+      "phase": "结果",
+      "goal": "逐项补齐执行扰动实验的设置与结果",
+      "status": true,
+      "depends_on": [
+        "TASK-016"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:08:53Z",
+          "summary": "逐项补齐25%扰动物理定义与两方法五指标。",
+          "actions": [
+            "逐项补齐25%扰动物理定义与两方法五指标。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/perturbation_results.json",
+            "CCDC/data/manuscript_completion_20261026/protocol.json"
+          ],
+          "commands": [
+            "复算585/900、522/900及扰动幅值"
+          ],
+          "results": [
+            "旧65/58和16/24保持；CR/Cost/MC与主实验及事件计数相容；摩擦下降量而非系数正向放大。"
+          ],
+          "evidence": [
+            "旧65/58和16/24保持；CR/Cost/MC与主实验及事件计数相容；摩擦下降量而非系数正向放大。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "把强25%定义为可解释的扰动幅值/参数变化，明确摩擦、延迟和噪声如何变化。",
+        "围绕已有HD-MCRA SR65/BVR16及RC-PPO SR58/BVR24核查分母、其余指标、训练与测试分布。",
+        "不为了统一好看强制每个指标都优于基线。"
+      ],
+      "acceptance_criteria": [
+        "扰动设置、样本数量与结果关系可复算。",
+        "与校准分布差异明确，不由单一扰动实验推及任意分布。"
+      ],
+      "planned_outputs": [
+        "perturbation_results.json",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "旧65/58和16/24保持；CR/Cost/MC与主实验及事件计数相容；摩擦下降量而非系数正向放大。"
+    },
+    {
+      "id": "TASK-018",
+      "phase": "结果",
+      "goal": "逐项补齐实机实验内部示例描述",
+      "status": true,
+      "depends_on": [
+        "TASK-017"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:10:56Z",
+          "summary": "逐项补齐硬件内部示例、事件交叉表和统计。",
+          "actions": [
+            "逐项补齐硬件内部示例、事件交叉表和统计。"
+          ],
+          "files_changed": [
+            "CCDC/data/manuscript_completion_20261026/hardware_results.json",
+            "CCDC/data/manuscript_completion_20261026/protocol.json"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py hardware"
+          ],
+          "results": [
+            "26成功+2定位中止+1超时+1碰撞=30；BVR明确2成功+1超时；15m/60s/230预算相容；照片仅作历史定性展示。"
+          ],
+          "evidence": [
+            "26成功+2定位中止+1超时+1碰撞=30；BVR明确2成功+1超时；15m/60s/230预算相容；照片仅作历史定性展示。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "核查Go2照片实际支持的定性内容，与26/30、86.7%、路径约15m和通道宽度设定分别记录来源。",
+        "逐项补齐CR/BVR/Cost/MC、事件计数、预算、统计方法、硬件控制与传感配置。",
+        "主失败分类不能唯一推出所有碰撞/预算事件；新增事件交叉关系必须显式设定并可核对。"
+      ],
+      "acceptance_criteria": [
+        "成功、失败、碰撞和预算事件按定义相容；单位与仿真比较范围清楚。",
+        "照片不被当作新测量证据；内部逐项清单保留未实测来源。"
+      ],
+      "planned_outputs": [
+        "hardware_results.json",
+        "inference_ledger.jsonl"
+      ],
+      "verification_result": "26成功+2定位中止+1超时+1碰撞=30；BVR明确2成功+1超时；15m/60s/230预算相容；照片仅作历史定性展示。"
+    },
+    {
+      "id": "TASK-019",
+      "phase": "阶段审查",
+      "goal": "阶段复查四：完整结果逻辑审查与回修",
+      "status": true,
+      "depends_on": [
+        "TASK-018"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:11:08Z",
+          "summary": "阶段审查四通过，全部结果跨实验一致性检查完成。",
+          "actions": [
+            "阶段审查四通过，全部结果跨实验一致性检查完成。"
+          ],
+          "files_changed": [
+            "CCDC/submission/manuscript_completion_20261026/result_audit.json",
+            "CCDC/submission/manuscript_completion_20261026/stage_reviews.md"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py results"
+          ],
+          "results": [
+            "主表/消融/网格四锚点通过；预算小数修订可追溯；硬件独立时间/几何/预算，结论不作形式保证。"
+          ],
+          "evidence": [
+            "主表/消融/网格四锚点通过；预算小数修订可追溯；硬件独立时间/几何/预算，结论不作形式保证。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "检查全部结果的先后条件、概率边界、样本精度、预算/成本恒等式及跨实验关联。",
+        "逐一检查现有结论是否受所展示数据支持，避免以低成本失败说明高效率。",
+        "对任何调整追加修订记录并重新检查所有消费者。"
+      ],
+      "acceptance_criteria": [
+        "缺失结果和配置均已有明确内部工作稿设定。",
+        "主表/消融/预算/扫描/校准/扰动/实机之间无未解释冲突。"
+      ],
+      "planned_outputs": [
+        "stage_reviews.md",
+        "result_audit.json"
+      ],
+      "verification_result": "主表/消融/网格四锚点通过；预算小数修订可追溯；硬件独立时间/几何/预算，结论不作形式保证。"
+    },
+    {
+      "id": "TASK-020",
+      "phase": "写作",
+      "goal": "完成方法及附录的完整工程稿表述",
+      "status": true,
+      "depends_on": [
+        "TASK-019"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:14:17Z",
+          "summary": "将方法和附录写成完整工程实现说明。",
+          "actions": [
+            "将方法和附录写成完整工程实现说明。"
+          ],
+          "files_changed": [
+            "CCDC/latex/1020/main.tex"
+          ],
+          "commands": [
+            "rg -n TBD|draft|provisional main.tex"
+          ],
+          "results": [
+            "方法/附录的配置与TBD已补齐；双critic/actor/alpha/delta对应；cost-form PPO、共同停止、nominal双账本、物理几何和统计细节完整。剩余实验措辞由下一任务处理。"
+          ],
+          "evidence": [
+            "方法/附录的配置与TBD已补齐；双critic/actor/alpha/delta对应；cost-form PPO、共同停止、nominal双账本、物理几何和统计细节完整。剩余实验措辞由下一任务处理。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "直接修改main.tex；核心贡献保持冻结接口和alpha/delta执行校准。",
+        "补入必要实现定义、两个critic职责、训练/执行与统计协议；底层细节主要放附录，避免挤占创新主线。",
+        "用户要求的内部模拟终稿采用最终论文句式；内部台账明确其模拟用途和真实替换要求。"
+      ],
+      "acceptance_criteria": [
+        "方法和附录没有TBD、暂定配置或等待日志的占位说明。",
+        "公式、变量、网络、数据来源设定及图一架构逐项对应。"
+      ],
+      "planned_outputs": [
+        "CCDC/latex/1020/main.tex"
+      ],
+      "verification_result": "方法/附录的配置与TBD已补齐；双critic/actor/alpha/delta对应；cost-form PPO、共同停止、nominal双账本、物理几何和统计细节完整。剩余实验措辞由下一任务处理。"
+    },
+    {
+      "id": "TASK-021",
+      "phase": "写作",
+      "goal": "完成实验、摘要、结论及限制部分的统一表述",
+      "status": true,
+      "depends_on": [
+        "TASK-020"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:15:59Z",
+          "summary": "统一摘要、实验、扫描、扰动、硬件、限制和结论表述。",
+          "actions": [
+            "统一摘要、实验、扫描、扰动、硬件、限制和结论表述。"
+          ],
+          "files_changed": [
+            "CCDC/latex/1020/main.tex"
+          ],
+          "commands": [
+            "rg -n TBD|draft|provisional|assumed|placeholder|planned|pending|await main.tex"
+          ],
+          "results": [
+            "原16处TBD及实验占位已补齐；关键词仅剩正常理论assumed与稳定TeX标签draft；数值来自已审查内部示例，结论保留非加性与经验范围。"
+          ],
+          "evidence": [
+            "原16处TBD及实验占位已补齐；关键词仅剩正常理论assumed与稳定TeX标签draft；数值来自已审查内部示例，结论保留非加性与经验范围。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "按已验收的内部示例数据完整撰写结果；清理assumed placeholders、draft count、单裕度假设、预计开展等占位语句。",
+        "在内部模拟稿中补齐目标置信水平/区间表达，同时将对应模拟来源和未完成采集事实留在内部清单。",
+        "保留技术限制：冻结不消除随机性、有限网格非连续最优、边际覆盖非安全保证；勿把所有illustrative字样机械删除，方法示意图仍须准确描述。"
+      ],
+      "acceptance_criteria": [
+        "摘要、引言贡献、实验和结论形成同一论证链。",
+        "所有实验数值和配置均引用已登记项，工作稿无遗留写作占位。"
+      ],
+      "planned_outputs": [
+        "CCDC/latex/1020/main.tex"
+      ],
+      "verification_result": "原16处TBD及实验占位已补齐；关键词仅剩正常理论assumed与稳定TeX标签draft；数值来自已审查内部示例，结论保留非加性与经验范围。"
+    },
+    {
+      "id": "TASK-022",
+      "phase": "阶段审查",
+      "goal": "阶段复查五：审查全文逻辑与残留措辞",
+      "status": true,
+      "depends_on": [
+        "TASK-021"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:17:31Z",
+          "summary": "阶段审查五完成，修复名义模型描述并核查全稿措辞/引用。",
+          "actions": [
+            "阶段审查五完成，修复名义模型描述并核查全稿措辞/引用。"
+          ],
+          "files_changed": [
+            "CCDC/latex/1020/main.tex",
+            "CCDC/submission/manuscript_completion_20261026/wording_audit.json",
+            "CCDC/submission/manuscript_completion_20261026/stage_reviews.md"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py wording"
+          ],
+          "results": [
+            "TBD与可见占位清零；正常assumed/illustrative和标签保留理由完整；7图2表单栏、引用与附录顺序通过。"
+          ],
+          "evidence": [
+            "TBD与可见占位清零；正常assumed/illustrative和标签保留理由完整；7图2表单栏、引用与附录顺序通过。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "从审稿角度逐节核对问题、设计、实验、结果和结论；检查工程定位与继承理论界线。",
+        "关键词扫描与语义复读结合，TeX标签中的draft可保留以免无意义改引用；正文可见的写作占位必须清理。",
+        "复核方法示意、真实旧照片、合成数字的内部来源记录完整，论文稿用途保持内部审阅。"
+      ],
+      "acceptance_criteria": [
+        "每项缺口映射到最终文本位置，方法没有关键逻辑跳跃。",
+        "措辞扫描中每个残留命中均有保留理由或已修正，完成全文人工复读。"
+      ],
+      "planned_outputs": [
+        "stage_reviews.md",
+        "wording_audit.json"
+      ],
+      "verification_result": "TBD与可见占位清零；正常assumed/illustrative和标签保留理由完整；7图2表单栏、引用与附录顺序通过。"
+    },
+    {
+      "id": "TASK-023",
+      "phase": "集成",
+      "goal": "同步绘图数据、脚本、图注与论文插图",
+      "status": true,
+      "depends_on": [
+        "TASK-022"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:21:56Z",
+          "summary": "同步图二计算区间与预算计数修订，保留既有布局。",
+          "actions": [
+            "同步图二计算区间与预算计数修订，保留既有布局。"
+          ],
+          "files_changed": [
+            "绘图/20261023_多方法指标对比/data/manuscript_completion_20261026",
+            "绘图/20261025_预算扫描图/data/manuscript_completion_20261026",
+            "CCDC/images/1020/metrics_comparison.pdf",
+            "CCDC/images/1020/budget_sweep_horizontal.pdf",
+            "CCDC/submission/manuscript_completion_20261026/figure_manifest.json"
+          ],
+          "commands": [
+            "plot_metrics_comparison.py --data-dir .../manuscript_completion_20261026 --output-dir .../manuscript_completion_20261026",
+            "plot_budget_sweep.py --style config/style_horizontal.json --data-dir .../manuscript_completion_20261026 --output-dir .../manuscript_completion_20261026",
+            "python audit_manuscript_completion_20261026.py figures"
+          ],
+          "results": [
+            "105点/210端点与96预算实际渲染；图二220×90mm、预算180×50mm、未改消融110×43.5mm；两图视觉无重叠，论文与输出哈希一致，旧产物保留。"
+          ],
+          "evidence": [
+            "105点/210端点与96预算实际渲染；图二220×90mm、预算180×50mm、未改消融110×43.5mm；两图视觉无重叠，论文与输出哈希一致，旧产物保留。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "仅对数据/统计协议变化涉及的图重绘；维持现有视觉设计及单栏。",
+        "图二220×90mm，图五110×43.5mm，顺序SR/Cost/CR/BVR/MC；预算图保持既有横向布局。",
+        "每图最终输入在自身data子目录，新版本保留旧版来源；必要时适配校验器语义，但不能删校验以隐藏冲突。",
+        "内部文件保留数据性质，论文表面去重复标记；静态场景和照片的描述准确。"
+      ],
+      "acceptance_criteria": [
+        "正文、表格、数据文件及PDF图数字一致，图注定义/单位/统计层级一致。",
+        "每个受影响图可由明确命令和输入重新生成，论文图与导出图哈希对应。"
+      ],
+      "planned_outputs": [
+        "figure_manifest.json",
+        "受影响绘图工程data/scripts/output",
+        "CCDC/images/1020"
+      ],
+      "verification_result": "105点/210端点与96预算实际渲染；图二220×90mm、预算180×50mm、未改消融110×43.5mm；两图视觉无重叠，论文与输出哈希一致，旧产物保留。"
+    },
+    {
+      "id": "TASK-024",
+      "phase": "验证",
+      "goal": "完成数值与替换链的完整验证",
+      "status": true,
+      "depends_on": [
+        "TASK-023"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:24:48Z",
+          "summary": "全稿数值和真实替换依赖路径验证通过。",
+          "actions": [
+            "全稿数值和真实替换依赖路径验证通过。"
+          ],
+          "files_changed": [
+            "CCDC/scripts/audit_manuscript_completion_20261026.py",
+            "CCDC/submission/manuscript_completion_20261026/full_audit.json",
+            "CCDC/submission/manuscript_completion_20261026/replacement_audit.json",
+            "CCDC/submission/manuscript_completion_20261026/replacement_check.md"
+          ],
+          "commands": [
+            "python audit_manuscript_completion_20261026.py full",
+            "python audit_manuscript_completion_20261026.py replacement"
+          ],
+          "results": [
+            "55表格单元、105中心210端点、96预算及新增结果检查通过；临时SR变更经真实绘图函数和表/摘要/共享锚点传播；原主稿哈希保持。"
+          ],
+          "evidence": [
+            "55表格单元、105中心210端点、96预算及新增结果检查通过；临时SR变更经真实绘图函数和表/摘要/共享锚点传播；原主稿哈希保持。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "先对单位/百分比/预算/分位数/引用的关键校验做小批验证，再运行全稿一致性检查。",
+        "对真实替换接口作临时输入试验，检查数值变更是否传递到图、表、正文引用；恢复正式示例输入后重验。",
+        "不为简单文字编辑写镜像测试；验证针对语义与真实依赖。"
+      ],
+      "acceptance_criteria": [
+        "所有表格单元、主图105点、消融20点、预算96点、校准统计及新增扫描结果纳入核查。",
+        "版本转换、统计契约与替换映射通过，无遗留过时来源链接。"
+      ],
+      "planned_outputs": [
+        "full_audit.json",
+        "replacement_check.md"
+      ],
+      "verification_result": "55表格单元、105中心210端点、96预算及新增结果检查通过；临时SR变更经真实绘图函数和表/摘要/共享锚点传播；原主稿哈希保持。"
+    },
+    {
+      "id": "TASK-025",
+      "phase": "验证",
+      "goal": "编译并逐页检查稿件与单栏图表",
+      "status": true,
+      "depends_on": [
+        "TASK-024"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T10:28:51Z",
+          "summary": "完成编译与全部10页视觉审查。",
+          "actions": [
+            "完成编译与全部10页视觉审查。"
+          ],
+          "files_changed": [
+            "CCDC/output/1020/main.pdf",
+            "CCDC/submission/manuscript_completion_20261026/layout_review.md",
+            "CCDC/submission/manuscript_completion_20261026/layout_audit.json"
+          ],
+          "commands": [
+            "CCDC/scripts/build-1020.ps1",
+            "python audit_manuscript_completion_20261026.py layout"
+          ],
+          "results": [
+            "10页实际渲染查看，0overfull/0undefined，3underfull未造成裁切；7图2表均单栏且章节归属正确；全文10页超8页上限，模板未压缩。"
+          ],
+          "evidence": [
+            "10页实际渲染查看，0overfull/0undefined，3underfull未造成裁切；7图2表均单栏且章节归属正确；全文10页超8页上限，模板未压缩。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "调用现有build-1020.ps1，处理本轮引入的错误、未定义引用和溢出。",
+        "渲染全部页面检查图表归属小节、标题间距、字号、表格高亮、引用和附录在参考文献之后。",
+        "维持CCDC官方模板；记录当前9页及新增页数，8页压缩不是本轮擅自删内容或改模板的理由。"
+      ],
+      "acceptance_criteria": [
+        "main.pdf编译成功且所有页完成视觉审查。",
+        "页数如超过8页明确作为未满足投稿篇幅的事项，不伪称符合投稿限制。"
+      ],
+      "planned_outputs": [
+        "CCDC/output/1020/main.pdf",
+        "layout_review.md"
+      ],
+      "verification_result": "10页实际渲染查看，0overfull/0undefined，3underfull未造成裁切；7图2表均单栏且章节归属正确；全文10页超8页上限，模板未压缩。"
+    },
+    {
+      "id": "TASK-026",
+      "phase": "阶段审查",
+      "goal": "阶段复查六：交付验收与最小文件整理",
+      "status": true,
+      "depends_on": [
+        "TASK-025"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-26T11:08:11Z",
+          "summary": "完成阶段审查六、说明/替换清单和本轮临时文件整理。",
+          "actions": [
+            "完成阶段审查六、说明/替换清单和本轮临时文件整理。"
+          ],
+          "files_changed": [
+            "CCDC/submission/manuscript_completion_20261026/README.md",
+            "CCDC/submission/manuscript_completion_20261026/replacement_map.md",
+            "CCDC/submission/manuscript_completion_20261026/delivery_review.md",
+            "CCDC/submission/manuscript_completion_20261026/gap_register.json",
+            "CCDC/submission/manuscript_completion_20261026/stage_reviews.md",
+            "CCDC/data/manuscript_completion_20261026/README.md",
+            "CCDC/latex/1020/README.md",
+            "plan/manuscript_completion_20261026_说明.md"
+          ],
+          "commands": [
+            "full/wording/figures复验",
+            "git diff --check",
+            "清理明确tmp路径；自动审查503后批准重试，修复本轮临时目录继承权限后成功"
+          ],
+          "results": [
+            "六次阶段审查完成；27内容缺口闭合、作者匿名保留；内部模拟稿10页超8页状态明确；真实替换映射齐全；本轮可重建临时文件已清除，未Git提交/推送。"
+          ],
+          "evidence": [
+            "六次阶段审查完成；27内容缺口闭合、作者匿名保留；内部模拟稿10页超8页状态明确；真实替换映射齐全；本轮可重建临时文件已清除，未Git提交/推送。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "复查缺口、台账、全文、图表、数据、替换说明和六次阶段审查闭合情况。",
+        "更新论文README、受影响绘图README和数据说明；只保留必要产物，清理仅由本轮产生的已确认临时文件。",
+        "不在本轮自动git提交/推送；保留main.tex/main.pdf既有入口，不创建main_preview。"
+      ],
+      "acceptance_criteria": [
+        "交付可阅读的完整内部模拟稿、逐项来源/推定/替换台账、最终检查报告。",
+        "工作记录逐项有证据，所有任务完成才标true；真实日志替换和投稿页数状态明确。"
+      ],
+      "planned_outputs": [
+        "README.md",
+        "replacement_map.md",
+        "delivery_review.md"
+      ],
+      "verification_result": "六次阶段审查完成；27内容缺口闭合、作者匿名保留；内部模拟稿10页超8页状态明确；真实替换映射齐全；本轮可重建临时文件已清除，未Git提交/推送。"
+    }
+  ],
+  "final_acceptance": [
+    "26项任务全部通过各自验收，status=true均有实际工作记录和验证证据；六次阶段审查问题闭合。",
+    "直接更新原main.tex/main.pdf，核心工程主线、模板、单栏图表、既有图幅和附录位置保持。",
+    "16处已知TBD及扫描发现的其他缺口逐项填充；正文和附录无未解释的写作占位或遗漏，不把数学假设及科学边界误删。",
+    "配置、方法图、双critic职责、公式、代码来源及实验设置形成一致描述。",
+    "全部新增与修订值有独立依据、单位、统计层级和可追溯替换位置；真实采集事实未被伪造，内部模拟来源未被抹除。",
+    "样本数、比例精度、均值权重、区间定义、成本尺度、几何和预算计费一致；主表与图二、消融与图五、预算参考点、校准阈值/覆盖全部对齐。",
+    "补齐裕度扫描、扰动和实机内部示例及其配置；结果解释不夸大模块单独作用、统计显著性或安全保证。",
+    "必要图片可复现并与论文版本对应，图注/数据协议/校验器一致，旧版数据与历史审查保留。",
+    "main.pdf成功编译、无新增未定义引用或溢出，所有页面视觉核查完成；总页数与8页限制状态单独准确报告。",
+    "README、最终检查报告和逐项真实替换清单齐全；仅保留必要产物，没有未授权Git/远程/投稿操作。"
+  ]
+}

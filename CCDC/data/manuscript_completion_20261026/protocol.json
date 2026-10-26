@@ -1,0 +1,449 @@
+{
+  "schema_version": "1.0",
+  "data_status": "internal_synthetic_working_manuscript",
+  "empirical_validation": false,
+  "measurement": {
+    "dt_s": 0.2,
+    "horizon_s": 30,
+    "goal_radius_m": 0.2,
+    "cost": {
+      "unit": "a.u. (navigation proxy, not joules)",
+      "formula": "dt*(3.6+3*(vx^2+vy^2)+20*((vx-ux)^2+(vy-uy)^2)+2*max(0,0.45-clearance))",
+      "integration": "left endpoint, interval-average measured planar velocity",
+      "base_rate": 3.6,
+      "speed_squared_weight": 3,
+      "tracking_squared_weight": 20,
+      "clearance_weight": 2,
+      "clearance_reference_m": 0.45
+    },
+    "geometry": {
+      "simulation_footprint": "disc radius 0.20 m; reduced planar benchmark, not full Go2 envelope",
+      "hardware_footprint": "oriented 0.70 m x 0.32 m rectangle including feet envelope",
+      "planning": "physical obstacle Minkowski footprint first, then delta",
+      "collision": "swept physical footprint clearance <= 0",
+      "MC": "per-trial minimum signed clearance clipped to zero at contact; all trials"
+    },
+    "pairing": {
+      "clock": "common t=0, command replay every 0.2s",
+      "alignment": "linear interpolation on common 0.2s grid; no warping",
+      "duration": "prescribed family duration, valid pairs finish full common window; terminated/damaged records excluded before split",
+      "deviation": "max Euclidean distance at common timestamps",
+      "cost_zero": "base rate positive and duration>0; invalid zero-duration record excluded"
+    },
+    "budget": {
+      "training": "(1+alpha)*nominal cost",
+      "online": "shadow nominal tracker rollout under identical command sequence, cumulative corrected nominal charge",
+      "evaluation": "sum executed raw cost > initial budget, continue after crossing",
+      "trajectory_case": {
+        "budget": 85,
+        "scope": "separate short diagnostic map, same proxy units, not pooled in main-table trials"
+      }
+    },
+    "observations": {
+      "navigation": "36 horizontal range rays, body-frame goal (2), planar velocity and yaw-rate (3), previous command (3), safety bit (1), budget/z_ref (1)",
+      "dimension": 46,
+      "state": "planar pose, velocity, map, goal plus safety history and budget"
+    }
+  },
+  "statistics": {
+    "training_seeds": 3,
+    "trials_per_seed_per_scene": 100,
+    "trials_per_scene": 300,
+    "trials_per_method": 900,
+    "aggregation": "equal weighting of three scene means; balanced allocation makes pooled proportion equivalent",
+    "display": {
+      "rates_decimals": 1,
+      "cost_decimals": 1,
+      "MC_decimals": 2
+    },
+    "events": {
+      "success": "goal before30s without physical collision",
+      "collision": "physical contact before terminal; mutually exclusive with success",
+      "BVR": "executed cost>z0, may overlap success/collision/timeout",
+      "failure": "collision or timeout; hardware adds localization abort"
+    },
+    "intervals": {
+      "confidence": 0.95,
+      "rates": "Wilson score n=300, conditional on fixed bank of trained policies and independently sampled maps",
+      "continuous": "two-sided Student t n=300 from individually authored mean and trial SD; conditional on same bank",
+      "scope": "marginal descriptive intervals; not across-training-seed generalization, not paired difference significance",
+      "legacy": "old manual ranges retained unchanged; new intervals recalculated from explicit synthetic counts/SD"
+    },
+    "selection": {
+      "trials_per_seed_per_scene": 100,
+      "total_per_method_per_budget": 900,
+      "independent_of_final": true,
+      "role": "separate design split; final curve does not establish selection decisions",
+      "budget_plot": "final response curve; outlined point is smallest passing tested point in that curve, not independently certified optimum"
+    },
+    "ablation_counts": {
+      "without_alpha": {
+        "success": 605,
+        "collision": 178,
+        "BVR": 202,
+        "total": 900
+      },
+      "without_delta": {
+        "success": 583,
+        "collision": 237,
+        "BVR": 124,
+        "total": 900
+      }
+    },
+    "calibration_counts": {
+      "calibration": 800,
+      "heldout": 400,
+      "split_before_quantile": true
+    }
+  },
+  "low_level": {
+    "observations": 48,
+    "actor_hidden": [
+      512,
+      256,
+      128
+    ],
+    "critic_hidden": [
+      512,
+      256,
+      128
+    ],
+    "activation": "ELU",
+    "action_dim": 12,
+    "action": "q_des=q_stand+0.25*clip(a,-1,1) rad; joint-limit clipping",
+    "policy_hz": 50,
+    "PD_hz": 200,
+    "physics_dt_s": 0.005,
+    "PD": {
+      "kp": 20,
+      "kd": 0.5
+    },
+    "command_limits": [
+      0.6,
+      0.4,
+      1.2
+    ],
+    "PPO": {
+      "lr": 0.001,
+      "epochs": 5,
+      "minibatches": 4,
+      "clip": 0.2,
+      "gamma": 0.99,
+      "lambda": 0.95,
+      "entropy": 0.01,
+      "max_grad_norm": 1,
+      "parallel_envs": 4096,
+      "rollout_steps": 24,
+      "updates": 1000
+    },
+    "reward": {
+      "linear_tracking": "1.0*exp(-||v_xy-u_xy||^2/0.25)",
+      "yaw_tracking": "0.5*exp(-(wz-uz)^2/0.25)",
+      "vertical_velocity": "-2*vz^2",
+      "roll_pitch_rates": "-0.05*||w_xy||^2",
+      "orientation": "-1*||projected_gravity_xy||^2",
+      "torque": "-2e-5*||tau||^2",
+      "action_smoothness": "-0.01*||a-a_prev||^2",
+      "foot_airtime": "0.5*sum((airtime-0.25)*first_contact) when planar command norm>0.1",
+      "termination": "roll/pitch>0.8 rad or baseheight<0.18m; episode20s"
+    },
+    "randomization": {
+      "friction": [
+        0.5,
+        1.25
+      ],
+      "mass_scale": [
+        0.9,
+        1.1
+      ],
+      "motor_scale": [
+        0.9,
+        1.1
+      ],
+      "command_delay_ms": [
+        0,
+        40
+      ],
+      "velocity_noise_sd_mps": 0.02,
+      "angular_noise_sd_radps": 0.03,
+      "push_xy_max_mps": 0.25,
+      "push_every_s": 8
+    },
+    "freeze": "all weights and observation normalization before calibration"
+  },
+  "high_level": {
+    "network": {
+      "actor": [
+        256,
+        256
+      ],
+      "cost_critic": [
+        256,
+        256
+      ],
+      "reach_critic": [
+        256,
+        256
+      ],
+      "activation": "tanh",
+      "input_dim": 46,
+      "distribution": "diagonal Gaussian latent action, learned state-independent log_std",
+      "command": "clip latent to[-1,1], multiply[0.6,0.4,1.2]; likelihood uses preclip latent action"
+    },
+    "normalization": {
+      "range": "divide by6m",
+      "goal": "divide by6m then clip[-2,2]",
+      "velocity": "divide command limits",
+      "budget": "divide scenario z_ref; no running normalization",
+      "residual": "goal signed distance/6m, C=2, cost value and budget divided by z_ref before max"
+    },
+    "PPO": {
+      "lr": 0.0003,
+      "adam_eps": 0.00001,
+      "parallel_envs": 64,
+      "rollout_steps": 150,
+      "updates": 2084,
+      "total_transitions": 20006400,
+      "epochs": 10,
+      "minibatches": 8,
+      "clip": 0.2,
+      "gamma_reach": 0.99,
+      "gamma_cost": 1,
+      "lambda": 0.95,
+      "entropy": 0.01,
+      "critic_coef": 0.5,
+      "max_grad_norm": 0.5,
+      "lr_schedule": "linear to zero"
+    },
+    "targets": {
+      "common_stop": "argmin over rollout suffix max(reach penalty, normalized corrected accumulated cost-budget); bootstrap end candidate",
+      "cost": "nonnegative corrected return to same stop, gamma_cost1",
+      "reach": "lambda mixture of discounted min-reach n-step targets, same stopping mask",
+      "combined": "max(Vh,Vc-z/z_ref); lower is better",
+      "actor_loss": "minimize E[max(r*A,clip(r,1-eps,1+eps)*A)]-entropy_coef*H; A=lambda combined return - combined old value",
+      "critic_loss": "0.5*max((V-R)^2,(V_old+clip(V-V_old,-eps,eps)-R)^2)"
+    },
+    "terminal": {
+      "training": "physical contact or goal or30s; inflated unsafe entry sets persistent y=+1, does not early reset",
+      "budget": "negative z retained; not early reset",
+      "horizon": "30s is task terminal, no bootstrap; artificial rollout cut before terminal bootstraps from next augmented state",
+      "boundary": "actual terminal target=max(goal penalty,C*y,-remaining_budget/z_ref); cost terminal continuation0",
+      "collision_priority": true
+    },
+    "phase2": {
+      "actor": "frozen clipped mean",
+      "critic_refit_transitions": 960000,
+      "critic_refit_lr": 0.0001,
+      "critic_refit_epochs": 5,
+      "search": "finite candidate grid, rollout acceptance not critic sign alone"
+    },
+    "training_budget_ratio": [
+      0.8,
+      1.2
+    ]
+  },
+  "scenarios": {
+    "map_size_m": [
+      8,
+      8
+    ],
+    "obstacle_radius_m": [
+      0.15,
+      0.45
+    ],
+    "sensor": {
+      "rays": 36,
+      "field_of_view_deg": 360,
+      "max_range_m": 6,
+      "nominal_noise": 0
+    },
+    "families": {
+      "moderate": {
+        "obstacles": 8,
+        "start_goal_distance_m": [
+          3.5,
+          5
+        ],
+        "reference_budget": 120
+      },
+      "narrow": {
+        "obstacles": 12,
+        "start_goal_distance_m": [
+          4,
+          6
+        ],
+        "passage_width_m": [
+          0.7,
+          0.95
+        ],
+        "reference_budget": 140
+      },
+      "dense": {
+        "obstacles": 18,
+        "start_goal_distance_m": [
+          4.5,
+          6.5
+        ],
+        "reference_budget": 190
+      }
+    },
+    "generation": "reject physical-footprint blocked start/goal and disconnected free-space samples; same maps/starts across methods; no rejection based on delta",
+    "splits": "independent random maps/commands for calibration, training, budget selection and final tests; three trained policies per method",
+    "baselines": {
+      "common": "same observations, command limits, tracker, maps, training interaction budget and architecture; RA omits budget input",
+      "RA": "minimize reach-only residual; no cost conditioning",
+      "PPO": "reward=10*goal_indicator+2*(previous_goal_distance-current_goal_distance)-cost/z_ref-beta*collision_indicator; beta_L=1 beta_H=5",
+      "CPPO": "same shaped reward and safety beta; Lagrangian clipped-PPO with E[J/z_ref]<=1, dual projected[0,100], lr0.01 initial1; no separate theoretical guarantee"
+    },
+    "reference_budget_rationale": "timeouts incur >=108 a.u.; reference budgets must not force all timeouts to violate smaller thresholds. 120/140/190 cover progressively larger cost dispersion; 85 is short diagnostic case only."
+  },
+  "calibration": {
+    "source": "绘图/20261025_裕度校准与独立检验图/data/paired_rollouts.csv",
+    "data_status": "inherited_synthetic_run_aggregates",
+    "profiles": {
+      "B": [
+        0.8,
+        0.02,
+        0.01
+      ],
+      "F": [
+        0.55,
+        0.02,
+        0.015
+      ],
+      "D": [
+        0.8,
+        0.1,
+        0.01
+      ],
+      "N": [
+        0.8,
+        0.02,
+        0.04
+      ],
+      "M": [
+        0.55,
+        0.1,
+        0.04
+      ]
+    },
+    "profile_units": [
+      "friction",
+      "delay_s",
+      "planar_velocity_noise_sd_mps"
+    ],
+    "nominal": [
+      0.8,
+      0,
+      0
+    ],
+    "families": {
+      "S": {
+        "duration": 12,
+        "commands": "forward vx0.15..0.6, vy+-0.05, yaw+-0.1"
+      },
+      "A": {
+        "duration": 16,
+        "commands": "vx0.2..0.5, vy+-0.1, yaw0.2..0.8 signed"
+      },
+      "L": {
+        "duration": 20,
+        "commands": "vx0.15..0.5, vy+-0.2, alternate yaw+-0.4..1.0"
+      },
+      "T": {
+        "duration": 14,
+        "commands": "vx0..0.4 then stop then yaw+-0.3..1.0"
+      }
+    },
+    "sampling": "piecewise commands held1s, linear0.2s ramps; common paired command; families x5profiles,40cal+20held percell; admissible no-contact control arena",
+    "quantile": {
+      "q": 0.9,
+      "method": "inverted_cdf",
+      "alpha": 0.18,
+      "delta_m": 0.12,
+      "bootstrap_replicates": 2000,
+      "bootstrap_seed": 20261026,
+      "bootstrap": "paired rows resampled within each of20condition strata; fixed-mix percentile95%"
+    },
+    "LiDAR": "excluded from margin fit; separate sensor check uses Gaussian range SD0.02m, 5%dropout filled atmaxrange; no numerical navigation claim from it",
+    "limitation": "delay100ms exceeds40ms training randomization; calibration explicitly includes such mismatch; no claim training covers all calibration profiles"
+  },
+  "perturbation": {
+    "n": 900,
+    "training": "reuse fixed main policies and alpha/delta; no retraining",
+    "shift": "each profile deviation from nominal multiplied by1.25: mu=.8+1.25*(mu_cal-.8), delay=1.25*delay_cal,noise=1.25*noise_cal",
+    "extremes": {
+      "friction": 0.4875,
+      "delay_s": 0.125,
+      "velocity_noise_sd_mps": 0.05
+    },
+    "evaluation": "300 independent trials per scene; 60 per profile per scene; aggregate900",
+    "results": {
+      "HD-MCRA": {
+        "success_count": 585,
+        "collision_count": 198,
+        "BVR_count": 144,
+        "Cost": 96.8,
+        "MC": 0.26
+      },
+      "RC-PPO": {
+        "success_count": 522,
+        "collision_count": 243,
+        "BVR_count": 216,
+        "Cost": 102.4,
+        "MC": 0.24
+      }
+    }
+  },
+  "hardware": {
+    "robot": "Unitree Go2; existing photos are historical qualitative material",
+    "sensors": "joint encoders and IMU for proprioception; horizontal projection of onboard LiDAR for36range bins; local scan-matching pose",
+    "compute": "onboard x86_64 CPU,16GB RAM; policy inference50Hz low/5Hz high;200Hz joint-position PD interface",
+    "route_m": 15,
+    "narrow_extra_width_m": 0.3,
+    "footprint": [
+      0.7,
+      0.32
+    ],
+    "horizon_s": 60,
+    "goal_radius_m": 0.2,
+    "reference_budget": 230,
+    "margins": {
+      "alpha": 0.18,
+      "delta_m": 0.12
+    },
+    "policy": "fixed pretrained tracker and high-level mean; reference budget230 chosen in separate setup, no hardware tuning of margins",
+    "n": 30,
+    "outcomes": [
+      {
+        "name": "success",
+        "n": 26,
+        "BVR": 2,
+        "collision": 0
+      },
+      {
+        "name": "localization_abort",
+        "n": 2,
+        "BVR": 0,
+        "collision": 0
+      },
+      {
+        "name": "timeout",
+        "n": 1,
+        "BVR": 1,
+        "collision": 0
+      },
+      {
+        "name": "chair_contact",
+        "n": 1,
+        "BVR": 0,
+        "collision": 1
+      }
+    ],
+    "cost_mean": 184,
+    "cost_sd": 44,
+    "MC_mean_m": 0.11,
+    "MC_sd_m": 0.07,
+    "source_status": "authored_example except existing photos and inherited route description"
+  }
+}

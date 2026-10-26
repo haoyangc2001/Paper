@@ -1,3 +1,9 @@
+## 2026-10-26 当前论文版本
+最新输入为data/manuscript_completion_20261026，输出为output/manuscript_completion_20261026/budget_sweep.pdf。原180×50mm横向四图布局保留。
+内部模拟协议使用每场景300、共900例；率值按兼容整数计数补齐，8个点显示最多修订0.1pp，12个主表锚点和最小通过0.90/0.96/1.12保持。新版point_review.jsonl在旧记录后追加修订，不改历史。
+重绘：从仓库根运行D:/codesoftware/Miniconda/python.exe -B 绘图/20261025_预算扫描图/scripts/plot_budget_sweep.py --data-dir 绘图/20261025_预算扫描图/data/manuscript_completion_20261026 --style 绘图/20261025_预算扫描图/config/style_horizontal.json --output-dir <不存在的新目录>。
+这些数据仍为合成示例，不是实际采样；图为最终响应集，预算选择另用独立集合。参考预算120/140/190a.u.。下文为历史记录。
+
 # 预算扫描图绘图项目
 
 更新日期：2026-10-25。对已有预算扫描的96个假设值逐点审查，保留全部原值，按88×78mm单栏尺寸重绘为四面板图。24项计划任务已完成。

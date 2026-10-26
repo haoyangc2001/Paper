@@ -39,7 +39,18 @@ def load_and_check(data_dir: Path, partial: bool = False):
     source_path = REPO / protocol["source_script"]
     original = runpy.run_path(str(source_path), run_name="read_only_plot_audit")["MAIN_DATA"]
     empirical = protocol["data_status"] == "empirical"
-    if not empirical and (protocol["data_status"] != "hypothetical" or protocol["confidence_level"] is not None):
+    synthetic_ci = protocol["data_status"] == "synthetic_sufficient_statistics"
+    if synthetic_ci:
+        if protocol.get('empirical_validation') is not False or protocol['confidence_level'] != .95:
+            raise ValueError('Synthetic intervals require explicit provenance and the declared 95% estimator.')
+        import sys
+        sys.path.insert(0, str(REPO / 'CCDC/scripts'))
+        from audit_manuscript_completion_20261026 import interval
+        for row in rows:
+            expected = interval(row['estimate'], row['n'], row['metric'], row.get('count'), row.get('sd'))
+            if any(abs(row[k]-v)>1e-8 for k,v in zip(['lower','upper'],expected)):
+                raise ValueError('Synthetic CI does not match its sufficient statistics: '+row['id'])
+    if not empirical and not synthetic_ci and (protocol["data_status"] != "hypothetical" or protocol["confidence_level"] is not None):
         raise ValueError("Hypothetical ranges must not claim an empirical confidence level.")
     if empirical:
         if protocol.get("verify_legacy_centers", True):
@@ -137,7 +148,8 @@ def export_review(protocol, rows, lookup, report, output_dir: Path):
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
         for row in rows:
-            writer.writerow({**row, "data_status": protocol["data_status"], "interval_kind": protocol["interval_kind"]})
+            record={**row, "data_status": protocol["data_status"], "interval_kind": protocol["interval_kind"]}
+            writer.writerow({key:record[key] for key in fields})
 
     details = [f"# {len(rows)} 个点的数值、区间与来源说明" if empirical else f"# {len(rows)} 个点的假设范围与逐点理由", "",
                protocol["interval_note"] if empirical else "所有值均为假设数据；区间为人工指定的估计范围，不是实测置信区间、标准差或标准误。",
@@ -196,6 +208,9 @@ Scenario-level navigation performance at the common reference budget. Panels rep
 """
     if empirical:
         caption = "# 配套图注\n\n" + protocol["empirical_caption_en"] + "\n\n" + protocol["empirical_caption_zh"] + "\n"
+    if protocol['data_status']=='synthetic_sufficient_statistics':
+        caption='# 内部模拟稿图注\n\n'+protocol['interval_note']+'\n\n'+protocol['simulation_caption']+'\n'
+        (output_dir / '推演明细.md').write_text('# 合成统计输入逐点结果\n\n'+protocol['interval_note']+'\n\n'+'\n'.join(f"{r['id']} {r['method']}/{r['scenario']}/{r['metric']}: {r['estimate']} [{r['lower']}, {r['upper']}]; {r['review']}" for r in rows),encoding='utf-8')
     (output_dir / "caption.md").write_text(caption, encoding="utf-8")
     (output_dir / "data_audit.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -307,7 +322,10 @@ def render(protocol, lookup, output_dir: Path):
     if empirical:
         metadata.update({"Title": "Scenario-level navigation comparison", "Subject": protocol["interval_note"],
                          "Keywords": protocol["interval_kind"], "CreationDate": None, "ModDate": None})
-    basename = "metrics_comparison" if empirical else "metrics_comparison_assumed"
+    synthetic_ci = protocol['data_status']=='synthetic_sufficient_statistics'
+    if synthetic_ci:
+        metadata.update({'Title':'Scenario-level navigation comparison - internal simulation','Subject':protocol['interval_note'],'Keywords':'synthetic sufficient statistics; internal manuscript','CreationDate':None,'ModDate':None})
+    basename = "metrics_comparison" if empirical or synthetic_ci else "metrics_comparison_assumed"
     fig.savefig(output_dir / f"{basename}.pdf", metadata=metadata)
     fig.savefig(output_dir / f"{basename}.png", dpi=layout["dpi"],
                 metadata={"Description": metadata["Subject"]})

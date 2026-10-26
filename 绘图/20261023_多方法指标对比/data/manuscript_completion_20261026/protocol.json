@@ -1,0 +1,280 @@
+{
+  "version": "manuscript_completion_20261026",
+  "date": "2026-10-25",
+  "data_status": "synthetic_sufficient_statistics",
+  "purpose": "Internal complete manuscript fixture, not empirical results",
+  "interval_kind": "conditional_95CI_from_synthetic_counts_and_SD",
+  "confidence_level": 0.95,
+  "sample_count_verified": false,
+  "verify_legacy_centers": true,
+  "empirical_sources": [],
+  "empirical_caption_en": null,
+  "empirical_caption_zh": null,
+  "interval_note": "Synthetic point estimates and sufficient statistics; Wilson95% for proportions and t(299)95% for continuous means; conditional on fixed policy bank. No empirical measurements.",
+  "centers_source": "CORL/data/experiment_results_rcppo_ra_v3.xlsx: main_metric_wide; checked against CORL/scripts/generate_experiment_results_v3.py",
+  "source_script": "CORL/scripts/generate_experiment_results_v3.py",
+  "manuscript": "CCDC/latex/1020/main.tex",
+  "methods": [
+    {
+      "id": "HD-MCRA",
+      "label": "HD-MCRA",
+      "color": "#2376AC"
+    },
+    {
+      "id": "RC-PPO",
+      "label": "RC-PPO",
+      "color": "#D98035"
+    },
+    {
+      "id": "RA",
+      "label": "RA",
+      "color": "#B65F78"
+    },
+    {
+      "id": "PPO_beta_L",
+      "label": "PPO (beta L)",
+      "color": "#9A80B5"
+    },
+    {
+      "id": "PPO_beta_H",
+      "label": "PPO (beta H)",
+      "color": "#6B4B8E"
+    },
+    {
+      "id": "CPPO_beta_L",
+      "label": "CPPO (beta L)",
+      "color": "#4C9A80"
+    },
+    {
+      "id": "CPPO_beta_H",
+      "label": "CPPO (beta H)",
+      "color": "#26705D"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "moderate",
+      "source_label": "Moderately Cluttered",
+      "label": "Moderate clutter",
+      "label_zh": "普通障碍",
+      "marker": "o",
+      "offset": -0.23,
+      "short_label": "Moderate clutter"
+    },
+    {
+      "id": "narrow",
+      "source_label": "Narrow-Passage",
+      "label": "Narrow passage",
+      "label_zh": "窄通道",
+      "marker": "^",
+      "offset": 0,
+      "short_label": "Narrow passage"
+    },
+    {
+      "id": "dense",
+      "source_label": "Densely Obstructed",
+      "label": "Dense obstacles",
+      "label_zh": "密集障碍",
+      "marker": "s",
+      "offset": 0.23,
+      "short_label": "Dense obstacles"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "SR",
+      "source_label": "SR",
+      "label": "Success rate",
+      "label_zh": "成功率",
+      "unit": "%",
+      "direction": "higher",
+      "source_scale": 100,
+      "limits": [
+        0,
+        100
+      ],
+      "ticks": [
+        0,
+        25,
+        50,
+        75,
+        100
+      ],
+      "decimals": 1,
+      "short_label": "Success rate"
+    },
+    {
+      "id": "Cost",
+      "source_label": "Average Cost",
+      "label": "Execution cost",
+      "label_zh": "执行成本",
+      "unit": "a.u.",
+      "axis_label": "(a.u.)",
+      "direction": "conditional",
+      "source_scale": 1,
+      "limits": [
+        45,
+        190
+      ],
+      "ticks": [
+        50,
+        100,
+        150
+      ],
+      "decimals": 1,
+      "short_label": "Execution cost"
+    },
+    {
+      "id": "CR",
+      "source_label": "CR",
+      "label": "Collision rate",
+      "label_zh": "碰撞率",
+      "unit": "%",
+      "direction": "lower",
+      "source_scale": 100,
+      "limits": [
+        0,
+        55
+      ],
+      "ticks": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50
+      ],
+      "decimals": 1,
+      "short_label": "Collision rate"
+    },
+    {
+      "id": "BVR",
+      "source_label": "BVR",
+      "label": "Budget violation",
+      "label_zh": "预算违规率",
+      "unit": "%",
+      "direction": "lower",
+      "source_scale": 100,
+      "limits": [
+        0,
+        55
+      ],
+      "ticks": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50
+      ],
+      "decimals": 1,
+      "short_label": "Budget violation"
+    },
+    {
+      "id": "MC",
+      "source_label": "Minimum Clearance",
+      "label": "MC",
+      "label_zh": "平均最小间距",
+      "unit": "m",
+      "axis_label": "(m)",
+      "direction": "higher",
+      "source_scale": 1,
+      "decimals": 2,
+      "limits": [
+        0,
+        0.6
+      ],
+      "ticks": [
+        0,
+        0.2,
+        0.4,
+        0.6
+      ],
+      "short_label": "Min. clearance"
+    }
+  ],
+  "layout": {
+    "width_mm": 220,
+    "height_mm": 90,
+    "top_margin_mm": 10,
+    "bottom_margin_mm": 19.5,
+    "font_family": "DejaVu Sans",
+    "font_pt": 8,
+    "dpi": 600,
+    "tick_font_pt": 7.5,
+    "title_font_pt": 8,
+    "legend_font_pt": 8,
+    "single_column": false,
+    "export_svg": true,
+    "left_fraction": 0.129,
+    "right_fraction": 0.02,
+    "panel_gap_fraction": 0.025,
+    "marker_size_pt": 3.8,
+    "marker_edge_pt": 0.45,
+    "capsize_pt": 1.65
+  },
+  "interpretation": {
+    "training_seeds": 3,
+    "trials_per_seed_per_scene": 100,
+    "trials_per_scene": 300,
+    "trials_per_method": 900,
+    "aggregation": "equal weighting of three scene means; balanced allocation makes pooled proportion equivalent",
+    "display": {
+      "rates_decimals": 1,
+      "cost_decimals": 1,
+      "MC_decimals": 2
+    },
+    "events": {
+      "success": "goal before30s without physical collision",
+      "collision": "physical contact before terminal; mutually exclusive with success",
+      "BVR": "executed cost>z0, may overlap success/collision/timeout",
+      "failure": "collision or timeout; hardware adds localization abort"
+    },
+    "intervals": {
+      "confidence": 0.95,
+      "rates": "Wilson score n=300, conditional on fixed bank of trained policies and independently sampled maps",
+      "continuous": "two-sided Student t n=300 from individually authored mean and trial SD; conditional on same bank",
+      "scope": "marginal descriptive intervals; not across-training-seed generalization, not paired difference significance",
+      "legacy": "old manual ranges retained unchanged; new intervals recalculated from explicit synthetic counts/SD"
+    },
+    "selection": {
+      "trials_per_seed_per_scene": 100,
+      "total_per_method_per_budget": 900,
+      "independent_of_final": true,
+      "role": "separate design split; final curve does not establish selection decisions",
+      "budget_plot": "final response curve; outlined point is smallest passing tested point in that curve, not independently certified optimum"
+    },
+    "ablation_counts": {
+      "without_alpha": {
+        "success": 605,
+        "collision": 178,
+        "BVR": 202,
+        "total": 900
+      },
+      "without_delta": {
+        "success": 583,
+        "collision": 237,
+        "BVR": 124,
+        "total": 900
+      }
+    },
+    "calibration_counts": {
+      "calibration": 800,
+      "heldout": 400,
+      "split_before_quantile": true
+    }
+  },
+  "unresolved_for_empirical_replacement": [
+    "Replace synthetic sufficient statistics with verified trial records and training configurations."
+  ],
+  "reconciliation": {
+    "method": "RA",
+    "metric": "BVR",
+    "old_manuscript_mean_percent": 22,
+    "adopted_assumed_mean_percent": 20,
+    "reason": "Existing scene values 12, 20, 28 and the existing workbook both give an equal-scene average of 20. No inferred scene replacement is needed."
+  },
+  "id_scheme": "legacy_plus_mc",
+  "empirical_validation": false,
+  "simulation_caption": "Scenario-level SR,Cost,CR,BVR,MC with conditional95% intervals;n=300 per scene;table equal-scene means."
+}

@@ -1,3 +1,7 @@
+## 2026-10-26 论文协议对齐
+当前图五仍为output/mc_v2/ablation_horizontal.pdf，110×43.5mm，数值/布局未改。当前只显示FULL、NO_ALPHA、NO_DELTA、ZERO；data旧25点保留无分层历史项不代表当前使用。
+新内部协议为900例：NO_ALPHA计数605/178/202（SR/CR/BVR），NO_DELTA为583/237/124，对应既有一位小数。成本仍全试验代理a.u.，完整/双零共享主表；低成本不能脱离成功率判优。
+
 # 模块消融图：数据、绘制与维护说明
 
 完成日期：2026-10-25。对应计划：`../../plan/ablation_figure_20261025_plan.json`。
