@@ -68,23 +68,20 @@ to address balance, gait coordination, and action smoothness, and freeze it befo
 high-level learning. RC-PPO then learns navigation through a fixed velocity-command
 interface.
 
-Low-level feedback is intended to attenuate contact and friction disturbances,
-while freezing keeps the controller unchanged across calibration, high-level
-learning, and deployment. Neither removes residual execution uncertainty.
-RC-PPO's reachability equivalence and budget-feasibility conclusions are established
-under a nominal deterministic transition model; feasibility under that model does
-not automatically imply feasibility during physical execution. Contact conditions,
-actuation latency, and state-estimation error can still cause additional cost or
-body-path deviation, leading to budget overruns or reduced obstacle clearance.
-
-This work focuses on instantiating RC-PPO/MCRA on a real quadruped by constructing
-a fixed closed-loop velocity interface and calibrating its residual
-execution-induced cost and trajectory errors. We collect
-paired nominal and executed rollouts through that mapping and use the resulting
-error distributions to calibrate two separate corrections. A cost margin $\alpha$
-inflates the running cost used by the budget update, while a safety margin
-$\delta$ enlarges the unsafe set used by reach-avoid learning. We then apply the
-budget-conditioned policy and two-phase search to this calibrated model.
+Although the low-level controller improves locomotion stability and attenuates
+disturbances, residual mismatch remains between the nominal model and actual
+execution. The same velocity-command sequence may incur additional cost or produce
+path deviations, causing the high-level planner to underestimate budget
+consumption or overestimate obstacle clearance. To address these discrepancies,
+we freeze the low-level controller and collect paired nominal and executed
+rollouts with identical initial conditions and command sequences. We then
+calibrate a cost margin $\alpha$ and a geometric safety margin $\delta$ from the
+empirical distributions of cost overruns and path deviations, respectively. The
+cost margin increases the running cost used in budget updates to account for
+execution-induced overhead, while the geometric margin expands the unsafe set to
+accommodate path deviations. High-level policy learning and budget search are
+subsequently performed using the calibrated model, and the resulting policy is
+deployed through the same frozen controller.
 
 Our engineering contribution is an execution-calibrated deployment pipeline that
 connects an ideal MCRA learner to a physical closed loop. We do not claim a strict
