@@ -262,10 +262,8 @@ uses the same initial state, map, goal, and high-level command sequence, replaye
 through the nominal model and a perturbed execution. For a rollout of length $T$,
 let
 $J_{\rm nom}=\sum_{t=0}^{T-1}c(x_t^{\rm nom},u_t)$ and
-$J_{\rm exec}=\sum_{t=0}^{T-1}c(x_t^{\rm exec},u_t)$. Samples are split by rollout
-before quantile estimation, with held-out evaluation rollouts excluded from margin
-selection. Sample counts, perturbation settings, and the separate treatment of
-LiDAR disturbances are detailed in Appendix~\ref{app:calibration_details}.
+$J_{\rm exec}=\sum_{t=0}^{T-1}c(x_t^{\rm exec},u_t)$. Calibration and independent
+evaluation use disjoint rollouts, so evaluation data do not enter margin selection.
 
 For $J_{\rm nom}>0$, the relative cost overrun $\varepsilon_c$ is computed from
 the paired cumulative costs using the definition in Section~\ref{sec:problem_setup}. For geometric
@@ -274,10 +272,7 @@ positions,
 \begin{equation}
 \varepsilon_d=\max_{0\leq t\leq T} \left\|p_t^{\rm exec}-p_t^{\rm nom}\right\|_2,
 \end{equation}
-where $p_t$ is the base position. Positions are aligned on the common 0.2 s
-command clock without time warping. Each pair spans the prescribed duration of
-its command family; the measurement protocol is given in
-Appendix~\ref{app:calibration_details}.
+where $p_t$ is the base position.
 
 The two errors are calibrated separately because they affect different MCRA
 constraints. For quantile levels $p_c$ and $p_d$, we set
@@ -289,17 +284,9 @@ where $Q_p$ denotes the empirical $p$-quantile of the calibration samples. The
 calibrated running cost is
 $\tilde c(x_t,u_t)=(1+\alpha)c(x_t,u_t)$, so the remaining budget evolves as
 $z_{t+1}=z_t-\tilde c(x_t,u_t)$. The safety correction dilates the unsafe set by
-$\mathcal{F}_\delta=\{x:d(x,\mathcal{F})\leq\delta\}$. If the robot footprint is
-already included in the map obstacle layer, $\delta$ is an additional execution
-margin rather than a second footprint inflation. The quantile levels,
-margin values, and geometry conventions are listed in
-Appendix~\ref{app:calibration_details}.
-
-The margins are fixed before high-level learning. Their empirical coverage is
-limited to the calibration distribution and does not provide a formal stochastic
-safety guarantee under arbitrary execution shifts. The next subsection describes
-how the calibrated cost and unsafe set enter the inherited RC-PPO learning and
-budget-search procedure.
+$\mathcal{F}_\delta=\{x:d(x,\mathcal{F})\leq\delta\}$. Both margins are determined
+before high-level learning and remain fixed, with empirical coverage tied to the
+execution conditions represented in the calibration data.
 
 \subsection{Robust MCRA Learning and Deployment}
 We use the calibrated cost and unsafe set to learn a budget-conditioned navigation
