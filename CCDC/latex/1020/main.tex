@@ -287,45 +287,34 @@ before high-level learning and remain fixed, with empirical coverage tied to the
 execution conditions represented in the calibration data.
 
 \subsection{Robust MCRA Learning and Deployment}
-We use the calibrated cost and unsafe set to learn a budget-conditioned navigation
-policy and select an initial budget for execution through the frozen velocity
-interface. This stage connects the mismatch calibration in the previous subsection
-to navigation decisions: the policy is trained with the corrected budget and safety
-conditions, rather than treating the margins as additional adjustments applied only
-during deployment.
+A budget-conditioned navigation policy is trained using the calibrated cost and
+expanded unsafe set, and an initial budget is selected for execution through the
+frozen velocity interface. The margins are incorporated into learning, so navigation
+decisions are optimized under the corrected cost and safety conditions.
 
-In Phase I, we retain RC-PPO's augmented-state learning framework. The calibrated
-running cost $\tilde c$ determines the remaining-budget update, while the expanded
-unsafe set $\mathcal{F}_\delta$ determines the safety indicator and the corresponding
-augmented goal. The engineering implementation uses a stochastic actor
-$\pi_\theta(u\mid o,y,z)$ and two critics: $V_h$ evaluates goal-reaching and
-safety, while $V_c$ evaluates corrected cost to a shared stopping horizon.
-After cost normalization by $z_{\rm ref}$, their combined residual is
-$W=\max\{V_h,V_c-z/z_{\rm ref}\}$. Lower residuals guide the actor toward
-feasible goal-reaching. Thus, $\alpha$ enters cost targets and budget updates,
-while $\delta$ enters the reachability targets through the safety indicator.
-This dual-critic approximation implements the deployment architecture in
-Fig.~\ref{fig:system_overview}; it is not an additional equivalence theorem for
-RC-PPO's single augmented value function. Objectives and terminal handling are
-specified in Appendix~\ref{app:learning_details}.
+In Phase I, the calibrated running cost $\tilde c$ determines budget updates, while
+the expanded unsafe set $\mathcal{F}_\delta$ determines the safety indicator and
+augmented goal. The implementation uses a stochastic actor
+$\pi_\theta(u\mid o,y,z)$ and two critics: $V_h$ evaluates goal reaching and safety,
+and $V_c$ estimates corrected cumulative cost over the same stopping horizon. With
+cost normalized by $z_{\rm ref}$, the combined residual is
+\[
+W=\max\{V_h,V_c-z/z_{\rm ref}\}.
+\]
+The actor is optimized to reduce this residual. Accordingly, $\alpha$ affects cost
+targets and budget updates, whereas $\delta$ affects reachability targets through
+the safety indicator.
 
-In Phase II, we use the actor's mean action to obtain a deterministic deployment
-policy, refit the critics with the actor fixed, and evaluate candidate initial
-budgets under the calibrated model.
-Following RC-PPO's budget-search principle, the implementation selects the
-smallest tested budget satisfying the prescribed goal-reaching, collision, and
-budget-violation criteria. This finite-grid selection provides an operational
-budget threshold, rather than a certified continuous minimum-cost solution. The
-candidate budgets and acceptance criteria are specified in
-Appendix~\ref{app:deployment_search}.
+In Phase II, a deterministic deployment policy is obtained from the actor's mean
+action, and the critics are refitted with the actor fixed. Candidate initial
+budgets are evaluated under the calibrated model, and the smallest tested budget
+satisfying the prescribed goal-reaching, collision, and budget-violation criteria
+is selected.
 
-During deployment, the policy receives the navigation observation and remaining
-budget, outputs a body-velocity command, and executes it through the same frozen
-tracker. A shadow nominal rollout under the same commands supplies the calibrated
-cost debited from the remaining budget. Actual
-cumulative cost is recorded separately, and budget violation is evaluated against
-the selected initial budget. Goal-reaching, collision, and clearance outcomes are
-also logged for the empirical evaluation in the next section.
+During deployment, navigation observations and the remaining budget are supplied
+to the policy. The resulting body-velocity commands are executed through the
+frozen tracker. A parallel nominal rollout driven by the same commands provides
+the calibrated cost used to update the remaining budget.
 
 \section{Experiments}
 % Evaluation: overall performance, calibration mechanisms, budget sensitivity,
