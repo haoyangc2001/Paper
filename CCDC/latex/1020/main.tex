@@ -5,9 +5,10 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
-% Allow local placement after introduction; flush before the next subsection.
+% Keep floats after their source and within their main section. Subsection
+% barriers would force short columns and stretch heading/paragraph spacing.
 \usepackage{flafter}
-\usepackage{placeins}
+\usepackage[section]{placeins}
 \usepackage{textcomp}
 \usepackage[table]{xcolor}
 \definecolor{methodblue}{HTML}{2376AC}
@@ -25,6 +26,8 @@
 }
 
 \begin{document}
+% Avoid stretching inter-float and heading glue to force equal column bottoms.
+\raggedbottom
 \maketitle
 
 \begin{abstract}
@@ -238,7 +241,6 @@ are illustrative; ghost poses depict one robot at successive times.}
 \label{fig:system_overview}
 \end{figure}
 
-\FloatBarrier
 \subsection{Frozen Velocity-Control Interface}
 We first train and freeze a velocity tracker to execute the high-level navigation
 policy's velocity commands on the quadruped, providing a common execution interface
@@ -470,7 +472,6 @@ passages; traces end at their respective terminations.}
 \label{fig:trajectory_sync}
 \end{figure}
 
-\FloatBarrier
 \subsection{Execution Mismatch and Component Analysis}
 \label{sec:mismatch_analysis}
 Figure~\ref{fig:margin_calibration} summarizes execution mismatch using 800
@@ -500,10 +501,7 @@ $\alpha$, $\delta$, or both while retaining the same frozen velocity tracker.
 Figure~\ref{fig:ablation_margins} visualizes these comparisons. For these
 values, removing $\alpha$ increases BVR by
 13.4 percentage points, while removing $\delta$ increases CR by 11.3 percentage
-points and reduces clearance. The full and zero-margin rows reuse HD-MCRA and RC-PPO from
-Table~\ref{tab:main_results}. Each single-margin variant is trained separately:
-the effects are non-additive, and lower cost can accompany more failed or
-shorter trials. Cost must therefore be interpreted jointly with success rate.
+points and reduces clearance.
 
 \begin{table}[!htbp]
 \caption{Margin ablation with the same frozen tracker and reference budget as
@@ -527,6 +525,11 @@ w/o $\delta$ & 64.8 & \textbf{77.2} & 26.3 & 13.8 & 0.19\\
 \hline
 \end{tabular}
 \end{table}
+
+The full and zero-margin rows reuse HD-MCRA and RC-PPO from
+Table~\ref{tab:main_results}. Each single-margin variant is trained separately:
+the effects are non-additive, and lower cost can accompany more failed or
+shorter trials. Cost must therefore be interpreted jointly with success rate.
 
 \begin{figure}[!htbp]
 \centering
@@ -574,7 +577,6 @@ cost to 95.0 a.u. This conservatism trade-off differs from varying the initial
 budget with a fixed trained policy; calibration is performed before the sweep
 and is not retuned to maximize these results.
 
-\FloatBarrier
 \subsection{Robustness to Execution Perturbations}
 \label{sec:execution_robustness}
 With the policy and margins fixed, the perturbation study evaluates performance as
@@ -595,23 +597,7 @@ The hardware study uses a Unitree Go2 in a cluttered indoor environment with
 chairs, narrow passages, and a moving obstacle. Figure~\ref{fig:hardware_sequences}(a)
 illustrates navigation among office-chair obstacles, while
 Fig.~\ref{fig:hardware_sequences}(b) shows a second traversal through a
-chair-defined passage. The sequences document physical deployment and successive
-obstacle-negotiation maneuvers. The representative route is
-approximately 15 m, with a narrow passage about 0.3 m wider than the robot
-body. Joint encoders and the IMU provide proprioception; projected LiDAR ranges
-and local scan matching supply navigation observations. Policies execute on an
-onboard x86-64 CPU with 16 GB RAM, at the same 50 Hz/5 Hz control rates.
-The 15 m task uses a 60 s horizon and budget 230 a.u.; the tracker, navigation
-policy, and margins remain fixed.
-
-There are 26 successful trials out of 30, giving SR $86.7\%$ (95\% Wilson
-interval $70.3$--$94.7\%$). The four remaining trials comprise two localization
-aborts, one timeout, and one chair-leg contact. CR is $1/30$ ($3.3\%$), and
-BVR is $3/30$ ($10.0\%$): two successful trials and the timeout exceed budget.
-Mean executed cost is 184.0 a.u. (95\% interval 167.6--200.4), and MC is
-0.11 m (0.084--0.136 m). All terminal outcomes contribute to these means.
-The different route, horizon, and footprint preclude direct pooling with the
-planar benchmark; this small deployment study does not certify safety.
+chair-defined passage.
 
 \begin{figure}[!htbp]
 \centering
@@ -629,7 +615,24 @@ negotiation through the frozen velocity interface.}
 \label{fig:hardware_sequences}
 \end{figure}
 
-\FloatBarrier
+The sequences document physical deployment and successive
+obstacle-negotiation maneuvers. The representative route is
+approximately 15 m, with a narrow passage about 0.3 m wider than the robot
+body. Joint encoders and the IMU provide proprioception; projected LiDAR ranges
+and local scan matching supply navigation observations. Policies execute on an
+onboard x86-64 CPU with 16 GB RAM, at the same 50 Hz/5 Hz control rates.
+The 15 m task uses a 60 s horizon and budget 230 a.u.; the tracker, navigation
+policy, and margins remain fixed.
+
+There are 26 successful trials out of 30, giving SR $86.7\%$ (95\% Wilson
+interval $70.3$--$94.7\%$). The four remaining trials comprise two localization
+aborts, one timeout, and one chair-leg contact. CR is $1/30$ ($3.3\%$), and
+BVR is $3/30$ ($10.0\%$): two successful trials and the timeout exceed budget.
+Mean executed cost is 184.0 a.u. (95\% interval 167.6--200.4), and MC is
+0.11 m (0.084--0.136 m). All terminal outcomes contribute to these means.
+The different route, horizon, and footprint preclude direct pooling with the
+planar benchmark; this small deployment study does not certify safety.
+
 \section{Limitations}
 Calibration quantiles do not guarantee
 coverage under temporal correlation, rare contacts, or distribution shift.
