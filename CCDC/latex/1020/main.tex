@@ -111,41 +111,36 @@ set as trajectory-level requirements rather than competing reward terms
 \cite{bansal2017,ganai2023}. RC-PPO extends this view to minimum-cost reach-avoid
 control by augmenting the state with a safety indicator and remaining budget,
 learning a budget-conditioned policy and reachability critic, and searching for the
-least feasible initial budget~\cite{so2024}. This construction is the algorithmic
-foundation used here. Our focus is the interface between its transition model and a
-quadruped's executed motion, which is outside the deterministic model assumed by
-the original formulation.
+least feasible initial budget~\cite{so2024}. This construction provides the
+algorithmic foundation for the present work, which focuses on connecting nominal
+MCRA decisions to quadruped execution.
 
 \subsection{Safe Quadruped Navigation}
-Learning-based quadruped systems have demonstrated robust locomotion and navigation
-over challenging terrain~\cite{hwangbo2019,lee2020,kumar2021,miki2022,hoeller2024}.
-Recent navigation systems improve agility, perception or traversal in confined and
-unstructured environments~\cite{miki2024,weerakoon2024,guerrier2024}. Safety is
-also addressed through constrained policy optimization, control barrier functions,
-and risk-sensitive objectives~\cite{achiam2017,liu2022cvpo,renganathan2023}.
-These methods establish useful hardware interfaces and safety mechanisms, but they
-do not directly provide the execution-data calibration procedure used here to
-jointly adjust an MCRA budget and an avoid-set boundary.
+Learning-based locomotion controllers provide a foundation for quadruped
+navigation in challenging environments. Lee et al.~\cite{lee2020} demonstrated
+robust locomotion on natural terrain using proprioceptive feedback, while Kumar
+et al.~\cite{kumar2021} introduced rapid motor adaptation to accommodate changes
+in terrain and payload. At the navigation level, Jin et al.~\cite{jin2023resilient}
+trained a policy that sends velocity commands to an existing locomotion controller
+and uses locomotion-level observations to respond to perception failures. In
+contrast, He et al.~\cite{he2024abs} developed a joint-level agile policy with
+reach-avoid-guided switching to a recovery policy for collision avoidance. A
+hierarchical architecture is adopted here, with a frozen velocity tracker handling
+locomotion stabilization and a high-level MCRA policy addressing goal reaching,
+obstacle avoidance, and cumulative cost.
 
 \subsection{Robust Deployment under Model--Execution Mismatch}
-Domain randomization and robust reinforcement learning address model uncertainty by
-broadening the training distribution or optimizing for robustness across perturbed
-dynamics~\cite{tobin2017,smirnova2019,wang2021,liu2022drql}. In contrast,
-chance-constrained and risk-aware planners represent uncertainty at the planning
-level through traversability, path-selection, or violation-risk models
-~\cite{theurkauf2023,fan2021step,schmittle2024}. These approaches differ from the
-present deployment layer in both object and mechanism. STEP estimates stochastic
-traversability for risk-aware off-road planning, and Schmittle et al. use multiple
-long-range samples under sensing uncertainty; HD-MCRA instead measures paired
-nominal/executed errors after fixing a velocity interface, then maps upper empirical
-quantiles to the MCRA running cost and unsafe set. The resulting claim is
-correspondingly narrower: empirical robustness under the calibration distribution,
-without a new formal stochastic guarantee.
-
-The remaining gap is thus practical rather than theoretical: an MCRA learner needs
-a common closed-loop velocity interface and an explicit procedure for converting its
-measured execution mismatch into the two quantities that determine feasibility,
-namely cumulative budget and geometric clearance.
+Domain randomization and robust reinforcement learning address model uncertainty
+by broadening the training distribution or optimizing performance across uncertain
+dynamics~\cite{tobin2017,smirnova2019,wang2021,liu2022drql}. Chance-constrained and
+risk-aware planners instead incorporate uncertainty into planning constraints or
+risk measures~\cite{theurkauf2023,fan2021step,schmittle2024}. For example, STEP
+estimates stochastic traversability for risk-aware off-road
+planning~\cite{fan2021step}, while Schmittle et al.~\cite{schmittle2024} use
+multiple long-range planning samples to account for sensing uncertainty. The
+present work focuses on residual execution errors under a fixed velocity
+interface: empirical quantiles of paired nominal and executed rollout errors are
+used to calibrate cost and geometric margins for MCRA learning and deployment.
 
 \section{Problem Setup: From Ideal MCRA to Quadruped Execution}
 \label{sec:problem_setup}
