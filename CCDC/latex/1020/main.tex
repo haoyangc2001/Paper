@@ -207,53 +207,52 @@ make this gap actionable for high-level learning and deployment.
 % TASK-010--TASK-012: interface, mismatch dataset, alpha/delta calibration,
 % robustified RC-PPO learning and deployment algorithm.
 \subsection{System Overview}
-Figure~\ref{fig:system_overview} summarizes the deployment pipeline. The problem
-setup in Section~\ref{sec:problem_setup} defines the nominal-to-execution errors, while this section
-specifies how they are measured and used. Components inherited from RC-PPO are
-kept fixed, and the execution calibration layer is fitted before high-level policy
-training. Offline rollouts produce paired nominal and executed trajectories; their
-cost and geometric errors are converted into $\alpha$ and $\delta$. The corrected
-model is then used for high-level learning and budget search. Online, the policy
-emits a velocity command and the frozen tracker closes the loop on the robot.
+Figure~\ref{fig:system_overview} presents the HD-MCRA architecture, which couples
+a high-level MCRA navigation policy with a pretrained, frozen low-level velocity
+tracker. The system is developed in two stages. First, the tracker is trained and
+frozen, and paired nominal and executed rollouts are collected to calibrate the
+cost margin $\alpha$ and geometric margin $\delta$. Second, these margins are
+incorporated into RC-PPO-based high-level learning and initial-budget selection.
+During deployment, the navigation policy generates body-velocity commands, while
+the frozen tracker converts them into joint commands for closed-loop execution.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/deployment_calibration_overview.pdf}
-\caption{Two-stage engineering architecture of HD-MCRA. Stage 1 freezes the
-velocity tracker and calibrates cost and safety margins from paired nominal and
-executed rollouts. Stage 2 uses $\tilde c=(1+\alpha)c$ for cost-learning targets
-and budget updates, and the expanded unsafe set $\mathcal{F}_\delta$ for
-reachability targets. The actor sends velocity commands through the same frozen
-tracker, which produces joint commands. Scene views are static renders and paths
-are illustrative; ghost poses depict one robot at successive times.}
+\caption{HD-MCRA architecture. Stage 1 establishes a frozen velocity interface
+and calibrates execution margins. Stage 2 incorporates the margins into high-level
+navigation learning and budget selection, retaining the same tracker for execution.
+Scenes and paths are schematic; ghost poses indicate successive robot states.}
 \label{fig:system_overview}
 \end{figure}
 
-\subsection{Frozen Velocity-Control Interface}
-We first train and freeze a velocity tracker to execute the high-level navigation
-policy's velocity commands on the quadruped, providing a common execution interface
-for mismatch measurement, margin calibration, and deployment. Low-level pretraining
-targets velocity tracking, balance, gait coordination, and action smoothness,
-allowing the high-level learner to focus on reach-avoid navigation and cost.
-The tracker maps
-proprioceptive observations and body-velocity commands
-$u_t=[v_x^*,v_y^*,\omega_z^*]^\top$ to joint commands. Training uses PPO and domain
-randomization, and the tracker is frozen before execution-mismatch calibration and
-high-level learning. Closed-loop feedback is intended to reject execution
-disturbances within the trained command domain. Freezing keeps the controller
-parameters unchanged, avoiding
-interface changes caused by continued low-level policy updates. It does not make
-the physical closed loop deterministic: contact conditions, friction, actuation
-latency, and state-estimation error can still produce residual mismatch.
+\subsection{Hierarchical Control with a Frozen Velocity Interface}
+Direct joint-level MCRA learning would require a quadruped policy to acquire stable
+locomotion while learning goal reaching, obstacle avoidance, and cost reduction.
+Although falls and excessive body tilt can be represented as unsafe states,
+avoiding these states alone provides limited guidance for learning coordinated and
+smooth locomotion. Frequent loss of balance during early training can also
+interrupt navigation exploration. A hierarchical architecture is therefore adopted
+to separate locomotion stabilization from high-level reach-avoid decisions.
 
-The nominal map $\bar f_{\rm cl}$ is a planar abstraction of this interface,
-integrating commanded body velocities at the high-level decision interval under
-ideal tracking. Paired execution through the frozen tracker measures the error
-of this abstraction. The same tracker and command domain are used for calibration, high-level
-learning, and deployment, so the measured errors refer to the interface used by the
-navigation policy. Tracking accuracy and locomotion stability must be verified
-within this domain. Specific command limits and training configurations are listed
-in Appendix~\ref{app:velocity_interface}.
+The low-level tracker is pretrained using PPO and domain randomization to track
+velocity commands while maintaining balance, gait coordination, and action
+smoothness. It maps proprioceptive observations and body-velocity commands
+$u_t=[v_x^*,v_y^*,\omega_z^*]^\top$ to joint commands. Closed-loop feedback
+attenuates execution disturbances within the trained command domain. The tracker is
+then frozen before mismatch calibration and high-level learning, preventing
+subsequent low-level parameter updates from changing the execution interface. The
+high-level policy consequently operates through velocity commands rather than
+learning joint coordination directly.
+
+The nominal map $\bar f_{\mathrm{cl}}$ abstracts this interface by integrating
+commanded body velocities over each high-level decision interval under ideal
+tracking. Contact variation, friction, actuation latency, and state-estimation
+errors can nevertheless cause deviations from this abstraction. The same frozen
+tracker and command domain are retained for calibration, high-level learning, and
+deployment, providing a consistent basis for measuring residual mismatch and
+calibrating the margins in the next subsection. Command limits and low-level
+training configurations are provided in Appendix~\ref{app:velocity_interface}.
 
 \subsection{Execution-Mismatch Calibration}
 \label{sec:execution_calibration}
