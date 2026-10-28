@@ -322,8 +322,8 @@ the calibrated cost used to update the remaining budget.
 \subsection{Experimental Setup and Evaluation Protocol}
 \label{sec:experimental_setup}
 The experiments evaluate navigation performance, execution-error calibration,
-margin contributions, budget sensitivity, robustness to execution disturbances,
-and physical deployment. The planar navigation benchmark assesses high-level
+margin contributions and sensitivity, budget selection, robustness to execution
+disturbances, and physical deployment. The planar navigation benchmark assesses high-level
 decisions through the velocity interface, while the hardware study examines
 execution on a quadruped.
 
@@ -417,7 +417,8 @@ A/B mark each method's obstacle passages; traces end at their respective termina
 \label{fig:trajectory_sync}
 \end{figure}
 
-\subsection{Execution Mismatch and Component Analysis}
+\FloatBarrier
+\subsection{Execution-Error Calibration and Margin Analysis}
 \label{sec:mismatch_analysis}
 Figure~\ref{fig:margin_calibration} summarizes execution mismatch using 800
 calibration and 400 held-out paired rollouts. The
@@ -489,11 +490,23 @@ must be interpreted jointly with SR.}
 \label{fig:ablation_margins}
 \end{figure}
 
+To assess margin sensitivity beyond component removal, the high-level networks
+are retrained for each of 16 combinations
+of $\alpha\in\{0,0.09,0.18,0.27\}$ and
+$\delta\in\{0,0.06,0.12,0.18\}$ m, retaining the frozen tracker, training
+budget, and 900-trial evaluation protocol. The four zero/calibrated combinations
+match Table~\ref{tab:ablation_draft}. Increasing both margins to $(0.27,0.18)$
+reduces CR and BVR to 13.3\% and 6.7\%, but lowers SR to 68.0\% and raises
+cost to 95.0 a.u. This illustrates the conservatism trade-off of larger margins.
+Calibration is performed before the sweep and is not retuned to maximize these
+results.
+
 \FloatBarrier
-\subsection{Budget Selection and Margin Sensitivity}
+\subsection{Budget Selection and Performance Trade-offs}
 \label{sec:budget_sensitivity}
-Figure~\ref{fig:budget_draft} presents the response to normalized initial
-budget, with the reference point $z_0/z_{\rm ref}=1$ tied to
+With policy parameters and margins fixed, Fig.~\ref{fig:budget_draft} presents
+the response to normalized initial budget, with the reference point
+$z_0/z_{\rm ref}=1$ tied to
 Table~\ref{tab:main_results}. RA reuses the same trajectories across thresholds,
 so only its BVR changes. Under the criteria SR $\geq60\%$, CR $\leq20\%$,
 and BVR $\leq15\%$, the smallest feasible tested ratios are $0.90$ for HD-MCRA,
@@ -512,16 +525,7 @@ lower bounds. Lines connect tested candidates without implying continuous feasib
 \label{fig:budget_draft}
 \end{figure}
 
-The margin sweep retrains the high-level networks for each of 16 combinations
-of $\alpha\in\{0,0.09,0.18,0.27\}$ and
-$\delta\in\{0,0.06,0.12,0.18\}$ m, retaining the frozen tracker, training
-budget, and 900-trial evaluation protocol. The four zero/calibrated combinations
-match Table~\ref{tab:ablation_draft}. Increasing both margins to $(0.27,0.18)$
-reduces CR and BVR to 13.3\% and 6.7\%, but lowers SR to 68.0\% and raises
-cost to 95.0 a.u. This conservatism trade-off differs from varying the initial
-budget with a fixed trained policy; calibration is performed before the sweep
-and is not retuned to maximize these results.
-
+\FloatBarrier
 \subsection{Robustness to Execution Perturbations}
 \label{sec:execution_robustness}
 With the policy and margins fixed, the perturbation study evaluates performance as
