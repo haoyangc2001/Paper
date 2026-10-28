@@ -500,24 +500,22 @@ results.
 \FloatBarrier
 \subsection{Budget Selection and Performance Trade-offs}
 \label{sec:budget_sensitivity}
-With policy parameters and margins fixed, Fig.~\ref{fig:budget_draft} presents
-the response to normalized initial budget, with the reference point
-$z_0/z_{\rm ref}=1$ tied to
-Table~\ref{tab:main_results}. RA reuses the same trajectories across thresholds,
-so only its BVR changes. Under the criteria SR $\geq60\%$, CR $\leq20\%$,
-and BVR $\leq15\%$, the smallest feasible tested ratios are $0.90$ for HD-MCRA,
-$0.96$ for RC-PPO, and $1.12$ for RA. These grid values
-describe the final response curves, not continuous optima or per-scene
-guarantees. Budget selection uses a separate set as specified in
-Appendix~\ref{app:deployment_search}.
+With policy parameters and margins fixed, the effect of initial budget on
+navigation performance is evaluated. Budget selection is performed on a separate
+rollout set, while Fig.~\ref{fig:budget_draft} reports performance on the final
+evaluation set. Since RA is not conditioned on budget, the same trajectories are
+evaluated at each threshold, and only its BVR changes. Under the criteria
+SR $\geq60\%$, CR $\leq20\%$, and BVR $\leq15\%$, the smallest tested budget
+ratios satisfying all three criteria on the final response curves are $0.90$
+for HD-MCRA, $0.96$ for RC-PPO, and $1.12$ for RA. HD-MCRA therefore meets the
+same evaluation criteria at a lower tested budget.
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/budget_sweep_horizontal.pdf}
-\caption{Budget-response curves, averaged equally across scenarios.
-All panels use $z_0/z_{\rm ref}$; values at 1.00 match Table~\ref{tab:main_results}.
-Dashed horizontal lines show the acceptance thresholds; outlined points mark the
-smallest tested budgets meeting all three criteria. SR and cost axes have nonzero
-lower bounds. Lines connect tested candidates without implying continuous feasibility.}
+\caption{Budget-response curves averaged equally across scenarios. Dashed lines
+indicate acceptance thresholds; outlined points mark the smallest tested budgets
+satisfying all three criteria. Results at the reference budget match
+Table~\ref{tab:main_results}.}
 \label{fig:budget_draft}
 \end{figure}
 
