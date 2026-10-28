@@ -356,12 +356,11 @@ imposes an expected-cost constraint.
 \label{sec:overall_performance}
 Table~\ref{tab:main_results} compares the complete pipeline with the baselines,
 while Fig.~\ref{fig:metrics_draft} separates the same five metrics by scenario.
-HD-MCRA has higher mean SR and lower cost and BVR than uncalibrated RC-PPO,
-with a similar collision rate. RA and CPPO$_{\beta_L}$ attain lower CR or greater
-clearance at the expense of other metrics. The comparison illustrates the joint
-success--safety--cost trade-off. The marginal intervals describe test-case
-variability conditional on the trained policies, rather than significance of
-paired method differences.
+Compared with uncalibrated RC-PPO, HD-MCRA increases mean SR from 70.7\% to
+73.3\%, reduces mean executed cost from 91.7 to 88.3 a.u., and lowers BVR from
+14.0\% to 9.0\%, with similar CR (15.7\% versus 15.0\%). RA and
+CPPO$_{\beta_L}$ achieve lower CR and greater clearance, but lower SR and higher
+cost and BVR. These results illustrate the joint success--safety--cost trade-off.
 
 \begin{table}[!htbp]
 \caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$.
@@ -390,37 +389,31 @@ CPPO$_{\beta_H}$ & 69.7 & 105.7 & 18.3 & 17.0 & 0.26\\
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/metrics_comparison.pdf}
-\caption{Scenario-level SR, executed cost, CR, BVR, and mean minimum physical
-clearance (MC) at the common reference budget, ordered as in
-Table~\ref{tab:main_results}. Markers distinguish scenarios; colors distinguish
-methods. Points and horizontal bars show scenario estimates and 95\% intervals
-conditional on the three trained policies ($n=300$ per scene); see
-Appendix~\ref{app:statistical_evaluation}. The table reports
-equal-scene means.}
+\caption{Scenario-level SR, Cost, CR, BVR, and MC at the common reference budget.
+Markers distinguish scenarios; colors distinguish methods. Points and horizontal
+bars show estimates and 95\% intervals conditional on the three trained policies
+($n=300$ per method and scene). Table~\ref{tab:main_results} reports equal-scene means.}
 \label{fig:metrics_draft}
 \end{figure}
 
-Figure~\ref{fig:trajectory_sync} illustrates how the calibrated interface affects
-navigation behavior in one paired example. HD-MCRA maintains greater
-obstacle clearance along a slightly longer, more costly route. The synchronized
-curves relate obstacle passages to clearance, execution cost, and tracking error;
-the corrected nominal charge shows how $\alpha$ enters budget accounting.
-Both methods remain within the common budget, so this case illustrates the
-safety--cost trade-off rather than a reduction in BVR. It uses the same proxy
-cost definition on a shorter, separate diagnostic map and is not pooled into
-Table~\ref{tab:main_results}.
+Figure~\ref{fig:trajectory_sync} illustrates navigation behavior in one paired
+example. With the geometric margin $\delta$, HD-MCRA follows a slightly longer,
+more costly route with greater obstacle clearance. The synchronized curves relate
+obstacle passages to clearance, executed cost, and tracking error, while the
+corrected nominal charge shows how $\alpha$ enters budget accounting. Both methods
+remain within the common budget, illustrating a safety--cost trade-off. This
+separate diagnostic case uses the same proxy cost definition and is not included
+in Table~\ref{tab:main_results}.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/trajectory_sync.pdf}
-\caption{Same-scene trajectories and synchronized diagnostics.
-HD-MCRA (blue) and RC-PPO (orange) share the frozen tracker, start, goal,
-footprint, and initial budget of 85 a.u.
-(a) Executed (solid) and nominal (dashed) paths, with additional margin
-$\delta=0.12$ m. (b) Physical clearance. (c) Cumulative costs, common budget,
-and corrected charge $(1+\alpha)J_{\rm nom}$, $\alpha=0.18$.
-(d) Linear-velocity tracking error. A/B mark each method's own obstacle
-passages; traces end at their respective terminations.}
+\caption{Same-scene trajectories and synchronized diagnostics for HD-MCRA (blue)
+and RC-PPO (orange), with a common initial budget of 85 a.u.
+(a) Executed (solid) and nominal (dashed) paths, with $\delta=0.12$ m.
+(b) Physical clearance. (c) Cumulative costs, budget, and corrected charge
+$(1+\alpha)J_{\rm nom}$, with $\alpha=0.18$. (d) Linear-velocity tracking error.
+A/B mark each method's obstacle passages; traces end at their respective terminations.}
 \label{fig:trajectory_sync}
 \end{figure}
 
