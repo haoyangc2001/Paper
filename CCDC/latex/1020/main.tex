@@ -321,45 +321,36 @@ the calibrated cost used to update the remaining budget.
 % execution perturbations, and hardware deployment.
 \subsection{Experimental Setup and Evaluation Protocol}
 \label{sec:experimental_setup}
-The evaluation examines overall navigation performance, execution mismatch and
-component effects, budget and margin sensitivity, execution perturbations, and
-hardware deployment. All comparisons share the same physical evaluation rules;
-the protocol distinguishes navigation success, budget compliance, and clearance.
+The experiments evaluate navigation performance, execution-error calibration,
+margin contributions, budget sensitivity, robustness to execution disturbances,
+and physical deployment. The planar navigation benchmark assesses high-level
+decisions through the velocity interface, while the hardware study examines
+execution on a quadruped.
 
-The simulated protocol uses a planar body-velocity model coupled to the velocity
-interface and three map families: moderately cluttered, narrow passage, and densely
-obstructed. Each method receives the same local LiDAR scan, relative goal, and robot
-state. Maps span $8\times8$ m with 8, 12, or 18 circular obstacles of radii
-0.15--0.45 m. Start--goal distances are 3.5--5, 4--6, and 4.5--6.5 m,
-respectively; narrow passages are 0.70--0.95 m wide. Sampling rejects physically
-disconnected start--goal pairs, without testing each method's inflated set.
-The high-level decision interval is 0.2 s and the episode horizon is 30 s.
-Each method uses three training seeds and 300 trials per scene, with 100 per
-seed, giving 900 trials overall. Test maps are shared across methods.
-We report success rate (SR), physical collision rate (CR), mean executed cost,
-budget violation rate (BVR), and mean per-trial minimum clearance (MC).
-Success requires reaching the goal before timeout without physical collision;
-budget compliance is a separate event. CR and MC use a common physical robot
-footprint, not each method's inflated planning set. Cost and MC average all
-trials up to goal, collision, or timeout;
-exceeding the budget records a violation but does not terminate evaluation.
-The main and ablation tables use a common reference budget within each scenario,
-$z_0/z_{\rm ref}=1$, and equal weighting across the three scenarios. Absolute
-reference budgets are 120, 140, and 190 a.u. The cost is a common navigation
-proxy, with its definition and physical geometry given in
-Appendix~\ref{app:calibration_details}.
+The navigation benchmark comprises moderately cluttered, narrow-passage, and
+densely obstructed maps, each spanning $8\times8$ m. All methods share test maps,
+navigation observations, command limits, and the frozen velocity tracker, with
+matched training interaction budgets and network widths. The high-level decision
+interval is 0.2 s, and the episode horizon is 30 s. Each method is evaluated using
+three trained policies from different random seeds, with 100 trials per policy
+and scenario, yielding 300 trials per scenario and 900 overall. Calibration,
+training, budget selection, and final evaluation use separate rollout sets.
 
-RC-PPO uses the same frozen velocity tracker and training budget as HD-MCRA with
-$\alpha=\delta=0$. RA omits cost conditioning. PPO$_{\beta_L}$ and
-PPO$_{\beta_H}$ use safety weights $\beta_L=1$ and $\beta_H=5$ in
-$r_t=10I_{\rm goal}+2(d_{t-1}-d_t)-c_t/z_{\rm ref}-\beta I_{\rm collision}$.
-Here $d_t$ is goal distance. CPPO adds a Lagrangian expected-cost constraint
-$\mathbb E[J/z_{\rm ref}]\leq1$ to this objective; its dual variable starts at 1,
-uses step size 0.01, and is projected to $[0,100]$. These baselines share the
-training interaction budget and network widths of HD-MCRA; RA omits the budget
-input. Calibration, training, budget selection, and final evaluation use separate
-rollout sets. Budget-comparison conventions and statistical
-reporting details are specified in Appendix~\ref{app:statistical_evaluation}.
+Five metrics are reported: success rate (SR), mean executed cost (Cost), physical
+collision rate (CR), budget violation rate (BVR), and mean per-trial minimum
+clearance (MC). Success requires collision-free goal reaching before timeout;
+budget compliance is assessed separately. Collision and clearance are measured
+against a common physical robot footprint. Cost and MC include all trials until
+goal reaching, collision, or timeout, and budget exceedance does not terminate
+evaluation. Tables report equally weighted scenario means at $z_0/z_{\rm ref}=1$,
+with reference budgets of 120, 140, and 190 a.u. Scenario-level intervals describe
+test-case variability conditional on the trained policies.
+
+The baselines comprise uncalibrated RC-PPO, reach-avoid learning without cost
+conditioning (RA), reward-based PPO, and constrained PPO (CPPO). RC-PPO uses
+$\alpha=\delta=0$, while RA omits the budget input. PPO and CPPO are evaluated
+with low and high safety weights, $\beta_L=1$ and $\beta_H=5$; CPPO additionally
+imposes an expected-cost constraint.
 
 \subsection{Overall Navigation Performance}
 \label{sec:overall_performance}
@@ -810,8 +801,50 @@ does not certify a continuous optimum.
 The final response curves use separate trials; their highlighted points
 identify the smallest passing candidates within those curves.
 
-\section{Statistical Evaluation Details}
+\section{Experimental and Statistical Evaluation Details}
 \label{app:statistical_evaluation}
+\subsection{Navigation Scenarios and Shared Settings}
+The planar navigation benchmark couples a body-velocity model to the velocity
+interface. Moderately cluttered, narrow-passage, and densely obstructed maps
+contain 8, 12, and 18 circular obstacles, respectively, with radii of
+0.15--0.45 m. All maps span $8\times8$ m. Start--goal distances are
+3.5--5, 4--6, and 4.5--6.5 m, respectively, and narrow passages are
+0.70--0.95 m wide. Sampling rejects start--goal pairs disconnected under the
+physical robot footprint, without screening against each method's inflated
+planning set. Test maps, starts, and goals are shared across methods.
+
+Navigation observations comprise the local LiDAR scan, relative goal, and robot
+state; budget-conditioned methods additionally receive the safety indicator and
+remaining budget. All methods use the same command limits and frozen tracker,
+with matched network widths and training interaction budgets. The high-level
+decision interval is 0.2 s and the task horizon is 30 s. Reference budgets are
+120, 140, and 190 a.u. for the three map families. The cost is the navigation
+proxy defined in Appendix~\ref{app:calibration_details}, rather than measured
+electrical energy.
+
+These settings apply to the three-scene navigation benchmark. The paired
+trajectory diagnostic uses a separate map and budget of 85 a.u. and is not
+pooled into the main tables. Calibration uses 800 fitting and 400 held-out
+paired rollouts. The hardware study uses 30 trials on a separate route with a
+60 s horizon and budget of 230 a.u.; its results are reported separately.
+Calibration, training, budget selection, and final evaluation use separate
+rollout sets.
+
+\subsection{Baseline Objectives and Optimization}
+RC-PPO uses the same frozen velocity tracker and training interaction budget as
+HD-MCRA, with $\alpha=\delta=0$. RA omits cost conditioning and the budget input.
+PPO$_{\beta_L}$ and PPO$_{\beta_H}$ use safety weights $\beta_L=1$ and
+$\beta_H=5$, respectively, in
+\[
+r_t=10I_{\rm goal}+2(d_{t-1}-d_t)-c_t/z_{\rm ref}
+-\beta I_{\rm collision},
+\]
+where $d_t$ denotes goal distance. CPPO uses the same reward and safety-weight
+settings, with an additional Lagrangian expected-cost constraint
+$\mathbb E[J/z_{\rm ref}]\leq1$. Its dual variable is initialized at 1,
+updated with step size 0.01, and projected to $[0,100]$.
+
+\subsection{Metric Aggregation and Statistical Intervals}
 Each method is evaluated on 300 trials per scene, with 100 independently
 sampled cases for each of three fixed trained policies. Tables average the
 three scene means equally; balanced allocation gives 900 trials in total.
