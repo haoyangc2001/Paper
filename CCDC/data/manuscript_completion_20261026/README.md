@@ -1,5 +1,7 @@
 # 内部模拟配置与数据
 
+2026-10-29版本指向：本目录的`hardware_results.json`及`protocol.json`中的hardware仍保留30次历史数据；当前硬件对照已迁移至[hardware_comparison_20261029](../hardware_comparison_20261029/README.md)，两方法各50次。其余仿真/方法配置仍由本目录提供。不要运行旧脚本hardware/results/full模式回写新稿；使用新目录README中的专用只读审查命令。
+
 全部新增配置及结果为authored_example或computed_from_synthetic，不是实测。protocol.json为本轮说明契约；inference_ledger记录67项决策，main_result_ledger记录105点；margin_sweep.csv保存16×5逐项理由。主比较区间依据continuous_sd.csv及明确计数计算，旧人工端点保留在main_results.json的legacy_interval。
 
 main_results、calibration_results、ablation_budget_results、margin_sweep_results、hardware_results是审计脚本由已审查输入计算的派生产物；perturbation_results为逐项内部示例。不能把这些文件改名为empirical后当成采集证据。

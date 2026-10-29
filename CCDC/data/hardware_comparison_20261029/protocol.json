@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0",
+  "data_status": "synthetic_example",
+  "empirical_validation": false,
+  "purpose": "Internal hardware-comparison example; not acquired robot measurements",
+  "inherits": {
+    "path": "CCDC/data/manuscript_completion_20261026/protocol.json",
+    "sha256": "691fe8270ea15fad78c3494158e45487729f1bd2f806a5bbc3e1a71ba0667cb1",
+    "fields": [
+      "measurement.cost",
+      "measurement.geometry",
+      "measurement.observations",
+      "low_level",
+      "high_level"
+    ],
+    "override": "hardware: replace n/outcomes/moments only; retained configuration specified below"
+  },
+  "methods": {
+    "HD-MCRA": {
+      "n": 50,
+      "alpha": 0.18,
+      "delta_m": 0.12
+    },
+    "RC-PPO": {
+      "n": 50,
+      "alpha": 0,
+      "delta_m": 0
+    }
+  },
+  "total_instances": 100,
+  "hardware": {
+    "robot": "Unitree Go2",
+    "route_m": 15,
+    "narrow_extra_width_m": 0.3,
+    "footprint_m": [
+      0.7,
+      0.32
+    ],
+    "horizon_s": 60,
+    "goal_radius_m": 0.2,
+    "budget_au": 230,
+    "low_hz": 50,
+    "high_hz": 5,
+    "PD_hz": 200,
+    "sensors": "joint encoders/IMU, 36 horizontally projected LiDAR ranges and local scan-matching pose",
+    "compute": "x86-64 CPU with 16GB RAM",
+    "photos": "historical qualitative deployment illustrations, not evidence for these synthetic counts"
+  },
+  "fairness": {
+    "shared": "same frozen tracker/normalization, observations, command limits, indoor task, matched starts/goals and budget",
+    "training": "same architectures and interaction budget; separately optimized high-level policies; fixed clipped means at evaluation",
+    "pairing": "50 matched task instances per method, not 50 per photograph; paired outcomes/covariances are not specified",
+    "nominal": "each method replays its own issued commands; commands across methods need not match",
+    "moving_obstacle": "same prescribed moving-obstacle condition; no claim of identical stochastic encounters"
+  },
+  "terminal_rules": {
+    "priority": [
+      "physical_contact",
+      "localization_abort",
+      "manual_takeover",
+      "success",
+      "timeout"
+    ],
+    "success": "goal reached collision-free before60s without prior abort/takeover; budget exceedance does not disqualify success",
+    "physical_contact": "any physical footprint contact; terminal, includes chair-leg contact",
+    "localization_abort": "pose unavailable/unreliable causing stop; subsequent operator recovery belongs to this category",
+    "manual_takeover": "safety intervention before any other terminal event; separate from recovery after failure",
+    "timeout": "60s without earlier terminal event",
+    "tie_rule": "record first terminal event; listed priority resolves simultaneous events; each trial counted once"
+  },
+  "metrics": {
+    "order": [
+      "SR",
+      "Cost",
+      "CR",
+      "BVR",
+      "MC"
+    ],
+    "SR": "100*success/50",
+    "CR": "100*physical_contact/50",
+    "BVR": "100*count(executed raw cost>230)/50; crossing never ends trial",
+    "Cost": "mean over all50 trials until their respective first terminal event, a.u. proxy not joules",
+    "MC": "mean per-trial minimum physical footprint clearance over all50 trials; clip contact minima to0; meters",
+    "denominators": "all50, not successes-only",
+    "sample_sd": "unbiased sample SD, denominator49",
+    "display": {
+      "rates_decimals": 1,
+      "cost_decimals": 1,
+      "MC_decimals": 2
+    }
+  },
+  "statistics": {
+    "confidence": 0.95,
+    "rates": "Wilson score with n=50",
+    "continuous": "two-sided t mean interval with df49 from individually authored synthetic mean and sample SD",
+    "independence": "illustrative marginal independent-trial model conditional on fixed policies, not empirical coverage",
+    "paired_difference": "descriptive point differences only; no paired significance without joint outcomes",
+    "inputs": "counts/means/SD sufficient statistics; no synthetic sensor logs"
+  },
+  "inference": "one judgment per ledger entry; scripts derive statistics or feasibility checks only",
+  "historical_result": "old30-trial hardware_results.json remains immutable; not pooled with new50",
+  "files_preserved": [
+    {
+      "path": "CCDC/data/manuscript_completion_20261026/hardware_results.json",
+      "sha256": "6461b9126d6b163fe0462f2c5850a5a2efff0e430fa229ce3987c360cf3c99f6"
+    },
+    {
+      "path": "CCDC/data/manuscript_completion_20261026/protocol.json",
+      "sha256": "691fe8270ea15fad78c3494158e45487729f1bd2f806a5bbc3e1a71ba0667cb1"
+    },
+    {
+      "path": "CCDC/latex/1020/IEEEtran.cls",
+      "sha256": "c972aca108fda004c3514d63658e02816da2e54d9a1451e870b9bd970e003f55"
+    },
+    {
+      "path": "CCDC/latex/1020/references.bib",
+      "sha256": "4b4b458770c921cdfad84c5467256f409c3908d6c183ef9ec0bd2901cfa25870"
+    },
+    {
+      "path": "CCDC/images/1020/ablation_horizontal.pdf",
+      "sha256": "4351823d519805c900d48307991ee233890528a08e812d975e1ca87e2a6d03ea"
+    },
+    {
+      "path": "CCDC/images/1020/budget_sweep_horizontal.pdf",
+      "sha256": "d1b1f4c432a3b092612cd87d75fa83fb2da4edef9b45b269032b240d49b2db72"
+    },
+    {
+      "path": "CCDC/images/1020/deployment_calibration_overview.pdf",
+      "sha256": "d52b91217d81a6035b0bf95e0ce924c331e501525ec0b4c2ce92110ed46fdc3c"
+    },
+    {
+      "path": "CCDC/images/1020/figure_budget_sweep_v3.pdf",
+      "sha256": "fd3df98cf283e2a5714ba2a84f58a1f421b983b2c0adb911cb1e1cdd8a231841"
+    },
+    {
+      "path": "CCDC/images/1020/figure_budget_sweep_v3.png",
+      "sha256": "7da39b4a6c7c4da211ab63b63d20d7c2233df293ddd18e3ccfdf2e85a713c2fe"
+    },
+    {
+      "path": "CCDC/images/1020/figure_metrics_grid_single_column_v3.pdf",
+      "sha256": "601b69c8e3e34a55dab4d043815d7bacec81ad25a015f723d208470c9ee5ccd1"
+    },
+    {
+      "path": "CCDC/images/1020/framework_overview_final.png",
+      "sha256": "7a5414042068ab0391edd0ba1e9ae5acc091fc72a25644c718453ba674d3ae83"
+    },
+    {
+      "path": "CCDC/images/1020/margin_calibration.pdf",
+      "sha256": "d959a7d76a49830b8fbdae13c1374fa4bfd8ca397556da9c9917847e6f288cf4"
+    },
+    {
+      "path": "CCDC/images/1020/metrics_comparison_assumed.pdf",
+      "sha256": "9c93488178a96d6a44da8902da6eb052a4bf4cdc531f23f8d776c4b4474cee24"
+    },
+    {
+      "path": "CCDC/images/1020/metrics_comparison.pdf",
+      "sha256": "78b6d59d9973ed01125253c07d5e73f67964baf6eb9d77b7b4f2a176e4b0f7af"
+    },
+    {
+      "path": "CCDC/images/1020/office_sequence_candidate_A_numbered.jpg",
+      "sha256": "934f1ea9d00d5c218e1e99710a9b0d3c95bef138f7813d6deebac3a49ab62326"
+    },
+    {
+      "path": "CCDC/images/1020/office_shortest_path_sequence_final.png",
+      "sha256": "7386317de92b2c086f73bc8e48f47c74398458dfb648fbb21c48a4d6852fd1e9"
+    },
+    {
+      "path": "CCDC/images/1020/trajectory_sync.pdf",
+      "sha256": "5e51a1741ade6af2211ed8717e9e8279143990aa3d09a12d680565470f411dad"
+    }
+  ]
+}

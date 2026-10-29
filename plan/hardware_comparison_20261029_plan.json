@@ -1,0 +1,1423 @@
+{
+  "document": {
+    "name": "CCDC真机对照假设稿：HD-MCRA与无校准RC-PPO各50次逐项推演、同步与阶段复查计划",
+    "version": "1.1.0",
+    "created_at": "2026-10-29",
+    "mode": "execute",
+    "source_plan": "本会话2026-10-29已确认需求：仅补完整方法与零裕度RC-PPO的真机对照，各50次；逐项推演并与仿真关联，在5.6用短段和单栏表呈现；本轮仅创建计划。",
+    "status_definition": {
+      "false": "尚未执行、部分完成或验证未通过",
+      "true": "目标完成、依赖全部完成且验收证据已追加"
+    },
+    "update_rule": "JSON为唯一执行状态入口。按数组顺序执行首个依赖全部完成的未完成任务；每次先追加work_records，再写verification_result并设置status=true。不得覆盖历史记录。开始执行前必须完整读取execution-rules.md和本JSON，并用update模式校验。",
+    "companion_document": "C:/Users/smile/Desktop/paper/plan/hardware_comparison_20261029_说明.md",
+    "revisions": [
+      {
+        "date": "2026-10-29",
+        "version": "1.1.0",
+        "authorization": "用户质疑86%后授权重新分析修整；追加TASK-023--029。首版记录保留为历史。"
+      }
+    ]
+  },
+  "background": {
+    "business_context": "论文核心是通过冻结低层速度接口以及alpha成本修正、delta几何修正，将RC-PPO/MCRA工程化用于四足导航。评审关注真机证据是否支持执行校准，而非单纯要求固定次数。",
+    "current_capability": "当前CCDC 1020稿5.6只有HD-MCRA 30次的合成示例结果、部署照片及失败分类；原数据明确empirical_validation=false。仿真主结果、消融、预算、校准及扰动实验已具备示例数据。",
+    "problem_to_solve": "在不扩大真实测试工作范围的前提下，为假设稿补齐两方法各50次的可追溯对照数据、紧凑表格及短分析，并同步当前统计口径；不把计划或合成数据视为已完成的实验。",
+    "prior_evidence": "本轮核对到旧hardware_results.json和旧生成/审核脚本中存在n=30、旧均值区间和断言，必须区别历史与当前版本。"
+  },
+  "goal": {
+    "primary": "完成一份内部假设稿的真机对照增补：两方法各50次、所有数据逐项推演自洽、与既有仿真关系解释清楚、单栏表及简洁正文统一、可按映射替换真实数据。",
+    "success_equation": "范围不扩张 + 逐项依据完整 + 计数/连续统计量可实现 + 跨实验逻辑一致 + 合成来源清楚 + 全文与附录同步 + 单栏编译及视觉检查通过。",
+    "deliverables": [
+      "独立版本的对照协议、两方法结果、逐项推演台账和只读验证脚本",
+      "CCDC 1020主稿5.6新增单栏对照表、简短分析及相关附录更新",
+      "更新后的PDF",
+      "阶段复查A至E、最终交接说明及真实数据替换清单",
+      "可持续追加的JSON工作记录"
+    ]
+  },
+  "scope": {
+    "included": [
+      "HD-MCRA与无校准RC-PPO两方法各50次的合成示例规模",
+      "逐项确定计数、终止分类、BVR交叉关系、Cost与MC以及有依据的合成统计区间",
+      "参考既有仿真主结果、消融、扰动结果与真机场景作关联审查",
+      "5.6短段与单栏表、相关附录、数据来源说明和历史版本指向同步",
+      "按阶段复查、修正、编译和视觉检查"
+    ],
+    "excluded": [
+      "本轮创建计划后自动执行",
+      "真实机器人/仿真器运行、远程服务器操作或采集传感器日志",
+      "新增场景、低摩擦测试、其他基线、单裕度/无分层真机消融",
+      "批量公式或随机噪声生成所有实验结果",
+      "把推定充分统计量或合成区间称为实测数据",
+      "修改现有仿真结果以迎合真机示例，或重新绘制现有图片",
+      "更换论文模板、另建main_preview、删除历史数据",
+      "未经用户另行授权的git提交、远程推送或投稿"
+    ]
+  },
+  "global_constraints": [
+    "严格执行已确认范围：只有HD-MCRA与无校准RC-PPO，各50次；主稿在现有main.tex基础上更新，单栏表，不另建预览稿。",
+    "任何不确定决策都必须暂停并询问用户，不能擅自改变范围、数据来源与统计语义、依赖、输出、已有承诺保留的产物或远程状态。已明确授权的逐项数值判断、本文所列文件编辑和编译不重复请求确认。",
+    "先逐项推定，再检查相关前序条目及全文；不得用一个生成器、统一提升比例、固定差值或随机噪声批量生成数据。脚本仅用于派生统计、数学可实现性检查、同步与排版。",
+    "不预设方法全面领先，不以制造显著性为目标；真实实验出现时必须允许结论改变。",
+    "新增数据标记data_status=synthetic_example及empirical_validation=false；在稿件该对照处保留一次简短的合成示例说明，不在各单元格反复标注；不把人工数据写成已实测事实。",
+    "推定均值/SD与计数须有逐项记录；统计区间由明确输入和算法计算，只能解释为合成数据的示例区间。",
+    "50次意味着SR/CR/BVR每次对应2个百分点；失败类型互斥且合计与成功为50，BVR可交叉，不强制SR+CR=100%。",
+    "成本含全部试验，提前失败可使成本降低；MC按每次最小物理净空平均，接触时截为0；同一组数据应在这些口径下联合可实现。",
+    "真机与仿真具有不同路线、时限、预算与footprint，不池化，不照搬绝对数值或提升比例；只解释机制联系和适用范围。",
+    "保留原30次历史数据、推演台账、旧计划和工作记录；新版本通过明确入口取代历史消费者，不能伪造或改写历史记录。",
+    "使用apply_patch编辑文件；不升级依赖或安装新环境；用本机现有Conda/Python和TeX。",
+    "阶段复查发现错误及时回溯并追加更正，重新验证相关依赖；不能把未通过的数据带入正文。",
+    "任务状态初始全部false，work_records为空，verification_result为空；创建计划不视为执行完成。"
+  ],
+  "uncertainty_policy": {
+    "rule": "遇到未由当前约定确定、且可能改变范围/数据含义/依赖/输出/已有工作/费用/远程状态的决策，保持当前任务false，追加阻塞记录并询问用户。",
+    "already_authorized": [
+      "各方法50次的示例规模",
+      "基于上下文逐项推演与回溯修正示例值",
+      "在5.6加入一张单栏表及短分析",
+      "同步相关附录和数据文档并编译",
+      "在新版本保存合成结果并保留旧历史"
+    ],
+    "must_pause_and_ask": [
+      "存在多个不能确定权威性的现行数据、仓库或配置来源",
+      "需要新增场景、变更实际路线/预算/指标口径、引入额外基线或另建实验任务",
+      "需要删除/覆盖/移动未授权的历史文件或用户改动，或重新生成计划之外产物",
+      "必须修改核心依赖或新增外部服务/费用",
+      "无法通过确定性证据解释基线差异或无法区分数据错误与基础设施故障",
+      "需要未授权的提交、推送、投稿或远程状态变更"
+    ],
+    "question_format": "说明任务ID、已确认事实、不确定点、可选方案及各自影响，等待用户明确选择；不只询问怎么办。",
+    "routine_decisions": "目录中新建计划列明的文件、选择已有统计函数、逐项推定值及为保持内部逻辑而修正本次示例，均在已确认范围内；无需逐值询问。"
+  },
+  "paths": {
+    "workspace": "C:/Users/smile/Desktop/paper",
+    "plan": "C:/Users/smile/Desktop/paper/plan/hardware_comparison_20261029_plan.json",
+    "readme": "C:/Users/smile/Desktop/paper/plan/hardware_comparison_20261029_说明.md",
+    "paper_tex": "C:/Users/smile/Desktop/paper/CCDC/latex/1020/main.tex",
+    "paper_pdf": "C:/Users/smile/Desktop/paper/CCDC/output/1020/main.pdf",
+    "paper_readme": "C:/Users/smile/Desktop/paper/CCDC/latex/1020/README.md",
+    "legacy_data": "C:/Users/smile/Desktop/paper/CCDC/data/manuscript_completion_20261026",
+    "legacy_hardware": "C:/Users/smile/Desktop/paper/CCDC/data/manuscript_completion_20261026/hardware_results.json",
+    "legacy_protocol": "C:/Users/smile/Desktop/paper/CCDC/data/manuscript_completion_20261026/protocol.json",
+    "legacy_audit": "C:/Users/smile/Desktop/paper/CCDC/scripts/audit_manuscript_completion_20261026.py",
+    "review_source": "C:/Users/smile/Desktop/paper/CORL/submission/openreview_reviews_extracted.txt",
+    "planned_data_directory": "C:/Users/smile/Desktop/paper/CCDC/data/hardware_comparison_20261029",
+    "planned_protocol": "C:/Users/smile/Desktop/paper/CCDC/data/hardware_comparison_20261029/protocol.json",
+    "planned_results": "C:/Users/smile/Desktop/paper/CCDC/data/hardware_comparison_20261029/hardware_comparison_results.json",
+    "planned_ledger": "C:/Users/smile/Desktop/paper/CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl",
+    "planned_readme": "C:/Users/smile/Desktop/paper/CCDC/data/hardware_comparison_20261029/README.md",
+    "planned_validation_report": "C:/Users/smile/Desktop/paper/CCDC/data/hardware_comparison_20261029/validation_report.json",
+    "planned_audit": "C:/Users/smile/Desktop/paper/CCDC/scripts/audit_hardware_comparison_20261029.py",
+    "planned_review_directory": "C:/Users/smile/Desktop/paper/CCDC/submission/hardware_comparison_20261029",
+    "planned_replacement_map": "C:/Users/smile/Desktop/paper/CCDC/submission/hardware_comparison_20261029/replacement_map.md",
+    "planned_delivery_review": "C:/Users/smile/Desktop/paper/CCDC/submission/hardware_comparison_20261029/delivery_review.md",
+    "build_script": "C:/Users/smile/Desktop/paper/CCDC/scripts/build-1020.ps1",
+    "python": "D:/codesoftware/Miniconda/python.exe",
+    "latex_bin": "D:/app/latex/texlive/2026/bin/windows",
+    "skill_validator": "C:/Users/smile/.codex/skills/create-plan-worklog/scripts/validate_worklog.py"
+  },
+  "inference_record_contract": {
+    "required_fields": [
+      "id",
+      "revision_of",
+      "method",
+      "metric_or_outcome",
+      "data_status",
+      "empirical_validation",
+      "source_paths",
+      "old_value",
+      "new_value",
+      "unit",
+      "denominator",
+      "reasoning",
+      "related_entry_ids",
+      "cross_metric_constraints",
+      "validation_checks",
+      "affected_consumers"
+    ],
+    "sequence": "每一条推定完成后检查再继续；更正通过新增revision_of记录，不覆盖旧记录。",
+    "sufficient_statistics": "允许逐项作者指定的计数、均值和SD，不要求伪造100条原始实机日志。若增加逐次合成样本，必须单独标记且不能冒充采集记录。",
+    "intervals": "比例区间由n=50和计数计算Wilson；连续均值区间只有在相应合成mean/SD输入经过审查时才计算。保留原始精度，最后统一显示舍入。"
+  },
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "phase": "现状与环境",
+      "goal": "建立当前主稿、数据和工作区的可追溯基线",
+      "status": true,
+      "depends_on": [],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:48:49.920Z",
+          "summary": "建立基线并确认旧脚本不能作为新结果入口",
+          "actions": [
+            "建立基线并确认旧脚本不能作为新结果入口"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/baseline.md"
+          ],
+          "commands": [
+            "git status --short",
+            "git rev-parse HEAD",
+            "PyMuPDF页数读取",
+            "rg旧审核脚本"
+          ],
+          "results": [
+            "HEAD与工作区已核对；PDF10页；原数据哈希已记录；旧n=30及旧断言已定位"
+          ],
+          "evidence": [
+            "HEAD与工作区已核对；PDF10页；原数据哈希已记录；旧n=30及旧断言已定位"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "只做现状核对；先检查工作区，保留用户已有修改，不自动提交或清理。",
+        "定位5.6、附录D中的30次设置、hardware_results.json、protocol.json、审查脚本和相关说明；记录编译器及Python路径。"
+      ],
+      "acceptance_criteria": [
+        "baseline.md记录HEAD、工作区状态、当前PDF页数和受影响文件清单。",
+        "区分当前入口与历史版本；明确旧脚本hardware()/results()/full中的n=30和旧数字断言，后续不得直接全量运行。"
+      ],
+      "verification_result": "HEAD与工作区已核对；PDF10页；原数据哈希已记录；旧n=30及旧断言已定位"
+    },
+    {
+      "id": "TASK-002",
+      "phase": "现状与环境",
+      "goal": "固定两方法各50次的对照协议与统计口径",
+      "status": true,
+      "depends_on": [
+        "TASK-001"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:50:18.104Z",
+          "summary": "固定同条件两方法各50次协议、继承配置及互斥终止规则",
+          "actions": [
+            "固定同条件两方法各50次协议、继承配置及互斥终止规则"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/protocol.json"
+          ],
+          "commands": [
+            "JSON协议字段检查"
+          ],
+          "results": [
+            "2×50=100；50/5Hz、15m、60s、230a.u.和footprint保持原协议；BVR独立交叉统计；各方法使用自身指令配对名义轨迹"
+          ],
+          "evidence": [
+            "2×50=100；50/5Hz、15m、60s、230a.u.和footprint保持原协议；BVR独立交叉统计；各方法使用自身指令配对名义轨迹"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "仅HD-MCRA和无校准RC-PPO，后者alpha=delta=0；保留同一个冻结低层，不新增场景、扰动或基线。",
+        "沿用现有真机场景和配置；50次是每种方法的总数，不自动理解成每幅照片或每个场景50次。",
+        "完整方法与RC-PPO可分别训练高层，但训练资源、输入和评价条件应匹配；最终评价时参数固定。",
+        "先核对现有15 m路线、60 s、230 a.u.、50/5 Hz、实际footprint及导航输入；未获授权不变更。"
+      ],
+      "acceptance_criteria": [
+        "protocol.json明确每方法n=50、总计100个合成试验实例的统计规模及数据性质；不声称已实际运行。",
+        "成功、碰撞、定位中止、超时、人工接管的计数规则明确；BVR单独统计并可与成功重叠；成本/MC计入全部终止结果。",
+        "不同方法的评测起终点、场景条件及预算配对；各自名义轨迹应使用各自实际下发指令，不能错误要求两策略指令相同。"
+      ],
+      "verification_result": "2×50=100；50/5Hz、15m、60s、230a.u.和footprint保持原协议；BVR独立交叉统计；各方法使用自身指令配对名义轨迹"
+    },
+    {
+      "id": "TASK-003",
+      "phase": "现状与环境",
+      "goal": "建立真机示例与已有仿真结果的关联约束",
+      "status": true,
+      "depends_on": [
+        "TASK-002"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:51:26.073Z",
+          "summary": "核对主比较、消融、扰动与校准数据并建立跨场景约束",
+          "actions": [
+            "核对主比较、消融、扰动与校准数据并建立跨场景约束"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/cross_context.md"
+          ],
+          "commands": [],
+          "results": [
+            "源文件与正文关键数值一致；不同路线/预算/footprint不可池化；成本尾部、失败和净空耦合已列明"
+          ],
+          "evidence": [
+            "源文件与正文关键数值一致；不同路线/预算/footprint不可池化；成本尾部、失败和净空耦合已列明"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "核对主表、裕度消融、扰动实验、校准图及原有真机数据；不修改仿真数据迎合新结果。",
+        "旧26/30、86.7%、Cost=184和MC=0.11仅作历史示例锚点，不按50/30缩放，也不先固定50次的成功率。",
+        "保留仿真和真机路线、时限、footprint及预算不同的事实；绝对数值不能直接合并。"
+      ],
+      "acceptance_criteria": [
+        "cross_context.md逐项列出相关数据来源、指标定义、可参考的机制趋势与不可照搬的数值。",
+        "注明预算校准主要影响BVR，几何裕度主要影响净空/接触；作用存在耦合，不能预设必然改善或全指标领先。"
+      ],
+      "verification_result": "源文件与正文关键数值一致；不同路线/预算/footprint不可池化；成本尾部、失败和净空耦合已列明"
+    },
+    {
+      "id": "TASK-004",
+      "phase": "阶段复查A",
+      "goal": "审查比较协议和跨实验关联后再开始推演",
+      "status": true,
+      "depends_on": [
+        "TASK-003"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:51:28.248Z",
+          "summary": "完成协议与来源阶段复查A",
+          "actions": [
+            "完成协议与来源阶段复查A"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/review_A.md"
+          ],
+          "commands": [],
+          "results": [
+            "001--003逐项复核通过；源版本、样本分母、配置和指标语义已对齐，无未决范围变更"
+          ],
+          "evidence": [
+            "001--003逐项复核通过；源版本、样本分母、配置和指标语义已对齐，无未决范围变更"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "检查是否把50次扩大成每场景50次、误把人工场景图当作独立统计组，或改变了任务定义。",
+        "发现范围/数据语义不确定且无法依据已确认约定消解时，按uncertainty_policy暂停；例行数值推演在授权范围内继续。"
+      ],
+      "acceptance_criteria": [
+        "review_A.md逐条验收TASK-001至003，明确问题、修正和证据。",
+        "协议、对照定义、源数据和统计分母全部对齐后方可开始填值。"
+      ],
+      "verification_result": "001--003逐项复核通过；源版本、样本分母、配置和指标语义已对齐，无未决范围变更"
+    },
+    {
+      "id": "TASK-005",
+      "phase": "完整方法逐项推演",
+      "goal": "建立推演台账并先确定HD-MCRA成功计数",
+      "status": true,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:51:57.000Z",
+          "summary": "先独立确定完整方法成功计数并建立逐项台账",
+          "actions": [
+            "先独立确定完整方法成功计数并建立逐项台账"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "H01记录43/50=86.0%，剩余7次；含完整来源、关联约束与合成标记"
+          ],
+          "evidence": [
+            "H01记录43/50=86.0%，剩余7次；含完整来源、关联约束与合成标记"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "只先推演成功计数这一项；参考旧示例、任务难度和相关仿真表现，不能沿用26/30的比例机械换算。",
+        "每次只写一个条目并说明理由；脚本不得自动决定成功次数。"
+      ],
+      "acceptance_criteria": [
+        "inference_ledger.jsonl有一个完整试填记录，含来源、旧值、新值、单位、分母、理由、关联指标、待核查关系和合成数据标记。",
+        "HD-MCRA成功次数为0至50的整数，SR由该计数计算，步长为2个百分点；不能先定任意小数成功率再凑次数。"
+      ],
+      "verification_result": "H01记录43/50=86.0%，剩余7次；含完整来源、关联约束与合成标记"
+    },
+    {
+      "id": "TASK-006",
+      "phase": "完整方法逐项推演",
+      "goal": "逐类确定HD-MCRA失败构成及碰撞计数",
+      "status": true,
+      "depends_on": [
+        "TASK-005"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:52:27.196Z",
+          "summary": "逐类确定完整方法失败及碰撞计数",
+          "actions": [
+            "逐类确定完整方法失败及碰撞计数"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "H02--H05分别审查：43成功+3定位+2超时+2接触+0单独接管=50；CR=4%，无重复归类"
+          ],
+          "evidence": [
+            "H02--H05分别审查：43成功+3定位+2超时+2接触+0单独接管=50；CR=4%，无重复归类"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "每个失败类别单独推演与记账，复核已确定成功次数。",
+        "终止类型互斥且穷尽；接触计为碰撞时，成功定义必须排除碰撞；不把一次接管重复计为多个失败。"
+      ],
+      "acceptance_criteria": [
+        "成功与各终止失败次数之和为50；CR可追溯到碰撞次数。",
+        "所有类别具有明确统计含义；关联冲突通过追加更正记录解决，不覆盖台账历史。"
+      ],
+      "verification_result": "H02--H05分别审查：43成功+3定位+2超时+2接触+0单独接管=50；CR=4%，无重复归类"
+    },
+    {
+      "id": "TASK-007",
+      "phase": "完整方法逐项推演",
+      "goal": "确定HD-MCRA预算超支计数及其与终止结果的交叉关系",
+      "status": true,
+      "depends_on": [
+        "TASK-006"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:53:00.061Z",
+          "summary": "逐格确定完整方法预算超支与终止结果交叉关系",
+          "actions": [
+            "逐格确定完整方法预算超支与终止结果交叉关系"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "5/50=10%；3成功+2超时超预算，各交叉格不超过对应终止计数；BVR不等于失败率"
+          ],
+          "evidence": [
+            "5/50=10%；3成功+2超时超预算，各交叉格不超过对应终止计数；BVR不等于失败率"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "逐项判断成功、超时、碰撞或中止中的超预算分布；不把BVR等同于失败率。",
+        "同一230 a.u.预算口径须与协议一致；不得为凸显alpha效果强行压低完整方法BVR。"
+      ],
+      "acceptance_criteria": [
+        "BVR总计不超过50，各交叉格不超过对应终止类别次数。",
+        "budget_outcome_cross_counts能复算预算超支总数和比例，并与SR/CR计数一致。"
+      ],
+      "verification_result": "5/50=10%；3成功+2超时超预算，各交叉格不超过对应终止计数；BVR不等于失败率"
+    },
+    {
+      "id": "TASK-008",
+      "phase": "完整方法逐项推演",
+      "goal": "逐项确定HD-MCRA执行成本的合成统计量",
+      "status": true,
+      "depends_on": [
+        "TASK-007"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:53:31.833Z",
+          "summary": "分别推演完整方法成本均值和SD并验证与超支计数可同时成立",
+          "actions": [
+            "分别推演完整方法成本均值和SD并验证与超支计数可同时成立"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "H11/H12：186、43；5个250与45个低预算值可构成均值/SD，低组范围139.621--218.156，超时分配至250组，2个60秒成本下界216满足"
+          ],
+          "evidence": [
+            "H11/H12：186、43；5个250与45个低预算值可构成均值/SD，低组范围139.621--218.156，超时分配至250组，2个60秒成本下界216满足"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "先推演均值，再单独判断离散程度；结合运行时长、失败提前结束、预算超支计数及现有成本函数。",
+        "采用当前代理成本a.u.，不得称为电流、焦耳或真实能耗。",
+        "如用合成充分统计量而非逐次记录，明确mean/SD均为逐项推定，不伪造传感器日志。"
+      ],
+      "acceptance_criteria": [
+        "均值、SD和超预算次数在非负成本及预算约束下具有可实现性；记录必要的界或构造性检查。",
+        "每个输入统计量均有独立台账理由，未从仿真均值按比例缩放。"
+      ],
+      "verification_result": "H11/H12：186、43；5个250与45个低预算值可构成均值/SD，低组范围139.621--218.156，超时分配至250组，2个60秒成本下界216满足"
+    },
+    {
+      "id": "TASK-009",
+      "phase": "完整方法逐项推演",
+      "goal": "逐项确定HD-MCRA平均最小净空的合成统计量",
+      "status": true,
+      "depends_on": [
+        "TASK-008"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:54:38.868Z",
+          "summary": "分别推演完整方法MC均值和SD并校验接触与通道几何",
+          "actions": [
+            "分别推演完整方法MC均值和SD并校验接触与通道几何"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "H13/H14：0.108m、0.055m；2个0、12个0.024493与36个0.141836构成矩统计证人，全部≤0.15m，不作为采集日志"
+          ],
+          "evidence": [
+            "H13/H14：0.108m、0.055m；2个0、12个0.024493与36个0.141836构成矩统计证人，全部≤0.15m，不作为采集日志"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "依据硬件footprint、狭窄通道几何、碰撞次数和总体路线推演，不直接复制平面仿真的0.31 m。",
+        "按原口径接触时净空截为0，MC含全部试验；不要把瞬时净空误当每次最小净空。"
+      ],
+      "acceptance_criteria": [
+        "MC均值与SD分别记账，并与碰撞零值数量及可通行几何相容。",
+        "完整方法五个指标均可由指定计数或合成充分统计量追溯。"
+      ],
+      "verification_result": "H13/H14：0.108m、0.055m；2个0、12个0.024493与36个0.141836构成矩统计证人，全部≤0.15m，不作为采集日志"
+    },
+    {
+      "id": "TASK-010",
+      "phase": "阶段复查B",
+      "goal": "复查完整方法全部指标和推演方式",
+      "status": true,
+      "depends_on": [
+        "TASK-009"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:54:40.986Z",
+          "summary": "完成完整方法计数、成本尾部和净空几何复查B",
+          "actions": [
+            "完成完整方法计数、成本尾部和净空几何复查B"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/review_B.md"
+          ],
+          "commands": [],
+          "results": [
+            "H01--H14全量关系复核通过；成本与净空均有构造性证据；旧版差异和示例来源已说明"
+          ],
+          "evidence": [
+            "H01--H14全量关系复核通过；成本与净空均有构造性证据；旧版差异和示例来源已说明"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "横向审查所有指标，纵向回看全部前序条目，不只检查最近一个值。",
+        "若发现均值/离散度/BVR或MC/CR不相容，先修正并复查，不把矛盾留到排版阶段。"
+      ],
+      "acceptance_criteria": [
+        "review_B.md包含计数守恒、预算交叉关系、成本/净空可实现性及与历史示例的差异说明。",
+        "脚本只做派生量计算或核查，未用固定差值、统一倍率或随机噪声批量创造结果。"
+      ],
+      "verification_result": "H01--H14全量关系复核通过；成本与净空均有构造性证据；旧版差异和示例来源已说明"
+    },
+    {
+      "id": "TASK-011",
+      "phase": "基线逐项推演",
+      "goal": "逐项确定无校准RC-PPO成功、失败及碰撞计数",
+      "status": true,
+      "depends_on": [
+        "TASK-010"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:55:35.486Z",
+          "summary": "逐项确定零裕度方法成功和各终止失败计数",
+          "actions": [
+            "逐项确定零裕度方法成功和各终止失败计数"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "R01--R05：40成功+3定位+3超时+4接触=50；SR80%、CR8%；共享接口失败未虚构为低层差异"
+          ],
+          "evidence": [
+            "R01--R05：40成功+3定位+3超时+4接触=50；SR80%、CR8%；共享接口失败未虚构为低层差异"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "SR及每个失败类别依次推演，不一次生成整行；每个条目都对照HD-MCRA及仿真已有关系。",
+        "完整与零裕度方法共享低层，不能把不存在的低层差异当作失败原因；不能为了增加差距人为抬高基线失败。"
+      ],
+      "acceptance_criteria": [
+        "所有终止结果合计50，SR和CR均由整数计数产生。",
+        "台账解释差异可能来自何种预算/几何行为；不写成已观察到的真实事故。"
+      ],
+      "verification_result": "R01--R05：40成功+3定位+3超时+4接触=50；SR80%、CR8%；共享接口失败未虚构为低层差异"
+    },
+    {
+      "id": "TASK-012",
+      "phase": "基线逐项推演",
+      "goal": "确定无校准RC-PPO预算超支及终止结果交叉计数",
+      "status": true,
+      "depends_on": [
+        "TASK-011"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:55:37.568Z",
+          "summary": "逐格确定零裕度预算超支并对齐两方法口径",
+          "actions": [
+            "逐格确定零裕度预算超支并对齐两方法口径"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "6成功+3超时=9/50=18%；未将BVR等同于失败率；两方法同230阈值"
+          ],
+          "evidence": [
+            "6成功+3超时=9/50=18%；未将BVR等同于失败率；两方法同230阈值"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "参考成本修正机制与仿真BVR差异，逐项推演，不能固定套用仿真百分点。",
+        "检查成功但超预算、失败但未超预算等情况；两方法使用相同预算阈值。"
+      ],
+      "acceptance_criteria": [
+        "基线BVR和交叉计数自洽且与完整方法采用相同统计口径。",
+        "每项差异及修正均有台账记录。"
+      ],
+      "verification_result": "6成功+3超时=9/50=18%；未将BVR等同于失败率；两方法同230阈值"
+    },
+    {
+      "id": "TASK-013",
+      "phase": "基线逐项推演",
+      "goal": "逐项确定无校准RC-PPO执行成本统计量",
+      "status": true,
+      "depends_on": [
+        "TASK-012"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:56:19.863Z",
+          "summary": "逐项确定基线成本均值/SD并复核较低均值与较高BVR相容",
+          "actions": [
+            "逐项确定基线成本均值/SD并复核较低均值与较高BVR相容"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "181/51；9个255及41个123.724--205.789内低组存在矩证人；3个超时可分配至高组"
+          ],
+          "evidence": [
+            "181/51；9个255及41个123.724--205.789内低组存在矩证人；3个超时可分配至高组"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "均值与SD单独判断；同时考虑少绕行、提前失败和执行误差，不要求完整方法成本必然更低。",
+        "发现与前面BVR计数矛盾时允许回溯修正，记录原因。"
+      ],
+      "acceptance_criteria": [
+        "基线Cost及离散度与预算超支/终止类别存在可实现的联合关系。",
+        "两方法成本差异具有机制解释，未用同一比例从仿真映射。"
+      ],
+      "verification_result": "181/51；9个255及41个123.724--205.789内低组存在矩证人；3个超时可分配至高组"
+    },
+    {
+      "id": "TASK-014",
+      "phase": "基线逐项推演",
+      "goal": "逐项确定无校准RC-PPO最小净空统计量",
+      "status": true,
+      "depends_on": [
+        "TASK-013"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:56:21.957Z",
+          "summary": "分别确定基线MC均值/SD及接触几何可实现性",
+          "actions": [
+            "分别确定基线MC均值/SD及接触几何可实现性"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "MC .082/.058；4个0、20个0.027226和26个0.136750满足矩统计与窄口几何；两方法共28项独立记录"
+          ],
+          "evidence": [
+            "MC .082/.058；4个0、20个0.027226和26个0.136750满足矩统计与窄口几何；两方法共28项独立记录"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "均值与SD分别推演，与碰撞零值、机器人实际轮廓和相同场景几何对齐。",
+        "不为让表格好看而修改指标或设置，不强行形成均匀差距。"
+      ],
+      "acceptance_criteria": [
+        "基线MC统计量具有可实现性；所有字段来源与合成性质完整。",
+        "两方法全部待填输入统计量已逐项完成，未通过规则脚本批量生成。"
+      ],
+      "verification_result": "MC .082/.058；4个0、20个0.027226和26个0.136750满足矩统计与窄口几何；两方法共28项独立记录"
+    },
+    {
+      "id": "TASK-015",
+      "phase": "阶段复查C",
+      "goal": "审查两方法之间及仿真与真机之间的整体逻辑",
+      "status": true,
+      "depends_on": [
+        "TASK-014"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:57:22.617Z",
+          "summary": "完成两方法及跨实验机制、权衡复查C",
+          "actions": [
+            "完成两方法及跨实验机制、权衡复查C"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/review_C.md"
+          ],
+          "commands": [],
+          "results": [
+            "全部28项无计数或矩统计冲突；成本较高而BVR更低关系有证据；不宣称显著性、单裕度或分层因果结论"
+          ],
+          "evidence": [
+            "全部28项无计数或矩统计冲突；成本较高而BVR更低关系有证据；不宣称显著性、单裕度或分层因果结论"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "审核公平性、所有终止计数、BVR交叉计数、Cost/MC统计量和可能的代价权衡。",
+        "区分完整方法vs零裕度的整体比较与单alpha/单delta因果归因；本实验不能单独证明两个裕度各自贡献，也不能证明分层优于端到端。"
+      ],
+      "acceptance_criteria": [
+        "review_C.md记录全量关系检查及每个修正的来源；冲突已闭环。",
+        "叙述能解释哪些结论来自已有仿真消融，哪些仅是本次合成真机对照的拟展示差异。"
+      ],
+      "verification_result": "全部28项无计数或矩统计冲突；成本较高而BVR更低关系有证据；不宣称显著性、单裕度或分层因果结论"
+    },
+    {
+      "id": "TASK-016",
+      "phase": "统计验证",
+      "goal": "计算两方法最终比例、示例区间和对照结果并做小批及全量验证",
+      "status": true,
+      "depends_on": [
+        "TASK-015"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T07:59:34.944Z",
+          "summary": "小批检查发现测试常数录入错误，未进入正文写入",
+          "actions": [
+            "小批检查发现测试常数录入错误，未进入正文写入"
+          ],
+          "files_changed": [
+            "CCDC/scripts/audit_hardware_comparison_20261029.py"
+          ],
+          "commands": [
+            "audit_hardware_comparison_20261029.py --pilot"
+          ],
+          "results": [
+            "25/50 Wilson断言失败；独立p=.5化简公式用于定位，问题在预期值常数，不涉及作者输入"
+          ],
+          "evidence": [
+            "25/50 Wilson断言失败；独立p=.5化简公式用于定位，问题在预期值常数，不涉及作者输入"
+          ],
+          "remaining_work": [
+            "将测试改为p=.5的独立闭式结果并重新验证小批及全量"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-10-29T07:59:57.863Z",
+          "summary": "修正测试预期后完成比例和区间计算及全量验证",
+          "actions": [
+            "修正测试预期后完成比例和区间计算及全量验证"
+          ],
+          "files_changed": [
+            "CCDC/scripts/audit_hardware_comparison_20261029.py",
+            "CCDC/data/hardware_comparison_20261029/hardware_comparison_results.json",
+            "CCDC/data/hardware_comparison_20261029/validation_report.json"
+          ],
+          "commands": [
+            "audit_hardware_comparison_20261029.py --pilot",
+            "audit_hardware_comparison_20261029.py --derive",
+            "audit_hardware_comparison_20261029.py"
+          ],
+          "results": [
+            "Wilson0/25/50边界通过；p=.5预期改由独立闭式表达式核对；t49临界值数值积分通过；28项台账、10指标、计数/矩可实现性、保留文件哈希均通过"
+          ],
+          "evidence": [
+            "Wilson0/25/50边界通过；p=.5预期改由独立闭式表达式核对；t49临界值数值积分通过；28项台账、10指标、计数/矩可实现性、保留文件哈希均通过"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "实现专用只读审查/派生统计脚本，不修改原历史生成器后直接全量运行；新增计算须使用既有环境。",
+        "先用手算可核查的小批计数、0/50与50/50边界检验Wilson计算，再计算完整结果。",
+        "若为Cost/MC报告t区间，必须引用逐项推定的mean/SD、n=50、df=49，并标明为合成充分统计量计算；不把手工范围当成实测CI。",
+        "不由两组区间重叠与否断言显著性，不用正态/t区间推断个体成本或净空取值范围。"
+      ],
+      "acceptance_criteria": [
+        "hardware_comparison_results.json仅含两方法，均n=50；所有显示值、差值和区间可复算。",
+        "validation_report.json记录计数、边界、区间、关系和数据性质检查；存在失败时不进入稿件更新。",
+        "若缺乏支持某统计量的必要输入，先按不确定策略处理，不手工捏造端点。"
+      ],
+      "verification_result": "Wilson0/25/50边界通过；p=.5预期改由独立闭式表达式核对；t49临界值数值积分通过；28项台账、10指标、计数/矩可实现性、保留文件哈希均通过"
+    },
+    {
+      "id": "TASK-017",
+      "phase": "阶段复查D",
+      "goal": "冻结可用于假设稿的结果版本与解释范围",
+      "status": true,
+      "depends_on": [
+        "TASK-016"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:01:24.273Z",
+          "summary": "冻结已验收的表格输入、精度与解释范围",
+          "actions": [
+            "冻结已验收的表格输入、精度与解释范围"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/review_D.md"
+          ],
+          "commands": [],
+          "results": [
+            "28项输入对应两行五指标及计算区间；冻结哈希已保存；所有数值有来源；照片与合成统计不混淆"
+          ],
+          "evidence": [
+            "28项输入对应两行五指标及计算区间；冻结哈希已保存；所有数值有来源；照片与合成统计不混淆"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "检查每个最终字段均有台账来源；对所有区间区分推定输入与确定性计算输出。",
+        "合成数据与此前真实场景照片不能互相证明；现有照片只能作为部署场景说明。"
+      ],
+      "acceptance_criteria": [
+        "review_D.md验收数据、区间、解释边界和表格输入，明确empirical_validation=false。",
+        "最终数据文件与逐项推演台账一致；不再保留待定数值或互相冲突的旧活跃引用。"
+      ],
+      "verification_result": "28项输入对应两行五指标及计算区间；冻结哈希已保存；所有数值有来源；照片与合成统计不混淆"
+    },
+    {
+      "id": "TASK-018",
+      "phase": "论文整合",
+      "goal": "在5.6加入紧凑单栏对照表并精简结果分析",
+      "status": true,
+      "depends_on": [
+        "TASK-017"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:01:27.564Z",
+          "summary": "将已验收两方法示例加入5.6单栏表并精简失败和成本分析",
+          "actions": [
+            "将已验收两方法示例加入5.6单栏表并精简失败和成本分析"
+          ],
+          "files_changed": [
+            "CCDC/latex/1020/main.tex"
+          ],
+          "commands": [],
+          "results": [
+            "新增唯一tab:hardware_comparison；10个显示值逐项对照冻结输入；完整行浅蓝，最低Cost按实际值加粗RC-PPO；图未改；未声称显著性或实测"
+          ],
+          "evidence": [
+            "新增唯一tab:hardware_comparison；10个显示值逐项对照冻结输入；完整行浅蓝，最低Cost按实际值加粗RC-PPO；图未改；未声称显著性或实测"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "列顺序SR、Cost、CR、BVR、MC；表注明每方法n=50，沿用浅蓝完整方法行和既有格式，避免重复解释粗体。",
+        "按实际示例值公平加粗极值，Cost须结合SR解释；不要机械突出完整方法。",
+        "正文保留现有部署设置，用短段说明两方法同条件比较、关键差异和失败构成；不重复整行数字，不增加新图片。",
+        "在该对照表或所在小节以一次简短说明明确数据为合成示例，单元格不重复标注；不可写成已完成50次实机采集。"
+      ],
+      "acceptance_criteria": [
+        "主稿只有一张新增真机对照表，5.6文字紧凑且与工程定位一致。",
+        "数字全部来自已验收结果；旧26/30及其区间不再作为当前结果；图表label唯一、表格单栏。",
+        "结果解释不宣称实测、统计显著性、普遍安全保证或单裕度因果验证。"
+      ],
+      "verification_result": "新增唯一tab:hardware_comparison；10个显示值逐项对照冻结输入；完整行浅蓝，最低Cost按实际值加粗RC-PPO；图未改；未声称显著性或实测"
+    },
+    {
+      "id": "TASK-019",
+      "phase": "论文整合",
+      "goal": "同步当前附录和活跃数据说明的50次对照信息",
+      "status": true,
+      "depends_on": [
+        "TASK-018"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:04:05.933Z",
+          "summary": "同步附录D与各活跃README，建立真实数据替换映射",
+          "actions": [
+            "同步附录D与各活跃README，建立真实数据替换映射"
+          ],
+          "files_changed": [
+            "CCDC/latex/1020/main.tex",
+            "CCDC/latex/1020/README.md",
+            "CCDC/data/manuscript_completion_20261026/README.md",
+            "CCDC/submission/manuscript_completion_20261026/README.md",
+            "CCDC/data/hardware_comparison_20261029/README.md",
+            "CCDC/submission/hardware_comparison_20261029/replacement_map.md"
+          ],
+          "commands": [
+            "audit_hardware_comparison_20261029.py --check-tex"
+          ],
+          "results": [
+            "附录n50、df49、SD与区间同步；正文旧30次结果已移除；历史数据哈希未变；主稿/新旧README清晰指向新入口"
+          ],
+          "evidence": [
+            "附录n50、df49、SD与区间同步；正文旧30次结果已移除；历史数据哈希未变；主稿/新旧README清晰指向新入口"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "更新主稿附录D-A的试验规模、D-C的n=30及相关统计口径，核查正文其他引用；不改无关校准/仿真样本数。",
+        "新数据保存在hardware_comparison_20261029目录；旧20261026数据、历史台账和旧计划原样保留，在相关README明确旧30次已被新版本替代并指向最新入口。",
+        "新protocol显式继承未变配置并覆盖hardware统计；不让旧脚本30次结果成为最新消费者的输入。"
+      ],
+      "acceptance_criteria": [
+        "所有活跃真机结果与协议指向两方法各50次；旧版本仅作为历史保存且来源清晰。",
+        "README及replacement_map.md列出正文、附录、表格、数据、统计输入/算法和将来真实替换位置。",
+        "避免全局替换数字30、50或旧均值，未改变既有方法和仿真结果。"
+      ],
+      "verification_result": "附录n50、df49、SD与区间同步；正文旧30次结果已移除；历史数据哈希未变；主稿/新旧README清晰指向新入口"
+    },
+    {
+      "id": "TASK-020",
+      "phase": "阶段复查E",
+      "goal": "验证稿件和数据同步后的全局一致性",
+      "status": true,
+      "depends_on": [
+        "TASK-019"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:05:27.538Z",
+          "summary": "完成新表与正文附录全局一致性复查E",
+          "actions": [
+            "完成新表与正文附录全局一致性复查E"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/review_E.md",
+            "CCDC/data/hardware_comparison_20261029/validation_report.json"
+          ],
+          "commands": [
+            "audit_hardware_comparison_20261029.py --check-tex",
+            "git diff --check",
+            "git diff -- CCDC/latex/1020/main.tex"
+          ],
+          "results": [
+            "10表值、全部计数及连续区间验证通过；原图片/历史数据/模板17文件哈希不变；Git差异范围正确；7图3表单栏；报告patch格式问题已修正"
+          ],
+          "evidence": [
+            "10表值、全部计数及连续区间验证通过；原图片/历史数据/模板17文件哈希不变；Git差异范围正确；7图3表单栏；报告patch格式问题已修正"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "以新数据为依据核对表格每个单元格、正文计数、失败分类、区间、差值和附录分母。",
+        "检查既有结果图和仿真表无数值/资产变更；检查图表编号及交叉引用。"
+      ],
+      "acceptance_criteria": [
+        "review_E.md和只读验证结果显示新对照全文一致，未出现50次计数与小数成功率不相容。",
+        "历史版本允许保留30次，但活跃稿件不存在旧30次真机结论；所有差异都在授权范围。"
+      ],
+      "verification_result": "10表值、全部计数及连续区间验证通过；原图片/历史数据/模板17文件哈希不变；Git差异范围正确；7图3表单栏；报告patch格式问题已修正"
+    },
+    {
+      "id": "TASK-021",
+      "phase": "编译与交付",
+      "goal": "编译并审查新增单栏表及受影响页的版面",
+      "status": true,
+      "depends_on": [
+        "TASK-020"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:08:20.034Z",
+          "summary": "编译并完成所有受影响页视觉复查",
+          "actions": [
+            "编译并完成所有受影响页视觉复查"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/layout_review.md",
+            "CCDC/output/1020/main.pdf"
+          ],
+          "commands": [
+            "PDF authoring marker edit/1/pdf",
+            "CCDC/scripts/build-1020.ps1",
+            "pdftoppm -f 6 -l 10 -r 100 -png",
+            "PyMuPDF原PDF与新PDF前5页像素比较",
+            "audit_hardware_comparison_20261029.py --check-tex"
+          ],
+          "results": [
+            "PDF10页与基线相同；表III第6页单栏且在真机小节；参考文献第7页/附录第8页；6--10页已检查；1--5页像素哈希相同；无新增引用/越界问题；8页上限问题如实保留"
+          ],
+          "evidence": [
+            "PDF10页与基线相同；表III第6页单栏且在真机小节；参考文献第7页/附录第8页；6--10页已检查；1--5页像素哈希相同；无新增引用/越界问题；8页上限问题如实保留"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "执行前读取适用PDF技能；使用现有build-1020.ps1和编译环境，遵守所需authoring marker。",
+        "保持模板字号、页边距、栏宽、既有图尺寸及附录在参考文献后的布局；不擅自大幅压缩或删正文。",
+        "新增表不能越过对应小节；仅按需要微调浮动位置，不因少量留白扩大重排范围。"
+      ],
+      "acceptance_criteria": [
+        "PDF成功编译，无新增未定义引用、重复标签、溢出或表格裁切。",
+        "视觉检查新增表及全部受影响页，检查单栏、字号、间距、图表顺序和页数；记录截图路径及结果。",
+        "如总页数超过会议限制，如实记录，不通过修改模板掩盖。"
+      ],
+      "verification_result": "PDF10页与基线相同；表III第6页单栏且在真机小节；参考文献第7页/附录第8页；6--10页已检查；1--5页像素哈希相同；无新增引用/越界问题；8页上限问题如实保留"
+    },
+    {
+      "id": "TASK-022",
+      "phase": "最终复查与交付",
+      "goal": "完成最终审查和真实数据替换交接",
+      "status": true,
+      "depends_on": [
+        "TASK-021"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:09:40.192Z",
+          "summary": "完成全部阶段审查与真实数据替换交接",
+          "actions": [
+            "完成全部阶段审查与真实数据替换交接"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/delivery_review.md",
+            "plan/hardware_comparison_20261029_说明.md"
+          ],
+          "commands": [
+            "git diff --check",
+            "validate_worklog.py --mode update"
+          ],
+          "results": [
+            "全部前序21项有验收记录；阶段问题闭环；真实替换链覆盖数据/区间/表格/正文/附录；PDF10页和8页上限问题已如实记录；无Git提交推送"
+          ],
+          "evidence": [
+            "全部前序21项有验收记录；阶段问题闭环；真实替换链覆盖数据/区间/表格/正文/附录；PDF10页和8页上限问题已如实记录；无Git提交推送"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-10-29T08:10:16.469Z",
+          "summary": "最终Git状态核对后修正版面报告中的预览文件跟踪说明",
+          "actions": [
+            "将误写为已忽略的预览目录更正为5张未跟踪验收图片，保留证据"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/layout_review.md"
+          ],
+          "commands": [
+            "git status --short"
+          ],
+          "results": [
+            "预览尚未加入Git；正文、数据和PDF未变化"
+          ],
+          "evidence": [
+            "git status列出CCDC/output/1020/review/hardware_comparison_20261029/为未跟踪"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "复核所有阶段问题均已关闭，工作记录仅追加，完成状态须有真实验收证据。",
+        "不自动git提交、推送、投稿或运行实际机器人；仅报告工作区改动和交付。"
+      ],
+      "acceptance_criteria": [
+        "delivery_review.md总结范围、数据性质、逐项推演与验证证据、PDF页数和剩余真实实验需求。",
+        "replacement_map.md覆盖从合成数据到真实日志、统计区间、图表及结论的完整替换链。",
+        "计划update模式校验通过，全部任务status=true且有记录与非空verification_result。"
+      ],
+      "verification_result": "全部前序21项有验收记录；阶段问题闭环；真实替换链覆盖数据/区间/表格/正文/附录；PDF10页和8页上限问题已如实记录；无Git提交推送"
+    },
+    {
+      "id": "TASK-023",
+      "phase": "v2场景合理性复核",
+      "goal": "重新建立场景难度依据并保留v1结果快照",
+      "status": true,
+      "depends_on": [
+        "TASK-022"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:45:00.353Z",
+          "summary": "建立v2场景依据并备份v1数据与验证报告",
+          "actions": [
+            "建立v2场景依据并备份v1数据与验证报告"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/revision_v2.md",
+            "CCDC/data/hardware_comparison_20261029/history/v1_hardware_comparison_results.json",
+            "CCDC/data/hardware_comparison_20261029/history/v1_validation_report.json"
+          ],
+          "commands": [
+            "git status --short",
+            "仿真JSON筛选",
+            "Get-FileHash",
+            "PyMuPDF页图哈希"
+          ],
+          "results": [
+            "窄道73/72、扰动65/58及CR参照已核对；.03m名义侧余量与时间压力明确；配置不变；v1原结果和基线哈希已保存"
+          ],
+          "evidence": [
+            "窄道73/72、扰动65/58及CR参照已核对；.03m名义侧余量与时间压力明确；配置不变；v1原结果和基线哈希已保存"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "不改变两方法各50次及配置；不把旧86.7%当成证据",
+        "新增v2任务，旧22项及审查记录保留"
+      ],
+      "acceptance_criteria": [
+        "revision_v2.md记录窄通道和扰动参照、物理几何/时限、无法从仿真唯一推断真机概率",
+        "v1结果与验证报告备份，记录原稿哈希/页数和已有工作区改动"
+      ],
+      "verification_result": "窄道73/72、扰动65/58及CR参照已核对；.03m名义侧余量与时间压力明确；配置不变；v1原结果和基线哈希已保存"
+    },
+    {
+      "id": "TASK-024",
+      "phase": "v2场景合理性复核",
+      "goal": "逐项重审完整方法失败、SR及其余指标",
+      "status": true,
+      "depends_on": [
+        "TASK-023"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:47:34.692Z",
+          "summary": "逐项追加完整方法14项v2修订并检查联合约束",
+          "actions": [
+            "逐项追加完整方法14项v2修订并检查联合约束"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [
+            "作者逐项审查H2-01--14",
+            "成本与净空代数可实现性检查"
+          ],
+          "results": [
+            "8接触+3定位+4超时+0接管+35成功=50；BVR3成功+3超时+1接触=7；Cost182/SD54、MC.086/SD.057可实现；v1条目未改"
+          ],
+          "evidence": [
+            "8接触+3定位+4超时+0接管+35成功=50；BVR3成功+3超时+1接触=7；Cost182/SD54、MC.086/SD.057可实现；v1条目未改"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "先按风险逐项重审终止计数，再取补集SR；每项独立理由并追加revision_of",
+        "BVR交叉、Cost均值/SD、MC均值/SD逐项审查，不生成日志"
+      ],
+      "acceptance_criteria": [
+        "完整方法14字段均有v2审查记录；成功与失败合计50",
+        "矩统计、尾部与净空物理约束有可实现性核查"
+      ],
+      "verification_result": "8接触+3定位+4超时+0接管+35成功=50；BVR3成功+3超时+1接触=7；Cost182/SD54、MC.086/SD.057可实现；v1条目未改"
+    },
+    {
+      "id": "TASK-025",
+      "phase": "v2场景合理性复核",
+      "goal": "完整方法阶段复查",
+      "status": true,
+      "depends_on": [
+        "TASK-024"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:47:37.564Z",
+          "summary": "完成完整方法风险构成与数学一致性复查",
+          "actions": [
+            "完成完整方法风险构成与数学一致性复查"
+          ],
+          "files_changed": [
+            "CCDC/submission/hardware_comparison_20261029/revision_v2.md"
+          ],
+          "commands": [],
+          "results": [
+            "成功为已审查失败补集；含非超预算超时和晚期超预算接触；几何及矩证人通过，无未决矛盾"
+          ],
+          "evidence": [
+            "成功为已审查失败补集；含非超预算超时和晚期超预算接触；几何及矩证人通过，无未决矛盾"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "先处理矛盾再进入基线，不能把成功率下降机械分摊到其他指标"
+      ],
+      "acceptance_criteria": [
+        "revision_v2.md记录完整方法复查及修正，无未解矛盾"
+      ],
+      "verification_result": "成功为已审查失败补集；含非超预算超时和晚期超预算接触；几何及矩证人通过，无未决矛盾"
+    },
+    {
+      "id": "TASK-026",
+      "phase": "v2场景合理性复核",
+      "goal": "逐项重审零裕度基线所有指标",
+      "status": true,
+      "depends_on": [
+        "TASK-025"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:48:57.297Z",
+          "summary": "逐项追加基线14字段v2修订并复核可实现性",
+          "actions": [
+            "逐项追加基线14字段v2修订并复核可实现性"
+          ],
+          "files_changed": [
+            "CCDC/data/hardware_comparison_20261029/inference_ledger.jsonl"
+          ],
+          "commands": [],
+          "results": [
+            "10接触+3定位+5超时+32成功=50；BVR5成功+4超时+2接触=11；Cost176/SD62、MC.067/SD.056具备矩证人；28个新条目均有revision_of"
+          ],
+          "evidence": [
+            "10接触+3定位+5超时+32成功=50；BVR5成功+4超时+2接触=11；Cost176/SD62、MC.067/SD.056具备矩证人；28个新条目均有revision_of"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "共享低层/定位，单独判断基线行为，不能机械减去固定百分点",
+        "每项用revision_of追加，保留原台账"
+      ],
+      "acceptance_criteria": [
+        "基线14字段均有记录；终止/BVR交叉、Cost/MC口径统一",
+        "有独立判断和数学可实现性证据"
+      ],
+      "verification_result": "10接触+3定位+5超时+32成功=50；BVR5成功+4超时+2接触=11；Cost176/SD62、MC.067/SD.056具备矩证人；28个新条目均有revision_of"
+    },
+    {
+      "id": "TASK-027",
+      "phase": "v2场景合理性复核",
+      "goal": "跨方法复查并更新确定性统计与审查器",
+      "status": true,
+      "depends_on": [
+        "TASK-026"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:52:36.337Z",
+          "summary": "更新可复算统计与版本审查，完成跨方法复核",
+          "actions": [
+            "更新可复算统计与版本审查，完成跨方法复核"
+          ],
+          "files_changed": [
+            "CCDC/scripts/audit_hardware_comparison_20261029.py",
+            "CCDC/data/hardware_comparison_20261029/hardware_comparison_results.json",
+            "CCDC/data/hardware_comparison_20261029/validation_report.json",
+            "CCDC/submission/hardware_comparison_20261029/revision_v2.md"
+          ],
+          "commands": [
+            "audit_hardware_comparison_20261029.py --derive",
+            "audit_hardware_comparison_20261029.py"
+          ],
+          "results": [
+            "56条台账含28条不变历史和28条修订；10指标区间通过；非超预算超时、成功成本下界、接触零点联合检查通过；无新增实测声明"
+          ],
+          "evidence": [
+            "56条台账含28条不变历史和28条修订；10指标区间通过；非超预算超时、成功成本下界、接触零点联合检查通过；无新增实测声明"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "不要求完整方法全指标领先，不从合成区间宣称实测或显著性",
+        "审查器解除旧硬编码正文/计数，验证新版本并保留历史"
+      ],
+      "acceptance_criteria": [
+        "v2结果与台账相符，区间均由明确输入计算",
+        "小批和全量验证通过；成本/净空联合可实现，仿真数据未改"
+      ],
+      "verification_result": "56条台账含28条不变历史和28条修订；10指标区间通过；非超预算超时、成功成本下界、接触零点联合检查通过；无新增实测声明"
+    },
+    {
+      "id": "TASK-028",
+      "phase": "v2场景合理性复核",
+      "goal": "同步表格、正文、附录及活跃说明",
+      "status": true,
+      "depends_on": [
+        "TASK-027"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:55:13.114Z",
+          "summary": "同步v2表格、正文附录与当前版本说明",
+          "actions": [
+            "同步v2表格、正文附录与当前版本说明"
+          ],
+          "files_changed": [
+            "CCDC/latex/1020/main.tex",
+            "CCDC/latex/1020/README.md",
+            "CCDC/data/hardware_comparison_20261029/README.md",
+            "CCDC/data/hardware_comparison_20261029/validation_report.json",
+            "CCDC/submission/hardware_comparison_20261029/replacement_map.md",
+            "CCDC/submission/hardware_comparison_20261029/delivery_review.md",
+            "CCDC/submission/hardware_comparison_20261029/revision_v2.md",
+            "plan/hardware_comparison_20261029_说明.md"
+          ],
+          "commands": [
+            "audit_hardware_comparison_20261029.py --check-tex",
+            "git diff --check",
+            "逐字符比较真机节前正文"
+          ],
+          "results": [
+            "10表值、10组区间、失败/预算交叉与当前台账一致；v1仅历史；方法和仿真正文未变；单栏/浅蓝/公平粗体保持"
+          ],
+          "evidence": [
+            "10表值、10组区间、失败/预算交叉与当前台账一致；v1仅历史；方法和仿真正文未变；单栏/浅蓝/公平粗体保持"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "沿用单栏和现有简洁风格；保留一次合成说明",
+        "旧阶段报告不改写，新增当前版本说明和替换映射"
+      ],
+      "acceptance_criteria": [
+        "10个表值、计数、SD/区间及分析与v2一致",
+        "旧86/80只留历史；没有修改方法或仿真数据"
+      ],
+      "verification_result": "10表值、10组区间、失败/预算交叉与当前台账一致；v1仅历史；方法和仿真正文未变；单栏/浅蓝/公平粗体保持"
+    },
+    {
+      "id": "TASK-029",
+      "phase": "v2场景合理性复核",
+      "goal": "编译与最终复查",
+      "status": true,
+      "depends_on": [
+        "TASK-028"
+      ],
+      "work_records": [
+        {
+          "timestamp": "2026-10-29T08:59:23.688Z",
+          "summary": "完成v2编译、变化页视觉检查与最终一致性审计",
+          "actions": [
+            "完成v2编译、变化页视觉检查与最终一致性审计"
+          ],
+          "files_changed": [
+            "CCDC/output/1020/main.pdf",
+            "CCDC/output/1020/review/hardware_comparison_20261029/v2/page-06.png",
+            "CCDC/output/1020/review/hardware_comparison_20261029/v2/page-10.png",
+            "CCDC/submission/hardware_comparison_20261029/revision_v2.md"
+          ],
+          "commands": [
+            "CCDC/scripts/build-1020.ps1",
+            "audit_hardware_comparison_20261029.py --check-tex",
+            "pdftoppm -f 6 -l 6 -r 125 -png",
+            "pdftoppm -f 10 -l 10 -r 125 -png",
+            "git diff --check"
+          ],
+          "results": [
+            "现有构建脚本退出码0，PDF保持10页；已记录8页上限未满足",
+            "仅第6/10页栅格变化，两页视觉检查通过，其他8页逐像素一致",
+            "7处原有Underfull，无Overfull/未定义引用/重复标签",
+            "--check-tex及git diff --check通过；示例性质及历史证据保留",
+            "未提交或推送Git，HEAD不变"
+          ],
+          "evidence": [
+            "现有构建脚本退出码0，PDF保持10页；已记录8页上限未满足",
+            "仅第6/10页栅格变化，两页视觉检查通过，其他8页逐像素一致",
+            "7处原有Underfull，无Overfull/未定义引用/重复标签",
+            "--check-tex及git diff --check通过；示例性质及历史证据保留",
+            "未提交或推送Git，HEAD不变"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
+      "constraints_and_notes": [
+        "读取PDF技能并使用已有工具链；不更换模板或改图",
+        "不自动提交/推送Git"
+      ],
+      "acceptance_criteria": [
+        "编译与受影响页面视觉检查通过，页数如实记录",
+        "追加工作记录，所有修订任务验证完成"
+      ],
+      "verification_result": "现有构建脚本退出码0，PDF保持10页；已记录8页上限未满足；仅第6/10页栅格变化，两页视觉检查通过，其他8页逐像素一致；7处原有Underfull，无Overfull/未定义引用/重复标签；--check-tex及git diff --check通过；示例性质及历史证据保留；未提交或推送Git，HEAD不变"
+    }
+  ],
+  "final_acceptance": [
+    "仅完成两方法各50次的合成真机对照，不增加额外场景、基线、图片或真实运行。",
+    "两个方法的每项输入均有独立推演依据及追加台账；脚本未替代逐项判断。",
+    "计数、失败构成、BVR交叉关系、Cost/MC、区间和展示精度全部自洽且数学可实现。",
+    "与仿真结果形成有依据的机制联系，未复制仿真数值、夸大归因或预设全面领先。",
+    "新增单栏表和简短结果段符合现有工程论文风格；稿件该对照处明确合成示例性质，未伪称已采集。",
+    "正文、附录、最新数据入口、README和替换映射一致；旧30次仅保留为历史。",
+    "PDF编译及视觉审查通过，真实记录页数和潜在篇幅问题，不修改模板掩盖。",
+    "各阶段审查问题均闭环，所有任务有证据，JSON update模式验证通过。",
+    "交付时明确后续须用真实试验记录替换统计和结论，不自动提交或推送。"
+  ]
+}

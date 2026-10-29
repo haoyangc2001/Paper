@@ -1,4 +1,13 @@
-## 2026-10-26 完整内部模拟稿（最新入口）
+## 2026-10-29 真机对照更新（当前入口）
+
+本次已修订为v2：完整方法35/50=70%，基线32/50=64%；碰撞、超时、预算交叉计数、Cost/MC和区间同步重审，不再用旧86.7%作为主要依据。完整分析见[场景合理性修订](../../submission/hardware_comparison_20261029/revision_v2.md)。v1保留在新数据目录history/及原台账；数据仍为合成示例。
+
+5.6新增HD-MCRA与无校准RC-PPO各50次的合成示例对照，单栏表按SR、Cost、CR、BVR、MC排列；附录D同步统计和区间。现有图片和仿真结果不变。
+当前硬件数据及逐项台账：[数据说明](../../data/hardware_comparison_20261029/README.md)；[真实替换清单](../../submission/hardware_comparison_20261029/replacement_map.md)。旧30次仅保留为历史，不与新50次合并。
+新增表统一注明合成示例；数据未经实测验证。旧审核脚本中的hardware/results/full仍面向历史30次，不用于最新主稿。最新核查使用`../../scripts/audit_hardware_comparison_20261029.py --check-tex`。
+编译与最终页数见[交付审查](../../submission/hardware_comparison_20261029/delivery_review.md)。下方条目为历史记录。
+
+## 2026-10-26 完整内部模拟稿（历史入口）
 本轮直接补齐main.tex的16处TBD与配置/结果说明，保持原入口，无main_preview。当前PDF为10页，仍超8页上限；作者身份仍为匿名模板。正文为完整内部模拟稿句式，配置和数值尚未经过真实采集验证。
 当前图二来自绘图/20261023_多方法指标对比/output/manuscript_completion_20261026/metrics_comparison.pdf，220×90mm；95%区间由合成计数/SD计算。预算图来自对应预算项目同名新版本，180×50mm；900分母修订少数小数，0.90/0.96/1.12不变。图五110×43.5mm与其他图保持。
 三场景各300例共900；成本统一代理a.u.、参考预算120/140/190；硬件为独立15m/60s/230设定。完整来源、逐项替换与六次审查见../../submission/manuscript_completion_20261026/README.md和replacement_map.md。

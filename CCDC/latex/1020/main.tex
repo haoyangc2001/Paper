@@ -566,14 +566,40 @@ onboard x86-64 CPU with 16 GB RAM, at the same 50 Hz/5 Hz control rates.
 The 15 m task uses a 60 s horizon and budget 230 a.u.; the tracker, navigation
 policy, and margins remain fixed.
 
-There are 26 successful trials out of 30, giving SR $86.7\%$ (95\% Wilson
-interval $70.3$--$94.7\%$). The four remaining trials comprise two localization
-aborts, one timeout, and one chair-leg contact. CR is $1/30$ ($3.3\%$), and
-BVR is $3/30$ ($10.0\%$): two successful trials and the timeout exceed budget.
-Mean executed cost is 184.0 a.u. (95\% interval 167.6--200.4), and MC is
-0.11 m (0.084--0.136 m). All terminal outcomes contribute to these means.
-The different route, horizon, and footprint preclude direct pooling with the
-planar benchmark; this small deployment study does not certify safety.
+Table~\ref{tab:hardware_comparison} compares HD-MCRA with uncalibrated RC-PPO
+under matched scene conditions, starts, goals, and budget. Both methods use the
+same frozen tracker and navigation inputs; their high-level policies are fixed
+throughout evaluation.
+
+\begin{table}[!htbp]
+\caption{Synthetic hardware-comparison example, with 50 trials per method.
+Cost is in a.u. and is interpreted jointly with SR.}
+\label{tab:hardware_comparison}
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}lccccc@{}}
+\hline
+Method & \shortstack{SR\\(\%) $\uparrow$} & Cost & \shortstack{CR\\(\%) $\downarrow$} & \shortstack{BVR\\(\%) $\downarrow$} & \shortstack{MC\\(m) $\uparrow$}\\
+\hline
+\rowcolor{methodblue!9}
+\textbf{HD-MCRA} & \textbf{70.0} & 182.0 & \textbf{16.0} & \textbf{14.0} & \textbf{0.09}\\
+RC-PPO & 64.0 & \textbf{176.0} & 20.0 & 22.0 & 0.07\\
+\hline
+\end{tabular}
+\end{table}
+
+Success counts are $35/50$ for HD-MCRA and $32/50$ for RC-PPO. Both methods
+have three localization aborts; the other failures comprise four timeouts and eight contacts
+for HD-MCRA, versus five timeouts and ten contacts for RC-PPO. BVR decreases
+from 22.0\% to 14.0\%, while mean cost increases from 176.0 to 182.0 a.u.
+These example values illustrate a clearance--cost trade-off: shorter routes and
+earlier failures can lower mean cost without reducing its upper tail.
+Cost and MC include every terminal outcome; the different route, horizon, and
+footprint preclude pooling with the planar benchmark.
+
+\FloatBarrier
 
 \section{Limitations}
 Calibration quantiles do not guarantee
@@ -824,8 +850,15 @@ electrical energy.
 These settings apply to the three-scene navigation benchmark. The paired
 trajectory diagnostic uses a separate map and budget of 85 a.u. and is not
 pooled into the main tables. Calibration uses 800 fitting and 400 held-out
-paired rollouts. The hardware study uses 30 trials on a separate route with a
-60 s horizon and budget of 230 a.u.; its results are reported separately.
+paired rollouts. The hardware comparison contains 50 trials per method on a
+separate route with a 60 s horizon and budget of 230 a.u.; its results are
+reported separately. The tracker, navigation inputs, task conditions, and
+evaluation budget are shared; the high-level policies are trained with matched
+resources and fixed before evaluation. Each nominal rollout receives its own
+method's issued commands. Contact, localization abort, operator takeover, goal
+reaching, and timeout are mutually exclusive terminal outcomes, with this
+priority for simultaneous events. Operator recovery after an already recorded
+failure is not counted again. Budget exceedance does not terminate a trial.
 Calibration, training, budget selection, and final evaluation use separate
 rollout sets.
 
@@ -858,8 +891,22 @@ scene generator; they do not estimate variation over new training seeds.
 Interval overlap is not used as a paired significance test, and marginal
 endpoints cannot establish joint feasibility. Table means are not assigned
 intervals by averaging scenario endpoints. Hardware proportions use
-Wilson intervals with $n=30$; the continuous means use the corresponding
-Student intervals. Calibration quantile uncertainty instead uses the
+Wilson intervals with $n=50$; continuous means use Student intervals with
+49 degrees of freedom and the sample standard deviation. Calibration quantile uncertainty instead uses the
 condition-stratified paired bootstrap described above.
+
+For the hardware example, the 95\% intervals for SR, CR, and BVR are
+56.2--80.9\%, 8.3--28.5\%, and 7.0--26.2\% for HD-MCRA, and
+50.1--75.9\%, 11.2--33.0\%, and 12.8--35.2\% for RC-PPO.
+Cost standard deviations are 54.0 and 62.0 a.u., giving mean intervals of
+166.7--197.3 and 158.4--193.6 a.u., respectively. Unrounded MC means are
+0.086 and 0.067 m, with standard deviations of 0.057 and 0.056 m and mean
+intervals of 0.070--0.102 and 0.051--0.083 m.
+The seven HD-MCRA budget exceedances comprise three successful trials, three
+timeouts, and one contact; the eleven RC-PPO exceedances comprise five successful
+trials, four timeouts, and two contacts. One timeout per method remains within
+budget. These descriptive intervals condition on fixed policies and an
+independent-trial model; no paired significance claim is made without joint
+outcomes for matched cases.
 
 \end{document}
