@@ -65,6 +65,13 @@ def verify_figure(source, target, labels):
         assert new_text.count(METHOD_NAME) == old_text.count(OLD_NAME) == len(labels)
         assert numeric_text(old_text) == numeric_text(new_text)
         assert Counter(old_text.replace(OLD_NAME, '').split()) == Counter(new_text.replace(METHOD_NAME, '').split())
+        for item in labels:
+            if item.get('alignment') == 'right':
+                actual = next(span for block in b.get_text('dict')['blocks']
+                              for line in block.get('lines', []) for span in line['spans']
+                              if span['text'] == METHOD_NAME)
+                assert abs(actual['bbox'][2] - item['anchor_right']) < .1
+                assert abs(actual['origin'][1] - item['origin'][1]) < .001
         # The redaction operation is explicitly forbidden from touching graphics.
         # Removing a text operation changes later sequence numbers, not paths.
         paths = lambda page: [{k: v for k, v in item.items() if k != 'seqno'}
@@ -90,9 +97,10 @@ def verify_figure(source, target, labels):
                 'changed_pixels_outside_labels': int(outside.sum())}
 
 
-def render_names():
-    records = {}
-    for name in FIGURES:
+def render_names(names=FIGURES):
+    manifest = REVIEW/'figure_manifest.json'
+    records = json.loads(manifest.read_text(encoding='utf-8'))['figures'] if manifest.exists() else {}
+    for name in names:
         source, target = REVIEW/'sources'/name, IMAGES/name
         if not source.is_file():
             raise FileNotFoundError(f'Missing pre-rename source snapshot: {source}')
@@ -100,6 +108,12 @@ def render_names():
             page = doc[0]
             labels = name_spans(page)
             assert len(labels) == (2 if name == 'budget_sweep_horizontal.pdf' else 1)
+            if name == 'metrics_comparison.pdf':
+                # Method row names share a right-aligned edge next to the axes.
+                anchor = next(span['bbox'][2] for block in page.get_text('dict')['blocks']
+                              for line in block.get('lines', []) for span in line['spans']
+                              if span['text'] == 'RC-PPO')
+                labels[0].update(alignment='right', anchor_right=anchor)
             for item in labels:
                 page.add_redact_annot(fitz.Rect(item['bbox']), fill=False)
             page.apply_redactions(images=0, graphics=0, text=0)
@@ -110,7 +124,11 @@ def render_names():
                 page.insert_font(fontname=resource, fontfile=font)
                 color = item['color']
                 rgb = tuple(((color >> shift) & 255)/255 for shift in (16, 8, 0))
-                page.insert_text(item['origin'], METHOD_NAME, fontsize=item['size'],
+                origin = list(item['origin'])
+                if item.get('alignment') == 'right':
+                    width = fitz.Font(fontfile=font).text_length(METHOD_NAME, fontsize=item['size'])
+                    origin[0] = item['anchor_right'] - width
+                page.insert_text(origin, METHOD_NAME, fontsize=item['size'],
                                  fontname=resource, color=rgb)
             doc.set_metadata({key: value.replace(OLD_NAME, METHOD_NAME)
                               if isinstance(value, str) else value
@@ -182,6 +200,7 @@ def audit_current():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='read-only validation after rebuilding the paper')
+    parser.add_argument('--figure', choices=FIGURES, help='update only this current figure')
     args = parser.parse_args()
-    result = audit_current() if args.check else render_names()
+    result = audit_current() if args.check else render_names((args.figure,) if args.figure else FIGURES)
     print(json.dumps(result, indent=2))
