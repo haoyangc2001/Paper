@@ -364,7 +364,7 @@ cost and BVR. These results illustrate the joint success--safety--cost trade-off
 
 \begin{table}[!htbp]
 \caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$.
-Bold values mark the highest SR/MC and lowest Cost/CR/BVR. Cost is interpreted jointly with SR.}
+Cost is interpreted jointly with SR.}
 \label{tab:main_results}
 \centering
 \small
@@ -428,8 +428,7 @@ $\delta=0.12$ m. With these margins fixed, held-out coverage is $353/400$
 ($88.25\%$) for cost and $346/400$ ($86.50\%$) for position. These marginal
 coverages assess the error allowances used in budget accounting and obstacle
 inflation; joint held-out coverage is $336/400$ ($84.0\%$). Neither marginal nor
-joint error coverage is a navigation success probability. The calibration
-protocol is given in Appendix~\ref{app:calibration_details}.
+joint error coverage is a navigation success probability.
 
 \begin{figure}[!htbp]
 \centering
@@ -452,7 +451,6 @@ points and reduces clearance.
 \begin{table}[!htbp]
 \caption{Margin ablation with the same frozen tracker and reference budget as
 Table~\ref{tab:main_results}.
-Bold values mark the highest SR/MC and lowest Cost/CR/BVR.
 Cost is interpreted jointly with SR.}
 \label{tab:ablation_draft}
 \centering
@@ -525,14 +523,15 @@ Table~\ref{tab:main_results}.}
 With the policy and margins fixed, the perturbation study evaluates performance as
 execution conditions depart from calibration. Each profile's deviation from
 the nominal condition is increased by 25\%: the lowest friction becomes
-$0.8-1.25(0.8-0.55)=0.4875$, maximum delay becomes 0.125 s, and maximum
+0.4875, maximum delay becomes 0.125 s, and maximum
 velocity-noise standard deviation becomes 0.05 m/s. Across 900 independent
 trials (60 per profile and scene), SR is
 $65.0\%$ and BVR $16.0\%$ for HD-MCRA versus SR $58.0\%$ and BVR $24.0\%$ for
 uncalibrated RC-PPO. Their respective CR values are 22.0\% and 27.0\%, costs
 are 96.8 and 102.4 a.u., and MC values are 0.26 and 0.24 m. No policy or margin
-is refitted for this stress test. These results characterize behavior under this
-specific shift and do not establish coverage under arbitrary distribution shift.
+is refitted for this stress test. Under the tested perturbations, HD-MCRA
+maintains higher success and lower collision and budget-violation rates than
+uncalibrated RC-PPO.
 
 \subsection{Physical-Robot Deployment and Failure Analysis}
 \label{sec:hardware_deployment}
@@ -660,6 +659,15 @@ calibration arena. Incomplete or invalid records are excluded before splitting,
 without filtering on error magnitude. LiDAR noise is excluded from margin
 fitting; observation-error checks use 0.02 m range noise and 5\% dropped rays,
 filled at maximum range.
+
+For the execution-perturbation study, each profile's deviation from the nominal
+condition is scaled by 1.25. The perturbed friction is
+$\mu'=0.8+1.25(\mu-0.8)$, giving a minimum of
+$0.8-1.25(0.8-0.55)=0.4875$; delay and velocity-noise standard deviation are
+scaled as $d'=1.25d$ and $\sigma_v'=1.25\sigma_v$, giving maxima of
+0.125 s and 0.05 m/s. Each profile is evaluated in 60 independent trials per
+scenario, yielding 900 trials per method across the five profiles and three
+scenarios. Policies and margins remain fixed.
 
 \subsection{Measurement and Geometry Conventions}
 For interval length $\Delta t=0.2$ s, the running proxy cost is
