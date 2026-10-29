@@ -31,7 +31,7 @@
 \maketitle
 
 \begin{abstract}
-This paper studies how to instantiate minimum-cost reach-avoid control on a real quadruped robot. Starting from RC-PPO, we address the execution mismatch between its nominal transition model and quadruped locomotion through a frozen velocity tracker and two data-calibrated margins. The cost margin corrects nominal budget accounting, while the geometric margin expands the unsafe set before high-level learning. Across three navigation scenarios, the resulting HD-MCRA system attains 73.3\% success and 9.0\% budget violation, compared with 70.7\% and 14.0\% for uncalibrated RC-PPO. Ablation, held-out calibration, and physical-robot studies examine the distinct roles and deployment limits of these corrections. The contribution is an execution-calibrated engineering pipeline, without extending RC-PPO's deterministic theory to a stochastic safety guarantee.
+This paper studies how to instantiate minimum-cost reach-avoid control on a real quadruped robot. Starting from RC-PPO, we address the execution mismatch between its nominal transition model and quadruped locomotion through a frozen velocity tracker and two data-calibrated margins. The cost margin corrects nominal budget accounting, while the geometric margin expands the unsafe set before high-level learning. Across three navigation scenarios, the resulting calibrated minimum-cost reach-avoid (CaMRA) system attains 73.3\% success and 9.0\% budget violation, compared with 70.7\% and 14.0\% for uncalibrated RC-PPO. Ablation, held-out calibration, and physical-robot studies examine the distinct roles and deployment limits of these corrections. The contribution is an execution-calibrated engineering pipeline, without extending RC-PPO's deterministic theory to a stochastic safety guarantee.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -83,8 +83,8 @@ accommodate path deviations. High-level policy learning and budget search are
 subsequently performed using the calibrated model, and the resulting policy is
 deployed through the same frozen controller.
 
-Our engineering contribution is an execution-calibrated deployment pipeline that
-connects an ideal MCRA learner to a physical closed loop. We do not claim a strict
+Our engineering contribution is a calibrated minimum-cost reach-avoid (CaMRA)
+deployment pipeline that connects an ideal MCRA learner to a physical closed loop. We do not claim a strict
 stochastic safety guarantee or extend RC-PPO's deterministic theory to general
 stochastic systems; instead, our claims are limited to empirical robustness under
 the execution distribution used to calibrate the margins. We evaluate the pipeline
@@ -182,7 +182,7 @@ controller. Let $P_{\mathrm{cl}}$ denote the induced closed-loop transition afte
 this controller is applied. The nominal model used by high-level learning is
 $x_{t+1}=\bar f_{\mathrm{cl}}(x_t,u_t)$, while the executed transition is sampled
 from $P_{\mathrm{cl}}(\cdot\mid x_t,u_t)$. The difference is the deployment gap
-addressed by HD-MCRA. For a paired nominal/executed rollout, we define the relative
+addressed by CaMRA. For a paired nominal/executed rollout, we define the relative
 cost overrun and a trajectory-deviation statistic as
 \begin{equation}
 \varepsilon_c=\frac{J_{\mathrm{exec}}-J_{\mathrm{nom}}}{J_{\mathrm{nom}}},
@@ -196,17 +196,17 @@ distance.
 
 \subsection{Deployment Objective and Scope}
 The deployment objective is to retain the RC-PPO MCRA semantics while accounting
-for the measured distribution of $(\varepsilon_c,\varepsilon_d)$. HD-MCRA treats
+for the measured distribution of $(\varepsilon_c,\varepsilon_d)$. CaMRA treats
 these quantities as empirical descriptions of the nominal-to-execution gap rather
 than as a new stochastic reachability model. The next section describes how a
 fixed velocity interface, paired rollout data, and calibrated margins are used to
 make this gap actionable for high-level learning and deployment.
 
-\section{Execution-Calibrated HD-MCRA}
+\section{Execution-Calibrated CaMRA}
 % TASK-010--TASK-012: interface, mismatch dataset, alpha/delta calibration,
 % robustified RC-PPO learning and deployment algorithm.
 \subsection{System Overview}
-Figure~\ref{fig:system_overview} presents the HD-MCRA architecture, which couples
+Figure~\ref{fig:system_overview} presents the CaMRA architecture, which couples
 a high-level MCRA navigation policy with a pretrained, frozen low-level velocity
 tracker. The system is developed in two stages. First, the tracker is trained and
 frozen, and paired nominal and executed rollouts are collected to calibrate the
@@ -218,7 +218,7 @@ the frozen tracker converts them into joint commands for closed-loop execution.
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/deployment_calibration_overview.pdf}
-\caption{HD-MCRA architecture. Stage 1 establishes a frozen velocity interface
+\caption{CaMRA architecture. Stage 1 establishes a frozen velocity interface
 and calibrates execution margins. Stage 2 incorporates the margins into high-level
 navigation learning and budget selection, retaining the same tracker for execution.
 Scenes and paths are schematic; ghost poses indicate successive robot states.}
@@ -356,7 +356,7 @@ imposes an expected-cost constraint.
 \label{sec:overall_performance}
 Table~\ref{tab:main_results} compares the complete pipeline with the baselines,
 while Fig.~\ref{fig:metrics_draft} separates the same five metrics by scenario.
-Compared with uncalibrated RC-PPO, HD-MCRA increases mean SR from 70.7\% to
+Compared with uncalibrated RC-PPO, CaMRA increases mean SR from 70.7\% to
 73.3\%, reduces mean executed cost from 91.7 to 88.3 a.u., and lowers BVR from
 14.0\% to 9.0\%, with similar CR (15.7\% versus 15.0\%). RA and
 CPPO$_{\beta_L}$ achieve lower CR and greater clearance, but lower SR and higher
@@ -375,7 +375,7 @@ Cost is interpreted jointly with SR.}
 Method & \shortstack{SR\\(\%) $\uparrow$} & Cost & \shortstack{CR\\(\%) $\downarrow$} & \shortstack{BVR\\(\%) $\downarrow$} & \shortstack{MC\\(m) $\uparrow$}\\
 \hline
 \rowcolor{methodblue!9}
-\textbf{HD-MCRA} & \textbf{73.3} & \textbf{88.3} & 15.0 & \textbf{9.0} & 0.31\\
+\textbf{CaMRA} & \textbf{73.3} & \textbf{88.3} & 15.0 & \textbf{9.0} & 0.31\\
 RC-PPO & 70.7 & 91.7 & 15.7 & 14.0 & 0.30\\
 RA & 60.0 & 104.0 & 13.0 & 20.0 & 0.34\\
 PPO$_{\beta_L}$ & 67.7 & 99.7 & 23.0 & 20.7 & 0.20\\
@@ -397,7 +397,7 @@ bars show estimates and 95\% intervals conditional on the three trained policies
 \end{figure}
 
 Figure~\ref{fig:trajectory_sync} illustrates navigation behavior in one paired
-example. With the geometric margin $\delta$, HD-MCRA follows a slightly longer,
+example. With the geometric margin $\delta$, CaMRA follows a slightly longer,
 more costly route with greater obstacle clearance. The synchronized curves relate
 obstacle passages to clearance, executed cost, and tracking error, while the
 corrected nominal charge shows how $\alpha$ enters budget accounting. Both methods
@@ -408,7 +408,7 @@ in Table~\ref{tab:main_results}.
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/trajectory_sync.pdf}
-\caption{Same-scene trajectories and synchronized diagnostics for HD-MCRA (blue)
+\caption{Same-scene trajectories and synchronized diagnostics for CaMRA (blue)
 and RC-PPO (orange), with a common initial budget of 85 a.u.
 (a) Executed (solid) and nominal (dashed) paths, with $\delta=0.12$ m.
 (b) Physical clearance. (c) Cumulative costs, budget, and corrected charge
@@ -462,7 +462,7 @@ Cost is interpreted jointly with SR.}
 Variant & \shortstack{SR\\(\%) $\uparrow$} & Cost & \shortstack{CR\\(\%) $\downarrow$} & \shortstack{BVR\\(\%) $\downarrow$} & \shortstack{MC\\(m) $\uparrow$}\\
 \hline
 \rowcolor{methodblue!9}
-\textbf{HD-MCRA} & \textbf{73.3} & 88.3 & \textbf{15.0} & \textbf{9.0} & \textbf{0.31}\\
+\textbf{CaMRA} & \textbf{73.3} & 88.3 & \textbf{15.0} & \textbf{9.0} & \textbf{0.31}\\
 w/o both (RC-PPO) & 70.7 & 91.7 & 15.7 & 14.0 & 0.30\\
 w/o $\alpha$ & 67.2 & 80.6 & 19.8 & 22.4 & 0.29\\
 w/o $\delta$ & 64.8 & \textbf{77.2} & 26.3 & 13.8 & 0.19\\
@@ -470,7 +470,7 @@ w/o $\delta$ & 64.8 & \textbf{77.2} & 26.3 & 13.8 & 0.19\\
 \end{tabular}
 \end{table}
 
-The full and zero-margin rows reuse HD-MCRA and RC-PPO from
+The full and zero-margin rows reuse CaMRA and RC-PPO from
 Table~\ref{tab:main_results}. Each single-margin variant is trained separately:
 the effects are non-additive, and lower cost can accompany more failed or
 shorter trials. Cost must therefore be interpreted jointly with success rate.
@@ -505,7 +505,7 @@ evaluation set. Since RA is not conditioned on budget, the same trajectories are
 evaluated at each threshold, and only its BVR changes. Under the criteria
 SR $\geq60\%$, CR $\leq20\%$, and BVR $\leq15\%$, the smallest tested budget
 ratios satisfying all three criteria on the final response curves are $0.90$
-for HD-MCRA, $0.96$ for RC-PPO, and $1.12$ for RA. HD-MCRA therefore meets the
+for CaMRA, $0.96$ for RC-PPO, and $1.12$ for RA. CaMRA therefore meets the
 same evaluation criteria at a lower tested budget.
 \begin{figure}[!htbp]
 \centering
@@ -526,10 +526,10 @@ the nominal condition is increased by 25\%: the lowest friction becomes
 0.4875, maximum delay becomes 0.125 s, and maximum
 velocity-noise standard deviation becomes 0.05 m/s. Across 900 independent
 trials (60 per profile and scene), SR is
-$65.0\%$ and BVR $16.0\%$ for HD-MCRA versus SR $58.0\%$ and BVR $24.0\%$ for
+$65.0\%$ and BVR $16.0\%$ for CaMRA versus SR $58.0\%$ and BVR $24.0\%$ for
 uncalibrated RC-PPO. Their respective CR values are 22.0\% and 27.0\%, costs
 are 96.8 and 102.4 a.u., and MC values are 0.26 and 0.24 m. No policy or margin
-is refitted for this stress test. Under the tested perturbations, HD-MCRA
+is refitted for this stress test. Under the tested perturbations, CaMRA
 maintains higher success and lower collision and budget-violation rates than
 uncalibrated RC-PPO.
 
@@ -565,7 +565,7 @@ onboard x86-64 CPU with 16 GB RAM, at the same 50 Hz/5 Hz control rates.
 The 15 m task uses a 60 s horizon and budget 230 a.u.; the tracker, navigation
 policy, and margins remain fixed.
 
-Table~\ref{tab:hardware_comparison} compares HD-MCRA with uncalibrated RC-PPO
+Table~\ref{tab:hardware_comparison} compares CaMRA with uncalibrated RC-PPO
 under matched scene conditions, starts, goals, and budget. Both methods use the
 same frozen tracker and navigation inputs; their high-level policies are fixed
 throughout evaluation.
@@ -583,15 +583,15 @@ Cost is in a.u. and is interpreted jointly with SR.}
 Method & \shortstack{SR\\(\%) $\uparrow$} & Cost & \shortstack{CR\\(\%) $\downarrow$} & \shortstack{BVR\\(\%) $\downarrow$} & \shortstack{MC\\(m) $\uparrow$}\\
 \hline
 \rowcolor{methodblue!9}
-\textbf{HD-MCRA} & \textbf{70.0} & 182.0 & \textbf{16.0} & \textbf{14.0} & \textbf{0.09}\\
+\textbf{CaMRA} & \textbf{70.0} & 182.0 & \textbf{16.0} & \textbf{14.0} & \textbf{0.09}\\
 RC-PPO & 64.0 & \textbf{176.0} & 20.0 & 22.0 & 0.07\\
 \hline
 \end{tabular}
 \end{table}
 
-Success counts are $35/50$ for HD-MCRA and $32/50$ for RC-PPO. Both methods
+Success counts are $35/50$ for CaMRA and $32/50$ for RC-PPO. Both methods
 have three localization aborts; the other failures comprise four timeouts and eight contacts
-for HD-MCRA, versus five timeouts and ten contacts for RC-PPO. BVR decreases
+for CaMRA, versus five timeouts and ten contacts for RC-PPO. BVR decreases
 from 22.0\% to 14.0\%, while mean cost increases from 176.0 to 182.0 a.u.
 These example values illustrate a clearance--cost trade-off: shorter routes and
 earlier failures can lower mean cost without reducing its upper tail.
@@ -611,7 +611,7 @@ benchmark simplifies whole-body geometry, and the reported intervals condition
 on a small fixed policy bank rather than quantifying new-training-seed variation.
 
 \section{Conclusion}
-HD-MCRA connects the inherited RC-PPO objective and solver to a quadruped through
+CaMRA connects the inherited RC-PPO objective and solver to a quadruped through
 a frozen velocity interface and paired execution calibration. Cost overrun and
 path deviation determine separate corrections $\alpha$ and $\delta$. This
 engineering layer targets empirical robustness within the calibration distribution,
@@ -863,7 +863,7 @@ rollout sets.
 
 \subsection{Baseline Objectives and Optimization}
 RC-PPO uses the same frozen velocity tracker and training interaction budget as
-HD-MCRA, with $\alpha=\delta=0$. RA omits cost conditioning and the budget input.
+CaMRA, with $\alpha=\delta=0$. RA omits cost conditioning and the budget input.
 PPO$_{\beta_L}$ and PPO$_{\beta_H}$ use safety weights $\beta_L=1$ and
 $\beta_H=5$, respectively, in
 \[
@@ -895,13 +895,13 @@ Wilson intervals with $n=50$; continuous means use Student intervals with
 condition-stratified paired bootstrap described above.
 
 For the hardware example, the 95\% intervals for SR, CR, and BVR are
-56.2--80.9\%, 8.3--28.5\%, and 7.0--26.2\% for HD-MCRA, and
+56.2--80.9\%, 8.3--28.5\%, and 7.0--26.2\% for CaMRA, and
 50.1--75.9\%, 11.2--33.0\%, and 12.8--35.2\% for RC-PPO.
 Cost standard deviations are 54.0 and 62.0 a.u., giving mean intervals of
 166.7--197.3 and 158.4--193.6 a.u., respectively. Unrounded MC means are
 0.086 and 0.067 m, with standard deviations of 0.057 and 0.056 m and mean
 intervals of 0.070--0.102 and 0.051--0.083 m.
-The seven HD-MCRA budget exceedances comprise three successful trials, three
+The seven CaMRA budget exceedances comprise three successful trials, three
 timeouts, and one contact; the eleven RC-PPO exceedances comprise five successful
 trials, four timeouts, and two contacts. One timeout per method remains within
 budget. These descriptive intervals condition on fixed policies and an

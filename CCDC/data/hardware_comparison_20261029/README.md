@@ -1,7 +1,7 @@
 # 当前真机对照数据（2026-10-29）
 
 当前版本为v2，已撤销以旧86.7%为主要参照的乐观假设，重新检查窄通道与执行风险。完整/基线成功为35/50和32/50；Cost182/176，CR16%/20%，BVR14%/22%，MC精确值.086/.067m（表中.09/.07）。修订说明见[revision_v2.md](../../submission/hardware_comparison_20261029/revision_v2.md)。这是另一组有明确场景假设的合成示例，不是真机性能预测。
-HD-MCRA和无校准RC-PPO各50次的内部合成示例。data_status=synthetic_example，empirical_validation=false；没有新增真实机器人测试。
+CaMRA和无校准RC-PPO各50次的内部合成示例。data_status=synthetic_example，empirical_validation=false；没有新增真实机器人测试。
 论文入口：../../latex/1020/main.tex，5.6的tab:hardware_comparison和附录D。PDF：../../output/1020/main.pdf。
 
 ## 文件和修改顺序
@@ -29,3 +29,5 @@ Cost为既有导航代理成本a.u.，不是焦耳。MC为每次最小物理净�
 旧目录manuscript_completion_20261026仍是仿真/配置来源，但其hardware_results.json及protocol.hardware为30次历史版本。不要直接运行旧脚本hardware/results/full模式覆盖最新硬件结果。
 
 真实替换时先核对日志/终止/预算交叉计数，再复算均值、SD、区间，最后同步表、正文、附录和结论。真实数据不要求保持当前优劣排序；样本相关时需要重新选择区间模型。
+
+名称说明：当前稿件使用CaMRA（Calibrated Minimum-Cost Reach-Avoid）；历史数据中的HD-MCRA/hd_mcra是同一方法的旧标识。台账、协议和结果JSON不改名、不改值，通过../../scripts/method_names.py映射到当前显示名称。四张当前插图仅修改名称，原保护文件哈希由改名清单保留并经逐图检查；此前validation_report.json仍为当时的历史检查快照，当前检查请使用上述--check-tex命令。

@@ -11,6 +11,8 @@ import json
 import math
 import re
 
+from method_names import display_name
+
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / 'CCDC/data/hardware_comparison_20261029'
 TEX = ROOT / 'CCDC/latex/1020/main.tex'
@@ -168,6 +170,10 @@ def feasible_mc(entry):
 
 
 def preserved(p):
+    rename_manifest = ROOT/'CCDC/output/1020/camra_rename_20261029/figure_manifest.json'
+    if rename_manifest.exists():
+        from rename_camra_figures import verify_preserved
+        return verify_preserved(p)
     for item in p['files_preserved']:
         assert hashlib.sha256((ROOT/item['path']).read_bytes()).hexdigest() == item['sha256'], item['path']
     return {'passed':True,'files':len(p['files_preserved'])}
@@ -193,7 +199,8 @@ def check_tex(result):
     sec = text.split('\\label{sec:hardware_deployment}',1)[1].split('\\section{Limitations}',1)[0]
     table = sec.split('\\label{tab:hardware_comparison}',1)[1].split('\\end{table}',1)[0]
     for method, entry in result['methods'].items():
-        line = next(line for line in table.splitlines() if method in line and '&' in line)
+        label = display_name(method)
+        line = next(line for line in table.splitlines() if label in line and '&' in line)
         cells = line.split('&')[1:]
         assert len(cells) == 5
         for metric, cell in zip(ORDER,cells):
