@@ -1,0 +1,426 @@
+===== PDF PAGE 1 =====
+           Learning to walk in confined spaces using 3D representation
+
+
+                              Takahiro Miki, Joonho Lee, Lorenz Wellhausen and Marco Hutter
+
+
+
+
+            Abstract— Legged robots have the potential to traverse com-
+           plex terrain and access confined spaces beyond the reach of
+            traditional platforms thanks to their ability to carefully select
+           footholds and flexibly adapt their body posture while walking.
+          However, robust deployment in real-world applications is still
+         an open challenge. In this paper, we present a method for
+           legged locomotion control using reinforcement learning and
+        3D volumetric representations to enable robust and versatile
+          locomotion in confined and unstructured environments. By2024    employing a two-layer hierarchical policy structure, we exploit
+           the capabilities of a highly robust low-level policy to follow 6D
+        commands and a high-level policy to enable three-dimensional
+            spatial awareness for navigating under overhanging obstacles.Feb        Our study includes the development of a procedural terrain
+          generator to create diverse training environments. We present                                                                                                Fig. 1.   Real-world experiment: Successful confined space traversal by29    a series of experimental evaluations in both simulation and real-    the quadruped robot including a simulated collapsed building environment.
+          world settings, demonstrating the effectiveness of our approach   The terrain consists of loose gravel or unstable steps, while the overhead
+            in controlling a quadruped robot in confined, rough terrain.     structures have tilted configurations with narrow openings. The robot could
+        By achieving this, our work extends the applicability of legged    adapt its posture to traverse these challenging conditions.
+           robots to a broader range of scenarios.
+
+                                      I. INTRODUCTION                                                                      using trajectory optimization techniques for motion planning[cs.RO]           Robots have attracted attention for their ability to perform   and a two-layer elevation map to perceive the environment,
+          a wide range of tasks, including exploring and accessing    representing both the ground and the ceiling [12], [13].
+           areas that are dangerous or inaccessible to humans. Among   However, the gait was limited to a static gait and it assumed
+           the different robotic platforms, legged robots are well suited    that the map is accurate and the robot would always have
+           for this type of task due to their ability to move on uneven,    clear space to move in the map, which can be a problem if
+         complex terrain, and to remain stable on unstable surfaces. In    the sensors make errors or provide unclear data.
+           recent years, legged robots have been successfully deployed     To achieve a fast dynamic walking on various terrains
+           in a variety of challenging environments, from mountains,   while being robust against degraded perception, learning-
+           forests or simulated space environments [1]–[3] to under-   based methods have recently demonstrated their effectiveness
+         ground spaces such as tunnels and caves [4]–[7]. However,   by integrating proprioceptive data with noisy exteroceptive
+            their full potential has yet to be realized. One unique feature   data [2]. However, until now, the deployments are mostly
+          of legged robots is their ability to adjust their posture using    limited to environments without overhanging obstacles [2],
+              its high degree of freedom, such as crouching. This provides   [14]–[17] or on a  flat  terrains with single obstacle  [9],
+           capabilities to access confined area not easily replicated by    [10]. Our research aims to extend the operational range of
+           other robotic platforms with a similar size. Despite this, the   legged robots to more complex environments in the wildarXiv:2403.00187v1
+          challenge of robustly deploying legged robots in confined or   including confined spaces while keeping the robust and
+            restricted spaces is still an open problem.                  smooth locomotion capability of the state of the art methods.
+         Some studies have shown that legged robots can navigate      In this paper, we propose a two-layer hierarchical frame-
+         under low obstacles using a special crouching gait. However,   work to address the problem. At the lower level, the policy
+           these  tests were conducted in simple environments such    negotiates ground-level obstacles while complying with ex-
+          as on flat ground with a simple overhanging obstacle [8]–   tended high-level commands such as desired velocity, body
+           [11]. Buchanan  et  al. addressed more complex confined    height, and body orientation, while the higher level policy
+          spaces including both steps and sloped overhanging obstacles   uses 3D geometric data to guide the actions of the lower level
+                                                                                policy. This architecture allows us to benefit from the robust-
+               This project has received funding from the European Union’s Horizon   ness of established locomotion methods, while introducing
+           2020 research and innovation programme under grant agreement No 780883.
+               This research was supported by the Swiss National Science Foundation   a new layer of spatial awareness through high-level policy
+           (SNSF) as part of project No.188596.                                 formulation. To achieve spatial awareness of the confined
+               This project has received funding from the European Union’s Hori-   environment, on-board sensors such as cameras, LiDARs,
+           zon 2020 research and innovation programme under grant agreement No
+           101016970.                                                     or depth cameras can be used to measure the surrounding
+               All authors are with Robotic Systems Lab, ETH Zurich               geometry. However, they often exhibit degraded performance
+
+===== PDF PAGE 2 =====
+in the complex environments due to factors such as physical   have been introduced [17]. In this method, latent voxels from
+obstructions, blind spots, and limited sensor ranges. In addi-    the previous frame are transformed to the current frame using
+tion, the variety of sensor configurations makes it difficult to   a predicted transformation obtained from two depth images.
+create a generalizable policy. To circumvent these challenges,   However, the verification of these locomotion capabilities did
+we use a teacher-student training setup where we distill the   not include diverse and confined spaces.
+teacher policy into a robust student policy which takes noisy
+occupancy voxels as our geometric representation. The voxel                             III. METHODS
+representation can integrate different sensor measurements                                                            A. Overview
+into one data format, allowing a flexibility in different sensor
+                                                    Our approach uses a hierarchical framework as shown inconfigurations. In addition, the same policy can be used
+                                                                  Fig. 2. The training of the control policy is structured intowithout retraining for the different sensor setup unlike the
+                                                              four progressive stages: the low-level teacher policy, the low-case of depth images representation. Furthermore, it naturally
+                                                                    level student policy, the high-level teacher policy, and theallows the incorporation of memory-based strategies, such as
+                                                                 high-level student policy.mapping to preserve information.
+                                                                              First, the low-level teacher policy  is trained using  re-  The contributions are as follows: First, we introduce a
+                                                           inforcement learning to follow high-level commands overhierarchical policy framework that decomposes the confined
+                                                                   varied, rough terrain. Using 6D inputs - including x, y, andspace navigation into low-level and high-level tasks where
+                                               yaw velocities, roll, pitch, and body height - the policy ac-the low-level policy inherits the performance of the robust
+                                                                quires the ability to navigate smoothly over uneven surfacesperceptive locomotion on rough terrain while adding a new
+                                                           while following given commands. Then the low-level studentcapability of  entering confined space through  high-level
+                                                               policy is distilled from the low-level teacher policy to handlepolicy’s posture adaptation. Second, we train the policy in
+                                                            noisy observations following [2].a wide variety of environments by incorporating procedural
+                                         We then train the high-level teacher policy, whose primaryterrain generator in simulation. Finally, we demonstrate the
+                                                                 task is to generate 6 DOF commands for the low-level policyreal-world applicability of our approach through deploy-
+                                                           while going over rough terrain and avoiding overhangingments in complex scenarios in the field.
+                                                                obstacles in a procedurally generated terrains. This policy
+                     II. RELATED WORKS                     also employs reinforcement learning and uses spherical scans
+                                                              as shown in Fig. 2 to capture localized geometric data. These  Environmental perception is essential for legged robots to
+                                                            scans provide an omnidirectional view of the environmentsmoothly navigate complex terrains. Early methods relied
+                                                      and inform the high-level policy’s decision-making process.on pre-generated elevation maps for offline planning [18],
+[19]. This approach evolved to use on-board sensors to      Finally, we  train a high-level student policy, which  is
+dynamically generate  elevation maps  in  real time [20]–   intended for the robot’s final deployment in the field. Unlike
+[22], which were subsequently used in optimization-based    the high-level teacher policy, the student policy is trained
+controllers [23]–[28]. A basic assumption of these methods   using noisy observations simulated to resemble data from
+is accurate terrain information. Therefore, their robustness    the robot’s on-board sensors. Specifically, it employs noisy
+degrades in the face of mapping inaccuracies, a problem   voxel data as a three-dimensional representation of the envi-
+often encountered in unstructured outdoor environments.      ronment.
+  On the other hand, learning-based methods have gained
+                                                            B. Low-level locomotion policy
+momentum for locomotion  tasks. Reinforcement learning
+is used  to  train a  neural network  policy  in  simulation    We extend the perceptive locomotion pipeline presented
+and deployed on the hardware [1], [2], [29]–[33]. Recently    in [2] by adding three more command inputs: desired roll
+exteroceptive information has been integrated into the lo-   ξ, pitch θ, and body height h to allow the robot to have
+comotion control through elevation map as an intermediate   more control over its motion. The low-level teacher policy
+representation to keep past information [2], [34], [35]. They    is trained using Proximal Policy Optimization (PPO) algo-
+sampled  the  height scan from  the map  to feed  into a   rithm [38], whereby the robot interacts with the environment
+Recurrent Neural Network (RNN) based policy, however this   and receives rewards based on its performance in following
+2.5D representation can not handle overhanging structures.    the given 6D commands on the rough terrain.
+As another intermediate representation, voxels were used     The command is randomly sampled at the beginning of
+for locomotion task [10], [36]. This can represent full 3D   each episode, ensuring that the robot is exposed to a variety
+structures, however it was demonstrated only in a structured   of command scenarios during training. We sample roll and
+terrain with simple geometry. Other works have used depth    pitch command from a normal distribution with mean zero
+images as input [14]–[16], [37]. In these approaches, depth   and standard deviation 0.25 rad and the desired body height
+images are first processed by a Convolutional Neural Net-   from the ground  is randomly sampled from an  interval
+work (CNN) and either combined with historical features or   ranging from 0.1 to 0.6 above ground level. To avoid spikes
+fed into a Recurrent Neural Network (RNN) to preserve past    in ground height values near edges, we use the average of
+information. To extend the memory function of RNN-based    five sampled ground heights to represent the body’s height
+methods using depth images, implicit voxel representations   above the ground.
+
+===== PDF PAGE 3 =====
+              3  High-level teacher policy     Training environment               1  Low-level teacher policy     Training environment
+                     Track 3D velocity command (vxH, vyH, ωzH)                                              Track 6D command (vx L, vy L, ωz L, ζ, θ, h)
+
+                                                                                                         command                        Spherical scan oeH                                                                                                      velocity                                                                                                                                                                     (vx L, vy L,                                                                                                                           ωz L)
+                                              +            extra command
+                                                                                                               (dvx, dvy, dwx)       (ζ, θ, h)
+
+                                                                                                                             (ζ, θ, h)
+
+
+
+
+
+                                                                          Distill                                                                   Distill
+
+                                       4         High-level student policy
+                 3D velocity command  (vx H, vy H, ωz H)
+                     Exteroception oe H                                                            2
+                                                                +
+                               Add noise                                                          RNN                                                                                                                                                               (dvx, dvy, dwx)   Low-level      Joint                                                                       MLP                                               3D Conv
+                                                                                       Latent   Belief Encoder                        student policy  action
+                              Occupancy Voxel
+                                                                                                                                                                              (ζ, θ, h)
+                     Proprioception  opH
+
+
+
+
+Fig. 2.  Overview of our method. We use a two-layer policy setup. The low-level policy learns to walk over rough terrain while following 6D commands
+consisting of x,y, yaw rate and roll pitch and body height. The high-level policy is trained in a procedurally generated confined environment to guide the
+robot by giving commands to the low-level policy. We first train a low-level teacher policy and then distill it into a low-level student policy. We follow
+this by training a high-level teacher policy using spherical scans for exteroceptive perception. Finally, we distill this into a high-level student policy using
+noisy voxel grids as exteroceptive input.
+
+
+  The low-level teacher observation includes a 6D com-    scaling factor that determines the sensitivity of the reward to
+mand, proprioceptive observation oLp, exteroceptive observa-    orientation errors. Similarly, the body height tracking reward
+tion oLe, and privileged state sLp. The proprioceptive observa-   used to encourage the robot to maintain a desired body height
+tion (oLp) consists of the body velocity, orientation, history    is described as:
+of joint position error and velocity that stack few frames
+                                                                                                rbase height = exp(−α ×eh),               (2)between each control loop, action history, as well as the
+phase of each leg. The exteroceptive observation (oLe)  is   where the base height  error,  eh, represents the absolute
+represented by height samples taken around each foot with    distance between the desired and actual body heights above
+five distinct radii [2]. The privileged state sLp encompasses    the ground.
+various factors such as contact states, contact forces, contact                                                    The student policy for the low-level policy is trained fol-
+normals, friction coefficient, thigh and shank contact states,                                                         lowing the same manner of the previous work [2] to remove
+external forces and torques applied to the body, and swing                                                                the privileged observation dependency and apply noise on the
+phase duration. We adopt the same action space as that                                                                exteroception. User It was trained using extensive domain
+described in previous research [2] which consists of the                                                           randomization applied to exteroceptive measurements, em-
+phase difference ∆φl of the periodic motion generator and   ploying behavior cloning to minimize the action difference
+the residual joint position target ∆qi that is added on top of   between the teacher policy.
+the periodic motion. To represent our teacher policy πθ we
+utilize a Multi-Layer Perceptron model.                     C. High-level teacher policy
+  We add two additional reward terms on top of the original                                                                After we get the low-level policy, a high-level teacher
+rewards which consists of velocity tracking rewards and                                                               policy is trained with PPO to command the low-level policy
+penalties such as joint torque, velocity, acceleration or slip                                                                   in navigating diverse terrains that include overhanging obsta-
+rewards. Please refer to the previous research [2] for the                                                                        cles. While the low-level policy focuses on training specif-
+detailed reward definitions for locomotion. The additional                                                                      ically for rough terrain, the high-level policy is trained in
+reward terms are employed for roll, pitch and body height                                                            confined spaces with overhanging obstacles. This separation
+tracking.                                                                   in training allows us to focus the high-level policy training
+  The orientation tracking reward is:                                                    on the specific challenges of navigating confined spaces.
+                                                    The high-level policy’s task is to follow a desired velocity                      rorientation = exp(−α ×erp),              (1)
+                                                                     target by commanding the low-level policy.  It takes pro-
+where erp denotes the error in either roll or pitch and α is a   prioception oHp as well as exteroceptive observations oHe  as
+
+===== PDF PAGE 4 =====
+input. oHp includes velocity commands, body velocities, joint   from the latent feature to help extracting information that
+positions,  joint  velocities, body orientation, and previous    is useful for student policy. Finally, the output of the belief
+actions. oHe consists with the same height samples as the low-   encoder is fed into an MLP network, consistent with existing
+level policy (oLe), and a spherical scans for omnidirectional    architectures, to produce the final action commands. The loss
+observations. We used the sparse ray tracing pattern, because    is the action loss which is the mean square error between the
+using more complicated data structure, such as depth images    teacher policy and the reconstruction loss of the privileged
+or voxel grids, could slow down the reinforcement learning    states.
+process due to  their computational requirements. As the
+                                                            E. Procedural Terrain Generation
+action space, a residual approach was utilized to increase
+training efficiency where  it outputs the residual for vx, vy
+and ωz instead of outputting the velocity commands directly.
+This can skip the process of learning to output the same input
+velocity commands to track them. For commands related to
+roll (aξ), pitch (aθ), and base height (ah), they are directly
+outputted.
+  We employ rewards consisting of task rewards that encour-
+age the desired behavior and penalty rewards to avoid unde-
+sirable behavior. For task rewards, we used velocity tracking
+reward and base distance reward, designed to maintain a
+safe distance from obstacles and thus enhance safety during
+navigation. For base distance reward we used
+                                                                                  Fig. 3.  Procedural terrain generation. We generate the terrain mesh by tiling
+           rbase = exp(−α ×(dmax −min(d,dmax))),       (3)   mesh parts. First, the tiles are connected procedurally based on connectivity
+                                                                                calculated from terrain height array. Then, overhanging obstacles are added
+where dmax is a parameter to set a threshold and α defines the    on top of the mesh.
+coefficient. To measure the distances d, we used ray casting
+in a spherical pattern. For penalties, we discourage the robot     To simulate different environments, we developed a pro-
+from hitting objects with a collision penalty by simply giving   cedural terrain generator that builds mesh representations of
+a large negative reward when the body hits obstacles. We    different terrains1. This generator uses the Wave Function
+also use penalties for joint speed, acceleration and torque   Collapse (WFC) method [41], widely used in game devel-
+for smoother motion and vertical velocity and orientation to   opment, to ensure smooth transitions between neighboring
+avoid unnecessary movements.                                        tiles based on their connectivity. We used terrain heights to
+                                                                  calculate the connectivity between each tile.
+D. High-level student policy training                                         We defined 1570 types of  tiles, including terrains such
+  After training a teacher policy that can perform the task   as steps, stairs, ramps and rough in different heights. After
+using ground truth data, we distill this policy into a student    the mesh was  generated, boxes  of  different dimensions
+policy that can be deployed within the sensory constraints   were added to the terrain to simulate confined spaces. This
+of a physical robot. We convert the spatial information into   method allows for the generation of a wide variety of terrain
+the occupancy voxel representation as an abstraction. This   combinations, reflecting the complex environments a robot
+allows to combine different sensor configurations and also   may encounter, as shown in Figure 3.
+allows using voxel mapping pipeline [36], [39], [40], or
+                                                                           IV. EXPERIMENTAL RESULTStransforming the past observations into the current frame [17]
+to accumulate information.                                      In this section, we describe the setup of our experiments,
+  To compress the voxel representation to a smaller latent   which include both simulations and real-world tests. In the
+space before feeding to the  belief encoder, we leverage   simulation phase, we evaluate the performance of the policy
+a three layer voxel encoder to compress the data into a   on evaluation terrains. After that, we test the trained policy
+more compact latent space. The voxel grid dimensions are   on actual hardware to validate the performance in real-world.
+32×32×32, with a resolution of 0.08 along each axis. The                                                            A. Evalution in simulation
+voxel encoder consists of 3D convolutions coupled with layer
+                                                    To evaluate the high-level student policy, we created anormalization and ELU activation following the methodol-
+                                                                           test environment with a  variety of obstacle heights andogy described in [36].
+                                                          overhanging obstacles. In this setup, the robot had to move  We use a belief encoder based on a Gated Recurrent Unit
+                                                      from a starting position to a goal position that is 6 meters(GRU) to integrate the proprioceptive data and the external
+                                                         away. The criterion for a successful  trial was the robot’slatent representation into a coherent belief state similar to [2].
+                                                                       ability to reach the target within 30 seconds. Note that weWe flattened the voxel latent representation before putting
+                                                              applied these test conditions to student policies that had beeninto the belief encoder. The belief encoder has a hidden size
+of 128 and consists of two layers. Additionally, we incor-     1We    open-sourced    the    software   https://github.com/
+porate a belief decoder that decodes privileged information   leggedrobotics/terrain-generator
+
+===== PDF PAGE 5 =====
+Fig. 4.  Success rate of different overhanging obstacle height and obstacle box height from the ground. The x axis show different methods and y axis shows
+the different parameters of the obstacles. For the obstacle + overhanging, we used the obstacle height of 0.25m and varied the height of the overhanging
+box. The baseline methods which always walk at normal height (High) and always walk with crouching (Low) was compared against our method. The
+results show that the combination of overhanging and rough terrain needs an adaptive body height control.
+
+
+
+
+
+                                                                                  Fig. 6.   Tracking performance of a low-level policy when responding to
+                                                                          simultaneous commands for body height, pitch, and linear x velocity. The
+Fig. 5.   Sequence on evaluation terrains. We have evaluated the policy’s     results confirm that the policy can effectively manage combined actions
+performance on the evaluation terrains where  it has three terrain types    such as crouching, tilting, and walking simultaneously.
+with different parameters. Overhanging has an overhanging box in the
+middle, and Obstacle has a box on the ground, Overhanging + obstacle
+is a combination of both obstacle and overhanging boxes.
+                                                            B. Real-World Experiments
+
+                                                    Our  trained  policies  were  empirically  tested  using
+                                             ANYmal-C and ANYmal-D robots equipped with  either
+                                               dome LiDARs or depth cameras. Depth sensor data were
+trained on procedurally generated terrains, not to policies   transformed into voxel structures - achieved by voxel map-
+specifically trained on the evaluation setup. The results are   ping for depth cameras and straightforward voxelization in
+detailed in Figure 4. We compared the performance against    the LiDAR configuration.
+two baselines both employ simple strategy without the high-      1) Low-level  policy:  First, we  evaluate  the  low-level
+level policy. One is the policy which always walk at normal    policy’s capabilities with the operator giving commands to
+height (High), and the another one always crouching on the   guide the robot’s behavior. The robot effectively followed
+ground (Low). The result shows that the student policy could    the combinations of different commands as shown in Figure
+handle three types of the terrains fairly well and closely    6. Even under complex conditions, such as maintaining a
+matched the performance of the teacher policy. On the other   crouched position while traversing stairs, steps and uneven
+hand, the Low baseline could traverse overhanging obstacles    terrain, the robot was able to adjust  its body height and
+but failed to overcome obstacle on the ground and High    orientation according to the operator’s instructions. These
+baseline could traverse obstacles on the ground but failed   empirical results, illustrated in Figure 7, show the robustness
+to go through overhanging obstacle.                       and adaptability of our low-level policy.
+
+===== PDF PAGE 6 =====
+Fig. 7.   Tests of the low-level policy on the hardware. (a) The robot could follow additional commands such as body height or pitch. (b) The policy
+showed its robustness on different rough terrains such as stairs, step, loose ground or wooden steps while following low body height command.
+
+
+
+
+
+Fig. 8.  Real-world deployment of the integrated high-level and low-level policies. The sequence of images illustrates the robot’s ability to autonomously
+adapt its body height in the presence of overhanging obstacles.
+
+
+  2) Combined policy in the field: In the final part of our    spherical scan, depth camera and voxel map. We used 1000
+experiments, we tested a combined high-level and low-level    parallel environments for the low-level and high-level teacher
+policy in a real-world environment, as shown in Figure 1 and   policy training and 300 for the student policy training.
+8. The test environment consisted of a simulated collapsed
+building and some objects such as tables and benches.
+                                                                            V. CONCLUSIONS  In the  tests, the operator provided commands  for the
+robot’s x, y, and yaw velocities and the robot autonomously
+                                                                 In this paper, we present a legged robot system designeddetermined its own body height, roll, and pitch. The robot
+                                                                   for navigating confined spaces, broadening the operationalfaced several challenges, such as navigating confined spaces
+                                                          environments for robotics. Our framework adopts a two-layerwith ceilings at varying angles. The terrain conditions were
+                                                                  hierarchical policy structure to decompose the complexityalso  difficult, with loose and rough gravels and unstable
+                                                              of navigation into more manageable components. The low-steps. However the robot could handle all challenges robustly
+                                                                    level policy ensures robust  traversal over uneven  terrainand showed that the robot could reliably enter and traverse
+                                                         based on 6D commands, including body velocity and orien-confined spaces under challenging conditions. This confirms
+                                                                        tation, while the high-level policy strategically directs thesethe robustness of our combined policy approach in real-world
+                                                commands using 3D spatial understanding. Our validationscenarios.
+                                                             involved training on diverse  terrains and deploying in a
+C. Simulation details                                                             challenging collapsed building scenario, demonstrating the
+  For low-level policy training, we used RaiSim [42] to   system’s real-world applicability. However, limitations exist
+simulate the robot and the environment, while for high-    in highly dynamic environments and performing advanced
+level policy, Isaac Gym [43] was used to simulate confined   maneuvers like using body contacts in tight spaces, pointing
+space environment with depth sensor measurements such as    to future research directions.
+
+===== PDF PAGE 7 =====
+                 REFERENCES                                 [17] R. Yang, G. Yang, and X. Wang, “Neural volumetric memory for visual
+                                                                            locomotion control,” in Proceedings of the IEEE/CVF Conference on
+                                                                      Computer Vision and Pattern Recognition, 2023, pp. 1430–1440.
+ [1]  J. Lee,  J. Hwangbo, L. Wellhausen,  V. Koltun, and M.  Hutter,
+                                                                              [18] M. Zucker,  J. A. Bagnell, C. G. Atkeson, and  J. Kuffner, “An
+     “Learning quadrupedal locomotion over challenging terrain,” Science
+                                                                                   optimization approach to rough terrain locomotion,” in 2010 IEEE
+     Robotics, vol. 5, no. 47, 2020.
+                                                                                      International Conference on Robotics and Automation.  IEEE, 2010,
+ [2]  T.  Miki,  J.  Lee,  J. Hwangbo,  L.  Wellhausen,  V.  Koltun,  and
+                                                                                    pp. 3589–3595.
+    M. Hutter, “Learning robust perceptive locomotion for quadrupedal
+                                                                              [19]  P. D. Neuhaus, J. E. Pratt, and M. J. Johnson, “Comprehensive sum-
+     robots in the wild,” Science Robotics, vol. 7, no. 62, p. eabk2822,
+                                                                    mary of the institute for human and machine cognition’s experience
+     2022.  [Online].  Available: https://www.science.org/doi/abs/10.1126/
+                                                                              with LittleDog,” The International Journal of Robotics Research,
+     scirobotics.abk2822
+                                                                                            vol. 30, no. 2, pp. 216–235, 2011.
+ [3]  P. Arm, G. Waibel, J. Preisig, T. Tuna, R. Zhou, V. Bickel, G. Ligeza,
+                                                                              [20]  P. Fankhauser, M. Bloesch, and M.  Hutter,  “Probabilistic  terrain
+      T. Miki, F. Kehl, H. Kolvenbach et  al., “Scientific exploration of                                                                      mapping for mobile robots with uncertain localization,” IEEE Robotics
+     challenging planetary analog environments with a team of legged                                                                      and Automation Letters, vol. 3, no. 4, pp. 3019–3026, 2018.
+      robots,” Science robotics, vol. 8, no. 80, p. eade9548, 2023.
+                                                                              [21]  T. Miki, L. Wellhausen, R. Grandia,  F.  Jenelten,  T. Homberger,
+ [4] M. Tranzatto, M. Dharmadhikari, L. Bernreiter, M. Camurri, S. Khat-                                                                        and M. Hutter, “Elevation mapping for locomotion and navigation
+      tak,  F. Mascarich,  P. Pfreundschuh, D.  Wisth,  S. Zimmermann,                                                                                using gpu,” in 2022 IEEE/RSJ International Conference on Intelligent
+    M. Kulkarni, V. Reijgwart, B. Casseau, T. Homberger, P. De Petris,                                                                           Robots and Systems (IROS).  IEEE, 2022, pp. 2273–2280.
+     L. Ott, W. Tubby, G. Waibel, H. Nguyen, C. Cadena, R. Buchanan,                                                                              [22] G. Erni, J. Frey, T. Miki, M. Mattamala, and M. Hutter, “Mem: Multi-
+     L. Wellhausen, N. Khedekar, O. Andersson, L. Zhang,  T. Miki,                                                                      modal elevation mapping for robotics and learning,” in 2023 IEEE/RSJ
+      T. Dang, M. Mattamala, M. Montenegro, K. Meyer, X. Wu, A. Briod,                                                                                      International Conference on Intelligent Robots and Systems (IROS).
+    M. Mueller, M. Fallon, R. Siegwart, M. Hutter, and K. Alexis, “Team                                                                        IEEE, 2023, pp. 11 011–11 018.
+    CERBERUS wins  the DARPA  subterranean  challenge: Technical
+                                                                              [23]  J. Z. Kolter, Y. Kim, and A. Y. Ng, “Stereo vision and terrain modeling
+     overview and lessons learned,” Jul. 2022.
+                                                                                          for quadruped robots,” in 2009 IEEE International Conference on
+ [5] M. Tranzatto, T. Miki, M. Dharmadhikari, L. Bernreiter, M. Kulkarni,                                                                                Robotics and Automation.  IEEE, 2009, pp. 1557–1564.
+      F. Mascarich, O. Andersson, S. Khattak, M. Hutter, R. Siegwart, and                                                                              [24]  I. Havoutis, J. Ortiz, S. Bazeille, V. Barasuol, C. Semini, and D. G.
+     K. Alexis, “CERBERUS in the DARPA subterranean challenge,” Sci                                                                                 Caldwell, “Onboard perception-based trotting and crawling with the
+     Robot, vol. 7, no. 66, p. eabp9742, May 2022.                                                                                   hydraulic quadruped robot (HyQ),” in 2013 IEEE/RSJ International
+ [6] A. Bouman, M. F. Ginting, N. Alatur, M. Palieri, D. D. Fan, T. Touma,         Conference on Intelligent Robots and Systems. IEEE, 2013, pp. 6052–
+      T. Pailevanian, S.-K. Kim, K. Otsu,  J. Burdick, and A.-A. Agha-                                                                             6057.
+    mohammadi, “Autonomous spot: Long-Range autonomous exploration                                                                              [25] D. Kim, D. Carballo, J. Di Carlo, B. Katz, G. Bledt, B. Lim, and
+      of extreme environments with legged locomotion,” Oct. 2020.                                                                                      S. Kim, “Vision aided dynamic exploration of unstructured terrain
+ [7] N. Kottege,  J. Williams, B. Tidd, F. Talbot, R. Steindl, M. Cox,         with a small-scale quadruped robot,” in 2020 IEEE International
+     D. Frousheger, T. Hines, A.  Pitt, B. Tam, B. Wood, L. Hanson,         Conference on Robotics and Automation (ICRA).   IEEE, 2020, pp.
+     K. Lo Surdo, T. Molnar, M. Wildie, K. Stepanas, G. Catt, L. Tychsen-         2464–2470.
+     Smith, D. Penfold, L. Overs, M. Ramezani, K. Khosoussi, F. Kendoul,    [26]  F. Jenelten, T. Miki, A. E. Vijayan, M. Bjelonic, and M. Hutter,
+     G. Wagner, D. Palmer, J. Manderson, C. Medek, M. O’Brien, S. Chen,          “Perceptive locomotion in rough terrain–online foothold optimization,”
+     and R. C. Arkin, “Heterogeneous robot teams with unified perception        IEEE Robotics and Automation Letters, vol. 5, no. 4, pp. 5370–5376,
+     and autonomy: How team CSIRO data61 tied for the top score at the         2020.
+    DARPA subterranean challenge,” Feb. 2023.                                                                              [27]  F. Jenelten, R. Grandia, F. Farshidian, and others, “TAMOLS: Terrain-
+ [8] L. Han, Q. Zhu,  J. Sheng, C. Zhang, T. Li, Y. Zhang, H. Zhang,         aware motion optimization for legged systems,” IEEE Transactions on,
+     Y. Liu, C. Zhou, R. Zhao, J. Li, Y. Zhang, R. Wang, W. Chi, X. Li,         2022.
+     Y. Zhu, L. Xiang, X. Teng, and Z. Zhang, “Lifelike agility and play    [28] R. Grandia, F. Jenelten, S. Yang, and others, “Perceptive locomo-
+     on quadrupedal robots using reinforcement learning and generative           tion through nonlinear Model-Predictive control,” IEEE Transactions,
+      pre-trained models,” Aug. 2023.                                           2023.
+ [9] Z. Zhuang, Z. Fu, J. Wang, C. G. Atkeson, S. Schwertfeger, C. Finn,    [29]  J. Tan, T. Zhang, E. Coumans, A. Iscen, Y. Bai, D. Hafner, S. Bo-
+     and H. Zhao, “Robot parkour learning,” in 7th Annual Conference on          hez, and V. Vanhoucke, “Sim-to-real: Learning agile locomotion for
+     Robot Learning, 2023.                                                  quadruped robots,” in Robotics: Science and Systems, 2018.
+[10] D. Hoeller, N. Rudin, D. Sako, and M. Hutter, “Anymal parkour:    [30]  J. Hwangbo,  J.  Lee, A.  Dosovitskiy, D.  Bellicoso,  V.  Tsounis,
+     Learning agile navigation for quadrupedal robots,” arXiv preprint          V. Koltun, and M. Hutter, “Learning agile and dynamic motor skills
+     arXiv:2306.14874, 2023.                                                          for legged robots,” Sci Robot, vol. 4, no. 26, Jan. 2019.
+[11] Y. Kim, H. Oh,  J. Lee,  J. Choi, G.  Ji, M. Jung, D. Youm, and    [31] X. B. Peng, E. Coumans, T. Zhang, T.-W. Lee, J. Tan, and S. Levine,
+       J. Hwangbo, “Not only rewards but also constraints: Applications on         “Learning  agile  robotic locomotion  skills by  imitating  animals,”
+     legged robot locomotion,” Aug. 2023.                                        Robotics: Science and Systems, 2020.
+[12] R. Buchanan, L. Wellhausen, M. Bjelonic, T. Bandyopadhyay, N. Kot-    [32] N. Rudin, D. Hoeller, P. Reist, and M. Hutter, “Learning to walk
+      tege, and M. Hutter, “Perceptive whole-body planning for multilegged           in minutes using massively parallel deep reinforcement learning,” in
+     robots in confined spaces,” Journal of Field Robotics, vol. 38, no. 1,         Conference on Robot Learning.  PMLR, 2022, pp. 91–100.
+     pp. 68–84, 2021.                                                        [33]  J. Siekmann, K. Green, J. Warila, A. Fern, and J. Hurst, “Blind bipedal
+[13] R. Buchanan, T. Bandyopadhyay, M. Bjelonic, L. Wellhausen, M. Hut-            stair traversal via sim-to-real reinforcement learning,” in Robotics:
+       ter, and N. Kottege, “Walking posture adaptation for legged robot         Science and Systems, 2021.
+     navigation in confined spaces,” IEEE Robotics and Automation Letters,    [34]  S. Gangapurwala, M. Geisert, R. Orsolino, M. Fallon, and I. Havoutis,
+      vol. 4, no. 2, pp. 2148–2155, 2019.                                “RLOC: Terrain-aware legged locomotion using reinforcement learn-
+[14] R.  Yang,  M.  Zhang,  N.  Hansen,  H.  Xu,  and  X.  Wang,          ing and optimal control,” arXiv preprint arXiv:2012.03094, 2020.
+     “Learning   vision-guided   quadrupedal   locomotion   end-to-end    [35] K. Caluwaerts, A. Iscen, J. C. Kew, W. Yu, T. Zhang, D. Freeman,
+     with  cross-modal   transformers,”   in   International  Conference         K.-H. Lee, L. Lee, S. Saliceti, V. Zhuang et al., “Barkour: Bench-
+     on  Learning  Representations,  2022.  [Online].  Available:  https:         marking animal-level agility with quadruped robots,” arXiv preprint
+     //openreview.net/forum?id=nhnJ3oo6AB                                    arXiv:2305.14654, 2023.
+[15] W. Yu, D. Jain, A. Escontrela, A. Iscen, P. Xu, E. Coumans, S. Ha,    [36] D. Hoeller, N. Rudin, C. Choy, and others, “Neural scene representa-
+       J. Tan, and T. Zhang, “Visual-Locomotion: Learning to walk on           tion for locomotion on structured terrain,” IEEE Robotics and, 2022.
+     complex terrains with vision,” in Proceedings of the 5th Conference    [37] C. S. Imai, M. Zhang, Y. Zhang, M. Kierebi´nski, R. Yang, Y. Qin,
+     on Robot Learning, ser. Proceedings of Machine Learning Research,         and X. Wang, “Vision-Guided quadrupedal locomotion in the wild
+     A. Faust, D. Hsu, and G. Neumann, Eds., vol. 164.  PMLR, 2022,         with Multi-Modal delay randomization,” pp. 5556–5563, Oct. 2022.
+     pp. 1291–1302.                                                         [38]  J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov,
+[16] A. Agarwal, A. Kumar, J. Malik, and D. Pathak, “Legged locomotion         “Proximal   policy   optimization   algorithms,”   arXiv   preprint
+      in challenging terrains using egocentric vision,” Sep. 2022.                   arXiv:1707.06347, 2017.
+
+===== PDF PAGE 8 =====
+[39] H. Oleynikova,  Z.  Taylor, M.  Fehr, R.  Siegwart, and  J.  Nieto,
+     “Voxblox: Incremental 3d euclidean signed distance fields for on-board
+    mav planning,” in IEEE/RSJ International Conference on Intelligent
+     Robots and Systems (IROS), 2017.
+[40] A.  Hornung,  K. M. Wurm, M.  Bennewitz,  C.  Stachniss,  and
+    W.  Burgard,  “Octomap:  an  efficient  probabilistic  3d  mapping
+     framework  based  on  octrees.”  Auton.  Robots,  vol.  34,  no.  3,
+     pp. 189–206, 2013. [Online]. Available:  http://dblp.uni-trier.de/db/
+     journals/arobots/arobots34.html#HornungWBSB13
+[41] M.  Gumin,  “WaveFunctionCollapse,”  https://github.com/mxgmn/
+     WaveFunctionCollapse.
+[42]  J. Hwangbo, J. Lee, and M. Hutter, “Per-contact iteration method for
+     solving contact dynamics,” IEEE Robotics and Automation Letters,
+      vol. 3, no. 2, pp. 895–902, 2018. [Online]. Available: www.raisim.com
+[43] V. Makoviychuk, L. Wawrzyniak, Y. Guo, M. Lu, K. Storey, M. Mack-
+       lin, D. Hoeller, N. Rudin, A. Allshire, A. Handa, and Gavriel State,
+      “Isaac gym: High performance GPU-Based physics simulation for
+     robot learning,” Aug. 2021.

@@ -1,0 +1,478 @@
+===== PDF PAGE 1 =====
+          Learning Risk-Aware Quadrupedal Locomotion using Distributional
+                              Reinforcement Learning
+
+                          Lukas Schneider1, Jonas Frey1,2, Takahiro Miki1, and Marco Hutter1
+
+
+
+            Abstract— Deployment in hazardous environments requires
+           robots to understand the risks associated with their actions and
+         movements to prevent accidents. Despite its importance, these
+            risks are not explicitly modeled by currently deployed locomo-
+            tion controllers for legged robots. In this work, we propose a
+            risk sensitive locomotion training method employing distribu-
+            tional reinforcement learning to consider safety explicitly. In-
+           stead of relying on a value expectation, we estimate the complete2024    value distribution to account for uncertainty in the robot’s inter-
+           action with the environment. The value distribution is consumed
+         by a risk metric to extract risk sensitive value estimates. These
+           are integrated into Proximal Policy Optimization (PPO) toMay    derive our method, Distributional Proximal Policy Optimization
+         (DPPO). The risk preference, ranging from risk-averse to risk-3
+           seeking, can be controlled by a single parameter, which enables
+            to adjust the robot’s behavior dynamically. Importantly, our ap-
+          proach removes the need for additional reward function tuning
+            to achieve risk sensitivity. We show emergent risk sensitive
+          locomotion behavior in simulation and on the quadrupedal
+          robot ANYmal. Videos of the experiments and code are avail-
+           able at https://sites.google.com/leggedrobotics.com/risk-aware-[cs.RO]    locomotion.
+
+                                        I. INTRODUCTION
+                                                                                                Fig. 1: Our robot learns to adapt its locomotion behavior in risky situations.
+           Legged robots can traverse rugged terrain inaccessible to   When commanded to walk up a large step, the risk-averse policy (■) refuses
+                                                                                     while the risk-seeking policy (■) complies. The risk parameter, controlling         wheeled or tracked systems. They can overcome sloped and
+                                                                                             the value distribution distortion, can be adapted online during deployment.
+         uneven terrain, stones, stairs, and even large gaps by carefully    Bottom: Respective risk-metric distorted value distribution per robot.
+          choosing their foot placement. This versatility makes them
+           ideal for operation in hazardous environments, such as cave   changing the reward formulation. We adopt the distributional
+          systems [1], [2], forests [3], [4], or the surfaces of other    perspective on RL [11], learning the entire distribution of
+           planets [5], [6]. In these situations, the safe operation of    returns instead of  just  its scalar expectation. This value
+           the robot is paramount, as failure could result in hardware    distribution models the intrinsic uncertainty of the agent’s
+        damage or mission failure.                                       interaction with its environment. While estimating the full
+           Recent developments in model-free deep Reinforcement    distribution was initially proposed for more accurate value
+          Learning (RL) [7], [8] have enabled legged robots to tra-    estimates,  it also captures useful information, such as the
+          verse difficult terrain reliably [9], [10]. While these systems    probability of catastrophic and high-return events. We usearXiv:2309.14246v2    are robust against perception failures, a notable limitation    the value distribution in the actor-critic framework [12] by
+          remains: they do not account for risk explicitly. Encoding   incorporating risk sensitive value estimates into Generalized
+           behavior, such as avoiding dangerous obstacles or reducing   Advantage Estimation (GAE) [13]. To extract these scalar
+         locomotion speed on rough ground, requires adaptation of   value estimates, we employ a risk metric [14] that allows
+           the reward formulation. Such adaptations are undesirable as   us to emphasize a specific part of the value distribution,
+           learning a reliable locomotion already requires expensive and    e.g., unlikely but catastrophic events. The learned locomotion
+         time-consuming reward function tuning.                       policy accounts for risks explicitly. Since the metric encodes
+             In this work, we overcome this limitation by adapting the   a fixed risk preference based on a metric parameter, and no
+       RL algorithm to allow risk sensitive behavior to arise without    single risk preference is appropriate under all circumstances,
+                                                    we condition the policy on this parameter [15]. Conditioning
+              1 Robotic Systems Lab, ETH Zurich, Zurich, Switzerland              2                                                             the policy allows the adjustment of the robot’s behavior            Max Planck Institute for Intelligent Systems, T¨ubingen, Germany.
+               This work was supported by the Swiss National Science Foundation    to either seek or avoid risks on demand by an operator
+           (SNSF) through project 188596, the National Centre of Competence in   or a high-level planner. For example,  it enables the safe
+            Research Robotics (NCCR Robotics), the European Union’s Horizon 2020    teleoperation of the robot by an amateur in risk-averse mode
+             research and innovation program under grant agreement No 101016970, No
+           101070405, and No 852044, and an ETH Zurich Research Grant. Jonas   while recovering the full range of capabilities in risk-neutral
+            Frey is supported by the Max Planck ETH Center for Learning Systems.       / seeking mode. Figure 1 visualizes the behavior of different
+
+===== PDF PAGE 2 =====
+          Actor Observation
+                                              LSTM        MLP       PPO Update
+                 Environment
+
+                              Risk Sensitivity                                                   Generalized
+                                                                                         Advantage                                                            Policy
+                             Reward                                                          Estimation
+                                                             Action
+
+                           Proprioception       Angular Velocity                                                      Risk Metric
+
+                                                                      Critic
+                      Height Scan
+                                                         Linear Velocity
+
+                 State         Command
+                                               LSTM        MLP
+            Critic Observation                                                        Value Distribution
+
+Fig. 2: Architecture overview. The critic learns to predict a value distribution, used in combination with a risk metric to update the policy. The policy is
+conditioned on the risk parameter. The risk parameter is part of the command, set by the operator.
+
+risk sensitivities of a single policy.                             quantiles [27], [28]. Generally, algorithms with more accu-
+  We thoroughly analyze the risk sensitive behavior arising    rate representations achieve better results. To extend Dist.
+from our method and study the effects of using different risk  RL to continuous actions, the value distribution is used as
+metrics and parameters in simulation. We further ablate the    the critic in an actor-critic architecture [12], [29], [30], [31],
+algorithm and deploy the trained policy to the quadrupedal    [32]. Several works explore Dist. RL theoretically [33], [34],
+ANYmal robot [16], demonstrating risk sensitive behavior    [35], [36], use the additional information contained in the
+based on the risk parameter when climbing steps of varying   value distribution to improve exploration [37], or for risk
+heights.                                                              sensitivity [27], [30], [15], [38], [39], [40]. Dist. RL has
+  Our contribution is threefold. Firstly, we integrate explicit   been used for algorithm discovery [41] and as an AI racing
+risk modeling into the locomotion controller, a capability that   agent in the Gran Turismo 7 game [42]. Further, Dist. RL
+currently deployed controllers do not possess. Secondly, we    control policies have been successfully employed in the real
+study the emergent risk sensitive locomotion behavior in sim-   world: for robotic grasping in a lab environment [43], robot
+ulation and on hardware. Lastly, on the algorithmic side, we   soccer [44], and stratospheric balloon navigation [45].
+explore introducing risk sensitivity into the RL formulation     Safe Reinforcement Learning  Safe RL is a thoroughly
+through risk sensitive advantage estimates extracted from the    studied research area [46]. The work of [15] is most closely
+value distribution.                                                related to ours, learning a risk-averse policy with online
+                                                              adaptation of risk-aversion. They model the value function
+                        II. RELATED WORK                       as a Gaussian distribution and integrate it into an actor-critic
+                                                                    architecture. When updating the policy, they maximize the
+  Legged Locomotion  Legged locomotion is a thoroughly                                                             Conditional Value at Risk (CVaR) metric and condition the
+studied research area in robotics. Early successes have been                                                               policy on the confidence. [47] extend this work to adjust risk
+achieved by model-based methods [16], [17]. However, due                                                                      sensitivity automatically. Further, DSAC is a state-of-the-art
+to their limited ability to generalize to more complex and                                                                     risk sensitive RL algorithm that integrates a value distribution
+unpredictable environments, learned methods have recently                                                                   into the maximum entropy objective of SAC [48]. Several
+gained interest. Several deep RL algorithms have solved sim-                                                     works explore  risk metrics  in  Dist. RL with  fixed  risk
+ulated legged locomotion tasks [7], [8], [18], [19]. Beyond                                                           parameters [27], [38], [39], [40], [43], [49].
+that, RL policies learned in simulation have been success-
+fully transferred to real-world scenarios, either through high                               III. METHOD
+simulation fidelity and data augmentation [20], [21], [10],     Our goal is to learn a locomotion policy πϕ(a|s; β) that
+[22], [23], [9], [24] or test-time adaptation [25].            maps the robot’s  state s to desired  joint positions a,  is
+  Distributional  Reinforcement  Learning  (Dist. RL)    conditioned on a risk parameter β, and has learned weights
+Dist. RL algorithms learn a value distribution, as defined   ϕ. The state consists of proprioceptive measurements (base
+by the recursive distributional Bellman Equation [11], which    velocity, projected gravity, joint positions and velocities), the
+replaces the  role of the value function  in  classical RL.   previous actions, samples from a local height map around the
+Value-based Dist. RL algorithms [11], [26], [27], [28] use    robot, and the input commands (desired linear and angular
+this value distribution for value-iteration, commonly max-   base velocities). The risk parameter is a scalar value and
+imizing  its expectation when comparing different actions.   depends on the metric used during training. We use the
+These methods differ primarily in how they represent the   robot dynamics model from [20], including learned actuator
+value distribution: as a categorical distribution [11], by its   dynamics. An overview of the architecture can be found in
+cumulative distribution at fixed quantiles [26], or at arbitrary   Figure 2.
+
+===== PDF PAGE 3 =====
+                                                                    distribution Zθ(s), as depicted in Figure 3. We thereby follow                           Risk Metric
+                                                              [14] who argue for using distortion risk metrics, a class
+                           Distort            Mean              of metrics with properties sensible for robotics applications.
+                        Distribution                                 Specifically, we use the Wang [52] metric, which encodes a
+                                                                 subjective measure of risk. We further use Conditional Value
+                                                Risk Seeking                                                                        at Risk (CVaR) [53], which measures the expected worst-
+                                                            case return (beyond a confidence level). For the distribution
+                                                        produced by the QR-DQN, we compute these metrics as the    Value
+ Distribution                                  Risk Neutral           expectation under a distortion g(τ) of the distribution sup-
+                                                                 ports [30]. We denote the quantile fractions of the distribution
+                                                              as (τi)i=0,...,N with τi = i/N. The distorted expectation is
+                                                 Risk Averse         computed as
+                           Risk Sensitivity                               1            N
+                                                     Z
+                                                       Vβ(s) =     g′β(τ)Zτθ (s)dτ = X (gβ(τk)−gβ(τk−1))θk(s),
+Fig. 3: Application of a risk metric. The risk sensitivity selects how the              0                k=1
+value distribution is distorted. The mean value of the distorted distribution                                                                (3)
+is provided for Generalized Advantage Estimation.
+                                                     where we denote the τ-quantile of the value distribution as
+  Distributional Proximal Policy Optimization (DPPO)   Zτθ (s). We distort the quantile fractions for CVaR as
+We base our RL algorithm on the PPO algorithm [8] as it                                                                                            τ
+shows superior performance for learning legged locomotion                   gCVaRβ   (τ) = min      , 1.0   ,              (4)
+                                                                       β
+in our setup, compared to DDPG [18], TD3 [50], SAC [48],
+                                                     where β is a scalar risk parameter. We choose β = 1 forand DSAC [30] (Experiment A: Section IV-B).
+                                                                     risk-neutrality and 0 < β < 1 for risk aversion. The CVaR  Critic Representation  As the distributional critic, we
+                                                                 metric, in effect, computes the expectation of the tail of theuse the Quantile Regression DQN (QR-DQN) [26]. It pa-
+                                                             value distribution, where β decides the cutoff. For the Wangrameterizes the value distribution as a uniform distribution
+                                                                 metric, we compute the distorted quantile fractions assupported on {θ1(s), ..., θN(s)}, which can be written as
+                     N                                            gWangβ   (τ) = Φ(Φ−1(τ) + β),              (5)
+                        1
+                Zθ(s) = X δθi(s),                 (1)   where Φ is the standard normal distribution and β  is the              N
+                              i=1                               scalar risk parameter. We choose β = 0 for risk-neutrality,
+where δz is a Dirac at z ∈R. The support positions θi(s) are   β > 0 for risk aversion, and β < 0 for risk affinity.
+state-dependent and predicted by the critic’s neural network.     For the CVaR metric, we train the policy on risk param-
+  Critic Updates  To compute reward-to-go value targets,    eters in the range β ∈(0, 1] while for the Wang metric, we
+we rely on the sample-replacement strategy SR(λ) [31].   use β ∈[−1.5, 1.5]. We find that the risk sensitive behavior
+This  technique  extends  the  temporal-difference TD(λ)    generalizes well beyond the parameter bounds used during
+method [51] for computing multi-step value targets to Dist.    training. That is, using β outside the training range results
+RL. As the name suggests, it computes value targets T Zθ(s)    in stable but more risk-averse or affine behavior.
+as a mixture of sample distributions. It starts with samples      Policy Updates We update the policy by maximizing the
+of the distribution at the final time-step Zθ(sT ). Then, going   usual PPO clip-objective
+backwards in time (t = T −1, ..., 0), the sample distribution               πϕ(s|a; β)
+                                      L = min                      (s, a; β), g (ϵ, Aπϕold (s, a; β))is discounted,  shifted by the obtained reward  rt, and a                 πϕold(s|a; β)Aπϕold
+fraction 1 −λ of samples is replaced with samples of the                                          (                                                                             (1 + ϵ)A,   if A ≥0;
+distribution Zθ(st). 1-step and N-step target distributions are   where  g(ϵ, A) =
+                                                                             (1 −ϵ)A,   if A < 0.recovered by setting λ = 0 and λ = 1, respectively. Critic
+updates minimize the energy distance                                                                                       (6)
+                                            When computing the advantages Aπ(st, at; β), we replace L = 2 Ei,j [θi −T θj] −Ei,j [T θi −T θj] −Ei,j [θi −θj]
+                                                                the value estimates with our risk sensitive value estimates.
+                                                            (2)
+                                                  To estimate the advantage, we use a truncated version ofbetween the SR(λ) target distribution and samples from the
+                                      GAE [13] motivated by [19]. It approximates the advantage
+predicted critic distribution Zθ(s).
+                                                                   for each sample (st, at, rt, st+1) by rolling out the policy  Rewards  We adapt the rewards from [20], which pri-
+                                                             π(a|s; β) for T timesteps without looking beyond the T-th
+marily reward command tracking and penalize colliding  /
+                                                                timestep. We compute truncated GAE estimates as
+expending energy. We introduce an alive reward and modify
+the collision penalties to be impact force-dependent. Further,                          T −t−1
+                                                                  Aπ(st, at; β) = X (λγ)lδrt+lthe joint motion and torque penalties are increased based on                                                                                                                               (7)
+a curriculum.                                                                            l=0
+                                                              where  δrt = rt + γVβ(st+1) −Vβ(st)  Risk  Quantification  To quantify the  risk associated
+with different states, we apply a risk metric to the value   and λ is the GAE bias / variance trade-off hyperparameter.
+
+===== PDF PAGE 4 =====
+Fig. 4: Robot operated remotely along an obstacle course. Depending on the chosen path, different risk sensitivities are preferable. For the incline along
+path (a), a risk-seeking policy (■) can be chosen for increased walking speed. Using a risk-averse policy (■) when descending the stairs along route (b)
+ensures the robot’s safety. A risk-averse policy (■) won’t climb the dangerous obstacle (c) and thus would have to walk around it, along route (d). Meanwhile,
+setting the policy to risk-seeking (■) allows the robot to surmount the obstacle (c). To step down into the deep pit along route (e), one must set the sensitivity
+to risk-seeking (■). The risk-averse policy (■) will refuse to step into the pit (f) as it may lead to a crash. Video: https://youtu.be/GGFXpF4qeVY.
+
+                    IV. EXPERIMENTS                                   it sometimes managed to descend the stairs but fell in most
+  We evaluate our method through a series of experiments.    cases. We obtained similar results when descending into the
+In sections IV-A to IV-C, we conduct simulation experiments    pit along the path (e), where the robot complied each time
+to study  risk  sensitivity and compare our method with   but often crashed. The risk-averse policy, on the other hand,
+other approaches. In Section IV-D, we conduct hardware   demonstrated a slow but safe walking gate.  It thus safely
+experiments on the ANYmal robot [16].                    descended the stairs along path (b) on each attempt. However,
+  Training  Setup   To  train  policies,  we  used  the    the risk-averse policy refused to climb the barrier along the
+legged gym library [20], based on the IsaacGym simulator.   path (c) and descend into the pit (f). This experiment showed
+We used the same observation and action space, except    that different risk sensitivities change the behavior of the
+for the additional  risk  sensitivity. The  risk  sensitivity  is    robot. This allows either an operator or a navigation system
+uniformly sampled with the command during training. The    to make use of the risk-sensitivity to increase safety during
+training environment comprises seven different terrains with    the mission.
+ten difficulty levels per terrain. Robots spawn at the center
+of each terrain with a random offset.                         B. Simulation Experiment: Algorithm Performance
+  Simulation Experiment Setup  The quantitative simula-
+tion experiments (Sections IV-B and IV-C) were conducted
+in a deterministic environment to enable a fair comparison.       25
+In both experiments, we spawned 72 robots at the center               Return
+of each environment tile with initial z-rotations uniformly       20
+distributed across 360◦and set the command to a forward
+                                                                               15
+velocity of 1 m/s.                                                                                                             DSAC                                                                                                                                                                                                                                                                                                                                                                                                                                                                           Undiscounted                                                         DPPO
+A. Simulation Experiment: Obstacle Course                          10                                                         PPO
+  To demonstrate different risk sensitivities in a teleoper-            1k              5k     Training Iteration10k                 15k
+ation scenario, we navigated a robot through the obstacle
+course depicted in Figure 4. The shortest path from start     Fig.  5: Average  return  in the evaluation environment. Shaded regions
+                                                                                  indicate 95% confidence intervals across seeds and evaluation spawns.
+to goal in this environment is to descend steep stairs (b)    Hyperparameters for DPPO were not tuned.
+[25cm steps], cross the barrier (c) [55cm height], walk up the
+ramp, and descend into the pit (e) [85cm depth]. To follow    We compare  the  attained  return  of our method with
+this route successfully, the operator could make use of the  PPO  [8], commonly used in state-of-the-art legged loco-
+different risk sensitivities.                                 motion approaches [21], [10], and DSAC [30], a recent
+  Discussion  Based on risk sensitivity, the robot exhibited    distributional actor-critic algorithm that can learn risk sen-
+different locomotion behaviors. When using a risk-seeking    sitive policies. DSAC has previously been tested on legged
+policy,  the robot  generally walked  faster and attempted   locomotion [47] and, with some adaptations, been employed
+to overcome obstacles despite the  risk of  falling. When    in complex control scenarios [42]. For each method, we
+commanding the robot over the barrier along the path (c), the    trained 10  policies. In  this experiment, our method was
+risk-seeking policy always attempted to follow the command.    trained with  “risk-neutral” expectation  instead of a  risk
+In most cases, it managed to surmount the barrier but, in a    metric. Due to computation constraints, we employed MLPs
+few cases, got stuck on the barrier or fell down the opposite    for both actor and critic across all three methods. Figure 5
+side. When sending the risk-seeking policy along path (b),   shows the learning curve for each method.
+
+===== PDF PAGE 5 =====
+                                                               14
+                                                                                                                                                      1.0
+    28.0                                                         12
+                                                                                                                                                      0.9
+                                                                                           [%] 10                                                                                                                                            [m/s] 0.8  [None] 27.527.0
+  Return 26.5                                                          8                                                                                                                                            Error 0.7
+                                                                6                                                                      0.6    26.0                                                                                                                                                                                                                                                                                                           Termination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         Velocity
+                                                                4                                                                      0.5    25.5                                                                                                                                        Early                                                                                                                                                                                                                                                                                                                                                                               Linear 0.4    Undiscounted 25.0                                                          2
+
+    24.5                                                                                                                                              0.3
+                                                                0
+
+       Seeking                  Neutral                 Averse       Seeking                  Neutral                 Averse        Seeking                  Neutral                 Averse
+                               Risk Sensitivity                                                    Risk Sensitivity                                                      Risk Sensitivity
+
+
+
+Fig. 6: Average undiscounted return, fraction of episodes in which the robot terminates before episode end, and L2 distance between commanded and
+actual linear velocity. PPO baseline is included for reference and does not change with risk sensitivity. Shaded regions show 95% confidence intervals
+across evaluation spawns. Only a single seed was trained for each method due to computation constraints. Methods are listed in table I.
+
+  Discussion We found that both DPPO (return of 27.62     However, reward tuning is a complex process.  It is of-
+after 20k iterations) and PPO (27.86) significantly outper-    ten unclear how a reward term affects the learned policy.
+formed DSAC (21.1). Qualitatively, DSAC, which also uses    Further, individual terms cannot be tuned in isolation as
+a Dist. RL formulation, failed to learn a proper locomotion   they influence one another: e.g. high torque penalties may
+policy. Despite reusing the hyperparameters from [20], ex-   prevent the algorithm from discovering the linear velocity
+tensively tuned for PPO, our method performs on-par with    tracking reward. The approach of the PPO1 baseline further
+PPO. We thus establish our method as competitive in terms    increases this design complexity (especially when scaling
+of attained return. We highlight that the core contribution   multiple reward terms). Thus, in a second approach we call
+of our work is not outperforming PPO in terms of attained   PPO2, we rescale the full reward formulation in a principled
+return, but to allow for risk sensitive behavior.               manner. We treat individual reward terms as Dirac impulses
+                                                               defining a probability distribution (mirroring Equation 1) and
+C. Simulation Experiment: Risk Sensitive Performance       compute the distorted mean by applying the Wang metric.
+                                               As risk parameter, we choose β ∈[−0.25, 0.25] as we are
+ Name              Loss Function    Value Target                     unable to learn a policy for a larger range.
+ DPPO-Wang         Energy          N-step distribution [SR(λ), λ = 1]       The policy π(a|s; β) learned by either baseline is condi-
+ DPPO-Wang-QH      Quantile Huber   N-step distribution                  tioned on the scalar parameter β, emulating the risk parame-
+  DPPO-Wang-SRL     Energy          SR(λ), λ = 0.95                      ter from our method. In both methods, the critic predicts the
+                                                           expected return used for GAE computation as in standard  DPPO-Wang-1Step    Energy             1-step distribution [SR(λ), λ = 0]
+                                                  PPO. Aside from the critic, we use the same training setup,
+    TABLE I: Overview of ablated components on DPPO-Wang.         rewards, and hyperparameters as for DPPO. We expect the
+  We further compare the attained return between different  PPO1 baseline to learn risk-averse behavior for β ∈[0, 1)
+ablations of our method (listed in Table I) as well as non-   and risk-seeking behavior for β ∈(1, 2].  It reverts to the
+distributional reward-shaping baselines, introduced below.    initial, “risk-neutral”, reward formulation for β =  1. We
+Return is computed using the original reward formulation.   expect the PPO2 baseline to exhibit behavior appropriate for
+We show the undiscounted return in Figure 6. We also in-    the Wang metric (see Section III).
+clude the fraction of early terminations and the linear velocity     Discussion  For a policy to qualify as risk sensitive, we
+tracking error. These two metrics underline our qualitative   expect the Early Terminations and the Linear Velocity Error
+assessment on changing behavior with risk sensitivity from    to change appropriately across different risk settings. All
+Section IV-A with quantitative results.                     methods showed such risk sensitive behavior that matches
+  PPO Baseline  To contrast our distributional approach,   our intuition: risk-seeking policies had improved command
+we implement PPO baselines that modulate “risk”-preference    tracking but also more premature terminations; risk-averse
+through the reward formulation. In these baselines,  risk-    policies sacrificed command tracking to keep the robot safe.
+preference is introduced before accounting for environment     The return generally increased with risk-averseness. This
+dynamics, setting them apart from our Dist. RL approach.    trend could be due to high-reward actions which, despite
+Our first approach, which we call PPO1, adapts individual    often failing, would still be pursued by a risk-seeking policy.
+terms of the reward formulation. Specifically, we scale the   In our environment, however, such risk-seeking behavior
+linear velocity tracking reward by β ∈[0, 2]. This scaling   was not rewarded. Our method significantly outperformed
+aims at trading-off command tracking and other rewards,    the reward-shaping baselines regarding return. Especially the
+most notably the alive reward. The policy should thus learn,  PPO2 baseline had severely lower returns. These mirrored its
+depending on  the  risk parameter,  to mediate  differently   high early termination rate and linear velocity tracking error.
+between command compliance and keeping the robot safe.    For the PPO1 baseline, we experienced outlier behavior for
+
+===== PDF PAGE 6 =====
+        Fig. 7: ANYmal showed different step-up behaviors depending on risk sensitivity and step height. Video: https://youtu.be/GGFXpF4qeVY.
+
+the most risk-averse setting: since the velocity tracking re-     it tried to follow with a risk-seeking command. On the higher
+ward was set to zero during training, the robot learned to stop    step height (41cm), the risk-averse policy mostly refused to
+walking. The undesired behavior of PPO1 and low return of   walk the step. We often observed the policy standing before
+PPO2 demonstrate the difficulties when incorporating risk    the obstacle, unresponsive to  its forward command. The
+sensitivity through the standard RL framework.                risk-seeking and neutral policies, while failing to surmount
+  Comparing our method to its ablations, none attained sim-    the obstacle as well, exhibited more aggressive behavior.
+ilar return. DPPO-CVaR most significantly underperformed   The difference between the  risk-neutral and risk-seeking
+in our experiments. This underperformance may be due to    policies became emphasized for the smaller step size (27cm).
+the CVaR metric disregarding an entire portion of the value   In this experiment, the risk-seeking policy complied every
+distribution, appearing to result in less stable training. Thus,    time, often surmounting the obstacle. The risk-neutral policy
+our design decisions are experimentally justified.             mostly attempted to overcome the obstacle but failed. A
+                                                                      slight inconsistency arose between the risk-neutral and risk-
+D. Hardware Experiment
+                                                              averse policies, where the latter succeeded in walking the
+  Our  learned  policy  transfers  to  the  real world using                                                                 step more often. Overall, the risk-neutral policy attempted to
+appropriate domain randomization [20]. We conducted ex-                                                      walk the step more often than the risk-averse policy. These
+periments on the ANYmal robot [16] with onboard percep-                                                              observations mirror our findings in simulation and confirm
+tion [54] to replicate the risk sensitive behavior observed in                                                                     that risk sensitivity successfully transfers to hardware.
+simulation. We commanded the robot to walk up steps of
+height 27cm and 41cm with a speed of 1.2 m/s and counted                       V. CONCLUSION
+refusals, failures, and successes to surmount the obstacle.
+                                                    Our work presents a Dist. RL approach for learning risk
+A high step has some risk of the robot falling and, thus, a
+                                                                    sensitive locomotion policies. These policies allow the robot
+risk-averse policy might avoid it while a risk-seeking policy
+                                                                   to adapt its behavior to environment risks. A risk preference
+should neglect the  risk. The experiments are depicted in
+                                                                              is encoded through a single parameter that can be modulated
+Figure 7. We collected a total of 45 tries, 8 for each policy
+                                                            during deployment. To incorporate risk sensitivity into the
+on the 41cm step height and 7 on the 27cm step height. The
+                                         RL formulation, we introduce risk sensitive advantage esti-
+results are listed in Table II.
+                                                            mates. The emergent risk sensitive behavior, demonstrated
+                     27cm Step           41cm Step          in simulation and on hardware, opens up a new application
+  Risk Sensitivity        Refusal  Failure  Succ.    Refusal  Failure  Succ.    domain for Dist. RL in real-world applications. Our work
+                                                                    directly  benefits teleoperation and navigation, given  that
+  Averse (β = −1.5)   25%   50%   25%   85.7%  14.3%  0%
+                                                           a user  / planner can now change the risk affinity of the
+  Neutral (β = 0.0)     12.5%  75%   12.5%  0%   100%  0%
+                                                              robot during deployment, increasing safety while retaining
+  Seeking (β = +1.5)   0%    37.5%  62.5%  0%   100%  0%       full locomotion capability. Further research  is needed to
+TABLE  II: Hardware experiment  results. The robot received a 1.2 m/s    establish procedures on evaluating risk sensitivity and study
+command to walk up the step. We counted the number of refusals, failures    risk sensitive Dist. RL from a theoretical standpoint: how the
+(active attempts to surmount the obstacle without ultimate success), and
+successes. The given percentages indicate how often each behavior was   choice of risk metric impacts the resulting policy and how
+observed during the experiments.                                   well the estimated value distribution matches the true return
+  Discussion  The robot’s actions aligned well with the risk    distribution are some suggestions. Additionally, integrating
+sensitivity of its assigned policies. When commanded to be  DPPO into a navigation system that utilizes risk sensitivity
+risk-averse, the robot hesitated before climbing the step while    is promising for future work.
+
+===== PDF PAGE 7 =====
+                 REFERENCES                                 [17] G. Bledt, M. J. Powell, B. Katz, J. Di Carlo, P. M. Wensing, and
+                                                                                      S. Kim, “MIT Cheetah 3: Design and Control of a Robust, Dynamic
+ [1] A. Bouman, M. F. Ginting, N. Alatur, M. Palieri, D. D. Fan, T. Touma,                                                                       Quadruped Robot,” in 2018 IEEE/RSJ International Conference on
+      T. Pailevanian, S.-K. Kim, K. Otsu,  J. W. Burdick, and A. akbar           Intelligent Robots and Systems (IROS), 2018, pp. 2245–2252.
+    Agha-mohammadi, “Autonomous Spot: Long-Range Autonomous Ex-                                                                              [18]  T. P. Lillicrap, J. J. Hunt, A. Pritzel, N. Heess, T. Erez, Y. Tassa,
+      ploration of Extreme Environments with Legged Locomotion,” 2020                                                                        D.  Silver, and D. Wierstra, “Continuous control with deep  rein-
+     IEEE/RSJ International Conference on Intelligent Robots and Systems                                                                             forcement learning,” in 4th International Conference on Learning
+     (IROS), pp. 2518–2525, 2020.                                                 Representations, ICLR 2016, San Juan, Puerto Rico, May 2-4, 2016,
+ [2] M. Tranzatto, M. Dharmadhikari, L. Bernreiter, M. Camurri, S. Khat-         Conference Track Proceedings, 2016.
+      tak,  F. Mascarich,  P. Pfreundschuh, D.  Wisth,  S. Zimmermann,                                                                              [19] V. Mnih, A. P. Badia, M. Mirza, A. Graves, T. P. Lillicrap, T. Harley,
+    M. Kulkarni, V. Reijgwart, B. Casseau, T. Homberger, P. D. Petris,                                                                        D. Silver, and K. Kavukcuoglu, “Asynchronous Methods for Deep
+     L. Ott, W. Tubby, G. Waibel, H. Nguyen, C. Cadena, R. Buchanan,                                                                            Reinforcement Learning,” in Proceedings of the 33nd International
+     L. Wellhausen, N. Khedekar, O. Andersson, L. Zhang,  T. Miki,         Conference on Machine Learning, ICML 2016, New York City, NY,
+      T. Dang, M. Mattamala, M. Montenegro, K. Meyer, X. Wu, A. Briod,        USA, June 19-24, 2016, ser. JMLR Workshop and Conference Pro-
+    M. Mueller, M. Fallon, R. Siegwart, M. Hutter, and K. Alexis, “Team                                                                                    ceedings, vol. 48.  JMLR.org, 2016, pp. 1928–1937.
+    CERBERUS Wins the DARPA Subterranean Challenge: Technical                                                                              [20] N. Rudin, D. Hoeller, P. Reist, and M. Hutter, “Learning to Walk in
+     Overview and Lessons Learned,” 2022.                                                                          Minutes Using Massively Parallel Deep Reinforcement Learning,” in
+ [3]  J. Frey, D. Hoeller, S. Khattak, and M. Hutter, “Locomotion Policy          5th Annual Conference on Robot Learning, 2021.
+     Guided Traversability Learning using Volumetric Representations of                                                                              [21] A. Agarwal, A. Kumar, J. Malik, and D. Pathak, “Legged Locomotion
+    Complex Environments,” in 2022 IEEE/RSJ International Conference                                                                                         in Challenging Terrains using Egocentric Vision,” in Conference on
+     on Intelligent Robots and Systems (IROS), 2022.                          Robot Learning, CoRL 2022, 14-18 December 2022, Auckland, New
+ [4]  J. Frey, M. Mattamala, N. Chebrolu, C. Cadena, M. Fallon, and         Zealand, ser. Proceedings of Machine Learning Research, vol. 205.
+    M. Hutter, “Fast Traversability Estimation for Wild Visual Naviga-                                                           PMLR, 2022, pp. 403–415.
+      tion,” in Proceedings of Robotics: Science and Systems, 2023.                                                                              [22] Z. Xie, X. Da, M. van de Panne, B. Babich, and A. Garg, “Dy-
+ [5] A. Dettmann, S. Planthaber, V. Bargsten, R. Dominguez, G. Cerilli,                                                                          namics Randomization Revisited: A Case Study  for Quadrupedal
+    M. Marchitto, G. Fink, M. Focchi, V. Barasuol, C. Semini, and                                                                            Locomotion,” 2021 IEEE International Conference on Robotics and
+     R. Marc, “Towards a generic navigation and locomotion control system         Automation (ICRA), pp. 4955–4961, 2020.
+      for legged space exploration.”  16th Symposium on Advanced Space                                                                              [23]  J. Tan, T. Zhang, E. Coumans, A. Iscen, Y. Bai, D. Hafner, S. Bohez,
+     Technologies in Robotics and Automation (ASTRA 2022), 2022.                                                                        and V. Vanhoucke, “Sim-to-Real: Learning Agile Locomotion For
+ [6] H. Kolvenbach, M. Breitenstein, C. Gehring, and M. Hutter, “Scal-                                                                       Quadruped Robots,” in Robotics: Science and Systems XIV, Carnegie
+      ability Analysis of Legged Robots for Space Exploration.”   68th         Mellon University, Pittsburgh, Pennsylvania, USA, June 26-30, 2018,
+      International Astronautical Congress (IAC), 2017.                                                                             2018.
+ [7]  J. Schulman, S. Levine, P. Abbeel, M. Jordan, and P. Moritz, “Trust                                                                              [24]  J. Hwangbo,  J.  Lee, A.  Dosovitskiy, D.  Bellicoso,  V.  Tsounis,
+     region policy optimization,” in International conference on machine                                                                                   V. Koltun, and M. Hutter, “Learning agile and dynamic motor skills
+      learning.  PMLR, 2015, pp. 1889–1897.                                                                                          for legged robots,” Science Robotics, vol. 4, no. 26, p. eaau5872, 2019.
+ [8]  J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov,                                                                              [25] L. Smith, J. C. Kew, X. B. Peng, S. Ha, J. Tan, and S. Levine, “Legged
+     “Proximal   Policy   Optimization   Algorithms.”   CoRR,    vol.                                                                          Robots that Keep on Learning: Fine-Tuning Locomotion Policies in
+     abs/1707.06347, 2017.                                                                                     the Real World,” 2022 International Conference on Robotics and
+ [9]  J. Lee,  J. Hwangbo, L. Wellhausen,  V. Koltun, and M.  Hutter,         Automation (ICRA), pp. 1593–1599, 2021.
+     “Learning quadrupedal locomotion over challenging terrain,” Science                                                                              [26] W. Dabney, M. Rowland, M. G. Bellemare, and R. Munos, “Distribu-
+     Robotics, vol. 5, no. 47, oct 2020.                                                                                            tional Reinforcement Learning With Quantile Regression,” in Proceed-
+[10]  T. Miki, J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter,          ings of the Thirty-Second AAAI Conference on Artificial Intelligence,
+     “Learning robust perceptive locomotion for quadrupedal robots in the         (AAAI-18), the 30th innovative Applications of Artificial Intelligence
+      wild,” Science Robotics, vol. 7, no. 62, p. eabk2822, 2022.                    (IAAI-18), and the 8th AAAI Symposium on Educational Advances
+[11] M. G. Bellemare, W. Dabney, and R. Munos, “A  Distributional           in Artificial Intelligence (EAAI-18), New Orleans, Louisiana, USA,
+      Perspective on Reinforcement Learning,” in Proceedings of the 34th         February 2-7, 2018.  AAAI Press, 2018, pp. 2892–2901.
+      International Conference on Machine Learning, ICML 2017, Sydney,                                                                              [27] W. Dabney, G. Ostrovski, D. Silver, and R. Munos, “Implicit Quantile
+    NSW,  Australia, 6-11 August 2017,  ser. Proceedings of Machine                                                                        Networks for Distributional Reinforcement Learning,” in Proceedings
+     Learning Research, vol. 70.  PMLR, 2017, pp. 449–458.                       of the 35th International Conference on Machine Learning, ICML
+[12] G. Barth-Maron, M. W. Hoffman, D. Budden, W. Dabney, D. Hor-         2018, Stockholmsm¨assan, Stockholm, Sweden, July 10-15, 2018, ser.
+     gan, D. TB, A. Muldal, N. Heess, and T. P. Lillicrap, “Distributed                                                                              Proceedings of Machine Learning Research, vol. 80.  PMLR, 2018,
+      Distributional Deterministic Policy Gradients,” in 6th International                                                                                    pp. 1104–1113.
+     Conference on Learning Representations, ICLR 2018, Vancouver, BC,                                                                              [28] D. Yang, L. Zhao, Z. Lin,  T. Qin,  J. Bian, and  T. Liu, “Fully
+     Canada, April 30  - May 3, 2018, Conference Track Proceedings.                                                                               Parameterized Quantile Function  for  Distributional Reinforcement
+     OpenReview.net, 2018.                                                                                  Learning,” in Advances in Neural Information Processing Systems 32:
+[13]  J. Schulman, P. Moritz, S. Levine, M. I. Jordan, and P. Abbeel, “High-         Annual Conference on Neural Information Processing Systems 2019,
+     Dimensional Continuous Control Using Generalized Advantage Esti-        NeurIPS 2019, December 8-14, 2019, Vancouver, BC, Canada, 2019,
+     mation,” in 4th International Conference on Learning Representations,                                                                                    pp. 6190–6199.
+    ICLR 2016, San Juan, Puerto Rico, May 2-4, 2016, Conference Track                                                                              [29] A. Kuznetsov, P. Shvechikov, A. Grishin, and D. P. Vetrov, “Con-
+     Proceedings, 2016.                                                                                               trolling Overestimation Bias with Truncated Mixture of Continuous
+[14] A. Majumdar and M. Pavone, “How Should a Robot Assess Risk?                                                                                        Distributional Quantile Critics,” in Proceedings of the 37th Interna-
+     Towards an Axiomatic Theory of Risk in Robotics,” in Robotics           tional Conference on Machine Learning, ICML 2020, 13-18 July 2020,
+     Research, The 18th International Symposium, ISRR 2017, Puerto                                                                                        Virtual Event, ser. Proceedings of Machine Learning Research, vol.
+     Varas, Chile, December 11-14, 2017,  ser. Springer Proceedings in                                                                                119.  PMLR, 2020, pp. 5556–5566.
+     Advanced Robotics, vol. 10.  Springer, 2017, pp. 75–84.                                                                              [30] X. Ma, Q. Zhang, L. Xia, Z. Zhou, J. Yang, and Q. Zhao, “Distri-
+[15] Y. C. Tang,  J. Zhang, and R. Salakhutdinov, “Worst Cases Policy                                                                                     butional Soft Actor Critic for Risk Sensitive Learning,” CoRR, vol.
+      Gradients,” in 3rd Annual Conference on Robot Learning, CoRL 2019,                                                                               abs/2004.14547, 2020.
+     Osaka, Japan, October 30  - November 1, 2019, Proceedings,  ser.                                                                              [31] D. W. Nam, Y. Kim, and C. Y. Park, “GMAC: A Distributional
+     Proceedings of Machine Learning Research, vol. 100.  PMLR, 2019,                                                                                    Perspective on Actor-Critic Framework,” in Proceedings of the 38th
+     pp. 1078–1093.                                                                International Conference on Machine Learning, ICML 2021, 18-
+[16] M. Hutter, C. Gehring, D. Jud, A. Lauber, C. D. Bellicoso, V. Tsounis,        24 July 2021, Virtual Event, ser. Proceedings of Machine Learning
+       J. Hwangbo, K. Bodie,  P. Fankhauser, M. Bloesch, R. Diethelm,                                                                                Research, vol. 139.  PMLR, 2021, pp. 7927–7936.
+      S. Bachmann, A. Melzer, and M. Hoepflinger, “ANYmal - a highly                                                                              [32] R. Singh, K. Lee, and Y. Chen, “Sample-based Distributional Policy
+     mobile and dynamic quadrupedal robot,” in 2016 IEEE/RSJ Interna-                                                                                    Gradient,” in Learning for Dynamics and Control Conference, L4DC
+      tional Conference on Intelligent Robots and Systems (IROS), 2016, pp.         2022, 23-24 June 2022, Stanford University, Stanford, CA, USA, ser.
+     38–44.
+
+===== PDF PAGE 8 =====
+     Proceedings of Machine Learning Research, vol. 168.  PMLR, 2022,         “Quantile QT-Opt for Risk-Aware Vision-Based Robotic Grasping,” in
+     pp. 676–688.                                                                Robotics: Science and Systems XVI.  Robotics: Science and Systems
+[33] M. G. Bellemare, I. Danihelka, W. Dabney, S. Mohamed, B. Lakshmi-         Foundation, jul 2020.
+     narayanan, S. Hoyer, and R. Munos, “The Cramer Distance as a So-    [44]  T.  Haarnoja, B. Moran, G.  Lever,  S. H. Huang, D.  Tirumala,
+      lution to Biased Wasserstein Gradients,” CoRR, vol. abs/1705.10743,       M.  Wulfmeier,  J. Humplik,  S.  Tunyasuvunakool, N.  Y.  Siegel,
+     2017.                                                                  R. Hafner, M. Bloesch, K. Hartikainen, A. Byravan, L. Hasenclever,
+[34] K. Sun, Y. Zhao, Y.  Liu, E.  Shi, Y. Wang, X. Yan, B.  Jiang,          Y. Tassa, F. Sadeghi, N. Batchelor, F. Casarini, S. Saliceti, C. Game,
+     and L. Kong, “Interpreting Distributional Reinforcement Learning: A        N. Sreendra, K.  Patel, M. Gwira, A. Huber, N. Hurley,  F. Nori,
+     Regularization Perspective,” 2021.                                        R. Hadsell, and N. Heess, “Learning Agile Soccer Skills for a Bipedal
+[35] M. Rowland, R. Dadashi, S. Kumar, R. Munos, M. G. Bellemare, and        Robot with Deep Reinforcement Learning,” 2023.
+    W. Dabney, “Statistics and Samples in Distributional Reinforcement    [45] M. Bellemare, S. Candido, P. Castro, J. Gong, M. Machado, S. Moitra,
+     Learning,” in Proceedings of the 36th International Conference on          S. Ponda, and Z. Wang, “Autonomous navigation of stratospheric
+     Machine Learning, ICML 2019, 9-15 June 2019, Long Beach, Cali-          balloons using reinforcement learning,” Nature, vol. 588, pp. 77–82,
+      fornia, USA, ser. Proceedings of Machine Learning Research, vol. 97.        12 2020.
+    PMLR, 2019, pp. 5528–5536.                                           [46]  J. Garc´ıa, Fern, and o Fern´andez, “A Comprehensive Survey on Safe
+[36] M. Rowland, R. Munos, M. G. Azar, Y. Tang, G. Ostrovski, A. Haru-         Reinforcement Learning,” Journal of Machine Learning Research,
+     tyunyan, K. Tuyls, M. G. Bellemare, and W. Dabney, “An Analysis           vol. 16, no. 42, pp. 1437–1480, 2015.
+      of Quantile Temporal-Difference Learning,” 2023.                       [47]  F. Schubert, T. Eimer, B. Rosenhahn, and M. Lindauer, “Automatic
+[37] B. Mavrin, S. Zhang, H. Yao, L. Kong, K. Wu, and Y. Yu, “Distribu-         Risk Adaptation in Distributional Reinforcement Learning,” 2021.
+      tional Reinforcement Learning for Efficient Exploration.” CoRR, vol.    [48]  T. Haarnoja, A. Zhou, P. Abbeel, and S. Levine, “Soft Actor-Critic:
+     abs/1905.06125, 2019.                                                       Off-Policy Maximum Entropy Deep Reinforcement Learning with a
+[38]  J. Bernhard, S. Pollok, and A. Knoll, “Addressing Inherent Uncer-          Stochastic Actor,” in Proceedings of the 35th International Conference
+      tainty: Risk-Sensitive Behavior Generation for Automated Driving us-        on Machine Learning, ICML 2018, Stockholmsm¨assan, Stockholm,
+     ing Distributional Reinforcement Learning,” in 2019 IEEE Intelligent         Sweden, July 10-15, 2018,  ser. Proceedings of Machine Learning
+      Vehicles Symposium (IV).  IEEE, jun 2019.                                 Research, vol. 80.  PMLR, 2018, pp. 1856–1865.
+[39]  S. Stanko and K. Macek, “Risk-averse Distributional Reinforcement    [49] N. A. Urp´ı, S. Curi, and A. Krause, “Risk-Averse Offline Reinforce-
+     Learning: A CVaR Optimization Approach,” in International Joint        ment Learning,” 2021.
+     Conference on Computational Intelligence, 2019.                        [50]  S. Fujimoto, H. van Hoof, and D. Meger, “Addressing Function Ap-
+[40]  T. Th´eate and D. Ernst, “Risk-Sensitive Policy with Distributional         proximation Error in Actor-Critic Methods.” in ICML, ser. Proceedings
+     Reinforcement Learning,” 2022.                                               of Machine Learning Research, vol. 80. PMLR, 2018, pp. 1582–1591.
+[41] A. Fawzi, M. Balog, A. Huang,  T. Hubert, B. Romera-Paredes,    [51] R. S. Sutton and A. G. Barto, Reinforcement Learning: An Introduc-
+    M. Barekatain, A. Novikov, F. Ruiz, J. Schrittwieser, G. Swirszcz,           tion, 2nd ed.  The MIT Press, 2018.
+     D.  Silver, D. Hassabis, and  P. Kohli, “Discovering  faster matrix    [52]  S. S. Wang, “A Class of Distortion Operators for Pricing Financial and
+      multiplication algorithms with reinforcement learning,” Nature, vol.         Insurance Risks,” The Journal of Risk and Insurance, vol. 67, no. 1,
+     610, pp. 47–53, 10 2022.                                                     pp. 15–36, 2000.
+[42]  P. Wurman, S. Barrett, K. Kawamoto, J. MacGlashan, K. Subramanian,    [53] R. T. Rockafellar and S. Uryasev, “Optimization of conditional value-
+      T. Walsh, R. Capobianco, A. Devlic, F. Eckert, F. Fuchs, L. Gilpin,           at risk,” Journal of Risk, vol. 3, pp. 21–41, 2000.
+       P. Khandelwal, V. Kompella, H. Lin, P. MacAlpine, D. Oller, T. Seno,    [54]  T. Miki, L. Wellhausen, R. Grandia, F. Jenelten, T. Homberger, and
+     C. Sherstan, M. Thomure, and H. Kitano, “Outracing champion Gran       M. Hutter, “Elevation Mapping for Locomotion and Navigation using
+     Turismo drivers with deep reinforcement learning,” Nature, vol. 602,        GPU,” in IEEE/RSJ International Conference on Intelligent Robots
+     pp. 223–228, 02 2022.                                              and Systems, IROS 2022, Kyoto, Japan, October 23-27, 2022.  IEEE,
+[43] C. Bodnar, A. Li, K. Hausman,  P. Pastor, and M. Kalakrishnan,         2022, pp. 2273–2280.

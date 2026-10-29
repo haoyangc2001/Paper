@@ -1,0 +1,183 @@
+{
+  "schema_version": "1.0",
+  "result_revision": "v2",
+  "data_status": "synthetic_example",
+  "empirical_validation": false,
+  "source": "individually authored counts and sufficient statistics in inference_ledger.jsonl",
+  "intervals": {
+    "rates": "Wilson95 n50",
+    "continuous": "Student95 df49 from synthetic mean/sample SD",
+    "t_critical": 2.0095752371292397,
+    "interpretation": "illustrative marginal intervals, not measured uncertainty"
+  },
+  "methods": {
+    "HD-MCRA": {
+      "n": 50,
+      "outcomes": {
+        "success": 35,
+        "localization_abort": 3,
+        "timeout": 4,
+        "physical_contact": 8,
+        "manual_takeover": 0
+      },
+      "budget_outcome_cross_counts": {
+        "success": 3,
+        "localization_abort": 0,
+        "timeout": 3,
+        "physical_contact": 1,
+        "manual_takeover": 0
+      },
+      "metrics": {
+        "SR": {
+          "estimate": 70.0,
+          "count": 35,
+          "CI95": [
+            56.249649535546595,
+            80.89644649911905
+          ],
+          "unit": "percent"
+        },
+        "Cost": {
+          "estimate": 182,
+          "sd": 54,
+          "CI95": [
+            166.6533698032306,
+            197.3466301967694
+          ],
+          "unit": "a.u."
+        },
+        "CR": {
+          "estimate": 16.0,
+          "count": 8,
+          "CI95": [
+            8.337420678033407,
+            28.514216063034986
+          ],
+          "unit": "percent"
+        },
+        "BVR": {
+          "estimate": 14.0,
+          "count": 7,
+          "CI95": [
+            6.950833427016293,
+            26.18619371058554
+          ],
+          "unit": "percent"
+        },
+        "MC": {
+          "estimate": 0.086,
+          "sd": 0.057,
+          "CI95": [
+            0.06980077923674338,
+            0.1021992207632566
+          ],
+          "unit": "m"
+        }
+      },
+      "ledger_input_ids": {
+        "success_count": "H2-01",
+        "localization_abort_count": "H2-02",
+        "timeout_count": "H2-03",
+        "physical_contact_count": "H2-04",
+        "manual_takeover_count": "H2-05",
+        "BVR_success": "H2-06",
+        "BVR_timeout": "H2-07",
+        "BVR_localization_abort": "H2-08",
+        "BVR_physical_contact": "H2-09",
+        "BVR_manual_takeover": "H2-10",
+        "Cost_mean": "H2-11",
+        "Cost_sd": "H2-12",
+        "MC_mean": "H2-13",
+        "MC_sd": "H2-14"
+      }
+    },
+    "RC-PPO": {
+      "n": 50,
+      "outcomes": {
+        "success": 32,
+        "localization_abort": 3,
+        "timeout": 5,
+        "physical_contact": 10,
+        "manual_takeover": 0
+      },
+      "budget_outcome_cross_counts": {
+        "success": 5,
+        "localization_abort": 0,
+        "timeout": 4,
+        "physical_contact": 2,
+        "manual_takeover": 0
+      },
+      "metrics": {
+        "SR": {
+          "estimate": 64.0,
+          "count": 32,
+          "CI95": [
+            50.1410168761127,
+            75.86125034815325
+          ],
+          "unit": "percent"
+        },
+        "Cost": {
+          "estimate": 176,
+          "sd": 62,
+          "CI95": [
+            158.37979495926476,
+            193.62020504073524
+          ],
+          "unit": "a.u."
+        },
+        "CR": {
+          "estimate": 20.0,
+          "count": 10,
+          "CI95": [
+            11.243750015776111,
+            33.037105932225415
+          ],
+          "unit": "percent"
+        },
+        "BVR": {
+          "estimate": 22.0,
+          "count": 11,
+          "CI95": [
+            12.753915970214418,
+            35.24154958125367
+          ],
+          "unit": "percent"
+        },
+        "MC": {
+          "estimate": 0.067,
+          "sd": 0.056,
+          "CI95": [
+            0.05108497609223913,
+            0.08291502390776087
+          ],
+          "unit": "m"
+        }
+      },
+      "ledger_input_ids": {
+        "success_count": "R2-01",
+        "localization_abort_count": "R2-02",
+        "timeout_count": "R2-03",
+        "physical_contact_count": "R2-04",
+        "manual_takeover_count": "R2-05",
+        "BVR_success": "R2-06",
+        "BVR_timeout": "R2-07",
+        "BVR_localization_abort": "R2-08",
+        "BVR_physical_contact": "R2-09",
+        "BVR_manual_takeover": "R2-10",
+        "Cost_mean": "R2-11",
+        "Cost_sd": "R2-12",
+        "MC_mean": "R2-13",
+        "MC_sd": "R2-14"
+      }
+    }
+  },
+  "differences_HD_minus_RC": {
+    "SR": 6.0,
+    "Cost": 6,
+    "CR": -4.0,
+    "BVR": -8.0,
+    "MC": 0.01899999999999999
+  },
+  "difference_interpretation": "point differences only; paired joint outcomes unavailable; no significance claim"
+}

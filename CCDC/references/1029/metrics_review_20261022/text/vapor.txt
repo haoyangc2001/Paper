@@ -1,0 +1,528 @@
+===== PDF PAGE 1 =====
+        VAPOR: Legged Robot Navigation in Unstructured Outdoor
+              Environments using Offline Reinforcement Learning
+
+              Kasun Weerakoon1, Adarsh Jagan Sathyamoorthy1, Mohamed Elnoor1, and Dinesh Manocha2
+                         Supplemental version including Tech Report, Code and Video at http://gamma.umd.edu/vapor/
+
+
+
+            Abstract— We  present VAPOR, a  novel method  for au-
+         tonomous legged robot navigation  in unstructured, densely
+           vegetated outdoor environments using  offline Reinforcement
+          Learning (RL). Our method trains a novel RL policy using an
+            actor-critic network and arbitrary data collected in real outdoor
+           vegetation. Our policy uses height and intensity-based cost maps
+          derived from 3D LiDAR point clouds, a goal cost map, and2023    processed proprioception data as state inputs, and learns the
+           physical and geometric properties of the surrounding obstacles
+          such as height, density, and solidity/stiffness. The fully-trainedSep     policy’s critic network is then used to evaluate the quality of
+          dynamically feasible velocities generated from a novel context-
+         aware planner. Our planner adapts the robot’s velocity space19    based on the presence of entrapment inducing vegetation, and
+         narrow passages in dense environments. We demonstrate our                                                                             Fig.  1:  Legged  robot  trajectories  generated when  navigating
+          method’s capabilities on a Spot robot in complex real-world
+                                                                            through complex outdoor vegetation using VAPOR, end-to-end
+          outdoor scenes, including dense vegetation. We observe that
+                                                        CQL-SAC [10], IQL [11], BCO [12], VERN [4], and DWA [13].
+        VAPOR’s actions improve success rates by up to 40%, decrease
+                                                    VAPOR identifies the entrapment in vines and uses holonomic
+           the average current consumption by up to 2.9%, and decrease
+                                                                                   actions to minimize the instability and current consumption instead
+           the normalized trajectory length by up to 11.2% compared to
+                                                                                 of excessive angular actions taken by the other methods which re-[cs.RO]    existing end-to-end offline RL and other outdoor navigation                                                                                            sults in further entrapment. Hence, in this scenario, VAPOR moves
+          methods. Code implementation is available here.
+                                                                      backward with minimal angular motion to reduce entanglement with
+                                                                                      vines.
+                                        I. INTRODUCTION                                                                      varying dynamic constraints. This restricts the robot’s nav-
+          Autonomous robot navigation in complex outdoor scenes    igation and could lead to highly conservative, meandering
+             is an essential capability for many applications, including    trajectories [7], or freezing behaviors [8]. Imitation learning
+           precision agriculture [1], search and rescue operations in   techniques have also been proposed for outdoor navigation,
+           forested environments [2], reconnaissance[3], etc. There are   but the resulting models may not generalize well[9].
+         two major challenges in navigating such scenarios. Firstly,      Conversely, outdoor navigation methods based on online
+           the robot must perceive and differentiate non-solid/pliable   reinforcement learning (RL) [14] do not require human label-
+           obstacles (e.g. tall grass), from solid/non-pliable obstacles   ing since they are trained using a robot’s active interactions
+            (e.g. trees)  [4]. Pliable obstacles can be safely traversed   with a simulated environment. Nevertheless, such models
+          through, whereas non-pliable obstacles must be avoided.    exhibit severe performance degradation during real-world
+          Secondly, apart from avoiding collisions, the robot also faces   deployment due to sim-to-real transfer issues [15]. Training
+          challenges such as narrow passages, and scenarios where the   complex models using RL requires high-fidelity simulations,arXiv:2309.07832v2
+          vegetation could wrap/attach onto the robot and entrap it. The   which may not be available, especially for complex scenar-
+           robot’s navigation must be capable of handling such adverse    ios. To alleviate such shortcomings, offline-RL [16] methods
+            situations.                                               have been proposed, where a model is trained using data
+          To address the perceptional challenges in outdoors, meth-    collected in real-world environments, reducing the sim-to-
+         ods based on image classification [4], semantic segmentation    real transfer issues.
+            [5], and anomaly detection [6] using supervised learning     However, none of the existing methods for outdoor nav-
+         have been employed. However, such works require extensive    igation have accounted  for the  constraints  that complex
+         manual annotation and labeling to identify traversable terrain   real-world scenes imposes on the robot’s  velocities. For
+          during training. Such models also may not align with the    instance, while traversing through  tall grass and bushes,
+           actual traversability capabilities of different robots due to   angular motions could cause the vegetation to easily wrap
+                                                                  around the robot restricting its motion. Furthermore, in cases
+              1 Authors are with Dept. of  Electrical and Computer Engineering,   with solid obstacles create narrow passages, the robot would
+             University of Maryland, College Park, MD, USA. kasunw@umd.edu,   have to rotate/reorient itself to maneuver the narrow free
+         asathyam@umd.edu, melnoor@umd.edu
+              2 Author is with Dept. of Computer Science, University of Maryland,    space. Therefore, the robot’s executable actions must be
+            College Park, MD, USA. dm@cs.umd.edu                         adapted based on the environment.
+
+===== PDF PAGE 2 =====
+  Main contributions: To address these challenges, we    tation employing 3D point clouds and RGB images. Despite
+propose VAPOR, an offline RL-based trajectory evaluation    their promising results, the system requires manual labeling,
+model combined with a context-aware planner designed to   which could be time-consuming and less scalable for real-
+generate dynamically feasible velocities to operate a legged   world deployments. In  [4], the authors use RGB images
+robot in challenging outdoor scenes. VAPOR’s offline RL   and 2D Lidar to create traversability cost maps in dense
+formulation allows it to be trained using data collected in the   vegetation environments. Stone et al. [21] use an infrared
+real world [17] that is automatically compiled for training,   (IR) sensor and an RGB camera for vegetation detection.
+alleviating sim-to-real transfer issues. The novel components   While effective in certain conditions, these camera-based
+of our work are:                                        methods are often vulnerable to environmental factors such
+  • We propose a novel offline RL-based actor-critic net-   as changing lighting and motion blur, thereby limiting their
+    work to learn a Q-function to evaluate a legged robot’s    robustness. Iberraken et al. [22] demonstrate the use of a 2D
+     candidate actions and velocities in terms of their ability  LiDAR to navigate through structured vineyard fields.
+     to reach the goal, avoid solid, non-pliable vegetation    Some recent works have shifted their focus from external
+    and other desirable behaviors. The network consists   sensors to proprioceptive modalities to perceive vegetation
+     of  spatial and channel  attention layers  to learn the    [23],  [24]. While proprioception  offers  reliable feedback
+     spatial correlations in the input observation space. Our   about the robot’s internal state,  it inherently lacks the ca-
+    model is trained using real-world data collected in dense    pability for look-ahead predictions before traversing a given
+    environments that are automatically compiled into states    terrain, especially in the absence of exteroceptive sensors.
+    and actions between randomly chosen start and goal   Our work combines exteroception (3D point clouds) with
+      states. This  alleviates the sim-to-real  transfer issues   proprioception for robust and efficient navigation through
+     prevalent in existing RL methods. This results in an   outdoor vegetation.
+    improvement up to 40% in terms of success rate
+  • A novel observation space to sense dense vegetation   B. Offline RL based Robot Navigation
+     consisting of robot-centric height and  intensity cost
+                                                           Reinforcement Learning (RL) has been fundamental to    maps obtained by processing lidar point clouds, a goal
+                                                              robot navigation [14], [25], [26], [27], providing methods    map indicating the distance and direction to the goal,
+                                                                   for autonomous decision-making based on interaction with    and proprioceptive signals from the legged robot’s joints
+                                                                the environment. However, traditional online RL often falls     to indicate its stability. The height and intensity maps
+                                                                 short in situations where real-time data collection is either     accurately represent the height and solidity or inversely,
+                                                                impractical or the lack of realistic simulation which increases     the pliability of the surrounding vegetation. The goal
+                                                                the  sim-to-real gap  [28]  e.g.,  navigating through dense    map and proprioception aid with spatially correlating
+                                                               vegetation or hazardous or complex terrains. On the other     the vegetation’s properties with the robot’s intended
+                                                           hand, offline RL has emerged as a promising alternative,    motion direction and stability during training.
+                                                           designed to optimize policies based on pre-collected datasets.  • A novel context-aware motion planner that switches
+                                           Among the foundational works in offline RL is the study by    between (1). a holonomic velocity space to minimize the
+                                                         Levine et al. [16], which outlines the key methodologies and     risk of entrapment in vegetation assessed from proprio-
+                                                                challenges. Methods based on Imitation Learning (IL) have     ceptive signals, and (2). a non-holonomic velocity space
+                                                                 also leveraged collected data [29], [30]. However, IL is often     to navigate narrow passages between solid, non-pliable
+                                                                      restricted by the limitations of the human operator (expert)     vegetation. Further,  it generates dynamically feasible,
+                                             who collected the data, meaning it cannot generally surpass    smooth candidate actions/velocities to be assessed by
+                                                                the operator’s performance. In contrast, offline RL aims to    VAPOR’s Q-function. VAPORis evaluated on a real
+                                                           optimize the behavioral policy based on the dataset, offering    Boston Dynamics Spot robot in unstructured outdoor
+                                                                the potential for more generalized and sometimes superior     scenes.
+                                                                     strategies [11], [31], [17]. Kostrikov et al. [11] introduce Im-
+                        II. RELATED WORK                           plicit Q-Learning (IQL) which implicitly estimates the value
+  In this section, we discuss the existing literature on veg-   function without querying the Q function of unseen actions.
+etation perception in outdoor environments, and offline RL   While IQL shows promise,  it struggles in tasks with long
+methods used for navigation. Finally, we discuss the existing   planning horizons. Shah et al. [17] mitigate this limitation by
+holonomic planning methods.                             combining IQL with topological graphs. Nevertheless, their
+                                                    method primarily relies on RGB images which is susceptible
+A. Outdoor Vegetation Perception                               to lighting changes, motion blur, etc.
+  Navigating robots in outdoor environments, particularly    On  the  other  hand,  [10]  developed  Conservative Q-
+through vegetation, is a challenging task that has received   Learning (CQL) to enhance the robustness of the learned pol-
+increasing attention in recent years [4], [18], [19]. Existing    icy. This method lower-bounds the true value of its learned Q
+approaches tackle this issue using various sensory modalities    function. Following its superior performance with complex
+and learning techniques. For instance, [20] adopts a self-   data distribution, we extend this method by employing data
+supervised approach to estimate the support surface in vege-   from a 3D LiDAR and a legged robot’s joint encoders.
+
+===== PDF PAGE 3 =====
+                                             we incorporate CQL with Soft Actor-Critic (SAC) [39] as
+                                                           our base offline RL algorithm.
+                                                                    Hereafter, we use j, k as indices. Vectors are represented in
+                                                                bold, lower case letters. All positions, velocities, and forces
+                                                                are represented  w.r.t a rigid frame attached to the robot
+                                  R (indicated in superscript) or relative to a cost map. The
+                                                              robot frame’s x, y, z directions points forward, leftward, and
+                                                    upward respectively.
+
+                                                            B. Dataset Generation
+
+                                                    Our raw training data is collected by teleoperating a legged
+Fig.  2:  Overall system  architecture of VAPOR which uses a   robot equipped with a 360◦3D LiDAR, and joint encoders
+height and intensity cost map generated from 3D  lidar, a goal    for ∼4 hours. We collect raw 3D point clouds, robot’s
+cost map, and proprioception data from the robot as state inputs                                                          odometry, joint positions and velocities on the legs, and joint
+to train an Actor-Critic offline RL policy. Then, the fully trained
+                                                                 actuator current as the robot moves in random trajectories incritic network is used to evaluate the dynamically feasible actions
+generated by a planner. The planner uses instability detection using   vegetation including grass, bushes, and trees with varying
+proprioception and intensity map to switch between a holonomic    density. Hence, the raw data set does not have any goal-
+and non-holonomic action space to reduce the risk of entrapment.    conditioning or goal-reaching policy.
+C. Holonomic Planning                                 To create goal-conditioned data set D with a series of
+                                                              {sj, aj, rj, s′j}, we  consider random  trajectory segments  Traditional  robotic  planning  often  focuses  on  non-
+                                                      from the raw dataset, i.e., we select a random state as the ini-
+holonomic robotic planners, largely because many robots
+                                                                                 tial position and a future sample in the same raw trajectory as
+including wheeled robots, inherently possess non-holonomic
+                                                                the goal. This subsequent goal sample is selected such that it
+constraints [32], [33], [34], [35]. Conversely, robots with
+                                                                              is ∼8−20 meters away from the robot’s initial position, and
+higher degrees  of freedom  (e.g., legged  or manipulator
+                                                           our processed dataset D = {(sj, aj, rj, s′j) | j = 1, 2, .., N}robots) can benefit from holonomic planning methods [36],
+                                                                              is obtained. We explain the details of the state observations,
+[37]. However, such planner lack the ability to adapt the
+                                                                    actions, and reward formulation in the sub-sections below.
+robot’s velocity space based on environmental constraints,
+especially in dense vegetation.                              C. State Observations from Multi-sensor Data
+
+                                                    Our  state  observations s ∈ S  are obtained by  pre-  III. VAPOR: VEGETATION-AWARE PLANNING USING
+                                                             processing the raw sensory data collected from both the        OFFLINE REINFORCEMENT LEARNING
+                                                               exteroceptive (point clouds) and proprioceptive (joint po-
+A. Preliminaries                                                                         sitions, forces) data from the robot. We denote the entire
+  We mathematically formulate our navigation problem as a    point cloud as P reflected point’s 3D location relative to
+Markov Decision Process (MDP) with continuous states and    the robot and intensity as pj = {xj, yj, zj, ij}|xj, yj, zj ∈
+actions. Our MDP can be defined as M := {S, A, P, r, γ},   R; ij ∈[0, im]}. Proprioceptive sensing is obtained from the
+where S, A denote state and action spaces, P(s′|s, a) repre-    robot’s joint positions hx/y1   , hx/y2   , hx/y3   , hx/y4    , force feedback
+sents the state transition dynamics between current state s,    f1, f2, f3, f4, and the battery’s current consumption Ib.
+action a, and next state s′. r(s, a) is the reward function, and    We preprocess the aforementioned sensory data to gen-
+γ ∈(0, 1) denotes the discount factor. The objective of RL is    erate two types of  state observations:  1.) Se: A  set of
+to learn a policy πθ(a|s) parameterized by θ that maximizes    robot-centric cost maps that reflect the solidity and height
+the discounted cumulative reward return.                      of the surrounding objects, and distance to the goal using
+  Offline RL particularly aims to learn policies from existing    exteroceptive sensors; 2.) Sp: A vector that quantifies the
+data sets instead of explicitly interacting with the environ-    robot’s stability using proprioception. Hence, our final state
+ment. Hence, for a dataset D = {(sj, aj, rj, s′j)|sj, s′j ∈   observations s = [Se, Sp] ∈S.
+S; aj ∈A; j = 1, 2, .., N}, offline RL algorithms attempt to      1) Layered Cost Maps from Exteroception: Navigation in
+learn a policy πθ(a|s) that maximizes the discounted reward   outdoor vegetation requires sensing the height and solidity
+return Rt = PTk=t γ(k−t)rk(sk, ak) at time step t. However,   of the vegetation in the robot’s vicinity. Moreover, spatial
+leveraging the standard RL algorithms for offline RL leads to   information of the goal location  is necessary to perform
+poor performance due to overfitting and distributional shifts    successful goal-reaching  tasks. Hence, we propose three
+[16]. In particular, the existing value-based off-policy RL    robot-centric 2D cost maps, intensity cost map (Ci), height
+methods such as Q learning typically overestimate the value    cost map (Ch), and goal cost map (Cg), to represent the
+function predictions for unseen outcomes, which results in    solidity and height of the surrounding objects/vegetation, and
+erroneous and overly optimistic estimations [38]. To mitigate    distance and direction to the goal respectively.
+this issue, Conservative Q Learning (CQL) [10] regularizes      All three cost maps Ci, Ch and, Cg are n×n matrices with
+the Q-values during training to learn conservative and lower-    the robot positioned at the center (n/2, n/2) as depicted in
+bound estimates of the value function. Hence, in this work,    Fig. 3. Each element in each cost map satisfies Ci,h,g(l, m) ∈
+
+===== PDF PAGE 4 =====
+Fig. 3: Robot-centric cost map state observations from exterocep-
+tive sensing from Scenario 3 in Fig. 5: [Left] Point cloud-based
+intensity cost map Ci that indicates the density of the surrounding
+objects using lidar reflectance; [Center] Height cost map Ch that
+represents the maximum height of the objects derived from the point    Fig. 4: Actor and Critic network architectures of our method.
+cloud; [Right] Goal cost map Cg that indicates the distance to the  We incorporate two separate branches to process exteroception Se,
+goal from the robot’s neighborhood. Light colors indicate higher   and proprioception Sp observations. We use spatial and channel
+costs and dark areas represent lower costs.                             attention to encode correlation among the layered cost maps in Se.
+[0, 100]  ∀l, m = 0, 1, .., n−1. A grid (l, m) in a cost map is   hx/y1   , hx/y2   , hx/y3   , hx/y4   , f1/2/3/4, Ib], as performed in [23].
+related to a grid gridRl,m of physical (x, y) locations relative    Principal Component Analysis (PCA) is then applied to the
+to the robot as,                                                           processed data to reduce its dimensions to two primary axes.
+    (x, y) ∈gridRl,m                                          Subsequently, we extract the variances (σ2P C1 and σ2P C2) of
+  gridRl,m = [[xl,m, xl,m + β], [yl,m, yl,m + β]]           (1)    the dimension reduced data along the principal components,
+          j         k          j          k        and define our  resulting proprioceptive  state observation     xl,m =  (l −n ) · β  and yl,m = (m −n ) · β  ,                2                      2               vector  as, Sp =  [σ2P C1, σ2P C2], σ2P C1, σ2P C2 ∈R+. We
+                                                           observe that highly stable terrains such as asphalt lead to
+  where β is the side length of a square-shaped grid gridRl,m                                                          lower variances, and unstable terrain leading to higher values.
+in meters.
+                                                                      Lastly, we derive our final state observation as s = [Se, Sp]Intensity Cost Map  (Ci):  We employ the point cloud
+                                                    by combining both exteroceptive and proprioceptive stateintensity values [40], [41], [42], to construct an intensity
+                                                                observations.cost map Ci. The LiDAR’s reflectance power (i.e., intensity)
+is directly proportional to the solidity of the corresponding
+objects. Hence, we observe that grass, bushes, and trees result   D. Offline Reinforcement Learning Using CQL-SAC
+in distinct intensities (see Fig. 3a). We calculate elements of
+                                                    Our network  architecture  is based on CQL-SAC [10]
+Ci as,                                                                     that incorporates two critic networks and an actor-network.
+     P       P                  xj                         yj ij
+  Ci(l, m) =            ∀pj ∈P and xj, yj ∈gridRl,m.    The policy actor-network  (i.e., πθ(a|s)) estimates the pa-
+               β2                                         rameters θ of the policy distribution, which provides the
+                                                            (2)
+                                                                conditional probability of taking action a given the state
+Height Cost Map (Ch):  We generate Ch  to represent                                                              observation s. In our context, this policy distribution is Gaus-
+the maximum heights of the objects in each grid location
+                                                                 sian parameterized by the mean µθ and standard deviation
+gridRl,m. To this end, element (l, m) of Ch is obtained by,                                                             σθ. Further, the two critic networks are Q networks   i.e.,
+  Ch(l, m) = max(zj) ∀pj ∈P and xj, yj ∈gridRl,m,  (3)   Q1(s, a; πθ), Q2(s, a; πθ)  that uses state-action pairs s, a as
+                                                                inputs to estimate the expectation of the value function. We
+where higher values in Ch(l, m) indicate taller objects.        design the actor and critic networks as follows.
+Goal Cost Map (Cg): Each location (l, m) in the goal cost      1) Actor and Critic Networks: Our actor and critic net-
+map represents gridRl,m’s distance to the goal (xRg , yRg ). Its   work  architecture with  layer dimensions  is presented  in
+value is calculated as,                                                                  Fig.  4. In both networks, we use two separate network
+                                                           branches to process the exteroceptive Se and proprioceptive
+        q                                                   Sp observations in our input state s. We highlight the use of             αg.                 (xRg −xl,m)2 + (yRg −yl,m)2
+   Cg(l, m) =                                                          ,   (4)    spatial and channel attention networks in the exteroception
+                                   dtot                           branch. Spatial attention blocks encode spatial neighborhood
+where dtot is the total distance to the goal from the robot’s    properties in individual cost maps and channel attention helps
+starting position and αg ∈R is a tunable weight parameter.    learn the correlations between the features between the cost
+   Finally, we obtain our state observation from the extero-   maps. The outputs from the two branches are concatenated
+ception Se by concatenating the derived cost maps. Hence,   and processed using several linear layers to obtain the end-
+Se = {Ci, Ch, Cg} of shape n × n × 3.                        to-end action outputs.
+  2) Stability Observation from Proprioception: To  esti-      Since the critic networks take both the action and state
+mate  the  robot’s  stability  in  vegetation, we  incorporate    inputs, we use an additional branch to process the action by
+data  acquired  from  the  robot’s  joint  positions,  forces,   passing two linear layers through before concatenating with
+and  battery  current  for  proprioceptive  sensing. To  this    the state observation branches. All the hidden layers in the
+end, we process  the raw  proprioceptive  data Hprop =   network are followed by ReLU activation.
+
+===== PDF PAGE 5 =====
+  2) Reward Functions: The reward function is formulated   E. Context-Aware Planning
+to obtain robot actions that lead to desired navigation behav-
+                                                    To generate dynamically  feasible candidate  actions  toior. In this work, we are primarily interested in three navi-
+                                                       be evaluated using Qmin(s, a; πθ)  , we formulate a novelgation behaviors: 1) Goal reaching; 2) Avoiding dense/solid
+                                                            context-aware planner. An action a ∈A for our robotobjects while navigating through pliable vegetation; and 3)
+                                                        can be denoted as a = (vx, vy, ωz). The planner uses aMinimizing the overall energy consumption. We introduce
+                                                           3-dimensional velocity space (Vs ⊂A) defined as Vs =three reward terms rgoal, rveg, and renergy to achieve the
+                                                            {(vx, vy, ωz)| −vmax ≤vx, vy ≤vmax, −ωmax ≤ω ≤aforementioned behaviors. Hence, the total reward rtot ob-
+                                                    ωmax}. Here, vx and vy denote the linear velocities alongtained by the robot for a given sample is calculated as,
+                                                                the robot’s x and y directions respectively, and ωz represents
+                                                                the angular velocity about the vertical z-axis. vmax and ωmax
+             rtot = β1rgoal + β2rveg + β1renergy,         (5)                                                                are the maximum linear and angular velocity limits. Addi-
+                                                                        tionally, the planner uses the set of reachable/dynamically
+  where β1, β2, β3  are tunable parameters  to weigh the
+                                                                   feasible  velocities from  the  current  velocities within an
+reward terms. We design rgoal based on the robot’s current
+                                                                     interval ∆t based on acceleration limits as Vr = {[vx −distance dg to the goal to encourage moving towards the
+                                                          ˙vmax∆t, vx + ˙vmax∆t], [vy −˙vmax∆t, vy + ˙vmax∆t], [ωz −goal. Hence,
+                                                        ˙ωmax∆t, ωz + ˙ωmax∆t]}. Here, ˙vmax, and ˙ωmax are the
+                 λ1dtot                                         robot’s maximum linear and angular acceleration limits.
+          rgoal =       1{dg>dth} + λ21{dg≤dth},       (6)     The risk of entrapment in dense vegetation a robot faces                  dg
+                                                                              is exacerbated when the robot performs angular motions
+  where λ1, λ2 ∈R are adjustable parameters, 1  is an   because  it aids the vegetation in helically twirling on to
+indicator function, and dth is the goal reaching threshold.       its legs (intuitively similar to rotating a fork on spaghetti).
+  The vegetation reward rveg  is a penalty for actions that   Therefore, in such scenarios, the robot’s angular motion must
+navigate the robot in dense vegetation nearby (i.e, higher the   be restricted. On the other hand, in scenarios with narrow
+density, lower the reward). To this end, we consider three   passages, the rectangularly shaped robot must be capable
+circular neighborhoods with radii 0.5, 1.5 and 2.5 meters   of performing angular motions to traverse through. Such
+centered at the robot. Let, A1, A2 and A3 denote the sets of   behaviors are also desirable when the robot is equipped with
+grids corresponding to these neighborhoods in the intensity   a sensor with a limited FOV that needs to be pointed in
+cost map Ci. Then, rveg is calculated as,                     a specific direction. To accommodate both scenarios, we
+                                                                           restrict Vs based on the following condition:
+                          ηk
+         rveg = − X   X  Ci(l, m)   ,       (7)
+                          |Ak|
+                    k=1,2,3       l,m∈Ak           q
+                                       C :   σ21 + σ22 > Γ, Ci(l, m) ∈[0.5im, 0.75im]∀l, m ∈A2.
+  where the tunable parameters are set such that η1 > η2 >
+η3 ∈R to ensure higher penalties for the dense vegetation           ({(vx, vy, 0)},  if C is True,                                                                Vs =
+in the robot’s nearby vicinity. |Ak| denotes cardinality of the                      {(vx, 0, ωz)},  Otherwise,
+set Ak.                                                                                                                        (9)
+  We incorporate renergy  to penalize actions consuming
+high amounts of energy (proportional to the current Ib)   where vx, vy ∈[−vmax, vmax], and ω ∈[−ωmax, ωmax].
+during navigation. We calculate renergy as,                The corresponding Vr is calculated from the restricted Vs by
+                                                             omitting either vy or ωz based on the environment. The best
+                      renergy = −ϵIb,                    (8)    action a∗for the robot to execute given the current state s
+                                                        can then be found as,
+  where ϵ ∈R+ is a weight parameter.
+                                                a∗= argmax(Qmin(s, ak)).           (10)  3) Critic Networks  for  State-action Evaluation:  Even
+                                                                                ak∈Vr
+though we train an end-to-end navigation policy using CQL-
+SAC on our data set D, we do not use the actions from the                                                                           IV. RESULTS AND ANALYSIS
+trained policy πθ(a|s) in the actor network for navigation.
+Instead, we leverage the Q-function Q(s, a) learned by a                                                            A. Implementation
+critic network to evaluate the quality of the set of actions
+generated by a context-aware planner. Intuitively, Q(s, a)     Our CQL-SAC offline RL policy is implemented using
+indicates how well the action leads to desirable behaviors   PyTorch and our model is trained on a workstation with an
+imposed by the reward function. Since CQL-SAC includes    Intel Xeon 3.6 GHz processor and an Nvidia Titan GPU. For
+two critic networks and learned Q-functions (Q1(s, a; πθ)    real-time deployment and inference, we use the Spot robot
+and Q2(s, a; πθ)), we choose the critic network with the low-   from Boston Dynamics equipped with a VLP16 Velodyne
+est training loss. We refer to its Q-function as Qmin(s, a; πθ)   LiDAR, an onboard Intel NUC 11, which includes an Intel
+from here on.                                                    i7 CPU and an NVIDIA RTX 2060 GPU.
+
+===== PDF PAGE 6 =====
+Fig. 5: Trajectories generated when navigating through complex outdoor vegetation using various comparison methods. The trajectories
+drawn from the robot’s rear indicate that it has moved backward. VAPOR is able to use holonomic action in dense vegetation and vines
+(Scenarios 2 and 4) to reduce the risk of entrapment while others use angular velocities to reach the goal which results in instability and
+navigation failures. In the presence of narrow spaces in Scenarios 1 and 3, VAPOR uses non-holonomic actions to navigate through.
+
+                                                                                                        Metrics              Methods            Scenario   Scenario   Scenario   Scenario
+                                                                                                                                            1         2         3         4
+                                                                               DWA [13]             30         0         0         20
+                                                                                       VERN [4]             60        70        10        40
+                                                                                                         Success           BCO [12]             10         0         0         10
+                                                                                                Rate (%)             IQL [11]             40        30        40        20
+                                                                                                CQL-SAC [10]           50        60        50        50
+                                                                                     VAPOR w/o Proprioception      50        40        50        30
+                                                                                       VAPOR w/o Attention        60        50        40        60
+                                                                                         VAPOR (ours)           80        70        60        70
+                                                                               DWA [13]             7.158      7.482      7.206      7.502
+                                                                                       VERN [4]             6.937      7.457      6.993      7.423
+                                                                                                      Avg. Current         BCO [12]             6.681      7.153      6.937      7.391
+                                                                                        Consumption (A)          IQL [11]              7.155      7.436      7.161      7.466
+Fig. 6: Sample velocities vx generated by VAPOR and CQL-                   VAPORCQL-SACw/o Proprioception[10]           7.1927.013      7.3017.464      7.0996.792      7.4877.408
+SAC (end-to-end) policy during a navigation task. The end-to-                     VAPOR w/o Attention       6.835      7.198      6.704      7.298
+end policy actions demonstrate significantly high variance which                       VAPORDWA [13](ours)           6.5991.327      7.1471.655      6.7350.428      7.3191.421
+indicates dynamically infeasible velocities to the robot leading to                        VERN [4]             1.105      1.327      1.517      1.365
+                                                                                      Norm. Traj.         BCO [12]             0.425      1.398      0.422      0.643
+high vibrations and high motor current consumption. In contrast,           Length              IQL [11]              0.735      0.686      1.761      0.892
+VAPOR generates smooth, dynamically feasible actions.                             VAPORCQL-SACw/o Proprioception[10]           0.8971.236      1.2451.364      1.4531.386      1.2771.338
+                                                                                       VAPOR w/o Attention       1.125      1.223      1.374      1.294
+B. Comparison Methods and Evaluation Metrics                                             VAPOR(ours)           1.065      1.238      1.289      1.256
+                                          TABLE I: Navigation performance of VAPOR compared to other  We compare our method’s navigation performance with
+                                                            methods on various evaluation metrics in four test scenarios that are
+three recent offline RL algorithms: CQL-SAC (our end-to-                                                                    not included in the data set. Please see [43] for more evaluations.
+end policy) [10], IQL [11], BCO [12], an autonomous imi-
+tation learning approach, VERN [4], an outdoor vegetation                                                                                             Methods          Inference Time (ms)
+navigation algorithm, and the Dynamic Window Approach                   VERN [4]                84.612
+(DWA) [13] a classical model-based navigation approach                   BCO [12]                 3.622
+                                                                                         IQL [11]                 3.951
+that uses 2D LiDAR scans. We train all the aforementioned                VAPOR w/o Attention           8.820
+offline RL comparison methods on our data set D using                  VAPOR (Ours)              8.934
+networks architectures similar to ours for fair comparison.  TABLE  II: Inference time comparison between ours and other
+We further perform two ablation studies: VAPOR w/o Propri-   methods when executing in robot’s onboard computer. IQL [11],
+oception; and VAPOR w/o attention to highlight the benefits  BCO [12], and VAPOR w/o attention has the lowest inference
+                                                                 time since they use the same network backbone. However, their
+of our approach. Our metrics for evaluation are:
+                                                                     navigation performance is significantly lower as shown in Table I.
+Success Rate  - The number of times the robot reached                                          VERN [4] has the highest inference time due to computationally
+its goal while avoiding  collisions with  solid and dense   heavy backbones. In contrast, VAPOR has a lightweight network
+vegetation over the total number of attempts.                      that can execute in real time while providing accurate predictions.
+Avg. Current Consumption - The average battery current
+                                                                  • Scenario 3 - Thin grass, shrubs, and trees with narrow
+consumption during a navigation task  (i.e., Ptraj Ib) in                                                              openings under low light conditions.
+Amperes (A).
+                                                                  • Scenario 4 - Dense grass, fallen branches, vines, and
+Normalized Traj. Length - The robot’s trajectory length
+                                                                               trees.
+normalized using the straight-line distance to the goal for
+both successful and unsuccessful trajectories.
+                                                      D. Analysis and Comparison
+C. Testing Scenarios                                         We evaluate our method’s navigation performance qualita-
+  We compare our method’s navigation performance in the    tively in the Fig. 5 and quantitatively in Table I. Scenario 4 is
+real-world outdoor test scenarios that are not included in the   presented in the Fig. 1. We observe that VAPOR demonstrate
+training data set. At least 10 trails are conducted in each    the highest success rate compared to other methods in all
+scenario.                                                      four scenarios that include diverse and unseen vegetation.
+  • Scenario 1 - Contains narrow passages between shrubs,   Since the data set does not include expert demonstrations
+    and trees in a mulch surface.                                specifically collected with the behaviors imposed by reward
+  • Scenario 2  - Dense bushes that lead to entrapment,    functions, behavioral cloning with BCO [12] shows the
+     sparse grass, and trees.                                  lowest success  rate due  its attempt  to  imitate  the  data
+
+===== PDF PAGE 7 =====
+set trajectories without the knowledge of the rewards. In   planner  is capable of adaptively switching between holo-
+contrast, offline RL methods such as IQL and CQL-SAC   nomic and non-holonomic action to minimize entrapment in
+attempt  to perform the navigation tasks  at a reasonable   unstructured vegetation. We deploy our method into a Boston
+success rate. Eventhough VERN demonstrate the second best   Dynamics Spot robot and evaluate in real outdoor vegetation
+success rate in Scenarios 1 and 2, it performs poorly in low    to demonstrate benefits.
+light conditions in Scenario 3 and trees covered with leaves     Our method has a few limitations. Our planner cannot
+in Scenario 4 due to the erroneous vegetation classification   provide any theoretical guarantees on the behavior since the
+from its vision based system. DWA freezes in tall and dense    the state-action evaluations are obtained from a Q function
+vegetation in Scenarios 2 and 3 identifying such regions as    trained on a data set. Even though our method generalizes
+obstacles from the 2D LiDAR scan.                          well compared  to  vision based and supervised  learning
+Benefits of Proprioception: We observe that VAPOR’s per-   methods, large data sets are required for training. Further,
+formance in terms of success rate and current consumption   our method cannot detect thin poles or string fences due to
+degrades in dense vegetation without the proprioception state   low resolution of the lidar and lack of scene awareness.
+observations. Further, our planner uses proprioception to
+restrict the angular velocities during entrapment in scenarios                    REFERENCES
+2 and 4 which leads to a higher success rate and low current      [1] N. S. Naik, V. V. Shete, and S. R. Danve, “Precision agriculture robot
+consumption than VAPORwithout prorioception. VERN and           for seeding function,” in 2016 international conference on inventive
+DWA leads to entrapment in scenario 2 and 4 due to lack         computation technologies (ICICT), vol. 2.  IEEE, 2016, pp. 1–3.
+                                                                                     [2]  S. Karma, E. Zorba, G. Pallis, G. Statheropoulos, I. Balta, K. Mikedi,
+of vegetation awareness from proprioception. Moreover, in             J. Vamvakari, A. Pappa, M. Chalaris, G. Xanthopoulos, et al., “Use
+stable conditions such as scenario 3, our planner uses angular          of unmanned vehicles in search and rescue operations in forest fires:
+velocities to move between the trees that create a narrow         Advantages and limitations observed in a field  trial,” International
+                                                                                   journal of disaster risk reduction, vol. 13, pp. 307–312, 2015.
+passage.                                                                          [3]  S. Li, C. Feng, Y. Niu, L. Shi, Z. Wu, and H. Song, “A fire recon-
+Benefits of Attention: Our method without attention demon-          naissance robot based on slam position, thermal imaging technologies,
+strate relatively low success rate, high power consumption         and ar display,” Sensors, vol. 19, no. 22, p. 5036, 2019.
+                                                                                     [4] A. J. Sathyamoorthy, K. Weerakoon, T. Guan, M. Russell, D. Conover,
+and longer trajectory lengths particularly due to the lack of             J. Pusey, and D. Manocha, “Vern: Vegetation-aware robot naviga-
+feature encoding capabilities between the cost map inputs           tion  in dense unstructured outdoor environments,” arXiv preprint
+than when spatial and channel attention are included. We         arXiv:2303.14502, 2023.
+                                                                                     [5]  T. Guan, D. Kothandaraman, R. Chandra, A.  J. Sathyamoorthy,
+observe that VAPOR without attention deviates from goal in        K. Weerakoon, and D. Manocha, “Ga-nav: Efficient terrain segmenta-
+some trails due to lack of spatial aware encoding from the           tion for robot navigation in unstructured outdoor environments,” IEEE
+goal cost map.                                                              Robotics and Automation Letters, vol. 7, no. 3, pp. 8138–8145, 2022.
+                                                                                     [6] L. Wellhausen, R. Ranftl, and M. Hutter, “Safe robot navigation
+End-to-end RL  vs Ours: We observe  that end-to-end          via multi-modal anomaly detection,” IEEE Robotics and Automation
+RL  policies generates dynamically  infeasible actions  for           Letters, vol. 5, no. 2, pp. 1326–1333, 2020.
+the robot’s motors though the actions reflects the behavior      [7] A.  J.  Sathyamoorthy,  K.  Weerakoon,  T.  Guan,  J.  Liang,  and
+                                                                        D. Manocha, “Terrapn: Unstructured terrain navigation using online
+imposed by the rewards (See Fig. 6). This leads to jerky          self-supervised learning,” in 2022 IEEE/RSJ International Conference
+motion due to motor vibrations (see Fig. 5) and high avg.        on Intelligent Robots and Systems (IROS).  IEEE, 2022, pp. 7197–
+current consumption. In contrast, VAPOR’s planner ensures         7204.
+                                                                                     [8] A. J. Sathyamoorthy, U. Patel, T. Guan, and D. Manocha, “Frozone:
+that the actions are dynamically feasible which results in          Freezing-free, pedestrian-friendly navigation in human crowds,” IEEE
+lower current consumption than all end-to-end RL models.           Robotics and Automation Letters, vol. 5, no. 3, pp. 4352–4359, 2020.
+Inference Time: VAPOR has a lightweight network that      [9] A. Hussein, E. Elyan, M. M. Gaber, and C. Jayne, “Deep imitation
+                                                                                     learning for 3d navigation tasks,” Neural computing and applications,
+can execute in real time (∼112Hz) on the robot’s onboard           vol. 29, pp. 389–404, 2018.
+computer while providing accurate predictions as shown in    [10] A. Kumar, A. Zhou, G. Tucker, and S. Levine, “Conservative q-
+Table II and I. Vision based methods such as VERN [4] has          learning for offline reinforcement learning,” Advances in Neural In-
+                                                                               formation Processing Systems, vol. 33, pp. 1179–1191, 2020.
+a significantly lower inference time due to computationally    [11]  I. Kostrikov, A. Nair, and S. Levine, “Offline reinforcement learning
+heavy backbones. In contrast, VAPOR incorporate relatively         with implicit q-learning,” arXiv preprint arXiv:2110.06169, 2021.
+lower dimensional state inputs that can represent 360 ◦view    [12]  F. Torabi, G. Warnell, and P. Stone, “Behavioral cloning from obser-
+                                                                                          vation,” arXiv preprint arXiv:1805.01954, 2018.
+of the robot’s vicinity and a light-weight network to obtain    [13] D. Fox, W. Burgard, and S. Thrun, “The dynamic window approach to
+comparable or better navigation performance.                              collision avoidance,” IEEE Robotics & Automation Magazine, vol. 4,
+                                                                                    no. 1, pp. 23–33, 1997.
+                                                                              [14] K. Weerakoon, A.  J. Sathyamoorthy, U.  Patel, and D. Manocha,
+  V. CONCLUSIONS, LIMITATIONS AND FUTURE WORK            “Terp: Reliable planning in uneven outdoor environments using deep
+                                                                                 reinforcement learning,” in 2022 International Conference on Robotics
+  We present VAPOR, an offline-RL based method  for        and Automation (ICRA).  IEEE, 2022, pp. 9447–9453.
+legged robot navigation in outdoor vegetation. Our method    [15]  J. Liang, U. Patel, A. J. Sathyamoorthy, and D. Manocha, “Crowd-
+                                                                                                steer: Realtime smooth and collision-free robot navigation in densely
+uses randomly collected real world data to train a navigation        crowded scenarios trained using high-fidelity simulation,” in Proceed-
+policy that can reach local goals while avoiding dense and          ings of the Twenty-Ninth International Conference on International
+solid vegetation. Instead of end-to-end actions from the          Joint Conferences on Artificial Intelligence, 2021, pp. 4221–4228.
+                                                                              [16]  S. Levine, A. Kumar, G. Tucker, and J. Fu, “Offline reinforcement
+policy,  its fully trained critic network is used to evaluate          learning: Tutorial, review, and perspectives on open problems,” arXiv
+dynamically feasible actions generated by a planner. The          preprint arXiv:2005.01643, 2020.
+
+===== PDF PAGE 8 =====
+[17] D. Shah, A. Bhorkar, H. Leen,  I.  Kostrikov, N. Rhinehart, and    [37] M. Alireza, D. Vincent, and W. Tony, “Experimental study of path
+      S. Levine, “Offline reinforcement learning for visual navigation,” arXiv         planning problem using emcoa for a holonomic mobile robot,” Journal
+      preprint arXiv:2212.08244, 2022.                                                of Systems Engineering and Electronics, vol. 32, no. 6, pp. 1450–1462,
+[18]  J. Iqbal, R. Xu, S. Sun, and C. Li, “Simulation of an autonomous         2021.
+     mobile robot for lidar-based  in-field phenotyping and navigation,”    [38] R. F. Prudencio, M. R. Maximo, and E. L. Colombini, “A survey on
+     Robotics, vol. 9, no. 2, p. 46, 2020.                                                offline reinforcement learning: Taxonomy, review, and open problems,”
+[19] G. Kahn, P. Abbeel, and S. Levine, “Badgr: An autonomous self-        IEEE Transactions on Neural Networks and Learning Systems, 2023.
+     supervised learning-based navigation system,” IEEE Robotics and    [39]  T. Haarnoja, A. Zhou, P. Abbeel, and S. Levine, “Soft actor-critic: Off-
+     Automation Letters, vol. 6, no. 2, pp. 1312–1319, 2021.                       policy maximum entropy deep reinforcement learning with a stochastic
+[20] A. Li, C. Yang, J. Frey, J. Lee, C. Cadena, and M. Hutter, “Seeing           actor,” in International conference on machine learning.  PMLR,
+     through the  grass: Semantic pointcloud  filter  for support surface         2018, pp. 1861–1870.
+      learning,” arXiv preprint arXiv:2305.07995, 2023.                       [40] L. Di Giammarino, I. Aloise, C. Stachniss, and G. Grisetti, “Visual
+                                                                                  place recognition using lidar intensity information,” in 2021 IEEE/RSJ[21] D.  L.  Stone, G. Shah,  Y.  Motai, and A.  J. Aved,  “Vegetation
+                                                                                      International Conference on Intelligent Robots and Systems (IROS).     segmentation for sensor fusion of omnidirectional far-infrared and
+                                                                        IEEE, 2021, pp. 4382–4389.      visual stream,” IEEE Journal of Selected Topics in Applied Earth
+                                                                              [41]  T. D. Barfoot, C. McManus, S. Anderson, H. Dong, E. Beerepoot,     Observations and Remote Sensing, vol. 12, no. 2, pp. 614–626, 2019.
+                                                                            C. H. Tong, P. Furgale, J. D. Gammell, and J. Enright, “Into dark-[22] D. Iberraken, F. Gaurier, J.-C. Roux, C. Chaballier, and R. Lenain,
+                                                                                       ness: Visual navigation based on a lidar-intensity-image pipeline,”     “Autonomous vineyard tracking using a four-wheel-steering mobile
+                                                                                         in  Robotics  Research: The  16th  International Symposium ISRR.     robot and a 2d lidar,” AgriEngineering, vol. 4, no. 4, pp. 826–846,
+                                                                                      Springer, 2016, pp. 487–504.     2022.
+                                                                              [42] L. Weerakoon, G. S. Herr, J. Blunt, M. Yu, and N. Chopra, “Car-
+[23] M. Elnoor, A.  J. Sathyamoorthy, K. Weerakoon, and D. Manocha,
+                                                                                  tographer  glass: 2d graph slam framework using  lidar  for  glass
+     “Pronav: Proprioceptive  traversability estimation  for legged robot
+                                                                                 environments,” 2022.
+     navigation in outdoor environments,” 2023.
+                                                                              [43] K. Weerakoon, A. Jagan Sathyamoorthy, M. Elnoor, and D. Manocha,
+[24] Z. Jian, Z. Liu, H. Shao, X. Wang, X. Chen, and B. Liang, “Path                                                             “VAPOR: Holonomic Legged Robot Navigation  in Outdoor Veg-
+     generation for wheeled robots autonomous navigation on vegetated                                                                                          etation Using Offline Reinforcement Learning,” arXiv  e-prints,  p.
+      terrain,” arXiv preprint arXiv:2306.08977, 2023.                                                                               arXiv:2309.07832, Sept. 2023.
+[25] A. Faust, K. Oslund, O. Ramirez, A. Francis, L. Tapia, M. Fiser,
+     and  J. Davidson, “Prm-rl: Long-range robotic navigation tasks by
+     combining reinforcement learning and sampling-based planning,” in
+     2018 IEEE  international conference on  robotics and automation
+     (ICRA).  IEEE, 2018, pp. 5113–5120.
+[26] D. Dugas, J. Nieto, R. Siegwart, and J. J. Chung, “Navrep: Unsu-
+     pervised representations for reinforcement learning of robot naviga-
+      tion in dynamic human environments,” in 2021 IEEE International
+     Conference on Robotics and Automation (ICRA).   IEEE, 2021, pp.
+     7829–7835.
+[27] U. Patel, N. K. S. Kumar, A. J. Sathyamoorthy, and D. Manocha,
+     “Dwa-rl: Dynamically feasible deep reinforcement learning policy for
+     robot navigation among mobile obstacles,” in 2021 IEEE International
+     Conference on Robotics and Automation (ICRA).   IEEE, 2021, pp.
+     6057–6063.
+[28]  T. Zhang and H. Mo, “Reinforcement learning for robot research:
+   A comprehensive review and open issues,” International Journal of
+     Advanced Robotic Systems, vol. 18, no. 3, p. 17298814211007305,
+     2021.
+[29]  F. Codevilla, M. M¨uller, A. L´opez, V. Koltun, and A. Dosovitskiy,
+     “End-to-end driving via conditional imitation learning,” in 2018 IEEE
+      international conference on robotics and automation (ICRA).  IEEE,
+     2018, pp. 4693–4700.
+[30] D. Silver, J. A. Bagnell, and A. Stentz, “Applied imitation learning
+      for autonomous  navigation  in complex  natural  terrain,”  in  Field
+     and Service Robotics: Results of the 7th International Conference.
+      Springer, 2010, pp. 249–259.
+[31]  J.  Li, C. Tang, M. Tomizuka, and W. Zhan, “Hierarchical plan-
+     ning through goal-conditioned offline reinforcement learning,” IEEE
+     Robotics and Automation Letters, vol. 7, no. 4, pp. 10 216–10 223,
+     2022.
+[32] K. Yang, S. Moon, S. Yoo, J. Kang, N. L. Doh, H. B. Kim, and S. Joo,
+     “Spline-based rrt path planner for non-holonomic robots,” Journal of
+      Intelligent & Robotic Systems, vol. 73, no. 1-4, pp. 763–782, 2014.
+[33] A. Khan,  I. Noreen, and Z. Habib, “On complete coverage path
+     planning algorithms for non-holonomic mobile robots: Survey and
+      challenges.” J. Inf. Sci. Eng., vol. 33, no. 1, pp. 101–121, 2017.
+[34] H.-W. Chae, J.-H. Choi, and J.-B. Song, “Robust and autonomous
+      stereo visual-inertial navigation for non-holonomic mobile robots,”
+    IEEE Transactions on Vehicular Technology, vol. 69, no. 9, pp. 9613–
+     9623, 2020.
+[35]  S. Eshtehardian and S. Khodaygan, “A continuous rrt*-based path
+     planning method for non-holonomic mobile robots using b-spline
+      curves,” Journal of Ambient Intelligence and Humanized Computing,
+      vol. 14, no. 7, pp. 8693–8702, 2023.
+[36] R. Holmberg and O. Khatib, “Development and control of a holo-
+     nomic mobile robot for mobile manipulation tasks,” The International
+     Journal of Robotics Research, vol. 19, no. 11, pp. 1066–1074, 2000.

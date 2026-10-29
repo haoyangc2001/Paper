@@ -1,0 +1,467 @@
+===== PDF PAGE 1 =====
+             Risk-Aware Reinforcement Learning with Bandit-Based
+                    Adaptation for Quadrupedal Locomotion
+
+                                   Yuanhong Zeng∗            Anushri Dixit†
+
+
+
+            Abstract— In this work, we study risk-aware reinforcement
+           learning for quadrupedal locomotion. Our approach trains a
+           family of risk-conditioned policies using a Conditional Value-
+           at-Risk (CVaR) constrained policy optimization technique that
+           provides improved stability and sample efficiency. At deploy-
+          ment, we adaptively select the best performing policy from
+           the family of policies using a multi-armed bandit framework
+           that uses only observed episodic returns, without any privileged
+          environment information, and adapts to unknown conditions2025   on the fly. Hence, we train quadrupedal locomotion policies at
+           various levels of robustness using CVaR and adaptively select
+           the desired level of robustness online to ensure performance in
+        unknown environments. We evaluate our method in simulationOct
+           across eight unseen settings (by changing dynamics, contacts,
+16    sensingpreviouslynoise,unseenandterrains.terrain)Ourandrisk-awareon a Unitreepolicy Go2attainsrobotnearlyin
+           twice the mean and tail performance in unseen environments
+         compared to other baselines and our bandit-based adaptation
+            selects the best-performing risk-aware policy in unknown ter-
+           rain within two minutes of operation.
+
+                                        I. INTRODUCTION[cs.RO]      Quadrupedal robots can traverse a variety of unstruc-
+           tured terrains, enabling tasks such as mapping hard-to-reach
+           areas, detecting  life signs, and reducing human exposure
+           to hazardous environments. Early locomotion  controllers
+            utilized model predictive control [1] which requires accurate
+         dynamics models that are often hard to obtain. With modern
+          simulators such as Isaac Sim [2] that can simulate hard-to-     Fig. 1.  Overview: We train multiple policies using CVaR-constrained policy
+                                                                                             optimization, where each critic focuses on a different  tail of the return
+         model dynamics under different conditions, quadrupeds can                                                                                                      distribution, resulting in policies with varying levels of risk awareness. An
+           learn to walk within minutes using model-free reinforcement    upper confidence bound (UCB) bandit is then used to adaptively select the
+           learning (RL) and massive parallelization [3].                      appropriate risk level online. The bandit selects the best performing policy
+                                                                                       over time as the robot interacts with the environment repeatedly.
+       A significant challenge in deploying policies trained in
+          simulation onto  real hardware  is  that the  shift between
+           training and deployment conditions may cause a difference                                                             unknown, any chosen risk level is likely to be miscalibrated,
+           in the performance expected versus what is attained in the                                                                        leading to behaviors that are either too optimistic or too
+            real world. A common mitigation strategy is domain ran-                                                                           conservative.arXiv:2510.14338v1          domization [4], but selecting parameters and ranges that both                                                We address these issues using CVaR-constrained optimiza-
+            stabilize training and produce good deployment performance                                                                                   tion: rather than maximizing CVaR directly, we maximize
+           requires substantial manual effort. Risk-aware RL methods                                                                     expected return subject to a constraint on the CVaR of the
+           offer another way to mitigate sim-to-real shift by empha-                                                                                 return. This formulation allows us to use standard estimators
+           sizing performance in the  tail of the training distribution                                                                  such as Generalized Advantage Estimation [6] and Proxi-
+           rather than maximizing expected returns [5]. However, these                                                             mal Policy Optimization (PPO) [7]. We enforce the CVaR
+         methods can be overly conservative and difficult to train, as                                                                             constraint using a Lagrangian  formulation, allowing  the
+          they require specifying a desired risk (or robustness) level                                                                Lagrange multiplier adaptively balance constraint satisfaction
+          a priori. In practice, because the deployment environment is                                                               and return maximization, which improves training stability.
+             ∗Yuanhong Zeng  is with the Department of Electrical and Computer    Prior work on CVaR-constrained RL [8] has shown that
+             Engineering, University of California Los Angeles, Los Angeles, CA, USA    satisfying the constraint yields safety guarantees in perturbed
+        yuanhongzeng@ucla.edu                                                                      environments.
+              †Anushri Dixit is with the Department of Mechanical and Aerospace
+             Engineering, University of California Los Angeles, Los Angeles, CA, USA    As shown  in Figure  1, we  train a family of CVaR-
+        anushridixit@ucla.edu                                   constrained reinforcement learning policies at different risk-
+
+===== PDF PAGE 2 =====
+levels, α ∈(0, 1). A risk-neutral policy may perform well    the value at the worst state, and CVaR of return can be seen
+in simple, flat ground but may fail on undulating terrain. On   as a surrogate, which is bounded below when the constraint
+the other hand, a policy that is risk-averse may be successful    is satisfied. Second, the gradient signal comes from both the
+over rocky  terrain but will be too slow or conservative   expected return object and the CVaR constraint penalty. This
+on  flat ground. Because deployment conditions can range    yields better sample efficiency and training results compared
+from near-nominal to unstructured, we introduce an online    to previously discussed methods only optimizes tailed return.
+policy selection mechanism using a multi-armed bandit that
+                                                         C. Online Adaptation and Learningadaptively chooses the most appropriate risk-level for the
+current environment.                                    Most state-of-the-art locomotion methods adaptively ad-
+  We evaluate our approach in both simulation and hard-    just policy behavior. A common approach is to condition
+ware. In simulation, we test across eight environments with    the policy on environment features estimated from different
+variations in parameters, mechanical properties, unexpected   modalities such as depth vision [18], proprioception [19],
+contacts, and sensor noise. On a Unitree Go2, we validate   or LiDAR [20]. However, these methods usually assume
+that risk-aware behavior improves task success. Our method   access to privileged information during training (e.g., ac-
+achieves nearly twice the mean and tail performance of a    curate height maps) and still depend on carefully designed
+PPO baseline trained in the same environment when de-    training environments. An alternative line of research [5],
+ployed under disturbances, and the bandit selector converges    [9], conditions policy behavior on the return distribution. Our
+to the best policy for an unknown test environment within   work is closely related: we employ a UCB-based bandit to
+two minutes of wall-clock time. Our contributions can be   explore the return distribution and select actions that max-
+summarized as follows:                                     imize its upper confidence bound. Bandit algorithms [21]–
+                                                                    [23], provide a principled way to balance exploration and  • We propose a framework for learning risk-aware poli-
+                                                                  exploitation with theoretical regret guarantees [24], adapting     cies via CVaR-constrained RL. Our RL algorithm aug-
+                                                                    directly from observed returns instead of relying on hand-    ments PPO with a clipped-Lagrangian to account for
+                                                                  crafted features. Compared to heuristic or feature-matching     the CVaR constraint, improving training stability and
+                                                         methods, they are more robust to environment shifts, require    sample efficiency.
+                                                                     less privileged information.  • We present an online Upper Confidence Bound (UCB)-
+    based multi-armed bandit  that  selects the  risk  level                                                                             III. PRELIMINARIES: CONDITIONAL VALUE-AT-RISK
+     online to match and adapt to unknown environment
+                                                           For stochastic optimization problems, constraints can be     conditions.
+                                                            reformulated by a commonly used risk measure called the  • We conduct comprehensive evaluation in simulation and
+                                                               Value-at-Risk (VaR). Given a confidence level α ∈(0, 1),    on a Unitree Go2 Edu robot, demonstrating robust be-
+                                           VaRα denotes the α-quantile value of the return variable R     havior under diverse disturbances and rapid convergence
+                                                      and is defined as,     of the selection mechanism to the best policy.
+                       II. RELATED WORKS                         VaRα(R) := inf{η | P(R ≤η) ≥α}.
+A. Distributional RL                                                         It follows that VaRα(R) ≥0 =⇒P(R ≤0) ≤α. However,
+  Most risk-aware RL methods optimize a tail-risk objective   VaR is generally nonconvex and hard to compute. We now
+directly. For example, [5] trains a quadruped by maximizing   introduce a convex and monotonic risk measure called the
+the CVaR of  return, and  [9] spans a spectrum of  risk    conditional value-at-risk.
+attitudes by optimizing various  distortion  risk measures,     The conditional value-at-risk, CVaRα, measures the ex-
+including CVaR and the Wang metric [10]. These approaches   pected loss in the α-tail below the threshold VaRα. CVaRα
+typically rely on distributional RL [11]–[13] to model the    is computed as [25],
+return distribution and design critics whose advantages reflect                        "          #                                                             −R)+the chosen risk functional. More recent work uses return         CVaRα(R) := sup E η −(η              ,         (1)
+                                                                         η∈R        αcapping  to avoid  explicit  distribution modeling, yielding
+faster and more stable training [14]. A drawback of  tail-                                                      where (·)+ := max{·, 0}. A value of α ≃1 corresponds
+objective optimization is that the critic downweights high-                                                                   to a risk-neutral case where CVaRα≃1(R) →E[R] and a
+return trajectories, which can reduce sample efficiency and                                                             value of α →0+ is risk-averse. CVaR provides a convex
+increase the required environment interaction.                                                          lower bound of VaR, i.e.,
+B. Risk-Aware, Constrained RL                                                       0 ≤CVaRα(R) ≤VaRα(R) =⇒P(R ≤0) ≤α.    (2)
+  We build our work based on the constrained RL [15]–
+                                                                             IV. PROBLEM STATEMENT[17] framework. We highlight two benefits of the constrained
+approach.  First, constrained RL formulation gives  better    We model quadruped velocity-tracking as a discounted
+performance guarantee. Ying et al. [8] show that the perfor-   Markov Decision Process (MDP) M := (S, A, P, R, γ) with
+mance gap when deployed in an environment with different   discount factor γ ∈(0, 1). The state space S comprises base
+transition probability can be can be decreased by increasing    linear and angular velocities, normalized projected gravity
+
+===== PDF PAGE 3 =====
+vector, velocity command, joint positions, joint velocities,     first convert the constrained problem in (5) into an uncon-
+and past action vector. A is the action space which consists    strained form via a Lagrangian relaxation [27] and using the
+of target joint positions. P is the state transition kernel and  CVaR definition in (1),
+R  : S × A →R is the reward function. We assume the
+rewards are bounded. For a stationary policy π under MDP,   max min L(θ, η, λ) := −J(πθ)
+M, the α-tailed return, α ∈(0, 1], is defined as,              λ≥0   θ,η
+                                                                                                                               (6)                                                                            1
+                       " ∞         #               + λ β −η +   Eξ∼πθ (η −D(ξ))+     .                                                           α        J(π; α, M) := CVaRα X γtR(st, at)
+                                t=0                     To solve (6), we use the following gradients from [28],
+
+where at ∼π(· | st) and st+1 ∼P(·|st, at).                                                        λ
+  We define J(π) := J(π; 1, M) to be the expected value of  ∇ηL = −λ +   Eξ∼πθ1{D(ξ) ≤η},                   (7)
+                                                   α
+the sum of the discounted reward of policy π when deployed
+                                                 −λ (η −D(ξ))+   ,in M, and D(ξ) = P∞t=0 γtR(st, at) to be the sum of   ∇θL = −Eξ∼πθ ∇θ log Pθ(ξ)  D(ξ)                                                                   α
+discounted reward of the trajectory ξ = (s0, a1, s1, . . .).                                                                                                                               (8)
+  For a policy is deployed in an unknown environment, we
+                                                                   1
+define a perturbed MDP M = (S, A,   R, γ) with the same  ∇λL = β −η +   Eξ∼πθ (η −D(ξ))+  .                (9)          c           bP,                          α
+state space, action space, and reward but a shifted transition
+                                                       Although Chow et al. show that gradient descent using (7)-
+kernel bP.                                                         (9) converges to locally optimal policies in [28], in practice
+  Problem 1 For the MDP M, we seek a risk-conditioned
+            c                                  directly updating the policy with (8) is fragile. We instead
+policy πθ(a|s, α), with risk parameter α ∈(0, 1] and policy
+                                                           update θ by minimizing,
+parameter θ by maximizes the α-tailed return under an
+unknown transition kernel bP.                                       LPPO-Lagrangian
+                                                  := −E(s,a)∼πθold [min (rA(s, a), g(ϵ, A(s, a)))]          θ∗= arg max J(πθ; α, M)               (3)
+                              θ     c                 λ        h                                     i
+                                  + αEξT∼πθold min  r(η −eD(ξT))+, g(δ, (η −eD(ξT))+)  Problem 2 Suppose we have a  finite  set of  policies                                                                                                                     (10)
+{πθk(·|·, αk)}Kk=1, each trained with a distinct risk level αk.
+We formulate online policy selection problem as a stochastic                              πθ(s|a; α)
+                                                                             r =                              (11)
+multi-arm bandit over episode problem [24]. At episode e,                                  πθold(s|a; α)
+the learner selects an arm in k ∈{1, . . . , K}, executes
+                                           (πθk for T steps in M, and then observes the undiscounted                         (1 + ϵ)A,    if A ≥0        c    −1                                               g(ϵ, A) =                                  (12)
+episodic return Xk,e = PTt=0 R(st, at). For each arm k, we                         (1 −ϵ)A,    if A < 0,
+assume that {Xk,e}He=1 are H i.i.d draws from a stationary
+distribution with bounded mean and variance. The goal is to      eD(ξT ) = X   γtR(st, at) + γT VM,πθold(sT ),   (13)
+minimize regret defined as                                                        (at,st)∈ξT
+                        H                     where, θold  is the parameter of the policy used to collect
+        R(H; α) := H · EXk∗− X Xke,e          (4)    current on-policy  batch, A  is the generalized advantage
+                                  e=1                      estimates described in Eq 16 [6]. ϵ and δ are the clipping
+  where, ke  is the arm selected at episode e, and k∗=    thresholds for the PPO loss and the Lagrangian respectively.
+arg maxk EXk.                                             Here, (10) augments the PPO clipped surrogate with the
+                                                              clipped Lagrangian term; We use the gradient of  (10) to
+                      V. METHOD                         update θ and use the gradient calculated in  (7) and  (9) to
+                                                           update η and λ to reflect the true constraint geometry. The
+A. CVaR Constrained Proximal Policy Optimization
+                                                         complete procedure is described in Algorithm 1.
+  Unlike recent methods based on return capping [14] and     The design of the algorithm is motivated by three con-
+distributional RL [5], [11], [13], [26] that attempt to solve    siderations. First, Monte Carlo gradient estimates from (8)
+Problem 1 by directly maximizing the CVaR of return, we    suffer from high variance, so we adopt PPO with general-
+propose to solve the CVaR constrained problem,               ized advantage estimation [6]. Second, large unconstrained
+                                                                 steps can cause catastrophic performance drops [15]; PPO-
+                         " ∞         #           style clipping prevents extreme tail returns from producing
+           X                                                     unbounded                                                                          penalty                                                                                     gradients                                                                       when                                                                 α  is small.                                                                                                                  Third,                                                                                                                                in  max                                     γtR(st, at)                      P (·|st,at)     θ    Eat∼π(·|st),st+1∼ˆ                                                            (5)                                   t=0                                                                                    D(ξ)                                                           massively  parallel                                                                                         settings                                                                                                           [3],                                                                                                estimating                                                                                                                      requires
+        s.t  J(π; α, M) ≥β.                                       rolling out the entire trajectory until termination. This  is        c
+                                                                       inefficient in a parallel setting. Thus, we use a bootstrapped
+  Since samples from bP are not available, we use samples    return eD(ξT ) to estimate returns from truncated length-T
+from P to approximate the corresponding expectations. We    trajectories ξT [29].
+
+===== PDF PAGE 4 =====
+Algorithm 1 Offline: CVaR Policy Optimization            Algorithm 2 Online: Empirical–Bernstein UCB
+Require: hyperparameters  α,  ϵ,  δ,  λmax  learning  rates   Require: policies with  different α-level{πθk(·|·, αk)}Kk=1,
+    lrη, lrθ, lrλ, function f  for updating β, rollout length       reward range R, episode length T
+   T                                                                              1: Initialize selection counter Nk ←0
+Ensure: policy πθ                                                             2: for k = 1 to K do
+  1: for j = 1, 2, . . . , Niter do                                              3:    Run πθk for T step; save episodic return x
+  2:    Generate N trajectories {ξ(i)T }Ni=1 with πθold.                 4:     Calculate ˆµk and ˆσk from history of x
+                                                                                     5: end for  3:    Compute A(st, at) and eD(ξ(i)T ) ∀i, ∀(st, at) ∈ξ(i)T
+  4:     Calculate ∇θLPPO-Lagrangian                                        6: for e = K + 1 to E do
+  5:    η ←η −lrη · ∇ηL                                                  7:     δe ←δ/(K e2)
+  6:    θ ←θ −lrθ · ∇θLPPO-Lagrangian                                   8:     for k = 1 to K do
+  7:   λ ←λ + lrλ · ∇λL                                                 9:        Calculate ˆσk and ˆµk from history of x
+  8:   λ ←min(max(0, λ), λmax)                                   10:      Uk ←UCB ˆµk, ˆσk, Nk, R, δe
+                                                                             11:    end for  9:    β ←f({ξ(i)T }Ni=1)
+ 10:      θold ←θ                                                         12:   k⋆←arg maxk Uk
+ 11: end for                                                               13:   Nk∗←Nk∗+ 1
+                                                                             14:    Run policy πθk for T step; save episodic return x
+                                                                             15: end for
+B. Bandit-based Online Policy Selection
+                                                                         TABLE I
+  Choosing the risk level α trades off safety and perfor-               REWARD TERMS USED IN TRAINING.
+mance: very small α can be overly conservative and vice
+versa. We select α by choosing the policy that maximizes   Reward Term                        Definition                Weight
+episodic (undiscounted) return in the target environment.
+                                                                                 track linear velocity xy      exp(−∥vcmdxy  −vxy∥2/σ)             1.5
+Because we lack privileged information (e.g., height maps,                                                                                 track angular velocity yaw   exp(−(ωcmdyaw −ωyaw)2/σ)           0.75
+friction), we assume only access  to the realized reward     linear velocity z l2                    v2z                   −1.0
+during interaction, computable online from observations and    angular velocity xy l2               ∥ωroll,pitch∥2              −0.05
+proprioception, so policy selection reduces to a stochastic     joint acceleration l2                     ∥¨q∥2           −2.5 × 10−7
+bandit problem (Sec. IV).                                              torques l2                       ∥τ∥2          −2 × 10−4
+                                                                                action rate l2                      ∥a∥2                 −0.05  We use the Empirical-Bernstein UCB [22], [30], which
+                                                                                       feet air time           P4f=1 tair,f −0.5               0.35is  tighter than Hoeffding-based UCB [24] and  typically
+                                                                                                      flat orientation l2                        ∥ϕroll,pitch∥2                −2.0
+converges faster. At episode e, for each arm k we compute.
+
+         s                   2 ˆσk(e) ln 3/δe 3R ln 3/δe
+ UCBk(e) := ˆµk(e)                                                ,  (14)   Given that, VaRα ≥CVaRα, this schedule keeps the con-                       Nk(e)       Nk(e)
+                                                                         straint active, progressively shifting probability mass out of
+and select the arm with the largest UCB value. Here, Nk(e)    the lower tail. We trained the policy in Isaac Lab [2] in a
+                                                                                 flat environment with reward terms defined in Table I andis the number of pulls of arm k, ˆµk(e) = Nk(e)1  Pel=1 Xk,l
+and ˆσk(e) = Nk(e)−11  Pel=1(Xk,l −ˆµk(e))2 are the sample   domain randomization added to distort the observation and
+mean and variance of the episodic return of arm k, R is   randomize joint gain. We describe the domain randomization
+the reward range, and δe = δ/(Ke2). The description of the   parameters in Table  II. We also set up a curriculum with
+selection algorithm is provided in Algorithm 2.                gradually increasing command magnitude for stable training.
+                                         We trained 2048 agents in parallel for 30,000 steps within
+           VI. SIMULATION EXPERIMENTS                 the environment. This approximately takes 15 minutes wall
+  In this section, we validate our RL framework in sim-   clock time on a workstation with 24 Core AMD-5900X CPU
+ulation: Section VI-A studies the training behavior when   with a NVIDIA A5000 GPU.
+compared to other robust RL approaches based on CVaR op-                                                            A. Algorithm Performance
+timization. Section VI-B investigates the tradeoff of different
+                                                                 In these experiments, we demonstrate the training per-α value when deployed to perturbed environments.
+                                                       formance of our method, Algorithm 1, by comparing with  Training Setup We built our policy based on skrl [31].
+                                                              multiple risk-aware RL algorithms. We compare our methodThe actor and critic network are implemented as multi-layer
+                                                                   to PPO [7]; CPPO [8], a simplified variant of ours withoutperceptrons with hidden layers of dimension [256, 256, 256]
+                                                               clipping or bootstrapped–return estimation; return-cappedand Exponential Linear Unit (ELU) activation. As the return
+                                       PPO [14], which directly optimizes Problem 3; and DPPO,distribution of the policy improves during training, we adap-
+                                                     which optimizes the same objective by shaping the value-tively change the CVaR constraint level, β. We set β to the
+                                                                    distribution with QR-DQN [12] and SR(λ) [32]. All baselinesexponential moving average of the current VaRα using,
+                                                           use the same training setup, hyperparameters, and architec-
+           βt ←0.3VaRαξ∼π(eD(ξT )) + 0.7βt−1.       (15)    ture; for DPPO the critic head is replaced with a quantile
+
+===== PDF PAGE 5 =====
+                     TABLE II                                             TABLE III
+           DOMAIN RANDOMIZATION PARAMETERS                              ENVIRONMENT DESCRIPTION
+
+
+         Randomization Parameter        Range                   Environment      Description
+
+            joint gain                             [22, 27]                   Brownian         Brownian noise with drift 10−3 added to linear
+            joint damping                          [0.3, 0.7]                                          velocity observations
+           noise added to base velocity obs      [−0.1, 0.1]                Delay               Joint command delayed by 0.05s
+           noise added to ang velocity obs      [−0.2, 0.2]               Rough          Rough terrain with maximum height difference 10cm
+           noise added to projected gravity      [−0.05, 0.05]              Push           Random xy linear velocity added to base every 5s
+           noise added to joint velocity obs     [−1.5, 1.5]                    Friction          Randomize static friction in range [0.3,0.7]
+                                                                                                   Jitter             Replace current observations with past
+                                                                                                  observations with probability 0.6
+                                                                    Gain            Randomize gain in range [10, 50]
+                                                                                   Incline          The ground plane has a 20 degree incline
+
+
+
+                                                                 best on Friction and Jitter, while PPO leads on Gain and
+                                                                     Incline, two environment conditions closest to training. Thus,
+                                                                  neither the most conservative policy nor nominal PPO  is
+                                                           uniformly optimal. This motivates our design of an online
+                                                      and adaptive policy selection scheme, Algorithm 2.
+
+                                                                      VII. HARDWARE EXPERIMENTS
+
+                                         We now validate our offline training and online policy se-
+                                                                   lection on a Unitree Go2 quadruped. Section VII-A compares
+Fig. 2.  Training performance at α = 0.25. Curves show mean undiscounted    the real-world performance at different values of α. Section
+return versus timesteps of environment interactions; solid lines are the   VII-B  validates the performance of our policy  selection
+mean over 10 runs trained for 30,000 timesteps, shaded regions denote   algorithm based on UCB bandits.
+±1 standard deviation. Evaluations are in the training environment.
+                                                  Hardware Setup We deployed our policy on a Uni-
+                                                                     tree Go2 Edu robot. The policy sends target joint position
+                                                commands at 50Hz and the commands are tracked by thehead. We use CVaR at level α = 0.25.
+                                                                  robot’s PD controller with proportional gain, kp = 25, and  Figure 2 shows  that our method  learns more slowly
+                                                                   derivative gain, kd = 0.5. We use the OptiTrack motionat the  start, due to optimizing the Lagrangian term, but
+                                                              capture system to estimate the base linear velocities and
+attains comparable performance as PPO at the end. CPPO
+                                                           base angular velocities, and we retrieve the reading from
+is unstable and slower to converge, motivating the clipping
+                                                              proprioception sensor (the joint position, joint velocity, and
+and bootstrapping components in our design. Capped PPO
+                                                                     feet contact force obtained from the encoder in each robot
+and DPPO, which both directly target the CVaR objective,
+                                                                        joint) and gyroscope for the state estimation. We distorted
+display similar behavior for much of training; because they
+                                                                the observations with the same domain randomization as in
+de-emphasize high-return trajectories, they tend to learn less
+                                                                simulation.
+from successes.
+                                                            A. Sim-to-real Robustness
+B. Robustness Under Disturbances
+                                         We deployed the our policies trained at α = 0.05 and
+  In  the  previous  subsection, we compared  the  perfor-  α = 0.25, and the PPO policy on a Unitree Go2 to assess
+mance of our method, Algorithm 1, to various baselines   real-world performance. Three settings were used. Flat: the
+within  the  training  distribution. Next, we study  the  ro-   robot was commanded to walk back and forth on flat ground.
+bustness–performance trade-off across risk levels to show  We did not introduce any disturbances in this environment.
+the need  for  online  policy  selection  in unknown  envi-  Ramp: the robot was commanded to traverse an unseen ramp
+ronments. We train six policies: five CVaR policies with    at constant speed v = 0.7m/s, introducing observation shifts,
+α ∈{0.05, 0.1, 0.25, 0.5, 0.75} and a PPO baseline. Each    external forces, and unexpected contacts. Grass: the robot
+policy is evaluated in eight out-of-distribution environments   walked on turf with 11 cm soft soccer cones hidden beneath
+that emulate shifts in low-level control, sensing/estimation,    to simulate rough grassland; a  trial was successful  if the
+terrain, and collisions (Table III).                             robot remained on its feet while tracking commands for 80s.
+  As seen in Figure 3, across the first four settings (Brow-  We measured success rate, time-to-live (TTL), and reward
+nian, Delay, Rough, Push), smaller α yields higher mean    rate. We conducted 15 experiments for each α-level in each
+and tail performance; in Brownian and Delay, the α = 0.05   environment. Results are in Table IV; qualitative behaviors
+policy achieves nearly twice the mean and CVaR of PPO,    at v = 1 m/s are illustrated in Fig. 4.
+consistent with robustness guarantees for small α. The trade-    On flat ground, we observe that the PPO moves at a faster
+off is evident in the remaining settings: α = 0.25 performs   and uniform gait compared to α = 0.05 and α = 0.25, giving
+
+===== PDF PAGE 6 =====
+Fig. 3.  Performance of with different α-level. We trained policies different α-level and test their performances in perturbed environments. The descriptions
+of the environments are available at Table III. For each α-level we trained 10 policies using different seeds, and we evaluate each policy with 1000 parallel
+simulations and report the mean return over 6000 timesteps. We reset the environment and randomize the state of robots every 100 timesteps
+
+
+                     TABLE IV
+                                                            B. Online Policy Selection and Regret
+      POLICY PERFORMANCE ACROSS THREE ENVIRONMENTS.
+                                                                 In this experiment, we evaluate the convergence of the
+  Experiment  Policy    Time/TTL (s)  Succ (%)   Reward/sec      multi-arm bandit when deploying the robot across three
+          α = 0.05    18.0 ± 5.0      100      1.05 ± 0.20       testing environments. Using Algorithm 2 with an episode
+  Flat       α = 0.25    15.0 ± 7.0      100      1.31 ± 0.25      length of T = 10, the bandit selects among α = 0.05, α =
+           PPO      12.0 ± 6.0     100    1.35 ± 0.30     0.25, and PPO as the robot walks on flat ground, traverses a
+          α = 0.05    19.0 ± 8.0      55      0.95 ± 0.35     ramp, and moves over grass. We conducted seven trials per
+  Ramp     α = 0.25    12.5 ± 6.4     70    1.32 ± 0.32     environment and recorded both the collected rewards and the
+           PPO       7.4 ± 6.3      30      1.18 ± 0.46      selection history.
+          α = 0.05   77.0 ± 9.4     85      1.01 ± 0.13        Table V shows how the selection probabilities evolve over
+  Grass      α = 0.25   59.2 ± 28.1      60     1.14 ± 0.32     time. In the Flat and Ramp experiments, the probability of
+           PPO        64.2 ± 36.0      55      1.09 ± 0.44
+                                                          choosing the highest-reward policy steadily increases and
+                                                           converges to 1 within 5000 timesteps (about 2 minutes).
+                                                            Figure 5  illustrates  that  this convergence often happens
+                                                             quickly after the warm-up rounds in the first 500 timesteps,
+                                                      and Figure 6 confirms that the mean regret converges to a
+                                                                 constant. By contrast, in the Grass experiment the conver-
+larger return. On the ramp, the α=0.05 policy advanced with   gence is less clear because the two higher-reward policies
+shorter steps and was unable to climb 30 % of the times   have similar means and high variance. Here, the bandit
+(Fig. 4), which explains the longer completion times. The    reliably rules out α = 0.05 but splits its choices between
+α=0.25 policy developed a stable trotting gait and achieved    the remaining two.
+the best overall performance (highest success and per step
+reward), with most failures due to occasional drift off the                                                                     VIII. CONCLUSION AND LIMITATIONS
+ramp when not precisely following commands. PPO can be
+unstable and loss balance when unexpected contact happens,    We present a method for generating policies with dif-
+resulting in the lowest success rate. On grass, we observed a    ferent risk profiles using CVaR-constrained reinforcement
+similar trade-off: PPO achieved the highest reward rate but    learning. To adapt risk levels online, we introduce a simple
+was fragile to disturbances; α=0.05 attained the best success   UCB-bandit selection mechanism that adjusts based on the
+rate and longest TTL by maintaining stability in this unseen   observed rewards during  task  execution. Our risk-aware
+condition.                                                         policies show robustness across environments with diverse
+
+===== PDF PAGE 7 =====
+Fig. 4.  We commanded the robot to walk at full speed (v = 1 m/s) on both ramp and grass terrains. The α = 0.05 policy did not advance despite
+forward commands, either when climbing the ramp or when a foot became trapped in a soccer cone hidden beneath the grass. In contrast, the α = 0.25
+policy adapted a stable gait with larger steps, enabling the robot to step over hidden cones. The PPO baseline moved faster but was more prone to losing
+balance, particularly when descending the ramp or when one of its foot hits the soccer cone.
+
+
+disturbances, and the bandit algorithm converges quickly to                 IX. ACKNOWLEDGEMENTS
+the best-performing policy.                                         We thank our UCLA colleagues—Allen Emmanuel Binny,
+                                                           Debajyoti Chakrabarti, and Qizhao Chen—for helpful feed-
+                                                       back and support. We also thank David Martinez for Op-  Two limitations remain: (1) we assume stable average
+                                                                tiTrack system assistance and Professor Ankur Mehta forreturns, which may fail in nonstationary settings—this could
+                                                                    insightful guidance on improving the project.be mitigated with windowed UCB at the cost of extra tuning;
+(2) the bandit relies on the same reward used in training,                    REFERENCES
+overlooking execution risk and thus not favoring safer low-
+                                                                                     [1]  J. Di Carlo, P. M. Wensing, B. Katz, G. Bledt, and S. Kim,
+reward policies. Incorporating explicit risk measures into        “Dynamic locomotion in the mit cheetah 3 through convex
+deployment remains an open direction.                                   model-predictive control,” in 2018 IEEE/RSJ international
+
+===== PDF PAGE 8 =====
+                     TABLE V
+    SELECTION PROBABILITY BY TIMESTEP FOR THREE POLICIES.
+
+
+         Experiment  Policy     1250  2500  3750  5000
+
+               α = 0.05   0.10   0.11   0.10   0.00
+           Flat       α = 0.25   0.20   0.19   0.10   0.00
+                 PPO       0.70   0.70   0.80   1.00
+
+               α = 0.05   0.07   0.05   0.05   0.00
+       Ramp     α = 0.25   0.38   0.75   0.77   1.00
+                 PPO       0.54   0.20   0.17   0.00
+
+               α = 0.05   0.15   0.10   0.00   0.00
+          Grass      α = 0.25   0.50   0.53   0.75   0.53
+                                                                                  Fig. 6.  Mean regret over time of the 7 ramp experiment. We calculate the
+                 PPO       0.34   0.37   0.25   0.47
+                                                                                    regret using (4) for each experiment, and we plot the mean (solid blue) and
+                                       ± 1 standard deviation (light blue region)
+
+
+
+                                                                              [11] M. G. Bellemare, W. Dabney, and R. Munos, “A distributional
+                                                                                     perspective on reinforcement learning,” in International conference
+                                                                      on machine learning.  PMLR, 2017, pp. 449–458.
+                                                                              [12] W. Dabney, M. Rowland, M. Bellemare, and R. Munos,
+                                                                                       “Distributional reinforcement learning with quantile regression,” in
+                                                                             Proceedings of the AAAI conference on artificial intelligence,
+                                                                                            vol. 32, no. 1, 2018.
+                                                                              [13] W. Dabney, G. Ostrovski, D. Silver, and R. Munos, “Implicit quantile
+                                                                            networks for distributional reinforcement learning,” in International
+                                                                                conference on machine learning.  PMLR, 2018, pp. 1096–1105.
+                                                                              [14] H. Mead, C. Costen, B. Lacerda, and N. Hawes, “Return capping:
+                                                                                     Sample-efficient cvar policy gradient optimisation,” arXiv preprint
+                                                                              arXiv:2504.20887, 2025.
+                                                                              [15]  J. Schulman, S. Levine, P. Abbeel, M. Jordan, and P. Moritz, “Trust
+                                                                                  region policy optimization,” in International conference on machine
+                                                                                      learning.  PMLR, 2015, pp. 1889–1897.
+Fig. 5.   Cumulative probability of selecting each policy in one ramp
+                                                                              [16]  J. Achiam, D. Held, A. Tamar, and P. Abbeel, “Constrained policyexperiment. Selection of policy with α = 0.25 quickly dominates after
+                                                                                      optimization,” in International conference on machine learning.2000 timesteps, which is roughly 1 minute wall clock time.
+                                                           PMLR, 2017, pp. 22–31.
+                                                                              [17]  S. Miryoosefi, K. Brantley, H. Daume III, M. Dudik, and R. E.
+                                                                                    Schapire, “Reinforcement learning with convex constraints,”
+     conference on intelligent robots and systems (IROS).  IEEE, 2018,          Advances in neural information processing systems, vol. 32, 2019.
+     pp. 1–9.                                                                 [18] R. Yang, G. Yang, and X. Wang, “Neural volumetric memory for
+ [2] M. Mittal, C. Yu, Q. Yu, J. Liu, N. Rudin, D. Hoeller, J. L. Yuan,             visual locomotion control,” in Proceedings of the IEEE/CVF
+     R. Singh, Y. Guo, H. Mazhar, A. Mandlekar, B. Babich, G. State,            conference on computer vision and pattern recognition, 2023, pp.
+    M. Hutter, and A. Garg, “Orbit: A unified simulation framework for         1430–1440.
+      interactive robot learning environments,” IEEE Robotics and             [19] A. Kumar, Z. Fu, D. Pathak, and J. Malik, “Rma: Rapid motor
+     Automation Letters, vol. 8, no. 6, pp. 3740–3747, 2023.                       adaptation for legged robots,” arXiv preprint arXiv:2107.04034,
+ [3] N. Rudin, D. Hoeller, P. Reist, and M. Hutter, “Learning to walk in          2021.
+     minutes using massively parallel deep reinforcement learning,” in        [20] R. Yang, M. Zhang, N. Hansen, H. Xu, and X. Wang, “Learning
+     Conference on robot learning.  PMLR, 2022, pp. 91–100.                    vision-guided quadrupedal locomotion end-to-end with cross-modal
+ [4]  J. Tobin, R. Fong, A. Ray, J. Schneider, W. Zaremba, and P. Abbeel,          transformers,” arXiv preprint arXiv:2107.03996, 2021.
+    “Domain randomization for transferring deep neural networks from      [21] A. Tamkin, R. Keramati, C. Dann, and E. Brunskill,
+     simulation to the real world,” in 2017 IEEE/RSJ international                 “Distributionally-aware exploration for cvar bandits,” in NeurIPS
+     conference on intelligent robots and systems (IROS).  IEEE, 2017,          2019 Workshop on Safety and Robustness on Decision Making, 2019.
+     pp. 23–30.                                                              [22] V. Mnih, C. Szepesv´ari, and J.-Y. Audibert, “Empirical bernstein
+ [5]  J. Shi, C. Bai, H. He, L. Han, D. Wang, B. Zhao, M. Zhao, X. Li,            stopping,” in Proceedings of the 25th international conference on
+     and X. Li, “Robust quadrupedal locomotion via risk-averse policy           Machine learning, 2008, pp. 672–679.
+      learning,” in 2024 IEEE International Conference on Robotics and       [23] D. Bouneffouf, I. Rish, and C. Aggarwal, “Survey on applications of
+     Automation (ICRA).  IEEE, 2024, pp. 11 459–11 466.                       multi-armed and contextual bandits,” in 2020 IEEE Congress on
+ [6]  J. Schulman, P. Moritz, S. Levine, M. Jordan, and P. Abbeel,                 Evolutionary Computation (CEC), 2020, pp. 1–8.
+     “High-dimensional continuous control using generalized advantage       [24] A. Slivkins, Introduction to Multi-Armed Bandits.  Foundations and
+      estimation,” arXiv preprint arXiv:1506.02438, 2015.                        Trends in Machine Learning, 2019.
+ [7]  J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov,        [25] R. T. Rockafellar, S. Uryasev et al., “Optimization of conditional
+     “Proximal policy optimization algorithms,” arXiv preprint                       value-at-risk,” Journal of risk, vol. 2, pp. 21–42, 2000.
+     arXiv:1707.06347, 2017.                                                [26] X. Ma, J. Chen, L. Xia, J. Yang, Q. Zhao, and Z. Zhou, “Dsac:
+ [8] C. Ying, X. Zhou, H. Su, D. Yan, N. Chen, and J. Zhu, “Towards              Distributional soft actor-critic for risk-sensitive reinforcement
+      safe reinforcement learning via constraining conditional                         learning,” Journal of Artificial Intelligence Research, vol. 83, 2025.
+      value-at-risk,” arXiv preprint arXiv:2206.04436, 2022.                   [27] D. P. Bertsekas, “Nonlinear programming,” Journal of the
+ [9] L. Schneider, J. Frey, T. Miki, and M. Hutter, “Learning risk-aware           Operational Research Society, vol. 48, no. 3, pp. 334–334, 1997.
+     quadrupedal locomotion using distributional reinforcement learning,”     [28] Y. Chow, M. Ghavamzadeh, L. Janson, and M. Pavone,
+      in 2024 IEEE International Conference on Robotics and Automation          “Risk-constrained reinforcement learning with percentile risk
+     (ICRA).  IEEE, 2024, pp. 11 451–11 458.                                            criteria,” Journal of Machine Learning Research, vol. 18, no. 167,
+[10]  S. S. Wang, “A class of distortion operators for pricing financial and          pp. 1–51, 2018. [Online]. Available:
+     insurance risks,” Journal of risk and insurance, pp. 15–36, 2000.              http://jmlr.org/papers/v18/15-636.html
+
+===== PDF PAGE 9 =====
+[29] R. S. Sutton, A. G. Barto et al., Reinforcement learning: An
+      introduction.  MIT press Cambridge, 1998, vol. 1, no. 1.
+[30] A. Maurer and M. Pontil, “Empirical bernstein bounds and sample
+     variance penalization,” arXiv preprint arXiv:0907.3740, 2009.
+[31] A. Serrano-Mu˜noz, D. Chrysostomou, S. Bøgh, and
+     N. Arana-Arexolaleiba, “skrl: Modular and flexible library for
+     reinforcement learning,” Journal of Machine Learning Research,
+      vol. 24, no. 254, pp. 1–9, 2023. [Online]. Available:
+      http://jmlr.org/papers/v24/23-0112.html
+[32] D. W. Nam, Y. Kim, and C. Y. Park, “Gmac: A distributional
+      perspective on actor-critic framework,” in International Conference
+     on Machine Learning.  PMLR, 2021, pp. 7927–7936.

@@ -1,0 +1,13 @@
+{
+  "data_status": "synthetic_sufficient_statistics",
+  "method": "HD-MCRA",
+  "scenario": "moderate",
+  "n": 300,
+  "points": [
+    {"metric":"SR","estimate":85,"count":255,"reason":"85%成功、8%碰撞留下7%超时；不把预算违规算成未成功。"},
+    {"metric":"Cost","estimate":64,"sd":30,"reason":"成功占多数，保留短碰撞与较长超时混合；SD30允许5%超过预算120，且不是从旧区间反推。"},
+    {"metric":"CR","estimate":8,"count":24,"reason":"保留略差于RC-PPO的7%；delta不能宣称每个场景都降低碰撞。"},
+    {"metric":"BVR","estimate":5,"count":15,"reason":"可与成功或超时重叠，alpha不保证零超支；按15/300计算区间。"},
+    {"metric":"MC","estimate":0.40,"sd":0.23,"reason":"24碰撞试验为零，非碰撞平均约0.435；SD至少0.118，取0.23允许地图差异且与RC差0.02不制造确定优势。"}
+  ]
+}

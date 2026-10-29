@@ -1,0 +1,1320 @@
+===== PDF PAGE 1 =====
+                 OmniSafe: An Infrastructure for Accelerating
+                      Safe Reinforcement Learning Research
+
+
+             Jiaming Ji1∗                                                  jiamg.ji@gmail.com
+               Jiayi Zhou1∗                                              gaiejj@outlook.com
+            Borong Zhang1∗                                        borongzh@gmail.com
+             Juntao Dai1                                              jtd.acad@gmail.com
+            Xuehai Pan1                                             xuehaipan@pku.edu.cn
+            Ruiyang Sun1                                      sun ruiyang@stu.pku.edu.cn2023        Weidong Huang1                                     bigeasthuang@gmail.com
+             Yiran Geng1                                               gyr@stu.pku.edu.cn
+             Mickel Liu1                                              mickelliu7@gmail.comMay        Yaodong Yang1†                                     yaodong.yang@pku.edu.cn
+16             1 Peking University, China
+
+
+                                          Abstract
+
+                 AI systems empowered by reinforcement learning (RL) algorithms harbor the immense
+                       potential to catalyze societal advancement, yet their deployment is often impeded by[cs.LG]
+                      signiﬁcant safety concerns.  Particularly in safety-critical applications, researchers have
+                       raised concerns about unintended harms or unsafe behaviors of unaligned RL agents. The
+                     philosophy of safe reinforcement learning (SafeRL) is to align RL agents with harmless
+                        intentions and safe behavioral patterns. In SafeRL, agents learn to develop optimal policies by
+                        receiving feedback from the environment, while also fulﬁlling the requirement of minimizing
+                     the risk of unintended harm or unsafe behavior. However, due to the intricate nature of
+                   SafeRL algorithm implementation, combining methodologies across various domains presents
+                   a formidable challenge. This had led to an absence of a cohesive and eﬃcacious learning
+                   framework within the contemporary SafeRL research milieu. In this work, we introduce a
+                      foundational framework designed to expedite SafeRL research endeavors. Our comprehensive
+                   framework encompasses an array of algorithms spanning diﬀerent RL domains and places
+                   heavy emphasis on safety elements. Our eﬀorts are to make the SafeRL-related research
+                      process more streamlined and eﬃcient, therefore facilitating further research in AI safety.
+                 Our project is released at: https://github.com/PKU-Alignment/omnisafe.arXiv:2305.09304v1            Keywords:  Safe Reinforcement Learning, Learning Framework, Paralleled Acceleration
+
+
+               1. Introduction
+
+               Reinforcement learning has gained immense attention as a powerful class of machine learning
+                algorithms capable of addressing complex problems in diverse domains such as robotics and
+             game playing (Silver et al., 2016, 2017; Vinyals et al., 2019). Nevertheless, the application
+                  of reinforcement learning in safety-critical domains raises concerns about unintended conse-
+               quences and potential harms (Carlson and Demiris, 2010; Bi et al., 2021). The self-governed
+                learning of reinforcement learning agents, relying on environmental feedback, can give rise
+
+
+                       ∗. Jiaming Ji, Jiayi Zhou, and Borong Zhang are core developers. They contributed equally to this paper.
+                         †. Yaodong Yang is the corresponding author.
+
+               ©2022 Jiaming Ji, Jiayi Zhou, Borong Zhang, Juntao Dai, Xuehai Pan, Ruiyang Sun, Weidong Huang, Yiran Geng,
+                    Mickel Liu, Yaodong Yang.
+
+                      License: CC-BY 4.0, see https://creativecommons.org/licenses/by/4.0/.
+
+===== PDF PAGE 2 =====
+                   Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+to unforeseen, unsafe control policies. This may result in adverse outcomes, as seen in
+autonomous vehicles valuing speed over safety. These concerns have prompted extensive
+research into developing safe reinforcement learning algorithms for safety-critical applications
+(Feng et al., 2023).
+
+Lack of OSS Infrastructure for SafeRL Research  Despite the existence of open-
+source software (OSS) and frameworks, a uniﬁed and comprehensive code framework remains
+elusive in the SafeRL ﬁeld. OpenAI introduced the safety-starter-agent (Ray et al., 2019), a
+SafeRL framework in 2019 that implemented four classical algorithms based on TensorFlow-
+v1. While this framework has aided subsequent researchers, it has not been updated or
+maintained since its release, and its core dependency TensorFlow-v1 has been deprecated1
+for years. SafeRL algorithm implementation is complex in nature such that the cross-domain
+integration with RL algorithms (i.e. constraint optimization, safe control theory) poses a
+signiﬁcant technical challenge, resulting in the ongoing absence of a uniﬁed and eﬀective
+learning framework within the contemporary SafeRL research landscape. This lack of a
+uniﬁed backend and extensible framework substantially impedes progress in the domain.
+   To fulﬁll this gap, we present OmniSafe  , an infrastructural framework designed to
+accelerate SafeRL research by providing a wide range of algorithms, including Oﬀ-Policy,
+On-Policy, Model-based, and Oﬄine algorithms, etc.
+
+
+2. Features of OmniSafe
+
+The OmniSafe framework is featured with the following contributions:
+
+(1) High Modularity.  OmniSafe is a highly modular framework, incorporating an ex-
+tensive collection of dozens of algorithms tailored for SafeRL across diverse domains. The
+framework achieves versatility through the utilization of algorithm-level abstraction and
+API, employing two distinctive design components: Adapter and Wrapper. The Adapter
+component serves to reconcile structural diﬀerences between algorithms for various classes
+of Constrained Markov Decision Processes (CMDPs) (Altman, 1999; Sun et al., 2021; Sootla
+et al., 2022b), while the Wrapper component is designed to mitigate the variability (e.g.
+dynamics) inherent in algorithm-environment interactions.
+
+(2) High-performance parallel computing acceleration.  By harnessing the capa-
+bilities of torch.distributed, OmniSafe accelerates the learning process of algorithms
+with process parallelism. This enables OmniSafe not only to support environment-level
+asynchronous parallelism but also incorporates agent asynchronous learning. This methodol-
+ogy bolsters training stability and expedites the training process via the deployment of a
+parallel exploration mechanism. The integration of agent asynchronous learning in OmniSafe
+underscores its commitment to providing a versatile and robust platform for advancing
+SafeRL research.
+
+(3) Code reliability and reproducibility.  The algorithms implemented OmniSafe have
+been rigorously tested in Safety-Gym (Ray et al., 2019) and Mujoco-Velocity (Zhang et al.,
+2020) environments to conﬁrm their consistency with the results presented in the original
+papers. Code examples necessary for result reproduction are provided within the project.
+
+ 1. https://github.com/openai/safety-starter-agents
+
+
+                                           2
+
+===== PDF PAGE 3 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+Furthermore, observations, analyses, and raw data from this process will be made accessible
+to the community as a valuable reference. To maintain stringent code quality, OmniSafe ’s
+code has undergone thorough unit testing throughout the development process and adheres
+to project management standards such as GitHub Actions CI, Pylint, and MyPy.
+
+(4) Fostering the Growth of SafeRL Communitiy.  OmniSafe is a uniﬁed learning
+framework that represents a signiﬁcant advance in standardizing the ﬁeld of SafeRL. The
+platform oﬀers comprehensive API documentation, including user guides describing both
+fundamental and advanced features, illustrative examples, and best practices for algorithm
+parameter selection and result monitoring. Moreover, the documentation delves into detailed
+theoretical algorithm derivations alongside practical tutorials, thereby facilitating a swift
+grasp of the SafeRL algorithm for novices.
+
+              User-friendly Documentation Guide                           Efficient Single-File Algorithm Training
+
+                   Theory tutorial           Online Colab         import omnisafe
+      For       Ø  Unified Symbol System      Ø Ease of Access
+    Beginner     Ø  Code-Integrated Guides      Ø Rich Media Support            env_id = 'SafetyPointGoal1-v0'
+              Ø  Detailed Derivation        Ø Interactive Learning           agent = omnisafe.Agent('PPOLag', env_id)
+
+              Command Line APP        API Documents       # Train Stages: Learn, Render, Evaluate
+      For       Ø Easy-to-use             Ø Video Examples                agent.learn()
+   Researcher    Ø Rich Tips              Ø Structure Details             agent.render(num_episodes=1,render_mode='human')
+               Ø All-in-one Workflow        Ø Efficient Toolkit               agent.evaluate(num_episodes=1)
+
+                             (a)                                                            (b)
+
+                 Highly Modular Framework                            Parallel Policy with Vectorized Environments
+
+     User          Exp           Train        Evaluate       Analyze           Vectorized Env            Async Agent
+   Interface     Benchmark      Agent     Performance      Result          Env1     Env2              Actor-Critic       Update
+
+  Algorithms   On Policy    Off Policy  Model Based     Offline             Env3     Env4             VectorBuffer         Sync      Exp Grid
+   Learning      Constraint     Vectorized   Environment    Lagrangian        …             …
+   Model        Actor-Critic       Buffer       Model        Multiplier          Vectorized Env            Async Agent          Result
+  Interaction       Algorithm        Environment         Interaction          Env1     Env2              Actor-Critic       Update      Analysis
+     Layer           Adapters            Register          Wrappers
+                                                                Env3     Env4             VectorBuffer         Sync
+   Backend           torch.distributed       Customized Environments
+                              (c)                                                            (d)
+
+Figure 1: The core features of OmniSafe include (a) Comprehensive API documentation
+with user guides, examples, and best practices for eﬃcient learning, the documentation
+can be found in https://omnisafe.readthedocs.io; (b) Streamlined algorithm training
+through single-ﬁle execution, simplifying setup and management. (c) Achieve versatility
+through the utilization of algorithm-level abstraction and API interfaces; (d) Enhanced
+training stability and speed with environment-level asynchronous parallelism and agent
+asynchronous learning.
+
+3. DataFlows of OmniSafe
+
+To accommodate the rapid development of various algorithms and mitigate incompatibilities
+across diﬀerent environment interfaces, we have devised a uniﬁed dataﬂow interaction
+framework for OmniSafe as illustrated in 2. The utilization of Adapter and Wrapper designs
+in OmniSafe facilitates enhanced reusability and compatibility with current code resources,
+
+
+                                           3
+
+===== PDF PAGE 4 =====
+                  Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+thereby reducing the need for additional engineering eﬀorts when creating new algorithms
+or integrating new environments. A key highlight is that the Adapter layer also provides
+a convenient approach for transforming problem paradigms and extracting information
+from the data inﬂow. For instance, to convert the CMDP (Altman, 1999) paradigm to the
+SauteMDP (Sootla et al., 2022b) paradigm, one simply needs to replace the Adapter on
+the inﬂow side of data with that of the SauteMDP paradigm. This approach enables users
+to concentrate more on the problem at hand while incurring minimal code alterations, by
+utilizing the modular tools provided by OmniSafe .
+
+                 Learner (Agent)          Adapter               Learner                                                 Adapter
+                Grads      Algo.                            (Agent)            Algorithms            Vectorized Buffer
+                                                                                                               Offline                                                         Train World Model
+                                         Env                                                                                       Model-based                                                                                                                                                   Rollout     World Model              Model     Data         Wrapper                                                                                  Gradients                                                                                                                                                               Store Model Free Data                                                                                                     On-Policy
+                                                                                                              Off-Policy                     Offline Dataset
+                      Action                                                                                                                                             Collect Offline Dataset
+                  Wrapper            Vectorized                           Model
+                                     Environments    Gradients        Process 1                                                Constraint Actor Critic
+                                                                                                  Env Wrapper            Process 2   …                                                   - Actor: Gaussian, MLP                                                                                                        - Reward Critic                                                                                                                                                Auto                                                                                                                                                                  Reset                                                       Dataflow                                                                         Cost                                                                                                 Critic    Allreduce        …                                                 -                                                                                                                                                        Normalize                                                                                                                                                                           Input                                                                                                        -                                                                       Observation                                                                               Encoder&                                                                                                                …            Process n-1   …
+   Weights
+                 Learner (Agent)          Adapter
+  Sync            Grads      Algo.                             Action Wrapper          Vectorized Environments
+                                                                                                                                                                        Vectorized Data
+                                         Env                                 Action                                Step Function
+              Model     Data         Wrapper                             Organize                                                                                         - Observation
+                                                                                                                                          Registry                                - Reward
+                                                                               Action Repeat                                                                                      - Cost
+                      Action                                                       Auto-Clip                         Safety-Gymnasium                        - Terminated
+                  Wrapper            Vectorized                            Action Scale                       Vision-based Environments                   - Truncated
+                                     Environments                                                     Custom Environments                      - Info            Process n
+
+
+Figure 2: A high-level depiction of OmniSafe ’s distributed dataﬂow process. Each process
+periodically syncs weights and all-reduce gradients with other processes.  Vectorized
+Environments ﬁrst generate trajectories of the agent’s interactions with the environment.
+Second, the EnvWrapper monitors and governs the environment’s status (e.g. Auto-Reset)
+and outputs. Then, the Adapter assigns a suitable execution plan that handles data pre-
+processing. Next, the Learner gathers pre-processed data, calls the learning algorithm, and
+trains the model. Lastly, the ActionWrapper transforms the model’s outputs to the agent’s
+actions interpretable by the environments. Thereby completing a cycle of dataﬂow.
+
+4. Conclusion and Outlook
+
+In conclusion, OmniSafe provides a comprehensive infrastructural framework designed
+to expedite SafeRL research, featuring extensive API documentation, compatibility with
+popular environments, high modularity, and support for distributive computing. We have
+experimentally validated the implementation of numerous algorithms spanning diverse
+RL domains, facilitating eﬃcient experimentation and veriﬁcation of novel concepts. Our
+documentation delivers practical advice for conducting SafeRL research and supplies a
+developer guide for enhancing the platform’s functionality.
+   Our endeavors are directed toward the standardization of SafeRL-related research tools
+and methods, with the aim of cultivating a more streamlined and highly eﬃcient approach.
+By doing so, we endeavor to facilitate and expedite further scientiﬁc exploration in the ﬁeld
+of AI safety.
+
+
+                                           4
+
+===== PDF PAGE 5 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+References
+
+Joshua Achiam, David Held, Aviv Tamar, and Pieter Abbeel. Constrained policy optimization.
+  In International conference on machine learning, pages 22–31. PMLR, 2017.
+
+Eitan Altman. Constrained Markov decision processes: stochastic modeling. Routledge,
+  1999.
+
+Yarden As, Ilnura Usmanova, Sebastian Curi, and Andreas Krause. Constrained policy
+  optimization via bayesian world models. arXiv preprint arXiv:2201.09802, 2022.
+
+Zhu Ming Bi, Chaomin Luo, Zhonghua Miao, Bing Zhang, WJ Zhang, and Lihui Wang.
+  Safety assurance mechanisms of collaborative robotic systems in manufacturing. Robotics
+  and Computer-Integrated Manufacturing, 67:102022, 2021.
+
+Tom Carlson and Yiannis Demiris. Increasing robotic wheelchair safety with collabora-
+  tive control: Evidence from secondary task experiments. In 2010 IEEE International
+  Conference on Robotics and Automation, pages 5582–5587. IEEE, 2010.
+
+Yinlam Chow, Mohammad Ghavamzadeh, Lucas Janson, and Marco Pavone.  Risk-
+  constrained reinforcement learning with percentile risk criteria. The Journal of Machine
+  Learning Research, 18(1):6070–6120, 2017.
+
+Shuo Feng, Haowei Sun, Xintao Yan, Haojie Zhu, Zhengxia Zou, Shengyin Shen, and Henry X
+  Liu. Dense reinforcement learning for safety validation of autonomous vehicles. Nature,
+  615(7953):620–627, 2023.
+
+Scott Fujimoto, Herke Hoof, and David Meger. Addressing function approximation error in
+   actor-critic methods. In International conference on machine learning, pages 1587–1596.
+  PMLR, 2018.
+
+Scott Fujimoto, David Meger, and Doina Precup. Oﬀ-policy deep reinforcement learning
+  without exploration. In International conference on machine learning, pages 2052–2062.
+  PMLR, 2019.
+
+Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, and Sergey Levine.  Soft actor-critic:
+  Oﬀ-policy maximum entropy deep reinforcement learning with a stochastic actor. In
+  International conference on machine learning, pages 1861–1870. PMLR, 2018.
+
+Ashish K Jayant and Shalabh Bhatnagar. Model-based safe deep reinforcement learning via
+  a constrained proximal policy optimization algorithm. Advances in Neural Information
+  Processing Systems, 35:24432–24445, 2022.
+
+Sham M Kakade. A natural policy gradient. Advances in neural information processing
+  systems, 14, 2001.
+
+Jongmin Lee, Cosmin Paduraru, Daniel J Mankowitz, Nicolas Heess, Doina Precup, Kee-
+  Eung Kim, and Arthur Guez. Coptidice: Oﬄine constrained reinforcement learning via
+  stationary distribution correction estimation. arXiv preprint arXiv:2204.08957, 2022.
+
+
+                                           5
+
+===== PDF PAGE 6 =====
+                  Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+Timothy P Lillicrap, Jonathan J Hunt, Alexander Pritzel, Nicolas Heess, Tom Erez, Yuval
+  Tassa, David Silver, and Daan Wierstra. Continuous control with deep reinforcement
+  learning. arXiv preprint arXiv:1509.02971, 2015.
+
+Yongshuai Liu, Jiaxin Ding, and Xin Liu. Ipo: Interior-point policy optimization under
+  constraints. In Proceedings of the AAAI conference on artiﬁcial intelligence, volume 34,
+  pages 4940–4947, 2020a.
+
+Zuxin Liu, Hongyi Zhou, Baiming Chen, Sicheng Zhong, Martial Hebert, and Ding Zhao.
+  Constrained model-based reinforcement learning with robust cross-entropy method. arXiv
+  preprint arXiv:2010.07968, 2020b.
+
+Yecheng Jason Ma, Andrew Shen, Osbert Bastani, and Jayaraman Dinesh. Conservative
+  and adaptive penalty for model-based safe reinforcement learning. In Proceedings of the
+ AAAI conference on artiﬁcial intelligence, volume 36, pages 5404–5412, 2022.
+
+Antonin Raﬃn, Ashley Hill, Adam Gleave, Anssi Kanervisto, Maximilian Ernestus, and
+  Noah Dormann. Stable-baselines3: Reliable reinforcement learning implementations. The
+  Journal of Machine Learning Research, 22(1):12348–12355, 2021.
+
+Alex Ray, Joshua Achiam, and Dario Amodei. Benchmarking safe exploration in deep
+  reinforcement learning. arXiv preprint arXiv:1910.01708, 7:1, 2019.
+
+John Schulman, Sergey Levine, Pieter Abbeel, Michael Jordan, and Philipp Moritz. Trust
+  region policy optimization.  In International conference on machine learning, pages
+  1889–1897. PMLR, 2015.
+
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. Proximal
+  policy optimization algorithms. arXiv preprint arXiv:1707.06347, 2017.
+
+Harshit Sikchi, Wenxuan Zhou, and David Held. Learning oﬀ-policy with online planning.
+  In Conference on Robot Learning, pages 1622–1633. PMLR, 2022.
+
+David Silver, Aja Huang, Chris J Maddison, Arthur Guez, Laurent Sifre, George Van
+  Den Driessche, Julian Schrittwieser, Ioannis Antonoglou, Veda Panneershelvam, Marc
+  Lanctot, et al. Mastering the game of go with deep neural networks and tree search.
+  nature, 529(7587):484–489, 2016.
+
+David Silver, Julian Schrittwieser, Karen Simonyan, Ioannis Antonoglou, Aja Huang, Arthur
+  Guez, Thomas Hubert, Lucas Baker, Matthew Lai, Adrian Bolton, et al. Mastering the
+  game of go without human knowledge. nature, 550(7676):354–359, 2017.
+
+Aivar Sootla, Alexander Cowen-Rivers, Jun Wang, and Haitham Bou Ammar. Enhancing safe
+  exploration using safety state augmentation. Advances in Neural Information Processing
+  Systems, 35:34464–34477, 2022a.
+
+Aivar Sootla, Alexander I Cowen-Rivers, Taher Jaﬀerjee, Ziyan Wang, David H Mguni, Jun
+  Wang, and Haitham Ammar. Saut´e rl: Almost surely safe reinforcement learning using
+  state augmentation. In International Conference on Machine Learning, pages 20423–20443.
+  PMLR, 2022b.
+
+
+                                           6
+
+===== PDF PAGE 7 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+Adam Stooke, Joshua Achiam, and Pieter Abbeel.  Responsive safety in reinforcement
+  learning by pid lagrangian methods. In International Conference on Machine Learning,
+  pages 9133–9143. PMLR, 2020.
+
+Hao Sun, Ziping Xu, Meng Fang, Zhenghao Peng, Jiadong Guo, Bo Dai, and Bolei Zhou.
+  Safe exploration by solving early terminated mdp. arXiv preprint arXiv:2107.04200, 2021.
+
+Richard S Sutton, David McAllester, Satinder Singh, and Yishay Mansour. Policy gradient
+  methods for reinforcement learning with function approximation. Advances in neural
+  information processing systems, 12, 1999.
+
+Chen Tessler, Daniel J Mankowitz, and Shie Mannor. Reward constrained policy optimization.
+  arXiv preprint arXiv:1805.11074, 2018.
+
+Garrett Thomas, Yuping Luo, and Tengyu Ma. Safe reinforcement learning by imagining the
+  near future. Advances in Neural Information Processing Systems, 34:13859–13869, 2021.
+
+Oriol Vinyals, Igor Babuschkin, Junyoung Chung, Michael Mathieu, Max Jaderberg, Woj-
+  ciech M Czarnecki, Andrew Dudzik, Aja Huang, Petko Georgiev, Richard Powell, et al.
+  Alphastar: Mastering the real-time strategy game starcraft ii. DeepMind blog, 2, 2019.
+
+Ziyu Wang, Alexander Novikov, Konrad Zolna, Josh S Merel, Jost Tobias Springenberg,
+  Scott E Reed, Bobak Shahriari, Noah Siegel, Caglar Gulcehre, Nicolas Heess, et al. Critic
+  regularized regression. Advances in Neural Information Processing Systems, 33:7768–7778,
+  2020.
+
+Min Wen and Ufuk Topcu. Constrained cross-entropy method for safe reinforcement learning.
+  Advances in Neural Information Processing Systems, 31, 2018.
+
+Jiayi Weng, Huayu Chen, Dong Yan, Kaichao You, Alexis Duburcq, Minghao Zhang, Yi Su,
+  Hang Su, and Jun Zhu. Tianshou: A highly modularized deep reinforcement learning
+   library. Journal of Machine Learning Research, 23(267):1–6, 2022.
+
+Tengyu Xu, Yingbin Liang, and Guanghui Lan. Crpo: A new approach for safe reinforcement
+  learning with convergence guarantee. In International Conference on Machine Learning,
+  pages 11480–11491. PMLR, 2021.
+
+Long Yang, Jiaming Ji, Juntao Dai, Linrui Zhang, Binbin Zhou, Pengfei Li, Yaodong Yang,
+  and Gang Pan. Constrained update projection approach to safe policy optimization. arXiv
+  preprint arXiv:2209.07089, 2022.
+
+Tsung-Yen Yang, Justinian Rosca, Karthik Narasimhan, and Peter J Ramadge. Projection-
+  based constrained policy optimization. arXiv preprint arXiv:2010.03152, 2020.
+
+Linrui Zhang, Li Shen, Long Yang, Shixiang Chen, Bo Yuan, Xueqian Wang, and Dacheng
+  Tao. Penalized proximal policy optimization for safe reinforcement learning. arXiv preprint
+  arXiv:2205.11814, 2022.
+
+Yiming Zhang, Quan Vuong, and Keith Ross. First order constrained optimization in policy
+  space. Advances in Neural Information Processing Systems, 33:15338–15349, 2020.
+
+
+                                           7
+
+===== PDF PAGE 8 =====
+                   Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+Appendix A.
+
+A. Implemented Algorithms of OmniSafe
+
+OmniSafe oﬀers a highly modular framework that integrates an extensive collection of
+algorithms speciﬁcally designed for Safe Reinforcement Learning (SafeRL) in various domains.
+The Adapter module in OmniSafe allows for easy expansion of diﬀerent types of SafeRL
+algorithms.
+
+
+
+ Domains          Types             Algorithms Registry
+
+                                     TRPO-Lag(Ray et al., 2019); PPO-Lag(Ray et al., 2019); TRPO-PID(Stooke et al., 2020);
+                       Primal-Dual
+                                       CPPO-PID(Stooke et al., 2020); PDO(Chow et al., 2017); RCPO(Tessler et al., 2018);
+ On-Policy                      Primal           OnCRPO(Xu et al., 2021);
+
+                                     CPO(Achiam et al., 2017); PCPO(Yang et al., 2020); CUP(Yang et al., 2022);
+                     Convex Optimization
+                                    FOCOPS(Zhang et al., 2020) ;
+
+                       Penalty Function      IPO(Liu et al., 2020a); P3O(Zhang et al., 2022);
+
+ OﬀPolicy           Primal-Dual         SAC-Lag(Ray et al., 2019); DDPG-Lag(Ray et al., 2019); TD3-Lag(Ray et al., 2019);
+
+                       Online Plan          SafeLOOP(Sikchi et al., 2022); CCEPETS(Wen and Topcu, 2018); RCEPETS(Liu et al., 2020b);
+ Model-based                          Pessimistic Estimate  LA-MBDA(As et al., 2022); CAPPETS(Ma et al., 2022);
+
+                      Imaginary Train     SMBPO(Thomas et al., 2021); MBPPO-Lag(Jayant and Bhatnagar, 2022);
+
+                      Q-Learning Based     BCQLag(Fujimoto et al., 2019); C-CRR(Wang et al., 2020); VAE-BC(Fujimoto et al., 2019);
+ Oﬄine
+                  DICE Based         COptiDICE(Lee et al., 2022);
+
+                ET-MDP            PPOEarlyTerminated(Sun et al., 2021); TRPOEarlyTerminated(Sun et al., 2021);
+ Other Formulation
+ MDP              SauteRL             PPOSaute(Sootla et al., 2022b); TRPOSaute(Sootla et al., 2022b);
+
+                   SimmerRL           PPOSimmerPID(Sootla et al., 2022a); TRPOSimmerPID(Sootla et al., 2022a);
+
+Table 1: OmniSafe supports varieties of SafeRL algorithms. From the perspective of classic
+reinforcement learning, OmniSafe includes on-policy, oﬀ-policy, oﬄine, and model-based
+algorithms; From the perspective of the SafeRL learning paradigm, OmniSafe supports
+primal-dual, projection, penalty function, primal, etc.
+
+
+
+B. Safety-Gymnasium Experiment Results of OmniSafe
+
+In an eﬀort to ascertain the credibility of OmniSafe ’s algorithmic implementation, a com-
+parative assessment was conducted, juxtaposing the performance of classical reinforcement
+learning algorithms, such as Policy Gradient (Sutton et al., 1999), Natural Policy Gradient
+(Kakade, 2001), TRPO (Schulman et al., 2015), PPO (Schulman et al., 2017), DDPG
+(Lillicrap et al., 2015), TD3 (Fujimoto et al., 2018), and SAC (Haarnoja et al., 2018), with
+well-established open-source implementations, speciﬁcally Tianshou (Weng et al., 2022) 2 and
+Stable-Baselines3 (Raﬃn et al., 2021)3. The stringent veriﬁcation procedure undertaken
+has yielded conﬁdence in the reliability of OmniSafe ’s algorithms. The comparison results
+with Tianshou and Stable-Baselines3 are shown in Table 2 . The speciﬁc performance
+curve of OmniSafe on Safety-Gymnasium Mujoco Velocity is shown in Figure 3
+
+
+
+ 2. The Project URL: https://github.com/thu-ml/tianshou/tree/master
+ 3. The Project URL: https://github.com/DLR-RM/stable-baselines3
+
+
+                                           8
+
+===== PDF PAGE 9 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+
+                                                     Policy Gradient                             PPO
+
+ Environment                   OmniSafe (Ours)    Tianshou    Stable-Baselines3  OmniSafe (Ours)      Tianshou      Stable-Baselines3
+ SafetyAntVelocity-v1           2769.45 ± 550.71   145.33 ± 127.55             - ± -         4295.96 ± 658.20    2607.48 ± 1415.78     1780.61 ± 780.65
+ SafetyHalfCheetahVelocity-v1  2625.44 ± 1079.04  707.56 ± 158.59             - ± -           3507.47 ± 1563.69   6299.27 ± 1692.38   5074.85 ± 2225.47
+ SafetyHopperVelocity-v1        1884.38 ± 825.13    343.88 ± 51.85              - ± -         2679.98 ± 921.96     1834.70 ± 862.06      838.96 ± 351.10
+ SafetyHumanoidVelocity-v1       647.52 ± 154.82    438.97 ± 123.68             - ± -         1106.09 ± 607.6      677.43 ± 189.96      762.73 ± 170.22
+ SafetySwimmerVelocity-v1         47.31 ± 16.19       27.12 ± 7.47               - ± -            113.28 ± 20.22         37.93 ± 8.68       273.86 ± 87.76
+ SafetyWalker2dVelocity-v1     1665 .00 ± 930.18   373.63 ± 129.20             - ± -        3806.39 ± 1547.48   3748.26 ± 1832.83     3304.35 ± 706.13
+
+                                                    Natural PG                             TRPO
+
+ Environment                   OmniSafe (Ours)     Tianshou     Stable-Baselines3  OmniSafe (Ours)     Tianshou      Stable-Baselines3
+ SafetyAntVelocity-v1           3793.70 ± 583.66   2062.45 ± 876.43              - ± -        4362.43 ± 640.54  2521.36 ± 1442.10   3233.58 ± 1437.16
+ SafetyHalfCheetahVelocity-v1  4096.77 ± 1223.70   3430.90 ± 239.38              - ± -          3313.31 ± 1048.78   4255.73 ± 1053.82  7185.06 ± 3650.82
+ SafetyHopperVelocity-v1        2590.54 ± 631.05    993.63 ± 489.42               - ± -        2698.19 ± 568.80   1346.94 ± 984.09    2467.10 ± 1160.25
+ SafetyHumanoidVelocity-v1     3838.67 ± 1654.79   810.76 ± 270.69               - ± -           1461.51 ± 602.23     749.42 ± 149.81   2828.18 ± 2256.38
+ SafetySwimmerVelocity-v1         116.33 ± 5.97       29.75 ± 12.00                - ± -            105.08 ± 31.00       37.21 ± 4.04     258.62 ± 124.91
+ SafetyWalker2dVelocity-v1     4054.62 ± 1266.76  3372.59 ± 1049.14             - ± -           4099.97 ± 409.05    3372.59 ± 961.74   4227.91 ± 760.93
+
+                                    DDPG                                    TD3                                   SAC
+
+ Environment                  OmniSafe (Ours)      Tianshou       Stable-Baselines3   OmniSafe (Ours)      Tianshou      Stable-Baselines3  OmniSafe (Ours)      Tianshou      Stable-Baselines3
+ SafetyAntVelocity-v1              860.86 ± 198.03      308.60 ± 318.60     2654.58 ± 1738.21    5246.86 ± 580.50    5379.55 ± 224.69   3079.45 ± 1456.81    5456.31 ± 156.04    6012.30 ± 102.64    2404.50 ± 1152.65
+ SafetyHalfCheetahVelocity-v1    11377.10 ± 75.29   12493.55 ± 437.54    7796.63 ± 3541.64   11246.12 ± 488.62   10246.77 ± 908.39    8631.27 ± 2869.15    11488.86 ± 513.09   12083.89 ± 564.51   7767.74 ± 3159.07
+ SafetyHopperVelocity-v1          1462.56 ± 591.14     2018.97 ± 1045.20   2214.06 ± 1219.57    3404.41 ± 82.57    2682.53 ± 1004.84    2542.67 ± 1253.33   3597.70 ± 32.23     3546.59 ± 76 .00     2158.54 ± 1343.24
+ SafetyHumanoidVelocity-v1       1537.39 ± 335.62      124.96 ± 61.68     2276.92 ± 2299.68   5798.01 ± 160.72    3838.06 ± 1832.90    3511.06 ± 2214.12   6039.77 ± 167.82    5424.55 ± 118.52     2713.60 ± 2256.89
+ SafetySwimmerVelocity-v1          139.39 ± 11.74        138.98 ± 8.60      210.40 ± 148.01      98.39 ± 32.28        94.43 ± 9.63       247.09 ± 131.69        46.44 ± 1.23          44.34 ± 2.01      247.33 ± 122.02
+ SafetyWalker2dVelocity-v1       1911.70 ± 395.97      543.23 ± 316.10    3917.46 ± 1077.38    3034.83 ± 1374.72   4267.05 ± 678.65    4087.94 ± 755.10     4419.29 ± 232.06    4619.34 ± 274.43    3906.78 ± 795.48
+
+Table 2: The performance of OmniSafe  , which was evaluated in relation to published
+baselines within the Safety-Gymnasium MuJoCo Velocity environments.  Experimental
+outcomes, comprising mean and standard deviation, were derived from 10 assessment
+iterations encompassing multiple random seeds. A noteworthy distinction lies in the fact
+that Stable-Baselines3 employ distinct parameters tailored to each environment, while
+OmniSafe maintains a consistent parameter set across all environments.
+
+
+                                                                                                                                     DDPG                                                                                                                                                        SAC     PolicyGradient    NaturalPG    TRPO    PPO                 DDPG                          SAC     PolicyGradient    NaturalPG    TRPO    PPO      12000                                                                            DDPG                                                                                          SAC     PolicyGradient    NaturalPG    TRPO    PPO      3500
+                                                                                                                                                TD3                  TD3                                                                                  TD3
+             5000                                                                                             10000
+                                                                                                                                                                           3000
+             4000                                                                            8000                                                                          2500
+                        Rewards 30002000                                                                                                                                                                              Rewards 60004000                                                                                                                                                                          Rewards 20001500
+             1000                                                                            2000                                                                          1000
+                                                                                                                                                                            500
+                0                                                                               0
+                                                                                                                                                                              0
+                                                                                                                         0.0            0.2            0.4                                                                                                                                                                      0.6            0.8            1.0                        0.0            0.2            0.4                                                                     0.6            0.8            1.0
+                                                                                     1e6                                                                                                                                        Steps                                                     Steps                                                                                                                                                                      1e6              0.0            0.2            0.4   Steps   0.6            0.8            1.01e6
+
+                (a) Ant                  (b) HalfCheetah                  (c) Hopper
+
+                 DDPG    SAC     PolicyGradient    NaturalPG    TRPO    PPO     150    DDPG    SAC     PolicyGradient    NaturalPG    TRPO    PPO           DDPG    SAC     PolicyGradient    NaturalPG    TRPO    PPO
+             6000    TD3                                                           TD3                                                             TD3
+                                                                                           125                                                                            4000
+             5000
+                                                                                           100                                                                            3000             4000
+                        Rewards 3000                                                                                                                                                                           Rewards 75                                                                                                                                                                                                                                                                                                                                                                                                                    Rewards 2000
+                                                                                            50
+             2000
+                                                                                            25                                                                            1000
+             1000
+                                                                                             0
+                0                                                                                                                                                             0
+                        0.0            0.2            0.4            0.6            0.8            1.0               0.0            0.2            0.4            0.6            0.8            1.0                 0.0            0.2            0.4            0.6            0.8            1.0
+                                                     Steps                             1e6                                           Steps                              1e6                                            Steps                             1e6
+
+            (d) Humanoid                  (e) Swimmer                    (f) Walker2d
+
+Figure 3: Training curves in Safety-Gymnasium MuJoCo Velocity environments, covering all
+classical reinforcement learning algorithms mentioned in Table 2. The rewards are obtained
+from the 1e6 steps interaction.
+
+
+OmniSafe provides experiment results conducted in the Safety-Gymnasium environment,
+as illustrated partially in Figure 4. For a comprehensive summary of OmniSafe algorithm
+performance4, please refer to Table 3.
+
+ 4. The rule for Early-Terminated MDP is to stop when the constraint violation value exceeds the set range.
+    Therefore, for some related algorithms in Table 3, their cost values happen to be exactly 25.00.
+
+                                           9
+
+===== PDF PAGE 10 =====
+                  Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+
+                                                                             CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                                                                                                                                             CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                                                                                                                                                                                                       CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                   CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    175
+                                                                                                                                                                                                                                                                                                                                 250                                                                                                                                                                                                                                         25                      25
+                                                                                                             150
+                      20                                                                                     125                                                                                                                         20                                                                                     200
+                                                  Rewards 1510                                                                                                                                                              Costs 10075                                                                                                                                                                                                                                                                                                                             Rewards 1510                                                                                                                                                              Costs 150100
+
+                                                                                                              50
+                       5                                                                                      25                                                                                                                          5                                                                                      50
+
+                       0                                                                                       0                                                                                                                          0                                                                                       0
+
+                                 0.0               0.2               0.4   Steps    0.6               0.8               1.01e7             0.0               0.2               0.4   Steps    0.6               0.8               1.01e7                                                       0.0               0.2               0.4   Steps    0.6               0.8               1.01e7             0.0               0.2               0.4   Steps    0.6               0.8               1.01e7
+
+                  (a) PointGoal1                                  (b) PointGoal2
+
+                   CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    300                                                                                                                                                             CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    250                                                                                                                                                                                                                       CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                                                             CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                        30
+                      30
+                                                                                                             250                                                                                                                                                                                                                                                                                                                                 200                                                                                                                                                                                                                                         25
+                      25
+                      20                                                                                     200                                                                                                                         20                                                                                     150
+                                                                                                                                                                                                           Costs 150                                                  Rewards 15                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          Rewards 15                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Costs 100
+                                                                                                                                                                                                                                         10                                                                                                             100                      10
+
+                       5                                                                                      50                                                                                                                          5                                                                                      50
+
+                       0                                                                                       0                                                                                                                          0                                                                                       0
+
+                                 0.0               0.2               0.4   Steps    0.6               0.8               1.01e7             0.0               0.2               0.4   Steps    0.6               0.8               1.01e7                                                       0.0               0.2               0.4   Steps    0.6               0.8               1.01e7             0.0               0.2               0.4   Steps    0.6               0.8               1.01e7
+
+                 (c) PointButton1                                (d) PointButton2
+
+                   CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    160    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    300    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag
+                      35                                                                                                                                                                                                                                         30                                                                                                             140
+                                                                                                                                                                                                                                                                                                                                 250
+                      30                                                                                                             120                                                                                                                                                                                                                                         25
+                      25                                                                                     100                                                                                                                         20                                                                                     200
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Costs 150                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          Rewards 15                                                  Rewards 2015                                                                                                                                                                                                           Costs 8060
+                                                                                                                                                                                                                                                                                                                                 100
+                                                                                                                                                                                                                                         10
+                      10                                                                                                              40
+                       5                                                                                      20                                                                                                                          5                                                                                      50
+
+                       0                                                                                       0                                                                                                                          0                                                                                       0
+
+                                 0.0               0.2               0.4   Steps    0.6               0.8               1.01e7             0.0               0.2               0.4   Steps    0.6               0.8               1.01e7                                                       0.0               0.2               0.4   Steps    0.6               0.8               1.01e7             0.0               0.2               0.4   Steps    0.6               0.8               1.01e7
+
+                    (e) CarGoal1                                         (f) CarGoal2
+
+                   CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag         CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    500    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag
+                      25                                                                                     500                                                                                                                         25
+                      20                                                                                     400                                                                                                                         20                                                                                     400
+
+                                                                                                                                                                                                           Costs                                                  Rewards 1510                                                                                     300                                                                                                                         15                                                                                     300                                                                                                             200                                                                                                                                                                                                                                                                                                                             Rewards 10                                                                                                                                                              Costs 200
+
+                       5                                                                                     100                                                                                                                          5                                                                                     100
+
+                       0                                                                                       0                                                                                                                          0                                                                                       0
+
+                                 0.0               0.2               0.4   Steps    0.6               0.8               1.01e7             0.0               0.2               0.4   Steps    0.6               0.8               1.01e7                                                       0.0               0.2               0.4   Steps    0.6               0.8               1.01e7             0.0               0.2               0.4   Steps    0.6               0.8               1.01e7
+
+                 (g) CarButton1                                 (h) CarButton2
+                      6000    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    300    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                        8000    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    300    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag
+                      5000                                                                                    250                                                                                                                                                                                                                 250
+                      4000                                                                                    200                                                                                                                        6000                                                                                    200
+                                                  Rewards 30002000                                                                                                                                                            Costs 150                                                                                                                                                                                                                                                                                                                           Rewards 4000                                                                                                                                                            Costs 150
+                                                                                                              100                                                                                                                        2000                                                                                    100
+                      1000
+                         0                                                                                     50                                                                                                                           0                                                                                     50
+                                    0.0              0.2              0.4   Steps    0.6              0.8              1.01e7     0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7                                                         0.0              0.2              0.4   Steps    0.6              0.8              1.01e7     0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7
+
+                          (i) Ant                                              (j) HalfCheetah
+                      3000    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    300    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                  CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    300    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag
+                                                                                                              250                                                                                                                        10000                                                                                    250
+                      2500
+                      2000                                                                                    200                                                                                                                         8000                                                                                    200
+                                                  Rewards 1500                                                                                                                                                            Costs 150                                                                                                                                                                                                                                                                                                                           Rewards 6000                                                                                                                                                           Costs 150
+
+                      1000                                                                                    100                                                                                                                         4000                                                                                    100
+
+                       500                                                                                     50                                                                                                                         2000                                                                                     50
+
+                         0
+                                    0.0              0.2              0.4   Steps    0.6              0.8              1.01e7     0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7                                            0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7     0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7
+
+                   (k) Hopper                                              (l) Humanoid
+
+                      140    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    300    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag                                        7000    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag    300    CPO     PPOLag     PCPO     PPO     TRPO     TRPOLag
+
+                      120                                                                                     250                                                                                                                         6000                                                                                    250
+
+                      100
+                       80                                                                                     200                                                                                                                         50004000                                                                                    200
+                                                                                                                                                                                                            Costs 150                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  Costs 150                                                  Rewards 60                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          Rewards 3000
+                       40
+                                                                                                                                                                                                                                                                                                                                  100                                                                                                              100
+                                                                                                                                                                                                                                         2000
+                       20
+
+                        0                                                                                      50                                                                                                                         1000                                                                                     50
+
+                       20
+                                  0.0              0.2              0.4   Steps    0.6              0.8              1.01e7     0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7                                           0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7     0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7
+
+               (m) Swimmer                                   (n) Walker2d
+
+Figure 4: Training curves in Safety-Gymnasium MuJoCo Navigation and Velocity environ-
+ments. The rewards and costs are obtained from 1e7 steps interaction. Dashed black lines
+indicate the target cost value for a safe policy, which is set as 25.0.
+
+
+
+                                          10
+
+===== PDF PAGE 11 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+
+                                           Policy Gradient                  Natural PG               TRPO                 PPO
+
+ Environment                    Reward          Cost         Reward          Cost         Reward          Cost         Reward          Cost
+ SafetyAntVelocity-v1             5292.29 ± 913.44   919.42 ± 158.61   5547.20 ± 807.89   895.56 ± 77.13   6026.79 ± 314.98   933.46 ± 41.28   5977.73 ± 885.65   958.13 ± 134.50
+ SafetyHalfCheetahVelocity-v1  5188.46 ± 1202.76  896.55 ± 184.70  5878.28 ± 2012.24  847.74 ± 249.02  6490.76 ± 2507.18  734.26 ± 321.88  6921.83 ± 1721.79  919.20 ± 173.08
+ SafetyHopperVelocity-v1         3218.17 ± 672.88   881.76 ± 198.46   2613.95 ± 866.13   587.78 ± 220.97   2047.35 ± 447.33   448.12 ± 103.87   2337.11 ± 942.06   550.02 ± 237.70
+ SafetyHumanoidVelocity-v1       7001.78 ± 419.67   834.11 ± 212.43   8055.20 ± 641.67    946.40 ± 9.11   8681.24 ± 3934.08  718.42 ± 323.30   9115.93 ± 596.88    960.44 ± 7.06
+ SafetySwimmerVelocity-v1          77.05 ± 33.44     107.10 ± 60.58     120.19 ± 7.74     161.78 ± 17.51     124.91 ± 6.13     176.56 ± 15.95     119.77 ± 13.80     165.27 ± 20.15
+ SafetyWalker2dVelocity-v1      4832.34 ± 685.76   866.59 ± 93.47   5347.35 ± 436.86   914.74 ± 32.61   6096.67 ± 723.06   914.46 ± 27.85   6239.52 ± 879.99   902.68 ± 100.93
+ SafetyCarGoal1-v0                   35.86 ± 1.97      57.46 ± 48.34      36.07 ± 1.25      58.06 ± 10.03      36.60 ± 0.22      55.58 ± 12.68      33.41 ± 2.89      58.06 ± 42.06
+ SafetyCarButton1-v0                19.76 ± 10.15     353.26 ± 177.08     22.16 ± 4.48      333.98 ± 67.49      21.98 ± 2.06      343.22 ± 24.60      17.51 ± 9.46     373.98 ± 156.64
+ SafetyCarGoal2-v0                   29.43 ± 4.62      179.20 ± 84.86      30.26 ± 0.38      209.62 ± 29.97      32.17 ± 1.24      190.74 ± 21.05      29.88 ± 4.55     194.16 ± 106.20
+ SafetyCarButton2-v0                18.06 ± 10.53     349.82 ± 187.07     20.85 ± 3.14      313.88 ± 58.20      20.51 ± 3.34      316.42 ± 35.28      21.35 ± 8.22     312.64 ± 138.40
+ SafetyPointGoal1-v0                 26.19 ± 3.44      201.22 ± 80.40      26.92 ± 0.58       57.92 ± 9.97       27.20 ± 0.44      45.88 ± 11.27      25.44 ± 5.43      55.72 ± 35.55
+ SafetyPointButton1-v0              29.98 ± 5.24      141.74 ± 75.13      31.95 ± 1.53      123.98 ± 32.05      30.61 ± 0.40      134.38 ± 22.06      27.03 ± 6.14      152.48 ± 80.39
+ SafetyPointGoal2-v0                 25.18 ± 3.62     204.96 ± 104.97     26.19 ± 0.84      193.60 ± 18.54      25.61 ± 0.89      202.26 ± 15.15      25.49 ± 2.46      159.28 ± 87.13
+ SafetyPointButton2-v0              26.88 ± 4.38      153.88 ± 65.54      28.45 ± 1.49      160.40 ± 20.08      28.78 ± 2.05      170.30 ± 30.59      25.91 ± 6.15     166.60 ± 111.21
+
+                                   (a) On-Policy Base Algorithms.
+
+
+                            RCPO                TRPOLag                PPOLag                 P3O
+
+ Environment                    Reward        Cost       Reward         Cost        Reward         Cost        Reward         Cost
+ SafetyAntVelocity-v1             3139.52 ± 110.34   12.34 ± 3.11   3041.89 ± 180.77   19.52 ± 20.21   3261.87 ± 80.00    12.05 ± 6.57   2636.62 ± 181.09    20.69 ± 10.23
+ SafetyHalfCheetahVelocity-v1  2440.97 ± 451.88    9.02 ± 9.34    2884.68 ± 77.47    9.04 ± 11.83   2946.15 ± 306.35    3.44 ± 4.77    2117.84 ± 313.55    27.60 ± 8.36
+ SafetyHopperVelocity-v1         1428.58 ± 199.87  11.12 ± 12.66  1391.79 ± 269.07    11.22 ± 9.97    961.92 ± 752.87    13.96 ± 19.33   1231.52 ± 465.35    16.33 ± 11.38
+ SafetyHumanoidVelocity-v1      6286.51 ± 151.03   19.47 ± 7.74   6551.30 ± 58.42   59.56 ± 117.37   6624.46 ± 25.90     5.87 ± 9.46     6342.47 ± 82.45   126.40 ± 193.76
+ SafetySwimmerVelocity-v1         61.29 ± 18.12     22.60 ± 1.16     81.18 ± 16.33     22.24 ± 3.91     64.74 ± 17.67     28.02 ± 4.09     38.02 ± 34.18     18.40 ± 12.13
+ SafetyWalker2dVelocity-v1      3064.43 ± 218.83    3.02 ± 1.48     3207.10 ± 7.88     14.98 ± 9.27   2982.27 ± 681.55   13.49 ± 14.55   2713.57 ± 313.20    20.51 ± 14.09
+ SafetyCarGoal1-v0                  18.71 ± 2.72     23.10 ± 12.57     27.04 ± 1.82      26.80 ± 5.64      13.27 ± 9.26     21.72 ± 32.06     -1.10 ± 6.851     50.58 ± 99.24
+ SafetyCarButton1-v0                 -2.04 ± 2.98     43.48 ± 31.52     -0.38 ± 0.85     37.54 ± 31.72      0.33 ± 1.96      55.50 ± 89.64      -2.06 ± 7.20      43.78 ± 98.01
+ SafetyCarGoal2-v0                   2.30 ± 1.76     22.90 ± 16.22     3.65 ± 1.09      39.98 ± 20.29      1.58 ± 2.49      13.82 ± 24.62      -0.07 ± 1.62      43.86 ± 99.58
+ SafetyCarButton2-v0                 -1.35 ± 2.41     42.02 ± 31.77     -1.68 ± 2.55     20.36 ± 13.67      0.76 ± 2.52     47.86 ± 103.27     0.11 ± 0.72      85.94 ± 122.01
+ SafetyPointGoal1-v0                15.27 ± 4.05     30.56 ± 19.15     18.51 ± 3.83      22.98 ± 8.45      12.96 ± 6.95     25.80 ± 34.99      1.60 ± 3.01      31.10 ± 80.03
+ SafetyPointButton1-v0               3.65 ± 4.47      26.30 ± 9.22      6.93 ± 1.84      31.16 ± 20.58      4.60 ± 4.73      20.80 ± 35.78      -0.34 ± 1.53      52.86 ± 85.62
+ SafetyPointGoal2-v0                 2.17 ± 1.46     33.82 ± 21.93     4.64 ± 1.43      26.00 ± 4.70      1.98 ± 3.86      41.20 ± 61.03      0.34 ± 2.20      65.84 ± 195.76
+ SafetyPointButton2-v0               7.18 ± 1.93     45.02 ± 25.28     5.43 ± 3.44      25.10 ± 8.98      0.93 ± 3.69      33.72 ± 58.75      0.33 ± 2.44      28.50 ± 49.79
+
+                              CUP                 PCPO               FOCOPS               CPO
+
+ Environment                    Reward          Cost        Reward        Cost       Reward         Cost        Reward        Cost
+ SafetyAntVelocity-v1             3215.79 ± 346.68    18.25 ± 17.12    2257.07 ± 47.97    10.44 ± 5.22   3184.48 ± 305.59    14.75 ± 6.36    3098.54 ± 78.90    14.12 ± 3.41
+ SafetyHalfCheetahVelocity-v1   2850.60 ± 244.65     4.27 ± 4.46     1677.93 ± 217.31  19.06 ± 15.26  2965.20 ± 290.43    2.37 ± 3.50    2786.48 ± 173.45    4.70 ± 6.72
+ SafetyHopperVelocity-v1          1716.08 ± 5.93      7.48 ± 5.535     1551.22 ± 85.16    15.46 ± 9.83   1437.75 ± 446.87    10.13 ± 8.87    1713.71 ± 18.26    13.40 ± 5.82
+ SafetyHumanoidVelocity-v1       6109.94 ± 497.56    24.69 ± 20.54    5852.25 ± 78.01    0.24 ± 0.48    6489.39 ± 35.10    13.86 ± 39.33   6465.34 ± 79.87    0.18 ± 0.36
+ SafetySwimmerVelocity-v1          63.83 ± 46.45      21.95 ± 11.04     54.42 ± 38.65     17.34 ± 1.57     53.87 ± 17.90     29.75 ± 7.33     65.30 ± 43.25     18.22 ± 8.01
+ SafetyWalker2dVelocity-v1      2466.95 ± 1114.13     6.63 ± 8.25     1802.86 ± 714.04   18.82 ± 5.57   3117.05 ± 53.60    8.78 ± 12.38   2074.76 ± 962.45   21.90 ± 9.41
+ SafetyCarGoal1-v0                    6.14 ± 6.97       36.12 ± 89.56      21.56 ± 2.87     38.42 ± 8.36     15.23 ± 10.76     31.66 ± 93.51     25.52 ± 2.65     43.32 ± 14.35
+ SafetyCarButton1-v0                 1.49 ± 2.84      103.24 ± 123.12     0.36 ± 0.85     40.52 ± 21.25     0.21 ± 2.27      31.78 ± 47.03      0.82 ± 1.60     37.86 ± 27.41
+ SafetyCarGoal2-v0                    1.78 ± 4.03      95.40 ± 129.64      1.62 ± 0.56     48.12 ± 31.19     2.09 ± 4.33      31.56 ± 58.93      3.56 ± 0.92      32.66 ± 3.31
+ SafetyCarButton2-v0                 1.49 ± 2.64      173.68 ± 163.77     0.66 ± 0.42     49.72 ± 36.50     1.14 ± 3.18      46.78 ± 57.47      0.17 ± 1.19     48.56 ± 29.34
+ SafetyPointGoal1-v0                 14.42 ± 6.74      19.02 ± 20.08      18.57 ± 1.71     22.98 ± 6.56     14.97 ± 9.01     33.72 ± 42.24     20.46 ± 1.38     28.84 ± 7.76
+ SafetyPointButton1-v0               3.50 ± 7.07       39.56 ± 54.26      2.66 ± 1.83     49.40 ± 36.76     5.89 ± 7.66      38.24 ± 42.96      4.04 ± 4.54      40.00 ± 4.52
+ SafetyPointGoal2-v0                  1.06 ± 2.67      107.30 ± 204.26     1.06 ± 0.69     51.92 ± 47.40     2.21 ± 4.15     37.92 ± 111.81     2.50 ± 1.25     40.84 ± 23.31
+ SafetyPointButton2-v0               2.88 ± 3.65       54.24 ± 71.07      1.05 ± 1.27     41.14 ± 12.35     2.43 ± 3.33      17.92 ± 26.10      5.09 ± 1.83     48.92 ± 17.79
+
+                                  PPOSaute               TRPOSaute            PPOSimmerPID         TRPOSimmerPID
+
+ Environment                    Reward        Cost       Reward        Cost       Reward        Cost       Reward        Cost
+ SafetyAntVelocity-v1             2978.74 ± 93.65    16.77 ± 0.92   2507.65 ± 63.97    8.036 ± 0.39   2944.84 ± 60.53   16.20 ± 0.66   3018.95 ± 66.44   16.52 ± 0.23
+ SafetyHalfCheetahVelocity-v1   2901.40 ± 25.49    16.20 ± 0.60   2521.80 ± 477.29    7.61 ± 0.39   2922.17 ± 24.84   16.14 ± 0.14   2737.79 ± 37.53   16.44 ± 0.21
+ SafetyHopperVelocity-v1         1650.91 ± 152.65   17.87 ± 1.33   1368.28 ± 576.08   10.38 ± 4.38   1699.94 ± 24.25   17.04 ± 0.41   1608.41 ± 88.23   16.30 ± 0.30
+ SafetyHumanoidVelocity-v1       6401.00 ± 32.23    17.10 ± 2.41   5759.44 ± 75.73    15.84 ± 1.42   6401.85 ± 57.62   11.06 ± 5.35   6411.32 ± 44.26   13.04 ± 2.68
+ SafetySwimmerVelocity-v1          35.61 ± 4.37      3.44 ± 1.35      34.72 ± 1.37     10.19 ± 2.32    77.52 ± 40.20     0.98 ± 1.91     51.39 ± 40.09     0.00 ± 0.00
+ SafetyWalker2dVelocity-v1      2410.89 ± 241.22   18.88 ± 2.38   2548.82 ± 891.65   13.21 ± 6.09   3187.56 ± 32.66   17.10 ± 0.49   3156.99 ± 30.93   17.14 ± 0.54
+ SafetyCarGoal1-v0                    -0.65 ± 2.89     22.90 ± 16.85     1.89 ± 3.52      4.86 ± 3.11      0.81 ± 0.41     17.18 ± 14.30     0.24 ± 0.41      0.90 ± 1.18
+ SafetyCarButton1-v0                 -1.72 ± 0.89     51.88 ± 28.18     -2.03 ± 0.40      6.24 ± 6.14      -0.57 ± 0.63    49.14 ± 37.77     -1.24 ± 0.47    17.26 ± 16.13
+ SafetyCarGoal2-v0                    -0.87 ± 0.79      6.13 ± 4.51      -1.03 ± 1.46     18.07 ± 11.62     -0.96 ± 1.10     3.00 ± 0.83      -0.36 ± 0.09     9.83 ± 13.91
+ SafetyCarButton2-v0                 -1.89 ± 1.86     47.33 ± 28.90     -2.60 ± 0.40     74.57 ± 84.95     -1.31 ± 0.93    52.33 ± 19.96     -0.99 ± 0.63    20.40 ± 12.77
+ SafetyPointGoal1-v0                 1.99 ± 2.87      7.80 ± 2.78      1.02 ± 0.80      7.46 ± 5.26      1.69 ± 3.25     5.34 ± 10.33     1.38 ± 1.91      1.34 ± 1.82
+ SafetyPointButton1-v0               -1.47 ± 0.98     22.60 ± 13.91     -3.13 ± 3.51      9.04 ± 3.94      -1.97 ± 1.41     12.80 ± 7.84     -1.36 ± 0.37     2.14 ± 1.73
+ SafetyPointGoal2-v0                  -1.85 ± 0.99     21.77 ± 13.56     -1.38 ± 1.16      7.87 ± 2.02      -1.13 ± 0.39     7.03 ± 4.21      -0.54 ± 0.18    26.57 ± 19.13
+ SafetyPointButton2-v0               -1.38 ± 0.11     12.00 ± 8.60      -2.56 ± 0.67     17.27 ± 10.01     -1.70 ± 0.29     7.90 ± 3.30      -1.66 ± 0.99     6.70 ± 4.74
+
+                              CPPOPID              TRPOPID            PPOEarlyTerminated       TRPOEarlyTerminated
+
+ Environment                    Reward         Cost       Reward        Cost        Reward        Cost       Reward         Cost
+ SafetyAntVelocity-v1             3213.36 ± 146.78    14.30 ± 7.39   3052.94 ± 139.67   15.22 ± 3.68    2801.53 ± 19.66    0.23 ± 0.09    3052.63 ± 58.41     0.40 ± 0.23
+ SafetyHalfCheetahVelocity-v1   2837.89 ± 398.52    8.06 ± 9.62   2796.75 ± 190.84   11.16 ± 9.80   2447.25 ± 346.84    3.47 ± 4.90   2555.70 ± 368.17    0.06 ± 0.08
+ SafetyHopperVelocity-v1          1713.29 ± 10.21     8.96 ± 4.28   1178.59 ± 646.71   18.76 ± 8.93     1643.39 ± 2.58     0.77 ± 0.26    1646.47 ± 49.95     0.42 ± 0.84
+ SafetyHumanoidVelocity-v1       6579.26 ± 55.70     3.76 ± 3.61   6407.95 ± 254.06   7.38 ± 11.34    6321.45 ± 35.73    0.00 ± 0.00    6332.14 ± 89.86     0.00 ± 0.00
+ SafetySwimmerVelocity-v1          91.05 ± 62.68     19.12 ± 8.33     69.75 ± 46.52     20.48 ± 9.13      33.02 ± 7.26     24.23 ± 0.54     39.24 ± 5.01      23.20 ± 0.48
+ SafetyWalker2dVelocity-v1      2183.43 ± 1300.69  14.12 ± 10.28  2707.75 ± 980.56    9.60 ± 8.94   2195.57 ± 1046.29  7.63 ± 10.44  2079.64 ± 1028.73  13.74 ± 15.94
+ SafetyCarGoal1-v0                   10.60 ± 2.51      30.66 ± 7.53     25.49 ± 1.31     28.92 ± 7.66      17.92 ± 1.54     21.60 ± 0.83     22.09 ± 3.07      17.97 ± 1.35
+ SafetyCarButton1-v0                  -1.36 ± 0.68      14.62 ± 9.40      -0.31 ± 0.49     15.24 ± 17.01      4.47 ± 1.12      25.00 ± 0.00      4.34 ± 0.72      25.00 ± 0.00
+ SafetyCarGoal2-v0                    0.13 ± 1.11      23.50 ± 1.22      1.77 ± 1.20     17.43 ± 12.13      6.59 ± 0.58      25.00 ± 0.00      7.12 ± 4.06      23.37 ± 1.35
+ SafetyCarButton2-v0                  -1.59 ± 0.70     39.97 ± 26.91     -2.95 ± 4.03     27.90 ± 6.37      4.86 ± 1.57      25.00 ± 0.00      5.07 ± 1.24      25.00 ± 0.00
+ SafetyPointGoal1-v0                  8.43 ± 3.43      25.74 ± 7.83     19.24 ± 3.94     21.38 ± 6.96      16.03 ± 8.60     19.17 ± 9.42     16.31 ± 6.99      22.10 ± 6.13
+ SafetyPointButton1-v0               1.18 ± 1.02      29.42 ± 12.10     6.40 ± 1.43     27.90 ± 13.27      7.48 ± 8.47      24.27 ± 3.95      9.52 ± 7.86      25.00 ± 0.00
+ SafetyPointGoal2-v0                  -0.56 ± 0.06     48.43 ± 40.55     1.67 ± 1.43     23.50 ± 11.17      6.09 ± 5.03      25.00 ± 0.00      8.62 ± 7.13      25.00 ± 0.00
+ SafetyPointButton2-v0               0.42 ± 0.63      28.87 ± 11.27     1.00 ± 1.00      30.00 ± 9.50      6.94 ± 4.47      25.00 ± 0.00     8.35 ± 10.44      25.00 ± 0.00
+
+                                  (b) On-Policy Safe Algorithms.
+
+
+                                          11
+
+===== PDF PAGE 12 =====
+                   Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+
+                            DDPG                   TD3                   SAC
+
+ Environment                    Reward         Cost         Reward          Cost         Reward         Cost
+ SafetyAntVelocity-v1             860.86 ± 198.03   234.80 ± 40.63   5246.86 ± 580.50   912.90 ± 93.73   5456.31 ± 156.04   943.10 ± 47.51
+ SafetyHalfCheetahVelocity-v1  11377.10 ± 75.29   980.93 ± 1.05   11246.12 ± 488.62   981.27 ± 0.31   11488.86 ± 513.09   981.93 ± 0.33
+ SafetyHopperVelocity-v1         1462.56 ± 591.14  429.17 ± 220.05   3404.41 ± 82.57     973.80 ± 4.92     3537.70 ± 32.23    975.23 ± 2.39
+ SafetyHumanoidVelocity-v1      1537.39 ± 335.62    48.79 ± 13.06    5798.01 ± 160.72   255.43 ± 437.13   6039.77 ± 167.82    41.42 ± 49.78
+ SafetySwimmerVelocity-v1         139.39 ± 11.74    200.53 ± 43.28     98.39 ± 32.28     115.27 ± 44.90      46.44 ± 1.23      40.97 ± 0.47
+ SafetyWalker2dVelocity-v1      1911.70 ± 395.97   318.10 ± 71.03   3034.83 ± 1374.72  606.47 ± 337.33   4419.29 ± 232.06   877.70 ± 8.95
+
+                                    (c) Oﬀ-Policy Base Algorithms.
+
+
+                              DDPGLag                TD3Lag                 SACLag
+
+ Environment                    Reward        Cost       Reward        Cost        Reward         Cost
+ SafetyAntVelocity-v1             1271.48 ± 581.71  33.27 ± 13.34  1944.38 ± 759.20  63.27 ± 46.89  1897.32 ± 1213.74    5.73 ± 7.83
+ SafetyHalfCheetahVelocity-v1   2743.06 ± 21.77    0.33 ± 0.12    2741.08 ± 49.13   10.47 ± 14.45    2833.72 ± 3.62     0.00 ± 0.00
+ SafetyHopperVelocity-v1         1093.25 ± 81.55   15.00 ± 21.21   928.79 ± 389.48   40.67 ± 30.99    963.49 ± 291.64    20.23 ± 28.47
+ SafetyHumanoidVelocity-v1      2059.96 ± 485.68   19.71 ± 4.05   5751.99 ± 157.28  10.71 ± 23.60   5940.04 ± 121.93    17.59 ± 6.24
+ SafetySwimmerVelocity-v1         13.18 ± 20.31    28.27 ± 32.27    15.58 ± 16.97    13.27 ± 17.64     11.03 ± 11.17     22.70 ± 32.10
+ SafetyWalker2dVelocity-v1      2238.92 ± 400.67  33.43 ± 20.08   2996.21 ± 74.40   22.50 ± 16.97   2676.47 ± 300.43   30.67 ± 32.30
+
+                                  (d) Oﬀ-Policy Safe Algorithms.
+
+
+                       PETS             LOOP             SafeLOOP
+
+ Environment          Reward      Cost      Reward      Cost      Reward      Cost
+ SafetyCarGoal1-v0    33.07 ± 1.33  61.20 ± 7.23  25.41 ± 1.23  62.64 ± 8.34  22.09 ± 0.30  0.16 ± 0.15
+ SafetyPointGoal1-v0  27.66 ± 0.07  49.16 ± 2.69  25.08 ± 1.47  55.23 ± 2.64  22.94 ± 0.72  0.04 ± 0.07
+
+                    CCEPETS          RCEPETS         CAPPETS
+
+ Environment          Reward      Cost     Reward      Cost     Reward      Cost
+ SafetyCarGoal1-v0    27.60 ± 1.21  1.03 ± 0.29  29.08 ± 1.63  1.02 ± 0.88  23.33 ± 6.34  0.48 ± 0.17
+ SafetyPointGoal1-v0  24.98 ± 0.05  1.87 ± 1.27  25.39 ± 0.28  2.46 ± 0.58   9.45 ± 8.62   0.64 ± 0.77
+
+                                      (e) Model-based Algorithms.
+
+
+                         VAE-BC              C-CRR               COptiDICE             BCQ-Lag
+
+ Environment            Reward       Cost       Reward        Cost       Reward       Cost      Reward       Cost
+ SafetyCarCircle1-v0     17.31 ± 0.33    85.53 ± 11.33    15.74 ± 0.42    48.38 ± 10.31    15.58± 0.37    49.42 ± 8.70    17.10 ± 0.84   77.54 ± 14.07
+ SafetyCarRun0-v0       821.21 ± 3.27    45.68 ± 8.25    635.91 ± 69.72  103.91 ± 50.68  807.24 ± 7.12  53.92 ± 11.41  813.58 ± 5.52   55.86 ± 8.43
+ SafetyPointCircle1-v0   40.23 ± 0.75    41.25 ± 10.12    40.66 ± 0.88    49.90 ± 10.81    40.98 ± 0.89   70.40 ± 12.14   42.94 ± 1.04   85.37 ± 23.41
+ SafetyPointRun0-v0     813.47 ± 4.40  137.38 ± 26.02   801.77 ± 1.69    63.05 ± 5.04    776.94 ± 3.80  51.22 ± 12.15  828.95 ± 0.46   46.01 ± 3.02
+
+                                           (f) Oﬄine Algorithms.
+
+
+Table 3: The performance of OmniSafe algorithms, encompassing both reward and cost,
+was assessed within the Safety-Gymnasium environments. It is crucial to highlight that all
+on-policy algorithms in Table 3a and Table 3b underwent evaluation following 1e7 training
+steps. In addition, the performance of on-policy Table 3b, oﬀ-policy Table 3d, and oﬄine
+Table 3f algorithms was obtained under the experimental setting of cost limit=25.00,
+except for the model-based Table 3e algorithms with cost limit=1.00. During experi-
+mentation, it was observed that oﬀ-policy algorithms did not violate safety constraints in
+SafetyHumanoidVeloicty-v1. This observation suggests that the agent may not have fully
+learned to run within 1e6 steps; consequently, the 3e6 results were utilized in oﬀ-policy
+SafetyHumanoidVeloicty-v1. With this exception in consideration, all oﬀ-policy, oﬄine
+and model-based algorithms were evaluated after 1e6 training steps, as demonstrated in
+Table 3c, Table 3d, Table 3e, Table 3f.
+
+
+
+                                          12
+
+===== PDF PAGE 13 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+C. Experiment Grid of OmniSafe
+
+In the context of reinforcement learning experiments, it is imperative to assess the perfor-
+mance of various algorithms across multiple environments. However, the inherent inﬂuence
+of randomness necessitates repeated evaluations employing distinct random seeds. To tackle
+this challenge, OmniSafe introduces an Experiment Grid, facilitating simultaneous initia-
+tion of multiple experimental sets. Researchers are merely required to pre-conﬁgure the
+experimental parameters, subsequently executing multiple experiments sets in parallel via a
+single ﬁle. An exempliﬁcation of this process can be found in Figure 5.
+
+
+                                                           Seed 0       Seed 5      Seed 10
+
+
+                                                                                                             Vectorized
+                                        PPOLag
+                                                                                                Ant
+
+
+
+                                      TRPOLag
+
+
+
+
+                                                                                                             Vectorized
+                                        PPOLag                                           Walker2d
+
+
+
+
+                                      TRPOLag
+
+
+
+Figure 5: OmniSafe ’s Experiment Grid. The left side of the ﬁgure displays the main
+function of the run experiment grid.py ﬁle, while the right side shows the status of the
+Experiment Grid execution.  In this example, three distinct random seeds are selected
+for the SafetyAntVelocity-v1 and SafetyWalker2dVelocity-v1, then the PPO-Lag and
+TRPO-Lag algorithms are executed.
+
+
+
+
+
+            PPOLag                                          TRPOLag    300     PPOLag                                          TRPOLag         3500     PPOLag                                          TRPOLag    300     PPOLag                                          TRPOLag
+      3500
+                                                                                              250                                                                                         3000                                                                                    250
+      3000                                                                                                                                                                                2500
+
+      2500                                                                                    200                                                                                         2000                                                                                    200
+
+
+                                                                                              150                                                                                                                                                                                                                                                                                  150                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           Rewards 15001000                                                                                                                                                            Costs        Rewards 20001500                                                                                                                                                            Costs
+      1000                                                                                    100                                                                                          500                                                                                    100
+
+       500                                                                                     50                                                                                            0                                                                                     50
+
+                                                                                                                                                                                           500
+         0
+                 0.0              0.2              0.4   Steps    0.6              0.8              1.01e7     0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7                                                                                                                                                                                                                                         0.0              0.2              0.4   Steps    0.6              0.8              1.01e7     0     0.0              0.2              0.4   Steps    0.6              0.8              1.01e7
+
+                   (a) Walker2d                                      (b) Ant
+
+Figure 6: Analysis of the Figure 5 example experiment results. The blue lines are the results
+from PPO-Lag while the orange ones are TRPO-Lag. The solid line in the ﬁgure represents
+the mean of multiple random seeds, while the shadow represents the standard deviation
+among 0, 5, 10 random seeds.
+
+
+                                          13
+
+===== PDF PAGE 14 =====
+                   Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+   The run experiment grid.py script executes experiments in parallel based on user-
+conﬁgured parameters and generates corresponding graphs of the experimental results. In
+the example presented in Figure 5, we speciﬁed that the script should draw curves based
+on diﬀerent environments and obtained the training curves of PPO-Lag and TRPO-Lag in
+SafetyAntVelocity-v1 and SafetyWalker2dVelocity-v1, where seeds have been grouped.
+   Moreover, combined with OmniSafe statistics tools, the Experiment Grid is a
+powerful tool for parameter tuning. As illustrated in Figure 7, we utilized the Experiment
+Grid to explore the impact of batch size on the performance of PPO-Lag and TRPO-
+Lag in SafetyWalker2dVelocity-v1 and SafetyAntVelocity-v1, then used statistics
+tools to analyze the experiment results. It is obvious that the batch size has a signiﬁcant
+inﬂuence on the performance of PPO-Lag in SafetyAntVelocity-v1, and the optimal
+batch size is 128. Obtaining this conclusion requires repeating the experiment multiple
+times, and the Experiment Grid signiﬁcantly expedites the process.
+
+
+
+
+
+                                          TRPOLag-Ant                               TRPOLag-Walker2d
+
+
+
+
+
+                                            PPOLag-Ant                                 PPOLag-Walker2d
+
+Figure 7: An example of how the Experiment Grid can be utilized for parameters tuning.
+In this particular example, we set the batch size in the algo cfgs to 64, 128, and 256.
+Then we ran multiple experiments using the Experiment Grid, ﬁnally used statistics
+tools to analyze the impact of the batch size on the performance of the algorithm. Note
+that diﬀerent colors denote diﬀerent batch size. The results showed that the batch size
+had a signiﬁcant eﬀect on the performance of the algorithm, and the optimal batch size
+was found to be 128. The Experiment Grid enabled us to eﬃciently explore the eﬀect of
+diﬀerent parameter values on the algorithm’s performance.
+
+
+
+
+
+                                          14
+
+===== PDF PAGE 15 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+D. The Documentation of OmniSafe
+
+
+
+
+
+Figure 8: A video example of a single algorithm training.  The upper part shows
+the command to start training using PPO with OmniSafe in the default environment
+SafetyPointGoal1-v0, while the lower part shows the information printed on the terminal
+after executing this command.
+
+
+                                          15
+
+===== PDF PAGE 16 =====
+                   Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+   The OmniSafe documentation provides quick start video examples to help new users easily
+get started with the platform. These videos cover a range of topics, including algorithm
+training and evaluation, running the Experiment Grid, and accessing help.  Figure 8
+demonstrates the execution commands and video screenshots for single algorithm training,
+providing a clear and straightforward guide for users to follow along and begin using
+Experiment Grid quickly.
+
+
+
+                 Detailed theoretical introduction                                     Entrance file guide
+
+
+
+
+
+                    Unified symbol system                                       Usage examples
+
+Figure 9: The left half of the ﬁgure excerpted a detailed explanation of the Lagrange duality
+theorem and part of the symbol system explanation from the OmniSafe documentation. The
+right half, taking the function add as an example, demonstrates how the API documentation
+of OmniSafe enables users to quickly understand the usage of the framework. The convenience
+of OmniSafe documentation includes: (a). A uniﬁed symbol system; (b). Easy-to-understand
+introductory guidance; (c). Detailed API documentation and usage examples.
+
+
+   The documentation of OmniSafe has the characteristic of being user-friendly, making it
+easy for users to get started. Since algorithms in the SafeRL ﬁeld are often based on rigorous
+mathematical derivations, understanding these algorithms requires prerequisite mathematical
+knowledge, such as linear algebra and optimization theory. This can make it diﬃcult for
+many researchers to get started. The OmniSafe documentation provides introductory-level
+mathematical theory tutorials, allowing researchers to quickly understand the prerequisite
+mathematical knowledge of SafeRL algorithms. At the same time, many existing SafeRL
+algorithms often have their own symbol systems, using diﬀerent symbols to represent the
+same meaning, which can easily confuse beginners. The OmniSafe documentation uniﬁes
+the symbol system of the SafeRL ﬁeld, enabling readers to learn classic SafeRL algorithms
+coherently, from CPO(Achiam et al., 2017), PCPO(Yang et al., 2020) to FOCOPS(Zhang
+et al., 2020), and so on. In addition, to facilitate researchers’ quick understanding of the
+functions deﬁned in OmniSafe , we provide usage examples and detailed introduction in the
+API documentation, making every eﬀort to serve the convenience of users.
+
+
+                                          16
+
+===== PDF PAGE 17 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+
+    Core theory
+   -   Theorem
+   -   Lemma
+   -    Corollary
+
+
+
+
+
+                                                                                Code level guide
+                                                                                                                                                    - Quick start
+                                                                                                                                                    - Function docstring
+                                                                                                                                                    - Configs details
+
+
+
+
+
+    Derivation proof
+   -   Step by step
+   -    Unified symbol
+
+
+
+
+
+Figure 10: Excerpt of the core part of the OmniSafe ’s CPO documentation. The left half
+illustrates the core theory and related proofs of CPO, while the right half introduces the
+speciﬁc implementation of the CPO algorithm from three levels: entry ﬁles, parameters
+explanations, and core functions. All algorithm tutorials provided by OmniSafe are arranged
+in a hierarchical structure of theory, proof, and connection between theory and code,
+which is convenient for beginners to get started quickly. The main features of OmniSafe
+documentation includes: (a). Detailed and rigorous theoretical derivation; (b). Simple and
+clear code tutorial; (c). Linking theory to code narrative style.
+
+
+    Figure 10 highlights some of the key features of OmniSafe ’s documentation, using CPO
+(Achiam et al., 2017) as an example. The left-hand side of the Figure 10 displays the
+theoretical part of CPO, which is presented in the form of cards with clickable hyperlinks.
+This allows readers to easily access the theoretical proof section of CPO by clicking on
+the corresponding card. On the right-hand side of the page, OmniSafe provides a clear
+and simple code tutorial on how to implement CPO, starting from the code level. The
+tutorial includes the command to run the CPO algorithm in OmniSafe , an explanation of
+the parameters related to CPO, and a step-by-step interpretation of the core functions of
+CPO. This linking of theory to code narrative style enhances the understanding of the CPO
+algorithm for users.
+
+
+
+
+
+                                           17
+
+===== PDF PAGE 18 =====
+                   Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+E. Features of OmniSafe
+
+OmniSafe transcends its role as a mere infrastructure for expediting SafeRL research, func-
+tioning concurrently as a standardized and user-friendly reinforcement learning framework.
+We compared the features of OmniSafe with popular open-source reinforcement learning
+benchmarks such as Tianshou , Stable-Baselines3 , CleanRL 5, Safety-starter-agents
+6, Ray/RLlib 7 etc.  to ensure that OmniSafe adheres to the same standards as these
+well-established libraries8.
+
+
+Features                  OmniSafe   Tianshou   Stable-Baselines3   CleanRL   Ray/RLlib   Safety-starter-agents
+
+Ipython / Notebook
+API Documentation
+Algorithm Tutorial
+Test Coverage             97%       91%          96%                     -                -                            -
+Type Hints
+TensorBoard Support
+WandB Report
+PEP8 Code Style
+Statistics Tools
+Video Examples
+Command Line Interface
+
+  Table 4: Comparsion of OmniSafe to a representative subset of RL or SafeRL libraries.
+
+
+   The complete codebase adheres to the PEP8 style, with each commit undergoing stringent
+evaluations, such as isort, pylint, black, and ruff. Prior to merging into the main branch,
+code modiﬁcations necessitate approval from a minimum of two reviewers.
+   OmniSafe furnishes users with exhaustive documentation, encompassing algorithm
+overviews and API documentation. Seasoned researchers can capitalize on OmniSafe ’s
+informative command-line interface, as demonstrated in Figure 11 and Figure 12, facilitating
+rapid comprehension of the platform’s utilization to expedite their scientiﬁc investigations.
+
+
+
+
+
+Figure 11: An illustration of the OmniSafe command line interface is provided.  Users
+can view the commands supported by OmniSafe and a brief usage guide by simply typing
+omnisafe --help in the command line. If a user wants to further understand how to use a
+speciﬁc command, they can obtain additional prompts by using the command omnisafe
+COMMAND --help, as shown in the Figure 12.
+
+ 5. The Project URL: https://github.com/vwxyzjn/cleanrl
+ 6. The Project URL: https://github.com/openai/safety-starter-agents
+ 7. The Project URL: https://www.ray.io/
+ 8. All results in Table 4 are accurate as of May 16, 2023. If you ﬁnd any discrepancies between these data,
+    please consider the latest results as accurate.
+
+
+                                          18
+
+===== PDF PAGE 19 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+
+                (a) Example of omnisafe analyze-grid --help in command line.
+
+
+
+
+
+                 (b) Example of omnisafe benchmark --help in command line.
+
+
+
+
+
+                      (c) Example of omnisafe eval --help in command line.
+
+
+
+
+
+               (d) Example of omnisafe train-config --help in command line.
+
+Figure 12: Here are some more details on using omnisafe --help command. Users can
+input omnisafe COMMAND --help to get help, where COMMAND includes all the items listed in
+Commands of Figure 11. This feature enables users to swiftly acquire proﬁciency in executing
+common operations provided by OmniSafe via command-line, as well as to customize them
+further to meet their speciﬁc requirements.
+
+
+
+                                          19
+
+===== PDF PAGE 20 =====
+                  Ji, Zhou, Zhang, Dai, Pan, Sun, Huang, Geng, Liu, Yang
+
+
+
+
+   OmniSafe includes a tutorial on Colab that provides a step-by-step guide to the training
+process, as illustrated in Figure 13. For those who are new to SafeRL, the tutorial provides
+an introduction to the underlying theory, and allows for interactive learning of the training
+procedure. By clicking on Colab Tutorial, users can access it and follow along with the
+instructions to gain a better understanding of how to use OmniSafe .
+
+
+
+                                                                        Usage
+                                                                                                   tutorial
+
+
+
+
+
+                                                                             Concise
+                                                                             code
+                                                                           examples
+
+
+
+
+
+Figure 13: A example demonstrating the colab tutorial provided by OmniSafe for using the
+Experiment Grid. The tutorial includes detailed descriptions of usage and allows users to
+try running it then see the results.
+
+   Regarding the experiment execution process, OmniSafe presents an array of tools for
+analyzing experimental outcomes, encompassing WandB, TensorBoard, and statistics
+tools. Furthermore, OmniSafe has submitted its experimental benchmark to the WandB
+report, as depicted in Figure 14. This benchmark furnishes training curves and evaluation
+demonstrations, serving as a valuable reference for researchers.
+    In addition to videos, we also provide the algorithms performance curves of OmniSafe in
+WandB reports. An example is provided in Figure 15. Compared to our publicly available
+experimental results, WandB reports oﬀer users a more comprehensive view of algorithm
+
+
+                                          20
+
+===== PDF PAGE 21 =====
+OmniSafe: An Infrastructure for Accelerating Safe Reinforcement Learning Research
+
+
+
+
+
+            (a) SafetyPointGoal1-v0                    (b) SafetyPointButton1-v0
+
+
+
+
+
+              (c) SafetyCarGoal1-v0                       (d) SafetyCarButton1-v0
+
+Figure 14: An exempliﬁcation of OmniSafe ’s WandB reports videos. This example sup-
+plies videos of PPO and PPO-Lag in SafetyPointGoal1-v0, SafetyPointButton1-v0,
+SafetyCarGoal1-v0 and SafetyCarButton1-v0 environments. The left of each sub-ﬁgure
+is PPO while the right is PPO-Lag. Through these videos, we can intuitively witness the
+diﬀerence between safe and unsafe behavior. This is exactly what OmniSafe pursues: not
+just the safety of the training curve, but the true safety in a real sense.
+
+
+performance in some speciﬁc environments. With WandB reports, users can easily access
+insightful information from multiple perspectives, providing them with a more inspiring and
+informative experience.
+
+
+
+
+
+Figure  15:  An  exempliﬁcation  of  OmniSafe  ’s WandB  reports  training  curve  in
+SafetyPointGoal1-v0: The left panel represents the episode reward, and the right panel
+denotes the episode cost, with both encompassing the performance over 1e7 steps.
+
+
+                                          21

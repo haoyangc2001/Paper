@@ -1,0 +1,566 @@
+6
+Experiments and Analysis
+(a) Average Episodic Reward of Algorithms 
+(b) Bar Chart Categorizing Algorithms into Four Classes Based on Average Episodic Cost
+Figure 8: A bar chart analyzing the performance of different algorithms. The left graph compares
+episodic reward with PPO-Lag [18] (or MAPPO-Lag [39] for multi-agent). The right graph shows
+episodic costs proportionally under varying constraints. Single-agent data is from 40 navigation and
+6 velocity tasks, and multi-agent data is from all 8 velocity tasks in Safety-Gymnasium.
+Table 2: The performance of single-agent algorithms. ¯JR stands for normalized reward from PPO’s
+performance, and ¯JC signifies normalized cost relative to cost_limit. The ↑indicates higher
+rewards are better, while the ↓indicates lower costs (when beyond the threshold of 1.00) are better.
+Gray and Black depicts breach and compliance with the cost_limit, while Green represents the
+optimal policy, maximizing reward within safety constraints.
+PPO
+PPO-Lag
+TRPO-Lag
+CPPO-PID
+RCPO
+CPO
+PCPO
+CUP
+FOCOPS
+Safety Navigation
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+ANTBUTTON1
+1.00
+4.42
+0.09
+0.86
+0.23
+1.95
+0.10
+0.70
+0.16
+2.07
+0.12
+4.01
+0.03
+1.01
+0.03
+0.17
+0.01
+0.46
+ANTCIRCLE1
+1.00
+16.81
+0.79
+2.56
+0.65
+1.05
+0.69
+1.90
+0.63
+1.04
+0.47
+1.07
+0.28
+1.87
+0.60
+0.82
+0.02
+1.22
+ANTGOAL1
+1.00
+1.81
+0.26
+0.94
+0.25
+0.74
+0.47
+1.94
+0.29
+0.78
+0.19
+0.55
+0.09
+0.42
+0.34
+1.33
+0.09
+0.67
+ANTPUSH1
+1.00
+1.90
+0.13
+0.00
+0.30
+0.00
+0.13
+0.00
+0.33
+0.00
+0.17
+0.00
+0.07
+0.00
+0.20
+0.00
+-0.30
+0.03
+CARBUTTON1
+1.00
+16.09
+0.01
+0.47
+-0.04
+1.08
+-0.10
+0.40
+-0.19
+1.73
+0.08
+1.75
+0.02
+1.90
+0.04
+5.50
+0.04
+1.21
+CARCIRCLE1
+1.00
+8.42
+0.81
+0.82
+1.69
+2.77
+1.61
+1.79
+1.70
+3.11
+1.67
+3.13
+1.41
+1.99
+0.76
+1.04
+0.84
+1.12
+CARGOAL1
+1.00
+2.38
+0.43
+0.39
+0.82
+1.09
+0.03
+2.47
+0.55
+0.86
+0.78
+1.63
+0.61
+1.42
+0.19
+0.63
+0.52
+0.93
+CARPUSH1
+1.00
+7.16
+0.46
+0.78
+1.38
+0.70
+0.03
+0.47
+1.11
+1.42
+0.83
+1.14
+0.64
+2.36
+0.32
+0.95
+0.29
+0.36
+DOGGOBUTTON1
+1.00
+7.57
+0.01
+0.03
+0.00
+1.27
+0.01
+0.07
+0.01
+0.09
+0.00
+0.15
+0.00
+0.25
+0.02
+0.45
+0.06
+3.68
+DOGGOCIRCLE1
+1.00
+33.14
+0.77
+0.46
+0.67
+1.37
+0.82
+2.16
+0.55
+1.32
+0.66
+1.22
+0.31
+0.55
+0.80
+2.04
+0.73
+4.49
+DOGGOGOAL1
+1.00
+2.28
+0.05
+0.00
+0.18
+0.69
+0.00
+0.00
+0.16
+2.08
+0.30
+0.50
+0.00
+0.00
+0.00
+0.90
+0.04
+1.27
+DOGGOPUSH1
+1.00
+1.31
+0.09
+0.00
+0.53
+0.78
+0.32
+0.44
+0.54
+1.55
+0.46
+0.00
+0.36
+0.00
+0.30
+0.68
+0.64
+3.40
+POINTBUTTON1
+1.00
+6.06
+0.22
+1.32
+0.27
+1.29
+0.00
+0.84
+0.12
+1.13
+0.12
+1.61
+0.08
+2.19
+0.18
+1.26
+0.25
+1.53
+POINTCIRCLE1
+1.00
+8.10
+0.86
+0.93
+1.67
+1.35
+1.72
+2.09
+1.66
+1.42
+1.69
+1.74
+1.33
+2.26
+0.82
+0.62
+0.84
+0.89
+POINTGOAL1
+1.00
+1.93
+0.47
+1.50
+0.72
+0.91
+0.31
+1.05
+0.53
+0.99
+0.78
+1.10
+0.71
+0.82
+0.46
+0.73
+0.56
+1.32
+POINTPUSH1
+1.00
+2.31
+0.98
+1.33
+0.85
+1.00
+0.35
+0.35
+5.30
+0.94
+2.22
+0.80
+1.72
+1.25
+2.32
+0.80
+1.13
+2.51
+RACECARBUTTON1
+1.00
+13.73
+-0.01
+1.94
+-0.02
+1.77
+-0.16
+2.06
+-0.07
+1.19
+0.00
+2.44
+0.02
+1.82
+0.00
+5.23
+-0.10
+3.37
+RACECARCIRCLE1
+1.00
+15.87
+0.83
+1.90
+0.80
+2.18
+0.58
+1.33
+0.83
+2.07
+0.79
+0.81
+0.22
+2.87
+0.74
+3.53
+0.77
+2.11
+RACECARGOAL1
+1.00
+4.26
+0.26
+0.51
+1.19
+0.77
+-0.04
+1.07
+0.88
+0.83
+1.18
+2.58
+0.33
+0.24
+0.13
+1.22
+0.31
+0.62
+RACECARPUSH1
+1.00
+2.34
+-0.40
+0.00
+0.74
+1.79
+-0.84
+2.87
+0.58
+1.92
+0.94
+0.13
+-0.16
+0.18
+-0.06
+3.79
+0.30
+2.04
+Safety Velocity
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+¯JR ↑
+¯JC ↓
+ANTVEL
+1.00
+38.33
+0.54
+0.22
+0.53
+0.15
+0.51
+0.41
+0.52
+0.56
+0.52
+0.56
+0.38
+0.41
+0.55
+0.94
+0.55
+0.60
+HALFCHEETAHVEL
+1.00
+36.77
+0.44
+0.00
+0.43
+1.01
+0.48
+0.04
+0.36
+0.56
+0.40
+0.23
+0.25
+0.63
+0.40
+0.17
+0.42
+0.12
+HOPPERVEL
+1.00
+22.00
+0.58
+0.89
+0.59
+0.71
+0.73
+0.44
+0.58
+0.59
+0.73
+0.48
+0.65
+0.51
+0.73
+0.21
+0.66
+0.30
+HUMANOIDVEL
+1.00
+38.42
+0.72
+0.76
+0.72
+2.38
+0.73
+0.00
+0.68
+0.82
+0.71
+0.01
+0.64
+0.01
+0.68
+0.80
+0.71
+0.93
+SWIMMERVEL
+1.00
+6.61
+0.57
+1.11
+0.66
+0.84
+0.91
+0.92
+0.54
+0.90
+0.51
+0.82
+0.50
+0.69
+0.59
+0.96
+0.47
+1.30
+WALKER2DVEL
+1.00
+36.11
+0.44
+0.20
+0.51
+0.77
+0.27
+0.36
+0.49
+0.15
+0.39
+0.81
+0.27
+0.71
+0.44
+0.18
+0.50
+0.16
+Reward and Cost. Episodic reward and cost exhibit a trade-off relationship. Unconstrained
+algorithms aim to maximize reward through risky behaviors. HAPPO [37] achieves higher rewards
+compared to MAPPO [38] across 8 velocity-based tasks, accompanied by a simultaneous increase
+in average costs. SafeRL algorithms tend to maximize reward while adhering to constraints. As
+depicted in Table 2, in the velocity task, compared to PPO [43], PPO-Lag [18] achieves a reduction
+of 98% in cost while only experiencing a decrease of 45% in reward.
+Randomness and Oscillation. The randomness of tasks is correlated with the oscillation of algo-
+rithms’ performance. All SafeRL algorithms achieve average episodic costs within the cost_limit
+for velocity tasks. The divergence in episodic rewards between algorithms is negligible, and the
+distribution of optimal policies is tightly clustered. However, pronounced oscillations are present
+in navigation tasks characterized by high stochasticity. Out of the 20 navigation tasks examined,
+9
