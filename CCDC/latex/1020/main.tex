@@ -535,30 +535,29 @@ uncalibrated RC-PPO.
 
 \subsection{Physical-Robot Deployment and Failure Analysis}
 \label{sec:hardware_deployment}
-The hardware study uses a Unitree Go2 in a cluttered indoor environment with
-chairs, narrow passages, and a moving obstacle. Figure~\ref{fig:hardware_sequences}(a)
-illustrates navigation among office-chair obstacles, while
-Fig.~\ref{fig:hardware_sequences}(b) shows a second traversal through a
-chair-defined passage.
+The hardware study uses a Unitree Go2 in two cluttered indoor settings.
+Figure~\ref{fig:hardware_sequences}(a) presents an obstacle-filled corridor for
+examining collision avoidance during traversal.
+Figure~\ref{fig:hardware_sequences}(b) presents a chair arrangement with multiple
+available routes for examining low-cost route selection under obstacle constraints.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\columnwidth]{../../images/1020/office_sequence_candidate_A_numbered.jpg}
 \par\smallskip
-{\footnotesize (a) Navigation among office-chair obstacles.\par}
+{\footnotesize (a) Obstacle avoidance in a cluttered corridor.\par}
 \medskip
 \includegraphics[width=\columnwidth]{../../images/1020/office_shortest_path_sequence_final.png}
 \par\smallskip
-{\footnotesize (b) Traversal through a chair-defined passage.\par}
-\caption{Physical deployment of Unitree Go2 in two cluttered indoor settings.
-Each panel contains six successive frames, numbered in temporal order; red arrows
-in (b) indicate the intended travel direction. The sequences illustrate obstacle
-negotiation through the frozen velocity interface.}
+{\footnotesize (b) Low-cost route selection among chair obstacles.\par}
+\caption{Physical deployment of Unitree Go2: (a) corridor traversal with obstacle
+avoidance; (b) route selection among multiple passages formed by chairs. Each
+panel shows six successive frames in temporal order; red arrows in (b) indicate
+the travel direction.}
 \label{fig:hardware_sequences}
 \end{figure}
 
-The sequences document physical deployment and successive
-obstacle-negotiation maneuvers. The representative route is
+The representative route is
 approximately 15 m, with a narrow passage about 0.3 m wider than the robot
 body. Joint encoders and the IMU provide proprioception; projected LiDAR ranges
 and local scan matching supply navigation observations. Policies execute on an
