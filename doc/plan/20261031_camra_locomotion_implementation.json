@@ -1,0 +1,1076 @@
+{
+  "document": {
+    "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
+    "version": "1.1.0",
+    "created_at": "2026-10-31",
+    "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
+    "status_definition": {
+      "false": "尚未开始、部分完成、受阻或未通过验收",
+      "true": "全部依赖和验收条件通过，已追加实际工作记录及验证结论"
+    },
+    "update_rule": "创建时所有任务均未完成。执行时完整读取本文件及技能 execution-rules.md，按顺序选择首个依赖已完成的任务；每项独立验证，追加 work_records 后更新状态；每次更新运行 validate_worklog.py --mode update。不得改写历史记录。",
+    "execution_mode": "本次只创建计划。后续获得执行指令后才能实施；阅读发现不能替代接手模型逐项核查。",
+    "output_location_reason": "使用当前工作区已存在的 doc/plan/，不恢复已归档的旧根目录 plan/。",
+    "portability": "paths 中的 repository_relative 路径均相对于接手设备实际工作区根目录；Windows 本地路径只是定位信息。先解析根目录，再读取文件，禁止把本机盘符写进训练配置。",
+    "baseline": {
+      "root_commit": "5498336883df321f7b2538e1abeaccffe0954d71",
+      "hira_commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+      "locomotion_upstream_commit": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3",
+      "working_tree_at_creation": "根仓库与 HiRA 的 git status --short 均无输出；执行时必须重新核对。"
+    },
+    "revisions": [
+      {
+        "date": "2026-10-31",
+        "summary": "按用户要求，全部28项任务的执行命令统一在tmux内运行；增加启动前检查、会话恢复、落盘日志、退出码和断线重连验证。仅更新计划，不执行任务。"
+      }
+    ]
+  },
+  "background": {
+    "business_context": "CaMRA 将 Go2 的运动稳定与高层最小成本到达避障决策分开。预训练底层通过闭环反馈减弱扰动影响；冻结后测量剩余误差，再校准 α、δ 并训练上层。当前仅实施基础准备与底层控制器。",
+    "current_capability": "CaMRA/locomotion 已引入宇树 unitree_rl_lab 源码；calibration 与 navigation 仅有 README。HiRA 保存基于 Isaac Gym 的分层 Reach-Avoid 参考实现和历史策略；RC-PPO 保存冻结的 JAX 算法参考副本。没有证据表明新 CaMRA 底层已训练或在目标设备上验证。",
+    "problem_to_solve": "接手模型须先理解方法、仓库边界、训练/推理链与历史结果性质，再在实际设备建立可复现的速度跟踪训练、评估及冻结交付流程。不能将参考模型、论文设定或代码存在误当作本项目已验证。",
+    "known_discrepancies": [
+      "最新论文 1029 的高层间隔为 0.2 s，实机描述为 50 Hz/5 Hz；用户最新要求参考 HiRA，当前 HiRA 源码导出 50 Hz 底层、10 Hz 高层。新实现采用后者，记录差异，当前不修改论文。",
+      "HiRA 使用 Isaac Gym/legged_gym；CaMRA 底层使用 Isaac Lab。频率和接口可参考，权重、环境API、奖励与部署配置不能直接混用。",
+      "RC-PPO 目录名与内部 EC-EFPPO/EFPPO 命名不同，参考副本缺失部分依赖和原运行路径；本次只读，不修复、不要求运行。",
+      "宇树 Go2 当前随机速度指令重采样时间为10 s；上层10 Hz只代表指令可每0.1 s更新，不代表每0.1 s独立随机跳变。需要覆盖连续变化、组合命令及合理阶跃。",
+      "论文及绘图含推断/示例数据；不能用来宣称本次训练通过，或反推保证达到既定实测指标。"
+    ]
+  },
+  "goal": {
+    "primary": "让下一模型按依赖顺序理解项目，在指定训练设备上完成 Go2 底层速度跟踪器的配置、训练、独立评估和冻结，交付后续执行误差校准可复用的模型与完整接口。",
+    "success_equation": "源码理解证据 + 目标设备运行证据 + 统一接口 + 预先固定的评估协议 + 实际训练/评估日志 + 导出一致性 + 可重载的冻结包",
+    "deliverables": [
+      "本 JSON 中逐项追加的学习、执行、验证记录。",
+      "CaMRA/locomotion/docs/implementation_handoff.md：集中记录论文到代码映射、仓库差异、接口、运行环境与复现入口，避免每任务创建一份过程文档。",
+      "CaMRA/locomotion 内必要的 Go2 配置、外部速度指令接口、评估工具及有意义的接口测试。",
+      "目标设备独立运行目录中的环境清单、实际配置、训练检查点、逐回合评估数据和摘要。",
+      "带模型/配置/机器人资产版本及散列值的冻结包，以及后续 calibration 的接入说明。"
+    ]
+  },
+  "scope": {
+    "included": [
+      "顺序学习当前论文、原算法来源、RC-PPO、HiRA、宇树底层框架及后续两个模块的契约。",
+      "在目标训练设备确认环境、依赖、资产和资源；本地可完成阅读、文档与不依赖仿真的代码准备。",
+      "Go2 平地速度跟踪、站立、停车、转向、组合变速及合理扰动下的稳定性。",
+      "50 Hz 底层策略与10 Hz外部速度命令接口；仿真步长0.005 s作为当前基线。",
+      "训练、独立验证/测试、导出验证、冻结与交付。"
+    ],
+    "excluded": [
+      "当前本地 Windows 机器安装大型仿真栈或执行训练。",
+      "实现名义/执行配对校准、计算 α/δ、实现上层双评价网络或预算搜索。",
+      "修改论文、图表、历史数据、RC-PPO代码或HiRA独立仓库。",
+      "将HiRA已有策略直接作为CaMRA训练完成的证据。",
+      "真机上电控制、MuJoCo完整迁移、复杂地形课程、导航感知及障碍物避让训练。",
+      "云GPU采购、付费服务、自动远程提交/推送或发布。"
+    ]
+  },
+  "global_constraints": [
+    "先学习后实施：TASK-001至TASK-012均为理解与设计准备，完成前不修改训练算法或运行训练。",
+    "本次创建计划不执行任务；所有新任务 status=false、work_records=[]、verification_result=\"\"。",
+    "任务顺序与依赖为硬约束，禁止把环境未就绪下的静态检查标为运行通过。",
+    "任何尚未授权且会影响范围、数据、依赖、输出、验收口径、已有产物、远程状态或外部费用的不确定决策必须暂停并询问用户；明确授权及本计划已经确定的常规实现选择无需重复确认。",
+    "实际训练设备尚未指定；完成学习阶段后在TASK-013确认设备与工作区。不得擅自使用本机、陌生服务器或付费资源。",
+    "频率按用户指定的HiRA源码依据实施：仿真200 Hz、底层策略50 Hz、外部命令10 Hz；以运行时验证确认，不能只看注释。",
+    "10 Hz命令零阶保持期间底层每0.02 s重新读取本体观测并推理，不得把关节动作整体保持0.1 s。",
+    "后续校准、上层训练与执行必须引用同一冻结模型及接口版本；命令滤波、限幅、延迟、归一化与增益均属于冻结接口。",
+    "RC-PPO只读；HiRA为独立Git仓库且根仓库忽略它，本次只读，不能假定克隆根仓库会自带HiRA。",
+    "保留上游许可证与来源、已有用户修改和原始实验产物；代码改动限于CaMRA/locomotion及必要的CaMRA说明和本计划记录。",
+    "命令和文档不存凭证；设备路径通过配置表达，不硬编码本地盘符或HiRA原服务器路径。",
+    "仅由实际运行生成训练指标、曲线、误差统计与成功证据；不得填造缺失结果，不得把论文数值当成验收事实。",
+    "评估阈值、种子、样本数量、扰动范围和选择规则在正式训练/测试前固定；若尚无依据则先确认，禁止看测试结果后降低标准。",
+    "测试集不用于选择检查点或调参；修复后若使用原测试集指导调参，应重新划分并完整记录。",
+    "每次训练和评估使用独立run目录；不覆盖旧日志/模型。失败与提前终止均保留，不只统计成功轨迹。",
+    "不自动提交或推送Git。若用户后续明确要求，再检查范围与嵌套仓库边界后操作。",
+    "按风险做接口单元测试、短运行验证和正式评估，避免为文档或低影响改动编写机械测试。",
+    "所有28项任务的终端命令（包括代码检索、安装、测试、训练、评估、导出及验证）必须在执行主机本身的tmux会话内运行，不得只在本地tmux里运行普通SSH来替代服务器端tmux。纯文本分析、结构化文件编辑及本次计划维护不属于需保持存活的终端进程。",
+    "首次任务执行前完成tmux前置准备：确认已获授权的执行主机、工作区和tmux可用性。只允许连接、检查/安装tmux及创建/恢复会话等最小引导命令在会话外执行；就绪后所有任务命令转入tmux。本机Windows没有tmux时不直接执行任务，使用已授权的Linux/WSL环境；无可用环境则暂停询问。",
+    "每项任务在work_records中记录执行主机、tmux会话/窗口/pane标识、工作目录、实际命令、日志位置和退出状态；长任务额外记录run ID、进程及检查点位置。会话存在或命令已发送不代表任务成功。",
+    "tmux仅用于抵抗客户端或SSH断开，不保证服务器重启、OOM、进程崩溃或作业分配到期后的存活；仍须持久化日志和检查点，恢复时先核查进程，禁止重复启动或覆盖产物。"
+  ],
+  "uncertainty_policy": {
+    "rule": "只对未解决且会改变任务或产物的决策暂停；暂停时保持当前任务false，追加事实、阻塞和剩余工作，等待用户明确选择。不能以默认值掩盖必要信息缺失。",
+    "already_resolved": [
+      "实现目录为CaMRA/locomotion；参考RC-PPO与HiRA只读。",
+      "当前只实施基础准备和底层，不展开校准或上层算法。",
+      "采用HiRA导出的50 Hz底层/10 Hz上层接口，不采用论文旧5 Hz设定。",
+      "不在本机运行训练；按实际目标设备配置。",
+      "当前Go2配置使用USD资产，优先保持这一资产来源；若必须改URDF或其他版本，先提出差异与影响。",
+      "新建本计划于已存在的doc/plan；实现后的运行产物路径在目标设备确认。",
+      "用户已明确要求全部任务的终端执行使用tmux；不允许裸SSH前台运行或以nohup替代。"
+    ],
+    "must_pause_and_ask": [
+      "无法确定目标设备、可用GPU/存储、远程访问范围、运行位置或允许的训练时长。",
+      "同名论文/资产/模型/配置来源存在无法根据本计划与版本证据消解的歧义。",
+      "需要切换Isaac Lab/Isaac Sim核心版本或改用另一训练框架、资产类型。",
+      "速度域、扰动范围、达标阈值或评估样本数存在影响任务定义的未决选择。",
+      "需要删除、覆盖、移动或重新生成未授权的已有文件、检查点和历史产物。",
+      "测试偏离基线且无确定性解释，或不能区分控制失败和基础设施错误。",
+      "需要超过已确认的算力预算、新增外部服务/费用、范围外远程写入、真机操作或未授权Git提交推送。",
+      "执行主机没有可用tmux且无法在已授权范围配置，或需要切换执行主机/修改共享系统配置才能保持会话。"
+    ],
+    "question_format": "说明任务ID、证据与已确认事实、不确定点、可选方案和各自影响；引用触发暂停的约束；等待用户选择。",
+    "resume_rule": "取得明确答复后追加记录与相应计划约束，再从首个可执行未完成任务继续；不重写旧记录。"
+  },
+  "paths": {
+    "local_workspace": "C:/Users/smile/Desktop/paper",
+    "plan": "doc/plan/20261031_camra_locomotion_implementation.json",
+    "skill_at_creation": "C:/Users/smile/.codex/skills/create-plan-worklog/SKILL.md",
+    "path_convention": "以下均为repository_relative；未存在的产物路径在执行时创建。",
+    "paper": "manuscripts/CCDC/latex/1029/main.tex",
+    "historical_appendix": "manuscripts/CCDC/latex/1020/main.tex",
+    "original_algorithm_text": "manuscripts/CCDC/references/1029/metrics_review_20261022/text/rcppo.txt",
+    "reference_sources": "manuscripts/CCDC/references/1029/metrics_review_20261022/source_manifest.json",
+    "provenance": "manuscripts/CCDC/data/1029",
+    "rcppo": "RC-PPO",
+    "hira": "HiRA",
+    "locomotion": "CaMRA/locomotion",
+    "calibration_readme": "CaMRA/calibration/README.md",
+    "navigation_readme": "CaMRA/navigation/README.md",
+    "handoff_notes": "CaMRA/locomotion/docs/implementation_handoff.md",
+    "remote_workspace": null,
+    "run_root": null,
+    "frozen_bundle": null
+  },
+  "handoff_instructions": [
+    "先执行tmux_execution_policy中的bootstrap，再进入TASK-001。学习阶段也使用tmux；此连接前置仅确认执行环境，不提前开展TASK-013的GPU资源配置或训练。",
+    "不要依赖旧聊天。先完整读取本JSON、create-plan-worklog技能和execution-rules.md，并验证update模式；技能若迁移，先定位。",
+    "按TASK-001到TASK-012逐个学习；每项写出所读文件、符号/调用链、已确认行为与未验证项，不能只写已阅读。",
+    "主要学习结论集中在implementation_handoff.md，执行证据写work_records；避免大量零碎过程文件。",
+    "先完成可在当前设备进行的阅读。到目标设备任务时，只有实际连接和运行证据才能完成环境/训练项。",
+    "每次切换设备或恢复上下文，重新核对Git版本、计划状态和运行产物，不重复启动已有训练。",
+    "这份计划的最终完成包含真实训练与评估；只写好代码或发出运行命令不算全部完成。"
+  ],
+  "phases": [
+    {
+      "name": "A：逐项学习与差异梳理",
+      "task_ids": "TASK-001—TASK-012"
+    },
+    {
+      "name": "B：目标设备、接口与验收协议",
+      "task_ids": "TASK-013—TASK-017"
+    },
+    {
+      "name": "C：实现与小批验证",
+      "task_ids": "TASK-018—TASK-022"
+    },
+    {
+      "name": "D：训练、独立评估与冻结交付",
+      "task_ids": "TASK-023—TASK-028"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "goal": "盘点工作区与仓库边界",
+      "status": false,
+      "depends_on": [],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "README.md",
+        "CaMRA/README.md",
+        "CaMRA/locomotion/UPSTREAM.md",
+        "HiRA/README.md",
+        "RC-PPO/README.md"
+      ],
+      "actions": [
+        "完成tmux前置准备并进行无害短进程断开/恢复验证；记录会话与日志证据，然后在该会话内开展盘点。",
+        "定位当前工作区、适用AGENTS.md和根仓库/HiRA独立Git状态；确认本计划各相对路径。",
+        "记录三个模块现状、参考仓库来源/提交、未提交改动、已训练产物与仅有源码的区别。",
+        "检查当前稿1029与历史稿1020位置；建立集中交接笔记的目录索引。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只读盘点，除计划记录与集中笔记外不修改项目；缺失参考仓库不自动克隆到不明确位置。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "有带版本的仓库地图和只读/可编辑边界；每个必读路径已验证或记录明确阻塞。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-002",
+      "goal": "理解当前论文的核心设计及底层职责",
+      "status": false,
+      "depends_on": [
+        "TASK-001"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "manuscripts/CCDC/latex/1029/main.tex"
+      ],
+      "actions": [
+        "完整阅读摘要、引言、问题定义、方法及实验设置，重点跟踪系统总览、冻结速度接口和校准公式。",
+        "解释分层分别缓解联合学习困难和执行扰动；解释冻结为何是后续校准的前提。",
+        "列出底层输入/输出、名义闭环抽象、α/δ各自作用，以及本阶段明确不实现的后续功能。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不能把工程减弱扰动写成消除随机性或获得随机安全定理。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "形成论文概念到当前模块的映射，并说明底层采用常规PPO运动奖励而上层采用最小成本到达避障目标。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-003",
+      "goal": "核对论文设定、历史附录及数据来源",
+      "status": false,
+      "depends_on": [
+        "TASK-002"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "manuscripts/CCDC/latex/1020/main.tex",
+        "manuscripts/CCDC/data/1029",
+        "manuscripts/CCDC/submission/1029"
+      ],
+      "actions": [
+        "仅将1020附录作为历史实现设定参考，追踪与1029正文相关的低层频率、随机化、观测和配置。",
+        "阅读数据来源/替换说明，区分已验证源码事实、论文设定与推断数据；不需要逐一复审所有图表。",
+        "列出旧5 Hz/0.2 s、样本数量与裕度等不能直接作为本次实测结果的项目。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不修改或迁移论文/图表/数据；历史设定不能覆盖用户最新的HiRA频率要求。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "差异表注明各设定来源和可复用程度；未将论文数值列为训练达标证据。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-004",
+      "goal": "理解原始最小成本到达避障方法的适用边界",
+      "status": false,
+      "depends_on": [
+        "TASK-003"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "manuscripts/CCDC/references/1029/metrics_review_20261022/text/rcppo.txt",
+        "manuscripts/CCDC/references/1029/metrics_review_20261022/source_manifest.json"
+      ],
+      "actions": [
+        "通过来源清单核对原论文身份，阅读建模、扩展预算状态、价值学习与适用假设。",
+        "解释为什么到达/避障/成本目标不能直接替代低层平衡、步态和动作平滑的密集学习信号。",
+        "整理与本阶段有关的概念，不展开证明或重新检索无关文献。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不得断言理论绝对不允许关节级控制；须区分理论表达能力与高维控制学习难度。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "有引用到章节或公式的简要结论，正确区分上层算法与底层PPO的职责。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-005",
+      "goal": "沿实际调用链阅读RC-PPO参考代码",
+      "status": false,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "RC-PPO/README.md",
+        "RC-PPO/env/env_list.py",
+        "RC-PPO/model/actorcritic.py",
+        "RC-PPO/rl/EC-EFPPO.py",
+        "RC-PPO/rl/EFPPO_utils.py",
+        "RC-PPO/rl/gae.py",
+        "RC-PPO/rl/root_finding.py"
+      ],
+      "actions": [
+        "跟踪一个具体环境的观测、动作、预算扣减、reach/avoid和done语义。",
+        "核对策略及两个评价网络、联合评价和最小化符号，记录与普通PPO的区别。",
+        "记录缺失模块/硬编码路径及不能直接运行的原因，提取未来上层对底层接口的要求。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "原副本冻结；不安装其JAX环境、不修复导入、不移植上层算法。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "调用链和未来接口需求有源码依据；明确底层训练不照搬该最小化目标。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-006",
+      "goal": "学习HiRA分层接口并验证频率来源",
+      "status": false,
+      "depends_on": [
+        "TASK-005"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "HiRA/ALGORITHM_DESIGN.md",
+        "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot_config.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_config.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/hierarchical_go2_env.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/high_level_navigation_env.py"
+      ],
+      "actions": [
+        "追踪高层动作缩放、机身速度命令写入、低层观测重算、重复执行和终止传播。",
+        "核实sim.dt=0.005、decimation=4、high_level_action_repeat=5及其配置继承/覆盖，得到200/50/10 Hz。",
+        "记录HiRA高层单评价Reach-Avoid与CaMRA预算双评价的区别；仅借鉴衔接方式。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "以代码实际调用为依据，README或注释冲突要记录；不修改HiRA。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "频率推导和命令保持过程明确；标出需重新观测、重置状态及防止随机命令覆盖的关键位置。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-007",
+      "goal": "学习HiRA既有低层策略、观测与部署经验",
+      "status": false,
+      "depends_on": [
+        "TASK-006"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_env.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_config.py",
+        "HiRA/legged_gym_go2/deploy/deploy_mujoco/configs/go2.yaml",
+        "HiRA/README.md"
+      ],
+      "actions": [
+        "查看低层观测排列、动作映射、增益、命令范围及推理路径；按需定位已有模型/日志元数据。",
+        "区分Isaac Gym训练、MuJoCo部署的仿真步长与策略频率。",
+        "对照新框架形成兼容项和不兼容项清单，特别检查观测顺序与关节顺序。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不执行来历不明的检查点反序列化，不把参考权重当作新任务已训练模型。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "记录可复用的接口经验和不能直接迁移的假设；未复制覆盖新项目模型。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-008",
+      "goal": "学习宇树框架的注册、启动与资产链",
+      "status": false,
+      "depends_on": [
+        "TASK-007"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "CaMRA/locomotion/README.md",
+        "CaMRA/locomotion/README.upstream.md",
+        "CaMRA/locomotion/UPSTREAM.md",
+        "CaMRA/locomotion/scripts/list_envs.py",
+        "CaMRA/locomotion/scripts/rsl_rl/train.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/__init__.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py"
+      ],
+      "actions": [
+        "跟踪Unitree-Go2-Velocity注册到配置、ManagerBasedRLEnv、RSL-RL训练器。",
+        "核对上游Isaac Lab 2.3.0 / Isaac Sim 5.1.0基线与安装文件，并查明外部USD资产缺口及路径占位。",
+        "区分可配置设备参数与影响控制语义的配置，列出目标设备需要验证的依赖。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "此任务仅理解代码；不在本机安装仿真或下载大体积资产。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "形成启动链与依赖/资产清单，说明哪些是上游声明、哪些尚未运行验证。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-009",
+      "goal": "学习Go2观测、动作和物理控制契约",
+      "status": false,
+      "depends_on": [
+        "TASK-008"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/velocity_env_cfg.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/observations.py"
+      ],
+      "actions": [
+        "逐项读取actor/critic观测，核对量纲、坐标系、顺序、噪声、缩放、裁剪、历史与归一化。",
+        "追踪12维动作到默认关节姿态加偏置、PD及力矩/关节限位，核对SDK与仿真关节顺序。",
+        "核实当前actor预期45维及critic特权信息；将维度标为静态推导并安排运行时复核。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "actor不能依赖仅仿真可得的critic信息；禁止只凭维度相同认定模型兼容。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "有逐字段观测和动作映射表及控制链；区分策略50 Hz与底层物理更新200 Hz。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-010",
+      "goal": "学习底层训练目标、课程与扰动机制",
+      "status": false,
+      "depends_on": [
+        "TASK-009"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/velocity_env_cfg.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/rewards.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/curriculums.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/commands/velocity_command.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/rsl_rl_ppo_cfg.py"
+      ],
+      "actions": [
+        "逐项解释跟踪、平衡、关节平滑、能量与足端奖励，以及倾倒/碰撞终止。",
+        "核对速度课程：初始x/y约±0.1、上限x±1.0 m/s/y±0.4 m/s/yaw±1.0 rad/s，实际以源码为准。",
+        "追踪摩擦、载荷、推扰、观测噪声和重置；标明延迟等是否真正实现，不能因论文提过就声称已有。",
+        "查明10 s重采样与未来10 Hz外部控制的差异，并解释如何保留长保持训练同时补充动态命令。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "优先复用已存在的合理机制，不为符合论文文字随意新增复杂奖励。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "形成现有能力/待补能力表，明确每项奖励和随机化的真实实现与训练意义。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-011",
+      "goal": "学习评估、导出与未来模块的接入要求",
+      "status": false,
+      "depends_on": [
+        "TASK-010"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "CaMRA/locomotion/scripts/rsl_rl/play.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/export_deploy_cfg.py",
+        "CaMRA/locomotion/deploy/robots/go2/src/State_RLBase.cpp",
+        "CaMRA/locomotion/deploy/robots/go2/config/config.yaml",
+        "CaMRA/calibration/README.md",
+        "CaMRA/navigation/README.md"
+      ],
+      "actions": [
+        "检查play中的模型选择、actor推理、normalizer、JIT/ONNX导出和部署参数生成。",
+        "明确普通play演示缺少哪些系统性评估记录；检查Go2部署是否依赖尚不存在的策略文件。",
+        "列出未来校准需要的命令时间戳、状态、重置/失败标志及冻结版本字段，只定义数据接口。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不启动真机控制、不实现完整MuJoCo部署或校准算法。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "形成导出链、冻结包字段及后续模块接入清单，说明导出成功不等于闭环验证成功。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-012",
+      "goal": "汇总学习结论并固定本阶段实施边界",
+      "status": false,
+      "depends_on": [
+        "TASK-011"
+      ],
+      "phase": "A",
+      "execution_location": "阅读准备",
+      "inputs": [
+        "此前TASK-001至TASK-011的记录及集中交接笔记"
+      ],
+      "actions": [
+        "整理论文要求—RC-PPO—HiRA—宇树实现—本次改动的对应表。",
+        "确认200/50/10 Hz、机身三维速度、12关节目标、仅平地底层训练和冻结的范围。",
+        "列出必须在设备阶段补齐的事实及实质性未决项，提出最小改动清单，不立即实现。",
+        "说明导航成本/footprint完整定义留待后续，本阶段只保存所用机器人资产几何及版本。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "学习结论不能自动拓展到上层/校准；修改任务范围需用户确认。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "另一模型仅凭计划和集中笔记即可定位关键源码、理解差异和下一步；所有实现前置知识已核对。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-013",
+      "goal": "确认实际训练设备和资源边界",
+      "status": false,
+      "depends_on": [
+        "TASK-012"
+      ],
+      "phase": "B",
+      "execution_location": "目标设备准备",
+      "inputs": [
+        "目标设备实际信息",
+        "CaMRA/locomotion/README.upstream.md"
+      ],
+      "actions": [
+        "在用户指定设备核对OS、GPU/显存、驱动、Python、现有Isaac栈、磁盘和运行权限。",
+        "若未提供设备，先向用户询问目标位置/访问方式，不默认本机或付费云。",
+        "记录remote_workspace、run_root、外部资产目录及允许的训练时长/并发资源；远程凭证不入文档。",
+        "核对远程源代码版本和HiRA参考资料可用性；使用用户授权的同步方式。",
+        "在实际训练服务器核对tmux版本、会话、日志目录和断线保活能力；必要时重复无害进程重连验证，并确认服务器/调度器不会随SSH退出清理任务。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不挤占未授权资源，不覆盖远端已有工作；目录和核心版本歧义先询问。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "设备/路径/资源预算明确且可访问，具备脱离本机盘符的运行路径映射。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-014",
+      "goal": "依据设备建立兼容运行环境与Go2资产",
+      "status": false,
+      "depends_on": [
+        "TASK-013"
+      ],
+      "phase": "B",
+      "execution_location": "目标设备",
+      "inputs": [
+        "TASK-013设备清单",
+        "CaMRA/locomotion/README.upstream.md",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py"
+      ],
+      "actions": [
+        "优先在隔离环境复用兼容的Isaac Lab 2.3.0 / Isaac Sim 5.1.0依赖，核对PyTorch/CUDA/RSL-RL接口。",
+        "配置并记录当前USD Go2资产来源、版本/散列及路径，避免修改其他机器人任务。",
+        "安装本模块并保存环境版本清单、必要启动命令和资产解析方式。",
+        "若设备只能使用不同核心版本或不同资产类型，先说明兼容风险并询问，不静默升级。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不能把安装命令列出即标完成；不得更改共享全局环境。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "目标设备可加载依赖与Go2资产，路径可复现，有真实版本输出和安装验证证据。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-015",
+      "goal": "完成目标设备上的原始任务冒烟验证",
+      "status": false,
+      "depends_on": [
+        "TASK-014"
+      ],
+      "phase": "B",
+      "execution_location": "目标设备",
+      "inputs": [
+        "CaMRA/locomotion/scripts/list_envs.py",
+        "CaMRA/locomotion/scripts/rsl_rl/train.py",
+        "Unitree-Go2-Velocity原配置"
+      ],
+      "actions": [
+        "确认任务注册，少量并行环境启动headless仿真并进行有限步进/少量训练更新。",
+        "核对观测/动作形状、关节名称、物理dt、有限数值、重置和终止行为。",
+        "记录GPU显存/吞吐，区分渲染/依赖问题与尚未训练导致的跌倒。",
+        "将该次运行保存为基线冒烟记录，不当作控制器性能结果。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "仅短时运行，遵守设备预算；原始配置与运行覆盖项都保存。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "Go2任务真实可运行，状态和动作维度核对完毕，未出现未解释的NaN或基础设施错误。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-016",
+      "goal": "固定底层与外部速度命令接口",
+      "status": false,
+      "depends_on": [
+        "TASK-015"
+      ],
+      "phase": "B",
+      "execution_location": "代码准备与目标设备复核",
+      "inputs": [
+        "TASK-009观测动作表",
+        "TASK-006频率证据",
+        "TASK-015运行结果"
+      ],
+      "actions": [
+        "形成配置契约：机身坐标轴、m/s与rad/s、速度范围、批量形状、观测字段、关节顺序与动作映射。",
+        "定义外部命令每0.1 s更新、保持5次底层0.02 s推理、每次底层4步物理仿真。",
+        "定义reset后上一动作/历史清理、无效命令拒绝、限幅及命令来源切换，防止随机采样覆盖外部命令。",
+        "速度域以已审查Go2上游limit_ranges为初始候选，不照搬HiRA不同动作缩放；实质性范围变更先确认。",
+        "如引入滤波或斜率限制，明确它改变实际命令，记录原始和施加命令，并纳入未来名义配对契约。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不实现高层网络；不得让接口默默丢弃vy或误把转向率当目标航向。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "可检查的接口契约已固定，包含时间、单位、映射、状态清理和后续校准所需日志字段。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-017",
+      "goal": "在训练前固定评估协议和验收条件",
+      "status": false,
+      "depends_on": [
+        "TASK-016"
+      ],
+      "phase": "B",
+      "execution_location": "协议准备",
+      "inputs": [
+        "TASK-016接口",
+        "TASK-013算力预算",
+        "TASK-010训练能力清单"
+      ],
+      "actions": [
+        "定义独立训练/开发验证/最终测试种子与配置，覆盖静止、直行/后退/横移、原地转向、组合速度、起停、阶跃和连续变化。",
+        "按已实现且合理的摩擦、载荷、推扰和噪声定义标称与扰动分组；未实现延迟不宣称已经验证。",
+        "明确定义速度/yaw误差RMSE与分位数、响应/停车时间及漂移、roll/pitch、失败率、动作变化与限位统计。",
+        "为各场景设定可测量的通过阈值、重复数、持续时间和预算，并给出来源；没有依据的关键阈值请用户选择后固定。",
+        "固定检查点选择、早停/最大训练时长与失败重训规则；不靠无限重试完成计划。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "测试协议先于正式训练；不能根据论文假设的成功率或裕度反造阈值。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "评估配置具有具体阈值/样本数/种子及固定版本，用户需决定的项已解决；只看视频或总奖励不能通过。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-018",
+      "goal": "实现外部指令驱动与控制节拍接口",
+      "status": false,
+      "depends_on": [
+        "TASK-017"
+      ],
+      "phase": "C",
+      "execution_location": "代码开发",
+      "inputs": [
+        "TASK-016契约",
+        "现有Go2任务与命令实现"
+      ],
+      "actions": [
+        "在locomotion内增加最小可复用接口，接收批量三维速度并驱动冻结或待评估策略。",
+        "实现命令保持与重新观测、随机命令生成器禁用/切换、按环境reset处理。",
+        "提供预定义命令程序入口，支持固定、组合、阶跃和连续变化；输出实际施加命令和仿真时间。",
+        "明确终止后不再将自动reset的新轨迹混入旧轨迹，后续控制调用者可识别失败。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不复制完整HiRA框架，不实现navigation；常规训练仍可使用内部命令课程。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "接口可独立驱动Go2且符合批量与时间契约，训练和外部命令模式不会互相覆盖。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-019",
+      "goal": "整理并实现CaMRA底层训练配置",
+      "status": false,
+      "depends_on": [
+        "TASK-018"
+      ],
+      "phase": "C",
+      "execution_location": "代码开发",
+      "inputs": [
+        "现有Go2 velocity_env_cfg.py",
+        "TASK-017协议",
+        "TASK-018命令接口"
+      ],
+      "actions": [
+        "保留上游基线，增加可追溯CaMRA配置/覆盖入口，限定Go2平地任务。",
+        "沿用合理奖励、课程和随机化，补齐协议要求的动态命令覆盖；10 Hz刷新不等于高频独立白噪声指令。",
+        "配置seed、num_envs、训练迭代上限、检查点保存/恢复和日志目录；按设备显存选择并行量。",
+        "将所有改变逐项记录并说明目的，避免同时大幅调整奖励掩盖原因。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不影响其他机器人任务；改动命令域或扰动定义需遵守已固定协议。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "训练配置可解析并能被入口明确选择，与论文底层职责和协议一致；新旧配置差异可审查。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-020",
+      "goal": "实现可复现的底层评估与日志工具",
+      "status": false,
+      "depends_on": [
+        "TASK-019"
+      ],
+      "phase": "C",
+      "execution_location": "代码开发",
+      "inputs": [
+        "TASK-017协议",
+        "TASK-018外部接口",
+        "CaMRA/locomotion/scripts/rsl_rl/play.py"
+      ],
+      "actions": [
+        "为指定检查点运行预先固定的命令程序和扰动分组，使用确定性的actor推理。",
+        "保存每步时间、原始/施加命令、实际速度、位姿/姿态、动作、终止原因及版本信息。",
+        "输出逐回合结果和分组摘要，明确误差坐标系、采样频率和提前终止处理。",
+        "保存有限数量有代表性的回放片段辅助检查，数值指标仍是主要验收证据。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不选择性丢弃跌倒轨迹；日志不得声称是真机数据；本阶段不计算α/δ。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "同一配置可复跑并追溯到检查点/种子，每项指标可由原始日志复算。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-021",
+      "goal": "验证接口、节拍和指标实现",
+      "status": false,
+      "depends_on": [
+        "TASK-020"
+      ],
+      "phase": "C",
+      "execution_location": "代码测试与目标设备短测",
+      "inputs": [
+        "TASK-018至TASK-020实现"
+      ],
+      "actions": [
+        "对轴/单位、限幅、关节映射、reset状态和无效输入进行有意义的单元测试。",
+        "用已知误差序列验证RMSE、分位数及提前终止统计，测试单环境和批量输入。",
+        "目标设备短测确认一个高层间隔包含5次重新观测/推理和20步物理仿真，时间戳无错位。",
+        "验证外部命令未被自动重采样覆盖，停止/重置边界不串轨迹。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "单元测试可用合成夹具但须标明测试用途，不能算作实际控制器结果。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "关键契约测试通过，实际仿真计数与200/50/10 Hz一致，日志指标复算一致。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-022",
+      "goal": "完成短程训练与评估链路试运行",
+      "status": false,
+      "depends_on": [
+        "TASK-021"
+      ],
+      "phase": "C",
+      "execution_location": "目标设备",
+      "inputs": [
+        "TASK-019训练配置",
+        "TASK-020评估工具",
+        "TASK-021检查结果"
+      ],
+      "actions": [
+        "在已确认预算内运行小批短训练，检查reward分量、loss、动作分布、课程推进与数值稳定性。",
+        "验证检查点保存、显式恢复及评估入口，确保没有误加载HiRA或其他机器人的模型。",
+        "用开发验证集确认工具与控制响应链路；记录不足，不要求短训达到最终性能。",
+        "如发现问题在本任务内完成有证据的修复并重跑相关检查；实质性协议变更先暂停。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "短训只验链路，不能冒充正式训练或最终测试。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "训练—保存—恢复—评估链路真实打通，资源消耗在预算内，正式训练前没有未解释错误。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-023",
+      "goal": "在目标设备完成正式底层训练",
+      "status": false,
+      "depends_on": [
+        "TASK-022"
+      ],
+      "phase": "D",
+      "execution_location": "目标设备",
+      "inputs": [
+        "TASK-017固定协议",
+        "TASK-022试运行证据"
+      ],
+      "actions": [
+        "以独立run目录执行已固定配置，保存实际环境配置、代码版本、种子和检查点。",
+        "依据预定开发验证规则监测速度跟踪、稳定性及动态命令响应，按既定规则选择候选模型。",
+        "训练中断时从明确检查点恢复并记录，禁止悄悄重置训练或覆盖旧运行。",
+        "若预算耗尽或性能不达标，记录原因和候选方案，保持未完成并询问是否调整资源/方案。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不使用最终测试集调参；不能用预设论文数字填训练结果。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "有完整真实训练日志及可加载候选模型，选择过程和训练预算可追溯，进入最终测试的条件满足。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-024",
+      "goal": "完成候选控制器的独立性能评估",
+      "status": false,
+      "depends_on": [
+        "TASK-023"
+      ],
+      "phase": "D",
+      "execution_location": "目标设备",
+      "inputs": [
+        "TASK-023候选模型",
+        "TASK-017最终测试配置"
+      ],
+      "actions": [
+        "固定候选模型后在独立测试条件运行完整协议，分别汇总标称与扰动表现。",
+        "检查站立/停车、各方向速度和转向、组合动作及10 Hz动态命令下的跟踪和稳定性。",
+        "报告全部失败原因、指标和达标项；任何未达标不能以整体平均值掩盖。",
+        "若测试发现需调参的问题，保留本次结果并按约束确认后重设独立测试，不能静默反复挑最佳结果。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "评估阶段不更新模型或归一化状态；训练分布内表现不等同于任意扰动保证。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "所有预先固定验收条件通过，有逐回合数据和可复算摘要；不满足时本任务保持false。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-025",
+      "goal": "导出策略并验证推理数值一致性",
+      "status": false,
+      "depends_on": [
+        "TASK-024"
+      ],
+      "phase": "D",
+      "execution_location": "目标设备",
+      "inputs": [
+        "TASK-024通过评估的检查点",
+        "既有JIT/ONNX和deploy配置导出工具"
+      ],
+      "actions": [
+        "导出JIT/ONNX及完整部署配置，记录actor结构、归一化状态和模型散列。",
+        "对固定真实观测样本比较训练框架与导出模型输出，按事先约定的浮点容差验证。",
+        "确认导出actor不依赖critic特权状态；核对动作缩放、关节顺序、默认姿态和增益。",
+        "导出至独立候选目录，未验证前不标为正式冻结发布。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "导出成功不能替代闭环验证；不覆盖原检查点或既有导出产物。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "两种导出格式可加载并与原推理一致，配套配置完整且无训练期状态泄漏。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-026",
+      "goal": "验证导出控制器的独立闭环重载",
+      "status": false,
+      "depends_on": [
+        "TASK-025"
+      ],
+      "phase": "D",
+      "execution_location": "目标设备",
+      "inputs": [
+        "TASK-025导出候选包",
+        "TASK-020评估入口"
+      ],
+      "actions": [
+        "在新进程使用导出模型及随包配置重建推理流程，不依赖训练器内部状态。",
+        "对站立、起停、转向和连续变速等固定代表场景闭环验证，检查reset和观测/动作预处理。",
+        "比较原检查点与导出推理的同种子结果并解释仿真数值非确定性，确保没有性能退化超出协议容差。",
+        "记录实际推理延迟，但不将加速仿真频率直接宣称为真机实时能力。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "在现有Isaac环境完成，不自动扩展MuJoCo/真机部署。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "独立重载能正确控制Go2，关键闭环性能和接口一致性验证通过。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-027",
+      "goal": "冻结控制器及完整执行配置",
+      "status": false,
+      "depends_on": [
+        "TASK-026"
+      ],
+      "phase": "D",
+      "execution_location": "产物整理",
+      "inputs": [
+        "TASK-024至TASK-026证据"
+      ],
+      "actions": [
+        "创建不可覆盖的版本化冻结包，收录模型、导出文件、观测/动作契约、增益、频率、命令域和预处理配置。",
+        "记录源码提交或补丁散列、机器人资产来源/散列、环境版本、训练run、评估协议和结果位置。",
+        "明确eval/no_grad、normalizer不更新、重置状态规范；任何后续变化产生新版本并需重新验证/校准。",
+        "将frozen_bundle解析到实际产物路径；大模型/原始日志按确认的存储位置保存，不自动加入Git。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "仅在实际评估通过后冻结；manifest要准确描述尚未完成的真机或迁移工作。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "冻结manifest中每个文件和散列可验证，离开训练目录后仍具备可重载所需内容。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "TASK-028",
+      "goal": "完成交接文档和阶段验收",
+      "status": false,
+      "depends_on": [
+        "TASK-027"
+      ],
+      "phase": "D",
+      "execution_location": "文档与审查",
+      "inputs": [
+        "冻结包",
+        "集中交接笔记",
+        "本计划",
+        "CaMRA/README.md",
+        "CaMRA/locomotion/README.md"
+      ],
+      "actions": [
+        "更新必要README和集中笔记，给出目标设备安装、训练、恢复、评估、重载和后续校准调用的实际命令。",
+        "说明后续校准必须保持模型、命令域、频率、限幅/滤波和资产一致，列出本次未做的工作。",
+        "检查根仓库差异及HiRA/RC-PPO/论文完整性，确认无无关改动、密钥和意外大文件。",
+        "完成本任务记录后运行JSON update校验，报告实际结果、产物位置与剩余范围；不自动Git提交。",
+        "交接项目tmux会话列表、运行中进程、日志与检查点位置，以及恢复/查看命令；保留仍在使用的会话。"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "交接不能仅给命令而无实际运行证据；有任务受阻则不得宣布全部完成。",
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+      ],
+      "acceptance_criteria": [
+        "所有计划任务和最终验收条件满足，另一模型可依据文档加载冻结控制器进入后续校准阶段。",
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+      ],
+      "verification_result": ""
+    }
+  ],
+  "final_acceptance": [
+    "28项任务全部完成，状态、依赖、追加记录和证据通过JSON校验。",
+    "阅读结论可追溯到论文与源码，明确三个项目的区别及HiRA 10 Hz与旧稿5 Hz差异。",
+    "在实际目标设备配置并运行Go2，依赖/资产/配置版本及真实日志完整。",
+    "外部三维机身速度指令以10 Hz输入，底层50 Hz重新观测和推理，仿真200 Hz，运行时计数验证通过。",
+    "独立评估覆盖站立、起停、各方向速度、组合转向、连续变速及已声明扰动，达到预先固定标准；失败不隐去。",
+    "真实训练、导出数值一致性和冻结控制器闭环重载均验证通过，模型与所有接口参数可追溯。",
+    "提供后续校准可直接使用的冻结包和调用说明，但未实施校准或上层算法。",
+    "RC-PPO、HiRA、论文与历史数据未改动，已有产物无覆盖，未擅自Git提交推送。",
+    "全部28项任务有tmux执行记录；实际训练服务器的断线恢复验证通过，日志与检查点持久可查，没有因重连重复启动训练。"
+  ],
+  "tmux_execution_policy": {
+    "scope": "适用于TASK-001至TASK-028的全部终端工作；不要求模型思考或文件编辑工具运行在tmux中。",
+    "bootstrap": [
+      "确认实际执行主机和工作区，检查tmux -V及tmux list-sessions；未指定可用执行环境时询问用户。不要假定本机PowerShell支持tmux。",
+      "使用项目专属会话名camra-locomotion；先确认现存同名会话的主机、工作目录和任务归属。匹配则恢复，不匹配则使用唯一后缀，禁止清理他人会话。",
+      "在实际运行进程的服务器上创建会话，显式设置工作目录；每个任务使用TASK-xxx命名窗口，重试增加run后缀。可以复用会话，不能覆盖运行中的窗口。",
+      "在pane内激活Python/conda环境、确认解释器、工作目录及TMUX环境变量后才执行任务命令。非交互工具通过tmux创建窗口或发送命令，并读取落盘日志与退出状态。"
+    ],
+    "command_examples": [
+      "tmux -V",
+      "tmux list-sessions",
+      "tmux new-session -d -s camra-locomotion -c /absolute/workspace",
+      "tmux new-window -t camra-locomotion -n TASK-001 -c /absolute/workspace",
+      "tmux attach-session -t camra-locomotion",
+      "tmux list-panes -a -F '#{session_name}:#{window_name}.#{pane_index} pid=#{pane_pid} dead=#{pane_dead} cwd=#{pane_current_path}'",
+      "tmux capture-pane -p -S -200 -t camra-locomotion:TASK-001"
+    ],
+    "command_note": "示例中的绝对路径须按已确认设备替换；创建前检查会话/窗口是否存在。会话管理命令可从连接终端调用，实际任务命令必须由服务器tmux pane执行。",
+    "logging": [
+      "短命令的输出和退出状态可汇总到任务日志；安装/测试/训练/评估/导出须持久保存stdout、stderr和退出码。tmux滚屏不是唯一日志。",
+      "在运行前开启日志；若使用Bash tee管道，启用pipefail并立即保存PIPESTATUS中的实际程序退出码，避免tee成功掩盖程序失败；Python长任务使用无缓冲输出。",
+      "每次尝试使用唯一日志路径，记录开始/结束时间、run ID和会话位置；进程运行中不能预写成功退出码。",
+      "在run_root确定前使用执行主机工作区内独立的任务日志目录；路径记录到work_records，不能写入凭证或覆盖已有日志。",
+      "项目窗口可启用remain-on-exit保存退出现场；仅调整本项目窗口，不改变共享tmux全局配置。"
+    ],
+    "reconnect": [
+      "SSH断开后重新连接同一主机，先列出项目会话、pane与实际任务进程，查看最新日志/检查点。",
+      "任务仍在运行则attach或继续监测，不再次发送训练命令；客户端观察超时不等于服务器任务失败。",
+      "任务已结束则核对退出码与产物后验收；异常退出则记录原因和剩余工作，经允许的恢复规则从明确检查点继续。",
+      "服务器重启造成tmux消失时，从持久化日志和检查点核对状态后恢复；不宣称tmux可跨重启保活。",
+      "正常离开使用detach（交互快捷键Ctrl-b再按d）；不得关闭运行窗口、发送Ctrl-C或kill-session来代替断开。"
+    ],
+    "resilience_check": "TASK-001以无害短进程完成一次detach/重新连接并检查进程持续运行及日志增长；TASK-013在实际训练服务器重复核验。若学习与训练为同一主机，可引用已完成证据并重新核对会话。不能用中断正式训练测试保活。",
+    "scheduling": "若服务器使用调度器，GPU进程还须位于有效资源分配内；tmux不能绕过调度器或延长资源时限。"
+  }
+}
