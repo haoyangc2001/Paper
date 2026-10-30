@@ -1,0 +1,248 @@
+{
+  "rudin2022parallel": [
+    {
+      "page": 3,
+      "excerpt": "nd provide other techniques to optimize the simulation throughput. 2.2 DRL Algorithm We build upon a custom implementation of the Proximal Policy Optimization (PPO) algorithm [22]. Our implementation is designed to perform every operation and store all the data on the GPU. In or- der to efﬁciently learn from thousands of robots in parallel, we perform some essential modiﬁcations to the algorithm and change some of the commonly used hyper-parameter values. 2.2.1 Hyper-Parameters Modiﬁcation In an on-policy algorithm su"
+    },
+    {
+      "page": 3,
+      "excerpt": "modiﬁcations to the algorithm and change some of the commonly used hyper-parameter values. 2.2.1 Hyper-Parameters Modiﬁcation In an on-policy algorithm such as PPO, a ﬁxed policy collects a selected amount of data before do- ing the next policy update. This batch size, B, is a crucial hyper-parameter for successful learning. With too little data, the gradients will be too noisy, and the algorithm will not learn effectively. With too much data, the samples become repetitive, and the algorithm cannot extract more inform"
+    },
+    {
+      "page": 3,
+      "excerpt": "Reset Handling During training, the robots must be reset whenever they fall, and also after some time to keep them exploring new trajectories and terrains. The PPO algorithm includes a critic predicting an inﬁnite horizon sum of future discounted rewards. Resets break this inﬁnite horizon assumption and can lead to inferior critic performance if not handled carefully. Resets based on failure or reaching a goal are not a problem because the critic can predict them. However, a reset based on a time out can not be predic"
+    },
+    {
+      "page": 4,
+      "excerpt": "d are evenly spread across all terrains due to looping back, we can conclude they have fully learned to solve the task. 1The Spinning-up [27] implementation of PPO uses the same bootstrapping solution by keeping track of episode lengths within the algorithm, thus circumventing the limitation of the Gym interface. 4"
+    }
+  ],
+  "peng2018dynamics": [
+    {
+      "page": 1,
+      "excerpt": "Sim-to-Real Transfer of Robotic Control with Dynamics Randomization Xue Bin Peng1,2, Marcin Andrychowicz1, Wojciech Zaremba1, and Pieter Abbeel1,2 Abstract— Simulations are attractive environments for train- ing agents as they provide an abundant source of data and alleviate certain safety concerns during the training process. But the behaviours developed by agents in simulation are often speciﬁc to the characteristics"
+    },
+    {
+      "page": 1,
+      "excerpt": " are successful in simulation may not transfer to their real world counterparts. In this paper, we demonstrate a simple method to bridge this “reality gap”. By randomizing the dynamics of the simulator during training, we are able to develop policies that are capable of adapting to very different dynamics, including ones that differ signiﬁcantly from the dynamics on which the policies were trained. This adaptivity enables the policies to generalize to the dynamics of the real world without any training on the physical syst"
+    },
+    {
+      "page": 2,
+      "excerpt": "an inverse-dynamics model from real world data. While promising, these methods nonetheless still require data from the target domain during training. B. Domain Randomization Domain randomization is a complementary class of tech- niques for adaptation that is particularly well suited for sim- ulation. With domain randomization, discrepancies between the source and target domains are modeled as variability in the source domain. Randomization in the visual domain has been used to directly transfer vision-based policies from s"
+    },
+    {
+      "page": 2,
+      "excerpt": "odel from real world data. While promising, these methods nonetheless still require data from the target domain during training. B. Domain Randomization Domain randomization is a complementary class of tech- niques for adaptation that is particularly well suited for sim- ulation. With domain randomization, discrepancies between the source and target domains are modeled as variability in the source domain. Randomization in the visual domain has been used to directly transfer vision-based policies from simulation to the real"
+    },
+    {
+      "page": 2,
+      "excerpt": "omain Randomization Domain randomization is a complementary class of tech- niques for adaptation that is particularly well suited for sim- ulation. With domain randomization, discrepancies between the source and target domains are modeled as variability in the source domain. Randomization in the visual domain has been used to directly transfer vision-based policies from simulation to the real world without requiring real images during training [18], [19]. Sadeghi and Levine [18] trained vision-based controllers for a quadr"
+    },
+    {
+      "page": 4,
+      "excerpt": "t angles for a position controller. Target angles are speciﬁed as relative offsets from the current joint rotations. This yields a 7D action space. C. Dynamics Randomization During training, rollouts are organized into episodes of a ﬁxed length. At the start of each episode, a random set of dynamics parameters µ are sampled according to ρµ and held ﬁxed for the duration of the episode. The parameters which we randomize include: • Mass of each link in the robot’s body • Damping of each joint • Mass, friction, and damping of"
+    },
+    {
+      "page": 4,
+      "excerpt": "start of each episode, a random set of dynamics parameters µ are sampled according to ρµ and held ﬁxed for the duration of the episode. The parameters which we randomize include: • Mass of each link in the robot’s body • Damping of each joint • Mass, friction, and damping of the puck • Height of the table • Gains for the position controller • Timestep between actions • Observation noise which results in a total of 95 randomized parameters. The timestep between actions speciﬁes the amount of time an action is applied before"
+    },
+    {
+      "page": 4,
+      "excerpt": "and damping of the puck • Height of the table • Gains for the position controller • Timestep between actions • Observation noise which results in a total of 95 randomized parameters. The timestep between actions speciﬁes the amount of time an action is applied before the policy is queried again to sample a new action. This serves as a simple model of the latency exhibited by the physical controller. The observation noise models uncertainty in the sensors and is implemented as independent Gaussian noise applied to each stat"
+    },
+    {
+      "page": 5,
+      "excerpt": "Algorithm 1 Dynamics Randomization with HER and RDPG 1: θ ←random weights 2: ϕ ←random weights 3: while not done do 4: g ∼ρg sample goal 5: µ ∼ρµ sample dynamics 6: Generate rollout τ = (s0, a0, ..., sT )with dynamics µ 7: for each st, at in τ do 8: rt ←r(st, g) 9: end for 10: Store (τ, {rt}, g, µ) in M 11: Sample episode (τ, {rt}, g, µ) from M 12: with probability k 13: g ←replay new g"
+    },
+    {
+      "page": 6,
+      "excerpt": " the dynamics of the environment are processed by the recurrent branch, while the other inputs are processed by the feedforward branch. episode. In addition to randomizing the physical properties of the simulated environment, we also simulate sensor noise by applying gaussian noise to the observed state features at every step. The noise has a mean of zero and a standard deviation of 5% of the running standard deviation of each feature. Gaussian action exploration noise is added at every step with a standard deviation of 0."
+    },
+    {
+      "page": 6,
+      "excerpt": "s feedforward network (FF) that receives only the current state st and goal g as input. As a baseline, we also trained a memoryless feedforward network without randomization (FF no Rand), then evaluated the performance with ran- domization. To provide the feedforward network with more information to infer the dynamics, we augmented the inputs with a history of the 8 previously observed states and actions (FF + Hist). The success rate is determined as the portion of episodes where the goal is fulﬁlled at the end of the epis"
+    },
+    {
+      "page": 6,
+      "excerpt": "as the portion of episodes where the goal is fulﬁlled at the end of the episode. In simulation, performance of each policy is evaluated over 100 episodes, with randomized dynamics parameters for each episode. Learning curves comparing the performance of different model architectures in simulation are available in Figure 6. Four policies initialized with different random seeds are trained for each architecture. The LSTM learns faster while also converging to a higher success rate than Fig. 6. Learning curves of different ne"
+    },
+    {
+      "page": 7,
+      "excerpt": "ated and real robot for the pushing task. Policies are trained using only data from simulation. the feedforward models. The feedforward network trained without randomization is unable to cope with unfamiliar dynamics during evaluation. While training a memoryless policy with randomization improves robustness to random dynamics, it is still unable to perform the task consistently. Next, we evaluate the performance of the different models when deployed on the real Fetch arm. Figure 7 compares the performance of the ﬁnal poli"
+    },
+    {
+      "page": 7,
+      "excerpt": "ls. The feedforward network trained without randomization is unable to cope with unfamiliar dynamics during evaluation. While training a memoryless policy with randomization improves robustness to random dynamics, it is still unable to perform the task consistently. Next, we evaluate the performance of the different models when deployed on the real Fetch arm. Figure 7 compares the performance of the ﬁnal policies when deployed in simulation and the real world. Table II summarizes the performance of the models. The target a"
+    },
+    {
+      "page": 7,
+      "excerpt": "st policies are comparable in simulation, the LSTM is able to better generalize to the dynamics of the physical system. The feedforward network trained without randomization is unable to perform the task under the real world dynamics. B. Ablation To evaluate the effects of randomizing the various dy- namics parameters, we trained policies with subsets of the parameters held ﬁxed. A complete list of the dynamics parameters are available in Table I. The conﬁgurations we consider include training with a ﬁxed timestep between "
+    },
+    {
+      "page": 8,
+      "excerpt": "ol. abs/1611.04201, 2016. [Online]. Available: http://arxiv.org/abs/1611.04201 [19] J. Tobin, R. Fong, A. Ray, J. Schneider, W. Zaremba, and P. Abbeel, “Domain randomization for transferring deep neural networks from simulation to the real world,” CoRR, vol. abs/1703.06907, 2017. [Online]. Available: http://arxiv.org/abs/1703.06907 [20] S. James and E. Johns, “3d simulation for robot arm control with deep q-learning,” CoRR, vol. abs/1609.03759, 2016. [Online]. Available: http://arxiv.org/abs/1609.03759 [21] I. Mordatch, K."
+    }
+  ],
+  "xie2021randomization": [
+    {
+      "page": 1,
+      "excerpt": "licies for the Laikago quadruped robot. Surprisingly, in contrast to prior work with the same robot model, we ﬁnd that direct sim- to-real transfer is possible without dynamics randomization or on-robot adaptation schemes. We conduct extensive abla- tion studies in a sim-to-sim setting to understand the key issues underlying successful policy transfer, including other design decisions that can impact policy robustness. We further ground our conclusions via sim-to-real experiments with various gaits, speeds, and stepping frequencies. Additional "
+    },
+    {
+      "page": 2,
+      "excerpt": "system identiﬁcation in the form of improved simulator accuracy [16], [17]. At the same time, multiple results also demonstrate successful sim-to-real transfer without dynamics randomization via ap- propriate design choices, e.g., [6]–[8], [18], [19]. C. Robust Control Control policies obtained with a single model are often susceptible to modeling errors or noise, even for a simple lin- ear quadratic regulator [20]. Robust policies can be obtained via model ensembling, where a distribution of models is used for control synthesis, e.g., [21], [2"
+    },
+    {
+      "page": 3,
+      "excerpt": " section, we demonstrate that dynamics randomization is not necessary for our learned controllers. We ﬁrst show in a simulation that the default policy trained without dynamics randomization can already cope with modeling errors that are larger than the randomization variations used in prior sim-to- real work [2]. We also then run these policies on the physical robot and demonstrate successful sim-to-real transfer. A. Types of Perturbation We ﬁrst describe the types of perturbation we use for testing the robustness of the policies, both in simu"
+    },
+    {
+      "page": 4,
+      "excerpt": "aximum slope the policy can walk on without falling. B. Robustness Tests in Simulation We train policies that can perform trotting and pacing at various speeds without dynamics randomization. We deploy the policies in increasingly challenging scenarios for each of the ﬁve varieties of perturbation described in the previous subsection, recording the maximum perturbation (e.g., the largest slope angle) at which the robot can still complete the task. We repeat the experiment by training a total of three policies for each of the two gaits, computin"
+    },
+    {
+      "page": 4,
+      "excerpt": "ler as the robustness test results are similar between simulation and the physical Fig. 3: We train policies for multiple gaits that transfer to the real robot without dynamics randomization. TOP: Trotting and pacing with learned policies. BOTTOM: The policies can walk up or down a slope and react to forceful pushes despite never encountering these scenarios during training. robot, while for the pacing gait, we observe that the policy typically achieves worse performance on the physical robot compared to the simulation robustness test. However,"
+    },
+    {
+      "page": 5,
+      "excerpt": " pacing policies without velocity feedback, with and without dynamics ran- domization. Second, we train trotting policies with a high gain (kp = 160), with and without dynamics randomization. The type and range of randomization can be seen in Table II. For the high-PD-gain trot, we use kp = 160 instead of kp = 220 as used in [2] because the higher gain can cause instability on the robot. We also purposely choose not to apply randomization to lateral pushes or slopes during training. Instead, we wish to understand cross-correlations in robustnes"
+    },
+    {
+      "page": 6,
+      "excerpt": " that are being randomized. For example, the pacing policies trained with no velocity feedback and dynamics randomiza- tion perform worse than policies trained without dynamics randomization in general, except in terms of dealing with latency. However, the physical robot system has an estimated latency of less than 4 ms, and this unnecessary robustness against increased latency leads to compromised performance and robustness along other dimensions. We further train trotting policies under the default setting with dynamics randomization. We obse"
+    },
+    {
+      "page": 7,
+      "excerpt": "tive design and sim-to- real,” in Proc. Conference on Robot Learning (CORL 2019), 2019. [7] J. Dao, H. Duan, K. Green, J. Hurst, and A. Fern, “Learning to walk without dynamics randomization,” 2nd Workshop on Closing the Reality Gap in Sim2Real Transfer for Robotics, 2020. [8] X. Da, Z. Xie, D. Hoeller, B. Boots, A. Anandkumar, Y. Zhu, B. Babich, and A. Garg, “Learning a contact-adaptive controller for robust, efﬁcient legged locomotion,” arXiv preprint arXiv:2009.10019, 2020. [9] J. Di Carlo, P. M. Wensing, B. Katz, G. Bledt, and S. Kim, “Dyna"
+    },
+    {
+      "page": 7,
+      "excerpt": "rnational Conference on Robotics and Automation (ICRA), jun 2017. [19] M. Kaspar, J. D. M. Osorio, and J. Bock, “Sim2real transfer for rein- forcement learning without dynamics randomization,” arXiv preprint arXiv:2002.11635, 2020. [20] C. G. Atkeson, “Efﬁcient robust policy optimization,” in 2012 Amer- ican Control Conference (ACC). IEEE, 2012, pp. 5220–5227. [21] M. McNaughton, “Castro: robust nonlinear trajectory optimization using multiple models,” in 2007 IEEE/RSJ International Conference on Intelligent Robots and Systems. IEEE, 2007, pp. "
+    }
+  ],
+  "herbert2017fastrack": [
+    {
+      "page": 1,
+      "excerpt": " simpliﬁed dynamics to plan quickly can be incorporated into the FaSTrack framework, which provides a safety controller for the vehicle along with a guaranteed tracking error bound. This bound captures all possible deviations due to high dimensional dynamics and external disturbances. Note that FaSTrack is modular and can be used with most current path or trajectory planners. We demonstrate this framework using a 10D nonlinear quadrotor model tracking a 3D path obtained from an RRT planner. I. INTRODUCTION As unmanned aerial vehicles "
+    },
+    {
+      "page": 1,
+      "excerpt": "using Hamilton Jacobi (HJ) reachability analysis. This results in a tracking error function that maps the initial relative state between the two systems to the tracking error bound: the maximum possible relative distance that could occur over time. This tracking error bound can be thought of as a “safety bubble” around the planning system that the tracking system is guaranteed to stay within. Because the tracking error is bounded in the relative state space, we can precompute and store a safety control function that maps the real-time"
+    },
+    {
+      "page": 1,
+      "excerpt": "at maps the initial relative state between the two systems to the tracking error bound: the maximum possible relative distance that could occur over time. This tracking error bound can be thought of as a “safety bubble” around the planning system that the tracking system is guaranteed to stay within. Because the tracking error is bounded in the relative state space, we can precompute and store a safety control function that maps the real-time relative state to the optimal safety control for the tracking system to “catch” the planning "
+    },
+    {
+      "page": 2,
+      "excerpt": "ios, but is risky in its reliance on ﬁnding randomly-generated safe trajectories. Recent work has considered using ofﬂine Hamilton-Jacobi analysis to guarantee tracking error bounds, which can then be used for robust trajectory planning [25]. A similar new approach, based on contraction theory and convex optimiza- tion, allows computation of ofﬂine error bounds that can then deﬁne safe tubes around a nominal dynamic trajectory computable online [26]. Finally, some online control techniques can be applied to trajectory tracking with co"
+    },
+    {
+      "page": 3,
+      "excerpt": "es. C. Goals of This Paper The goals of the paper are threefold: 1) To provide a tool for precomputing functions (or look- up tables) to determine a guaranteed tracking error bound between tracking and planning models, and optimal safety controller for robust motion planning with nonlinear dynamic systems 2) To develop a framework for easily implementing this tool with fast real-time path and trajectory planners. 3) To demonstrate the tool and framework in an example using a high dimensional system IV. GENERAL FRAMEWORK The overall fr"
+    },
+    {
+      "page": 3,
+      "excerpt": "ntroller Environment (obstacles) Augmented obstacles Control State Planning State Desired planning state Online computation (performed at every time iteration) Tracking error bound Fig. 2: Online framework When executing the online framework, the ﬁrst step is to sense obstacles in the environment, and then augment the sensed obstacles by a precomputed tracking error bound as described in Section V. This tracking error bound is a safety margin that guarantees robustness despite the worst- case disturbance. Augmenting the obstacles by t"
+    },
+    {
+      "page": 3,
+      "excerpt": "e framework When executing the online framework, the ﬁrst step is to sense obstacles in the environment, and then augment the sensed obstacles by a precomputed tracking error bound as described in Section V. This tracking error bound is a safety margin that guarantees robustness despite the worst- case disturbance. Augmenting the obstacles by this margin can be thought of as equivalent to wrapping the planning system with a “safety bubble”. These augmented obstacles are given as inputs to the planner along with the current state of th"
+    },
+    {
+      "page": 4,
+      "excerpt": " in the online algorithm. B. Formalizing the Pursuit-Evasion Game Now that we have the relative dynamics between the two systems we must deﬁne a metric for the tracking error bound between these systems. We do this by deﬁning an implicit surface function as a cost function l(r) in the new frame of reference. Because the metric we care about is distance to the origin (and thus distance to the planning system), this cost function can be as simple as distance in position space to the origin. An example can be seen in Fig. 5-a, where l(r)"
+    },
+    {
+      "page": 4,
+      "excerpt": " to the guaranteed furthest possible tracking error over all time, as seen in Fig. 5-c. In the context of the online framework, the value function V∞(r) is the tracking error bound function. The spatial gradients of the value function, ∇V∞(r), comprise the safety controller function (as described in Section VI). When the framework is executed on a computer, these two functions are saved as look-up tables over a grid representing the state space of the relative system. C. Invariance of Converged Value Function Proposition 1: Suppose th"
+    },
+    {
+      "page": 5,
+      "excerpt": "∞(r). The smallest invariant level set corresponding to the value V := minr V∞(r) can be interpreted as the smallest possible tracking error of the system. The tracking error bound is given by1 the set B = {r : V∞(r) ≤V }. This tracking error bound in the planner’s frame of reference is given by: Bp(s) = {p : V∞(s −Qp) ≤V } (13) This is the tracking error bound that will be used in the online framework as shown in Fig. 2. Within this bound the tracking system may use any controller, but on the border of this bound the tracking system "
+    },
+    {
+      "page": 5,
+      "excerpt": ":= minr V∞(r) can be interpreted as the smallest possible tracking error of the system. The tracking error bound is given by1 the set B = {r : V∞(r) ≤V }. This tracking error bound in the planner’s frame of reference is given by: Bp(s) = {p : V∞(s −Qp) ≤V } (13) This is the tracking error bound that will be used in the online framework as shown in Fig. 2. Within this bound the tracking system may use any controller, but on the border of this bound the tracking system must use the safety optimal controller. We now prove Proposition 1. "
+    },
+    {
+      "page": 5,
+      "excerpt": " given by1 the set B = {r : V∞(r) ≤V }. This tracking error bound in the planner’s frame of reference is given by: Bp(s) = {p : V∞(s −Qp) ≤V } (13) This is the tracking error bound that will be used in the online framework as shown in Fig. 2. Within this bound the tracking system may use any controller, but on the border of this bound the tracking system must use the safety optimal controller. We now prove Proposition 1. Proof: Without loss of generality, assume t1 = 0. By deﬁnition, we have V∞(r) = lim T →∞max t∈[0,T ] l(ξ∗ g(t; r, 0"
+    },
+    {
+      "page": 6,
+      "excerpt": "ear-hover quadrotor developed in [36] tracking a 3D point source path generated by an RRT planner [39]. First we perform the ofﬂine computations to acquire the tracking error bound and safety controller look-up tables. Next we set up the RRT to convert paths to simple 3D trajectories. Finally we implement the online framework to navigate the 10D system through a 3D environment with static obstacles. A. Precomputation of 10D-3D system First we deﬁne the 10D dynamics of the tracking quadrotor and the 3D dynamics of a holonomic vehicle: "
+    },
+    {
+      "page": 6,
+      "excerpt": "in Fig. 6. Fig. 6 also shows 3D positional projections of the mapping between initial relative state to maximum potential relative distance over all time (i.e. tracking error bound). If the real system starts exactly at the origin in relative coordinates, its tracking error bound will be a box of V = 0.81 m in each direction. Slices of the 3D set and corresponding tracking error bounds are also shown in Fig. 7. We save the look-up tables of the value function (i.e. the tracking error function) and its spatial gradients (i.e. the safet"
+    },
+    {
+      "page": 6,
+      "excerpt": " to maximum potential relative distance over all time (i.e. tracking error bound). If the real system starts exactly at the origin in relative coordinates, its tracking error bound will be a box of V = 0.81 m in each direction. Slices of the 3D set and corresponding tracking error bounds are also shown in Fig. 7. We save the look-up tables of the value function (i.e. the tracking error function) and its spatial gradients (i.e. the safety controller function). B. Online Planning with RRT and Sensing Our precomputed value function can s"
+    },
+    {
+      "page": 7,
+      "excerpt": " same slice (vx, vy, vz) = [1, −1, 1] m/s, (θx, ωx, θy, ωy) = 0. The solid boxes show initial relative states, and the transparent boxes show the corresponding tracking error bound. In practice we set the initial relative states to 0 to ﬁnd the smallest invariant tracking error bound. Fig. 7: Various 3D slices of the 10D relative states (solid) and the corresponding tracking error bound (transparent) the quadrotor must also sense obstacles in the vicinity. For illustration, we chose a simple virtual sensor that reveals obstacles withi"
+    },
+    {
+      "page": 7,
+      "excerpt": "tates, and the transparent boxes show the corresponding tracking error bound. In practice we set the initial relative states to 0 to ﬁnd the smallest invariant tracking error bound. Fig. 7: Various 3D slices of the 10D relative states (solid) and the corresponding tracking error bound (transparent) the quadrotor must also sense obstacles in the vicinity. For illustration, we chose a simple virtual sensor that reveals obstacles within a range of 2 m in the x, y, or z directions. Once an obstacle is sensed, the RRT planner replans while"
+    },
+    {
+      "page": 7,
+      "excerpt": "ial relative states to 0 to ﬁnd the smallest invariant tracking error bound. Fig. 7: Various 3D slices of the 10D relative states (solid) and the corresponding tracking error bound (transparent) the quadrotor must also sense obstacles in the vicinity. For illustration, we chose a simple virtual sensor that reveals obstacles within a range of 2 m in the x, y, or z directions. Once an obstacle is sensed, the RRT planner replans while taking into account all obstacles that have been sensed so far. To ensure that the quadrotor does not co"
+    }
+  ],
+  "jenelten2024dtc": [
+    {
+      "page": 1,
+      "excerpt": "Research Article ETH Zurich 1 DTC: Deep Tracking Control FABIAN JENELTEN,1∗JUNZHE HE,1 FARBOD FARSHIDIAN,2 AND MARCO HUTTER1 1Robotic Systems Lab, ETH Zurich, 8092 Zurich, Switzerland. 2Currently at Boston Dynamics AI Institute, 145 Broadway, Cambridge MA, USA ∗Corresponding author: fabian.jenelten@ethz.ch This is the accepted version of Science Robotics Vol. 9, Issue 86, eadh5401 (2024) DOI: 0.1126/sc"
+    },
+    {
+      "page": 1,
+      "excerpt": "n. Our approach utilizes a model-based planner to roll out a reference motion during training. A deep neural network policy is trained in simulation, aiming to track the optimized footholds. We evaluate the accuracy of our locomotion pipeline on sparse terrains, where pure data-driven methods are prone to fail. Furthermore, we demonstrate superior robustness in the presence of slippery or deformable ground when compared to model-based counterparts. Finally, we show that our proposed tracking controller generalizes acros"
+    },
+    {
+      "page": 1,
+      "excerpt": " demonstrate superior robustness in the presence of slippery or deformable ground when compared to model-based counterparts. Finally, we show that our proposed tracking controller generalizes across different trajectory optimization methods not seen during training. In conclusion, our work unites the predictive capabilities and optimality guarantees of online planning with the inherent robustness attributed to offline learning. INTRODUCTION Trajectory optimization (TO) is a commonly deployed instance of op- timal contro"
+    },
+    {
+      "page": 3,
+      "excerpt": "[32] motions obtained by solving TO problems. Conversely, model-based methods have been used to check the feasibility of learned high-level commands [27] or to track learned acceleration profiles [33]. Compared to [32], we do not learn corrective joint torques around an existing WBC, but in- stead, learn the mapping from reference signals to joint positions in an end-to-end fashion. To generate the reference data, we rely on an efficient TO method called terrain-aware motion generation for legged systems (TAMOLS) [21]. "
+    },
+    {
+      "page": 3,
+      "excerpt": "nt for model uncertainties and external disturbances. Our approach incorporates elements introduced in [14], such as time-based rewards and position-based goal tracking. However, we reward desired foothold positions at planned touch-down instead of rewarding a desired base pose at an arbitrarily chosen time. Finally, we use an asymmetric actor-critic structure similar to [22], where we provide privileged ground truth information to the value function and noisified measurements to the network policy. We trained more than"
+    },
+    {
+      "page": 3,
+      "excerpt": "lfully traverse parkours with high precision, and confidently overcome uncertain environments with high robustness. Without the need for any post-training, the tracking policy can be deployed zero-shot with different TO methods at different update rates. Moreover, movie 2 demonstrates successful deployment in search-and-rescue scenarios, which demand both accurate foot place- ment and robust recovery skills. The contributions of our work are therefore twofold: Firstly, we enable the deployment of model-based planners in"
+    },
+    {
+      "page": 5,
+      "excerpt": "d five times. Despite not being trained on movable or deforming obstacles, the robot demonstrated its recovery skills in all five trials without any falls. The tracking policy was trained with perceptive feedback, mean- ing that the policy and the motion planner had partial or complete insight into the local geometrical landscape. Nevertheless, the loco- motion policy was still capable of overcoming many obstacles com- pletely blind. To simulate a scenario with damaged depth sensors, we let ANYmal blindly walk over a st"
+    },
+    {
+      "page": 5,
+      "excerpt": "milar level of robustness. Accompanying video clips can be found in the supplementary movie S1. Evaluation of Accuracy We demonstrate the precision of foothold tracking by devising a com- plex motion that requires the robot to perform a turn-in-place maneuver on a small surface area of 0.94 × 0.44 m2. The robot was commanded to walk up a slope onto a narrow table, then to execute a complete 360 deg turn, and finally to descend onto a pallet. Some snapshots of the experiment are provided in Fig. 3 A, whereas the full vid"
+    },
+    {
+      "page": 5,
+      "excerpt": "o a pallet. Some snapshots of the experiment are provided in Fig. 3 A, whereas the full video is contained in movie S2. To evaluate the quality of the foothold tracking, we collected data while ANYmal walked on flat ground. Each experiment lasted for approximately 20 s and was repeated with eight different heading ve- locities selected from {±1.0, ±0.8, ±0.6, ±0.4} m/s. We measured the tracking error as the smallest horizontal distance between a foot and its associated foothold during a stance phase. As shown in Fig. 3 "
+    },
+    {
+      "page": 6,
+      "excerpt": "4 0.6 0.8 1 0 0.02 0.04 0.06 0.08 0.1 LF RF LH RH -1 -0.8 -0.6 -0.4 -0.2 0 0.2 0.4 0.6 0.8 1 0 0.02 0.04 0.06 0.08 0.1 LF RF LH RH A artistic motion B foothold tracking error C foothold tracking error with baseline-to-2 D Deployment with baseline-to-2 Fig. 3. Evaluation of tracking performance. (A) ANYmal climbs up a narrow table, turns, and descends back down to a box. The second image in the second row shows the robot’s perception of the environment. (B) Euclidean norm of the planar foothold error, averaged over 20 s "
+    },
+    {
+      "page": 6,
+      "excerpt": "06 0.08 0.1 LF RF LH RH -1 -0.8 -0.6 -0.4 -0.2 0 0.2 0.4 0.6 0.8 1 0 0.02 0.04 0.06 0.08 0.1 LF RF LH RH A artistic motion B foothold tracking error C foothold tracking error with baseline-to-2 D Deployment with baseline-to-2 Fig. 3. Evaluation of tracking performance. (A) ANYmal climbs up a narrow table, turns, and descends back down to a box. The second image in the second row shows the robot’s perception of the environment. (B) Euclidean norm of the planar foothold error, averaged over 20 s of operation using a const"
+    },
+    {
+      "page": 6,
+      "excerpt": " 0.1 LF RF LH RH A artistic motion B foothold tracking error C foothold tracking error with baseline-to-2 D Deployment with baseline-to-2 Fig. 3. Evaluation of tracking performance. (A) ANYmal climbs up a narrow table, turns, and descends back down to a box. The second image in the second row shows the robot’s perception of the environment. (B) Euclidean norm of the planar foothold error, averaged over 20 s of operation using a constant heading velocity. The solid/dashed curves represent the average/maximum tracking err"
+    }
+  ]
+}

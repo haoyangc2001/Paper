@@ -14,6 +14,7 @@
 \usepackage[table]{xcolor}
 \definecolor{methodblue}{HTML}{2376AC}
 \usepackage{url}
+\usepackage[hidelinks]{hyperref}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
@@ -77,7 +78,8 @@ may consume more time and actuation. Treating safety and efficiency as independe
 reward terms therefore makes the desired trade-off depend on hand-tuned weights.
 Minimum-cost reach-avoid (MCRA) control provides a more direct task description by
 requiring goal reachability and trajectory-wide avoidance while minimizing a
-cumulative cost~\cite{bansal2017,ganai2024survey}.
+cumulative cost~\cite{bansal2017,ganai2024survey}.\footnote{The CaMRA implementation
+is publicly available at \url{https://github.com/haoyangc2001/NaVILA_CaMRA}.}
 
 Practical MCRA learning has been enabled by RC-PPO~\cite{so2024}.
 Within RC-PPO, the state is augmented with a safety indicator and remaining budget,
@@ -137,14 +139,11 @@ The main contributions are summarized as follows:
       physical-robot evaluation.
 \end{enumerate}
 
-The implementation is publicly available at
-\url{https://github.com/haoyangc2001/NaVILA_CaMRA}.
-
 \section{Related Work}
 \subsection{Minimum-Cost Reach-Avoid Learning}
 In reach-avoid reinforcement learning, reaching a target and avoiding an unsafe
 set are treated as trajectory-level requirements rather than competing reward terms
-\cite{bansal2017,ganai2023}. This formulation is extended to minimum-cost
+\cite{bansal2017,hsu2021,ganai2023}. This formulation is extended to minimum-cost
 reach-avoid control in RC-PPO through state augmentation with a safety indicator
 and remaining budget, budget-conditioned policy and reachability-critic learning,
 and a search for the least feasible initial budget~\cite{so2024}. This construction
@@ -161,20 +160,29 @@ was trained by Jin et al.~\cite{jin2023resilient} to issue velocity commands to 
 existing locomotion controller and respond to perception failures using
 locomotion-level observations. In contrast, a joint-level agile policy was
 developed by He et al.~\cite{he2024abs}, with reach-avoid-guided switching to a
-recovery policy for collision avoidance. A
+recovery policy for collision avoidance. Visual navigation and reusable motor
+skills are connected through hierarchical policies in prior
+work~\cite{jain2021pixels,hoeller2024}. At the local-planning level, smooth,
+collision-free paths are learned from depth observations using differentiable
+cost maps in iPlanner~\cite{yang2023iplanner}. A
 hierarchical architecture is adopted here, with a frozen velocity tracker handling
 locomotion stabilization and a high-level MCRA policy addressing goal reaching,
 obstacle avoidance, and cumulative cost.
 
 \subsection{Robust Deployment under Model--Execution Mismatch}
-In domain randomization and robust reinforcement learning, model uncertainty is
-addressed by broadening the training distribution or optimizing performance
-across uncertain dynamics~\cite{tobin2017,smirnova2019,wang2021,liu2022drql}.
+Model uncertainty is addressed through domain and dynamics randomization by
+broadening the training distribution~\cite{tobin2017,tan2018simreal},
+or through robust reinforcement learning by optimizing performance across uncertain
+dynamics~\cite{smirnova2019,wang2021,liu2022drql}. The need for dynamics randomization
+also depends on the control design and deployment conditions~\cite{xie2021randomization}.
 In chance-constrained and risk-aware planning, uncertainty is instead incorporated
 into planning constraints or risk measures~\cite{theurkauf2023,fan2021step,schmittle2024}. For example, STEP
 is used to estimate stochastic traversability for risk-aware off-road
 planning~\cite{fan2021step}, while multiple long-range planning samples are used by Schmittle et al.
 to account for sensing uncertainty~\cite{schmittle2024}.
+Planning--tracking mismatch is bounded through reachability analysis in
+FaSTrack~\cite{herbert2017fastrack}, while model-based planning and learned tracking
+are combined in DTC to improve accuracy and robustness~\cite{jenelten2024dtc}.
 Here, residual execution errors under a fixed velocity interface are addressed:
 empirical quantiles of paired nominal and executed rollout errors are
 used to calibrate cost and geometric margins for MCRA learning and deployment.
@@ -657,7 +665,7 @@ execution uncertainty can be incorporated into formal reach-avoid and cost
 guarantees.
 
 % Activate balancing within the first column of the reference page.
-\IEEEtriggeratref{9}
+\IEEEtriggeratref{1}
 \IEEEtriggercmd{\balance}
 \bibliographystyle{IEEEtran}
 \bibliography{references}
