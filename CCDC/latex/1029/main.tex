@@ -642,25 +642,19 @@ earlier failures can lower mean cost without reducing its upper tail.
 All terminal outcomes are included in Cost and MC. Results are reported separately
 from the planar benchmark because the route, horizon, and footprint differ.
 
-\section{Limitations}
-Calibration quantiles do not guarantee
-coverage under temporal correlation, rare contacts, or distribution shift.
-A fixed $\alpha$ can be excessive in open space yet insufficient under actuator
-or perception faults; a fixed $\delta$ can eliminate feasible narrow passages.
-LiDAR can miss thin or occluded structures. The small indoor hardware study also needs to be extended to different terrain,
-payload, and weather conditions. The planar
-benchmark simplifies whole-body geometry, and the reported intervals are conditional
-on a small fixed policy bank rather than quantifying variation across new training seeds.
-
 \section{Conclusion}
-The inherited RC-PPO objective and solver are connected to a quadruped through
-a frozen velocity interface and paired execution calibration in CaMRA. Separate
-corrections $\alpha$ and $\delta$ are determined from cost overrun and path
-deviation. Robustness within the calibration distribution is addressed empirically by this
-engineering layer, without a new stochastic reach-avoid guarantee. The
-need to address cost accounting and geometric clearance separately is supported
-by the comparisons and ablations. The benefits of these corrections must be assessed jointly with goal-reaching:
-larger margins can reduce violations while excluding useful routes.
+The deployment of minimum-cost reach-avoid navigation on quadrupedal robots is
+addressed through hierarchical control and execution calibration in CaMRA. The
+difficulty of jointly learning locomotion and navigation is mitigated by assigning
+motion stabilization to a frozen low-level controller and navigation decisions to
+a high-level policy. Remaining discrepancies between nominal and executed behavior
+are accounted for through separate cost and geometric margins. The reported
+evaluations illustrate how budget compliance and obstacle clearance are affected
+by these corrections, together with their implications for goal reachability.
+Building on the current geometric navigation formulation, future work will be
+directed toward semantic task understanding and a stochastic formulation in which
+execution uncertainty can be incorporated into formal reach-avoid and cost
+guarantees.
 
 % Activate balancing within the first column of the reference page.
 \IEEEtriggeratref{9}
