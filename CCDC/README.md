@@ -1,72 +1,46 @@
-# CCDC 2027 投稿工作区
+# CCDC 2027 论文工作区
 
-2026-10-29 当前版本为 [1029 无附录稿](latex/1029/README.md)：从 1020 完整复制相关材料后移除编译正文中的附录，PDF 共 7 页（含参考文献），图表保持单栏，正文与官方模板格式保留。编译入口为 `scripts/build-1029.ps1`，结果为 `output/1029/main.pdf`。原 1020 完整版保留。以下旧条目属于历史记录。
-
-图二最新尺寸已按用户反馈恢复为90mm源图高度，宽度扩到220mm（旧四列181×90mm）；改用mc_extension_v2，单栏插入规则及全部数据不变。第一版89×70mm图保留。
-
-2026-10-25当前更新：1020稿图二已增加MC并按SR/Cost/CR/BVR/MC排列，105个场景级点与表一35项均值对应，数据及区间仍为假设。正文/图注、绘图数据入口和核查脚本同步，原四列文件保留。最新编译全文为9页，与本轮基线相同，仍超过已记录的8页投稿上限；后续需要单独处理篇幅。当前图二在第5页，所有图表仍单栏；详见[版本说明](latex/1020/README.md)。下方按时间记录的早期8页、跨栏等描述为历史状态。
-
-按 CORL 的主要目录布局建立，当前已下载并验证 CCDC 官方 LaTeX 模板。
+当前版本为[1029无附录稿](latex/1029/README.md)：[LaTeX正文](latex/1029/main.tex)、[论文PDF](output/1029/main.pdf)。PDF共7页，含23篇参考文献；图表为单栏。原1020完整版及官方模板保留。
 
 ## 目录
 
-```text
-CCDC/
-├── data/           实验数据
-├── images/         论文图片
-├── latex/
-│   ├── 1020/       2026-10-20 迁入的论文正文与官方样式
-│   └── template/
-│       └── Conference-LaTeX-template_10-17-19/  官方原始模板
-├── output/
-│   ├── 1020/       当前论文编译输出
-│   └── template/   官方示例编译输出
-├── plan/           修改计划与工作记录
-├── references/     参考文献材料
-├── scripts/        编译及辅助脚本
-└── submission/     官方下载包及投稿材料
-```
-
-论文版本放入 `latex/<版本>/`，编译结果放入 `output/<版本>/`，与 CORL 的版本组织方式一致。`latex/template/` 是保留不变的官方示例。当前论文版本为 [1020](latex/1020/README.md)，内容迁自 `CORL/latex/0914/main.tex`，相关图片位于 `images/1020/`。
-
-## 模板来源
-
-- 下载日期：2026-10-20。
-- CCDC 官方投稿说明：http://www.ccdc.neu.edu.cn/firstSubmit/list.htm
-- 官方 LaTeX 压缩包：http://www.ccdc.neu.edu.cn/_upload/tpl/01/4f/335/template335/htmlRes/download/conference-latex-template.zip
-- 本地原始包：`submission/conference-latex-template.zip`。
-- SHA256：`4C0539EED7BD4221D026382A56C57EC1668C55A8CA72B581F7A28654401DEDC9`。
-- 主文件：`latex/template/Conference-LaTeX-template_10-17-19/conference_101719.tex`。
-- 样式：模板自带 `IEEEtran.cls`，采用 IEEE 双栏会议格式。
-
-压缩包中的目录名含 `10-17-19`，这是当前 CCDC 官方提供的通用 IEEE 模板的原始名称，并非下载了另一届会议模板。原始模板文件保持不变。
+| 目录 | 内容 |
+| --- | --- |
+| `latex/1029/` | 当前源稿、BibTeX及IEEE样式 |
+| `output/1029/main.pdf` | 最新编译PDF |
+| `images/1029/` | 当前正文图片 |
+| `data/1029/` | 绘图数据、配置及数据来源 |
+| `references/1029/` | 参考论文及来源 |
+| `scripts/` | 编译、绘图和核查脚本 |
+| `submission/1029/` | 投稿资料、作者来源、数据替换说明 |
+| `latex/1020/` | 历史完整源稿 |
+| `latex/template/` | 官方原始模板 |
 
 ## 编译
 
-在本目录运行：
+在仓库根目录运行：
 
 ```powershell
-.\scripts\build-template.ps1
+& CCDC/scripts/build-1029.ps1
 ```
 
-脚本使用本机 `D:/app/latex/texlive/2026/bin/windows/pdflatex.exe`，连续编译两次，结果为 `output/template/conference_101719.pdf`。
+结果写入`CCDC/output/1029/main.pdf`。脚本通过本机`latex-paper-en/scripts/compile.py`调用latexmk；默认使用`D:/codesoftware/Miniconda/python.exe`及`D:/app/latex/texlive/2026/bin/windows`，可通过脚本参数调整。编译中间文件可重新生成，不需要作为正文资料保存。
 
-编译当前论文：
+## 数据与版本
 
-```powershell
-.\scripts\build-1020.ps1
-```
+当前名称为CaMRA，历史数据中的HD-MCRA标识通过`scripts/method_names.py`映射。数据来源、推断台账及真实数据替换说明保留在data和submission目录。当前新增统计仍有内部推断示例，格式及语言定稿不等于完成真实实验验证。
 
-结果为 `output/1020/main.pdf`。2026-10-23完成数据一致性核查，换入新版多方法点区间图，同步消融重复基准和预算曲线，并加入已有轨迹与同步曲线图。全部四张图片直接使用原图单栏展示，两张表保留跨栏；全文仍为8页（含附录和参考文献）。总览图在第3页，指标对比图在第4页，轨迹图及两张表在第5页，预算图在第6页。模板格式保持不变，假设数据性质、TBD和作者占位仍保留。修改记录见[数据一致性核查](submission/1023数据一致性核查.md)及[当前版本说明](latex/1020/README.md)。
+`scripts/1029/`为复制时的工具快照，部分路径指向旧版本；当前编译使用上面的独立入口。
 
-## 本届篇幅说明
+## 投稿资料
 
-2026-10-20 核实的官方中文投稿页规定：初投最多 8 页；终稿常规篇幅 6 页，超过 6 页每页加收 200 元，终稿最多 8 页。建议按全文 6 页准备，参考文献在未获明确豁免前计入总页数。应使用官方格式重排后统计页数，不能直接按 CoRL 单栏稿页数比较。投稿前以官网及系统最新说明为准。
+- [本届投稿核查](submission/1029/CCDC2027_投稿合规核查_20261030.md)
+- [官方投稿要求及篇幅记录](submission/1029/CCDC2027投稿要求与篇幅规划.md)
+- [新增参考论文](references/1029/literature_expansion_20261030/README.md)
+- 官方页面：http://www.ccdc.neu.edu.cn/firstSubmit/list.htm
 
-详细规则、官方来源、待确认事项及本稿篇幅建议见 [CCDC 2027 投稿要求与篇幅规划](submission/CCDC2027投稿要求与篇幅规划.md)。官方中英文征稿 PDF 已归档到 `submission/`。
+此前记录为初稿最多8页、终稿超过6页需付超页费；正式提交以本届系统最新要求为准。
 
-## 实验与绘图审查
+## 过程资料
 
-2026-10-20 对当前 1020 稿进行了证据与图表审查，见 [结果缺口与绘图建议](submission/1020审稿视角_结果缺口与绘图建议.md)。六篇相关论文的本地原文、图页预览、重点原图及来源说明见 [绘图参考阅读集](references/figure_review_20261020/README.md)。本轮联网审批服务故障，归档文件为已有本地文献的原样副本，未冒称新下载。
-
-2026-10-29 名称统一：本次 CCDC 当前稿件统一使用 **CaMRA（Calibrated Minimum-Cost Reach-Avoid）**，HD-MCRA 为旧称。正文、表格和当前图2/3/5/6已同步，数据、样式及尺寸不变；历史版本、数据内部标识和外部绘图工程保留原样。名称映射见 `CCDC/scripts/method_names.py`，本次固定源图的改名与核查见 `CCDC/scripts/rename_camra_figures.py`（路径相对于仓库根目录；`--check` 为只读核查，不带参数仅复现本次旧图快照，后续新数据重绘需更新输入与映射）。
+2026-10-31清理的计划、排版预览和阶段报告保存在本机[集中备份](../.local/cleanup_20261031/README.md)。原文件路径与SHA-256均在备份清单中；历史资料中的过程文件链接可据此恢复。
