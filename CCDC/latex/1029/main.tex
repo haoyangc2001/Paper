@@ -122,14 +122,19 @@ quantify execution mismatch through this fixed interface, assess whether
 $\alpha$ and $\delta$ address different failure modes, and evaluate how the
 complete system behaves on hardware.
 
-The main contributions are:
+The main contributions are summarized as follows:
 \begin{enumerate}
-\item An execution-calibrated framework is proposed for quadruped MCRA
-      deployment, combining a frozen velocity interface with data-driven cost and
-      safety margins to account for model--execution mismatch.
-\item A systematic evaluation protocol is developed to assess the distinct
-      effects of both margins and characterize system performance and deployment
-      limitations through controlled tests and physical-robot evaluation.
+\item A hierarchical framework is developed for quadruped minimum-cost reach-avoid
+      navigation. Locomotion stabilization is separated from navigation learning
+      through a pretrained, frozen velocity tracker, which provides a consistent
+      interface for calibration and deployment.
+\item Two execution margins are calibrated from paired nominal and executed
+      trajectories. Budget accounting and unsafe-set geometry are corrected
+      separately to incorporate execution mismatch into high-level learning and
+      budget selection.
+\item The roles of both margins and their deployment trade-offs are examined
+      through navigation comparisons, ablations, held-out calibration tests, and
+      physical-robot evaluation.
 \end{enumerate}
 
 The implementation is publicly available at
