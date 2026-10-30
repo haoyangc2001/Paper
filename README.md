@@ -8,12 +8,21 @@ paper/
 │   ├── CCDC/          # 当前投稿及历史完整稿
 │   ├── CORL/          # 早期稿件与原审稿意见
 │   └── figures/       # 原“绘图”：各图的数据、脚本与成图
-├── RC-PPO/            # 既有算法参考项目
+├── RC-PPO/            # 冻结保留的原算法参考实现
+├── locomotion/        # 底层强化学习速度跟踪器
+├── calibration/       # 冻结底层后的执行误差校准与检验
+├── navigation/        # 上层最小成本到达避障导航器
 ├── .local/            # 本机备份，由 Git 忽略
 └── README.md
 ```
 
-后续代码按独立项目放在根目录：先实现低层强化学习运动控制器，再实现四足机器人上的最小成本到达避障导航。建议分别使用 `locomotion/` 和 `camra/`，开始实现时再创建。
+三个实现目录目前仅包含用途说明，尚未添加代码。开发顺序为：训练底层速度跟踪器，冻结后采集执行误差并校准、检验裕度，最后训练上层导航器。
+
+- [locomotion](locomotion/README.md)：接收速度指令，输出关节控制，承担平衡、步态协调和动作平滑。
+- [calibration](calibration/README.md)：比较名义轨迹与实际执行，计算并独立检验成本裕度 α 和几何裕度 δ。
+- [navigation](navigation/README.md)：根据观测、目标和预算生成速度指令，完成最小成本到达避障导航。
+
+[RC-PPO 参考实现说明](RC-PPO/README.md)介绍原算法的网络、训练流程、环境及现有副本状态。该目录已去除中间的 `src/` 层，原代码保持不变，后续修复和机器人适配在新项目中进行。
 
 ## 当前稿件
 
@@ -36,7 +45,7 @@ paper/
 - `manuscripts/CCDC/scripts/`、`manuscripts/figures/`：编译、绘图及复现脚本。
 - `manuscripts/CCDC/submission/1029/`：投稿要求、作者资料、数据替换说明与必要核查。
 - `manuscripts/CCDC/latex/1020/`、`manuscripts/CORL/`：历史稿件；原审稿意见位于 `manuscripts/CORL/submission/`。
-- `RC-PPO/`：算法参考实现。
+- `RC-PPO/`：冻结的算法参考实现，后续不直接修改其中代码。
 
 ## 过程文件清理
 
