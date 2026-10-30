@@ -179,7 +179,7 @@ Here, residual execution errors under a fixed velocity interface are addressed:
 empirical quantiles of paired nominal and executed rollout errors are
 used to calibrate cost and geometric margins for MCRA learning and deployment.
 
-\section{Problem Setup: From Ideal MCRA to Quadruped Execution}
+\section{Problem Formulation}
 \label{sec:problem_setup}
 \subsection{MCRA and RC-PPO Recap}
 The navigation layer is modeled as a discrete-time process with state $x_t\in
@@ -217,8 +217,7 @@ practical choice is $C=\max_{x\in\mathcal{X}}g(x)$~\cite{so2024}. Reaching the
 zero sublevel set of $\hat{g}$ therefore encodes goal reaching, trajectory-wide
 avoidance, and the upper-bound property $z_0\geq\sum_t c_t$. The reachability critic,
 budget-conditioned actor, and two-phase minimum-budget search from RC-PPO are
-adopted as the high-level decision backbone. The connection to quadruped closed-loop execution and the resulting
-model--execution mismatch are defined below.
+adopted as the high-level decision backbone.
 
 \subsection{Quadruped Closed-Loop Execution}
 On hardware, $u_t$ is a desired body velocity that is realized by a locomotion
