@@ -6,7 +6,7 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 
 ## 来源与当前状态
 
-- 本地项目名称为 **CaMRA Locomotion**，直接使用 `locomotion/` 作为项目根目录，不再套一层上游仓库目录。
+- 本地模块名称为 **CaMRA Locomotion**，位于工作区的 `CaMRA/locomotion/`，不再套一层上游仓库目录；系统说明见 [CaMRA README](../README.md)。
 - 已完整引入上游源码快照；本次仅新增本地说明，并将原始 README 保存为 [README.upstream.md](README.upstream.md)，训练和部署代码保持上游状态。
 - 上游提交及引入范围见 [UPSTREAM.md](UPSTREAM.md)。保留原始 [LICENCE](LICENCE)、第三方许可和源码版权声明。
 - Python 包名 `unitree_rl_lab`、启动脚本 `unitree_rl_lab.sh` 和任务 ID `Unitree-Go2-Velocity` 保留，以维持上游模块导入和脚本兼容性。这些内部标识不影响外层项目命名。

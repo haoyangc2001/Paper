@@ -2,7 +2,7 @@
 
 | 项目 | 记录 |
 | --- | --- |
-| 本地模块 | CaMRA Locomotion（`locomotion/`） |
+| 本地模块 | CaMRA Locomotion（工作区的 `CaMRA/locomotion/`） |
 | 上游仓库 | https://github.com/unitreerobotics/unitree_rl_lab |
 | 分支 | `main` |
 | 提交 | `4960b84732b0c2ec593dccbfe963fda1bcd7b1e3` |
@@ -12,7 +12,7 @@
 
 ## 引入方式
 
-从上述提交导出完整 Git 源码快照，直接并入当前工作区的 `locomotion/` 目录，由工作区统一进行 Git 管理，不建立嵌套仓库或子模块。
+从上述提交导出完整 Git 源码快照，最初并入工作区的 `locomotion/` 目录，随后与校准和导航模块一起迁入 `CaMRA/`。当前路径为 `CaMRA/locomotion/`，由工作区统一进行 Git 管理，不建立嵌套仓库或子模块。目录迁移未改动训练和部署代码。
 
 上游 161 个受版本控制文件全部保留；唯一的路径调整是将上游 `README.md` 保存为 `README.upstream.md`。本地 `README.md` 用于说明 CaMRA 模块定位、来源及后续接入方式，另新增本来源记录。训练配置、Python 包、部署代码、第三方库、示例文件及许可证未作内容修改。
 

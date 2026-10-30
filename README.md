@@ -9,20 +9,25 @@ paper/
 │   ├── CORL/          # 早期稿件与原审稿意见
 │   └── figures/       # 原“绘图”：各图的数据、脚本与成图
 ├── RC-PPO/            # 冻结保留的原算法参考实现
-├── locomotion/        # 底层强化学习速度跟踪器
-├── calibration/       # 冻结底层后的执行误差校准与检验
-├── navigation/        # 上层最小成本到达避障导航器
+├── HiRA/              # 独立 Git 仓库：Reach-Avoid 分层导航参考项目
+├── CaMRA/             # 四足机器人分层导航系统
+│   ├── README.md      # 系统介绍、模块关系与开发顺序
+│   ├── locomotion/    # 底层强化学习速度跟踪器
+│   ├── calibration/   # 冻结底层后的执行误差校准与检验
+│   └── navigation/    # 上层最小成本到达避障导航器
 ├── .local/            # 本机备份，由 Git 忽略
 └── README.md
 ```
 
-`locomotion/` 已引入宇树官方训练与部署框架，作为 CaMRA 的底层控制实现基础；`calibration/` 和 `navigation/` 目前仅包含用途说明。开发顺序为：训练底层速度跟踪器，冻结后采集执行误差并校准、检验裕度，最后训练上层导航器。
+实现代码集中在 [CaMRA](CaMRA/README.md) 下。`CaMRA/locomotion/` 已引入宇树官方训练与部署框架；`CaMRA/calibration/` 和 `CaMRA/navigation/` 目前仅包含用途说明。开发顺序为：训练底层速度跟踪器，冻结后采集执行误差并校准、检验裕度，最后训练上层导航器。
 
-- [CaMRA Locomotion](locomotion/README.md)：基于宇树官方 `unitree_rl_lab`，接收速度指令、输出关节控制，承担平衡、步态协调和动作平滑；上游版本见 [来源记录](locomotion/UPSTREAM.md)。
-- [calibration](calibration/README.md)：比较名义轨迹与实际执行，计算并独立检验成本裕度 α 和几何裕度 δ。
-- [navigation](navigation/README.md)：根据观测、目标和预算生成速度指令，完成最小成本到达避障导航。
+- [CaMRA Locomotion](CaMRA/locomotion/README.md)：基于宇树官方 `unitree_rl_lab`，接收速度指令、输出关节控制，承担平衡、步态协调和动作平滑；上游版本见 [来源记录](CaMRA/locomotion/UPSTREAM.md)。
+- [calibration](CaMRA/calibration/README.md)：比较名义轨迹与实际执行，计算并独立检验成本裕度 α 和几何裕度 δ。
+- [navigation](CaMRA/navigation/README.md)：根据观测、目标和预算生成速度指令，完成最小成本到达避障导航。
 
 [RC-PPO 参考实现说明](RC-PPO/README.md)介绍原算法的网络、训练流程、环境及现有副本状态。该目录已去除中间的 `src/` 层，原代码保持不变，后续修复和机器人适配在新项目中进行。
+
+[HiRA](HiRA/README.md) 是基于 Reach-Avoid 理论的四足机器人分层避障导航参考项目，原仓库名为 `Go2HierarchicalReachAvoidRL`。它与 CaMRA 分开维护，保留独立 Git 历史和原远程地址，由自身仓库管理修改；工作区 Git 忽略该目录，避免误加入为嵌套仓库。
 
 ## 当前稿件
 

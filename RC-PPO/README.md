@@ -6,9 +6,9 @@
 
 ## 保留约定
 
-**本目录作为冻结的算法参考副本，后续不得直接调整其中的代码。** 训练算法、网络、环境、参数脚本和资源文件均保留原样；发现问题时先记录，修复、重构及四足机器人适配放在根目录的 [navigation](../navigation/README.md) 等新项目中实现。
+**本目录作为冻结的算法参考副本，后续不得直接调整其中的代码。** 训练算法、网络、环境、参数脚本和资源文件均保留原样；发现问题时先记录，修复、重构及四足机器人适配放在 [CaMRA/navigation](../CaMRA/navigation/README.md) 等实现模块中进行。
 
-底层速度跟踪器放在 [locomotion](../locomotion/README.md)，执行误差校准与检验放在 [calibration](../calibration/README.md)。本目录只承担原实现的阅读、追溯和对照用途。
+底层速度跟踪器放在 [CaMRA/locomotion](../CaMRA/locomotion/README.md)，执行误差校准与检验放在 [CaMRA/calibration](../CaMRA/calibration/README.md)。本目录只承担原实现的阅读、追溯和对照用途。
 
 2026-10-31仅将原 `RC-PPO/src/` 内部目录上移一级，并新增本说明。迁移前后全部 28 个原文件的 SHA-256 一致，未修正原有导入或运行路径。整理前源文件树可通过 Git 对象 `19ea6dcfad4189b07a1fda4d8bd3d549122f5344` 追溯。
 
