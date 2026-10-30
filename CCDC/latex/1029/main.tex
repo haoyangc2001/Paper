@@ -61,7 +61,7 @@
 \maketitle
 
 \begin{abstract}
-The deployment of minimum-cost reach-avoid control on a real quadruped robot is investigated. Coupled locomotion--navigation learning and model--execution mismatch are addressed through hierarchical control and two data-calibrated margins. A pretrained, frozen velocity tracker separates locomotion stabilization from high-level navigation learning. Nominal budget accounting is corrected by the cost margin, while the unsafe set is expanded by the geometric margin before high-level learning. Across three navigation scenarios, a success rate of 73.3\% and a budget violation rate of 9.0\% are obtained with the resulting calibrated minimum-cost reach-avoid (CaMRA) system, compared with 70.7\% and 14.0\% for uncalibrated RC-PPO. The distinct roles and deployment limits of these corrections are examined through ablation, held-out calibration, and physical-robot studies. An execution-calibrated pipeline is established to connect nominal minimum-cost reach-avoid planning with quadruped closed-loop execution.
+The deployment of minimum-cost reach-avoid control on a physical quadruped robot is investigated. The challenges of coupled locomotion--navigation learning and model--execution mismatch are addressed through hierarchical control and two data-calibrated margins. Locomotion stabilization is separated from high-level navigation learning by a pretrained, frozen velocity tracker. Before high-level learning, nominal budget accounting is corrected by the cost margin, and the unsafe set is expanded by the geometric margin. Across three navigation scenarios, a success rate of 73.3\% and a budget violation rate of 9.0\% are obtained with the resulting calibrated minimum-cost reach-avoid (CaMRA) system, compared with 70.7\% and 14.0\% for uncalibrated RC-PPO. The distinct roles and deployment limits of these corrections are examined through ablation, held-out calibration, and physical-robot studies. An execution-calibrated pipeline is established to connect nominal minimum-cost reach-avoid planning with quadruped closed-loop execution.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -71,7 +71,7 @@ quadruped navigation, reach-avoid control, safe robot learning
 \section{Introduction}
 Quadruped robots are increasingly used for inspection, exploration, and service
 tasks in environments where a navigation policy must do more than reach a target.
-The robot must remain collision-free throughout the maneuver while avoiding
+The robot must remain collision-free throughout each maneuver while avoiding
 unnecessary motion and energy expenditure. These requirements are coupled in
 cluttered scenes: a short route may pass close to obstacles, whereas a safer route
 may consume more time and actuation. Treating safety and efficiency as independent
@@ -93,8 +93,9 @@ decisions to joint-level motion. With direct joint commands, the policy must lea
 balance and gait coordination together with collision-free goal reaching. Although
 falls, excessive body tilt, and obstacle collisions can be encoded as unsafe
 states, these constraints alone do not fully specify coordinated and smooth
-locomotion. During early training, informative navigation rollouts may be interrupted by
-unstable motion, hindering the learning of route selection and cost optimization. A low-level velocity tracker is therefore pretrained
+locomotion. During early training, informative navigation rollouts may be
+interrupted by unstable motion, hindering the learning of route selection and
+cost optimization. A low-level velocity tracker is therefore pretrained
 to address balance, gait coordination, and action smoothness, and is frozen before
 high-level learning. Navigation is then learned through a fixed velocity-command
 interface using RC-PPO.
@@ -114,7 +115,7 @@ accommodate path deviations. High-level policy learning and budget search are
 subsequently performed using the calibrated model, and the resulting policy is
 deployed through the same frozen controller.
 
-An ideal MCRA learner is connected to physical closed-loop execution through the proposed
+An ideal MCRA learner is connected to physical closed-loop execution through the
 calibrated minimum-cost reach-avoid (CaMRA) deployment pipeline. No strict
 stochastic safety guarantee or extension of RC-PPO's deterministic theory to general
 stochastic systems is claimed; the scope is limited to empirical robustness under
@@ -147,7 +148,7 @@ set are treated as trajectory-level requirements rather than competing reward te
 \cite{bansal2017,hsu2021,ganai2023}. This formulation is extended to minimum-cost
 reach-avoid control in RC-PPO through state augmentation with a safety indicator
 and remaining budget, budget-conditioned policy and reachability-critic learning,
-and a search for the least feasible initial budget~\cite{so2024}. This construction
+and a search for the least feasible initial budget~\cite{so2024}. This formulation
 is adopted as the algorithmic foundation for connecting nominal MCRA decisions
 to quadruped execution.
 
@@ -165,8 +166,8 @@ recovery policy for collision avoidance. Visual navigation and reusable motor
 skills are connected through hierarchical policies in prior
 work~\cite{jain2021pixels,hoeller2024}. At the local-planning level, smooth,
 collision-free paths are learned from depth observations using differentiable
-cost maps in iPlanner~\cite{yang2023iplanner}. A
-hierarchical architecture is adopted here, with a frozen velocity tracker handling
+cost maps in iPlanner~\cite{yang2023iplanner}. A hierarchical architecture is
+adopted here, with a frozen velocity tracker handling
 locomotion stabilization and a high-level MCRA policy addressing goal reaching,
 obstacle avoidance, and cumulative cost.
 
@@ -195,8 +196,8 @@ The navigation layer is modeled as a discrete-time process with state $x_t\in
 \mathcal{X}$, high-level velocity command $u_t\in\mathcal{U}^{\mathrm{high}}$,
 transition kernel $P$, running cost $c$, and initial-state distribution $\rho_0$.
 The MCRA objective is to reach a goal set $\mathcal{G}$, avoid an unsafe set
-$\mathcal{F}$ at every step, and minimize the accumulated cost until a free terminal
-time $T$:
+$\mathcal{F}$ at every step, and minimize the accumulated cost up to a freely
+chosen terminal time $T$:
 \begin{equation}
 \min_{\pi,T}\quad \sum_{t=0}^{T-1}c(x_t,\pi(x_t))
 \label{eq:mcra_objective}
@@ -230,8 +231,8 @@ adopted as the high-level decision backbone.
 
 \subsection{Quadruped Closed-Loop Execution}
 On hardware, $u_t$ is a desired body velocity that is realized by a locomotion
-controller. Let $P_{\mathrm{cl}}$ denote the induced closed-loop transition after
-this controller is applied. The nominal model used by high-level learning is
+controller. Let $P_{\mathrm{cl}}$ denote the closed-loop transition induced by
+this controller. The nominal model used for high-level learning is
 $x_{t+1}=\bar f_{\mathrm{cl}}(x_t,u_t)$, while the executed transition is sampled
 from $P_{\mathrm{cl}}(\cdot\mid x_t,u_t)$. The difference is the deployment gap
 addressed by CaMRA. For a paired nominal/executed rollout, the relative
@@ -243,7 +244,8 @@ cost overrun and a trajectory-deviation statistic are defined as
 \label{eq:execution_errors}
 \end{equation}
 Here $J$ is a nonnegative navigation proxy cost in arbitrary units (a.u.),
-not measured electrical energy. The same command program and time window are used for both rollouts in a pair;
+not measured electrical energy. The same command program and time window are
+used for both rollouts in a pair;
 $d$ is the maximum planar distance between their time-aligned positions.
 
 \subsection{Deployment Objective and Scope}
@@ -260,8 +262,8 @@ high-level learning and deployment.
 \subsection{System Overview}
 The CaMRA architecture is shown in Fig.~\ref{fig:system_overview}. A high-level
 MCRA navigation policy is coupled with a pretrained, frozen low-level velocity
-tracker. System development is divided into two stages. First, the tracker is trained and
-frozen, and paired nominal and executed rollouts are collected to calibrate the
+tracker. System development is divided into two stages. First, the tracker is
+trained and frozen, and paired nominal and executed rollouts are collected to calibrate the
 cost margin $\alpha$ and geometric margin $\delta$. Second, these margins are
 incorporated into RC-PPO-based high-level learning and initial-budget selection.
 During deployment, body-velocity commands are generated by the navigation policy
@@ -290,32 +292,35 @@ The low-level tracker is pretrained using PPO and domain randomization to track
 velocity commands while maintaining balance, gait coordination, and action
 smoothness. Proprioceptive observations and body-velocity commands
 $u_t=[v_x^*,v_y^*,\omega_z^*]^\top$ are mapped to joint commands. Execution
-disturbances are attenuated through closed-loop feedback within the trained command domain. The tracker is
-then frozen before mismatch calibration and high-level learning, preventing
-subsequent low-level parameter updates from changing the execution interface. The high-level policy is consequently trained to issue velocity commands rather
-than coordinate joint actions directly.
+disturbances are attenuated through closed-loop feedback within the trained
+command domain. The tracker is then frozen before mismatch calibration and
+high-level learning, so the execution interface is not altered by subsequent
+low-level parameter updates. The high-level policy is consequently trained to
+issue velocity commands rather than coordinate joint actions directly.
 
 The nominal map $\bar f_{\mathrm{cl}}$ abstracts this interface by integrating
 commanded body velocities over each high-level decision interval under ideal
-tracking. Deviations from this abstraction can nevertheless arise from contact variation,
+tracking. Deviations from this abstraction can arise from contact variation,
 friction, actuation latency, and state-estimation errors. The same frozen
 tracker and command domain are retained for calibration, high-level learning, and
 deployment, providing a consistent basis for measuring residual mismatch and
-calibrating the margins in the next subsection.
+calibrating the execution margins.
 
 \subsection{Execution-Mismatch Calibration}
 \label{sec:execution_calibration}
 To convert execution mismatch into cost and safety margins, paired nominal and
-executed rollouts are collected through the frozen velocity interface. For each pair, identical initial states, maps, goals, and high-level command
-sequences are used for the nominal rollout and its perturbed execution. For a rollout of length $T$,
-let
+executed rollouts are collected through the frozen velocity interface. For each
+pair, identical initial states, maps, goals, and high-level command sequences are
+used for the nominal rollout and its perturbed execution. For a rollout of length $T$, let
 $J_{\rm nom}=\sum_{t=0}^{T-1}c(x_t^{\rm nom},u_t)$ and
-$J_{\rm exec}=\sum_{t=0}^{T-1}c(x_t^{\rm exec},u_t)$. Disjoint rollout sets are used for calibration and independent evaluation;
-evaluation data are excluded from margin selection.
+$J_{\rm exec}=\sum_{t=0}^{T-1}c(x_t^{\rm exec},u_t)$. Disjoint rollout sets are
+used for calibration and independent evaluation, with evaluation data excluded
+from margin selection.
 
 For $J_{\rm nom}>0$, the relative cost overrun $\varepsilon_c$ is computed from
-the paired cumulative costs using the definition in Section~\ref{sec:problem_setup}. For geometric
-deviation, the maximum planar distance between time-aligned base positions is used,
+the paired cumulative costs using the definition in Section~\ref{sec:problem_setup}.
+Geometric deviation is measured as the maximum planar distance between
+time-aligned base positions,
 \begin{equation}
 \varepsilon_d=\max_{0\leq t\leq T} \left\|p_t^{\rm exec}-p_t^{\rm nom}\right\|_2,
 \label{eq:max_planar_deviation}
@@ -334,7 +339,7 @@ calibrated running cost is
 $\tilde c(x_t,u_t)=(1+\alpha)c(x_t,u_t)$, so the remaining budget evolves as
 $z_{t+1}=z_t-\tilde c(x_t,u_t)$. The unsafe set is dilated to
 $\mathcal{F}_\delta=\{x:d(x,\mathcal{F})\leq\delta\}$. Both margins are determined
-before high-level learning and are held fixed, with empirical coverage tied to the
+before high-level learning and are held fixed, with empirical coverage dependent on the
 execution conditions represented in the calibration data.
 
 \subsection{Robust MCRA Learning and Deployment}
@@ -348,8 +353,8 @@ while the safety indicator and augmented goal are determined from the expanded
 unsafe set $\mathcal{F}_\delta$. A stochastic actor
 $\pi_\theta(u\mid o,y,z)$ and two critics are used: goal reaching and safety
 are evaluated by $V_h$, while corrected cumulative cost is estimated by $V_c$
-over the same stopping horizon. With
-cost normalized by the scene-specific reference budget $z_{\rm ref}>0$, the combined residual is
+over the same stopping horizon. With cost normalized by the scene-specific
+reference budget $z_{\rm ref}>0$, the combined residual is
 \begin{equation}
 W=\max\{V_h,V_c-z/z_{\rm ref}\}.
 \label{eq:combined_residual}
@@ -376,25 +381,27 @@ obtained from a parallel nominal rollout driven by the same commands.
 \label{sec:experimental_setup}
 Navigation performance, execution-error calibration, margin contributions and
 sensitivity, budget selection, robustness to execution disturbances, and physical
-deployment are evaluated. High-level decisions through the velocity interface are
+deployment are evaluated. High-level decisions made through the velocity interface are
 assessed in the planar navigation benchmark, while quadruped execution is examined
 in the hardware study.
 
 The navigation benchmark comprises moderately cluttered, narrow-passage, and
 densely obstructed maps, each spanning $8\times8$ m. Test maps, navigation
 observations, command limits, and the frozen velocity tracker are shared across
-methods, with matched training interaction budgets and network widths. The high-level decision
-interval is 0.2 s, and the episode horizon is 30 s. Each method is evaluated using three policies trained with different random
-seeds, with 100 trials per policy and scenario, yielding 300 trials per scenario
-and 900 overall. Separate rollout
-sets are used for calibration, training, budget selection, and final evaluation.
+methods, with matched training interaction budgets and network widths. The
+high-level decision interval is 0.2 s, and the episode horizon is 30 s. Each method
+is evaluated using three policies trained with different random seeds. With
+100 trials per policy and scenario, 300 trials are obtained per scenario and
+900 overall. Separate rollout sets are used for calibration, training, budget
+selection, and final evaluation.
 
 Five metrics are reported: success rate (SR), mean executed cost (Cost), physical
 collision rate (CR), budget violation rate (BVR), and mean per-trial minimum
 clearance (MC). Success requires collision-free goal reaching before timeout;
 budget compliance is assessed separately. Collision and clearance are measured
-against a common physical robot footprint. Cost and MC are computed over all trials up to goal reaching, collision, or
-timeout; evaluation is continued after budget exceedance. The reference budgets
+against a common physical robot footprint. Cost and MC are computed over all
+trials up to goal reaching, collision, or timeout; evaluation continues after
+the budget is exceeded. The reference budgets
 $z_{\rm ref}$ are 120, 140, and 190 a.u. for the moderately cluttered,
 narrow-passage, and densely obstructed scenarios, respectively. The normalized
 initial budget $z_0/z_{\rm ref}$ expresses the initial budget relative to the
@@ -404,7 +411,7 @@ test-case variability conditional on the trained policies.
 
 The baselines comprise uncalibrated RC-PPO, reach-avoid learning (RA), reward-based
 proximal policy optimization (PPO), and a constrained PPO implementation (CPPO).
-The same frozen velocity tracker is used throughout. For uncalibrated RC-PPO,
+The same frozen velocity tracker is used for all methods. For uncalibrated RC-PPO,
 both execution margins are set to zero. RA retains goal reaching and obstacle
 avoidance but omits cost minimization and the budget input. For PPO and CPPO,
 the collision penalty is weighted by $\beta_L=1$ or $\beta_H=5$, representing
@@ -418,8 +425,8 @@ and the same five metrics are reported by scenario in Fig.~\ref{fig:metrics_draf
 Compared with uncalibrated RC-PPO, mean SR is increased from 70.7\% to
 73.3\%, mean executed cost is reduced from 91.7 to 88.3 a.u., and BVR is lowered from
 14.0\% to 9.0\% with CaMRA; CR remains similar (15.7\% versus 15.0\%). Lower CR
-and greater clearance are obtained with RA and CPPO$_{\beta_L}$, but with lower
-SR and higher cost and BVR. A joint success--safety--cost trade-off is thus observed.
+and greater clearance are obtained with RA and CPPO$_{\beta_L}$, at the expense of
+lower SR and higher cost and BVR. A joint success--safety--cost trade-off is thus observed.
 
 \begin{table}[!htbp]
 \caption{Equal-scene mean performance at $z_0/z_{\rm ref}=1$.
@@ -459,8 +466,8 @@ are reported in Table~\ref{tab:main_results}.}
 Navigation behavior in one paired example is illustrated in
 Fig.~\ref{fig:trajectory_sync}. With the geometric margin $\delta$, a slightly
 longer, more costly route with greater obstacle clearance is followed with CaMRA.
-Obstacle passages are shown alongside clearance, executed cost, and tracking error
-in the synchronized curves, while the role of $\alpha$ in budget accounting is shown
+Obstacle passages are marked in the synchronized curves of clearance, executed
+cost, and tracking error. The role of $\alpha$ in budget accounting is illustrated
 by the corrected nominal charge. The common budget is satisfied by both methods,
 illustrating a safety--cost trade-off. The same proxy cost definition is used in
 this separate diagnostic case, which is excluded from Table~\ref{tab:main_results}.
@@ -481,9 +488,11 @@ respective terminations.}
 \subsection{Execution-Error Calibration and Margin Analysis}
 \label{sec:mismatch_analysis}
 Execution mismatch is summarized in Fig.~\ref{fig:margin_calibration} using 800
-calibration and 400 held-out paired rollouts. In the calibration set, the medians are $0.09$ for relative cost overrun and
+calibration and 400 held-out paired rollouts. In the calibration set, the medians
+are $0.09$ for relative cost overrun and
 $0.06$ m for maximum planar position deviation; $\alpha=0.18$ and $\delta=0.12$ m
-are set to the respective 90th percentiles. With these margins fixed, held-out coverage is $353/400$
+are set to the respective 90th percentiles. With these margins fixed, held-out
+coverage is $353/400$
 ($88.25\%$) for cost and $346/400$ ($86.50\%$) for position. These marginal
 coverages are used to assess the error allowances in budget accounting and obstacle
 inflation; joint held-out coverage is $336/400$ ($84.0\%$). Neither marginal nor
@@ -536,7 +545,8 @@ The CaMRA and RC-PPO results from Table~\ref{tab:main_results} are reused for
 the full and zero-margin rows. Each single-margin variant is trained separately
 with the corresponding margin removed during both learning and evaluation.
 The effects are non-additive, and lower cost can be associated with more failed
-trials or shorter trajectories. Cost must therefore be interpreted jointly with success rate.
+trials or shorter trajectories. Cost must therefore be interpreted jointly with
+success rate.
 
 \begin{figure}[!htbp]
 \centering
@@ -550,11 +560,12 @@ by connecting lines.}
 To assess margin sensitivity beyond component removal, the high-level networks
 are retrained for each of 16 combinations
 of $\alpha\in\{0,0.09,0.18,0.27\}$ and
-$\delta\in\{0,0.06,0.12,0.18\}$ m, retaining the frozen tracker, training
-budget, and 900-trial evaluation protocol. The four zero/calibrated combinations
+$\delta\in\{0,0.06,0.12,0.18\}$ m, with the frozen tracker, training
+budget, and 900-trial evaluation protocol retained. The four zero/calibrated combinations
 match Table~\ref{tab:ablation_draft}. With both margins increased to $(0.27,0.18)$,
 CR and BVR are reduced to 13.3\% and 6.7\%, but SR is lowered to 68.0\% and
-cost is raised to 95.0 a.u. A more conservative trade-off is thus observed with larger margins.
+cost is raised to 95.0 a.u. A more conservative trade-off is thus observed as the
+margins are increased.
 Calibration is performed before the sweep and is not retuned to maximize these
 results.
 
@@ -582,10 +593,10 @@ Table~\ref{tab:main_results}.}
 \subsection{Robustness to Execution Perturbations}
 \label{sec:execution_robustness}
 With the policy and margins fixed, performance is evaluated under execution
-conditions that differ from those used for calibration. Each profile's deviation from
-the nominal condition is increased by 25\%: the lowest friction becomes
-0.4875, maximum delay becomes 0.125 s, and maximum
-velocity-noise standard deviation becomes 0.05 m/s. Across 900 independent
+conditions that differ from those used for calibration. Each profile's deviation
+from the nominal condition is increased by 25\%: the minimum friction is
+0.4875, the maximum delay is 0.125 s, and the maximum
+velocity-noise standard deviation is 0.05 m/s. Across 900 independent
 trials (60 per profile and scene), SR is
 $65.0\%$ and BVR $16.0\%$ for CaMRA versus SR $58.0\%$ and BVR $24.0\%$ for
 uncalibrated RC-PPO. The corresponding CR values are 22.0\% and 27.0\%, costs
@@ -613,14 +624,15 @@ route selection under obstacle constraints is examined.
 {\footnotesize (b) Low-cost route selection among chair obstacles.\par}
 \caption{Physical deployment of Unitree Go2: (a) corridor traversal with obstacle
 avoidance; (b) route selection among multiple passages formed by chairs. Each
-panel is composed of six successive frames in temporal order; the travel direction
+panel comprises six successive frames in temporal order; the travel direction
 is indicated by red arrows in (b).}
 \label{fig:hardware_sequences}
 \end{figure}
 
 The representative route is approximately 15 m long and includes a narrow
-passage about 0.3 m wider than the robot body. Proprioception is provided by joint encoders and the IMU; navigation
-observations are obtained from projected LiDAR ranges and local scan matching.
+passage about 0.3 m wider than the robot body. Proprioceptive measurements are
+provided by joint encoders and the IMU; navigation observations are obtained from
+projected LiDAR ranges and local scan matching.
 Policies are executed on an onboard x86-64 CPU with 16 GB RAM, at the same
 50 Hz/5 Hz control rates. A 60 s horizon and a budget of 230 a.u. are used for the
 15 m task; the tracker, navigation policy, and margins are held fixed.
@@ -650,7 +662,7 @@ RC-PPO & 64.0 & \textbf{176.0} & 20.0 & 22.0 & 0.07\\
 \end{table}
 
 Success counts are $35/50$ for CaMRA and $32/50$ for RC-PPO. Both methods
-have three localization aborts; the other failures comprise four timeouts and eight contacts
+have three localization aborts; the remaining failures comprise four timeouts and eight contacts
 for CaMRA, versus five timeouts and ten contacts for RC-PPO. BVR decreases
 from 22.0\% to 14.0\%, while mean cost increases from 176.0 to 182.0 a.u.
 These results indicate a clearance--cost trade-off: shorter routes and
@@ -665,8 +677,8 @@ difficulty of jointly learning locomotion and navigation is mitigated by assigni
 motion stabilization to a frozen low-level controller and navigation decisions to
 a high-level policy. Remaining discrepancies between nominal and executed behavior
 are accounted for through separate cost and geometric margins. The reported
-evaluations illustrate how budget compliance and obstacle clearance are affected
-by these corrections, together with their implications for goal reachability.
+evaluations illustrate the effects of these corrections on budget compliance,
+obstacle clearance, and goal reachability.
 Building on the current geometric navigation formulation, future work will be
 directed toward semantic task understanding and a stochastic formulation in which
 execution uncertainty can be incorporated into formal reach-avoid and cost
