@@ -16,9 +16,9 @@ paper/
 └── README.md
 ```
 
-三个实现目录目前仅包含用途说明，尚未添加代码。开发顺序为：训练底层速度跟踪器，冻结后采集执行误差并校准、检验裕度，最后训练上层导航器。
+`locomotion/` 已引入宇树官方训练与部署框架，作为 CaMRA 的底层控制实现基础；`calibration/` 和 `navigation/` 目前仅包含用途说明。开发顺序为：训练底层速度跟踪器，冻结后采集执行误差并校准、检验裕度，最后训练上层导航器。
 
-- [locomotion](locomotion/README.md)：接收速度指令，输出关节控制，承担平衡、步态协调和动作平滑。
+- [CaMRA Locomotion](locomotion/README.md)：基于宇树官方 `unitree_rl_lab`，接收速度指令、输出关节控制，承担平衡、步态协调和动作平滑；上游版本见 [来源记录](locomotion/UPSTREAM.md)。
 - [calibration](calibration/README.md)：比较名义轨迹与实际执行，计算并独立检验成本裕度 α 和几何裕度 δ。
 - [navigation](navigation/README.md)：根据观测、目标和预算生成速度指令，完成最小成本到达避障导航。
 
