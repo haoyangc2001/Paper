@@ -81,7 +81,8 @@ requiring goal reachability and trajectory-wide avoidance while minimizing a
 cumulative cost~\cite{bansal2017,ganai2024survey}.\footnote{The CaMRA implementation
 is publicly available at \url{https://github.com/haoyangc2001/NaVILA_CaMRA}.}
 
-Practical MCRA learning has been enabled by RC-PPO~\cite{so2024}.
+Practical MCRA learning has been enabled by Reachability-Constrained Proximal
+Policy Optimization (RC-PPO)~\cite{so2024}.
 Within RC-PPO, the state is augmented with a safety indicator and remaining budget,
 a reachability value function and budget-conditioned policy are learned, and
 the least feasible initial budget is then sought. Safety and cost feasibility in
@@ -401,11 +402,14 @@ corresponding reference value. Equally weighted means across scenarios are
 reported in the tables at $z_0/z_{\rm ref}=1$. Scenario-level intervals describe
 test-case variability conditional on the trained policies.
 
-The baselines comprise uncalibrated RC-PPO, reach-avoid learning without cost
-conditioning (RA), reward-based PPO, and constrained PPO (CPPO). For RC-PPO,
-$\alpha=\delta=0$ is used, while the budget input is omitted for RA. PPO and CPPO are evaluated
-with low and high safety weights, $\beta_L=1$ and $\beta_H=5$; CPPO is additionally
-subject to an expected-cost constraint.
+The baselines comprise uncalibrated RC-PPO, reach-avoid learning (RA), reward-based
+proximal policy optimization (PPO), and a constrained PPO implementation (CPPO).
+The same frozen velocity tracker is used throughout. For uncalibrated RC-PPO,
+both execution margins are set to zero. RA retains goal reaching and obstacle
+avoidance but omits cost minimization and the budget input. For PPO and CPPO,
+the collision penalty is weighted by $\beta_L=1$ or $\beta_H=5$, representing
+lower and higher penalty weights, respectively. CPPO additionally imposes the
+expected cumulative-cost constraint $\mathbb{E}[J/z_{\rm ref}]\leq1$.
 
 \subsection{Overall Navigation Performance}
 \label{sec:overall_performance}
@@ -496,9 +500,12 @@ ties, is indicated by circles and diamonds.}
 \label{fig:margin_calibration}
 \end{figure}
 
-The effects of the cost and safety corrections are isolated in
-Table~\ref{tab:ablation_draft} by removing $\alpha$, $\delta$, or both while
-retaining the same frozen velocity tracker. These comparisons are visualized in
+The contributions of the two execution margins are examined in
+Table~\ref{tab:ablation_draft}, with the same frozen velocity tracker retained in
+all variants. For the single-margin ablations, either $\alpha=0$ or $\delta=0$
+is imposed, while the other margin is retained at its calibrated value. With both
+margins set to zero, the uncalibrated RC-PPO baseline is recovered.
+These comparisons are visualized in
 Fig.~\ref{fig:ablation_margins}. Without $\alpha$, BVR is increased by
 13.4 percentage points; without $\delta$, CR is increased by 11.3 percentage
 points and clearance is reduced.
@@ -526,8 +533,9 @@ w/o $\delta$ & 64.8 & \textbf{77.2} & 26.3 & 13.8 & 0.19\\
 \end{table}
 
 The CaMRA and RC-PPO results from Table~\ref{tab:main_results} are reused for
-the full and zero-margin rows. Each single-margin variant is trained separately:
-the effects are non-additive, and lower cost can be associated with more failed
+the full and zero-margin rows. Each single-margin variant is trained separately
+with the corresponding margin removed during both learning and evaluation.
+The effects are non-additive, and lower cost can be associated with more failed
 trials or shorter trajectories. Cost must therefore be interpreted jointly with success rate.
 
 \begin{figure}[!htbp]
