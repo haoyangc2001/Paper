@@ -9,7 +9,7 @@ paper/
 │   ├── CORL/          # 早期稿件与原审稿意见
 │   └── figures/       # 原“绘图”：各图的数据、脚本与成图
 ├── RC-PPO/            # 冻结保留的原算法参考实现
-├── HiRA/              # 独立 Git 仓库：Reach-Avoid 分层导航参考项目
+├── HiRA/              # Git 子模块：Reach-Avoid 分层导航参考项目
 ├── CaMRA/             # 四足机器人分层导航系统
 │   ├── README.md      # 系统介绍、模块关系与开发顺序
 │   ├── locomotion/    # 底层强化学习速度跟踪器
@@ -27,7 +27,33 @@ paper/
 
 [RC-PPO 参考实现说明](RC-PPO/README.md)介绍原算法的网络、训练流程、环境及现有副本状态。该目录已去除中间的 `src/` 层，原代码保持不变，后续修复和机器人适配在新项目中进行。
 
-[HiRA](HiRA/README.md) 是基于 Reach-Avoid 理论的四足机器人分层避障导航参考项目，原仓库名为 `Go2HierarchicalReachAvoidRL`，远程已改名为 [haoyangc2001/HiRA](https://github.com/haoyangc2001/HiRA)。它与 CaMRA 分开维护，保留独立 Git 历史，由自身仓库管理修改；工作区 Git 忽略该目录，避免误加入为嵌套仓库。
+[HiRA](HiRA/README.md) 是基于 Reach-Avoid 理论的四足机器人分层避障导航参考项目，原仓库名为 `Go2HierarchicalReachAvoidRL`，远程已改名为 [haoyangc2001/HiRA](https://github.com/haoyangc2001/HiRA)。它以 Git 子模块纳入本仓库，保留独立历史；主仓库固定参考提交，本阶段只读，不修改其中代码。默认分支为 `master`，执行时使用主仓库锁定的提交，不自动追踪最新分支。
+
+## 获取完整工作区
+
+新检出时包含 HiRA：
+
+```bash
+git clone --recurse-submodules https://github.com/haoyangc2001/Paper.git
+```
+
+已有检出目录在保存自身修改并更新主仓库后，执行：
+
+```bash
+git submodule sync -- HiRA
+git submodule update --init --recursive -- HiRA
+git submodule status -- HiRA
+```
+
+如果 HiRA 目录已有独立修改，先检查 `git -C HiRA status --short`，不要用强制更新覆盖。普通 clone 或下载主仓库 ZIP 不会自动带入子模块内容；需要上述初始化操作。`.gitmodules` 使用 HTTPS 地址，不要求 SSH 密钥；私有仓库仍需要相应访问权限。
+
+若设备的 HTTPS 连接受限，但已有可用的 GitHub SSH 权限，可仅对这次初始化覆盖连接地址（不修改共享配置）：
+
+```bash
+git -c submodule.HiRA.url=git@github.com:haoyangc2001/HiRA.git submodule update --init --recursive -- HiRA
+```
+
+底层实施入口：[28 项计划](doc/plan/20261031_camra_locomotion_implementation.json)。先阅读其中 `implementation_clarifications` 和 `external_learning_report`，了解配置依据、待验证项和已知历史问题；任务命令按计划要求放在执行主机的 tmux 中运行。
 
 ## 当前稿件
 

@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -22,6 +22,10 @@
       {
         "date": "2026-10-31",
         "summary": "按用户要求，全部28项任务的执行命令统一在tmux内运行；增加启动前检查、会话恢复、落盘日志、退出码和断线重连验证。仅更新计划，不执行任务。"
+      },
+      {
+        "date": "2026-10-31",
+        "summary": "将HiRA登记为根仓库固定提交的子模块；补充用户提供的另一模型只读学习报告、配置取值依据、运行时待核项及历史审查问题的范围。保留28项任务状态、依赖和记录，不把外部报告当作已验收执行。"
       }
     ]
   },
@@ -74,7 +78,7 @@
     "频率按用户指定的HiRA源码依据实施：仿真200 Hz、底层策略50 Hz、外部命令10 Hz；以运行时验证确认，不能只看注释。",
     "10 Hz命令零阶保持期间底层每0.02 s重新读取本体观测并推理，不得把关节动作整体保持0.1 s。",
     "后续校准、上层训练与执行必须引用同一冻结模型及接口版本；命令滤波、限幅、延迟、归一化与增益均属于冻结接口。",
-    "RC-PPO只读；HiRA为独立Git仓库且根仓库忽略它，本次只读，不能假定克隆根仓库会自带HiRA。",
+    "RC-PPO只读；HiRA为根仓库登记的Git子模块，保留独立历史，按主仓库锁定提交初始化。允许获取已声明的参考源码，不修改其算法、不使用--remote自动升级；本阶段不要求运行HiRA。",
     "保留上游许可证与来源、已有用户修改和原始实验产物；代码改动限于CaMRA/locomotion及必要的CaMRA说明和本计划记录。",
     "命令和文档不存凭证；设备路径通过配置表达，不硬编码本地盘符或HiRA原服务器路径。",
     "仅由实际运行生成训练指标、曲线、误差统计与成功证据；不得填造缺失结果，不得把论文数值当成验收事实。",
@@ -97,7 +101,9 @@
       "不在本机运行训练；按实际目标设备配置。",
       "当前Go2配置使用USD资产，优先保持这一资产来源；若必须改URDF或其他版本，先提出差异与影响。",
       "新建本计划于已存在的doc/plan；实现后的运行产物路径在目标设备确认。",
-      "用户已明确要求全部任务的终端执行使用tmux；不允许裸SSH前台运行或以nohup替代。"
+      "用户已明确要求全部任务的终端执行使用tmux；不允许裸SSH前台运行或以nohup替代。",
+      "HiRA来源已确定为https://github.com/haoyangc2001/HiRA.git，通过.gitmodules和主仓库gitlink固定版本；缺失时按子模块初始化流程获取，无需再次询问选哪个仓库。",
+      "现有Go2框架作为底层实现基线：预期actor45维，当前kp=25/kd=0.5和动作scale=0.25；先运行核对，不为了匹配旧协议的48维/kp20盲目修改。动作有效裁剪仍须核对wrapper和运行配置。"
     ],
     "must_pause_and_ask": [
       "无法确定目标设备、可用GPU/存储、远程访问范围、运行位置或允许的训练时长。",
@@ -139,7 +145,10 @@
     "主要学习结论集中在implementation_handoff.md，执行证据写work_records；避免大量零碎过程文件。",
     "先完成可在当前设备进行的阅读。到目标设备任务时，只有实际连接和运行证据才能完成环境/训练项。",
     "每次切换设备或恢复上下文，重新核对Git版本、计划状态和运行产物，不重复启动已有训练。",
-    "这份计划的最终完成包含真实训练与评估；只写好代码或发出运行命令不算全部完成。"
+    "这份计划的最终完成包含真实训练与评估；只写好代码或发出运行命令不算全部完成。",
+    "先阅读implementation_clarifications、external_learning_report和reference_checkout。已有外部阅读结论可帮助定位，不需要重复无关全文审查；任务验收仍需要对应源码和运行证据。",
+    "用户提供的/home/caohy/repositories/Paper只是另一模型报告的检出位置，不代表本会话已获该服务器访问、GPU分配或安装权限。不要直接填写remote_workspace为此路径。",
+    "学习阶段可用Python标准库做静态检查；默认python3缺少训练依赖是环境准备的预期事项，不能据此修复RC-PPO或提前安装整个算法依赖栈。"
   ],
   "phases": [
     {
@@ -178,11 +187,12 @@
         "完成tmux前置准备并进行无害短进程断开/恢复验证；记录会话与日志证据，然后在该会话内开展盘点。",
         "定位当前工作区、适用AGENTS.md和根仓库/HiRA独立Git状态；确认本计划各相对路径。",
         "记录三个模块现状、参考仓库来源/提交、未提交改动、已训练产物与仅有源码的区别。",
-        "检查当前稿1029与历史稿1020位置；建立集中交接笔记的目录索引。"
+        "检查当前稿1029与历史稿1020位置；建立集中交接笔记的目录索引。",
+        "按reference_checkout检查.gitmodules和gitlink；缺少HiRA时在tmux中初始化固定版本，核对HEAD和干净状态。阅读外部报告时保留其证据等级，不自动设置任务完成。"
       ],
       "work_records": [],
       "constraints_and_notes": [
-        "只读盘点，除计划记录与集中笔记外不修改项目；缺失参考仓库不自动克隆到不明确位置。",
+        "只读盘点，除计划记录与集中笔记外不修改项目；允许按已登记子模块来源初始化HiRA，已有本地修改不得覆盖。",
         "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
       ],
       "acceptance_criteria": [
@@ -236,7 +246,8 @@
       "actions": [
         "仅将1020附录作为历史实现设定参考，追踪与1029正文相关的低层频率、随机化、观测和配置。",
         "阅读数据来源/替换说明，区分已验证源码事实、论文设定与推断数据；不需要逐一复审所有图表。",
-        "列出旧5 Hz/0.2 s、样本数量与裕度等不能直接作为本次实测结果的项目。"
+        "列出旧5 Hz/0.2 s、样本数量与裕度等不能直接作为本次实测结果的项目。",
+        "按implementation_clarifications逐项登记5/10 Hz、48/45维、kp20/25和裁剪差异。历史PDF哈希问题只记录外部报告与待追溯状态，不将整篇论文审计变成底层前置。"
       ],
       "work_records": [],
       "constraints_and_notes": [
@@ -426,7 +437,8 @@
       "actions": [
         "逐项读取actor/critic观测，核对量纲、坐标系、顺序、噪声、缩放、裁剪、历史与归一化。",
         "追踪12维动作到默认关节姿态加偏置、PD及力矩/关节限位，核对SDK与仿真关节顺序。",
-        "核实当前actor预期45维及critic特权信息；将维度标为静态推导并安排运行时复核。"
+        "核实当前actor预期45维及critic特权信息；将维度标为静态推导并安排运行时复核。",
+        "明确采用当前Go245维/25与0.5增益基线；列出actor每项维度。追踪train/play的agent_cfg.clip_actions与动作项clip，不把[-100,100]当作已核实的有效动作范围。"
       ],
       "work_records": [],
       "constraints_and_notes": [
@@ -557,7 +569,8 @@
       "work_records": [],
       "constraints_and_notes": [
         "不挤占未授权资源，不覆盖远端已有工作；目录和核心版本歧义先询问。",
-        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
+        "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。",
+        "报告中的/home/caohy/repositories/Paper与默认python3依赖缺失只作背景；核对当前机器和已安装环境后再决定安装，不视为已获得远程权限。"
       ],
       "acceptance_criteria": [
         "设备/路径/资源预算明确且可访问，具备脱离本机盘符的运行路径映射。",
@@ -614,7 +627,8 @@
         "确认任务注册，少量并行环境启动headless仿真并进行有限步进/少量训练更新。",
         "核对观测/动作形状、关节名称、物理dt、有限数值、重置和终止行为。",
         "记录GPU显存/吞吐，区分渲染/依赖问题与尚未训练导致的跌倒。",
-        "将该次运行保存为基线冒烟记录，不当作控制器性能结果。"
+        "将该次运行保存为基线冒烟记录，不当作控制器性能结果。",
+        "运行时打印最终actor观测形状、关节顺序、PD参数、agent_cfg.clip_actions和动作项裁剪配置；用受控输入核对处理链，并保存实际配置证据。"
       ],
       "work_records": [],
       "constraints_and_notes": [
@@ -655,7 +669,8 @@
       ],
       "acceptance_criteria": [
         "可检查的接口契约已固定，包含时间、单位、映射、状态清理和后续校准所需日志字段。",
-        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
+        "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。",
+        "已说明与旧协议的差异取舍，确认有效动作裁剪全链与45维观测的实际结果，未为对齐示例协议盲目增加输入或改PD增益。"
       ],
       "verification_result": ""
     },
@@ -1072,5 +1087,155 @@
     ],
     "resilience_check": "TASK-001以无害短进程完成一次detach/重新连接并检查进程持续运行及日志增长；TASK-013在实际训练服务器重复核验。若学习与训练为同一主机，可引用已完成证据并重新核对会话。不能用中断正式训练测试保活。",
     "scheduling": "若服务器使用调度器，GPU进程还须位于有效资源分配内；tmux不能绕过调度器或延长资源时限。"
+  },
+  "reference_checkout": {
+    "name": "HiRA",
+    "management": "Git submodule",
+    "url": "https://github.com/haoyangc2001/HiRA.git",
+    "pinned_at_this_revision": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+    "branch_note": "独立仓库默认分支是master。复现使用主仓库gitlink指定的提交，而非动态跟踪master。",
+    "transport_verification": "本次经SSH ls-remote核实master/HEAD为锁定提交；本机HTTPS ls-remote遇到连接重置，未宣称在全新目录完成递归克隆。服务器需按实际网络核验。",
+    "ssh_fallback": "git -c submodule.HiRA.url=git@github.com:haoyangc2001/HiRA.git submodule update --init --recursive -- HiRA",
+    "cause_of_previous_absence": "此前根.gitignore包含/HiRA/，独立克隆目录未进入主仓库。现已移除该忽略项并登记.gitmodules及gitlink。",
+    "initial_clone": "git clone --recurse-submodules https://github.com/haoyangc2001/Paper.git",
+    "existing_checkout": [
+      "git submodule sync -- HiRA",
+      "git submodule update --init --recursive -- HiRA",
+      "git submodule status -- HiRA",
+      "git -C HiRA rev-parse HEAD"
+    ],
+    "instructions": [
+      "在主仓库更新到含.gitmodules的提交后，在tmux内初始化；如目录已有内容，先核对origin、HEAD和git status，保留未提交修改。",
+      "子模块状态前缀-表示未初始化，+表示提交不同，U表示冲突；须与git ls-files --stage -- HiRA记录核对，不能假定目录存在即版本正确。",
+      "不要使用git submodule update --remote或--force；源码下载不授权修改参考实现。",
+      "GitHub主仓库会显示指向固定提交的HiRA条目；普通clone/主仓库ZIP不会自动展开源码。",
+      "权限/网络失败属于参考源码获取问题；先解决凭证或连通性，不能改用不明副本或把未读源码标为完成。"
+    ]
+  },
+  "external_learning_report": {
+    "source": "用户于2026-10-31提供的另一模型只读学习报告",
+    "reported_workspace": "/home/caohy/repositories/Paper",
+    "verification_level": "以下为外部报告摘要，除implementation_clarifications注明的本地源码核对外，本次未重新运行其统计/语法/哈希检查；报告没有附完整命令日志和文件清单。",
+    "reported_findings": [
+      "CaMRA底层框架已引入，calibration/navigation仅README；报告环境缺少HiRA。",
+      "追踪RC-PPO发现三个独立网络、max(V_h,V_cost-energy)、最小化PPO裁剪语义与重构done；参考副本保留历史路径和缺失模块。",
+      "宇树底层默认200 Hz仿真、50 Hz策略、4096并行、20 s回合、[512,256,128]/ELU、动作scale0.25和10 s指令重采样；部署目前从手柄获取速度。",
+      "报告校准示例1200条记录内部计算一致，α=0.18、δ=0.12 m；留出覆盖353/346/联合336。硬件示例派生结果与保存JSON一致，均不构成实测证据。",
+      "报告99个受跟踪Python文件语法解析通过，主稿8个引用图片文件存在、7张图/3张表；统计小检查通过。未报告完整验证命令。",
+      "报告历史文件哈希检查未全部通过：两项可由CRLF/LF差异解释，另4个PDF不符；未提供本计划可核对的具体路径/哈希。",
+      "报告默认python3缺少NumPy/JAX/PyTorch/Isaac Lab，未训练、仿真、ONNX推理或重编译论文。"
+    ],
+    "treatment": [
+      "保存为交接背景，不据此自动标记任何TASK完成或声称本项目已训练。",
+      "99个文件/图表数量属于报告时点统计，不是未来必须保持不变的验收指标。",
+      "PDF旧哈希问题保留为历史资料待追溯事项，不要求恢复或重生成PDF，也不作为底层训练前置；若具体涉及机器人资产、训练代码或检查点完整性，则必须先查清。",
+      "本阶段不需要重跑全部论文数据审计；查看来源台账并建立数据性质边界即可。需要引用报告具体检查结果时补充其原日志/版本，否则注明仅外部报告。"
+    ]
+  },
+  "implementation_clarifications": {
+    "precedence": [
+      "用户最新明确要求和本计划已确定决策优先：只做底层、远程设备运行、tmux、50/10 Hz。",
+      "论文确定方法职责与模块关系，不把历史示例配置或结果当成当前可执行配置。",
+      "底层可执行基线以记录版本的宇树源码、目标设备解析后的最终配置及运行验证为准；HiRA只提供接口/频率等经验。",
+      "对已明确的差异直接记录并实施基线，不为同一已决定事项重复询问；实际改变速度域、训练目标或核心依赖等仍遵守暂停规则。"
+    ],
+    "configuration_matrix": [
+      {
+        "item": "频率",
+        "legacy": "论文0.2 s高层间隔，即5 Hz",
+        "current": "HiRA dt0.005 × decimation4 × repeat5，底层50 Hz、高层10 Hz",
+        "decision": "采用200/50/10 Hz；每次底层重新观测。旧论文不改。",
+        "verification_tasks": [
+          "TASK-006",
+          "TASK-015",
+          "TASK-021"
+        ]
+      },
+      {
+        "item": "策略观测",
+        "legacy": "外部报告称旧协议48维",
+        "current": "当前PolicyCfg为角速度3+重力投影3+命令3+相对关节位置12+速度12+上一动作12=45；不含critic特权线速度",
+        "decision": "以45维为静态预期，核对运行张量、顺序、噪声和缩放。不要为凑48维新增传感量；实际不符先解释。",
+        "source": "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/velocity_env_cfg.py",
+        "verification_tasks": [
+          "TASK-009",
+          "TASK-015",
+          "TASK-016"
+        ]
+      },
+      {
+        "item": "PD增益",
+        "legacy": "旧协议/HiRA kp20",
+        "current": "当前UNITREE_GO2_CFG为stiffness25.0、damping0.5",
+        "decision": "优先保留当前Go2资产配置25/0.5作为基线，核对导出与实际执行一致；需调参时记录，不混用旧模型参数。",
+        "source": "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py",
+        "verification_tasks": [
+          "TASK-009",
+          "TASK-015",
+          "TASK-025"
+        ]
+      },
+      {
+        "item": "动作缩放及裁剪",
+        "legacy": "外部报告称旧协议[-1,1]",
+        "current": "JointPositionAction scale0.25，动作项clip[-100,100]；train/play还调用RslRlVecEnvWrapper(env,clip_actions=agent_cfg.clip_actions)",
+        "decision": "[-100,100]只代表一个配置层，不能直接推断有效动作范围。TASK-015/016必须读取目标环境中agent_cfg.clip_actions默认/覆盖值及wrapper实现，核对策略输出→wrapper→动作项→位置目标→PD/力矩限位全链，再固定最终配置。不要直接改成[-1,1]。",
+        "verification_tasks": [
+          "TASK-009",
+          "TASK-015",
+          "TASK-016",
+          "TASK-021"
+        ]
+      },
+      {
+        "item": "外部命令",
+        "legacy": "论文设想导航器输入，现有部署为手柄",
+        "current": "训练为随机命令课程，默认10 s重采样",
+        "decision": "TASK-018增加三维外部机身速度输入，保持当前训练模式可用。10 Hz是更新接口，不强制每0.1 s独立随机跳变；不在本阶段实现导航或改造真机手柄部署。",
+        "verification_tasks": [
+          "TASK-010",
+          "TASK-018",
+          "TASK-020"
+        ]
+      },
+      {
+        "item": "算力与训练长度",
+        "legacy": "源码默认4096环境、20 s回合、50000最大迭代",
+        "current": "只是默认值，不代表当前设备适用或达到性能",
+        "decision": "4096并行数和训练上限在TASK-013/017按实际资源与预算配置，正式运行保存最终值；网络[512,256,128]/ELU优先保留。",
+        "verification_tasks": [
+          "TASK-013",
+          "TASK-017",
+          "TASK-019"
+        ]
+      },
+      {
+        "item": "运行环境与资产",
+        "legacy": "报告默认python3缺依赖、资产路径是占位",
+        "current": "上游记录Isaac Lab2.3.0/Isaac Sim5.1.0，Go2当前USD资产",
+        "decision": "不因此认定算法失败；TASK-014在已授权设备建立隔离环境，TASK-015实际加载验证。存在其他conda环境应先检查，不擅自升级或修改全局环境。",
+        "verification_tasks": [
+          "TASK-013",
+          "TASK-014",
+          "TASK-015"
+        ]
+      }
+    ],
+    "conceptual_boundaries": [
+      "底层用常规奖励最大化PPO学习跟踪、平衡与平滑；RC-PPO的成本最小化符号不移入底层训练。",
+      "导航代理成本a.u.不等于真实电池能耗；完整导航成本/预算/footprint实现留待后续，当前保存机器人资产与接口版本。",
+      "冻结低层减弱而不消除扰动；α、δ来自未来真实配对数据，本阶段不把0.18/0.12直接作为计算结果。",
+      "示例数据内部一致不等于实验完成；73.3%SR、9.0%BVR和各50次硬件示例不作为本次控制器性能指标。"
+    ],
+    "data_sources": [
+      "manuscripts/CCDC/data/1029/manuscript_completion_20261026/README.md",
+      "manuscripts/CCDC/data/1029/hardware_comparison_20261029/README.md"
+    ],
+    "unresolved_but_scoped": [
+      "任务001/006：在另一设备初始化HiRA并核对锁定源码；已明确来源，不需要重新选择参考项目。",
+      "任务013：真实训练设备、可用环境、存储与预算仍需现场确认，报告的Linux路径不是访问授权。",
+      "任务015/016：动作有效裁剪和运行观测维度必须用最终配置验证。",
+      "任务017：性能阈值/种子/次数仍须在训练前固定，不能从示例实验结果推定。"
+    ]
   }
 }

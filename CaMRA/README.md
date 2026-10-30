@@ -40,7 +40,7 @@ cd CaMRA/locomotion
 
 - 底层框架来自宇树官方 [unitree_rl_lab](https://github.com/unitreerobotics/unitree_rl_lab)，具体版本及本地调整见 [上游来源记录](locomotion/UPSTREAM.md)。原始许可证和版权声明保留；Python 包及任务标识沿用上游命名。
 - [RC-PPO](../RC-PPO/README.md) 是工作区中独立保留的冻结算法参考副本，后续修复及机器人适配在 `navigation/` 中进行。
-- [HiRA](../HiRA/README.md) 是独立的 Reach-Avoid 分层导航参考项目，可参考上下层衔接、已有 Go2 策略和轨迹评估工具。它与本项目分开维护。
+- [HiRA](../HiRA/README.md) 是 Reach-Avoid 分层导航参考项目，以根仓库 Git 子模块固定版本，保留独立历史，本阶段只读。可参考上下层衔接、已有 Go2 策略和轨迹评估工具；缺少源码时按根 README 初始化子模块。
 - [manuscripts](../manuscripts/README.md) 保存论文、绘图及参考资料。
 
 本目录由工作区根目录的 Git 仓库统一管理，不包含嵌套 Git 仓库或子模块。
