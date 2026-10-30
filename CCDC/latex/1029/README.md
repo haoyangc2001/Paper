@@ -31,6 +31,10 @@
 
 ## 编译
 
+公式排版更新：所有独立公式采用居中的 equation 环境。公式（2）的三个约束分为三行、共用编号（2）；原无编号的残差 W 补为公式（7）。七个公式编号连续，并添加独立标签；公式内容与正文未改变，编译后仍为 7 页。最新页面预览位于 `output/1029/equation_layout/`。
+
+2026-10-29 排版更新：英文润色已保存为本地提交 `e543a9f`。随后放宽实验小节之间的浮动体屏障，保留主章节边界与单栏图表，并平衡参考文献末页双栏。正文、公式、数据与图表内容未改；结论完整位于第 6 页，参考文献在第 7 页。最新预览位于 `output/1029/layout_optimization/`，不再以先前的表达润色预览代表当前版面。
+
 在 CCDC 根目录运行：
 
 ```powershell
@@ -41,6 +45,10 @@
 
 ## 篇幅核查
 
+2026-10-30 作者栏更新：按用户要求移除 Jingduo Pan，采用官方模板的三个独立作者信息块，依次为 Haoyang Cao、Yuhua Guo、Bai Xue。根据用户提供的参考截图，Yuhua Guo 同时署名 Space Star Technology Co., Ltd, China Academy of Space Technology 及 State Key Laboratory of Space Information System and Integrated Application, Beijing Institute of Satellite Information Engineering；两个完整单位名称保留，共用的 Beijing, 100095, China 仅在末尾列出一次。其余作者地点均为 Beijing, China，作者栏无占位符；通讯作者仍待确认。来源及核查记录见 `submission/1029/作者信息来源.md`。编译仍为 7 页，日志无溢出或未定义引用警告；最新全页预览位于 `output/1029/author_information/`，此前排版预览不代表当前版面。
+
 2026-10-29 重新访问 CCDC 官方投稿说明：http://www.ccdc.neu.edu.cn/cgtj/list.htm 。初稿最多 8 页；终稿超过 6 页需付超页费 200 元/页，最多 8 页。当前按整份 PDF 计页，不假定参考文献豁免。7 页版本处于上限内；若最终按 7 页提交，按现有说明超页费为 200 元。
 
 本次仅处理版本复制与附录移除，不代表数据、作者信息或投稿材料已经完成最终核验。
+
+2026-10-30 后续更新：第二作者的共用地点简化为 `Beijing, China`，移除邮编，两个完整单位名称保留。在引言贡献列表之后加入实现代码的公开地址 `https://github.com/haoyangc2001/NaVILA_CaMRA`，按用户要求采用正式公开的表述。

@@ -6,9 +6,10 @@
 \usepackage{algorithmic}
 \usepackage{graphicx}
 % Keep floats after their source and within their main section. Subsection
-% barriers would force short columns and stretch heading/paragraph spacing.
+% boundaries remain flexible to avoid short columns and large empty spaces.
 \usepackage{flafter}
 \usepackage[section]{placeins}
+\usepackage{balance}
 \usepackage{textcomp}
 \usepackage[table]{xcolor}
 \definecolor{methodblue}{HTML}{2376AC}
@@ -19,11 +20,39 @@
 \title{Engineering Minimum-Cost Reach-Avoid Control for Quadruped Navigation}
 
 \author{
-  \IEEEauthorblockN{Anonymous Author(s)}
-  \IEEEauthorblockA{\textit{Affiliation}\\
-  Address\\
-  \texttt{email}}
+  \IEEEauthorblockN{Haoyang Cao}
+  \IEEEauthorblockA{\textit{Institute of Software,}\\
+  \textit{Chinese Academy of Sciences}\\
+  \textit{University of the Chinese}\\
+  \textit{Academy of Sciences}\\
+  Beijing, China\\
+  caohaoyang24@mails.ucas.ac.cn}
+  \and
+  \IEEEauthorblockN{Yuhua Guo}
+  \IEEEauthorblockA{\textit{Space Star Technology Co., Ltd,}\\
+  \textit{China Academy of Space Technology}\\
+  \textit{State Key Laboratory of Space}\\
+  \textit{Information System and Integrated}\\
+  \textit{Application, Beijing Institute of}\\
+  \textit{Satellite Information Engineering}\\
+  Beijing, China\\
+  guoyh@radi.ac.cn}
+  \and
+  \IEEEauthorblockN{Bai Xue}
+  \IEEEauthorblockA{\textit{Key Laboratory of}\\
+  \textit{System Software}\\
+  \textit{Institute of Software,}\\
+  \textit{Chinese Academy of Sciences}\\
+  Beijing, China\\
+  xuebai@ios.ac.cn}
 }
+% Jingduo Pan was removed from this version at the user's request.
+% The remaining author order follows the archived CoRL submission. Haoyang Cao's
+% publication-name spelling is corroborated by Bai Xue's team homepage.
+% Yuhua Guo's two affiliations follow the author-provided reference images.
+% Their shared Beijing address is listed once after both affiliations.
+% All authors' Beijing, China locations are confirmed by the user.
+% The corresponding author still requires confirmation; do not infer it.
 
 \begin{document}
 % Avoid stretching inter-float and heading glue to force equal column bottoms.
@@ -103,6 +132,9 @@ The main contributions are:
       limitations through controlled tests and physical-robot evaluation.
 \end{enumerate}
 
+The implementation is publicly available at
+\url{https://github.com/haoyangc2001/NaVILA_CaMRA}.
+
 \section{Related Work}
 \subsection{Minimum-Cost Reach-Avoid Learning}
 In reach-avoid reinforcement learning, reaching a target and avoiding an unsafe
@@ -151,11 +183,18 @@ transition kernel $P$, running cost $c$, and initial-state distribution $\rho_0$
 The MCRA objective is to reach a goal set $\mathcal{G}$, avoid an unsafe set
 $\mathcal{F}$ at every step, and minimize the accumulated cost until a free terminal
 time $T$:
-\begin{align}
-\min_{\pi,T}\quad &\sum_{t=0}^{T-1}c(x_t,\pi(x_t))\\
-\mathrm{s.t.}\quad &x_T\in\mathcal{G},\quad x_t\notin\mathcal{F}\ \forall t\leq T,
-\quad x_{t+1}\sim P(\cdot\mid x_t,\pi(x_t)).
-\end{align}
+\begin{equation}
+\min_{\pi,T}\quad \sum_{t=0}^{T-1}c(x_t,\pi(x_t))
+\label{eq:mcra_objective}
+\end{equation}
+\begin{equation}
+\begin{gathered}
+\mathrm{s.t.}\quad x_T\in\mathcal{G},\\
+x_t\notin\mathcal{F}\ \forall t\leq T,\\
+x_{t+1}\sim P(\cdot\mid x_t,\pi(x_t)).
+\end{gathered}
+\label{eq:mcra_constraints}
+\end{equation}
 The sets are represented using signed functions $g$ and $h$ as
 $\mathcal{G}=\{x:g(x)\leq0\}$ and $\mathcal{F}=\{x:h(x)>0\}$. Following
 RC-PPO~\cite{so2024}, the state is augmented to $\hat{x}_t=(x_t,y_t,z_t)$,
@@ -166,6 +205,7 @@ $y_{t+1}=\max\{I_{x_{t+1}\in\mathcal{F}},y_t\}$ and
 $z_{t+1}=z_t-c(x_t,u_t)$. The augmented goal function is
 \begin{equation}
 \hat{g}(x,y,z)=\max\{g(x),Cy,-z\},
+\label{eq:augmented_goal}
 \end{equation}
 where $C>0$ is an arbitrary safety-violation constant. RC-PPO notes that a
 practical choice is $C=\max_{x\in\mathcal{X}}g(x)$~\cite{so2024}. Reaching the
@@ -187,6 +227,7 @@ cost overrun and a trajectory-deviation statistic are defined as
 \varepsilon_c=\frac{J_{\mathrm{exec}}-J_{\mathrm{nom}}}{J_{\mathrm{nom}}},
 \qquad
 \varepsilon_d=d(\tau_{\mathrm{exec}},\tau_{\mathrm{nom}}),
+\label{eq:execution_errors}
 \end{equation}
 Here $J$ is a nonnegative navigation proxy cost in arbitrary units (a.u.),
 not measured electrical energy. The same command program and time window are used for both rollouts in a pair;
@@ -264,6 +305,7 @@ the paired cumulative costs using the definition in Section~\ref{sec:problem_set
 deviation, the maximum planar distance between time-aligned base positions is used,
 \begin{equation}
 \varepsilon_d=\max_{0\leq t\leq T} \left\|p_t^{\rm exec}-p_t^{\rm nom}\right\|_2,
+\label{eq:max_planar_deviation}
 \end{equation}
 where $p_t$ is the base position.
 
@@ -272,6 +314,7 @@ MCRA constraints. For quantile levels $p_c$ and $p_d$, the margins are set to
 \begin{equation}
 \alpha=Q_{p_c}(\varepsilon_c),\qquad
 \delta=Q_{p_d}(\varepsilon_d),
+\label{eq:calibration_margins}
 \end{equation}
 where $Q_p$ denotes the empirical $p$-quantile of the calibration samples. The
 calibrated running cost is
@@ -294,9 +337,10 @@ $\pi_\theta(u\mid o,y,z)$ and two critics are used: goal reaching and safety
 are evaluated by $V_h$, while corrected cumulative cost is estimated by $V_c$
 over the same stopping horizon. With
 cost normalized by $z_{\rm ref}$, the combined residual is
-\[
+\begin{equation}
 W=\max\{V_h,V_c-z/z_{\rm ref}\}.
-\]
+\label{eq:combined_residual}
+\end{equation}
 The actor is optimized to reduce this residual. Accordingly, cost targets and
 budget updates are modified through $\alpha$, whereas reachability targets are
 modified through $\delta$ via the safety indicator.
@@ -414,7 +458,6 @@ respective terminations.}
 \label{fig:trajectory_sync}
 \end{figure}
 
-\FloatBarrier
 \subsection{Execution-Error Calibration and Margin Analysis}
 \label{sec:mismatch_analysis}
 Execution mismatch is summarized in Fig.~\ref{fig:margin_calibration} using 800
@@ -491,7 +534,6 @@ cost is raised to 95.0 a.u. A more conservative trade-off is thus observed with 
 Calibration is performed before the sweep and is not retuned to maximize these
 results.
 
-\FloatBarrier
 \subsection{Budget Selection and Performance Trade-offs}
 \label{sec:budget_sensitivity}
 With policy parameters and margins fixed, the effect of initial budget on
@@ -513,7 +555,6 @@ Table~\ref{tab:main_results}.}
 \label{fig:budget_draft}
 \end{figure}
 
-\FloatBarrier
 \subsection{Robustness to Execution Perturbations}
 \label{sec:execution_robustness}
 With the policy and margins fixed, performance is evaluated under execution
@@ -593,8 +634,6 @@ earlier failures can lower mean cost without reducing its upper tail.
 All terminal outcomes are included in Cost and MC. Results are reported separately
 from the planar benchmark because the route, horizon, and footprint differ.
 
-\FloatBarrier
-
 \section{Limitations}
 Calibration quantiles do not guarantee
 coverage under temporal correlation, rare contacts, or distribution shift.
@@ -615,6 +654,9 @@ need to address cost accounting and geometric clearance separately is supported
 by the comparisons and ablations. The benefits of these corrections must be assessed jointly with goal-reaching:
 larger margins can reduce violations while excluding useful routes.
 
+% Activate balancing within the first column of the reference page.
+\IEEEtriggeratref{9}
+\IEEEtriggercmd{\balance}
 \bibliographystyle{IEEEtran}
 \bibliography{references}
 
