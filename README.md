@@ -27,7 +27,7 @@ paper/
 
 [RC-PPO 参考实现说明](RC-PPO/README.md)介绍原算法的网络、训练流程、环境及现有副本状态。该目录已去除中间的 `src/` 层，原代码保持不变，后续修复和机器人适配在新项目中进行。
 
-[HiRA](HiRA/README.md) 是基于 Reach-Avoid 理论的四足机器人分层避障导航参考项目，原仓库名为 `Go2HierarchicalReachAvoidRL`。它与 CaMRA 分开维护，保留独立 Git 历史和原远程地址，由自身仓库管理修改；工作区 Git 忽略该目录，避免误加入为嵌套仓库。
+[HiRA](HiRA/README.md) 是基于 Reach-Avoid 理论的四足机器人分层避障导航参考项目，原仓库名为 `Go2HierarchicalReachAvoidRL`，远程已改名为 [haoyangc2001/HiRA](https://github.com/haoyangc2001/HiRA)。它与 CaMRA 分开维护，保留独立 Git 历史，由自身仓库管理修改；工作区 Git 忽略该目录，避免误加入为嵌套仓库。
 
 ## 当前稿件
 
