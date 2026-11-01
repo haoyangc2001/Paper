@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "1.3.1",
+    "version": "1.4.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -34,6 +34,10 @@
       {
         "date": "2026-11-01",
         "summary": "按用户决定取消TASK-023调优循环的3轮上限，改为无硬上限、由用户随时决定停止；保留每轮独立run目录、产物不覆盖与仅用开发集调优的限制。"
+      },
+      {
+        "date": "2026-11-01",
+        "summary": "补录 TASK-023 的 start_stop 系统性诊断与调优第 1 轮执行记录：判定根因为奖励缺少瞬态项，新增阶跃跟踪与零速制动两项奖励后在独立 run 目录重训；同时记录 nominal 组 30 回合实为同一轨迹、以及评估未包含 10 Hz 接口延迟两项测量口径提示。"
       }
     ]
   },
@@ -2027,6 +2031,49 @@
           ],
           "remaining_work": [
             "执行调优循环：诊断start_stop失败机制，补充阶跃响应与停车漂移相关奖励项或约束后重训，不设轮次上限，仅以开发集评估。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-01T09:45:00+08:00",
+          "summary": "完成 start_stop 未通过的系统性诊断，判定根因是奖励函数缺少瞬态项而非训练不足；据此实施调优第 1 轮（新增阶跃跟踪与零速制动两项奖励），冒烟通过后在独立 run 目录启动 3000 迭代重训。",
+          "actions": [
+            "从 dev_it{500,1000,1500,2000,2500,2999}/raw/nominal/start_stop.npz 重算逐检查点阶跃响应与停车滑行曲线，确认 rise_time 单调改善 1.015→0.720→0.657→0.641→0.551→0.552 s，stop_drift 0.266→0.185→0.165→0.164→0.123→0.129 m，2500 与 2999 基本持平，判定已进入平台，继续加训练轮数无效。",
+            "量化基线奖励对瞬态的敏感度：以实测曲线代换计算，把起停响应提速一倍仅使 track_lin_vel_xy 增加 0.0092/步(占该项 1.407 的 0.65%)，而 action_rate 罚项会多扣约 0.02–0.03，净收益为负，据此判定在基线奖励下慢起停是该目标函数的最优解。",
+            "拆解起步曲线：0–0.12 s 冲到 0.62 m/s(峰值加速度 4.8 m/s²，执行能力充足)，0.24–0.32 s 回落至 0.54，随后再花 0.26 s 爬到 0.72，判定中段回落是主要瓶颈；拆解停车曲线：0–0.20 s 滑行 0.110 m 占总滑行量 85%，命令撤销后前 60–80 ms 几乎无减速响应。",
+            "核对奖励函数定义，确认 base_linear_velocity 实为 lin_vel_z_l2(仅惩罚垂直速度)，水平方向无任何制动惩罚，这是 stop_drift 系统性超标的直接原因。",
+            "在 rewards.py 新增 track_lin_vel_xy_step_exp(沿用基线指数核，std 0.15，仅在命令变化后 0.6 s 内生效)与 lin_vel_xy_at_standstill_l2(|cmd_xy|<0.1 m/s 时惩罚水平速度平方)，并在 camra_env_cfg.py 覆盖层以权重 1.0 / -1.5 注册，同步补 CAMRA_OVERRIDES 的 reason/impact/rollback 条目与 assert_overrides_applied 检查。",
+            "以 3 迭代冒烟验证两项新奖励可正常加载并出现在日志，随后在 tmux 新窗口 camra-locomotion:TASK-023-r1 启动第 1 轮重训(3000 迭代、seed=0、GPU0 L40、全新独立 run 目录)。"
+          ],
+          "files_changed": [
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/rewards.py",
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py",
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/__init__.py",
+            "/pub/data/caohy/scripts/t023_train_r1.sh",
+            "/home/caohy/repositories/Paper/doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "commands": [
+            "python /tmp/patch_camra_r1.py (覆盖层与奖励函数补丁，逐锚点断言替换成功)",
+            "bash /pub/data/caohy/scripts/t023_train_r1.sh 0 3 smoke_r1_3it (冒烟，TRAIN_EXIT=0)",
+            "tmux send-keys -t camra-locomotion:TASK-023-r1 \"bash /pub/data/caohy/scripts/t023_train_r1.sh 0 3000\" C-m"
+          ],
+          "results": [
+            "诊断结论：start_stop 未通过属奖励设计缺失导致的系统性结果，非训练不足、非后期退化；六检查点在该场景上的趋势为持续改善并收敛到 rise≈0.552 s、stop_drift≈0.129 m。",
+            "基线奖励的激励失灵已量化：瞬态提速一倍仅 +0.0092 reward/步，而平滑性罚项增加 0.02–0.03，净收益为负。",
+            "调优第 1 轮改动：新增 track_lin_vel_step(权重 1.0、std 0.15、窗口 0.6 s)与 lin_vel_xy_at_standstill(权重 -1.5、阈值 0.1 m/s)，未改动观测、动作、终止条件、域随机化与 16 项基线奖励权重。",
+            "冒烟结果：TRAIN_EXIT=0，日志中已出现 Episode_Reward/track_lin_vel_step 与 Episode_Reward/lin_vel_xy_at_standstill，产物保留于 smoke_r1_3it。",
+            "第 1 轮正式训练已启动：run_name=formal_s0_3000it_r1，started_at=2026-11-01T09:40:40+08:00，git_commit=3de0a9f，3000 迭代，seed=0，GPU0 L40，独立 run 目录，原 formal_s0_3000it 目录未被触碰。"
+          ],
+          "evidence": [
+            "逐检查点指标重算自 dev_it*/raw/nominal/start_stop.npz 的 56 字段原始 step 日志，与 per_episode.csv 一致。",
+            "奖励灵敏度由实测起停曲线代入 track_lin_vel_xy_exp 核(std=0.5)前后对比得出，非估计值。",
+            "base_linear_velocity 指向 mdp.lin_vel_z_l2 已由 velocity_env_cfg.py 源码核对，训练日志该项量级 -0.0116 与之自洽。",
+            "冒烟与正式训练的 start.txt 记录了 started_at、seed、max_iterations、git_commit 与 GPU，可追溯。",
+            "测量口径提示(已记录，供 TASK-024 报数时说明)：nominal 组 30 回合实为同一条确定性轨迹——it2999 中 27/30 回合 rise_time 恒为 0.540 s，稳态 vx 跨回合标准差 0.00015 m/s，故 start_stop 的有效样本量约为 1；另评估以 50 Hz 直给命令，未含真机 10 Hz 外部接口延迟。"
+          ],
+          "remaining_work": [
+            "第 1 轮训练结束后对 6 个检查点执行 dev 全量评估(10 场景×30 回合)，重点复核 start_stop 的 rise_time 与 stop_drift，同时确认 rmse_vx/rmse_vy/rmse_wz 与失败率未越过预设阈值。",
+            "若 start_stop 仍不达标，按无轮次上限的调优循环进入下一轮，每轮使用新的独立 run 目录并保留全部历史产物。"
           ],
           "blockers": []
         }
