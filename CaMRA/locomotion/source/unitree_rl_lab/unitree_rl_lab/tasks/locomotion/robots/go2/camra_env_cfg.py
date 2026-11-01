@@ -85,7 +85,7 @@ CAMRA_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "rewards.lin_vel_xy_at_standstill": {
         "baseline": None,
-        "camra": {"term": "lin_vel_xy_at_standstill", "weight": -5.0, "threshold": 0.1},
+        "camra": {"term": "lin_vel_xy_at_standstill", "weight": -5.0, "threshold": 0.05},
         "reason": (
             "TASK-023 tuning round 1. The baseline base_linear_velocity penalty is lin_vel_z_l2, "
             "i.e. the vertical axis only; nothing in the baseline discourages horizontal coasting "
@@ -93,12 +93,18 @@ CAMRA_OVERRIDES: dict[str, dict[str, Any]] = {
             "0.10 m, with 85 % of it travelled in the first 0.20 s). "
             "Round 2 raises the weight to -5.0: round 1 moved stop_drift only 0.129 -> 0.125 m, "
             "so the term was firing on the right events but was far too weak against action_rate_l2 "
-            "(0.0012 against 0.1826)."
+            "(0.0012 against 0.1826). "
+            "Round 3 narrows the gate from 0.1 to 0.05 m/s: 0.1 is exactly the curriculum start "
+            "range (+-0.1 m/s), so at weight -5.0 the term penalised every commanded motion from "
+            "iteration 0, the policy settled into standing still, and the curriculum stopped "
+            "advancing (round 2 froze at 0.1 m/s / terrain level 0 for 981 iterations)."
         ),
         "impact": (
-            "Reward only, active while the command is below 0.1 m/s in the xy plane (10 % of envs "
-            "stand by rel_standing_envs, plus every stop transient). May make standing stiffer; "
-            "feet_air_time and action_rate still bound the resulting behaviour."
+            "Reward only, active while the command is below 0.05 m/s in the xy plane. Every stop "
+            "transient and the rel_standing_envs share still fall inside the gate (their command is "
+            "exactly zero), so the braking incentive is unchanged where it matters, but the easy "
+            "end of the velocity curriculum (+-0.1 m/s) is no longer covered. May make standing "
+            "stiffer; feet_air_time and action_rate still bound the resulting behaviour."
         ),
         "rollback": "Set the term to None in __post_init__; the baseline reward set is restored exactly.",
     },
@@ -153,7 +159,7 @@ class CaMRAGo2VelocityEnvCfg(RobotEnvCfg):
         self.rewards.lin_vel_xy_at_standstill = RewTerm(
             func=mdp.lin_vel_xy_at_standstill_l2,
             weight=-5.0,
-            params={"command_name": "base_velocity", "threshold": 0.1},
+            params={"command_name": "base_velocity", "threshold": 0.05},
         )
 
 
