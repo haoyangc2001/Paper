@@ -1,0 +1,169 @@
+{
+  "version": "1.0.0",
+  "created": "2026-10-31",
+  "produced_by_task": "TASK-016",
+  "status": "fixed",
+  "robot": "Unitree Go2",
+  "task_id": "Unitree-Go2-Velocity",
+
+  "time": {
+    "physics_step_s": 0.005,
+    "physics_hz": 200,
+    "physics_steps_per_inference": 4,
+    "low_level_inference_period_s": 0.02,
+    "policy_hz": 50,
+    "inferences_per_external_command": 5,
+    "external_command_period_s": 0.1,
+    "external_hz": 10,
+    "hold_semantics": "same external command is written into the low-level command buffer before every one of the 5 inferences",
+    "source": "velocity_env_cfg.py (dt=0.005, decimation=4); HiRA high_level_action_repeat=5 (see handoff 13.1)"
+  },
+
+  "frame": {
+    "command_frame": "body",
+    "axes": "+x forward, +y left, +z up",
+    "command_order": ["vx", "vy", "wz"],
+    "vwz_semantics": "wz is yaw RATE in rad/s; it must never be interpreted as a target heading",
+    "must_not_drop": ["vy"],
+    "source": "velocity_env_cfg.py CommandsCfg.base_velocity; obs term generated_commands"
+  },
+
+  "units": {
+    "linear": "m/s",
+    "angular": "rad/s"
+  },
+
+  "ranges": {
+    "limit": {
+      "vx": [-1.0, 1.0],
+      "vy": [-0.4, 0.4],
+      "wz": [-1.0, 1.0]
+    },
+    "curriculum_initial": {
+      "vx": [-0.1, 0.1],
+      "vy": [-0.1, 0.1],
+      "wz": [-1.0, 1.0]
+    },
+    "decision": "external command interface uses `limit` as the hard bound; curriculum only widens from initial to limit during training",
+    "user_decision": "2026-10-31 保留代码值 ±1.0 / ±0.4 / ±1.0，不采用 1020 稿的 0.6 / 0.4 / 1.2",
+    "source": "velocity_env_cfg.py limit_ranges / ranges"
+  },
+
+  "batch": {
+    "shape": ["num_envs", 3],
+    "dtype": "float32",
+    "device": "cuda",
+    "single_env_shape": [3]
+  },
+
+  "observation": {
+    "group": "policy",
+    "dim": 45,
+    "fields": [
+      {"name": "base_ang_vel", "dim": 3, "scale": 0.2, "clip": [-100.0, 100.0], "noise_uniform_halfwidth": 0.2, "frame": "body"},
+      {"name": "projected_gravity", "dim": 3, "scale": 1.0, "clip": [-100.0, 100.0], "noise_uniform_halfwidth": 0.05, "frame": "body"},
+      {"name": "velocity_commands", "dim": 3, "scale": 1.0, "clip": [-100.0, 100.0], "noise_uniform_halfwidth": 0.0, "frame": "body"},
+      {"name": "joint_pos_rel", "dim": 12, "scale": 1.0, "clip": [-100.0, 100.0], "noise_uniform_halfwidth": 0.01, "frame": "joint"},
+      {"name": "joint_vel_rel", "dim": 12, "scale": 0.05, "clip": [-100.0, 100.0], "noise_uniform_halfwidth": 1.5, "frame": "joint"},
+      {"name": "last_action", "dim": 12, "scale": 1.0, "clip": [-100.0, 100.0], "noise_uniform_halfwidth": 0.0, "frame": "action"}
+    ],
+    "critic_dim": 60,
+    "critic_extra_fields": ["base_lin_vel(3)", "joint_effort(12)"],
+    "actor_has_privileged_input": false,
+    "noise_applies": "training only (enable_corruption=True); must be disabled for evaluation and export",
+    "runtime_verified": {"policy": 45, "critic": 60, "verified_by": "TASK-015"}
+  },
+
+  "action": {
+    "dim": 12,
+    "semantics": "q_des = q_default + scale * a, then clamp to action-term clip",
+    "scale": 0.25,
+    "use_default_offset": true,
+    "action_term_clip": [-100.0, 100.0],
+    "agent_clip_actions": null,
+    "effective_bound": "joint position limits [-2.723, 4.538] rad plus torque-speed envelope plus PD",
+    "clip_reached_only_if": "|raw action| > 399.6",
+    "note": "action-term clip operates on the joint-position TARGET (rad), not on the raw action; it is not an effective action bound",
+    "runtime_verified": {"raw_1000_target": 100.0, "expected_unclipped": 250.1, "verified_by": "TASK-015"}
+  },
+
+  "control": {
+    "stiffness": 25.0,
+    "damping": 0.5,
+    "joints": 12,
+    "source": "unitree.py UNITREE_GO2_CFG / UnitreeActuatorCfg_Go2HV"
+  },
+
+  "joint_order": {
+    "sim_joint_names": [
+      "FL_hip_joint", "FR_hip_joint", "RL_hip_joint", "RR_hip_joint",
+      "FL_thigh_joint", "FR_thigh_joint", "RL_thigh_joint", "RR_thigh_joint",
+      "FL_calf_joint", "FR_calf_joint", "RL_calf_joint", "RR_calf_joint"
+    ],
+    "sdk_joint_names": [
+      "FR_hip_joint", "FR_thigh_joint", "FR_calf_joint",
+      "FL_hip_joint", "FL_thigh_joint", "FL_calf_joint",
+      "RR_hip_joint", "RR_thigh_joint", "RR_calf_joint",
+      "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint"
+    ],
+    "mapping_required": true,
+    "mapping_source": "utils/export_deploy_cfg.py -> joint_ids_map",
+    "note": "sim order groups by joint type; sdk order groups by leg; neither is a simple reversal",
+    "verified_by": "TASK-015"
+  },
+
+  "reset": {
+    "last_action_zeroed": true,
+    "action_term_reset_zeroes_raw_actions": true,
+    "observation_history_length": 0,
+    "command_resampled_on_reset": true,
+    "episode_length_s": 20.0,
+    "terminations": ["time_out", "base_contact(force>1.0)", "bad_orientation(>0.8 rad)"],
+    "source": "joint_actions.py reset(); velocity_env_cfg.py TerminationsCfg"
+  },
+
+  "command_source": {
+    "external_overrides_curriculum": true,
+    "rewrite_every_inference": true,
+    "rewrite_target": "env.commands[:, :3]",
+    "reason": "the low-level command term resamples randomly every 10 s; without rewriting each inference the external command would drift within a 0.1 s window",
+    "reference_impl": "HiRA hierarchical_go2_env.step() rewrites commands inside the repeat loop (handoff 13.2)"
+  },
+
+  "validation": {
+    "nan_or_inf": "reject, keep previous command, increment rejected counter",
+    "out_of_limit_range": "clamp to limit range, increment clamped counter",
+    "shape_mismatch": "reject with explicit error",
+    "vy_dropped": "forbidden",
+    "wz_as_heading": "forbidden"
+  },
+
+  "filtering": {
+    "enabled": false,
+    "policy": "if a low-pass filter or rate limiter is introduced later, both the raw external command and the applied command must be logged, and the pairing contract for nominal rollouts must use the APPLIED command"
+  },
+
+  "logging_fields_for_calibration": [
+    "sim_time_s",
+    "episode_id",
+    "env_index",
+    "cmd_raw_vx", "cmd_raw_vy", "cmd_raw_wz",
+    "cmd_applied_vx", "cmd_applied_vy", "cmd_applied_wz",
+    "base_lin_vel_body_x", "base_lin_vel_body_y", "base_lin_vel_body_z",
+    "base_ang_vel_body_x", "base_ang_vel_body_y", "base_ang_vel_body_z",
+    "base_pos_world_x", "base_pos_world_y", "base_pos_world_z",
+    "base_quat_world_w", "base_quat_world_x", "base_quat_world_y", "base_quat_world_z",
+    "joint_pos_12", "joint_vel_12",
+    "terminated", "truncated",
+    "command_source"
+  ],
+  "logging_notes": "sampled every low-level inference (50 Hz); calibration pairs nominal/executed rollouts on a common 0.1 s grid by linear interpolation over these fields",
+
+  "differences_from_legacy_1020": [
+    {"item": "high-level period", "legacy": "0.2 s (5 Hz), command held 10 tracker updates", "current": "0.1 s (10 Hz), command held 5 inferences", "decision": "follow current; legacy unchanged"},
+    {"item": "observation dim", "legacy": "48 (includes base linear velocity)", "current": "45 (no base_lin_vel)", "decision": "keep 45; do not add sensors to match 48"},
+    {"item": "PD stiffness", "legacy": "20.0", "current": "25.0", "decision": "keep 25.0; do not mix legacy gains"},
+    {"item": "command ranges", "legacy": "0.6 / 0.4 / 1.2", "current": "1.0 / 0.4 / 1.0", "decision": "keep current (user decision 2026-10-31)"},
+    {"item": "action clip", "legacy": "q_des = q_stand + 0.25*clip(a,-1,1)", "current": "target-level clamp +-100 rad, agent clip_actions=None", "decision": "documented; do not change to +-1 without a full-chain check"}
+  ]
+}

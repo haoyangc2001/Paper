@@ -1,0 +1,186 @@
+{
+  "version": "1.0.0",
+  "created": "2026-10-31",
+  "produced_by_task": "TASK-017",
+  "status": "fixed_before_training",
+  "applies_to": "CaMRA locomotion Go2 velocity tracker",
+  "user_approved": "2026-10-31 用户采纳全部阈值与资源决策",
+
+  "seeds": {
+    "training": [0, 1, 2],
+    "dev": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109],
+    "final_test": [200, 201, 202, 203, 204, 205, 206, 207, 208, 209],
+    "rule": "dev and final_test seeds are disjoint from training; final_test is evaluated once per selected checkpoint and never used for selection",
+    "map_and_command_seed": "derived from (seed, scenario, episode_index) so that maps and command programs are reproducible"
+  },
+
+  "warmup": {
+    "settle_s": 1.0,
+    "note": "first 1.0 s after reset is excluded from all tracking metrics"
+  },
+
+  "scenarios": [
+    {
+      "id": "stand",
+      "duration_s": 10.0,
+      "command_program": {"type": "constant", "vx": 0.0, "vy": 0.0, "wz": 0.0},
+      "metrics": ["stand_drift_m", "max_roll_deg", "max_pitch_deg", "failure_rate", "action_rate_rms"],
+      "thresholds": {"stand_drift_m": 0.05, "max_roll_deg": 8.0, "max_pitch_deg": 8.0},
+      "source": "TASK-013 决策（用户已采纳）：静止 10 s 平面漂移 ≤0.05 m"
+    },
+    {
+      "id": "fwd_low",
+      "duration_s": 10.0,
+      "command_program": {"type": "constant", "vx": 0.3, "vy": 0.0, "wz": 0.0},
+      "metrics": ["rmse_vx", "p95_abs_err_vx", "max_roll_deg", "failure_rate"],
+      "thresholds": {"rmse_vx": 0.15, "p95_abs_err_vx": 0.25},
+      "source": "TASK-013 阈值：前向速度 RMS ≤0.15 m/s"
+    },
+    {
+      "id": "fwd_mid",
+      "duration_s": 10.0,
+      "command_program": {"type": "constant", "vx": 0.6, "vy": 0.0, "wz": 0.0},
+      "metrics": ["rmse_vx", "p95_abs_err_vx", "max_roll_deg", "failure_rate"],
+      "thresholds": {"rmse_vx": 0.15, "p95_abs_err_vx": 0.25},
+      "source": "同上"
+    },
+    {
+      "id": "fwd_high",
+      "duration_s": 10.0,
+      "command_program": {"type": "constant", "vx": 1.0, "vy": 0.0, "wz": 0.0},
+      "metrics": ["rmse_vx", "p95_abs_err_vx", "max_roll_deg", "failure_rate"],
+      "thresholds": {"rmse_vx": 0.18, "p95_abs_err_vx": 0.30},
+      "source": "命令域上限 1.0 m/s，取 18% 作为上限场景宽容度（较常态放宽 0.03 m/s）"
+    },
+    {
+      "id": "backward",
+      "duration_s": 10.0,
+      "command_program": {"type": "constant", "vx": -0.5, "vy": 0.0, "wz": 0.0},
+      "metrics": ["rmse_vx", "p95_abs_err_vx", "failure_rate"],
+      "thresholds": {"rmse_vx": 0.15, "p95_abs_err_vx": 0.25},
+      "source": "同上"
+    },
+    {
+      "id": "lateral",
+      "duration_s": 10.0,
+      "command_program": {"type": "constant", "vx": 0.0, "vy": 0.3, "wz": 0.0, "vy_sign": "both"},
+      "metrics": ["rmse_vy", "p95_abs_err_vy", "failure_rate"],
+      "thresholds": {"rmse_vy": 0.10, "p95_abs_err_vy": 0.18},
+      "source": "TASK-013 阈值：侧向速度 RMS ≤0.10 m/s（命令上限 0.4 的 25%）"
+    },
+    {
+      "id": "turn_inplace",
+      "duration_s": 10.0,
+      "command_program": {"type": "constant", "vx": 0.0, "vy": 0.0, "wz": 0.8, "wz_sign": "both"},
+      "metrics": ["rmse_wz", "p95_abs_err_wz", "failure_rate"],
+      "thresholds": {"rmse_wz": 0.15, "p95_abs_err_wz": 0.25},
+      "source": "TASK-013 阈值：偏航角速度 RMS ≤0.15 rad/s"
+    },
+    {
+      "id": "combined",
+      "duration_s": 10.0,
+      "command_program": {"type": "constant", "vx": 0.6, "vy": 0.3, "wz": 0.5, "sign_combinations": 4},
+      "metrics": ["rmse_vx", "rmse_vy", "rmse_wz", "failure_rate"],
+      "thresholds": {"rmse_vx": 0.15, "rmse_vy": 0.10, "rmse_wz": 0.15},
+      "source": "组合变速：三项 RMS 分别沿用单项阈值"
+    },
+    {
+      "id": "start_stop",
+      "duration_s": 12.0,
+      "command_program": {"type": "step", "profile": [[0.0, 2.0], [0.8, 6.0], [0.0, 12.0]]},
+      "metrics": ["rise_time_s", "stop_drift_m", "overshoot_mps", "failure_rate"],
+      "thresholds": {"rise_time_s": 0.5, "stop_drift_m": 0.10, "overshoot_mps": 0.15},
+      "source": "TASK-013 阈值：阶跃响应 ≤0.5 s、停车漂移 ≤0.10 m；超调 0.15 m/s 为新增，取命令幅值 0.8 的 19%"
+    },
+    {
+      "id": "ramp",
+      "duration_s": 14.0,
+      "command_program": {"type": "ramp", "vx_from": 0.0, "vx_to": 1.0, "t_up": [2.0, 7.0], "t_down": [7.0, 12.0]},
+      "metrics": ["rmse_vx", "p95_abs_err_vx", "max_roll_deg", "failure_rate"],
+      "thresholds": {"rmse_vx": 0.18, "p95_abs_err_vx": 0.30},
+      "source": "连续变速，沿用上限场景宽容度"
+    }
+  ],
+
+  "metric_definitions": {
+    "rmse_vx": "sqrt(mean((vx_body - cmd_vx)^2)) over evaluation window",
+    "rmse_vy": "sqrt(mean((vy_body - cmd_vy)^2))",
+    "rmse_wz": "sqrt(mean((wz_body - cmd_wz)^2))",
+    "p95_abs_err_*": "95th percentile of |actual - commanded| over evaluation window",
+    "rise_time_s": "time from step onset to first sample reaching 90% of step magnitude and staying above 80% for 0.2 s",
+    "stop_drift_m": "planar displacement of base between the instant command reaches 0 and 2.0 s later",
+    "overshoot_mps": "max(actual_vx) - step_magnitude, floored at 0",
+    "stand_drift_m": "max planar displacement of base over the 10 s stand window",
+    "max_roll_deg / max_pitch_deg": "max |roll|, |pitch| in degrees over evaluation window",
+    "failure_rate": "fraction of episodes ending by termination before horizon (base_contact or bad_orientation)",
+    "action_rate_rms": "mean over steps of || a_t - a_{t-1} ||_2 on the 12-dim raw action",
+    "joint_limit_rate": "fraction of steps where any joint position is within 5% of its limit"
+  },
+
+  "groups": {
+    "nominal": {
+      "description": "reduced perturbation: fixed friction 1.0, no added base mass, no push, obs noise disabled",
+      "implemented_knobs_used": ["randomize_rigid_body_material (fixed)", "randomize_rigid_body_mass (zero)", "push_by_setting_velocity (disabled)", "enable_corruption (false)"]
+    },
+    "perturbed": {
+      "description": "training-level and widened perturbation within the same implemented knobs",
+      "implemented_knobs_used": {
+        "friction_static_dynamic": [0.3, 1.25],
+        "added_base_mass_kg": [-1.0, 3.0],
+        "push_velocity_mps": [-0.5, 0.5],
+        "push_interval_s": [5.0, 10.0],
+        "obs_noise": "enabled (training values)"
+      },
+      "not_covered": ["command delay randomization (0-40 ms) is NOT implemented in the current environment and must not be claimed as verified"]
+    }
+  },
+
+  "trial_budget": {
+    "episodes_per_scenario_per_training_seed": 100,
+    "episodes_per_scenario": 300,
+    "episodes_per_group": 3000,
+    "groups": ["nominal", "perturbed"],
+    "total_episodes": 6000,
+    "estimated_wall_time_s": 240,
+    "note": "batched over 4096 parallel envs; 4096 episodes of 10-14 s take ~2-3 min total on one L40 (TASK-013 measurement)"
+  },
+
+  "checkpoint_selection": {
+    "dev_episodes": 300,
+    "dev_seeds": "dev list",
+    "evaluation_interval_iterations": 100,
+    "start_iteration": 500,
+    "end_iteration": 3000,
+    "score": "weighted_composite = 0.4*norm_rmse_vx + 0.2*norm_rmse_vy + 0.2*norm_rmse_wz + 0.2*norm_failure_rate",
+    "normalization": "each term divided by its hard threshold",
+    "constraint": "selected checkpoint must have dev failure_rate <= 0.10; among those pick minimum composite",
+    "fallback": "if none satisfies the constraint, pick minimum failure_rate and record it as a failure of the acceptance criteria",
+    "rule": "final_test evaluated exactly once on the selected checkpoint"
+  },
+
+  "training_stop_rules": {
+    "max_iterations": 3000,
+    "max_wall_clock_h_per_seed": 6.0,
+    "early_stop_patience_iterations": 500,
+    "early_stop_metric": "dev composite score",
+    "on_wall_clock_exceeded": "stop and keep best dev checkpoint, record actual iteration count",
+    "retrain_policy": "at most 1 retry per seed, only if the run is invalidated by an infrastructure error (NaN, crash, resource loss); poor performance is reported as-is and never retried",
+    "forbidden": "unbounded retries to reach thresholds"
+  },
+
+  "acceptance": {
+    "per_scenario": "all listed thresholds hold when aggregated over 300 episodes of that scenario in the nominal group",
+    "perturbed": "same thresholds except rmse thresholds relaxed by 20% and failure_rate allowed up to 0.10",
+    "global_failure_rate": {"nominal": 0.05, "perturbed": 0.10},
+    "overall_pass": "every scenario passes in nominal; perturbed pass rate >= 80% of scenarios; global failure rate thresholds hold",
+    "not_evidence": ["video playback", "total episode reward", "curriculum progression", "training loss"],
+    "rule": "only the metric table can decide pass/fail; failures are reported, not hidden"
+  },
+
+  "reporting": {
+    "per_scenario_table": ["scenario", "episodes", "metric values", "threshold", "pass/fail"],
+    "aggregation": "mean over 3 training seeds; also report per-seed values so seed variance is visible",
+    "artifacts": ["per-episode CSV", "summary JSON", "checkpoint hash", "env/agent yaml", "asset sha256"],
+    "location": "/pub/data/caohy/logs/camra/TASK-024/"
+  }
+}
