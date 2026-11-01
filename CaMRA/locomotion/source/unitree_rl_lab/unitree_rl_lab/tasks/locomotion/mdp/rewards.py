@@ -223,3 +223,81 @@ def joint_mirror(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, mirror_joint
         )
     reward *= 1 / len(mirror_joints) if len(mirror_joints) > 0 else 0
     return reward
+
+
+"""
+Command-transient rewards (TASK-023 tuning round 1).
+
+Why these exist
+---------------
+The baseline reward set has no term that is sensitive to a *command step*:
+``track_lin_vel_xy_exp`` averages the squared error over the whole episode, so a
+0.55 s transient on a 20 s episode is ~2.5 % of the return. Measured on the
+formal run (``dev_it2999``): doubling the start-up speed would raise
+``track_lin_vel_xy`` by only +0.009 per step, while ``action_rate_l2`` would cost
+more than that -- under the baseline reward, a slow start is the *optimal*
+policy, which is why all six checkpoints failed ``start_stop``.
+
+The two terms below are active only where the baseline is blind: in the 0.6 s
+after a command step, and while the command asks the robot to stand still.
+"""
+
+
+def _command_step_age(
+    env: ManagerBasedRLEnv, command: torch.Tensor, window_steps: int, tol: float = 0.02
+) -> torch.Tensor:
+    """Steps elapsed since the command last changed, clamped to ``window_steps``.
+
+    Command terms resample on a 4-8 s schedule, so a change is a jump rather than
+    a drift; a per-environment counter is enough here and, unlike
+    ``time_left_buf``, it does not require recovering the sampled interval.
+    """
+    prev = getattr(env, "_camra_prev_cmd", None)
+    age = getattr(env, "_camra_step_age", None)
+    if prev is None or age is None or prev.shape != command.shape or age.numel() != env.num_envs:
+        prev = command.detach().clone()
+        age = torch.zeros(env.num_envs, dtype=torch.long, device=env.device)
+    changed = torch.sum(torch.abs(command - prev), dim=1) > tol
+    age = torch.where(changed, torch.full_like(age, window_steps), torch.clamp(age - 1, min=0))
+    env._camra_prev_cmd = command.detach().clone()
+    env._camra_step_age = age
+    return age
+
+
+def track_lin_vel_xy_step_exp(
+    env: ManagerBasedRLEnv,
+    std: float,
+    command_name: str,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    step_window_s: float = 0.6,
+) -> torch.Tensor:
+    """``track_lin_vel_xy_exp`` restricted to the transient after a command step.
+
+    Same exponential kernel as the baseline term, with a narrower ``std`` so the
+    gradient concentrates on the part of the response the baseline ignores.
+    """
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    lin_vel_error = torch.sum(torch.square(command[:, :2] - asset.data.root_lin_vel_b[:, :2]), dim=1)
+    reward = torch.exp(-lin_vel_error / std**2)
+    window_steps = max(1, int(round(step_window_s / env.step_dt)))
+    age = _command_step_age(env, command, window_steps)
+    return reward * (age > 0).float()
+
+
+def lin_vel_xy_at_standstill_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    threshold: float = 0.1,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize horizontal base speed while the command asks for (near) zero velocity.
+
+    The baseline ``base_linear_velocity`` penalty is ``lin_vel_z_l2``: it only
+    looks at the vertical axis, so nothing in the baseline reward discourages the
+    ~0.13 m of coasting that made ``stop_drift_m`` fail on all six checkpoints.
+    """
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    standing = (torch.norm(command[:, :2], dim=1) < threshold).float()
+    return standing * torch.sum(torch.square(asset.data.root_lin_vel_b[:, :2]), dim=1)

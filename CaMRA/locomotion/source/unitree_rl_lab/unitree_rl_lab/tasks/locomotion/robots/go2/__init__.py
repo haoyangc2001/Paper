@@ -10,3 +10,16 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"unitree_rl_lab.tasks.locomotion.agents.rsl_rl_ppo_cfg:BasePPORunnerCfg",
     },
 )
+
+gym.register(
+    id="CaMRA-Go2-Velocity",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.camra_env_cfg:CaMRAGo2VelocityEnvCfg",
+        "play_env_cfg_entry_point": f"{__name__}.camra_env_cfg:CaMRAGo2VelocityPlayEnvCfg",
+        "rsl_rl_cfg_entry_point": (
+            "unitree_rl_lab.tasks.locomotion.agents.camra_ppo_cfg:CaMRAGo2PPORunnerCfg"
+        ),
+    },
+)
