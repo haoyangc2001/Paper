@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -38,6 +38,10 @@
       {
         "date": "2026-11-01",
         "summary": "补录 TASK-023 的 start_stop 系统性诊断与调优第 1 轮执行记录：判定根因为奖励缺少瞬态项，新增阶跃跟踪与零速制动两项奖励后在独立 run 目录重训；同时记录 nominal 组 30 回合实为同一轨迹、以及评估未包含 10 Hz 接口延迟两项测量口径提示。"
+      },
+      {
+        "date": "2026-11-01",
+        "summary": "完成 TASK-023 调优第1轮闭环并启动第2轮：第1轮新增的命令阶跃奖励使 start_stop 起步时间由0.552s降至0.220s达标，零速制动惩罚因权重过小未能改善停车滑行(0.129->0.125m)；第2轮仅将该权重由-1.5提至-5.0。"
       }
     ]
   },
@@ -2074,6 +2078,52 @@
           "remaining_work": [
             "第 1 轮训练结束后对 6 个检查点执行 dev 全量评估(10 场景×30 回合)，重点复核 start_stop 的 rise_time 与 stop_drift，同时确认 rmse_vx/rmse_vy/rmse_wz 与失败率未越过预设阈值。",
             "若 start_stop 仍不达标，按无轮次上限的调优循环进入下一轮，每轮使用新的独立 run 目录并保留全部历史产物。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-01T16:14:00+08:00",
+          "summary": "调优第1轮闭环完成：命令阶跃奖励成功修好起步(pass)，零速制动惩罚未能修好停车(仍fail)；已按诊断结论启动第2轮（仅将零速制动权重-1.5提至-5.0）。",
+          "actions": [
+            "训练结束后在 tmux 窗口 camra-locomotion:TASK-023-r1eval 内启动开发集扫描，6个检查点(500/1000/1500/2000/2500/2999)各10场景×30回合全部完成，单个检查点SWEEP_EXIT=0，全流程14:33:27起至15:03:23止。",
+            "因原收尾脚本 t023_finalize.sh 与 t023_devsweep.sh 的输出路径固定为 dev_it*、且检测到 summary.json 即跳过，直接运行会跳过全部检查点或污染第0轮产物，故新建 _r1 专用版本 t023_devsweep_r1.sh、t023_finalize_r1.sh、t023_select_r1.py，仅改输出路径与输入glob，选模规则、阈值、权重一字未动。",
+            "用 t023_select_r1.py 按原规则完成第1轮选模，结果写入 selection_r1.json。",
+            "对零速制动项未生效的机制做定量核查：用 dev_it2999_r1 的 stand.npz 与 start_stop.npz 原始轨迹，分别计算永久站立环境(rel_standing_envs=0.1)的 v_xy^2=0.00019 与停车后0.6s窗口的 v_xy^2=0.1363，确认该项并非被站立环境稀释，而是整体量级过小(0.0012)对 action_rate 惩罚(0.1826)不足1%，故策略没有制动动机。",
+            "据此仅将 lin_vel_xy_at_standstill 权重由 -1.5 改为 -5.0，其余奖励项、观测、动作、终止、域随机化一律不动；改后先跑3迭代冒烟(TRAIN_EXIT=0，覆盖断言 assert_overrides_applied 通过，项值-0.0160)，再启动第2轮3000迭代正式训练，独立run目录 formal_s0_3000it_r2。"
+          ],
+          "files_changed": [
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py",
+            "/pub/data/caohy/scripts/t023_devsweep_r1.sh",
+            "/pub/data/caohy/scripts/t023_finalize_r1.sh",
+            "/pub/data/caohy/tools/t023_select_r1.py",
+            "/pub/data/caohy/scripts/t023_train_r2.sh",
+            "/home/caohy/repositories/Paper/doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "commands": [
+            "tmux send-keys -t camra-locomotion:TASK-023-r1eval \"bash /pub/data/caohy/scripts/t023_finalize_r1.sh /pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-01_09-41-35_formal_s0_3000it_r1 2>&1 | tee /pub/data/caohy/logs/camra/TASK-023/finalize_r1.log\"",
+            "python /tmp/patch_camra_r2.py (权重 -1.5 -> -5.0，含 CAMRA_OVERRIDES 同步)",
+            "tmux send-keys -t camra-locomotion:TASK-023-smoke-r2 \"bash /pub/data/caohy/scripts/t023_train_r2.sh 0 3 smoke_r2_3it\"",
+            "tmux send-keys -t camra-locomotion:TASK-023-r2 \"bash /pub/data/caohy/scripts/t023_train_r2.sh 0 3000\""
+          ],
+          "results": [
+            "第1轮选模：selected_iteration=2999，score=0.28942，failure_rate=0.0，verdict=selected，9/10场景通过（唯一失败仍是 start_stop）。",
+            "第1轮六点score升序：2999=0.2894 < 1500=0.2993 < 2500=0.3047 < 1000=0.3324 < 2000=0.3852 < 500=3.1259。",
+            "起步时间已达标：start_stop rise_time 由第0轮最优0.552s降至第1轮2999的0.220s(30回合0.200~0.240)，远低于0.50s阈值，较基线改善60%。",
+            "停车滑行仍未达标：stop_drift 由0.129m降至0.125m(30回合全部在0.1253~0.1271)，距0.10m阈值仍有0.025m缺口，改善仅3%。",
+            "速度跟踪无回归：第1轮2999的rmse_vx/vy/wz=0.0592/0.0396/0.0392，全部远低于阈值0.15/0.10/0.15；横向场景反而由0.0862改善至0.0429，但turn_inplace由0.0342退至0.0524。",
+            "训练层面对齐：第1轮末轮共2.95亿步、耗时03:15:47、Mean reward 29.18、terrain_levels 2.0592、error_vel_xy 0.2605，与第0轮的29.71/2.0604/0.2599基本一致，action_rate由-0.1703退至-0.1826(抖动+7%)。",
+            "第1轮500检查点出现明显退化：rise_time 2.297s、stop_drift 0.464m、30回合中11回合未加速到位，failure_rate达0.4767；1000轮后恢复，故未影响选模结论。",
+            "第2轮已于16:12:24在GPU0启动，run_name=formal_s0_3000it_r2，预计约19:30结束。"
+          ],
+          "evidence": [
+            "评估配置可比性已逐键核对：dev_it500 与 dev_it500_r1 的 env_cfg.json 仅相差9个键，全部为新增的两项奖励(权重/参数/函数名)；协议路径、protocol_version=1.0.0、protocol_sha256、env_seed=100、num_envs=64、nominal组参数完全一致，两次评估可直接对比。",
+            "基线产物未被触碰：第0轮的 dev_it*、selection.json、formal_s0_3000it 目录均未改写，第1轮全部写入带 _r1 后缀的新路径，finalize_r1.log 记录每个检查点的起止时间与 exit=0。",
+            "零速制动项为何无效有实测依据：stand.npz 中永久站立环境的 v_xy^2 仅0.00019，该项贡献0.00002；停车0.6s窗口的 v_xy^2 为0.1363，说明信号确实落在停车瞬态上，问题在于权重太小而非信号被稀释。",
+            "第2轮的改动只涉及一个浮点数：camra_env_cfg.py 第88行覆盖表与第155行 RewTerm 的 weight 同步改为-5.0，且 assert_overrides_applied 冒烟通过，代码与文档无漂移。"
+          ],
+          "remaining_work": [
+            "等待第2轮训练结束(约19:30)后跑 dev 全量评估，重点确认 stop_drift 是否压到0.10m以内、rise_time 是否维持0.22s量级，并复核三项rmse未越界。",
+            "若第2轮仍未达标，按同一机制继续调整(方向：继续提高零速制动权重，或把惩罚改为对停车后位移的显式约束)，不设轮次上限。"
           ],
           "blockers": []
         }
