@@ -19,7 +19,10 @@ sys.path.pop(0)
 
 tasks = []
 for task_spec in gym.registry.values():
-    if "Unitree" in task_spec.id and "Isaac" not in task_spec.id:
+    # CaMRA-Go2-Velocity must show up here too; it is a Unitree Go2 task with a
+    # reviewed override layer, so the prefix filter is widened instead of renaming
+    # the task (renaming would invalidate the TASK-019..021 work records).
+    if ("Unitree" in task_spec.id or "CaMRA" in task_spec.id) and "Isaac" not in task_spec.id:
         tasks.append(task_spec.id)
 
 import argparse
