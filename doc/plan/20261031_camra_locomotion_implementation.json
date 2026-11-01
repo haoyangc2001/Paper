@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -42,6 +42,10 @@
       {
         "date": "2026-11-01",
         "summary": "完成 TASK-023 调优第1轮闭环并启动第2轮：第1轮新增的命令阶跃奖励使 start_stop 起步时间由0.552s降至0.220s达标，零速制动惩罚因权重过小未能改善停车滑行(0.129->0.125m)；第2轮仅将该权重由-1.5提至-5.0。"
+      },
+      {
+        "date": "2026-11-01",
+        "summary": "第2轮调优因命令课程冻结被中止并修复：站立惩罚门限 0.1→0.05 m/s 以消除与课程起点的重叠，命令等级课程改为限速+兜底推进以防自锁；第3轮已重新启动，并补记本轮全部证据与分批提交记录。"
       }
     ]
   },
@@ -2124,6 +2128,57 @@
           "remaining_work": [
             "等待第2轮训练结束(约19:30)后跑 dev 全量评估，重点确认 stop_drift 是否压到0.10m以内、rise_time 是否维持0.22s量级，并复核三项rmse未越界。",
             "若第2轮仍未达标，按同一机制继续调整(方向：继续提高零速制动权重，或把惩罚改为对停车后位移的显式约束)，不设轮次上限。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-01T18:45:00+08:00",
+          "summary": "第2轮调优训练在迭代981处人工中止：命令课程(curriculum)自始至终冻结在 +-0.1 m/s、地形等级 0，策略被训练在最简单档，偏离预定训练任务。定位到两处成因并修复后，第3轮已重新启动。",
+          "actions": [
+            "逐迭代抽取三轮训练日志中的 Curriculum/lin_vel_cmd_levels 与 Curriculum/terrain_levels，与第0/1轮同迭代点对齐比较，发现第2轮推进次数为 0（第0轮9次、第1轮8次），命令范围上限恒定 0.1000。",
+            "核实配置改动范围：第2轮提交仅改动 lin_vel_xy_at_standstill 权重一个浮点数，未波及命令、课程、观测、动作与终止条件，排除配置被误改。",
+            "确认根因一：站立惩罚阈值 0.1 m/s 与课程初始命令范围 ±0.1 m/s 完全重叠，权重 -5.0 下自迭代0起即惩罚一切按命令移动的行为，策略收敛到站立不动（回合长度频繁跑满 1000 步、action_rate 由 -0.20 降至 -0.11）。",
+            "确认根因二：命令课程推进条件为「固定步数对齐 + 跟踪奖励 > 0.8×权重」，两者同时不成立时课程会永久停滞；停滞又使任务恒定在最简单档，形成自锁。",
+            "经用户确认后中止第2轮：向 tmux 窗口 camra-locomotion:TASK-023-r2 发送中断信号，确认训练进程与包装脚本均已退出；第2轮全部产物（11个检查点、日志、start.txt）原样保留，未删除未覆盖。",
+            "修复一：将 lin_vel_xy_at_standstill 的门限由 0.1 改为 0.05 m/s，使其只覆盖真正的停车命令（评测停车命令为 0.0）与 rel_standing_envs，不再覆盖课程起点。",
+            "修复二：重写 mdp/curriculums.py 的命令等级课程，改为「最小间隔 1000 步的限速推进 + 1500 步兜底推进」；奖励判定保留为快速路径，兜底路径保证课程不会停滞。",
+            "离线单测验证课程逻辑（不占GPU）：奖励快速路径在第1008步推进、兜底路径在1512步推进且重置集为空时仍生效、范围在 limit_ranges 处钳制。",
+            "跑 90 轮冒烟确认实机行为：TRAIN_EXIT=0，Curriculum/lin_vel_cmd_levels 由 0.1000 升至 0.2000，并打印兜底推进日志。",
+            "按任务粒度分批提交此前积压的本地改动（TASK-017/018/019/020/021/022、资产路径修正、本轮修复），备份文件与 __pycache__ 不纳入版本库。",
+            "启动第3轮正式训练：seed=0、3000迭代、GPU0，独立 run 目录，原第0/1/2轮产物与评估目录不动。"
+          ],
+          "files_changed": [
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py",
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/curriculums.py",
+            "/home/caohy/repositories/Paper/doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "commands": [
+            "tmux send-keys -t camra-locomotion:TASK-023-r2 C-c   # 中止第2轮",
+            "CUDA_VISIBLE_DEVICES= python /tmp/test_curriculum_r3.py   # 课程逻辑离线单测",
+            "bash /pub/data/caohy/scripts/t023_train_r3.sh 0 90 smoke_r3_90it   # 90轮冒烟",
+            "bash /pub/data/caohy/scripts/t023_train_r3.sh 0 3000   # 第3轮正式训练",
+            "python /tmp/validate_worklog.py <plan> --mode update"
+          ],
+          "results": [
+            "第2轮在迭代981中止（历时02:12，run目录 2026-11-01_16-12-39_formal_s0_3000it_r2），该轮 11 个检查点与全部日志保留；需注意其日志末尾已写入 TRAIN_EXIT=0（由中断信号触发），不能据此判定为正常完成。",
+            "第2轮停滞证据：迭代900处命令范围上限 0.1 m/s（第0轮1.0、第1轮0.9），地形等级 0.00（1.15/0.68），速度误差 0.172（0.307/0.305）。",
+            "第2轮 Mean reward 35.87 高于第0/1轮同迭代的 26.30/26.75，但系任务被冻结在最简单档所致（跟踪奖励 1.461 接近 1.5 上限、动作抖动惩罚 -0.111 低于基线 -0.201），不构成性能提升。",
+            "修复后离线单测：奖励快速路径 1008 步推进、兜底路径 1512 步推进、lin_vel_x 上限钳制于 1.0，全部断言通过。",
+            "修复后实机冒烟（90迭代）：TRAIN_EXIT=0，命令等级 0.1000→0.2000，兜底日志 'no reward-based bump within 1500 steps' 出现一次。",
+            "第3轮于 2026-11-01T18:39:05 启动，run目录 2026-11-01_18-39-18_formal_s0_3000it_r3，GPU0；两项新增奖励项已加载（track_lin_vel_step 0.0010、lin_vel_xy_at_standstill -0.0031）。",
+            "代码按任务分批提交：65ccd20、e9ec678、f201298、acdd070、fb8cfdc、dc1c289、2300b1b、4f4dabe。"
+          ],
+          "evidence": [
+            "第2轮日志 formal_s0_3000it_r2.log 中 Curriculum/lin_vel_cmd_levels 的取值集合仅 {0.1000}，共 979 个采样；第0/1轮同指标在迭代900前分别推进 9 次与 8 次。",
+            "三轮同迭代(900)指标对照可直接从日志块提取：命令等级、地形等级、速度误差、动作抖动、跟踪奖励五项均指向第2轮任务被冻结。",
+            "冒烟日志 smoke_r3_90it.log 记录 Curriculum/lin_vel_cmd_levels 取值 {0.1000, 0.1542, 0.2000} 与兜底打印行，证明修复在完整仿真环境中生效。",
+            "离线单测 /tmp/test_curriculum_r3.py 覆盖三条路径并全部断言通过；该方法不需要 GPU，可随时复跑。",
+            "两处修复均有 .bak-r3-* 备份，且 camra_env_cfg.py 的 CAMRA_OVERRIDES reason/impact 字段已同步更新门限与理由，assert_overrides_applied 仍能核对实际配置。"
+          ],
+          "remaining_work": [
+            "第3轮训练完成后（预计 2026-11-02 凌晨）对 6 个检查点跑开发集全量评估，用 _r3 专用输出目录，避免覆盖第0/1轮产物。",
+            "重点核验 start_stop 的 rise_time 与 stop_drift 是否同时达标（阈值 0.50 s / 0.10 m），并复核三项速度 rmse 未越过阈值。",
+            "确认命令课程是否在合理轮次内推进到 1.0 m/s、地形等级回升，作为本轮有效性的判据。"
           ],
           "blockers": []
         }
