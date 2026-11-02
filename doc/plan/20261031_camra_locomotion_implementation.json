@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "1.8.0",
+    "version": "1.9.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -54,6 +54,10 @@
       {
         "date": "2026-11-02",
         "summary": "TASK-023第4轮实现完成并启动正式训练：新增停车事件命令分布（300迭代线性爬坡）与停车下降沿位移塑形奖励，替换常开站立速度惩罚；冒烟期间发现并修复两个真实缺陷（复位后锚点残留导致惩罚爆表、平坦25%停车导致早段停滞），补34项离线单测。仅记录实施过程，选模结论待第4轮训练结束后产出。"
+      },
+      {
+        "date": "2026-11-02",
+        "summary": "补录 TASK-023 第4轮训练与开发集结果：选中 iteration 2999，开发集 10 场景 × 300 回合全部通过，start_stop 的 rise 与 drift 首次同时达标，任务标记完成；并记录选模样本量缺口已补足、最终测试（TASK-024）待用户确认后单次执行。"
       }
     ]
   },
@@ -1961,7 +1965,7 @@
     {
       "id": "TASK-023",
       "goal": "在目标设备完成正式底层训练",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-022"
       ],
@@ -2321,6 +2325,47 @@
             "把第4轮结果与第1轮(0.289)、第3轮(0.313)横向比较，若落在 0.10–0.11 m 区间则按约束标注边界未达标并提交用户决定。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-02T19:05:00+08:00",
+          "summary": "第4轮训练（真停车命令分布 + 下降沿位移塑形）跑完并完成开发集选模：选中 iteration 2999，开发集 10 个场景 × 300 回合全部通过，start_stop 的 rise_time 0.220 s 与 stop_drift 0.0617 m 首次同时进入阈值（0.5 s / 0.10 m），TASK-023 达到进入最终测试的条件。同时补上了此前四轮选模只跑 seed 100 × 30 回合、而协议要求 300 回合的方法学缺口。",
+          "actions": [
+            "第4轮正式训练 run 2026-11-02_11-14-49_formal_s0_3000it_r4（seed=0，GPU0，3000 迭代）于 16:39:12 结束，TRAIN_EXIT=0。",
+            "由 r3 脚本经 sed 派生出 _r4 三件套（t023_devsweep_r4.sh / t023_finalize_r4.sh / t023_select_r4.py），仅替换后缀与标签，选模规则、检查点集合（500/1000/1500/2000/2500/2999）与阈值一字未改。",
+            "17:13:27 在 tmux 窗口 TASK-023-r4eval 启动 FINALIZE_R4，17:43:24 完成，SWEEP_EXIT=0 / SELECT_EXIT=0。",
+            "中途新增只跑 start_stop 单场景的快速闸门脚本 t023_gate_r4.sh / t023_gate_r4b.sh（单点约 1m45s），用于在训练进行中取 600/800/1500/2000/2500 五个中间点的停车曲线，避免烧满 3000 迭代才发现无改善。",
+            "核对评测协议后确认 checkpoint_selection.dev_episodes=300（10 个开发种子 × 30 回合），而此前各轮扫描均只用 seed=100；在花掉一次性最终测试之前，新增 t023_devfull_r4.sh，对选中检查点补做 seed 100–109 的全场景评估（10 × 5.2 min，18:43:18 完成）。"
+          ],
+          "files_changed": [
+            "doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "commands": [
+            "tmux new-window -t camra-locomotion -n TASK-023-r4-formal 'bash /pub/data/caohy/scripts/t023_train_r4.sh 0 3000 | tee .../formal_r4.console.log'",
+            "tmux new-window -t camra-locomotion -n TASK-023-r4eval 'bash /pub/data/caohy/scripts/t023_finalize_r4.sh <run_dir> | tee .../finalize_r4.log'",
+            "bash /pub/data/caohy/scripts/t023_gate_r4.sh <run_dir>   # 600/800",
+            "bash /pub/data/caohy/scripts/t023_gate_r4b.sh <run_dir>  # 1500/2000/2500",
+            "bash /pub/data/caohy/scripts/t023_devfull_r4.sh <run_dir> 2999   # dev seeds 100-109"
+          ],
+          "results": [
+            "训练：3000/3000 迭代，约 5 h 23 min，末段 Mean reward 28.3、terrain_levels 1.33、value loss 0.009、bad_orientation 0.011。",
+            "选模（seed=100 / 30 回合）：selection_r4.json 记录 selected_iteration=2999、score=0.415、failure_rate=0.000；各点通过数为 500:2/10、1000:7/10、1500:9/10、2000:8/10、2500:9/10、2999:10/10。",
+            "start_stop 逐点（rise/drift）：500 1.198/0.0825、1000 0.557/0.0868、1500 0.549/0.0816、2000 0.760/0.0764、2500 0.606/0.0482、2999 0.220/0.0631。漂移从第1轮 0.126、第3轮 0.120 降到 0.04–0.09 区间。",
+            "开发集完整复核（种子 100–109，每场景 300 回合，按协议 aggregate 规则聚合）：10 个场景全部通过，且全局失败率 0.000（限值 0.05）。关键余量：stand_drift 0.0036/0.05、fwd_low rmse_vx 0.1334/0.15、lateral rmse_vy 0.0887/0.10、turn_inplace rmse_wz 0.0707/0.15、start_stop rise 0.2200/0.50 与 drift 0.0617/0.10、ramp rmse_vx 0.1097/0.18。",
+            "start_stop 的 10 个种子 rise 均为 0.220（该场景起步段在确定性回放下几乎不变），drift 在 0.0589–0.0639 之间波动，说明漂移的余量在多随机种子下稳定，而 rise 实质上是单条确定性轨迹的测量值。",
+            "与前三轮对比：第0轮 0.552/0.129、第1轮 0.225/0.126、第3轮 0.533/0.120 均在 start_stop 上失败，本轮首次两项同时达标。"
+          ],
+          "evidence": [
+            "tmux 主机 tiger12、会话 camra-locomotion、窗口 TASK-023-r4-formal / TASK-023-r4eval / TASK-023-devfull。",
+            "训练日志 /pub/data/caohy/logs/camra/TASK-023/formal_s0_3000it_r4.log 含 TRAIN_EXIT=0 与 finished_at 2026-11-02T16:39:12。",
+            "评估日志 /pub/data/caohy/logs/camra/TASK-023/finalize_r4.log 含 FINALIZE_R4 DONE 与 SELECT_EXIT=0。",
+            "选模产物 /pub/data/caohy/logs/camra/TASK-023/selection_r4.json。",
+            "开发集复核目录 dev_it2999_s100_r4 … dev_it2999_s109_r4（各含 summary.json / per_episode.csv / raw），10 个种子均完成。",
+            "评估脚本语法与结果未被人为修改：_r4 版由 _r3 版 sed 生成，diff 仅含后缀与标签差异。"
+          ],
+          "remaining_work": [
+            "TASK-024：用 seeds 200–209 对 model_2999 做一次性最终测试（协议规定只跑一次），包含 nominal 与 perturbed 两组，并按 acceptance 逐场景报告；在用户确认前不启动。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -2335,7 +2380,7 @@
         "有完整真实训练日志及可加载候选模型，选择过程和训练预算可追溯，进入最终测试的条件满足。",
         "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
       ],
-      "verification_result": ""
+      "verification_result": "验收 1 满足：存在完整真实训练日志与可加载候选模型，选择过程与训练预算可追溯。四轮训练均为独立 run 目录（第4轮 2026-11-02_11-14-49_formal_s0_3000it_r4，3000 迭代，seed=0，TRAIN_EXIT=0，16:39:12 结束），每轮 6 个检查点的开发集评估产物全部保留（dev_it*_r0/r1/r3/r4），选模规则与阈值未改，selection_r4.json 记录 selected_iteration=2999、score=0.415、failure_rate=0.000。进入最终测试的条件经协议同口径复核后确认成立：按 checkpoint_selection 规定的 300 回合/场景（种子 100–109 各 30 回合）重新聚合，10 个场景全部通过（全局失败率 0.000 ≤ 0.05），start_stop 的 rise 0.2200 s ≤ 0.50 与 stop_drift 0.0617 m ≤ 0.10 同时达标，为四轮中首次。同时记录一项方法论事实：此前各轮选模仅用 seed=100 的 30 回合，本轮已补足到 300 回合以免用低样本结论进入测试；并记录 rise_time 在 10 个种子上均为 0.220 s，即该指标实质是单条确定性轨迹的测量，其达标依赖的是场景确定性而非统计平均。验收 2 满足：工作记录含 tmux 主机 tiger12、会话 camra-locomotion 与窗口 TASK-023-r4-formal / TASK-023-r4eval / TASK-023-devfull，完整命令清单与 TRAIN_EXIT=0 / SELECT_EXIT=0 证据；未把会话存活或命令派发当作完成，也未在完成前启动 TASK-024 或改动协议阈值。"
     },
     {
       "id": "TASK-024",
