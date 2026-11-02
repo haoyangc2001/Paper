@@ -11,6 +11,8 @@ from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
 
+from .stop_events import advance_stop_window, relatch_on_episode_start
+
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
@@ -238,8 +240,12 @@ formal run (``dev_it2999``): doubling the start-up speed would raise
 more than that -- under the baseline reward, a slow start is the *optimal*
 policy, which is why all six checkpoints failed ``start_stop``.
 
-The two terms below are active only where the baseline is blind: in the 0.6 s
-after a command step, and while the command asks the robot to stand still.
+The terms below are active only where the baseline is blind: in the 0.6 s after
+a command step, and in the 0.5 s after a command falls to zero. Round 4 drops
+the always-on standstill velocity penalty (:func:`lin_vel_xy_at_standstill_l2`,
+kept below for reference and rollback) in favour of
+:func:`stop_drift_l2`, which charges the displacement itself over the falling
+edge only.
 """
 
 
@@ -301,3 +307,82 @@ def lin_vel_xy_at_standstill_l2(
     command = env.command_manager.get_command(command_name)
     standing = (torch.norm(command[:, :2], dim=1) < threshold).float()
     return standing * torch.sum(torch.square(asset.data.root_lin_vel_b[:, :2]), dim=1)
+
+
+def stop_drift_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    target_m: float = 0.10,
+    window_s: float = 0.5,
+    onset_tol: float = 0.02,
+    max_ratio: float = 4.0,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize the planar displacement travelled inside the window after a stop command.
+
+    Tuning round 4 replaces :func:`lin_vel_xy_at_standstill_l2` with this term.
+    Frame-level analysis of ``dev_it2500_r3`` shows the policy reacts in 2-4
+    control steps and brakes at a 4.1-4.5 m/s^2 peak, yet still drifts 0.120 m:
+    85 % of it (0.111 m) is travelled in the first 0.20 s, because the braking
+    ramps up slowly, and the remaining backward rebound (-0.07 m/s) then pulls
+    the 2 s displacement back down to 0.120 m. The always-on velocity penalty was
+    worth 0.0036 against ``action_rate_l2``'s 0.1796, and it also fired *before*
+    a standing start, which is the most plausible cause of the round 3 rise-time
+    regression (0.225 -> 0.533 s).
+
+    Charging the displacement itself -- normalised by the protocol threshold, and
+    only inside ``window_s`` after a falling edge -- points the gradient straight
+    at the graded metric and leaves the start transient alone.
+
+    Two safeguards keep the term bounded, because an unbounded quadratic penalty
+    on a handful of envs is enough to destroy the critic while leaving the logged
+    mean untouched (measured on the first round 4 smoke run: value loss
+    0.05 -> 16.9 in 40 iterations, see :func:`~.stop_events.relatch_on_episode_start`):
+
+    * the latch is cleared for envs respawned on the previous step (rewards are
+      computed before ``_reset_idx`` here, so the stale step is the one after);
+    * the normalised displacement is clamped at ``max_ratio``, i.e. the penalty
+      saturates at ``max_ratio * target_m`` of drift instead of growing without
+      bound when a stop is commanded while the robot is being pushed.
+
+    Returns:
+        ``(N,)`` non-negative penalty, ``min((drift / target_m) ** 2, max_ratio)``
+        while the window is active and zero outside it.
+    """
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    pos = asset.data.root_pos_w[:, :2]
+    window_steps = max(1, int(round(window_s / env.step_dt)))
+
+    state = getattr(env, "_camra_stop_state", None)
+    if state is None or state["age"].numel() != env.num_envs:
+        state = {
+            "prev": command.detach().clone(),
+            "age": torch.zeros(env.num_envs, dtype=torch.long, device=env.device),
+            "anchor": pos.detach().clone(),
+        }
+
+    age, anchor, drift2, active = advance_stop_window(
+        command=command,
+        prev_command=state["prev"],
+        age=state["age"],
+        anchor=state["anchor"],
+        pos=pos.detach(),
+        window_steps=window_steps,
+        onset_tol=onset_tol,
+    )
+    # a window still open when the episode ends would compare the new spawn
+    # position against the previous episode's anchor -- drop it instead
+    age, anchor, drift2, active = relatch_on_episode_start(
+        age=age,
+        anchor=anchor,
+        pos=pos.detach(),
+        episode_length_buf=env.episode_length_buf,
+    )
+    state["prev"] = command.detach().clone()
+    state["age"] = age
+    state["anchor"] = anchor.detach()
+    env._camra_stop_state = state
+
+    ratio = torch.clamp(drift2 / target_m**2, max=max_ratio)
+    return active.float() * ratio

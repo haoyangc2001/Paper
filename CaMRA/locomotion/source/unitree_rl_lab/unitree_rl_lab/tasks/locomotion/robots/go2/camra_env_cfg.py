@@ -85,28 +85,61 @@ CAMRA_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "rewards.lin_vel_xy_at_standstill": {
         "baseline": None,
-        "camra": {"term": "lin_vel_xy_at_standstill", "weight": -5.0, "threshold": 0.05},
+        "camra": None,
         "reason": (
-            "TASK-023 tuning round 1. The baseline base_linear_velocity penalty is lin_vel_z_l2, "
-            "i.e. the vertical axis only; nothing in the baseline discourages horizontal coasting "
-            "after a stop command, and stop_drift_m failed on all six checkpoints (0.129 m vs "
-            "0.10 m, with 85 % of it travelled in the first 0.20 s). "
-            "Round 2 raises the weight to -5.0: round 1 moved stop_drift only 0.129 -> 0.125 m, "
-            "so the term was firing on the right events but was far too weak against action_rate_l2 "
-            "(0.0012 against 0.1826). "
-            "Round 3 narrows the gate from 0.1 to 0.05 m/s: 0.1 is exactly the curriculum start "
-            "range (+-0.1 m/s), so at weight -5.0 the term penalised every commanded motion from "
-            "iteration 0, the policy settled into standing still, and the curriculum stopped "
-            "advancing (round 2 froze at 0.1 m/s / terrain level 0 for 981 iterations)."
+            "TASK-023 tuning rounds 1-3 used this term (weight -5.0, gate narrowed 0.1 -> 0.05 m/s); "
+            "round 4 REMOVES it and replaces it with rewards.stop_drift. It was firing on the right "
+            "events but its whole-episode contribution was only 0.0036 against action_rate_l2's 0.1796, "
+            "and because it applies whenever the command is zero it also covered the stillness just "
+            "before a standing start -- the most plausible cause of the round 3 rise_time regression "
+            "(0.225 s in round 1 -> 0.533 s). Round 3 measured stop_drift 0.115-0.120 m against the "
+            "0.10 m threshold, i.e. the velocity form of the penalty had reached its limit."
+        ),
+        "impact": "Term disabled; the reward set loses one always-on penalty. Behavioural effect is carried by rewards.stop_drift.",
+        "rollback": "Re-create the term in __post_init__ exactly as rounds 1-3 had it (weight -5.0, threshold 0.05) and set rewards.stop_drift to None.",
+    },
+    "rewards.stop_drift": {
+        "baseline": None,
+        "camra": {"term": "stop_drift", "weight": -5.0, "target_m": 0.1, "window_s": 0.5, "max_ratio": 4.0},
+        "reason": (
+            "TASK-023 tuning round 4. Frame-level analysis of dev_it2500_r3/raw/nominal/start_stop.npz "
+            "(30 episodes) shows the policy reacts within 2-4 control steps and peaks at 4.1-4.5 m/s^2, "
+            "yet still drifts 0.120 m: 85 % of the displacement (0.111 m) is travelled in the first "
+            "0.20 s because the braking ramps up slowly, and the backward rebound (-0.07 m/s) then pulls "
+            "the 2 s value back to 0.120 m. The graded metric is the planar displacement, so the term "
+            "charges that displacement directly, normalised by the 0.10 m threshold, and only inside the "
+            "0.5 s window that follows a falling edge (never before a start)."
         ),
         "impact": (
-            "Reward only, active while the command is below 0.05 m/s in the xy plane. Every stop "
-            "transient and the rel_standing_envs share still fall inside the gate (their command is "
-            "exactly zero), so the braking incentive is unchanged where it matters, but the easy "
-            "end of the velocity curriculum (+-0.1 m/s) is no longer covered. May make standing "
-            "stiffer; feet_air_time and action_rate still bound the resulting behaviour."
+            "Reward only, active only in the ~2 % of steps inside a post-stop window. Observations, "
+            "actions, terminations, domain randomisation and the 16 baseline weights are untouched. "
+            "Watch that rmse_vx/rmse_vy/rmse_wz and the dev failure rate stay inside their thresholds; "
+            "a hard-braking policy could otherwise trade steady-state tracking for stop quality."
         ),
-        "rollback": "Set the term to None in __post_init__; the baseline reward set is restored exactly.",
+        "rollback": "Set the term to None in __post_init__ and restore rewards.lin_vel_xy_at_standstill.",
+    },
+    "commands.base_velocity.stop_event_prob": {
+        "baseline": 0.0,
+        "camra": 0.25,
+        "reason": (
+            "TASK-023 tuning round 4. The training command is a uniform resample of lin_vel_x (-1, 1), "
+            "so a hold of exactly zero is a near-measure-zero event, and the rel_standing_envs share "
+            "stands from the first step and never brakes. 'Brake from 0.8 m/s to a full stop, then "
+            "restart' -- precisely what the start_stop scenario grades -- was therefore never trained. "
+            "0.25 of resamples now become a full-stop hold, i.e. 2-3 stop/restart events per 20 s "
+            "episode at the 4-8 s schedule. The probability is ramped in over the first 300 "
+            "iterations: enabling it from iteration 0 keeps a third of the batch standing while the "
+            "gait is still forming, and the round 4 smoke run then sat at ~16-step episodes for 60 "
+            "iterations where round 3 had already recovered to 562."
+        ),
+        "impact": (
+            "Command distribution only: ranges, heading logic, standing share and the curriculum are "
+            "unchanged, and the zero command is already inside the (+-1.0, +-0.4, +-1.0) domain, so the "
+            "eval protocol still describes the same task. The play/eval config sets the probability back "
+            "to 0.0 because the evaluation feeds its own command program. Ramp length 300 iterations "
+            "(stop_event_ramp_iters), so iterations 0-300 match round 3 exactly."
+        ),
+        "rollback": "Set commands.base_velocity.stop_event_prob = 0.0 (upstream behaviour exactly).",
     },
 }
 
@@ -125,9 +158,9 @@ CAMRA_UNCHANGED: dict[str, str] = {
     ),
     "rewards": (
         "The 16 baseline reward terms and their weights are kept identical to the baseline "
-        "(track_lin_vel_xy 1.5, track_ang_vel_z 0.75, ...). Two terms are ADDED by tuning round 1, "
-        "not modified: see the rewards.track_lin_vel_step and rewards.lin_vel_xy_at_standstill "
-        "entries of CAMRA_OVERRIDES."
+        "(track_lin_vel_xy 1.5, track_ang_vel_z 0.75, ...). Two terms are ADDED by tuning rounds 1-4, "
+        "not modified: see the rewards.track_lin_vel_step and rewards.stop_drift entries of "
+        "CAMRA_OVERRIDES. rewards.lin_vel_xy_at_standstill (rounds 1-3) is removed in round 4."
     ),
     "events": "All domain-randomisation terms kept identical (friction 0.3-1.2, added mass -1..3 kg, push 0.5 m/s every 5-10 s).",
     "terminations": (
@@ -142,7 +175,7 @@ CAMRA_UNCHANGED: dict[str, str] = {
 
 @configclass
 class CaMRAGo2VelocityEnvCfg(RobotEnvCfg):
-    """Upstream Go2 velocity task with the two CaMRA overrides applied."""
+    """Upstream Go2 velocity task with the CaMRA overrides applied."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -150,16 +183,21 @@ class CaMRAGo2VelocityEnvCfg(RobotEnvCfg):
         self.commands.base_velocity.debug_vis = CAMRA_OVERRIDES["commands.base_velocity.debug_vis"]["camra"]
         # override 2: denser command schedule (piecewise constant, 4-8 s holds)
         self.commands.base_velocity.resampling_time_range = CAMRA_COMMAND_RESAMPLING
-        # override 3 / 4: two reward terms that are sensitive to a command step
+        # override 3: 25 % of the holds become a full stop, so braking is trained
+        self.commands.base_velocity.stop_event_prob = CAMRA_OVERRIDES["commands.base_velocity.stop_event_prob"]["camra"]
+        # ... ramped in over the first 300 iterations so the early gait phase is untouched
+        self.commands.base_velocity.stop_event_ramp_iters = 300
+        # override 4 / 5: two reward terms that are sensitive to a command edge
         self.rewards.track_lin_vel_step = RewTerm(
             func=mdp.track_lin_vel_xy_step_exp,
             weight=1.0,
             params={"command_name": "base_velocity", "std": 0.15, "step_window_s": 0.6},
         )
-        self.rewards.lin_vel_xy_at_standstill = RewTerm(
-            func=mdp.lin_vel_xy_at_standstill_l2,
+        self.rewards.lin_vel_xy_at_standstill = None  # removed in round 4
+        self.rewards.stop_drift = RewTerm(
+            func=mdp.stop_drift_l2,
             weight=-5.0,
-            params={"command_name": "base_velocity", "threshold": 0.05},
+            params={"command_name": "base_velocity", "target_m": 0.10, "window_s": 0.5, "max_ratio": 4.0},
         )
 
 
@@ -174,6 +212,8 @@ class CaMRAGo2VelocityPlayEnvCfg(CaMRAGo2VelocityEnvCfg):
         self.scene.terrain.terrain_generator.num_cols = 1
         # play with the full command domain immediately instead of the curriculum start
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges
+        # the evaluation drives its own command program: no injected stop holds
+        self.commands.base_velocity.stop_event_prob = 0.0
 
 
 def assert_overrides_applied(cfg: RobotEnvCfg) -> dict[str, Any]:
@@ -186,8 +226,9 @@ def assert_overrides_applied(cfg: RobotEnvCfg) -> dict[str, Any]:
     actual = {
         "commands.base_velocity.debug_vis": bool(term.debug_vis),
         "commands.base_velocity.resampling_time_range": tuple(term.resampling_time_range),
+        "commands.base_velocity.stop_event_prob": float(term.stop_event_prob),
     }
-    for _name in ("track_lin_vel_step", "lin_vel_xy_at_standstill"):
+    for _name in ("track_lin_vel_step", "stop_drift", "lin_vel_xy_at_standstill"):
         _term = getattr(cfg.rewards, _name, None)
         actual["rewards." + _name] = (
             None
