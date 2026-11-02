@@ -400,6 +400,13 @@ def main() -> int:
 
     # ---- manifest ----
     assets_files, assets_digest = tree_integrity(os.path.join(staging, "assets"))
+    # keys are relative to assets/, i.e. "Go2/usd/go2.usd" -- match on the suffix instead of
+    # hard-coding a prefix, otherwise the convenience field silently ends up null
+    usd_entry = next(
+        (meta["sha256"] for rel, meta in sorted(assets_files.items())
+         if rel == "go2.usd" or rel.endswith("/go2.usd")),
+        None,
+    )
     doc = {
         "schema_version": "1.0.0",
         "task": "TASK-027",
@@ -488,7 +495,7 @@ def main() -> int:
                 "copied_to": "assets/Go2",
                 "num_files": len(assets_files),
                 "tree_sha256": assets_digest,
-                "usd_entry": (assets_files.get("usd/go2.usd") or assets_files.get("go2.usd") or {}).get("sha256"),
+                "usd_entry": usd_entry,
             }
         },
         "not_done": NOT_DONE,
