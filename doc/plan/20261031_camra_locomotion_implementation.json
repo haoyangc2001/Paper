@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "1.7.0",
+    "version": "1.8.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -50,6 +50,10 @@
       {
         "date": "2026-11-02",
         "summary": "补录TASK-023第3轮训练与开发集选模结果（课程自锁已解除，start_stop仍全线未通过），并依据停车段逐帧诊断在actions中写入第4轮两项改动（真停车命令分布、停车下降沿位移塑形）、600迭代趋势止损与「阈值处于物理边界时不得自行放宽」的约束。仅更新计划，不改动代码。"
+      },
+      {
+        "date": "2026-11-02",
+        "summary": "TASK-023第4轮实现完成并启动正式训练：新增停车事件命令分布（300迭代线性爬坡）与停车下降沿位移塑形奖励，替换常开站立速度惩罚；冒烟期间发现并修复两个真实缺陷（复位后锚点残留导致惩罚爆表、平坦25%停车导致早段停滞），补34项离线单测。仅记录实施过程，选模结论待第4轮训练结束后产出。"
       }
     ]
   },
@@ -2264,6 +2268,57 @@
             "实现两项改动：真停车命令分布（含 __post_init__ 开关与 rollback）、停车下降沿位移塑形奖励，并同步 CAMRA_OVERRIDES 的 reason/impact/rollback 与 assert_overrides_applied。",
             "补离线单测覆盖：位移塑形只在下降沿窗口生效、窗口外为零、归一化后量级符合预期；命令项在置零概率下确有零速整段。",
             "90 迭代冒烟 → 跑至约 600 迭代判定趋势（停车漂移与综合分是否改善）→ 通过后跑满 3000 迭代并做 _r4 开发集评估与选模。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-02T11:20:00+08:00",
+          "summary": "第4轮两项改动已实现、单测通过并启动正式训练（3000迭代 seed=0）。冒烟阶段连撞两个缺陷：位移塑形在复位后继续用上一回合锚点，产生 -4500 量级的单步惩罚并把 critic 打崩（价值损失 0.05→16.9，策略全线摔倒）；改为按复位清锁后又在平坦 25% 停车概率下卡在早段停滞（回合长度 16 步、第3轮同迭代已恢复到 562），最终给停车概率加 300 迭代线性爬坡后恢复正常。",
+          "actions": [
+            "实现命令侧：新增 mdp/commands/velocity_command.py 的 StopEventVelocityCommand，重采样后按概率把整段保持期置零，并关闭该批环境的 heading 目标，避免 yaw 命令被 heading 覆盖；UniformLevelVelocityCommandCfg 增加 stop_event_prob / stop_event_ramp_iters 字段与 class_type。",
+            "实现奖励侧：新增 mdp/rewards.py 的 stop_drift_l2 —— 检测命令落到零的下降沿，记录锚点位置，在其后 0.5 s 窗口内按 (|Δp|/0.10)² 计罚，并在 __post_init__ 中把 rounds 1-3 的 lin_vel_xy_at_standstill 置 None。",
+            "把状态机抽到不依赖 isaaclab 的 mdp/stop_events.py（纯 torch），包含 stop_event_mask、advance_stop_window、ramped_probability、relatch_on_episode_start 四个纯函数，使状态机可在 CPU 上无仿真单测。",
+            "同步 CAMRA_OVERRIDES：新增 rewards.stop_drift 与 commands.base_velocity.stop_event_prob 两条（含 reason/impact/rollback），把 rewards.lin_vel_xy_at_standstill 的 camra 值改为 None 并保留历史理由；assert_overrides_applied 增加 stop_event_prob 与 stop_drift 两个核对项。",
+            "补 tests/test_units.py 共 13 项：概率掩码、爬坡、下降沿开窗与锚点锁定、窗口递减关闭、新命令清锁、平面位移平方、协议阈值归一化、多环境独立、复位清锁、非复位保持、钳制饱和。全量 34 项通过（py_compile 亦通过）。",
+            "冒烟四轮定位：第1次（事件0.25+塑形-5）训练发散；隔离实验A（事件0.25+塑形权重0）收敛正常，证明命令分布不是成因；据此定位塑形项复位后锚点残留，加清锁与钳制后第2次仍早段停滞；第3次只把清锁条件从 ==0 改为 <=1 仍未恢复，确认 IsaacLab 该版本 step() 顺序为「计数+1 → 计奖 → 复位」，污染发生在复位后的下一步；第4次（清锁 <=1）恢复。",
+            "给停车概率加 300 迭代线性爬坡（ramped_probability，读 env.common_step_counter），使 0-300 迭代与第3轮完全一致，之后才逐步引入停车事件。",
+            "启动第4轮正式训练：tmux 窗口 camra-locomotion:TASK-023-r4-formal，run_name=formal_s0_3000it_r4，GPU0，独立 run 目录；训练日志同时 tee 到 formal_r4.console.log。",
+            "代码提交：9c2a081（feat(camra): train the stop transient, not just the velocity (round 4)）。"
+          ],
+          "files_changed": [
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/stop_events.py",
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/commands/velocity_command.py",
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/commands/__init__.py",
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/rewards.py",
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py",
+            "/home/caohy/repositories/Paper/CaMRA/locomotion/tests/test_units.py",
+            "/pub/data/caohy/scripts/t023_train_r4.sh",
+            "/home/caohy/repositories/Paper/doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "commands": [
+            "python -m pytest tests/test_units.py -q   # 34 passed",
+            "bash /pub/data/caohy/scripts/t023_train_r4.sh 0 90 smoke_r4{,b,c,d}_90it   # 四次冒烟定位",
+            "bash /pub/data/caohy/scripts/t023_train_r4.sh 0 3000   # 第4轮正式训练"
+          ],
+          "results": [
+            "第1次冒烟：价值损失 0.05→16.9 且不再回落，回合长度 12 步、bad_orientation 1.0，策略全线摔倒；同轮 stop_drift 项记录值仅 -0.15，说明爆表的惩罚只落在极少数环境上、被 4096 环境均值掩盖。",
+            "隔离实验A（停车概率 0.25、塑形权重 0）：价值损失 0.59→0.006 正常收敛，回合长度 12→277，证明命令分布本身不是发散成因。",
+            "根因：IsaacLab 该版本 ManagerBasedRLEnv.step 的顺序是「episode_length_buf += 1 → reward_manager.compute → _reset_idx」，因此复位后的下一步仍持有上一回合锚点，位移可达数米，-5×(3/0.1)² = -4500。修复为按 episode_length_buf <= 1 清锁，并将归一化位移钳制在 4 倍阈值。",
+            "第2/3次冒烟：修复钳制后不再发散（价值损失 0.15），但回合长度在 60 迭代内停在 16 步，而第3轮同迭代已恢复；对照实验显示平坦 25% 停车会让约三分之一批次长期处于站立，拖住早段步态学习。",
+            "第4次冒烟（清锁改为 <=1 + 300 迭代爬坡）：回合长度 12→218→158→17→19→29→87→288，价值损失 0.48→0.004，stop_drift 全程接近 0（爬坡期尚未引入停车），与第3轮同期曲线同形，判定可进入正式训练。",
+            "正式训练于 2026-11-02T11:16 启动，日志显示单迭代约 7.4 s、ETA 约 6 小时（GPU0 与其他用户作业共享），启动后前 5 次迭代即出现回合长度 113 上升、价值损失 0.12，未见异常。"
+          ],
+          "evidence": [
+            "隔离实验与四次冒烟日志：/pub/data/caohy/logs/camra/TASK-023/smoke_r4_90it.log、smoke_r4_isoA_60it.log、smoke_r4b_90it.log、smoke_r4c_90it.log、smoke_r4d_90it.log。",
+            "对照基准：第3轮正式日志 formal_s0_3000it_r3.log 前 90 迭代的回合长度序列（30:19、50:24、60:73、70:230、90:562）。",
+            "顺序证据：/pub/data/caohy/IsaacLab/source/isaaclab/isaaclab/envs/manager_based_rl_env.py 第 202（计数+1）、209（计奖）、222（_reset_idx）行。",
+            "单元测试 34 项全通过，其中复位清锁、非复位保持、钳制饱和、爬坡四项为本次缺陷的回归测试。",
+            "候选配置可追溯：CAMRA_OVERRIDES 中 rewards.stop_drift 与 commands.base_velocity.stop_event_prob 两条，以及 assert_overrides_applied 的三项奖励核对与 stop_event_prob 核对。"
+          ],
+          "remaining_work": [
+            "训练到约 600 迭代做趋势判定：若停车漂移与综合分均无改善趋势则按计划停止并重新设计，不烧满 3000 迭代。",
+            "训练结束后按 _r4 后缀跑 6 个检查点的开发集评估与选模，重点核验 start_stop 的 rise_time ≤0.5 s 且 stop_drift ≤0.10 m，同时复核三项 rmse 与失败率未越界。",
+            "把第4轮结果与第1轮(0.289)、第3轮(0.313)横向比较，若落在 0.10–0.11 m 区间则按约束标注边界未达标并提交用户决定。"
           ],
           "blockers": []
         }
