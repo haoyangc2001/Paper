@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "1.9.0",
+    "version": "2.0.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -58,6 +58,10 @@
       {
         "date": "2026-11-02",
         "summary": "补录 TASK-023 第4轮训练与开发集结果：选中 iteration 2999，开发集 10 场景 × 300 回合全部通过，start_stop 的 rise 与 drift 首次同时达标，任务标记完成；并记录选模样本量缺口已补足、最终测试（TASK-024）待用户确认后单次执行。"
+      },
+      {
+        "date": "2026-11-02",
+        "summary": "TASK-024 最终测试单次执行完成并标记完成：固定候选模型在 final_test 种子 200–209 上跑完 nominal 与 perturbed 两组，每场景 300 回合，两组均 10/10 场景通过，全局失败率 0.000 / 0.007，按协议 overall_pass 判定 PASS；同时记录 perturbed 最紧余量（lateral）与协议明示未覆盖的 0–40 ms 指令延迟两项局限。"
       }
     ]
   },
@@ -2385,7 +2389,7 @@
     {
       "id": "TASK-024",
       "goal": "完成候选控制器的独立性能评估",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-023"
       ],
@@ -2401,7 +2405,44 @@
         "报告全部失败原因、指标和达标项；任何未达标不能以整体平均值掩盖。",
         "若测试发现需调参的问题，保留本次结果并按约束确认后重设独立测试，不能静默反复挑最佳结果。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-02T21:05:00+08:00",
+          "summary": "TASK-024 最终测试单次执行完成：固定候选模型（第4轮 iteration 2999）在协议 final_test 种子 200–209 上跑完 nominal 与 perturbed 两组、每场景 300 回合，两组均 10/10 场景通过，全局失败率 0.000 / 0.007，按协议 overall_pass 判定 PASS，TASK-023 的调优结果得到独立测试集确认。",
+          "actions": [
+            "固定候选模型：写入 checkpoint 的 sha256 与字节数留档（/pub/data/caohy/logs/camra/TASK-024/checkpoint.sha256），测试期间未更换检查点。",
+            "编写 t024_finaltest.sh：对每组的 10 个测试种子各跑一次全场景评估（--scenarios all --episodes_per_scenario 30 --group <nominal|perturbed>），单点产物写入 TASK-024/<group>/s<seed>/。",
+            "19:05:41 在 tmux 窗口 TASK-024-finaltest 启动；20 次评估（2 组 × 10 种子）全部 exit=0，21:03:25 结束，总耗时 1h57m44s，无一次失败或跳过。",
+            "编写 t024_agg.py 按协议 aggregate 规则（有限值均值 + failed 回合均值 + 逐项阈值）聚合每个场景 300 回合，分别输出两组判定表。",
+            "按协议 overall_pass 三条（nominal 全过、perturbed 通过率 ≥80%、两组全局失败率阈值）作出总判定，并记录 not_covered 中未实现的指令延迟项。"
+          ],
+          "files_changed": [
+            "doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "commands": [
+            "tmux new-window -t camra-locomotion -n TASK-024-finaltest 'bash /pub/data/caohy/scripts/t024_finaltest.sh /pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4/model_2999.pt | tee /pub/data/caohy/logs/camra/TASK-024/finaltest.console.log'",
+            "python /pub/data/caohy/tools/t024_agg.py nominal",
+            "python /pub/data/caohy/tools/t024_agg.py perturbed"
+          ],
+          "results": [
+            "nominal 组（300 回合/场景）：stand 漂移 0.0036、fwd_low 0.1331、fwd_mid 0.0665、fwd_high 0.0533、backward 0.0573、lateral 0.0887、turn_inplace 0.0707、combined vx/vy/wz 0.0609/0.0327/0.0487、start_stop rise 0.2201 与 drift 0.0615、ramp 0.1096 —— 10/10 通过，全局失败率 0.000。",
+            "perturbed 组（300 回合/场景）：stand 漂移 0.0340、fwd_low 0.0986、fwd_mid 0.0694、fwd_high 0.0740、backward 0.0641、lateral 0.1086、turn_inplace 0.0965、combined 0.0734/0.0584/0.0680、start_stop rise 0.3201 与 drift 0.0735 与 overshoot 0.0498、ramp 0.1141 —— 10/10 通过，全局失败率最高 0.007。",
+            "测试集与开发集结果高度一致（如 fwd_low 0.1334→0.1331、start_stop drift 0.0617→0.0615），说明选模不是靠开发集挑出的偶然结果。",
+            "最紧的余量是 perturbed 的 lateral：rmse_vy 0.1086 对放宽阈值 0.12（约 10% 余量）、p95 0.1684 对 0.18。"
+          ],
+          "evidence": [
+            "主机 tiger12，tmux 会话 camra-locomotion，窗口 TASK-024-finaltest；控制台 /pub/data/caohy/logs/camra/TASK-024/finaltest.console.log 首行 [T024] start 2026-11-02T19:05:41+08:00、末行 [T024] done 2026-11-02T21:03:25+08:00。",
+            "20 条 [T024] ... exit= 记录全部为 exit=0（grep -c 'exit=0' = 20，反查非零退出为空），无 skip 记录。",
+            "检查点校验：1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9，4,639,669 字节，时间戳 11-02 16:39。",
+            "聚合产物：/pub/data/caohy/logs/camra/TASK-024/{nominal,perturbed}/s{200..209}/summary.json 与 per_episode.csv 全部保留在仓库外数据盘，未删除或覆盖。"
+          ],
+          "remaining_work": [
+            "TASK-025 及后续导出/报告类任务（本任务不再有测试动作）。",
+            "若论文需要，可在报告中引用 perturbed 的 lateral 余量与指令延迟未覆盖两项作为局限说明。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "评估阶段不更新模型或归一化状态；训练分布内表现不等同于任意扰动保证。",
         "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
@@ -2410,7 +2451,7 @@
         "所有预先固定验收条件通过，有逐回合数据和可复算摘要；不满足时本任务保持false。",
         "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
       ],
-      "verification_result": ""
+      "verification_result": "验收 1 满足：候选模型在开始评估前即固定（第4轮 iteration 2999，model_2999.pt，sha256 1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9，4,639,669 字节），并在独立测试条件（协议 final_test 种子 200–209，与训练种子 0–2、开发种子 100–109 互不重叠）下按协议完整执行两轮：nominal 与 perturbed 各 10 个种子 × 30 回合 × 10 场景 = 每个场景 300 回合。nominal 组 10/10 场景全部通过，全局失败率 0.000（阈值 0.05）；perturbed 组同样 10/10 场景通过（协议要求 ≥80%），全局失败率最高 0.007（阈值 0.10）。按 eval_protocol.json 的 overall_pass 三条同时成立，判定为 PASS。验收 2 满足：全部失败原因与逐项指标已按场景列出，未以整体平均掩盖任何未达标项——本轮不存在未达标项，但记录了两处必须如实声明的边界：（a）perturbed 组的 lateral（rmse_vy 0.1086 / 放宽后阈值 0.12、p95 0.1684 / 0.18）是全部指标中最紧的一档，余量约 10%；（b）协议 groups.perturbed.not_covered 明确 0–40 ms 指令延迟随机化在当前环境中未实现，因此本轮结果不能声称验证了真机指令延迟的影响。另记录：nominal 组 start_stop 的 rise_time 在 10 个种子上恒为 0.2201 s，该指标实质是场景内确定性轨迹的测量而非统计平均，其达标依赖场景确定性；perturbed 组因扰动注入 rise 为 0.3201 s、drift 0.0735 m，仍在阈值内。测试期间未使用测试结果调整任何配置、未重跑挑优，四个 actions 均按顺序执行。"
     },
     {
       "id": "TASK-025",
