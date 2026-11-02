@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -70,6 +70,10 @@
       {
         "date": "2026-11-02",
         "summary": "TASK-026 完成并标记完成：导出控制器在 jit/onnx/trainer 三个独立进程中重载并闭环跑完四场景 × 32 环境 × 种子 100（1700 周期/臂），三臂 0 摔倒 0 复位；JIT 与训练器逐位一致（12 项指标差 0），ONNX 差 9.1e-06~8.8e-04 且在 1e-2 带内，观测/动作接口检查全部通过，并记录接触动力学导致逐帧轨迹不可复现、区间统计量可复现的定量解释；同时记录三次检查/实现缺陷的修正与四次尝试的归档证据。"
+      },
+      {
+        "date": "2026-11-02",
+        "summary": "TASK-027 完成并标记完成：把验证过的控制器冻结为只读版本包 camra_go2_velocity_it2999_v2（28 MB、29 文件、全树 0444/0555、树摘要 d0f0ec3c…、清单 6da14ce2…），清单记录逐文件散列、契约、增益、频率、命令域、执行口径、环境版本、提交与资产散列、评估协议与结果位置；校验器在 512 条真实观测上重放两种导出图判 PASS，并用四条反向检查（拒绝重出/拒绝写入/篡改必败/原包仍过）证明冻结非空转。同时记录三处工具缺陷修复、以及因溯源判据不完整而把 v1 作废重出 v2 的过程；paths.frozen_bundle 已解析到实际产物路径。"
       }
     ]
   },
@@ -180,7 +184,9 @@
     "handoff_notes": "CaMRA/locomotion/docs/implementation_handoff.md",
     "remote_workspace": null,
     "run_root": null,
-    "frozen_bundle": null
+    "frozen_bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+    "frozen_bundle_manifest_in_repo": "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+    "frozen_bundle_note": "冻结包在仓库外（28 MB，不入 Git）；仓库只保留 17 KB 清单副本与其 .sha256。清单逐文件散列 + 树摘要可脱离仓库校验，校验命令见 CaMRA/locomotion/README.md 与 TASK-028 交接文档。"
   },
   "handoff_instructions": [
     "先执行tmux_execution_policy中的bootstrap，再进入TASK-001。学习阶段也使用tmux；此连接前置仅确认执行环境，不提前开展TASK-013的GPU资源配置或训练。",
@@ -2618,7 +2624,7 @@
     {
       "id": "TASK-027",
       "goal": "冻结控制器及完整执行配置",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-026"
       ],
@@ -2633,7 +2639,62 @@
         "明确eval/no_grad、normalizer不更新、重置状态规范；任何后续变化产生新版本并需重新验证/校准。",
         "将frozen_bundle解析到实际产物路径；大模型/原始日志按确认的存储位置保存，不自动加入Git。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-02T23:20:00+08:00",
+          "summary": "TASK-027 完成：把 TASK-024/025/026 验证过的控制器冻结为版本化只读包 camra_go2_velocity_it2999_v2（仓库外 /pub/data/caohy/camra_bundles/frozen/，28 MB、29 个文件）。包内收录模型检查点、JIT/ONNX 导出、观测/动作契约、增益、频率、命令域、预处理与执行口径、训练期 agent/env 配置、Go2 资产树（复制而非引用）、评估协议、TASK-024/026 结果、以及可复核脚本与 pip 快照。逐文件 sha256 + 树摘要 + 清单自身散列，目录与文件全部 0444/0555；verify_frozen_bundle.py 在 512 条真实观测上重放两种导出图（JIT 1.43e-06、ONNX 9.54e-07）判定 PASS，证明包不只是「哈希对」而是「能重载」。四条反向检查确认冻结不是空转：同版本重出被拒、就地写入被拒、篡改副本被判 FAIL、原包仍 PASS。过程中修掉三个真实缺陷，其中「porcelain 路径切片偏移导致脏树被误判为干净」最危险，并因此废弃了溯源不完整的 v1（保留不删），重新出 v2。",
+          "actions": [
+            "新增 scripts/freeze_controller_bundle.py：从已验证候选目录生成新版本目录，拒绝覆盖已存在版本；复制而非引用（含 Go2 资产树），逐文件 sha256 + 排序行树摘要 + 清单自身 sha256，最后整体 chmod 0444/0555 再改名发布。",
+            "清单内容：integrity（29 个文件的 sha256/字节数、树摘要与规则）、contract（45 维观测逐项顺序/维度/缩放/裁剪、动作 JointPositionAction scale 0.25 与 offset=默认姿态、12 关节顺序、kp 25/kd 0.5、sim 200 Hz×decimation 4、step 0.02 s、外部命令 10 Hz 零阶保持、命令域 ±1.0/±0.4/±1.0）、training（run 目录、检查点与其 sha256、agent/env 配置）、source（提交、脏标记、HiRA 子模块提交）、environment（解释器与 10 项依赖版本 + pip freeze 快照）、execution_spec（no_grad、无归一化、复位语义与首拍观测时序）、assets（Go2 树摘要）、not_done、versioning_rule。",
+            "新增 scripts/verify_frozen_bundle.py：校验清单签名→逐文件哈希与字节数→树摘要→只读性→重载重放（TorchScript 与 ONNX 逐条跑样本并与清单内 tolerance 比对）。按产物判定，不把「哈希一致」当成「可重载」。",
+            "第一次出 v2 时 README 生成抛 TypeError：资产拷贝循环复用了同名变量 src，把 git 信息覆盖成路径字符串；改名为 git_src 后通过。",
+            "发现并修复脏树判据缺陷：原先按 git diff --quiet HEAD 判断（看不到未跟踪文件），v1 因此把两个未提交脚本当成干净工作区。改为 git status --porcelain（含未跟踪）并按内容复核 stat 假阳性；随后又发现 porcelain 行按偏移 3 切片会吃掉 staged 条目的首字符，导致「已修改文件被当成无差异」——改为偏移 2 切片，实测只报真正的修改。",
+            "因 v1 的 source 记录（dirty=false、但脚本未提交）不足以证明可复现，保留 v1 不删，重新生成 v2：冻结时工作区干净、提交 0b7bf5f，清单 source.dirty=false 且 dirty_entries 为空。",
+            "默认拒绝脏树（--allow-dirty 才放行并在清单记录），把「仅在评估通过且可复现时冻结」变成代码约束而不是口头约定。",
+            "发现 usd_entry 便利字段因键前缀写成 usd/go2.usd 而取空（真实键是 Go2/usd/go2.usd，哈希在逐文件表里仍完整）；修工具改为后缀匹配，但不重出 v2——冻结版本不可改。",
+            "把 v2 清单副本（17 KB）连同 .sha256 放进 CaMRA/locomotion/docs/frozen/ 纳入版本管理，28 MB 包体留在仓库外。",
+            "把计划 paths.frozen_bundle 由 null 解析为实际产物路径。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/scripts/freeze_controller_bundle.py",
+            "CaMRA/locomotion/scripts/verify_frozen_bundle.py",
+            "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+            "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json.sha256",
+            "doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "commands": [
+            "tmux new-window -t camra-locomotion -n T027FREEZE3  # 再 tmux send-keys 投递下面这条",
+            "python -u scripts/freeze_controller_bundle.py --candidate /pub/data/caohy/camra_bundles/candidates/r4_it2999_v1 --run-dir /pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4 --checkpoint …/model_2999.pt --asset-root /pub/data/caohy/unitree_model/Go2 --protocol docs/eval_protocol.json --task024-root /pub/data/caohy/logs/camra/TASK-024 --rollout-dir /pub/data/caohy/logs/camra/TASK-026/rollout --t024-agg /pub/data/caohy/tools/t024_agg.py --repo /home/caohy/repositories/Paper --out-root /pub/data/caohy/camra_bundles/frozen --version camra_go2_velocity_it2999_v2",
+            "python -u scripts/verify_frozen_bundle.py --bundle /pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2 --samples 512",
+            "bash /pub/data/caohy/scripts/t027_negative_v2.sh  # 拒绝重出 / 拒绝写入 / 篡改必败 / 原包仍过（脚本内 set -o pipefail，故记录到的退出码就是校验器本身的）"
+          ],
+          "results": [
+            "版本 camra_go2_velocity_it2999_v2，路径 /pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2，28 MB，29 个文件，全树 0444/0555。",
+            "树摘要 d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f；清单 sha256 6da14ce2fa2e6d1f4ed3a9148351ff1e8e886600f9b6ba0596890d916d5de00b，与 frozen_manifest.json.sha256 一致。",
+            "溯源：提交 0b7bf5f6f5313303cd2eb702d9f5d9640b1759d2（main），dirty=false（含未跟踪检查，dirty_entries 为空），HiRA 子模块 6a05af5552…；检查点 model_2999.pt sha256 1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9。",
+            "环境：python 3.11.18、torch 2.7.0（CUDA 12.6）、numpy 1.26.0、isaaclab 0.47.2、isaacsim 5.1.0.0、rsl-rl-lib 3.0.1、onnxruntime 1.31.1、onnx 1.23.2、pyyaml 6.0.2，另附 pip freeze 快照 env/pip-freeze.txt。",
+            "资产：Go2 资产树 4 个文件整体复制进 assets/Go2，树摘要 9560507238240de79eb8a2f3a80b82e69a0adc25bde982062340a1750db1f7c9；assets.go2_tree.usd_entry 便利字段为 null（工具键前缀缺陷，已修但不重出 v2），实际哈希在 integrity.files 的 assets/Go2/usd/go2.usd 条目内。",
+            "校验：verify_frozen_bundle PASS（29 文件、512 条样本），重放偏差 JIT-vs-trainer 1.4305e-06、ONNX-vs-trainer 9.5367e-07、ONNX-vs-JIT 1.4305e-06，均有限；只读路径检查通过。",
+            "反向检查四项：同版本重出被拒（exit 2，提示 already exists）；对 README.md 追加被拒（Permission denied）；复制后改一个字节的副本被判 FAIL（1 处哈希不匹配 + 树摘要不符 + 43 处可写路径），原包随后仍 PASS。",
+            "v1（/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v1，树摘要 029b6533…、清单 9f6ebe0e…）保留不删，标注为被 v2 取代：其 source 判据未覆盖未跟踪文件，不能证明可从记录提交复现。",
+            "仓库内只放 17 KB 清单副本，sha256 与包内一致（6da14ce2…）；28 MB 包体与原始日志不入 Git。"
+          ],
+          "evidence": [
+            "主机 tiger12，tmux 会话 camra-locomotion，窗口 T027FREEZE（v1）/ T027VERIFY（v1 校验）/ T027NEG（v1 反向）/ T027FREEZE2（v2 首次失败：src 变量覆盖）/ T027FREEZE3（v2 成功）/ T027VERIFY2（v2 校验）/ T027NEG2、T027NEG3（v2 反向）。",
+            "日志 /pub/data/caohy/logs/camra/TASK-027/{freeze_v1.log, verify_v1.log, negative_v1.log, freeze_v2.log, verify_v2.log, negative_v2.log, negative_v2b.log}；freeze 日志末行 [FREEZE] DONE，verify 日志末行 [VERIFY-FROZEN] PASS。",
+            "失败尝试证据：v2 首轮（T027FREEZE2）的 TypeError 栈从该窗口回滚缓冲捕获到 /pub/data/caohy/logs/camra/TASK-027/panes/T027FREEZE2.txt；同目录存有 8 个窗口的完整回滚缓冲，用于保留 tee 覆盖前的输出。",
+            "脚本提交：ca08d21（冻结与校验工具）、0b7bf5f（脏树判据切片修复）、186565b（资产后缀匹配）；v2 冻结发生在 0b7bf5f 之上，186565b 只影响后续版本。",
+            "未把会话存活或命令派发当完成：v2 的证据是 freeze/verify/negative 三个日志的末行判定与退出码，且「拒绝重出」这一条正是靠真实执行退出码 2 得到，而不是靠阅读代码。"
+          ],
+          "remaining_work": [
+            "真机 joint_ids_map 重映射、0~40 ms 指令延迟、状态估计噪声与 sim2real 标定均未做；TASK-028 交接文档必须写明「本包不是可直接上机的部署件」。",
+            "ONNX 图固定 batch=1，只能逐帧推理；批推理需重新导出并重跑 TASK-026 等效判定。",
+            "v2 清单的 assets.go2_tree.usd_entry 为 null（工具键前缀缺陷，已在 186565b 修复）；哈希本身在 integrity.files 中完整，下一次冻结会正常填值。",
+            "任何对契约、增益、频率、命令域、预处理或执行口径的改动，都必须新版本 + 重跑数值验证与闭环等效判定 + 重新标定，不得就地改 v2。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "仅在实际评估通过后冻结；manifest要准确描述尚未完成的真机或迁移工作。",
         "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
@@ -2642,7 +2703,7 @@
         "冻结manifest中每个文件和散列可验证，离开训练目录后仍具备可重载所需内容。",
         "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
       ],
-      "verification_result": ""
+      "verification_result": "验收 1 满足：冻结 manifest 中每个文件和散列可验证，且包在离开训练目录后仍具备可重载所需内容。可验证性：verify_frozen_bundle.py 先核对 frozen_manifest.json 与其 .sha256 签名（6da14ce2…一致），再逐个核对 integrity.files 里 29 个文件的 sha256 与字节数、重算排序行树摘要（d0f0ec3c…与声明一致），并检查整个树没有写权限位；缺失、增补、哈希不符、树摘要不符、可写路径五类问题都会被列出而非静默通过。可重载性：仅哈希一致不足以证明可用，因此校验器还把 samples/obs_samples.npz 的前 512 条真实观测分别喂进包内 exported/policy.pt（TorchScript）与 exported/policy.onnx（CPU provider，逐条因 batch 固定为 1），与包内保存的训练期参考动作比对，JIT 1.4305e-06、ONNX 9.5367e-07、ONNX-vs-JIT 1.4305e-06，全部有限且在清单声明的容差内，判 PASS。自足性：包内复制而非引用——模型检查点（sha256 1c8f5aad…）、两种导出图、deploy.yaml、导出清单与验证报告、训练期 agent.yaml/env.yaml/camra_env_cfg.py、19,200 条样本、评估协议、TASK-024/026 结果摘要、六个可复核脚本、pip freeze 快照，以及整棵 Go2 资产树（4 个文件，树摘要 95605072…）——因此删掉训练 run 目录或改动共享资产目录都不会让包失效。不可覆盖不是口头约定而是文件系统与代码双重事实：所有文件 0444、目录 0555；freeze 脚本对已存在版本直接拒绝（实测 exit 2）；对包内文件追加写入被内核拒绝（Permission denied）。校验器本身也做了反向验证，避免「看起来过了」：把包复制到临时目录、改一个字节后运行校验，得到 FAIL（1 处哈希不匹配、树摘要不符、43 处可写路径），随后原包仍 PASS。执行口径已在清单固化：推理在 torch.no_grad() 下运行（明确不用 inference_mode，并写明它会让仿真缓冲变成 inference tensor、导致复位时原地写入失败这一实测原因）；无经验归一化，图内不含 running statistics，因此没有需要随包更新或泄漏的归一化状态；复位语义写明命令置零与「reset() 返回的观测仍携带复位时采样指令、自下一拍起一致」的时序，要求部署端复现同一顺序；episode 20 s、奖励与课程状态刻意不随包携带。版本纪律：v1 保留在 /pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v1（树摘要 029b6533…、清单 9f6ebe0e…）但标注为被取代——它的 source 判据只查 git diff、看不到未提交脚本，无法证明可从记录提交复现；v2 在干净工作区、提交 0b7bf5f 上重新生成，source.dirty=false 且 dirty_entries 为空。清单另写明 versioning_rule：任何契约/增益/频率/命令域/预处理/执行口径变化都必须新版本并重跑验证与标定。已知未完成项也写进清单 not_done 而不是只写在计划里：真机 joint_ids_map 重映射、0~40 ms 指令延迟、ONNX batch=1、sim2real 标定、地形与材质多样性、以及「延迟数字只是本机仿真开销」。验收 2 满足：工作记录含执行主机 tiger12、tmux 会话 camra-locomotion 与七个窗口标识、完整命令、日志路径、以及 freeze/verify/negative 三类日志的末行判定与真实退出码（脚本启用 pipefail，因此记录的是校验器本身的退出码）；未把会话存活或命令派发当作完成。"
     },
     {
       "id": "TASK-028",

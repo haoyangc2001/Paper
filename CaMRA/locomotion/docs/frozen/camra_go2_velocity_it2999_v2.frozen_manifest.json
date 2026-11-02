@@ -1,0 +1,521 @@
+{
+  "schema_version": "1.0.0",
+  "task": "TASK-027",
+  "version": "camra_go2_velocity_it2999_v2",
+  "created_at": "2026-11-02T22:50:28+0800",
+  "host": "tiger12.ios.ac.cn",
+  "release_state": "frozen",
+  "supersedes": {
+    "candidate_dir": "/pub/data/caohy/camra_bundles/candidates/r4_it2999_v1",
+    "candidate_release_state": "candidate_verified"
+  },
+  "note": "冻结包：不可就地修改；任何变化产生新版本并要求重新验证与重新标定。",
+  "provenance": {
+    "candidate": "/pub/data/caohy/camra_bundles/candidates/r4_it2999_v1",
+    "samples": 19200,
+    "verification": {
+      "status": "PASS",
+      "max_abs_diff_jit_vs_trainer": 1.1920928955078125e-06,
+      "max_abs_diff_onnx_vs_trainer": 1.1175870895385742e-06,
+      "max_abs_diff_in_joint_rad": 2.7939677238464355e-07,
+      "samples": 19200,
+      "verified_at": "2026-11-02T21:53:41+0800"
+    },
+    "task026_verdict": "PASS (worst onnx vs trainer 8.761e-04)",
+    "task024_summary": "见 results/task024_aggregate.txt（由 TASK-024 逐种子 CSV 重新汇总）与 doc/plan/20261031_camra_locomotion_implementation.json 的 TASK-024 记录",
+    "task024": {
+      "root": "/pub/data/caohy/logs/camra/TASK-024",
+      "per_seed_summaries": [
+        "nominal/s200/summary.json",
+        "nominal/s201/summary.json",
+        "nominal/s202/summary.json",
+        "nominal/s203/summary.json",
+        "nominal/s204/summary.json",
+        "nominal/s205/summary.json",
+        "nominal/s206/summary.json",
+        "nominal/s207/summary.json",
+        "nominal/s208/summary.json",
+        "nominal/s209/summary.json",
+        "perturbed/s200/summary.json",
+        "perturbed/s201/summary.json",
+        "perturbed/s202/summary.json",
+        "perturbed/s203/summary.json",
+        "perturbed/s204/summary.json",
+        "perturbed/s205/summary.json",
+        "perturbed/s206/summary.json",
+        "perturbed/s207/summary.json",
+        "perturbed/s208/summary.json",
+        "perturbed/s209/summary.json"
+      ],
+      "note": "20 份逐种子 summary.json（nominal/perturbed 各 10 个 final_test 种子）；冻结包只收重新汇总的文本，原始逐回合 CSV 与日志留在原目录。"
+    },
+    "task026_paths": {
+      "aggregate": "/pub/data/caohy/logs/camra/TASK-026/rollout/t026_aggregate.json",
+      "rollout": [
+        "/pub/data/caohy/logs/camra/TASK-026/rollout/rollout_jit.json",
+        "/pub/data/caohy/logs/camra/TASK-026/rollout/rollout_onnx.json",
+        "/pub/data/caohy/logs/camra/TASK-026/rollout/rollout_trainer.json"
+      ],
+      "traces": "/pub/data/caohy/logs/camra/TASK-026/rollout/trace_<backend>_<scenario>.npz",
+      "note": "轨迹 npz 共约 10 MB，按约定保存在日志目录，不复制进冻结包，此处记录原始路径与清单外散列位置。"
+    }
+  },
+  "contract": {
+    "observation": {
+      "group": "policy",
+      "total_dim": 45,
+      "concatenate": true,
+      "terms": [
+        {
+          "name": "base_ang_vel",
+          "dim": 3,
+          "scale": [
+            0.2,
+            0.2,
+            0.2
+          ],
+          "clip": [
+            -100,
+            100
+          ]
+        },
+        {
+          "name": "projected_gravity",
+          "dim": 3,
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "clip": [
+            -100,
+            100
+          ]
+        },
+        {
+          "name": "velocity_commands",
+          "dim": 3,
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "clip": [
+            -100,
+            100
+          ]
+        },
+        {
+          "name": "joint_pos_rel",
+          "dim": 12,
+          "scale": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "clip": [
+            -100,
+            100
+          ]
+        },
+        {
+          "name": "joint_vel_rel",
+          "dim": 12,
+          "scale": [
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05
+          ],
+          "clip": [
+            -100,
+            100
+          ]
+        },
+        {
+          "name": "last_action",
+          "dim": 12,
+          "scale": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "clip": [
+            -100,
+            100
+          ]
+        }
+      ],
+      "corruption_in_eval": false
+    },
+    "action": {
+      "term": "JointPositionAction",
+      "total_dim": 12,
+      "joint_names": [
+        "FL_hip_joint",
+        "FR_hip_joint",
+        "RL_hip_joint",
+        "RR_hip_joint",
+        "FL_thigh_joint",
+        "FR_thigh_joint",
+        "RL_thigh_joint",
+        "RR_thigh_joint",
+        "FL_calf_joint",
+        "FR_calf_joint",
+        "RL_calf_joint",
+        "RR_calf_joint"
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "offset": "default_joint_pos",
+      "default_joint_pos": [
+        0.1,
+        -0.1,
+        0.1,
+        -0.1,
+        0.8,
+        0.8,
+        1.0,
+        1.0,
+        -1.5,
+        -1.5,
+        -1.5,
+        -1.5
+      ],
+      "clip": "wrapper clip_actions = null（term clip ±100 实际不生效）"
+    },
+    "robot": {
+      "asset": "Go2 USD (unitree_rl_lab assets)",
+      "asset_source": "/pub/data/caohy/unitree_model/Go2",
+      "gains": {
+        "actuator_set": "unitree_rl_lab.assets.robots.unitree_actuators:UnitreeActuator",
+        "stiffness": 25.0,
+        "damping": 0.5,
+        "effort_limit_sim": null,
+        "velocity_limit_sim": null,
+        "friction": 0.01,
+        "armature": null
+      }
+    },
+    "timing": {
+      "sim_dt": 0.005,
+      "decimation": 4,
+      "step_dt": 0.02,
+      "policy_hz": 50.0,
+      "external_command_hz": 10.0
+    },
+    "command": {
+      "ranges": {
+        "lin_vel_x": [
+          -1.0,
+          1.0
+        ],
+        "lin_vel_y": [
+          -0.4,
+          0.4
+        ],
+        "ang_vel_z": [
+          -1.0,
+          1.0
+        ],
+        "heading": null
+      },
+      "resampling_time_range_s": [
+        4.0,
+        8.0
+      ],
+      "external_command_hz": 10.0
+    }
+  },
+  "training": {
+    "run_dir": "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4",
+    "checkpoint": "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4/model_2999.pt",
+    "checkpoint_name": "model_2999.pt",
+    "iteration": null,
+    "agent_cfg_effective": {
+      "seed": 0,
+      "empirical_normalization": false,
+      "obs_groups": {
+        "policy": [
+          "policy"
+        ],
+        "critic": [
+          "critic"
+        ]
+      },
+      "clip_actions": null,
+      "class_name": "OnPolicyRunner"
+    },
+    "actor": {
+      "class": "ActorCritic",
+      "linear_layers": [
+        [
+          45,
+          512
+        ],
+        [
+          512,
+          256
+        ],
+        [
+          256,
+          128
+        ],
+        [
+          128,
+          12
+        ]
+      ],
+      "activations": [
+        "elu",
+        "elu",
+        "elu"
+      ],
+      "parameters_total": 384921,
+      "parameters_actor": 189324,
+      "input_dim": 45,
+      "output_dim": 12,
+      "uses_critic_head": false,
+      "critic_only_terms_excluded": [
+        "base_lin_vel",
+        "joint_effort"
+      ]
+    }
+  },
+  "source": {
+    "repo": "/home/caohy/repositories/Paper",
+    "commit": "0b7bf5f6f5313303cd2eb702d9f5d9640b1759d2",
+    "branch": "main",
+    "dirty_scope": "CaMRA/locomotion, tracked *and* untracked (git status --porcelain, __pycache__/*.pyc/*.bak filtered out)",
+    "dirty": false,
+    "dirty_entries": [],
+    "tracked_paths_in_bundle": [
+      "scripts/aggregate_rollout_arms.py",
+      "scripts/export_policy_candidate.py",
+      "scripts/freeze_controller_bundle.py",
+      "scripts/rollout_exported_policy.py",
+      "scripts/verify_export_consistency.py",
+      "scripts/verify_frozen_bundle.py"
+    ],
+    "submodule_HiRA": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9"
+  },
+  "environment": {
+    "python": "3.11.18",
+    "executable": "/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python",
+    "torch": "2.7.0",
+    "numpy": "1.26.0",
+    "isaaclab": "0.47.2",
+    "isaacsim": "5.1.0.0",
+    "rsl-rl-lib": "3.0.1",
+    "onnxruntime": "1.31.1",
+    "onnx": "1.23.2",
+    "pyyaml": "6.0.2",
+    "cuda_runtime": "12.6",
+    "gpu_visible": null
+  },
+  "execution_spec": {
+    "inference_mode": "no_grad",
+    "inference_mode_note": "部署与闭环验证都在 torch.no_grad() 下运行。不使用 torch.inference_mode()：该模式会把仿真器在 step()/auto-reset 中写入的缓冲变成 inference tensor，导致下一次场景复位时的 in-place 写入被拒（TASK-026 attempt1 实测崩溃）。两侧都关闭 autograd，推理数值与计时口径不受影响。",
+    "normalizer": {
+      "empirical_normalization": false,
+      "state_in_graph": false,
+      "note": "训练期无经验归一化，导出图内不含 running statistics，因此不存在需要随包携带或更新的归一化状态；任何启用归一化的后续版本必须在清单中记录其状态并重新验证。"
+    },
+    "reset_semantics": {
+      "wrapper": "ExternalCommandWrapper(on_reset=\"zero\")",
+      "command_on_reset": "复位后命令被置零，随后由 10 Hz 零阶保持程序写入程序指令",
+      "observation_quirk": "reset() 返回的观测是在内部 env 计算完成后、wrapper 写入程序指令之前算出的，因此该一拍观测携带的是复位时采样的随机指令；自下一拍起观测与施加指令一致（TASK-026 逐周期验证，前 3 维与 base_ang_vel*0.2 误差恒为 0）。部署端若自行复位，必须复现同一顺序，否则首拍观测会与训练分布不一致。",
+      "episode_length_s": 20.0,
+      "reward_or_curriculum_state": "不随包携带：推理不需要，且携带会诱导错误的状态恢复。"
+    },
+    "determinism": {
+      "seed_used_in_verification": 100,
+      "policy_eval_deterministic": true,
+      "rollout_reproducible": "同一后端、同一种子在全新进程中逐位可复现（TASK-026 attempt4 与最终轮的对象逐位相同）；JIT 与训练器臂在闭环中逐位一致；ONNX 因 float32 算子顺序在 7~45 个控制周期后离开噪声地板，区间统计量仍一致到 1e-3 以内。"
+    }
+  },
+  "assets": {
+    "go2_tree": {
+      "source": "/pub/data/caohy/unitree_model/Go2",
+      "copied_to": "assets/Go2",
+      "num_files": 4,
+      "tree_sha256": "9560507238240de79eb8a2f3a80b82e69a0adc25bde982062340a1750db1f7c9",
+      "usd_entry": null
+    }
+  },
+  "not_done": [
+    "真机 joint_ids_map 重映射未实现：部署端 State_RLBase 需要按目标机器的关节索引重排，本包给出的 joint 顺序是仿真侧顺序。",
+    "0~40 ms 指令延迟未建模（eval_protocol.json 的 not_covered 项），控制器在该延迟下的稳定性未验证。",
+    "ONNX 图为固定 batch=1（[1,45] -> [1,12]），只能逐帧推理；批推理需重新导出并重跑等效性判定。",
+    "未做 sim2real：状态估计噪声、执行器时延/摩擦差异、地形与材质多样性均未覆盖；真机前必须重新标定。",
+    "训练与评估只在单张 GPU、32~64 环境、单一地形集合上完成，未验证其他地形或更高速度域。",
+    "推理延迟报告（jit 中位 0.22~0.37 ms、onnx 1.18~1.24 ms）只是本机 headless 仿真的计算开销，不是真机实时能力。"
+  ],
+  "versioning_rule": "本目录一经生成不可修改。模型、导出文件、观测/动作契约、增益、频率、命令域、预处理或执行口径的任何变化都必须产生新的版本目录，并重新执行导出数值验证（verify_export_consistency）、闭环等效判定（rollout + aggregate）与真机标定；不得就地替换文件或复用版本号。",
+  "integrity": {
+    "algorithm": "sha256",
+    "num_files": 29,
+    "tree_sha256": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+    "tree_digest_rule": "sha256 over the sorted lines '<relpath> <sha256> <bytes>'",
+    "files": {
+      "FROZEN": {
+        "sha256": "14c1f7c4cc615f0b0988405d87bf245034cd8cae59240542f40f30437c2e8a13",
+        "bytes": 486
+      },
+      "README.md": {
+        "sha256": "4c21583a19c6f675cf6ddcf88a36d28671cf1f5ffd4d1266b3d9ba1a7fa1bce7",
+        "bytes": 5511
+      },
+      "model/model_2999.pt": {
+        "sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+        "bytes": 4639669
+      },
+      "results/task024_aggregate.txt": {
+        "sha256": "c199ea323897bd7b193d22db9ed402a6853642d4ee3f2cd9330108410a11c571",
+        "bytes": 3220
+      },
+      "results/task026_aggregate.json": {
+        "sha256": "ce12f200878c192d494a471bf5651064b4932ce8397ddfe53c62d61e343baee7",
+        "bytes": 15367
+      },
+      "results/task026_rollout_jit.json": {
+        "sha256": "f36c7af7b70052fff1e13c10e449d52ad710a5e9cae458428259d4be2db44e4a",
+        "bytes": 5108
+      },
+      "results/task026_rollout_onnx.json": {
+        "sha256": "01140c4c0d6e1339ae7cdc517c6e8766d8194b1a30b825d2ff3ec2bb29cee94e",
+        "bytes": 5139
+      },
+      "results/task026_rollout_trainer.json": {
+        "sha256": "0a6dcc172182264c9579b28e50d7fdc8771766a3824b829d358d14f2d20f1a58",
+        "bytes": 5946
+      },
+      "assets/Go2/usd/go2.usd": {
+        "sha256": "fd3c8c23c97cea3208fae1ab5eeacba4ffa616fe5f1397be6c7edf4feb93f180",
+        "bytes": 1601
+      },
+      "assets/Go2/usd/configuration/go2_description_base.usd": {
+        "sha256": "eeed42fb9e41395c47bc3fac7ff5d58625ac62f44bfa5a09cacebff83229c7a0",
+        "bytes": 18806122
+      },
+      "assets/Go2/usd/configuration/go2_description_physics.usd": {
+        "sha256": "43800f436b3533c869f0b7774e5c70bc4291579df70a62263f808fb1a8f05505",
+        "bytes": 6829
+      },
+      "assets/Go2/usd/configuration/go2_description_sensor.usd": {
+        "sha256": "d63cfa5964eb5a72b8e2a02dc89448881497717f21d76b1ec9683a92cb765a16",
+        "bytes": 655
+      },
+      "exported/policy.onnx": {
+        "sha256": "d0c993b6a2b607ad7e001f3912d3e1a69905a06fff990009cc86e1f26590122d",
+        "bytes": 758549
+      },
+      "exported/policy.pt": {
+        "sha256": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4",
+        "bytes": 769426
+      },
+      "samples/obs_samples.npz": {
+        "sha256": "c018ab016a089c54c7b4bd2ce20476cdabeea9da0466dda24a6dcf2716725e86",
+        "bytes": 3910193
+      },
+      "params/agent.yaml": {
+        "sha256": "6927e152194cde46ea9515bb8d70ae91de433fe9603d9a80b5cb9b87b28dabf6",
+        "bytes": 982
+      },
+      "params/camra_env_cfg.py": {
+        "sha256": "72f094e6ecec4a4a3e2e520b2ed493a72ce1474c976b98f3edcb51466a9ad1f4",
+        "bytes": 14375
+      },
+      "params/deploy.yaml": {
+        "sha256": "6aa00512496a50f1c0999d73b1c8ba20be1f2a350f9db1367f8cd858fc1b7fdc",
+        "bytes": 2014
+      },
+      "params/env.yaml": {
+        "sha256": "922d473cb449b2cb99c9a701b5af159f55ba3b5ee741c9327fc616f363973c44",
+        "bytes": 32299
+      },
+      "params/export_manifest.json": {
+        "sha256": "3fea858c52ee0d67738527f2570b477673741e8f4fa23bf032a1cf9df45cc7f6",
+        "bytes": 10149
+      },
+      "params/export_verification.json": {
+        "sha256": "9f84fa50cdb0e77422cdf794f5b5505f4176d7d655374e93e4788f4f9d49a531",
+        "bytes": 3950
+      },
+      "docs/eval_protocol.json": {
+        "sha256": "0afc2ceadf8f85111a7d56911736e89d5180fc82c92dbe41ad45d31e42676872",
+        "bytes": 9167
+      },
+      "env/pip-freeze.txt": {
+        "sha256": "24b1d5301a852a99265f8190209e5821fce096c80ac1f675e3b62de78c09ad6d",
+        "bytes": 5400
+      },
+      "scripts/aggregate_rollout_arms.py": {
+        "sha256": "bcccf81e4c5eb04e5967d6654d10572a0ebe92b4a81100848a1b40a4ed10fc34",
+        "bytes": 12449
+      },
+      "scripts/export_policy_candidate.py": {
+        "sha256": "fb914dae783995ec731955058d6b6346e5ce85de9efb6e24f6511980159c8fc0",
+        "bytes": 24853
+      },
+      "scripts/freeze_controller_bundle.py": {
+        "sha256": "5c463936476a11e7282887b6addbdbd18cd0486f7431fb6f8ed2d91f055037fd",
+        "bytes": 26873
+      },
+      "scripts/rollout_exported_policy.py": {
+        "sha256": "e85eb3215335f0a6d9bf3c545cd480190ffccc8c766bb23587f6c0c70f81870a",
+        "bytes": 18483
+      },
+      "scripts/verify_export_consistency.py": {
+        "sha256": "466cdcf763009655013540dc04317d3c83b04ea544969052c97474a6937e80af",
+        "bytes": 8009
+      },
+      "scripts/verify_frozen_bundle.py": {
+        "sha256": "3dbe706ba44468d3cef427e74e4b855f4824cb88d3a3290d0554ed7ec4a61a3d",
+        "bytes": 6745
+      }
+    },
+    "excludes": [
+      "frozen_manifest.json",
+      "frozen_manifest.json.sha256"
+    ]
+  }
+}
