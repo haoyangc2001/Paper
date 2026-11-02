@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -66,6 +66,10 @@
       {
         "date": "2026-11-02",
         "summary": "TASK-025 完成并标记完成：iteration 2999 导出为 JIT/ONNX 并生成部署契约与清单，19,200 条真实观测上两种格式与训练器推理最大偏差 1.19e-06/1.12e-06（关节目标 2.8e-07 rad），确定性一致；记录了一次容差修订（1e-6→1e-5）及其失败证据，并记录 ONNX 固定 batch=1、真机 joint_ids_map 未覆盖两项限制。"
+      },
+      {
+        "date": "2026-11-02",
+        "summary": "TASK-026 完成并标记完成：导出控制器在 jit/onnx/trainer 三个独立进程中重载并闭环跑完四场景 × 32 环境 × 种子 100（1700 周期/臂），三臂 0 摔倒 0 复位；JIT 与训练器逐位一致（12 项指标差 0），ONNX 差 9.1e-06~8.8e-04 且在 1e-2 带内，观测/动作接口检查全部通过，并记录接触动力学导致逐帧轨迹不可复现、区间统计量可复现的定量解释；同时记录三次检查/实现缺陷的修正与四次尝试的归档证据。"
       }
     ]
   },
@@ -2532,7 +2536,7 @@
     {
       "id": "TASK-026",
       "goal": "验证导出控制器的独立闭环重载",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-025"
       ],
@@ -2548,7 +2552,59 @@
         "比较原检查点与导出推理的同种子结果并解释仿真数值非确定性，确保没有性能退化超出协议容差。",
         "记录实际推理延迟，但不将加速仿真频率直接宣称为真机实时能力。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-02T22:52:00+08:00",
+          "summary": "TASK-026 完成：用候选包在三个独立进程里重建推理并闭环重载 Go2。jit 与 onnx 两臂全程不加载任何 rsl-rl 模块（运行期 sys.modules 中 rsl_rl* 计数 0，trainer 臂 24 个作对照），只凭 exported/policy.{pt,onnx} ＋ params/export_manifest.json 起推理。四场景（站立 8 s、起停 10 s、转向 8 s、0.1→0.9 m/s 连续变速 8 s）× 32 环境 × 种子 100，共 1700 个控制周期/臂，三臂全部 0 摔倒、0 次场景内 reset。JIT 与训练器臂逐位相同（12 项跟踪指标差恒为 0.000e+00，首帧动作差 0，整段动作轨迹差 0）；ONNX 臂跟踪指标差 9.1e-06~8.8e-04、停车滑行 0.0643→0.0662 m，轨迹因接触混沌在 7~45 个控制周期后离开 float32 噪声地板并逐步发散（末位 xy 差 1.5e-03~1.15e-01 m），属数值放大而非接口错误。过程里修掉三个真实缺陷（inference_mode 污染仿真缓冲、reset 检查把「两次复位必然不同」误判为失败、obs 检查撞上 wrapper「先算观测后写命令」的一拍时序），四次尝试的产物与日志全部归档保留。",
+          "actions": [
+            "新增 scripts/rollout_exported_policy.py：--backend jit|onnx|trainer，jit/onnx 分支不导入 rsl-rl、不加载检查点，只从候选包重建推理；命令走 TASK-018 的 10 Hz 零阶保持 ExternalCommandWrapper，而不是从外部写命令项。",
+            "把「无训练器依赖」做成运行期判据而非静态 grep：报告里记录 sys.modules 中以 rsl_rl 开头的模块表，jit/onnx 要求为空（trainer 臂标 informational），最终取值 0 / 0 / 24。",
+            "新增 scripts/aggregate_rollout_arms.py：把容差、四场景门控、三臂交叉比较与复位采样流一致性写成可重跑判定，输出 t026_aggregate.json，VERDICT 是唯一结论来源，不靠人眼看日志。",
+            "首轮（attempt1）三臂在场景切换 reset 处崩溃：整段 rollout 包在 torch.inference_mode() 内，env.step/auto-reset 把仿真缓冲写成 inference tensor，下一场景 reset 的 in-place 写入被拒。改为 torch.no_grad() 并在代码里写明原因；两侧都关 autograd，计时口径不变。",
+            "第二轮（attempt2）跑通但暴露出检查本身写错：把「连续两次 reset 的观测相等」当门控，而 reset 事件本就会重新采样初始状态。改为 informational，并把真正该看的证据（三臂该标量逐位一致 1.8291529417037964）纳入门控。",
+            "第三轮（attempt3）判 FAIL：obs 检查在 reset 后立刻重算并全量比较，撞上 ExternalCommandWrapper 先让内部 env 算完观测、之后才写入程序指令的一拍时序。改为只排除 velocity_commands 切片并对该差异单列说明，其余 42 维要求逐位相同。",
+            "把 obs 布局检查从「reset 时刻比一次」升级为「每个控制周期都比」：obs 的前 3 维与 base_ang_vel×0.2 在 1700 个周期上误差恒为 0.0。",
+            "第四轮（attempt4）通过后仍补了无训练器依赖的运行期断言，重跑为最终轮；最终轮与 attempt4 的跟踪数值、场景门控与轨迹逐位相同，说明固定种子下整条链路可重复。",
+            "记录推理延迟但只当作本机 headless 仿真的计算开销：jit 中位 0.22~0.37 ms、onnx 1.18~1.24 ms（CPU provider，ONNX 图固定 batch=1 故逐条循环）、trainer 0.30~0.40 ms，p95 三臂均约 2.2 ms；max 56~60 ms 是 GPU 臂首个场景首帧的单点尖峰（ONNX 臂无此尖峰，max 3.1~4.3 ms），不作真机实时性结论。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/scripts/rollout_exported_policy.py",
+            "CaMRA/locomotion/scripts/aggregate_rollout_arms.py",
+            "doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "commands": [
+            "tmux new-window -t camra-locomotion -n T026RUN6  # 之后 tmux send-keys 投递下面这条，不重复启动",
+            "bash /pub/data/caohy/scripts/t026_rollout.sh  # 内部对 jit/onnx/trainer 各起一个独立 python 进程跑四场景，并做产物存在性检查（Isaac 入口在未捕获 traceback 后仍返回 0，故按产物判定成功）",
+            "python CaMRA/locomotion/scripts/aggregate_rollout_arms.py --out_dir /pub/data/caohy/logs/camra/TASK-026/rollout"
+          ],
+          "results": [
+            "场景门控 12/12 PASS：三臂 × 四场景全部 failures=0、env_resets=0、obs 布局误差 0.0。",
+            "跟踪指标（jit / onnx / trainer，rmse_vx / rmse_vy / rmse_wz [m/s, m/s, rad/s]）：stand 0.02703/0.02478/0.01263、0.02706/0.02477/0.01272、0.02703/0.02478/0.01263；start_stop 0.09095/0.03905/0.03975、0.09120/0.03870/0.03969、0.09095/0.03905/0.03975；turn 0.03305/0.02828/0.10495、0.03393/0.02882/0.10517、0.03305/0.02828/0.10495；ramp 0.12106/0.04136/0.05099、0.12082/0.04177/0.05122、0.12106/0.04136/0.05099。",
+            "jit_vs_trainer 的 12 项跟踪差值全部为 0.000e+00；onnx_vs_trainer 最大 8.761e-04（turn 的 rmse_vx），全部落在事先写死的 1e-2 带内。",
+            "轨迹一致性：三臂首帧动作差 0 / 4.768e-07 / 7.153e-07 / 4.172e-07（stand/start_stop/turn/ramp），证明三臂从同一初始状态起步；随后 ONNX 逐帧偏差在 7/9/19/45 个周期后越过 1e-2、在 293/63/37/61 个周期后越过 1e-1，整段最大 1.368e-01~2.382，末位 xy 差 1.507e-03~1.145e-01 m。即 ONNX 不逐位复现轨迹，但区间统计量一致到 1e-3 以内。",
+            "接口一致性：obs 维 45 = 契约 45；动作预处理 processed_actions 对 default_joint_pos + 0.25·a 的误差 0.0（探针 a0=0.5）；同状态重跑 compute() 时除 velocity_commands 切片（差 0.996，wrapper 时序所致）外 42 维逐位相同；三臂的两次复位观测差均为 1.8291529417037964。",
+            "起停：三臂停车后 2 s 滑行 0.0643 / 0.0662 / 0.0643 m，速度降到 0.1 m/s 以下均用 0.21 s；最大横滚 5.97° / 5.86° / 5.97°。",
+            "延迟（仅计算开销）：中位 jit 0.223/0.268/0.367/0.243 ms、onnx 1.215/1.236/1.236/1.178 ms、trainer 0.300/0.309/0.397/0.354 ms；p95 2.19~2.26 ms。",
+            "两次完整运行（attempt4 与最终轮）的 tracking / 场景门控 / 轨迹对象逐位相同。"
+          ],
+          "evidence": [
+            "主机 tiger12，tmux 会话 camra-locomotion，窗口 T026RUN3（attempt1，inference_mode 崩溃）/ T026RUN4（attempt2，4/4 场景跑通但检查标签错）/ T026RUN5（attempt3，obs 时序检查判 FAIL）/ T026RUN6（最终轮）。",
+            "主控日志 /pub/data/caohy/logs/camra/TASK-026/rollout.console.log 末段含 [T026] artefact check OK 与 [T026] DONE 2026-11-02T22:37:21+08:00；三臂各自 rollout_{jit,onnx,trainer}.log 与 .err.log，非良性 stderr 为空（仅 libGLU/libneuray 的无关告警）。",
+            "产物 /pub/data/caohy/logs/camra/TASK-026/rollout/{rollout_{jit,onnx,trainer}.json, trace_{backend}_{scenario}.npz, t026_aggregate.json}；判定脚本输出 VERDICT: PASS。",
+            "失败与中间轮次证据全部归档未删：attempt1_inference_mode_crash/、attempt2_wrong_check_label/、attempt3_reset_tick_artefact/、attempt4_pre_trainerdep/（各含当轮 rollout 目录与三臂日志）。",
+            "gate 检查 no_trainer_dependency 的运行期取值：jit 0 个 rsl_rl 模块、onnx 0 个、trainer 24 个。",
+            "本轮未把「会话存活 / 命令派发」当完成：attempt1 正是靠产物检查发现三份 JSON 缺失，才发现脚本里的 `|| true` 掩盖了崩溃；此后每轮都以聚合判定 VERDICT 与产物为准。"
+          ],
+          "remaining_work": [
+            "真机侧 joint_ids_map 重映射、0~40 ms 指令延迟与状态估计延迟仍未覆盖（eval_protocol.json 的 not_covered），属真机部署阶段工作，本任务不宣称已覆盖。",
+            "ONNX 图固定 batch=1（[1,45]→[1,12]），部署端只能逐帧推理；若要批推理需重新导出并重跑本任务的等效判定。",
+            "四场景是固定代表场景（32 环境、种子 100、单一地图），不等于协议的 10 个评估场景；绝对性能达标仍以 TASK-024 的 final_test 结果为准，本任务只判导出前后等效。",
+            "报告里的推理延迟只是本机 headless 仿真的计算开销（jit 中位 0.22~0.37 ms、onnx 1.18~1.24 ms），真机时延需叠加通信/执行器/滤波后另测。",
+            "冻结包（TASK-027）需把 no_grad 口径、命令域、增益、频率与未完成的真机工作一并写进 manifest。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "在现有Isaac环境完成，不自动扩展MuJoCo/真机部署。",
         "本任务所有终端命令必须遵守顶层tmux_execution_policy，在实际执行主机的tmux会话内运行；断线后先恢复/检查原任务，禁止重复启动。"
@@ -2557,7 +2613,7 @@
         "独立重载能正确控制Go2，关键闭环性能和接口一致性验证通过。",
         "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
       ],
-      "verification_result": ""
+      "verification_result": "验收 1 满足：导出控制器在全新进程里独立重载并正确控制 Go2，闭环性能与接口一致性均通过。独立性：jit 与 onnx 两臂只读候选包（exported/policy.pt、exported/policy.onnx、params/export_manifest.json），不导入 rsl-rl、不加载检查点，运行期 sys.modules 中以 rsl_rl 开头的模块数为 0（训练器参考臂 24 个，作为对照证明该判据确有分辨力）。闭环：四场景（stand 8 s 零速、start_stop 4 s 0.8 m/s 后 6 s 零速、turn 8 s 0.6 rad/s、ramp 0.1→0.9 m/s 8 s）× 32 环境 × 种子 100，每臂 1700 个控制周期，命令走 TASK-018 的 10 Hz 零阶保持接口；三臂 12/12 场景门控全部 PASS，failures=0 且 env_resets=0（场景内若发生复位会静默重置机器人并污染跟踪曲线，故逐帧计数并报告）。等效性：JIT 臂与训练器臂在 12 项跟踪指标上差值恒为 0.000e+00、首帧动作差 0、整段动作轨迹最大差 0——导出图与训练期推理在闭环里逐位一致；ONNX 臂差值 9.121e-06~8.761e-04（最大为 turn 的 rmse_vx），停车滑行 0.0643→0.0662 m，均在事先写入判定脚本的 1e-2 带内。数值非确定性的解释已做实：三臂首帧动作差 4.8e-07~7.2e-07（同一初始状态、同一观测，只有 float32 算子顺序差异），逐帧偏差在 7~45 个周期后越过 1e-2、在 37~293 个周期后越过 1e-1，整段最大瞬时差 1.4e-01~2.4、末位 xy 差 1.5e-03~1.15e-01 m——足底接触这类分段光滑动力学把每帧 ~5e-07 的舍入差指数放大，所以「逐帧轨迹」不可复现但「区间统计量」可复现（差 <1e-3，远小于任何协议阈值），这不是接口或权重错误。接口一致性：obs 维 45 与契约一致；动作预处理 processed_actions 与 default_joint_pos + 0.25·a 误差 0.0（探针 a0=0.5）；obs 前 3 维与 base_ang_vel×0.2 在 1700 个控制周期上误差恒为 0.0（不是只在复位时刻比一次）；同状态重跑 observation_manager.compute() 时，除 velocity_commands 切片外 42 维逐位相同，该切片的差异已定位为 ExternalCommandWrapper.reset() 先让内部 env 算观测、之后才写入程序指令的一拍时序（幅度 0.996，等于被替换的命令本身），不是策略或管道缺陷；两次连续复位的观测差 1.8291529417037964 在三个独立进程中逐位一致，说明种子 100 的复位采样流可复现。可重复性：attempt4 与最终轮相隔一次脚本改动，两轮的跟踪指标、场景门控与轨迹对象逐位相同。延迟只作为本机 headless 仿真的计算开销报告：jit 中位 0.22~0.37 ms、onnx 1.18~1.24 ms（ONNX 图固定 batch=1，只能逐条循环，故明显慢于 JIT）、trainer 0.30~0.40 ms，p95 三臂均约 2.2 ms，max 56~60 ms 是 GPU 臂首个场景首帧的单点尖峰（ONNX 臂无此尖峰，max 3.1~4.3 ms）；不据此宣称真机实时能力，真机时延还需叠加通信、状态估计与执行器延迟。口径说明：本任务的四场景不是 eval_protocol.json 的 10 个评估场景，因此不据此重判协议达标（那是 TASK-024 的职责，已判 PASS），本任务只判「导出前后等效、独立可重载」。局限：验证在 32 环境、单一地图/材质、无传感器噪声与0~40 ms 指令延迟条件下完成，协议 not_covered 里那两项仍未覆盖；ONNX 的 batch=1 限制与真机 joint_ids_map 重映射仍是 TASK-027 冻结包需要写明的未完成项。验收 2 满足：工作记录含执行主机 tiger12、tmux 会话 camra-locomotion 与四个窗口标识、完整命令、日志与产物路径、以及四次尝试的归档位置；未把会话存活或命令派发当作完成——attempt1 的崩溃正是被「产物缺失」这条判据抓出来的，后续每轮都以聚合判定的 VERDICT 与产物校验为准。"
     },
     {
       "id": "TASK-027",
