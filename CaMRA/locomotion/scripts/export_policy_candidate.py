@@ -130,11 +130,21 @@ def git_info() -> dict:
         except Exception:  # noqa: BLE001
             return "unknown"
 
-    # tracked modifications only: the round 1-3 *.bak copies are untracked on purpose
+    # Content comparison, not `git status`: with the repo's `text: auto` attribute the
+    # status flags these scripts as modified purely on stat/CRLF grounds even when the
+    # bytes match HEAD. Untracked round 1-3 *.bak copies are ignored on purpose.
+    try:
+        rc = subprocess.run(
+            ["git", "-C", REPO, "diff", "--quiet", "HEAD", "--", "."],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        ).returncode
+        dirty = rc != 0
+    except Exception:  # noqa: BLE001
+        dirty = None
     return {
         "commit": run("rev-parse", "HEAD"),
-        "dirty": bool(run("status", "--porcelain", "--untracked-files=no", "--", REPO)),
-        "dirty_scope": "tracked files under CaMRA/locomotion",
+        "dirty": dirty,
+        "dirty_scope": "tracked content under CaMRA/locomotion, compared with `git diff --quiet HEAD`",
     }
 
 
