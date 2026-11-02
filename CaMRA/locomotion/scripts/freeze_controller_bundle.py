@@ -166,8 +166,12 @@ def git_info(repo: str) -> dict:
     for line in status:
         if not line.strip() or any(n in line for n in noise):
             continue
-        code, path = line[:2], line[3:].strip()
-        if code.strip() and code.strip() != "??":
+        # porcelain is "XY<space>path"; slicing at 2 keeps the separator-space handling
+        # out of the way (a staged "M " and an unstaged " M" both parse correctly)
+        path = line[2:].strip()
+        if "->" in path:  # rename entries
+            path = path.split("->")[-1].strip()
+        if line[:2].strip() and line[:2].strip() != "??":
             # `git status` reports stat-dirty files whose content is identical (this repo
             # carries `<text: auto>` attributes and CRLF churn), so a tracked entry only
             # counts when the content actually differs from HEAD
@@ -325,12 +329,12 @@ def main() -> int:
                          "(recorded in the manifest; a clean tree is the default requirement)")
     args = ap.parse_args()
 
-    src = git_info(args.repo)
-    if src["dirty"] and not args.allow_dirty:
+    git_src = git_info(args.repo)
+    if git_src["dirty"] and not args.allow_dirty:
         print("[FREEZE] refuse: CaMRA/locomotion is not clean, so the bundle would not be "
               "reproducible from the recorded commit. Commit first, or pass --allow-dirty.",
               file=sys.stderr)
-        for line in src["dirty_entries"]:
+        for line in git_src["dirty_entries"]:
             print("  " + line, file=sys.stderr)
         return 3
 
@@ -475,7 +479,7 @@ def main() -> int:
             "agent_cfg_effective": man["source"].get("agent_cfg_effective"),
             "actor": man["actor"],
         },
-        "source": src,
+        "source": git_src,
         "environment": env_versions(),
         "execution_spec": EXECUTION_SPEC,
         "assets": {
