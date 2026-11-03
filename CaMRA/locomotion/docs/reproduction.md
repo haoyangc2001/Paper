@@ -96,7 +96,7 @@ cd /pub/data/caohy/tmp/clean-clone-t037
 | 步骤 | 命令 | 实测结果 |
 | --- | --- | --- |
 | 克隆 | `git rev-parse --short HEAD` | `675784b`；`git status --short` 为空 |
-| 预检（纯默认，不导出任何变量） | `python scripts/check_repro_readiness.py --level eval-now` | `VERDICT: ready`；19 项检查中 18 项 ok、1 项 warn（`tmux`：不在会话内，非阻塞） |
+| 预检（纯默认，不导出任何变量） | `python scripts/check_repro_readiness.py --level eval-now` | `VERDICT: ready`；19 项检查全部 ok（在 tmux 会话内运行；在会话外运行仅 `tmux` 一项为 warn，非阻塞） |
 | 覆盖优先级 | `CAMRA_ASSET_ROOT=/nonexistent/asset python … readiness` | `VERDICT: infra_blocked`，**退出码 2**，`blocking checks: ['asset_root', 'go2_usd']` |
 | 索引校验 | `python scripts/artifact_index.py verify` | `PASS: all 10 entries match`，退出码 0 |
 | 索引缺失 | `python scripts/artifact_index.py verify --index /nonexistent.json` | 退出码 2，`FATAL: index not found` |

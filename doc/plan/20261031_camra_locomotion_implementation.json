@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.6.0",
+    "version": "3.7.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3607,7 +3607,61 @@
         "对照旧结果列出可复算项、漏测新增项及判分规则修正的影响；旧日志不足时明确无法追溯，不补造数据或事后拼成完整旧测试。",
         "依据预先固定标准给出现有模型能否进入校准阶段的结论；若性能不达标，保留结果、保持任务false，提出针对性修复/补训建议并等待授权，不反复重跑挑优。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T12:20:00+08:00",
+          "summary": "TASK-036 实施完成、验收未通过。按补充协议在全新目录跑 9000 回合（2 组 × 评估种子 300–309 × 每变体 300 回合），20/20 种子目录齐备、指标有效数 100%、162000 项逐步复算 0 不匹配；逐变体判定 29/30 达标，唯一不达标是 nominal `lateral#v1`（vy=−0.3）`rmse_vy` 0.1035 > 0.1000（超 3.5%，失败率 0，无摔倒），nominal 组要求全部场景通过，故 overall_pass=False。同时用原始轨迹量化了旧最终测试的真实覆盖：15 个协议变体中实际只测了 10 个。",
+          "actions": [
+            "开跑前固定评估输入：检查点 sha256 1c8f5aad…、与冻结包 model/model_2999.pt 逐字节比对（cmp 通过）、协议 0afc2cea… 与补充协议 f50d8b7f…、评估代码 eval_locomotion.py 65d3d3ac… 与 eval_metrics.py 8d63bb5f…，全部写入 TASK-036/preflight/；预检 --level eval-now 返回 ready 后才启动。",
+            "按补充协议 D-2 执行：评估种子 300–309、每种子每变体 30 回合、num_envs 64、nominal 与 perturbed 两组，输出到全新目录 /pub/data/caohy/logs/camra/TASK-036/{nominal,perturbed}/s3xx/，未写任何旧目录。",
+            "跨种子聚合时用 --expected_per_variant 300 强制完整性：runs_present=20/20、complete=True、missing_runs=[]，缺任一变体即判未覆盖。",
+            "对 20 个种子目录逐一从 raw/*.npz 逐步轨迹复算：20 PASS / 0 FAIL、162000 项比对 0 不匹配，证明 CSV 与原始轨迹一致、指标不是凭空写出来的。",
+            "对照旧结果（TASK-024）：读 10 个旧种子两个分组的 raw 轨迹，按 lengths 逐回合取首步命令三元组，确认 lateral 只下发 vy=+0.3、turn_inplace 只下发 wz=+0.8、combined 只下发 (+,+,+)，各 300 回合；即旧 10/10 场景通过只覆盖 15 个协议变体中的 10 个。七个单变体场景的新旧值在 1e-4 内复现。",
+            "依预先固定的标准给出结论：不通过、保持任务 false，给出三条互斥处置建议（接受边界 / 先查左右不对称 / 定向修复后重测），未做任何重跑挑优。",
+            "修掉报告生成工具的两个渲染缺陷（只在事后重生成报告时发现，不改判定）：逐变体表状态列恒为 '?'；第 7 节只比 rmse_vx 导致多变体场景显示 '—'。修后重生成，overall_pass 前后均为 False。"
+          ],
+          "files_changed": [
+            "仓库代码未改动（本任务只跑评估、只写仓库外产物）",
+            "/pub/data/caohy/scripts/t036_run.sh（仓库外驱动脚本，开跑前定稿）",
+            "/pub/data/caohy/tools/t036_report.py（仓库外报告生成器，含两处渲染修复）"
+          ],
+          "commands": [
+            "bash /pub/data/caohy/scripts/t036_run.sh > /pub/data/caohy/logs/camra/TASK-036/t036_run.log 2>&1",
+            "cmp -s <checkpoint> <frozen model>  # SAME",
+            "python scripts/check_repro_readiness.py --level eval-now --json preflight/readiness.json  # VERDICT: ready",
+            "bash scripts/repro/finaltest.sh <ckpt> both 300-309 30 64 --allow-existing  # 20/20 seed dirs",
+            "python scripts/aggregate_eval_runs.py --runs_root TASK-036 --seeds 300-309 --groups nominal,perturbed --expected_per_variant 300  # exit 1 = complete but failing",
+            "python scripts/recompute_metrics.py --run_dir <each of 20 dirs>  # 20 x 8100 comparisons, 0 mismatch",
+            "python /pub/data/caohy/tools/t036_report.py --runs_root TASK-036 --aggregate aggregate.json --protocol docs/eval_protocol.json"
+          ],
+          "results": [
+            "运行完整度：runs_present=20 / runs_expected=20，complete=True，missing_runs=[]，warnings=[]。",
+            "逐变体：29/30 达标。nominal 9/10 场景通过、perturbed 10/10；失败回合 nominal 0/4500、perturbed 17/4500（0.0038，限值 0.10）。",
+            "唯一不达标：nominal lateral#v1（vy=−0.3）rmse_vy 0.1035 > 0.1000（超 3.5%），p95_abs_err_vy 0.1361 ≤ 0.1800，failure_rate 0.000；同方向在 perturbed 为 0.1134 ≤ 0.1200（放宽 20%）通过；反方向 lateral#v0 在 nominal/perturbed 分别为 0.0887/0.1091，左右相差 17%。",
+            "证据不足项 0 个：所有进入判定的指标均为 300/300 有效。",
+            "复算：20/20 目录 PASS，162000 项指标 0 不匹配。",
+            "旧覆盖量化：lateral 1/2、turn_inplace 1/2、combined 1/4，合计 10/15 变体；七个单变体场景新旧值差 ≤ 4e-4。",
+            "旧口径（场景合并值）下 nominal 全部场景都会通过（lateral 合并 0.0961 ≤ 0.10），逐变体判据下 lateral#v1 不达标——D-4 与旧口径的差别正好落在这一类变体上。",
+            "耗时 55 分 45 秒（11:23:49–12:19:34），远短于补充协议登记的约 2h57m，原因是 64 环境并行、0.37 s/回合。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/t036_run.log（主机 tiger12.ios.ac.cn、窗口 camra-locomotion:T036、git 675784b、各步 EXIT 行）",
+            "/pub/data/caohy/logs/camra/TASK-036/preflight/（checkpoint.sha256、frozen_model.sha256、protocol_and_code.sha256、readiness.json、readiness.log）",
+            "/pub/data/caohy/logs/camra/TASK-036/finaltest.log（20 个种子的 start/ok 时间戳）",
+            "/pub/data/caohy/logs/camra/TASK-036/aggregate.json 与 aggregate.log（30 个变体逐行判定）",
+            "/pub/data/caohy/logs/camra/TASK-036/recompute.log（20 × verdict=PASS，8100 项/目录）",
+            "/pub/data/caohy/logs/camra/TASK-036/report.md（八节报告：逐变体表、合并值对照、旧结果对照）",
+            "/pub/data/caohy/logs/camra/TASK-036/{nominal,perturbed}/s3xx/（9000 回合原始产物，934 MB，仓库外）"
+          ],
+          "remaining_work": [
+            "等待用户裁决处置方式：①接受为已声明边界（记录 nominal vy=−0.3 的 rmse_vy 0.1035 供下游校准设计裕度）；②先查左右不对称成因（奖励项/命令采样/观测耦合，不动模型）；③定向修复或补训出新版本后重测。",
+            "若走第 ③ 条：新模型必须重新登记测试种子（300–309 已在本轮用掉，复用即等于拿看过的数据挑优），并按 TASK-037 要求出独立版本、重跑导出一致性与闭环重载。"
+          ],
+          "blockers": [
+            "nominal lateral#v1（vy=−0.3）rmse_vy 0.1035 超出阈值 0.1000 达 3.5%；按补充协议 D-4 该场景判不通过，nominal 组要求全部场景通过，故 overall_pass=False，不能宣称具备 calibration 交付条件。"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "先复测现有模型，不自动重新训练；禁止用新保留测试结果调参后再声称它仍是独立测试。",
         "本轮不新增0–40 ms延迟、真机、复杂地形或更高命令域验证；这些仍是已声明的范围外能力。",
@@ -3644,7 +3698,60 @@
         "明确进入 calibration 的前置条件与仍未实施的校准、上层导航和真机范围；不要把本轮工具修复称为已完成 α/δ 校准。",
         "逐项核对九项补充任务、追加工作记录和验收结论，运行计划 update 校验；检查修改范围、tmux/日志交接及无密钥/意外大文件，不自动提交或推送。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T12:40:00+08:00",
+          "summary": "TASK-037 的文档与复核工作已完成，但验收随 TASK-036 保持未通过：更新两个 README 的交付结论、新增交接笔记第 37/38 章、补齐 docs/reproduction.md 的干净克隆实测、把聚合工具用法示例里的机器路径改为环境变量；在提交 9bbec29 的干净克隆中复核 17 个入口可执行、预检 ready、环境变量覆盖生效且缺资源返回 2、产物索引 10 条全部匹配、v2 冻结包模型散列未变。计划因此不标记为完成。",
+          "actions": [
+            "更新交付说明：locomotion/README 的交付状态表增加确认性复测行、旧最终测试行标注为旧口径并写明只测 10/15 变体、表后新增判定段；CaMRA/README 的 locomotion 行改为「确认性复测未通过验收」，calibration 行补「进入校准前需先裁决」。",
+            "新增交接笔记第 37 章（复测现场、旧覆盖量化、新旧数字逐项对照、结论与三条建议）与第 38 章（文档改动清单、干净克隆复核、v2 包为何不出新版本、计划状态、未关闭项与九项补充任务对账），并补目录索引行。",
+            "补齐 docs/reproduction.md 第 6 节：干净克隆实测七步、两个入口 --help 返回 2 的原因（IsaacLab 摘掉 help action）、以及残留机器路径字面量的三类归属。",
+            "在提交 9bbec29 的新克隆 /pub/data/caohy/tmp/clean-clone-t037b 中按文档命令复核（tmux 窗口 camra-locomotion:T037CL，34 秒）。",
+            "核对修改范围与卫生：t037_scope.py 检查变更全部在允许路径内、无 >2 MB 文件、无凭证特征、索引校验通过。",
+            "运行计划 update 校验；确认未触碰旧检查点、冻结包、原始日志与前 35 项工作记录。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/README.md（交付状态表 + 判定段）",
+            "CaMRA/README.md（locomotion 与 calibration 两行状态）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 37、38 章 + 目录索引）",
+            "CaMRA/locomotion/docs/reproduction.md（第 6 节干净克隆实测）",
+            "CaMRA/locomotion/scripts/aggregate_eval_runs.py（用法示例改为 $CAMRA_LOG_ROOT）",
+            "doc/plan/20261031_camra_locomotion_implementation.json（TASK-036/037 工作记录，version 3.7.0）"
+          ],
+          "commands": [
+            "python -m pytest tests/ -q  # 88 passed",
+            "python /pub/data/caohy/tools/t037_scope.py --repo . --json TASK-037/scope_b1.json  # PASS",
+            "bash /pub/data/caohy/scripts/t037_clean.sh  # tmux camra-locomotion:T037CL",
+            "git clone /home/caohy/repositories/Paper <clean dir>  # HEAD 9bbec29, 0 dirty lines",
+            "python scripts/check_repro_readiness.py --level eval-now  # VERDICT: ready, 19 checks ok",
+            "CAMRA_ASSET_ROOT=/nonexistent/asset python scripts/check_repro_readiness.py --level eval-now  # exit 2, infra_blocked",
+            "python scripts/artifact_index.py verify  # PASS, all 10 entries match",
+            "python scripts/artifact_index.py verify --index /nonexistent.json  # exit 2, FATAL",
+            "python /pub/data/caohy/tools/validate_worklog.py --mode update <plan>"
+          ],
+          "results": [
+            "干净克隆（9bbec29）：预检 ready（19 项全 ok）、环境变量覆盖返回 2 且 blocking=asset_root/go2_usd、索引 10 条 PASS、缺失索引返回 2、17 个入口返回 0（12 个 python 中 10 个 + 7 个 shell 全部）。",
+            "两个 python 入口 --help 返回 2 已查明为 IsaacLab 摘除 -h/--help 所致，不据此判定入口不可用；其可执行性由 TASK-025/026 实跑证明。",
+            "v2 冻结包未变：model_2999.pt sha256 1c8f5aad… 前后一致，frozen_bundle_v2 树散列 8923c6fd… 未变，未新建版本。",
+            "范围与卫生：变更 5 个文件全部在允许路径内，无大文件、无凭证，索引校验通过。",
+            "88 项回归测试在文档改动后仍全通过（改动不涉及行为）。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-037/cl_run.log（主机 tiger12.ios.ac.cn、窗口 camra-locomotion:T037CL、各步 EXIT 与实测输出）",
+            "/pub/data/caohy/logs/camra/TASK-037/cl_readiness.log、cl_override.log、cl_index.log、cl_index_missing.log、cl_entrypoints.log",
+            "/pub/data/caohy/logs/camra/TASK-037/scope_b1.json（范围/大小/凭证/索引四项自查结果）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 37、38 章（提交 9bbec29 及其后的 a6 文档提交）",
+            "/pub/data/caohy/logs/camra/TASK-036/report.md（被本次文档引用的复测报告）"
+          ],
+          "remaining_work": [
+            "TASK-036 的验收未通过，本轮补充计划不能宣称验收通过；待用户裁决 §37.6 的三条处置方式后，按新模型版本重做 TASK-036 并重新登记测试种子，再更新本节与两个 README 的结论。",
+            "进入 calibration 的前置条件（逐变体验收通过）当前不满足，不得以「29/30 变体达标」替代。"
+          ],
+          "blockers": [
+            "依赖任务 TASK-036 未通过验收（逐变体判据下 1/30 变体不达标），故本任务的验收条件「新增 9 项各有实证并满足验收」无法成立，按计划状态定义保持 false。"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "旧检查点、冻结包、原始日志和前28项工作记录不可覆盖；若需要修改历史结论，只追加纠正说明及证据链接。",
         "新冻结工具如要求干净且已提交的源码，遵守既有提交授权；缺少授权时说明具体需要，不自行提交、推送或绕过来源校验。",
