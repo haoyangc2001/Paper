@@ -460,3 +460,23 @@ def test_stop_probability_without_ramp_is_immediate():
     """ramp_iters=0 must reproduce the un-ramped behaviour (and 0 stays 0)."""
     assert pytest.approx(SE.ramped_probability(0.25, 0, 0)) == 0.25
     assert pytest.approx(SE.ramped_probability(0.0, 100, 300)) == 0.0
+
+
+def test_ramp_length_is_control_steps_not_ppo_iterations():
+    """TASK-033: ``ramp_iters`` counts control steps, not PPO iterations.
+
+    The counter passed in is ``env.common_step_counter``, which
+    ``ManagerBasedRLEnv.step`` increments once per control step. One PPO iteration
+    samples ``num_steps_per_env = 24`` control steps, so the configured 300 is
+    12.5 iterations (6.0 s at 50 Hz) - the config comments used to claim
+    "300 iterations". This test pins the unit so the wording cannot drift back.
+    """
+    num_steps_per_env = 24
+    step_dt = 0.02  # 200 Hz physics / decimation 4
+    ramp = 300
+    assert ramp / num_steps_per_env == pytest.approx(12.5)
+    assert ramp * step_dt == pytest.approx(6.0)
+    assert pytest.approx(SE.ramped_probability(0.25, ramp, ramp)) == 0.25       # saturated at the end
+    assert SE.ramped_probability(0.25, ramp - 1, ramp) < 0.25                  # not before
+    # after 12 whole iterations (288 control steps) the ramp is not finished yet
+    assert SE.ramped_probability(0.25, 12 * num_steps_per_env, ramp) == pytest.approx(0.24)

@@ -22,6 +22,7 @@
 | 31. 底层验收证据复核 | 证据索引、训练模型数、变体覆盖与指标完整性的只读核对 | TASK-029 |
 | 32. 变体覆盖修复 | 逐变体配额调度、variant 日志、步数保护后的未完成判定 | TASK-031 |
 | 33. 有效数与完整性判定 | 逐指标有效数/原因、缺失即证据不足、跨种子完整性 | TASK-032 |
+| 34. 停车概率渐增的时间单位 | 控制步/迭代/仿真秒的换算、注释纠错、行为不变 | TASK-033 |
 
 ---
 
@@ -2311,3 +2312,49 @@ start_stop 2、ramp 2，共 3000 回合中的 12 次），均计入 `failure_rat
 * 未跑正式复测（TASK-036），未改阈值/模型/冻结包。
 * `TASK-023/024` 的历史 `summary.json` 仍是旧结构，不重写；复测产物用新结构。
 * 汇总工具只做「读 CSV → 判定」，不重算指标；指标复算仍由 `recompute_metrics.py` 负责。
+
+## 34. 停车概率渐增的时间单位（TASK-033）
+
+结论先写：配置里的 `stop_event_ramp_iters = 300` 是 **300 个控制步**，不是 300 个 PPO 迭代。
+按实际配置折算为 **12.5 个迭代 / 6.0 s 仿真时间**。文档与注释此前把它写成「300 iterations」，
+差 24 倍。本章只纠正文字与单位，**参数值一个都没改**，所以已交付模型的行为逐位不变。
+
+### 34.1 调用链与单位（可复算）
+
+| 环节 | 事实 | 证据 |
+| --- | --- | --- |
+| 计数器 | `env.common_step_counter` 在 `ManagerBasedRLEnv.step()` 里每次 `+1` | `/pub/data/caohy/IsaacLab/source/isaaclab/isaaclab/envs/manager_based_rl_env.py:203`（注释原文 “total step (common for all envs)”） |
+| 一次 `step()` | `decimation=4`、`sim.dt=0.005` → 一个控制步 = 4 个物理步 = **0.02 s**，策略 50 Hz | `camra_env_cfg.py:172`；`run_info.json` 的 `step_dt=0.02` |
+| 一个 PPO 迭代 | `num_steps_per_env = 24` 个控制步 = **0.48 s** 仿真 | `rsl_rl_ppo_cfg.py:12` |
+| 渐增长度 | `ramped_probability(p_max, common_step_counter, 300)` | `velocity_command.py:30-33`、`stop_events.py:ramped_probability` |
+| 折算 | 300 控制步 ÷ 24 = **12.5 迭代**；300 × 0.02 = **6.0 s** 仿真 | 上式直接代入 |
+
+`ramped_probability` 在 `iteration >= ramp_iters` 时饱和到 `p_max=0.25`，因此
+**第 13 个迭代起停车事件概率已经是满值**，而不是第 300 个迭代。
+
+补充观察（不改结论）：round 4 冒烟日志里前 60 个迭代回合长度卡在 ~16 步，而 round 3 到第 90 个迭代
+已恢复到 562 步——这与「渐增保护了早期阶段」的说法并不一致，因为概率在第 13 个迭代就已经满了。
+早期停滞更可能来自停车事件本身而不是渐增长度。
+
+### 34.2 改了什么（仅文字）
+
+| 文件 | 原文 | 现在 |
+| --- | --- | --- |
+| `stop_events.py` | “Ramping in over ~300 iterations keeps the early phase identical to round 3…” / “warm-up length in iterations” | 去掉错误结论，补 “300 control steps = 12.5 iterations = 6.0 s”，参数说明改为 control steps |
+| `camra_env_cfg.py`（override 说明） | “Ramp length 300 iterations … iterations 0-300 match round 3 exactly” | 改为 control steps，并写明只有最初约 6 s 的仿真经验与 round 3 不同；注明数值故意保持不变 |
+| `camra_env_cfg.py`（行内注释） | “ramped in over the first 300 iterations so the early gait phase is untouched” | “300 CONTROL STEPS (= 12.5 PPO iterations …, = 6.0 s simulated), not 300 iterations” |
+| `velocity_command.py` | “Iterations over which … is ramped in linearly” | “Control steps over which …”，并注明计数器是 `common_step_counter` |
+
+### 34.3 行为不变的证据
+
+* `git diff` 只包含注释、docstring 与一处测试；`stop_event_prob=0.25` 与
+  `stop_event_ramp_iters=300` 两处赋值原样保留（`camra_env_cfg.py:190-193`）。
+* 新增测试 `test_ramp_length_is_control_steps_not_ppo_iterations`：固定
+  `300/24 = 12.5`、`300×0.02 = 6.0 s`、第 288 步概率 0.24、第 300 步饱和，防止文字再次漂移。
+* 全量单测 **72 passed**（原 71 + 本任务 1）。
+
+### 34.4 若真要「300 个迭代」的渐增
+
+那需要把 `ramp_iters` 改成 `300 × num_steps_per_env = 7200`，这会改变前 300 个迭代的命令分布，
+即改变训练任务本身，**不是文档修正**。本轮没有该授权，也不应该用现有模型去“验证”一个它没训练过的分布。
+若要改，按计划另立训练与验证任务（重新训练 + 重新评估 + 重新冻结），`TASK-037` 已为此留了位置。

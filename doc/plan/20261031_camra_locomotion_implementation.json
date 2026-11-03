@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.3.0",
+    "version": "3.4.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -118,6 +118,11 @@
         "version": "3.3.0",
         "date": "2026-11-03",
         "summary": "TASK-032 完成并标记完成：逐指标记录 expected/valid/N/A/无效原因并按 90% 门槛判 insufficient_evidence，新增跨种子完整性汇总工具，修掉 CSV 文本真值陷阱与缺键/空输入/预热不足的假通过；71 项单测通过。未跑正式复测，未改阈值与模型。"
+      },
+      {
+        "version": "3.4.0",
+        "date": "2026-11-03",
+        "summary": "TASK-033 完成并标记完成：核实停车事件概率渐增的计数单位是控制步而非迭代（300 = 12.5 迭代 = 6.0 s），纠正四处注释/配置说明的误述并新增单位固定测试；参数值与模型行为均未改变，72 项单测通过。"
       }
     ]
   },
@@ -3316,7 +3321,7 @@
     {
       "id": "TASK-033",
       "goal": "澄清停车概率渐增的时间单位及其实际训练行为",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-032"
       ],
@@ -3335,7 +3340,52 @@
         "为现有冻结模型如实说明当时实际生效的渐增行为，修正文档/注释的单位误述并保留修订说明；不修改原始日志中的历史记录。",
         "如果要把实现改为真正300轮渐增，先说明会改变训练分布，取得明确决定并另列训练/验证任务；未经授权维持已训练模型所对应的行为。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T12:05:00+08:00",
+          "summary": "TASK-033 完成：核实停车事件概率渐增的时间单位。ramp_iters=300 计的是 env.common_step_counter（每个控制步 +1），折算 12.5 个 PPO 迭代 / 6.0 s 仿真，而不是 300 个迭代；据此纠正三处注释与一处配置说明，参数值未改，模型行为逐位不变。新增 1 项单位固定测试，72 passed。",
+          "actions": [
+            "沿真实调用链核对单位：ManagerBasedRLEnv.step() 中 common_step_counter += 1（IsaacLab 源码第 203 行，注释 “total step (common for all envs)”）→ 一个控制步 0.02 s（decimation 4 × sim.dt 0.005，策略 50 Hz）→ 一个 PPO 迭代 24 个控制步（rsl_rl_ppo_cfg.py:12）= 0.48 s。",
+            "按实际配置复算：300 控制步 ÷ 24 = 12.5 迭代；300 × 0.02 s = 6.0 s 仿真。ramped_probability 在 iteration >= ramp_iters 处饱和到 0.25，即第 13 个迭代起概率已满，而非第 300 个。",
+            "纠正四处误述（仅文字）：stop_events.py 的 docstring（原文 “over ~300 iterations keeps the early phase identical” 与 “warm-up length in iterations”）、camra_env_cfg.py 的 override 说明（“Ramp length 300 iterations … iterations 0-300 match round 3 exactly”）与行内注释（“first 300 iterations”）、velocity_command.py 的字段注释（“Iterations over which”）。",
+            "验证行为不变：git diff 仅含注释/docstring/测试；stop_event_prob=0.25 与 stop_event_ramp_iters=300 两处赋值原样保留。",
+            "新增测试 test_ramp_length_is_control_steps_not_ppo_iterations：固定 300/24=12.5、300×0.02=6.0 s、第 288 步概率 0.24、第 300 步饱和；全量 pytest tests/ -q → 72 passed。",
+            "记录一个与旧说法不一致的观察：round 4 前 60 个迭代回合长度卡在 ~16 步，而 round 3 到第 90 个迭代已恢复到 562 步；由于概率在第 13 个迭代就已满，早期停滞不能再用「渐增长度保护了早期阶段」解释。未据此改任何训练配置。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/stop_events.py（docstring 单位与结论）",
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py（override 说明与行内注释）",
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/commands/velocity_command.py（字段注释）",
+            "CaMRA/locomotion/tests/test_units.py（新增单位固定测试）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 34 章 + 目录行）"
+          ],
+          "commands": [
+            "grep -n \"common_step_counter += 1\" /pub/data/caohy/IsaacLab/source/isaaclab/isaaclab/envs/manager_based_rl_env.py  # 第 203 行",
+            "grep -n \"num_steps_per_env\\|decimation\" source/.../{rsl_rl_ppo_cfg.py,camra_env_cfg.py}",
+            "python -m pytest tests/ -q  # 72 passed",
+            "git diff --stat / git diff -U0（确认仅注释与测试变动）"
+          ],
+          "results": [
+            "单位链条可复算：控制步 → PPO 迭代 → 仿真秒，300 = 12.5 迭代 = 6.0 s。",
+            "三处注释与一处配置说明已改为控制步口径，并保留「数值故意未改」的说明。",
+            "行为不变有证据：只有注释/docstring/测试改动，两个参数赋值原样。",
+            "72 项单测通过，新增测试固定了该单位换算。",
+            "发现旧说法与冒烟日志不符（早期停滞发生在概率已满之后），已如实记录，未据此改训练。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/IsaacLab/source/isaaclab/isaaclab/envs/manager_based_rl_env.py:203（计数器语义）",
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/rsl_rl_ppo_cfg.py:12（num_steps_per_env=24）",
+            "CaMRA/locomotion/source/.../robots/go2/camra_env_cfg.py:172,190-193（时步与两处赋值）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 34 章（单位表、改动表、行为不变证据）"
+          ],
+          "remaining_work": [
+            "TASK-034 把 t023/t024 驱动与聚合脚本入库、资产路径改为配置项。",
+            "若确需「300 迭代」渐增，需另立训练/验证任务（ramp_iters=7200，改变命令分布），不得用现有模型声称已验证。",
+            "TASK-036 正式复测使用补充协议 D-1…D-4 与新汇总工具。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不为使注释成立而直接将300乘24，不修改冻结包内配置，不自动重训。",
         "任何重命名或参数表达整理都需保持已有配置加载与数值行为不变；恢复训练是否重置计数不能凭猜测。",
@@ -3346,7 +3396,7 @@
         "行为保持不变的证据明确；若用户决定改变渐增设计，未完成的训练依赖已单独登记，不能冒称已由现有模型验证。",
         "工作记录包含实际 tmux 主机/会话/窗口、命令日志、退出状态和产物证据，不能只以命令已发送或会话存在为验收。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。单位链有源码级证据：common_step_counter 每控制步 +1（IsaacLab manager_based_rl_env.py:203），控制步 0.02 s（decimation 4、sim.dt 0.005），PPO 迭代 24 控制步，故 300 = 12.5 迭代 = 6.0 s 仿真；四处「300 iterations」误述已改为控制步口径并注明数值故意未改。行为不变的证据是 git diff 只含注释/docstring/测试，stop_event_prob=0.25 与 stop_event_ramp_iters=300 赋值原样，72 项单测通过（新增 1 项单位测试）。"
     },
     {
       "id": "TASK-034",

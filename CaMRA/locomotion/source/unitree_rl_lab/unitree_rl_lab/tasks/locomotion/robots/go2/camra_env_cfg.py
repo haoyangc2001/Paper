@@ -128,16 +128,19 @@ CAMRA_OVERRIDES: dict[str, dict[str, Any]] = {
             "restart' -- precisely what the start_stop scenario grades -- was therefore never trained. "
             "0.25 of resamples now become a full-stop hold, i.e. 2-3 stop/restart events per 20 s "
             "episode at the 4-8 s schedule. The probability is ramped in over the first 300 "
-            "iterations: enabling it from iteration 0 keeps a third of the batch standing while the "
-            "gait is still forming, and the round 4 smoke run then sat at ~16-step episodes for 60 "
-            "iterations where round 3 had already recovered to 562."
+            "control steps (= 12.5 PPO iterations at num_steps_per_env=24, = 6.0 s of simulated "
+            "time; see TASK-033): enabling it from step 0 keeps a third of the batch standing while "
+            "the gait is still forming, and the round 4 smoke run then sat at ~16-step episodes for "
+            "60 iterations where round 3 had already recovered to 562."
         ),
         "impact": (
             "Command distribution only: ranges, heading logic, standing share and the curriculum are "
             "unchanged, and the zero command is already inside the (+-1.0, +-0.4, +-1.0) domain, so the "
             "eval protocol still describes the same task. The play/eval config sets the probability back "
-            "to 0.0 because the evaluation feeds its own command program. Ramp length 300 iterations "
-            "(stop_event_ramp_iters), so iterations 0-300 match round 3 exactly."
+            "to 0.0 because the evaluation feeds its own command program. Ramp length is 300 control "
+            "steps (stop_event_ramp_iters), i.e. only the first ~6 s of simulated experience differ from "
+            "round 3, not the first 300 iterations. The value was deliberately left unchanged so the "
+            "delivered model keeps the training behaviour it was actually trained with."
         ),
         "rollback": "Set commands.base_velocity.stop_event_prob = 0.0 (upstream behaviour exactly).",
     },
@@ -185,7 +188,8 @@ class CaMRAGo2VelocityEnvCfg(RobotEnvCfg):
         self.commands.base_velocity.resampling_time_range = CAMRA_COMMAND_RESAMPLING
         # override 3: 25 % of the holds become a full stop, so braking is trained
         self.commands.base_velocity.stop_event_prob = CAMRA_OVERRIDES["commands.base_velocity.stop_event_prob"]["camra"]
-        # ... ramped in over the first 300 iterations so the early gait phase is untouched
+        # ... ramped in over the first 300 CONTROL STEPS (= 12.5 PPO iterations at
+        # num_steps_per_env=24, = 6.0 s simulated), not 300 iterations (TASK-033)
         self.commands.base_velocity.stop_event_ramp_iters = 300
         # override 4 / 5: two reward terms that are sensitive to a command edge
         self.rewards.track_lin_vel_step = RewTerm(

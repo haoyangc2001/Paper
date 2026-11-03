@@ -38,17 +38,27 @@ def stop_event_mask(uniform_sample: torch.Tensor, prob: float) -> torch.Tensor:
 def ramped_probability(p_max: float, iteration: int, ramp_iters: int) -> float:
     """Linear warm-up of the stop-event probability.
 
-    Enabling stops from iteration 0 keeps a third of the batch standing while the
-    gait itself is still being learned, which stalls the early phase: measured on
-    the round 4 smoke run, episode length sat at ~16 steps for 60 iterations where
-    the round 3 run (no stop events) recovered to 562 by iteration 90. Ramping in
-    over ~300 iterations keeps the early phase identical to round 3 and only turns
-    stops on once the robot can already walk.
+    Enabling stops from the very first control step keeps a third of the batch
+    standing while the gait itself is still being learned, which stalls the early
+    phase: measured on the round 4 smoke run, episode length sat at ~16 steps for
+    60 iterations where the round 3 run (no stop events) recovered to 562 by
+    iteration 90.
+
+    **Units (TASK-033, verified against the installed IsaacLab):** the second
+    argument is ``env.common_step_counter``, which ``ManagerBasedRLEnv.step``
+    increments **once per control step**, not per PPO iteration
+    (``isaaclab/envs/manager_based_rl_env.py``, "total step (common for all envs)").
+    With ``decimation=4`` and ``sim.dt=0.005`` a control step is 0.02 s and one PPO
+    iteration is ``num_steps_per_env = 24`` control steps. So the configured 300 is
+    **300 control steps = 12.5 iterations = 6.0 s of simulated experience**, not
+    300 iterations. The earlier wording ("ramp in over ~300 iterations") was off by
+    a factor of 24; the value itself was left unchanged so the delivered round-4
+    model keeps behaving exactly as it was trained.
 
     Args:
         p_max: target probability.
-        iteration: current policy iteration (``env.common_step_counter``).
-        ramp_iters: warm-up length in iterations; <= 0 means "no ramp".
+        iteration: current control-step counter (``env.common_step_counter``).
+        ramp_iters: warm-up length in **control steps**; <= 0 means "no ramp".
 
     Returns:
         Probability to use for this iteration, in ``[0, p_max]``.

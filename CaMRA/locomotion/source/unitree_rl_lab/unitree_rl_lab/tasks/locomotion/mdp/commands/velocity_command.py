@@ -54,7 +54,9 @@ class UniformLevelVelocityCommandCfg(UniformVelocityCommandCfg):
     #: 0.0 reproduces the upstream behaviour exactly.
     stop_event_prob: float = 0.0
 
-    #: Iterations over which ``stop_event_prob`` is ramped in linearly. 0 = no ramp.
+    #: Control steps over which ``stop_event_prob`` is ramped in linearly. The counter is
+    #: ``env.common_step_counter`` (one tick per ``env.step()``), NOT per PPO iteration:/n    #: 300 steps = 12.5 iterations at ``num_steps_per_env = 24`` = 6.0 s simulated (TASK-033).
+    #: 0 = no ramp.
     #: See :func:`~.stop_events.ramped_probability`.
     stop_event_ramp_iters: int = 0
 
