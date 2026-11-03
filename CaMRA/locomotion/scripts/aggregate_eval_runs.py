@@ -12,7 +12,7 @@ Directory layout it expects (the one TASK-024/036 use)::
 
 Usage::
 
-    python scripts/aggregate_eval_runs.py --runs_root /pub/data/caohy/logs/camra/TASK-036 \
+    python scripts/aggregate_eval_runs.py --runs_root "$CAMRA_LOG_ROOT/TASK-036" \
         --seeds 300-309 --groups nominal,perturbed --out /tmp/aggregate.json
 
 Exit codes: 0 = complete and passing, 1 = complete but failing,

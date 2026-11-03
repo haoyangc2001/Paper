@@ -82,3 +82,50 @@ python scripts/check_repro_readiness.py --level full-repro
 - 没有改任何阈值、协议或训练超参；
 - 索引里的绝对路径是交付主机的路径。换机器后 `verify` 按新解析到的路径重新计算，**只比对内容散列，不比对路径字符串**。
   清单存在不等于包体存在：`verify` 与 `check_repro_readiness.py` 都会真的去读文件，缺失即报 `MISSING`。
+
+## 6. 干净克隆实测（TASK-037）
+
+前面 1–4 节讲的是「换设备该怎么改」。本节是**实际做了一次**的记录：在一个只含 git 内容的目录里，
+不改任何文件、不导出任何变量，直接按本文档的命令走一遍。
+
+```bash
+git clone /home/caohy/repositories/Paper /pub/data/caohy/tmp/clean-clone-t037
+cd /pub/data/caohy/tmp/clean-clone-t037
+```
+
+| 步骤 | 命令 | 实测结果 |
+| --- | --- | --- |
+| 克隆 | `git rev-parse --short HEAD` | `675784b`；`git status --short` 为空 |
+| 预检（纯默认，不导出任何变量） | `python scripts/check_repro_readiness.py --level eval-now` | `VERDICT: ready`；19 项检查中 18 项 ok、1 项 warn（`tmux`：不在会话内，非阻塞） |
+| 覆盖优先级 | `CAMRA_ASSET_ROOT=/nonexistent/asset python … readiness` | `VERDICT: infra_blocked`，**退出码 2**，`blocking checks: ['asset_root', 'go2_usd']` |
+| 索引校验 | `python scripts/artifact_index.py verify` | `PASS: all 10 entries match`，退出码 0 |
+| 索引缺失 | `python scripts/artifact_index.py verify --index /nonexistent.json` | 退出码 2，`FATAL: index not found` |
+| 入口点 | 12 个 `.py` 各跑 `--help`；7 个 `.sh` 各跑 `bash -n` | python 10/12 返回 0，shell 7/7 语法通过 |
+
+预检那两行的意义在于：**默认值来自 `config/repro.env`，环境变量能盖过它**，而两种失败
+（资源缺失 vs 环境不对）给的是不同退出码，不会被读成"控制器不合格"。
+
+### 6.1 两个入口 `--help` 返回 2，不是入口坏了
+
+`scripts/export_policy_candidate.py` 与 `scripts/rollout_exported_policy.py` 在 `parse_args()` **之前**
+执行 `from isaaclab.app import AppLauncher`，而 IsaacLab 的 `AppLauncher.add_app_launcher_args()` 会把
+`-h/--help` 从 `parser._option_string_actions` 里摘掉（源码末尾注释写着"若开头检测到已有的 help 处理，
+就在这里加回"，本环境未走到加回分支），于是 `--help` 被当成普通参数、落到"缺必填参数"分支，退出码 2。
+这是上游库的行为，与本仓库的改动无关；这两个入口的可执行性由 TASK-025 / TASK-026 的实跑证明，
+**不以 `--help` 作为可执行性判据**。其余 10 个 python 入口 `--help` 正常返回 0。
+
+### 6.2 干净目录里没有跑仿真
+
+入口级可执行性已由 TASK-035 的小批运行与 TASK-036 的正式复测覆盖，在干净目录里再跑一遍不产生新信息，
+只会再占一小时 GPU。本节要证明的是**文档命令不依赖交付主机的临时目录**，这一点由上面 5 行实测给出。
+
+### 6.3 剩下的机器路径字面量只有三类
+
+`grep -rn '/pub/data/caohy' CaMRA/locomotion` 仍能命中若干处，逐条区分后都不是运行依赖：
+
+1. **历史记录**：`docs/frozen/*.frozen_manifest.json` 与 `docs/eval_protocol.json` 里记录的
+   当时产物路径——那是冻结时的原始事实，改了就破坏可追溯性；
+2. **来源注释**：形如"本文件是 `/pub/data/caohy/scripts/xxx.sh` 的仓库内替代"，说明替代关系；
+3. **协议固定值**：补充协议里登记的输出目录 `…/TASK-036/{nominal,perturbed}/s3xx/`。
+
+运行时的默认路径只在 `config/repro.env` 一处，其余全部按 `CAMRA_*` 三级解析（环境变量 > 该文件 > 内置默认）。

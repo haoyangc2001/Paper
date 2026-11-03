@@ -4,16 +4,23 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 
 底层控制器接收机身坐标系下的目标速度 `[vx, vy, yaw_rate]`，结合本体状态输出 12 个关节的位置调整量，由关节控制器执行。**本阶段已交付一个冻结控制器**，供相邻的 `calibration/` 执行误差校准模块和 `navigation/` 上层导航模块使用。
 
-## 交付状态（2026-11-02）
+## 交付状态（2026-11-03）
 
 | 阶段 | 结论 | 证据位置 |
 | --- | --- | --- |
 | 训练 | 第 4 轮调优，3000 迭代，选中 iteration 2999 | `…/2026-11-02_11-14-49_formal_s0_3000it_r4/model_2999.pt` |
 | 开发集选模 | dev 种子 100–109，10 场景 × 300 回合全部通过 | 计划 TASK-023 工作记录 |
-| 最终测试（单次） | final_test 种子 200–209：nominal 10/10、perturbed 10/10 场景通过；全局失败率 0.000 / 0.007 | `$CAMRA_LOG_ROOT/TASK-024/` |
 | 导出与数值验证 | JIT 1.19e-06、ONNX 1.12e-06（换算关节目标 2.79e-07 rad） | `$CAMRA_BUNDLE_ROOT/candidates/r4_it2999_v1/` |
 | 独立闭环重载 | jit / onnx / trainer 三臂 4 场景 × 32 环境，0 摔倒 0 复位；JIT 与训练器逐位一致，ONNX 差 <9e-4 | `$CAMRA_LOG_ROOT/TASK-026/rollout/t026_aggregate.json` |
 | **冻结交付件** | `camra_go2_velocity_it2999_v2`，29 文件、全树 0444/0555、校验 PASS | `$CAMRA_BUNDLE_ROOT/frozen/camra_go2_velocity_it2999_v2` |
+| 最终测试（单次，旧口径） | final_test 种子 200–209：nominal 10/10、perturbed 10/10 场景通过；全局失败率 0.000 / 0.007。注意这是**场景级**口径，15 个协议变体里实际只测了 10 个（`lateral`/`turn_inplace` 各只下发一个方向、`combined` 只下发一个对角组合），见交接笔记 §37.2 | `$CAMRA_LOG_ROOT/TASK-024/` |
+| **确认性复测（TASK-036）** | 新登记种子 300–309 × 每变体 300 回合 × 2 组 = **9000 回合**、指标有效数 100 %：**29/30 变体达标，`overall_pass=False`**。唯一不达标：nominal `lateral#v1`（`vy=−0.3`）`rmse_vy` 0.1035 > 0.1000（超 3.5 %，失败率 0，`p95` 0.1361 ≤ 0.18）；perturbed 同方向 0.1134 ≤ 0.1200 通过 | `$CAMRA_LOG_ROOT/TASK-036/report.md` |
+
+**当前交付结论（TASK-036 补充复测后）**：冻结包 `camra_go2_velocity_it2999_v2` 仍是交付件，
+但按补充协议 D-4 的**逐变体**判据**未通过验收**——15 个变体中 14 个在两组、300 回合、100 % 有效证据下达标，
+唯一不达标的是 nominal 横向 `vy=−0.3 m/s` 的 `rmse_vy`（0.1035 > 0.1000，超 3.5 %，失败率 0，不掉不摔）。
+因此**不得宣称已具备 calibration 交付条件**；处置选项见 [交接笔记 §37.6](docs/implementation_handoff.md)。
+旧 TASK-024 的「nominal 10/10、perturbed 10/10」在旧口径下仍然成立，但它实测只覆盖了 15 个协议变体中的 10 个。
 
 **接手请先读 [实施交接笔记 §30「阶段一交付与接手须知」](docs/implementation_handoff.md)**：交付物与校验入口、逐条真跑过的命令、后续校准必须保持一致的五件事、明确没做的事、以及踩过的坑。
 
