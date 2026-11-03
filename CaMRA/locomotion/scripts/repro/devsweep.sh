@@ -7,6 +7,9 @@
 #
 # SUFFIX is appended to every output directory (the delivered run used "_r4" so
 # that tuning-round-0 products in the same log root were never overwritten).
+# EPISODES is per variant. The historical sweep asked for 30 per *scenario* while only
+# variant 0 of multi-direction scenarios was executed, so the two are the same number
+# for single-variant scenarios and stricter for lateral/combined now.
 # Output: $CAMRA_LOG_ROOT/repro/devsweep/dev_it<iter><suffix>/
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh" || exit 1
 
@@ -48,7 +51,7 @@ for IT in $ITERS; do
     --checkpoint "$CKPT" \
     --num_envs "$ENVS" \
     --scenarios all \
-    --episodes_per_scenario "$EPS" \
+    --episodes_per_variant "$EPS" \
     --group nominal \
     --seed "$DEV_SEED" \
     --replay_snippets 0 \

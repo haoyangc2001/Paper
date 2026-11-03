@@ -44,6 +44,26 @@ def num(value) -> float:
         return float("nan")
 
 
+def as_flag(value) -> bool:
+    """Read a boolean CSV cell without the two classic mistakes.
+
+    ``float("True")`` raises, and ``bool("0")`` is True — the second one turned
+    every clean run into a 100 % failure rate once (TASK-032). Text forms are
+    spelled out here, everything else falls back to a numeric comparison, and an
+    unparsable cell counts as *not* failed rather than as a failure.
+    """
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"1", "true", "yes", "failed"}:
+            return True
+        if text in {"0", "false", "no", "", "nan", "none"}:
+            return False
+    try:
+        return float(value) > 0.5
+    except (TypeError, ValueError):
+        return False
+
+
 def mean_finite(values: list[float]) -> float:
     finite = [v for v in values if v == v]
     return sum(finite) / len(finite) if finite else float("nan")
@@ -109,7 +129,7 @@ def main() -> int:
                 continue
             spec = specs[sid]
             n = len(rows)
-            failure_rate = sum(int(num(r["failed"]) > 0.5) for r in rows) / n
+            failure_rate = sum(1 for r in rows if as_flag(r.get("failed"))) / n
             ok = failure_rate <= fr_limit
             checks = {"failure_rate": {"value": failure_rate, "limit": fr_limit, "pass": ok}}
             parts = [f"fail={failure_rate:.3f}<={fr_limit:.2f} {'ok' if ok else 'FAIL'}"]

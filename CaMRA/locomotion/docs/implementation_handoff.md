@@ -24,6 +24,7 @@
 | 33. 有效数与完整性判定 | 逐指标有效数/原因、缺失即证据不足、跨种子完整性 | TASK-032 |
 | 34. 停车概率渐增的时间单位 | 控制步/迭代/仿真秒的换算、注释纠错、行为不变 | TASK-033 |
 | 35. 仓库内复现入口与产物索引 | repro/* 入口、路径配置化、产物索引与预检三态判定 | TASK-034 |
+| 36. 回归测试、接口契约与小批验证 | 88 项回归、9 项频率契约、45 回合逐变体核对、810 项复算 | TASK-035 |
 
 ---
 
@@ -2482,3 +2483,121 @@ export CAMRA_LOG_ROOT=/mnt/logs/camra
 * 没有改协议、阈值、检查点或训练配置；本轮不训练、不重测（正式复测是 TASK-036）；
 * 冻结包 v2 未重新生成——`BUNDLE_SCRIPTS` 增加 `scripts/camra_config.py` 只影响**后续新版本**；
 * 干净目录上的完整四步实测留给 TASK-035/037，本任务只证明"路径可解析、工具可复现"。
+
+## 36. 回归测试、接口契约与小批验证（TASK-035）
+
+### 36.1 做了什么
+
+四件事，全部在 tmux 窗口 `camra-locomotion:T035` 里真跑：
+
+| 步骤 | 命令 | 结果 |
+| --- | --- | --- |
+| 纯 CPU 回归 | `pytest tests/ -q` | **88 passed**（原 72 项未删改 + 新增 16 项） |
+| 接口契约 | `verify_runtime_contracts.py --num_envs 4` | **9 项全 PASS** |
+| 小批仿真 | `CAMRA_LOG_ROOT=<新目录> repro/finaltest.sh <ckpt> nominal 100 3 32` | 10 场景 / 15 变体 / 45 回合，全产出 |
+| 逐步复算 | `recompute_metrics.py --run_dir <小批目录>` | **810 项比对，0 不匹配** |
+| 产物审计 | 外部审计脚本（覆盖/方向/簿记/证据计数/终止） | **PASS** |
+| 换目录可用性 | 从 `/tmp/<tmpdir>` 调 `check_repro_readiness` / 选模 | **EXIT 0** |
+| 输出目录策略 | 同上，`--out-dir` 指向已用目录 | **EXIT 2**（按设计拒绝） |
+
+新增的 16 项测试不是"为了凑数"，每一项都对应一次真实故障或一条必须固定的判分算术：
+
+| 测试 | 固定的缺陷/算术 |
+| --- | --- |
+| `test_config_*` ×4 | `repro.env` 三级解析顺序（env > file > default）；顺序反了会静默用别的机器的资产根 |
+| `test_go2_paths_follow_the_configured_asset_root` | 资产根改名后 `Go2/usd/go2.usd` 仍要正确解析 |
+| `test_selection_ignores_per_seed_sweep_directories` | `dev_it2999_s100_r4` 曾被当成迭代号 "2999_s100" 而崩溃 |
+| `test_selection_reports_when_no_candidate_meets_the_constraint` | 没有候选满足失败率约束时必须退出码 4，不许静默挑一个 |
+| `test_failed_flag_survives_text_forms` | `int("False")` 崩、`bool("0")` 为真；现在 `0/1/False/True` 同义，且手算 0.50 与均值 0.145 对得上 |
+| `test_missing_group_is_incomplete_not_a_pass` | 缺一个分组必须 incomplete（退出码 2），不能只算已有的那个 |
+| `test_tree_hash_sees_added_removed_and_changed_files` | 树散列必须对增/删/改都敏感，否则换掉一整套文件也发现不了 |
+| `test_index_verify_detects_a_swapped_file` / `..._refuses_a_missing_index` | 索引被替换 → 4；索引缺失 → 2 |
+| `test_*_classify*` ×3 | 缺资源判 `infra_blocked`(2)、环境坏判 `env_incompatible`(3)、提示项不阻塞 |
+| `test_repro_scripts_do_not_assign_bash_reserved_variables` | 见 36.2，静态禁止对 bash 保留变量赋值 |
+
+边界覆盖沿用并补强既有测试：回合数小于/等于/大于并行数、2 变体与 4 变体、非整除配额、
+异步终止、NaN/Inf、缺键、空轨迹、合法 N/A、缺场景/缺分组。判分用手算夹具核对（不是"跑通即通过"）。
+
+### 36.2 抓到的真缺陷一：`GROUPS` 是 bash 保留变量
+
+`finaltest.sh` 原本把分组列表存进 `GROUPS`。`GROUPS` 是 bash 的**特殊数组变量**（当前用户的组 ID），
+对它的赋值**静默失效**。于是：
+
+```
+[finaltest] ckpt=… groups='39400005' seeds='100' episodes_per_variant=3 envs=32
+eval_locomotion.py: error: argument --group: invalid choice: '39400005' (choose from 'nominal', 'perturbed')
+```
+
+`39400005` 就是这台机器上 `caohy` 的 gid。更糟的是：检查点散列、provenance 都已经写进输出目录，
+失败却发生在参数解析，看起来像"仿真器起不来"。
+
+- 修法：变量改名 `GROUP_LIST`；`GROUP_LIST` 不是保留名。
+- 防复发：新增静态测试，扫描 `scripts/repro/*.sh` 禁止对
+  `GROUPS/UID/EUID/PPID/RANDOM/SECONDS/LINENO/FUNCNAME/BASH_SOURCE/PIPESTATUS/REPLY` 赋值。
+- `bash -n` 与 shellcheck 都**不报**这个错，只能靠这类测试。
+
+顺带把最终测试的种子参数改成接受 `300-309` 这种区间写法（文档里的命令可以直接复制）。
+
+### 36.3 抓到的真缺陷二：失败标记的文本解析
+
+`aggregate_final_test.py` 原先写 `sum(int(float(r["failed"]) > 0.5))`：
+
+* `float("True")` 抛 `ValueError`；
+* 换成"解析不了就当假"的更宽松写法，会把 `"True"` 读成**未失败**——全线摔倒也能报 0% 失败率。
+
+现在的 `as_flag()` 把 `1/true/yes` 与 `0/false/no/空/NaN` 都写明，其余走数值比较，并逐条写在测试里
+（4 回合里 2 个失败 = 0.50，不是 0.00）。
+
+### 36.4 计数口径修正：每变体，而不是每场景
+
+`--episodes_per_scenario` 是 TASK-031 之前的旧口径，现在它会被换算成
+`episodes_per_scenario // num_variants`。也就是说给 `combined`（4 变体）写 30，实际每变体只有 7 回合。
+`finaltest.sh` 与 `devsweep.sh` 都改为直接传 `--episodes_per_variant`，
+README 里也写明第 4 个参数是"每变体"。补充协议 D-2 要求每变体 300，就是 `30 × 10 种子`。
+
+### 36.5 小批到底验证了什么（不是性能结论）
+
+| 场景 | 变体 | 每变体回合 | 首步命令 |
+| --- | --- | --- | --- |
+| `stand` | 1 | 3 | `(0, 0, 0)` |
+| `fwd_low` / `fwd_mid` / `fwd_high` | 1 | 3 | `(0.3/0.6/1.0, 0, 0)` |
+| `backward` | 1 | 3 | `(-0.5, 0, 0)` |
+| `lateral` | 2 | 3 | `(0, +0.3, 0)` / `(0, -0.3, 0)` |
+| `turn_inplace` | 2 | 3 | `(0, 0, +0.8)` / `(0, 0, -0.8)` |
+| `combined` | 4 | 3 | `(0.6,0.3,0.5)` / `(0.6,-0.3,-0.5)` / `(-0.6,0.3,-0.5)` / `(-0.6,-0.3,0.5)` |
+| `start_stop` / `ramp` | 1 | 3 | 起始为 `(0, 0, 0)`（程序定义如此） |
+
+方向命令是从 `raw/nominal/<scenario>.npz` 的**首步**读回来的，不是从配置推断。
+每变体 `accepted=3`、`rejected` = 剩余槽位，`step_guard_hit=False`，说明逐变体配额生效且未提前退出。
+**这 45 个回合只用来验证工具，不构成控制器性能结论**，性能结论在 TASK-036。
+
+### 36.6 阈值比较是精确浮点
+
+判分用 `value <= threshold` 的精确比较。`0.1+0.2+0.1+0.2` 在二进制浮点里是 `0.15000000000000002`，
+比 0.15 大一个 ulp，因此"数学上刚好等于阈值"的样本会被判**不通过**。这是自协议固定以来一直如此的实现，
+本轮**没有**为测试方便加容差；测试夹具因此避开精确边界，并在测试 docstring 里写明原因，
+避免以后有人"顺手加个 epsilon"却以为没改判据。
+
+### 36.7 本轮实跑证据
+
+```
+/pub/data/caohy/logs/camra/TASK-035/
+├── t035_run.log                     # 各步 EXIT：syntax 0 / pytest 0 / contracts 0 /
+│                                    #   small_batch 0 / recompute 0 / audit 0 /
+│                                    #   readiness_from_tmp 0 / refuses_used_dir 2(期望)
+├── pytest.log                       # 88 passed
+├── contracts.json                   # 9 项 pass=true（A/B/C/D/E/F 全组）
+├── small_batch.log                  # 交付模型、种子 100、每变体 3 回合
+├── recompute.log                    # 810 comparisons, 0 mismatches
+├── audit.log                        # PASS: coverage, directions, bookkeeping, evidence, endings
+├── readiness_from_tmp.log           # 从 /tmp 调仓库内入口，VERDICT: ready
+├── readiness_refuses_used_dir.log   # output_dir FAIL，退出码 2
+└── batch_<时间戳>/repro/finaltest/nominal/s100/   # summary.json / per_episode.csv / raw/ / recompute_check.json
+```
+
+### 36.8 明确没做的
+
+* 没有改判据、阈值、配额或冻结契约；接口契约全部 PASS，因此不需要新建冻结版本；
+* 小批不接触最终的保留测试集（用的是开发种子 100，不是 300–309）；
+* 没有做任何训练或调参；
+* TASK-036 用的评估种子 300–309 在本任务中**一次都没被用过**，仍然干净。

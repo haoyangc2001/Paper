@@ -87,8 +87,9 @@ scripts/repro/train.sh 0 3000 formal_s0_3000it_r4
 # 开发集扫点 + 选模（输出到 $CAMRA_LOG_ROOT/repro/devsweep/）
 scripts/repro/finalize.sh <run_dir> _r4
 
-# 最终测试：2 分组 × 10 种子 × 每场景 30 回合 = 每场景 300 回合
-scripts/repro/finaltest.sh <run_dir>/model_2999.pt both
+# 最终测试：2 分组 × 10 种子 × 每变体 300 回合（补充协议 D-2）
+# 第 4 个参数是「每变体」而不是「每场景」：combined 有 4 个变体，写 30 会变成每变体 7 回合
+scripts/repro/finaltest.sh <run_dir>/model_2999.pt both 200-209 300
 
 # 导出 + 数值验证；三臂闭环重载 + 聚合判定
 scripts/repro/export.sh <run_dir>/model_2999.pt

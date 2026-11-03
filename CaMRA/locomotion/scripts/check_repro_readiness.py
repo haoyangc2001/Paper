@@ -72,6 +72,24 @@ CHECKPOINT_REL = (
 )
 TASK024_SEEDS = 20  # 10 seeds x 2 groups
 
+#: Checks whose failure means "this environment is wrong", as opposed to "a
+#: resource is missing". Kept in one place so the verdict cannot drift per call site.
+ENV_CHECKS = {"interpreter", "packages", "torch_import", "device_index"}
+
+
+def classify(findings: list[dict]) -> tuple[str, int, list[str]]:
+    """Map findings to ``(verdict, exit code, blocking check names)``.
+
+    An environment problem outranks a missing resource: when torch cannot be
+    imported, a missing checkpoint is not the first thing to fix.
+    """
+    blocking = [f["check"] for f in findings if not f["ok"] and f["blocking"]]
+    if not blocking:
+        return "ready", 0, []
+    if any(name in ENV_CHECKS for name in blocking):
+        return "env_incompatible", 3, blocking
+    return "infra_blocked", 2, blocking
+
 
 def result(level: str, name: str, ok: bool, detail: str, blocking: bool = True) -> dict:
     return {"check": name, "ok": bool(ok), "detail": detail,
@@ -277,17 +295,7 @@ def main() -> int:
         state = "ok" if item["ok"] else ("FAIL" if item["blocking"] else "warn")
         print(f"{item['check']:<26} {state:<8} {item['detail']}")
 
-    blocking = [f["check"] for f in findings if not f["ok"] and f["blocking"]]
-    env_names = {"interpreter", "packages", "torch_import", "device_index"}
-    if not blocking:
-        verdict = "ready"
-        code = 0
-    elif any(name in env_names for name in blocking):
-        verdict = "env_incompatible"
-        code = 3
-    else:
-        verdict = "infra_blocked"
-        code = 2
+    verdict, code, blocking = classify(findings)
 
     print()
     print(f"VERDICT: {verdict}")

@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.5.0",
+    "version": "3.6.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3498,7 +3498,7 @@
     {
       "id": "TASK-035",
       "goal": "用回归测试和小批仿真验证修订后的评估工具",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-034"
       ],
@@ -3517,7 +3517,63 @@
         "运行200/50/10 Hz接口契约回归，检查控制指令、观测、动作的时间对齐；如发现需要改变冻结执行口径，暂停并登记其影响。",
         "检查仓库内入口和资产参数在新工作目录下可用；保存 stdout/stderr、真实退出码与产物检查，避免 Isaac 入口退出0但缺产物的假成功。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T11:40:00+08:00",
+          "summary": "TASK-035 完成：纯 CPU 回归 88 项（原 72 项全保留 + 16 项新增，均针对真实出现过的缺陷）、200/50/10 Hz 接口契约 9 项在真机仿真会话中全过、用交付模型在全新输出目录跑小批（10 场景 / 15 变体 / 45 回合）并逐变体核对方向命令、有效数与终止记录、逐步轨迹复算 810 项 0 不匹配、从 /tmp 工作目录调用仓库内入口成功且拒绝复用已用过的输出目录。过程中发现并修复 3 个真缺陷。",
+          "actions": [
+            "纯 CPU 回归：保留原 72 项断言不动，新增 tests/test_repro_entry_points.py 16 项，覆盖配置解析三级顺序、选模目录匹配、CSV 布尔文本、缺分组、树散列增删改、索引被替换检测、预检三态判定与 bash 保留变量。",
+            "边界覆盖：回合数小于/等于/大于并行数、2 变体与 4 变体、非整除配额、不同终止时间（异步完成）、NaN/Inf、缺键、空轨迹、合法 N/A、缺场景/缺分组，均由既有 7 个测试文件 + 新增项覆盖；判分用手算夹具核对（0.10/0.19/0.10/0.19 → 均值 0.145 ≤ 0.15；4 回合中 2 个失败 → 失败率 0.50）。",
+            "接口契约：scripts/verify_runtime_contracts.py 在真实 Isaac 会话中跑 4 环境，9 项全 PASS —— 200/50 Hz（decimation 4、step_dt=0.02）、10 Hz 外部命令窗口（0.1 s = 5 策略步）、sim_time 每步推进 0.02、obs 命令 == 实际命令、外部命令 15 s 不被内部重采样覆盖（最大偏差 0）、回合边界隔离、关节映射为置换且仿真序≠SDK 序、越界/非法输入在活环境上被裁剪与置零。",
+            "小批仿真：用交付检查点、开发种子 100、nominal、每变体 3 回合、32 环境，输出到全新目录；10 个场景 45 回合全部产出，15 个变体全部覆盖（lateral ±0.3、turn_inplace ±0.8、combined 四个对角组合），步数保护未触发，复位与终止记录齐全。",
+            "复算与审计：recompute_metrics.py 从 raw npz 逐步轨迹重算 810 项指标，0 不匹配；外部审计脚本核对覆盖、方向、回合簿记、证据计数与终止原因，全部 PASS。",
+            "新工作目录：从 /tmp 下的临时目录调用 check_repro_readiness 与选模工具均成功（路径不依赖 cwd）；指向已含结果的输出目录时预检返回 2 并要求 --allow-existing。",
+            "修掉本轮暴露的 3 个真缺陷：① finaltest.sh 用 GROUPS 作变量名，而 GROUPS 是 bash 保留数组（当前用户的组 ID），赋值被静默忽略，导致 group 传成 '39400005'、每次复测都死在参数校验；② aggregate_final_test.py 的失败标记解析对 'True' 会退化为「未失败」，即全线摔倒也报 0% 失败率；③ t035_check.py 把合法状态 reported_only 误列为非法。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/tests/test_repro_entry_points.py（新增，16 项）",
+            "CaMRA/locomotion/scripts/repro/finaltest.sh（GROUPS→GROUP_LIST；support FINALTEST_ROOT；种子区间语法）",
+            "CaMRA/locomotion/scripts/repro/devsweep.sh（回合配额改为「每变体」口径并加说明）",
+            "CaMRA/locomotion/scripts/aggregate_final_test.py（失败标记文本解析 as_flag）",
+            "CaMRA/locomotion/scripts/camra_config.py（Config 支持指定 env 文件，便于测试；不改变生产默认）",
+            "CaMRA/locomotion/scripts/check_repro_readiness.py（classify() 抽出，便于单测与复用）",
+            "CaMRA/locomotion/README.md（最终测试改为每变体 300 的口径说明）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 36 章 + 目录行）"
+          ],
+          "commands": [
+            "bash -n scripts/repro/*.sh  # 7 个入口",
+            "python -m pytest tests/ -q  # 88 passed",
+            "python scripts/verify_runtime_contracts.py --task CaMRA-Go2-Velocity --headless --num_envs 4 --out_json contracts.json",
+            "CAMRA_LOG_ROOT=<新目录> bash scripts/repro/finaltest.sh <ckpt> nominal 100 3 32",
+            "python scripts/recompute_metrics.py --run_dir <小批目录>  # 810 comparisons, 0 mismatch",
+            "python /pub/data/caohy/tools/t035_check.py <小批目录> --protocol docs/eval_protocol.json",
+            "cd /tmp/<tmpdir> && python <repo>/scripts/check_repro_readiness.py --level eval-now --out-dir new_output",
+            "cd /tmp/<tmpdir> && python <repo>/scripts/check_repro_readiness.py --level eval-now --out-dir <已用目录>  # 期望 2"
+          ],
+          "results": [
+            "88 项单测通过：原 72 项无删改，新增 16 项全部针对实际出现过的缺陷（旧缺陷能被新用例复现并阻止）。",
+            "9 项接口契约全 PASS，200/50/10 Hz 的时间对齐是实测值，不是文档转述；未发现需要修改冻结执行口径的问题。",
+            "小批 45 回合、15 变体全部覆盖，方向命令从 raw npz 首步读回并逐变体核对，步数保护未触发。",
+            "810 项指标可从逐步日志独立复算且完全一致（0 不匹配），CSV 与 raw 相互印证。",
+            "仓库内入口在 /tmp 工作目录可用；输出目录策略生效（已用目录被拒，退出码 2）。",
+            "GROUPS 缺陷已修复并加静态回归测试（禁止对 bash 保留变量赋值），避免同类问题再次静默发生。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-035/t035_run.log（主机 tiger12.ios.ac.cn、窗口 camra-locomotion:T035、各步 EXIT 全 0）",
+            "/pub/data/caohy/logs/camra/TASK-035/pytest.log（88 passed）",
+            "/pub/data/caohy/logs/camra/TASK-035/contracts.json（9 项 pass=true）",
+            "/pub/data/caohy/logs/camra/TASK-035/batch_20261103_111643/（小批产物：summary.json、per_episode.csv、raw/、recompute_check.json）",
+            "/pub/data/caohy/logs/camra/TASK-035/audit.log（PASS：覆盖、方向、簿记、证据计数、终止记录）",
+            "/pub/data/caohy/logs/camra/TASK-035/readiness_from_tmp.log 与 readiness_refuses_used_dir.log（0 / 2）"
+          ],
+          "remaining_work": [
+            "无。正式复测（TASK-036）在本任务全部工具检查通过后开始。"
+          ],
+          "blockers": [
+            "无。"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "单元测试夹具仅验证实现，不作为控制器性能；小批运行不接触新的保留测试集。",
         "失败时回到相应修复任务并追加记录，未通过全部工具检查不能开始 TASK-036；不借此开展训练调优。",
@@ -3528,7 +3584,7 @@
         "小批仿真实际覆盖每个预定变体，日志可复算且频率/接口回归通过，命令退出码与产物相互印证；基础设施阻塞时保持false。",
         "工作记录包含实际 tmux 主机/会话/窗口、命令日志、退出状态和产物证据，不能只以命令已发送或会话存在为验收。"
       ],
-      "verification_result": ""
+      "verification_result": "通过：88 项 CPU 测试、9 项 200/50/10 Hz 接口契约、10 场景 15 变体小批运行、810 项逐步复算、外部审计与新工作目录调用全部通过；输出目录策略与预检三态判定均按设计拒绝。"
     },
     {
       "id": "TASK-036",

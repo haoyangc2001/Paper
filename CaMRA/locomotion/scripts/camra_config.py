@@ -93,10 +93,15 @@ def read_env_file(path: Path | None = None) -> dict[str, str]:
 
 
 class Config:
-    """Resolved configuration; ``source()`` reports env / file / default per key."""
+    """Resolved configuration; ``source()`` reports env / file / default per key.
 
-    def __init__(self) -> None:
-        self._file = read_env_file()
+    ``env_path`` exists so tests can point at a temporary ``repro.env`` instead of
+    the one in the checkout; production code uses the module-level ``cfg``.
+    """
+
+    def __init__(self, env_path: Path | None = None) -> None:
+        self._env_path = env_path
+        self._file = read_env_file(env_path)
 
     def source(self, key: str) -> str:
         if os.environ.get(key):
@@ -114,8 +119,9 @@ class Config:
             return self._file[key]
         if key in DEFAULTS:
             return DEFAULTS[key]
+        where = self._env_path or env_file()
         raise ConfigError(
-            f"{key} is not set. Export it, or add a line '{key}=<value>' to {env_file()}."
+            f"{key} is not set. Export it, or add a line '{key}=<value>' to {where}."
         )
 
     def path(self, key: str) -> Path:
