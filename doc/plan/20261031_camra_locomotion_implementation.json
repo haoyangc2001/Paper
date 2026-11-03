@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.9",
+    "version": "3.8.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -4023,6 +4023,46 @@
           ],
           "files_changed": [],
           "commands": []
+        },
+        {
+          "timestamp": "2026-11-03T18:10:00+08:00",
+          "summary": "方案二第一发（track-boost：track_lin_vel_step.weight 1.0→2.0，采样配置完全不动）从 2999 续训 250 迭代，单种子评估。**无效且 −0.30 退化**：死区未动（−0.15 0.1502，与交付模型 0.1501 相同，实测仍 ≈0），−0.30 从 A 组同预算的 0.0602 退到 0.1068（超阈值 0.10）；刹车正常（start_stop 通过）。对照 B 组（改采样、同预算）四点 0.0448–0.0638 完败。至此五轮快速实验全部完成，采样轴与奖励轴都已探明：唯一让死区消失的是 B（去停车样本），代价是刹车；其余路径（继续训、乙=0.10、奖励加权）均不能同时满足低速与刹车。",
+          "actions": [
+            "camra_env_cfg.py 新增第五档实验模式 track-boost（rewards.track_lin_vel_step.weight=2.0），并把 rewards.track_lin_vel_step 加入覆盖校验的实验豁免；采样配置保持交付值。",
+            "从 2999 续训 250 迭代到 3248（与另一用户任务共享 GPU 5，EXIT 0），params/env.yaml 复核 weight=2.0、rel_standing_envs=0.1、stop_event_prob=0.25。",
+            "单种子（100）评估四扫点 + start_stop（EXIT 0），与 A 组（同预算对照）和交付模型对照。",
+            "收束五轮实验（A/B/D/V 及 B 延长），给出全景表与两条剩余路径，待用户裁决。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py（新增 track-boost 模式 + 校验豁免扩展）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 47 章）",
+            "/pub/data/caohy/scripts/t047_trackboost.sh（仓库外驱动）"
+          ],
+          "commands": [
+            "CAMRA_EXP_CMD_SAMPLING=track-boost python train.py --resume --load_run <base> --checkpoint model_2999.pt --max_iterations 250 --run_name exp_V_trackboost",
+            "python scripts/eval_locomotion.py --protocol /pub/data/caohy/tmp/protocol_check.json --scenarios all --seed 100 --episodes_per_variant 30",
+            "python /pub/data/caohy/tools/analyze_check.py --root <out> --out check_summary.json"
+          ],
+          "results": [
+            "V 组（track-boost，3248）：+0.15 0.1136、−0.15 0.1502、+0.30 0.0695、−0.30 0.1068。",
+            "死区未动：−0.15 与交付模型的 0.1501 相同，实测速度仍 ≈0。",
+            "−0.30 退化：0.1068 超 0.10 阈值（A 组同预算 0.0602）——奖励全局改动在短预算下首先表现为训练扰动。",
+            "刹车正常：rise_time 0.2340、stop_drift 0.0660、start_stop 通过（采样未动）。",
+            "五轮全景：A（续训）死区不动；B（去停车样本）低速唯一有效但刹车坏；D（乙=0.10）无甜点；V（奖励×2）无效且扰动。「两全」只存在于完整重训级别的投入中，且不保证成功。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/trackboost/trackboost_run.log（窗口 camra-locomotion:T047BOOST、EXIT 全 0）",
+            "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/*exp_V_trackboost/params/env.yaml（weight=2.0、rel_standing_envs=0.1、stop_event_prob=0.25）",
+            "/pub/data/caohy/logs/camra/TASK-036/trackboost/s100/（评估产物）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 47 章"
+          ],
+          "remaining_work": [
+            "待用户裁决：①接受现状——交付说明写明「低速（≤0.3 m/s）侧向稳态缺口 29–33%、命令 ≤0.2 m/s 不执行」，下游导航规避或校准层建模，冻结包 v2 不动；②投完整重训——按 B 口径加刹车补偿训到 5000+ 迭代、多点选模，3–6 小时起步且不保证成功（A 组震荡、V 组扰动的先例）。",
+            "任何重训产出都必须用新登记种子段做 10 种子 × 每变体 300 回合复测并重走导出与闭环验证。"
+          ],
+          "blockers": [
+            "五轮快速实验证明：在不投完整重训的前提下，低速死区与刹车能力无法同时满足；方案二第一发无效，TASK-036 保持 false。"
+          ]
         }
       ],
       "constraints_and_notes": [

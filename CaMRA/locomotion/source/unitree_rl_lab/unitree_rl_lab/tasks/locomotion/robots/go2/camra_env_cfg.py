@@ -181,11 +181,15 @@ CAMRA_UNCHANGED: dict[str, str] = {
 #: ~0.2 m/s take-off deadband: the policy does not move at all for small commands.
 #: Modes: "no-standing" removes both knobs, "no-standing-envs" removes only the
 #: always-standing share and keeps the stop events that train braking,
-#: "stop-low" thins the stop events to 10% and keeps everything else delivered. Unset means the delivered configuration is used
+#: "stop-low" thins the stop events to 10% and keeps everything else delivered,
+#: "track-boost" doubles the tracking reward weight and keeps the sampling delivered. Unset means the delivered configuration is used
 #: byte for byte - this exists only so an experiment does not need a code fork.
 CMD_SAMPLING_ENV = "CAMRA_EXP_CMD_SAMPLING"
 #: Override keys the experiment is allowed to move away from CAMRA_OVERRIDES.
-EXPERIMENT_KEYS = {"commands.base_velocity.stop_event_prob"}
+EXPERIMENT_KEYS = {
+    "commands.base_velocity.stop_event_prob",
+    "rewards.track_lin_vel_step",
+}
 
 
 def experimental_cmd_sampling() -> str:
@@ -234,6 +238,11 @@ class CaMRAGo2VelocityEnvCfg(RobotEnvCfg):
             # option 1: thin the stop events to 10% instead of 25%. Standing share
             # stays at the delivered 0.1 - chapter 45 showed it is not the deadband
             self.commands.base_velocity.stop_event_prob = 0.10
+        elif _exp == "track-boost":
+            # option 2: sampling stays delivered; the deadband is a reward-balance
+            # problem, so double the tracking term to outbid the action costs of
+            # walking slowly. One knob only, so behaviour changes are attributable
+            self.rewards.track_lin_vel_step.weight = 2.0
         elif _exp:
             raise ValueError(f"{CMD_SAMPLING_ENV}={_exp!r} is not a known experiment")
 
