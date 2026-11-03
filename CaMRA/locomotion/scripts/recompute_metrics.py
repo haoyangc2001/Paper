@@ -49,6 +49,9 @@ COMPARE = [
     "steps_before_end",
     "failed",
     "duration_s",
+    "variant_id",
+    "episode_id",
+    "invalid_reasons",
 ]
 
 
@@ -93,7 +96,18 @@ def main() -> int:
             if i >= len(csv_rows):
                 break
             row = csv_rows[i]
+            # the invalid-reason map is stored as JSON text in the CSV: compare canonically
+            # so "which metrics were not measurable, and why" is recomputable too
+            if "invalid_reasons" in row:
+                a = json.dumps(rec.get("invalid_reasons") or {}, ensure_ascii=False, sort_keys=True)
+                b = row.get("invalid_reasons") or "{}"
+                total_cmp += 1
+                if a != b:
+                    total_bad += 1
+                    report["mismatches"].append(f"{sc}[{i}] invalid_reasons: recomputed={a} logged={b}")
             for key in COMPARE:
+                if key == "invalid_reasons":
+                    continue
                 if key not in rec or key not in row:
                     continue
                 a, b = rec[key], row[key]

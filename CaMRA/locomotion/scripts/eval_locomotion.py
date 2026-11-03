@@ -116,6 +116,7 @@ from unitree_rl_lab.utils.eval_metrics import (  # noqa: E402  (after AppLaunche
     REASONS,
     aggregate,
     compute_metrics,
+    variant_signs,
 )
 
 
@@ -145,16 +146,9 @@ def program_variants(spec: dict) -> list:
 
     if kind == "constant":
         vx, vy, wz = float(prog.get("vx", 0.0)), float(prog.get("vy", 0.0)), float(prog.get("wz", 0.0))
-        if prog.get("sign_combinations"):
-            n = int(prog["sign_combinations"])
-            combos = [(1, 1, 1), (1, -1, -1), (-1, 1, -1), (-1, -1, 1)][:n]
-            return [FixedProgram([vx * a, vy * b, wz * c]) for a, b, c in combos]
-        variants = [(1, 1, 1)]
-        if prog.get("vy_sign") == "both":
-            variants = [(1, 1, 1), (1, -1, 1)]
-        elif prog.get("wz_sign") == "both":
-            variants = [(1, 1, 1), (1, 1, -1)]
-        return [FixedProgram([vx * a, vy * b, wz * c]) for a, b, c in variants]
+        # the sign combinations come from eval_metrics so the evaluator and the
+        # cross-seed aggregator can never disagree on how many variants exist
+        return [FixedProgram([vx * a, vy * b, wz * c]) for a, b, c in variant_signs(spec)]
 
     if kind == "step":
         # profile is [[value, until_t], ...] -> piecewise-constant segments
@@ -581,6 +575,9 @@ def main() -> None:
                     if float(ep[-1, I["reason_id"]]) == 0.0:
                         ep[-1, I["reason_id"]] = 4.0 if bool(reached[env_id]) else 0.0
                     m = compute_metrics(ep.detach().cpu().numpy(), spec, step_dt, warmup_s)
+                    # CSV-safe: the reason map travels with the episode as JSON text and is
+                    # parsed back by eval_metrics.aggregate when the summary is built
+                    m["invalid_reasons"] = json.dumps(m.get("invalid_reasons", {}), ensure_ascii=False, sort_keys=True)
                     m["env_id"] = int(env_id)
                     m["episode_index"] = int(ep_counter[env_id].item())
                     m["variant_id"] = int(rec["variant"])
@@ -682,6 +679,8 @@ def main() -> None:
                     "variant_id": vi,
                     "episodes": 0,
                     "pass": False,
+                    "complete": False,
+                    "status": "missing",
                     "uncovered": True,
                 })
                 continue
@@ -697,6 +696,7 @@ def main() -> None:
             "coverage": cov,
             "variants": per_variant,
             "pass": bool(complete and all(v.get("pass") for v in per_variant)),
+            "complete": bool(complete and all(bool(v.get("complete", False)) for v in per_variant)),
             "combined": combined,
             "failure_rate": combined.get("failure_rate"),
             "incomplete_reason": None if complete else ("step_guard_hit" if cov.get("step_guard_hit") else "quota_not_met"),

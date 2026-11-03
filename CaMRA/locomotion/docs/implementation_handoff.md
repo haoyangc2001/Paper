@@ -21,6 +21,7 @@
 | 30. 阶段一交付与接手须知 | 交付物与校验入口、真实命令、必须保持一致的五件事、没做的事、踩过的坑 | TASK-028 |
 | 31. 底层验收证据复核 | 证据索引、训练模型数、变体覆盖与指标完整性的只读核对 | TASK-029 |
 | 32. 变体覆盖修复 | 逐变体配额调度、variant 日志、步数保护后的未完成判定 | TASK-031 |
+| 33. 有效数与完整性判定 | 逐指标有效数/原因、缺失即证据不足、跨种子完整性 | TASK-032 |
 
 ---
 
@@ -2256,3 +2257,57 @@ start_stop 2、ramp 2，共 3000 回合中的 12 次），均计入 `failure_rat
 * 退出码仍为 0（“跑完了”= 0），判定只看 `summary.json`；是否“不完整即非零”留给 `TASK-032` 决定。
 * `aggregate()` 对非有限值（如 `rise_time_s` 的 NaN）仍然丢弃，未改——属 `TASK-032`。
 * 未跑正式复测，未改模型/阈值/冻结包，未重写 TASK-023/024 的任何记录。
+
+## 33. 有效数与完整性判定（TASK-032）
+
+第 31 章记录的现象是「汇总层不保留有效数」：`aggregate()` 把非有限值过滤掉，再对剩下的求均值，
+于是「1 个有效值 + 29 个缺失」与「30 个有效值」在报告里长得一样，都能 PASS。本章修复整条判定链。
+阈值、模型、冻结包均未改动。
+
+### 33.1 缺陷清单（逐条都能单独造成假 PASS）
+
+1. `aggregate()` 用 `vals[np.isfinite(vals)]` 过滤后求均值，`valid_count` 从不记录 → 缺失不可见。
+2. `compute_metrics()` 对 `rise_time_s`/`stop_drift_m`/`overshoot_mps` 直接返回 `nan`，**不说明原因**，
+   无法区分「程序没定义这个指标」与「机器人没响应」。
+3. `warmup` 后样本不足 2 个时，代码静默改用全部样本（包括 settle 段）继续算，等于把预热误差算进指标。
+4. 空输入/缺键：`r[m]` 直接取值，缺键会抛 `KeyError`；`n=0` 时 `failure_rate` 为 nan，
+   `bool(nan <= 0.05)` 为 False 只是碰巧挡住了。
+5. **文本真值陷阱**：CSV 里 `failed` 是字符串，`bool(r["failed"])` 对 `"0"` 也返回 True。
+   任何从 CSV 读回合再聚合的脚本（复算、跨种子汇总）都会把失败率算成 100%。
+6. 缺场景/缺分组没有任何完整性概念：只聚合「有的东西」，剩下的静默为 0 条却仍输出一个总体结论。
+
+### 33.2 修复
+
+| 位置 | 改动 |
+| --- | --- |
+| `compute_metrics()` | 新增 `invalid_reasons`（逐指标给原因）、`warmup_short`、`warmup_samples`；`rise_time_s` 区分 `not_reached`（命令有速度但没到 90% 并保持 0.2 s）与 `undefined_program`（纯站立/纯转向命令没有前向阶跃）；`stop_drift_m` 增加 `window_truncated`；单步轨迹标 `short_trajectory` |
+| `aggregate()` | 逐指标输出 `expected_count / valid_count / na_count / invalid_count / valid_ratio / invalid_reasons / status`；`status ∈ {pass, fail, insufficient_evidence, reported_only}`；新增 `complete` 与 `incomplete_reason`；默认 `MIN_VALID_RATIO=0.90`（协议 D-3） |
+| 分母规则 | **只有** `undefined_program` 计入 N/A 并从分母剔除；`not_reached / window_truncated / short_trajectory / warmup_not_reached / missing_key / non_finite` 一律算缺失证据，进分母、拉低有效比例 |
+| 文本解析 | `_as_bool()`/`_as_failed()`/`_reasons_of()`：`"False"` 不再为真、`"0"` 不再算失败、CSV 里的 JSON 原因串可解析 |
+| 变体定义 | 变体符号组合收进 `eval_metrics.variant_signs()`，评估器与跨种子汇总共用，避免「几个变体」两边算得不一样 |
+| `aggregate_eval_runs.py`（新） | 按 `<root>/<group>/s<seed>/per_episode.csv` 汇总：缺 run、缺场景、缺变体、配额不足都置 `complete=False`；退出码 0=通过 / 1=完整但失败 / 2=不完整 |
+| `recompute_metrics.py` | 比对项增加 `variant_id`、`episode_id`、`invalid_reasons`（JSON 规范化比较），使「哪些指标不可测、为什么」也可复算 |
+
+### 33.3 证据
+
+* 单测 **71 passed**（`pytest tests/ -q`）：34 既有 + 13 调度 + 18 有效性 + 6 跨种子汇总。
+  有效性用例直接构造「1 有效 + 29 缺失」「全部非有限」「缺键」「空输入」「warmup 不足」「单步轨迹」
+  与「合法 N/A」两两对照，不靠被测函数自证。
+* 真跑（tmux `camra-locomotion:T032A`，quota 4/变体，seed 300，combined+start_stop）：
+  `combined` 四变体、`start_stop` 单变体全部 `coverage_complete=True`；`summary.json` 每个 check 都带
+  `valid_count/expected_count`（如 `rise_time_s` 4/4）。
+* 跨种子汇总（tmux `T032B`）：
+  - `--seeds 300` → `runs 1/1` 但 `complete=False`、退出码 **2**：这次只跑了 10 个场景中的 2 个，
+    其余 8 个没有回合，**不再输出看似完整的 PASS**；
+  - `--seeds 300-301` → `runs 1/2`、`complete=False`、退出码 2，缺的 run 被列在 `missing_runs`。
+
+### 33.4 判定三态
+
+`pass`（达标）、`fail`（证据齐但超阈值）、`insufficient_evidence`（有效数不足，既不算过也不算失败）。
+只有「完整 + 全部 pass」才会 `overall_pass=true`；证据不足单独计数，不混进失败率。
+
+### 33.5 没做的事
+
+* 未跑正式复测（TASK-036），未改阈值/模型/冻结包。
+* `TASK-023/024` 的历史 `summary.json` 仍是旧结构，不重写；复测产物用新结构。
+* 汇总工具只做「读 CSV → 判定」，不重算指标；指标复算仍由 `recompute_metrics.py` 负责。

@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.2.0",
+    "version": "3.3.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -113,6 +113,11 @@
         "version": "3.2.0",
         "date": "2026-11-03",
         "summary": "TASK-031 完成并标记完成：修复评估器只执行变体 0 的缺陷（固定槽位 + 逐变体配额 + variant 日志 + 未完成判定），新增 13 项单测（合计 47 passed），小批真跑与步数保护真跑均有证据；同时记录 summary.json 结构变化与 lateral 左右不对称的初步观察。未跑正式复测。"
+      },
+      {
+        "version": "3.3.0",
+        "date": "2026-11-03",
+        "summary": "TASK-032 完成并标记完成：逐指标记录 expected/valid/N/A/无效原因并按 90% 门槛判 insufficient_evidence，新增跨种子完整性汇总工具，修掉 CSV 文本真值陷阱与缺键/空输入/预热不足的假通过；71 项单测通过。未跑正式复测，未改阈值与模型。"
       }
     ]
   },
@@ -3224,7 +3229,7 @@
     {
       "id": "TASK-032",
       "goal": "修复缺失指标和不完整结果被误判通过的问题",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-031"
       ],
@@ -3244,7 +3249,58 @@
         "复核短轨迹、warmup 后无数据、缺起步或停车事件时是否被默认0、末尾值或有限值掩盖；缺乏有效测量不得伪装成零误差。",
         "让汇总报告、复算工具和最终判定共用明确的完整性规则；缺场景、缺分组或缺模型证据时不得产生看似完整的 PASS。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T11:30:00+08:00",
+          "summary": "TASK-032 完成：修复「缺失指标被过滤后仍判通过」的整条判定链。compute_metrics 为每个缺失指标给出原因，aggregate 记录 expected/valid/na/invalid 与有效比例并按 90% 门槛判insufficient_evidence，新增跨种子汇总工具与完整性规则；71 项单测通过，真跑与两种子汇总均有证据。",
+          "actions": [
+            "清点六条独立缺陷：① aggregate 过滤非有限值后求均值、不记录有效数；② compute_metrics 返回 nan 无原因；③ warmup 后样本不足时静默改用全部样本（把预热误差算进指标）；④ 缺键抛 KeyError、n=0 只是碰巧被 nan 比较挡住；⑤ CSV 文本真值陷阱（bool(\"0\") 为真，会把失败率算成 100%）；⑥ 缺场景/缺分组无完整性概念。",
+            "改 compute_metrics：新增 invalid_reasons（rise_time_s 区分 not_reached 与 undefined_program；stop_drift_m 增 window_truncated；单步轨迹 short_trajectory）、warmup_short、warmup_samples。",
+            "改 aggregate：逐指标输出 expected_count/valid_count/na_count/invalid_count/valid_ratio/invalid_reasons/status，status ∈ {pass, fail, insufficient_evidence, reported_only}，并新增 complete 与 incomplete_reason；MIN_VALID_RATIO=0.90；只有 undefined_program 计入 N/A 并从分母剔除，其余原因一律算缺失证据。",
+            "新增文本解析helper：_as_bool/_as_failed/_reasons_of（\"False\" 不为真、\"0\" 不算失败、CSV 中的 JSON 原因串可解析）。",
+            "把变体符号组合收进 eval_metrics.variant_signs()，评估器与跨种子汇总共用同一份定义，避免变体数两边不一致。",
+            "新增 scripts/aggregate_eval_runs.py：按 <root>/<group>/s<seed>/per_episode.csv 汇总，缺 run/场景/变体/配额不足一律 complete=False；退出码 0=通过、1=完整但失败、2=不完整。",
+            "recompute_metrics.py 比对项增加 variant_id/episode_id/invalid_reasons（JSON 规范化），使「哪些指标不可测、为什么」也可复算。",
+            "单测：新增 tests/test_validity_gating.py（18 项）与 tests/test_aggregate_runs.py（6 项），全量 pytest tests/ -q → 71 passed。",
+            "真跑验证（tmux camra-locomotion:T032A，quota 4/变体，seed 300，combined+start_stop）：checks 均带 valid_count/expected_count，combined 4/4、start_stop 1/1，coverage_complete=True。跨种子汇总（tmux T032B）：单种子 runs 1/1 但 complete=False 退出 2（8 个场景未跑）；两种子 runs 1/2 退出 2 并列出 missing_runs。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/eval_metrics.py（有效数/原因/三态判定/variant_signs）",
+            "CaMRA/locomotion/scripts/eval_locomotion.py（invalid_reasons 序列化、场景 complete 字段、共用 variant_signs）",
+            "CaMRA/locomotion/scripts/aggregate_eval_runs.py（新增，跨种子完整性汇总）",
+            "CaMRA/locomotion/scripts/recompute_metrics.py（增加 variant_id/episode_id/invalid_reasons 比对）",
+            "CaMRA/locomotion/tests/test_validity_gating.py（新增 18 项）",
+            "CaMRA/locomotion/tests/test_aggregate_runs.py（新增 6 项）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 33 章 + 目录行）"
+          ],
+          "commands": [
+            "python -m pytest tests/ -q  # 71 passed",
+            "python scripts/eval_locomotion.py --scenarios combined,start_stop --episodes_per_variant 4 ...  # tmux T032A",
+            "python scripts/aggregate_eval_runs.py --runs_root .../TASK-032/agg_root --seeds 300 --out ...  # tmux T032B，RC=2（缺 8 个场景）",
+            "python scripts/aggregate_eval_runs.py --runs_root .../TASK-032/agg_root --seeds 300-301  # RC=2（缺 1 个 run）"
+          ],
+          "results": [
+            "「1 有效 + 29 缺失」不再可能 PASS：判 insufficient_evidence，并给出原因计数。",
+            "每个 gated 指标都有 expected/valid/invalid 与有效比例，可追溯到原始回合与原始 step 日志。",
+            "判定三态分离：fail（超阈值）与 insufficient_evidence（证据不足）不再混为一谈。",
+            "缺 run/场景/变体/配额不足时汇总返回 complete=False 与退出码 2，不产生看似完整的 PASS。",
+            "71 项单测通过；recompute 现在也能核对「哪些指标不可测、为什么」。"
+          ],
+          "evidence": [
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 33 章",
+            "/pub/data/caohy/logs/camra/TASK-032/smoke_validity/summary.json（checks 带 valid_count）",
+            "/pub/data/caohy/logs/camra/TASK-032/aggregate_s300.json、aggregate_s300_301.json（complete=False、missing_runs）",
+            "tests/test_validity_gating.py、tests/test_aggregate_runs.py（含「1 有效 + 29 缺失」与缺 seed 用例）"
+          ],
+          "remaining_work": [
+            "TASK-033 澄清停车概率渐增的时间单位与实际训练行为。",
+            "TASK-034 把 t023/t024 驱动与聚合脚本入库，并把资产路径改为配置项。",
+            "TASK-036 正式复测须用新结构 summary.json 与 aggregate_eval_runs.py 汇总。",
+            "历史 TASK-023/024 的旧结构 summary.json 不重写；如需对照只能当作历史记录引用。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只有协议明确不适用的指标可以记 N/A，并需附原因；不能将有效指标缺失当作不适用。",
         "不在看到结果后决定允许多少缺失，不提高阈值，不删除跌倒回合；控制失败和基础设施错误必须分开报告。",
@@ -3255,7 +3311,7 @@
         "逐项有效数和总回合数可追溯，原始数据→逐回合→跨种子汇总完整性一致；有不依赖同一函数自证的解析测试，统一在 TASK-035 运行。",
         "工作记录包含实际 tmux 主机/会话/窗口、命令日志、退出状态和产物证据，不能只以命令已发送或会话存在为验收。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。六条缺陷逐条修复并有对照测试：「1 有效 + 29 缺失」判 insufficient_evidence 而非 pass；全部非有限、缺键、空输入、单步轨迹、warmup 不足均不能通过；合法 N/A（undefined_program）有独立分母规则；CSV 文本 \"0\"/\"False\" 不再误判真值；跨种子汇总在缺 run/场景/变体时返回 complete=False 与退出码 2。全量单测 71 passed（34 既有 + 13 调度 + 18 有效性 + 6 汇总），真跑与两种子汇总均留证据。未改阈值/模型/冻结包。"
     },
     {
       "id": "TASK-033",
