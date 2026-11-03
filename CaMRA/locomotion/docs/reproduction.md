@@ -35,6 +35,7 @@
 | `assets_go2` | `bd2fcb2f235b979f…` | 18,815,207 B / 4 文件 |
 | `raw_logs_task024` | `8df2250af159c16a…` | 662,001,271 B / 362 文件 |
 | `raw_logs_task026` | `32ea7954eefb787f…` | 10,597,117 B / 16 文件 |
+| `eval_logs_task036` | `abc80636c246be54…` | 1.3 GB / 685 文件（确认性复测 + 七轮低速诊断，交接笔记 §39–47） |
 | `protocol` | `0afc2ceadf8f8511…` | 9,167 B（入库） |
 | `protocol_supplement` | `f50d8b7f5ca6f815…` | 6,640 B（入库） |
 

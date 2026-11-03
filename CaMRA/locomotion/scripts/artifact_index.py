@@ -98,6 +98,15 @@ ENTRIES: list[dict] = [
         "required": False,
         "note": "three-arm closed-loop rollout evidence",
     },
+    {
+        "id": "eval_logs_task036",
+        "kind": "dir",
+        "root": "CAMRA_LOG_ROOT",
+        "rel": "TASK-036",
+        "required": False,
+        "note": "confirmatory rerun (9000 episodes) plus the seven low-speed diagnostic experiments; "
+                "chapters 39-47 of the handoff notes reference these files",
+    },
 ]
 
 #: Files inside the repository that the index pins by hash (they decide the verdict).
