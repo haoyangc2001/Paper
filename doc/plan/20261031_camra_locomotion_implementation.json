@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -78,6 +78,11 @@
       {
         "date": "2026-11-02",
         "summary": "TASK-028 完成并标记完成，28 项任务全部收口：交接笔记新增第 30 章（交付物与校验入口、设备与环境、真实命令、必须保持一致的五件事、没做的事、十个陷阱、运行证据），两份 README 的过期状态改为交付状态与契约表；文档命令实际执行（pytest 34 项、聚合判定 PASS、只读冻结包 19,200 样本验证 PASS），并据此修复了 verify_export_consistency.py 对只读包 PermissionError 的缺陷；仓库卫生审计通过。按任务要求未自动 Git 提交。"
+      },
+      {
+        "version": "3.0.1",
+        "date": "2026-11-03",
+        "summary": "TASK-028 提交后回填提交号 9192362，修正「留在工作区待决定」的过期表述。"
       }
     ]
   },
@@ -2743,7 +2748,7 @@
             "实际执行文档承诺的纯 CPU 命令并留日志：pytest（34 passed / 1.89 s）、aggregate_rollout_arms（VERDICT PASS）、verify_export_consistency 对只读冻结包（19,200 样本 PASS：jit 1.192e-06、onnx 1.118e-06、joint 2.794e-07、确定性 0.0）。",
             "修复 verify_export_consistency.py 的只读缺陷：报告路径与被校验清单都可写时才回写 bundle，否则报告写到当前目录并打印「bundle is read-only / manifest not updated」，退出码仍按判定结果。冻结包一个字节都没动（这本身又是一次不可变性验证）。",
             "仓库卫生审计（日志 TASK-028/repo_audit.log）：git status 仅 5 项预期改动；基线以来 manuscripts/RC-PPO/HiRA 无改动；HiRA 子模块工作树干净、HEAD 仍为 6a05af5；CaMRA 内无嵌套 .git；无新增 >1 MB 文件；CaMRA 跟踪文件密钥扫描为空；提交历史线性无回退。",
-            "按任务要求不自动提交：把待提交内容（两份 README、交接笔记、verify_export_consistency.py 修复、本计划 JSON）原样留在工作区并在此记录，等用户决定。"
+            "提交（TASK-028 动作第 6 条原写「不自动提交」）：用户当日明确授权后执行 git commit，提交 9192362「docs(camra): hand over stage-one locomotion deliverables (TASK-028)」，5 文件 388 增 36 删；未推送任何远程。rollout_exported_policy.py 显示为 M 但 git diff 与 HEAD 内容一致，属本仓库 <text: auto> 的 stat 假阳性，未纳入提交。"
           ],
           "files_changed": [
             "CaMRA/locomotion/docs/implementation_handoff.md",
@@ -2766,7 +2771,7 @@
             "aggregate_rollout_arms：VERDICT PASS，三臂复位采样流仍逐位一致（1.8291529417037964）。",
             "verify_export_consistency 对只读冻结包：19,200 样本全 PASS，jit 1.192e-06 / onnx 1.118e-06 / onnx-vs-jit 7.15e-07 / 确定性 0.0 / 关节目标 2.794e-07 rad，与 TASK-025 候选包的数字完全一致——冻结副本与候选字节相同。",
             "卫生审计：git status 仅 CaMRA/README.md、CaMRA/locomotion/README.md、implementation_handoff.md、verify_export_consistency.py 四项真实改动（rollout_exported_policy.py 是 stat 假阳性，内容与 HEAD 一致）；manuscripts/RC-PPO 工作树空、HiRA 干净；最大跟踪文件仍是 manuscripts 下的既有 PDF，非本次新增。",
-            "未提交：上述 4 个文件 + 计划 JSON 留在工作区，提交由用户决定（任务明确要求不自动提交）。"
+            "已提交 9192362（5 文件：两份 README、交接笔记、verify_export_consistency.py 修复、本计划 JSON）；提交后工作区只剩 rollout_exported_policy.py 的 stat 假阳性，内容与 HEAD 一致。未推送远程。"
           ],
           "evidence": [
             "主机 tiger12，tmux 会话 camra-locomotion，窗口 T028DOCVERIFY（文档命令实际执行）、T028AUDIT（仓库卫生审计）。",
@@ -2777,7 +2782,7 @@
           "remaining_work": [
             "calibration 模块（α/δ 标定）与 navigation 模块（上层导航）尚未实现，属阶段二；本阶段只交付底层冻结控制器。",
             "真机 joint_ids_map 重映射、0~40 ms 指令延迟、sim2real 标定未做；冻结包 not_done 已列明，接手者不得把本包当可直接上机的部署件。",
-            "待用户决定是否提交本次改动（任务要求不自动提交，也未推送远程）。"
+            "无（TASK-028 已提交 9192362）。后续若要推送远程，需用户另行明确授权；阶段二（calibration/navigation）与真机部署不在本阶段范围。"
           ],
           "blockers": []
         }
@@ -2790,7 +2795,7 @@
         "所有计划任务和最终验收条件满足，另一模型可依据文档加载冻结控制器进入后续校准阶段。",
         "工作记录包含本任务tmux主机及会话/窗口标识、命令日志和退出状态证据；未将会话存活或命令派发当作完成。"
       ],
-      "verification_result": "验收 1 满足：28 项任务全部置为完成并通过 JSON 校验，另一模型可依据 docs/implementation_handoff.md §30 加载冻结控制器进入后续校准阶段。可操作性不是声称而是验证过的：§30.3 的命令与 §30.7 的日志一一对应——pytest 34 项通过、三臂聚合判定 PASS、对只读冻结包跑 19,200 条样本的数值验证 PASS（jit 1.192e-06、onnx 1.118e-06、关节目标 2.794e-07 rad、确定性 0.0）；§30.1 给出九项交付物各自的路径与校验方式，§30.2 给出版本表与 GPU 选择的三条实测教训，§30.4 列出后续校准必须保持一致的模型散列、命令域、频率、限幅滤波与资产摘要，§30.5 与冻结包 not_done 一致地列出六项未做工作，§30.6 记录十个真实陷阱（Isaac 入口假成功、inference_mode 污染仿真缓冲、wrapper 复位一拍时序、混沌放大、git stat 假阳性等）。验收 2 满足：工作记录含执行主机 tiger12、tmux 会话 camra-locomotion 与 T028DOCVERIFY / T028AUDIT 两个窗口、完整命令、日志路径与退出码；未把会话存活或命令派发当作完成——文档里「纯 CPU 随时可跑」这句话是靠实际执行 pytest 与只读包验证得到的，而且正是这次执行暴露了 verify_export_consistency.py 在只读包上的 PermissionError，已修复并留下修复前后的两份日志。最终验收九条逐项核对：①28 项任务全完成且校验通过；②阅读结论可追溯到论文与源码（§7、§10、§13 记录三个项目区别与HiRA 10 Hz 对旧稿 5 Hz 的差异，并明确旧论文不改）；③目标设备配置与运行证据完整（TASK-013~015）；④外部三维速度 10 Hz 输入、底层 50 Hz 推理、仿真 200 Hz，运行时计数与相等关系已验证（§1652 回合边界隔离 7 项、§1705 计数口径）；⑤独立评估覆盖场景并达预先固定标准（TASK-024 nominal 10/10、perturbed 10/10，失败未隐去，且记录 lateral 余量与未覆盖的指令延迟）；⑥真实训练、导出数值一致性、冻结控制器闭环重载均通过（TASK-023/025/026/027）；⑦提供冻结包与调用说明但未实施校准或上层；⑧RC-PPO、HiRA、论文与历史数据未改动，既有产物未被覆盖（v1 冻结包保留、失败轮次全部归档），未推送远程；⑨28 项任务均有 tmux 执行记录，日志与检查点持久可查，未因重连重复启动训练。唯一按任务要求未做的是「自动 Git 提交」：本次改动的 5 个文件原样留在工作区，等用户决定。"
+      "verification_result": "验收 1 满足：28 项任务全部置为完成并通过 JSON 校验，另一模型可依据 docs/implementation_handoff.md §30 加载冻结控制器进入后续校准阶段。可操作性不是声称而是验证过的：§30.3 的命令与 §30.7 的日志一一对应——pytest 34 项通过、三臂聚合判定 PASS、对只读冻结包跑 19,200 条样本的数值验证 PASS（jit 1.192e-06、onnx 1.118e-06、关节目标 2.794e-07 rad、确定性 0.0）；§30.1 给出九项交付物各自的路径与校验方式，§30.2 给出版本表与 GPU 选择的三条实测教训，§30.4 列出后续校准必须保持一致的模型散列、命令域、频率、限幅滤波与资产摘要，§30.5 与冻结包 not_done 一致地列出六项未做工作，§30.6 记录十个真实陷阱（Isaac 入口假成功、inference_mode 污染仿真缓冲、wrapper 复位一拍时序、混沌放大、git stat 假阳性等）。验收 2 满足：工作记录含执行主机 tiger12、tmux 会话 camra-locomotion 与 T028DOCVERIFY / T028AUDIT 两个窗口、完整命令、日志路径与退出码；未把会话存活或命令派发当作完成——文档里「纯 CPU 随时可跑」这句话是靠实际执行 pytest 与只读包验证得到的，而且正是这次执行暴露了 verify_export_consistency.py 在只读包上的 PermissionError，已修复并留下修复前后的两份日志。最终验收九条逐项核对：①28 项任务全完成且校验通过；②阅读结论可追溯到论文与源码（§7、§10、§13 记录三个项目区别与HiRA 10 Hz 对旧稿 5 Hz 的差异，并明确旧论文不改）；③目标设备配置与运行证据完整（TASK-013~015）；④外部三维速度 10 Hz 输入、底层 50 Hz 推理、仿真 200 Hz，运行时计数与相等关系已验证（§1652 回合边界隔离 7 项、§1705 计数口径）；⑤独立评估覆盖场景并达预先固定标准（TASK-024 nominal 10/10、perturbed 10/10，失败未隐去，且记录 lateral 余量与未覆盖的指令延迟）；⑥真实训练、导出数值一致性、冻结控制器闭环重载均通过（TASK-023/025/026/027）；⑦提供冻结包与调用说明但未实施校准或上层；⑧RC-PPO、HiRA、论文与历史数据未改动，既有产物未被覆盖（v1 冻结包保留、失败轮次全部归档），未推送远程；⑨28 项任务均有 tmux 执行记录，日志与检查点持久可查，未因重连重复启动训练。任务执行期间未自动提交；任务完成后用户授权，5 个文件已提交为 9192362，未推送远程。"
     }
   ],
   "final_acceptance": [
