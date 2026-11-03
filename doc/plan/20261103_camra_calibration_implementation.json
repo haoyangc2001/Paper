@@ -1086,11 +1086,54 @@
     {
       "id": "CAL-011",
       "goal": "实现确定性名义运动与共享命令时间轴",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-010"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T08:20:00+08:00",
+          "summary": "实现三钟共享时间轴、平面名义运动闭式解与四类命令程序生成，57 项测试全绿，两次独立进程输出逐位一致。",
+          "actions": [
+            "实现 timeline.py：把协议四个频率换算成同一 30 s 窗口的区间数与采样点数（物理 6000/策略 1500/命令 300/配对 300，配对点 301，warmup 200），提供时间↔索引、整数倍关系与逐项 check()。",
+            "实现 nominal.py：分段常量命令下的圆弧闭式解 step_exact（wz=0 退化为直线），以及 integrate/integrate_rk4/integrate_euler/max_planar_deviation。",
+            "实现 commands.py：四个命令族的目标采样与 1 s 保持段 + 0.2 s ramp 的 10 Hz 命令生成，含命令域裁剪与程序散列。",
+            "写 30 项新测试（timeline 6、commands 12、nominal 12），覆盖直行/侧移/零输入/非零航向/整圆闭合、解析与 RK4 对账、Euler 一阶收敛阶、确定性、ramp 边界、低速分层下限。",
+            "写 scripts/demo_nominal.py，输出四族的程序散列、轨迹散列、RK4 偏差与低速占比；用两个独立进程各跑一次并 cmp 比对。",
+            "首轮测试暴露两处自身错误并修正：整圆圆心应为机身左侧 (0,1) 而非 (1,1)；用一阶 Euler 做 1e-9 容差对照不现实，改为 RK4 做主对照、另加 Euler 收敛阶检验。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/timeline.py（新建）",
+            "CaMRA/calibration/src/camra_calibration/nominal.py（新建）",
+            "CaMRA/calibration/src/camra_calibration/commands.py（新建）",
+            "CaMRA/calibration/tests/test_timeline.py、test_commands.py、test_nominal.py（新建）",
+            "CaMRA/calibration/scripts/demo_nominal.py（新建）",
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §13）"
+          ],
+          "commands": [
+            "python -m pytest CaMRA/calibration/tests -q",
+            "python scripts/demo_nominal.py --out c11_nominal_run1.json",
+            "python scripts/demo_nominal.py --out c11_nominal_run2.json",
+            "cmp -s c11_nominal_run1.json c11_nominal_run2.json"
+          ],
+          "results": [
+            "pytest 57 passed（新增 30 项，原 27 项保持通过）。",
+            "时间轴：6000/1500/300/300 区间，301 配对点，warmup 200 区间；6000×0.005 = 1500×0.02 = 300×0.1 = 30.0；Timeline.check() 返回 []。",
+            "解析对照：直行 vx=0.5 30 s → px=15.0；侧移 vy=0.3 → py=9.0；非零航向 π/2 → px=0、py=15；零输入状态完全不变；整圆（vx=wz=1，dt=π/10，20 步）回到原点且所有点到圆心 (0,1) 距离恒为 1。",
+            "数值对照：四族名义轨迹与 RK4（50 子步）最大平面偏差 7.4e-14 ~ 6.3e-13，均 < 1e-9；Euler 步长减半误差比落在 1.7–2.3（一阶收敛）。",
+            "逐位可复现：两次独立进程输出 JSON 的 sha256 均为 cd4f4c71f1c4e74cd10e05dd6a6f7df0aab3c18f39f55746fba2a555353fd619，cmp 判定 IDENTICAL。",
+            "低速占比（strict）：straight_shift 0.45、arc_combined 0.29、alternating 0.65、start_stop_turn 0.68，均 ≥ 0.25。"
+          ],
+          "evidence": [
+            "env_setup/c11_nominal_run1.json 与 c11_nominal_run2.json（byte-identical，含四族 program/trajectory 散列与 RK4 偏差）",
+            "tests/test_timeline.py、test_commands.py、test_nominal.py（30 项）",
+            "pytest 输出 57 passed",
+            "implementation_handoff.md §13（时间轴表、闭式解、两套对照、命令族、歧义记录）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "用实际施加机身指令旋转到世界坐标积分，初始航向正确处理。",
         "冻结数值积分方法，命令边界按半开区间；只在测量起点锚定一次。",
@@ -1101,7 +1144,7 @@
         "10Hz下发、50Hz状态、200Hz物理时钟在30秒边界一致，1秒warmup不混入正式数据。",
         "连续两次同程序运行名义轨迹一致，扰动不改变名义轨迹。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 解析/独立积分对照齐全——直行（px=15.0）、侧移（py=9.0）、零输入（状态逐位不变）、非零航向（π/2 时 py=15.0）、整圆（20 步后回到原点、各点到圆心 (0,1) 距离恒为 1）均有精确断言；另与四阶 RK4（50 子步）对账，四族最大平面偏差 7.4e-14~6.3e-13 < 1e-9，并用一阶 Euler 验证误差随步长线性收敛（比值 1.7–2.3），说明闭式解没有被固定偏置污染；(2) 三种时钟在 30 s 边界严格一致——6000×0.005 = 1500×0.02 = 300×0.1 = 30.0，配对点 301，整数倍 4/5/20，Timeline.check() 返回空；warmup 为独立 200 个物理区间（1.0 s），与测量窗口不重叠，命令与记录均从 t=0 起始，因此不混入正式数据；不可整除的窗口构造即抛错；(3) 连续两次同程序运行名义轨迹一致——两个独立进程运行 demo_nominal.py 输出文件的 sha256 同为 cd4f4c71…，cmp 判定 byte-identical；扰动不改变名义轨迹是构造性保证（integrate 签名只含命令与初态，profile/扰动不在参数中），并由同命令两次积分逐位相等的测试固定。另记录一处协议歧义（低速度层的'或'在 wz≡0 的直行族下会 100% 命中），当前实现取更强读法（每 3 段强制 1 段满足'且'）并同时输出两种口径占比，未擅自修改协议。"
     },
     {
       "id": "CAL-012",
