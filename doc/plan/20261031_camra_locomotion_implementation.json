@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.7",
+    "version": "3.7.8",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3956,6 +3956,47 @@
           ],
           "blockers": [
             "低速跟踪与刹车能力共享同一份 stop_event_prob 停车训练样本，当前无两全配置；在拆分验证完成前，TASK-036 保持 false。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T17:40:00+08:00",
+          "summary": "执行用户选定的方案一：stop_event_prob 0.25→0.10（rel_standing_envs 保持 0.1），从 2999 续训 250 迭代，单种子评估四扫点 + start_stop。**刹车恢复（rise_time 0.2360，为交付模型的 1.07 倍；start_stop 通过），但 ±0.15 仍未达标（0.1191/0.1389，差 19–39%）**。结合四轮实验画出完整取舍曲线：stop_event_prob 越强弱速越好、刹车越差，两端均无平台；插值推测的两全点（乙≈0.03–0.05）两侧都贴线，按 TASK-036 的擦线教训不再沿此轴找点。剩方案二（低速奖励加权，4–6 小时）与方案三（接受现状）待用户裁决。",
+          "actions": [
+            "camra_env_cfg.py 新增第四档实验模式 stop-low：stop_event_prob=0.10，rel_standing_envs 保持交付值 0.1。",
+            "从 2999 续训 250 迭代到 3248（与另一用户任务共享 GPU 5，约 19 分钟，EXIT 0），params/env.yaml 复核 rel_standing_envs=0.1、stop_event_prob=0.1。",
+            "单种子（100）评估 4 个扫点 + start_stop（EXIT 0）。",
+            "把四轮实验（A/B/D 及 B 的 3747 延长）放到 stop_event_prob 强度轴上连成取舍曲线，确认两端无平台、插值甜点两侧均贴线，按擦线教训不再继续找点。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py（新增 stop-low 模式）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 46 章）",
+            "/pub/data/caohy/scripts/t046_stoplow.sh（仓库外驱动）"
+          ],
+          "commands": [
+            "CAMRA_EXP_CMD_SAMPLING=stop-low python train.py --resume --load_run <base> --checkpoint model_2999.pt --max_iterations 250 --run_name exp_D_stoplow",
+            "python scripts/eval_locomotion.py --protocol /pub/data/caohy/tmp/protocol_check.json --scenarios all --seed 100 --episodes_per_variant 30",
+            "python /pub/data/caohy/tools/analyze_check.py --root <out> --out check_summary.json"
+          ],
+          "results": [
+            "D 组（stop-low，3248）：+0.15 0.1191、−0.15 0.1389、+0.30 0.0776、−0.30 0.0806。",
+            "刹车：rise_time 0.2360（交付 0.2203 的 1.07 倍）、stop_drift 0.0477（优于交付 0.0626）、overshoot 0.0060（阈值内），start_stop 通过。",
+            "取舍曲线（seed 100、3248 迭代）：乙 0.25 → 0.1025/0.1497/0.0722/0.0602；乙 0.10 → 0.1191/0.1389/0.0776/0.0806；乙 0 → 0.0638/0.0582/0.0576/0.0448。",
+            "刹车 rise_time：乙 0.25 → ≈0.22、0.10 → 0.2360、0 → 0.5635（第 44 章十种子）。",
+            "曲线两端无平台；插值甜点（乙≈0.03–0.05）两侧都贴线，按擦线教训不再找点。",
+            "方案一未达成「四点 ≤0.09」的判定目标，判定为部分成功（刹车恢复、低速不足）。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/stoplow/stoplow_run.log（窗口 camra-locomotion:T046SLOW、EXIT 全 0、与另一用户任务共享 GPU 5）",
+            "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/*exp_D_stoplow/params/env.yaml（rel_standing_envs=0.1、stop_event_prob=0.1）",
+            "/pub/data/caohy/logs/camra/TASK-036/stoplow/s100/（评估产物）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 46 章"
+          ],
+          "remaining_work": [
+            "待用户在两条路中裁决：①方案二——保留 stop_event_prob=0.25，对低速区间加大跟踪权重，预计改奖励→250 迭代验证→完整重训共 4–6 小时，风险中等（奖励改动需 10 场景回归）；②方案三——接受现状，交付说明写明「低速（≤0.3 m/s）侧向稳态缺口 29–33%、命令 ≤0.2 m/s 不执行」。",
+            "无论哪条路，TASK-036 的正式结论都只能由新种子的 10 种子 × 每变体 300 回合复测给出。"
+          ],
+          "blockers": [
+            "stop_event_prob 强度轴上不存在「低速与刹车都宽裕」的配置：0.10 时低速不足，0 时刹车超阈值。方案一判定为部分成功，TASK-036 保持 false。"
           ]
         }
       ],
