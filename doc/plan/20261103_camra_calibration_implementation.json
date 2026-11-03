@@ -1020,11 +1020,57 @@
     {
       "id": "CAL-010",
       "goal": "建立校准模块结构、机器配置与数据清单格式",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-009"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T07:45:00+08:00",
+          "summary": "建立可安装的 camra_calibration 包：机器配置解析、冻结协议加载、trial 清单 schema 校验与 CLI 入口，并用 27 项测试验证拒绝路径。",
+          "actions": [
+            "新建 CaMRA/calibration 的 pyproject.toml（src 布局，仅标准库依赖，提供 camra-calib 入口）。",
+            "实现 config.py：环境变量 > CaMRA/locomotion/config/repro.env > 内置默认的三级解析，派生 frozen_bundle 与 protocol_path，preflight 返回逐项检查。",
+            "实现 protocol.py：加载 config/calibration_protocol_v*.json、校验 .sha256、拒绝非 frozen 状态，并提供 quota/seed_block/j_min/measured_steps 等访问器。",
+            "实现 manifest.py：JSONL 读取与 16 类必备字段校验、trial_id 格式与字段一致性、split/family/profile 合法性、seed 必须落在协议对应种子块、四类产物路径（200Hz/50Hz/10Hz/能量）的相对性与后缀与逃逸与跨trial复用、能量单位/非负/近零标记一致性、协议版本与散列绑定。",
+            "实现 cli.py 与 __main__.py：preflight / protocol / validate-manifest 三个子命令，退出码 0/2/3/4。",
+            "写 27 项 pytest 测试（config 6、protocol 5、manifest 15、CLI 1），覆盖缺字段、重复 trial、路径逃逸/绝对路径/错后缀/跨trial复用、错误 split、seed 越块、能量单位错误、近零标记不一致、协议散列不符、completed 步数不符。",
+            "生成 config/examples/pilot_manifest.example.jsonl 两条示例记录（协议散列由 Protocol.load 注入）。",
+            "修复首轮测试暴露的缺陷：无 --root 时跨 trial 复用路径检测失效，改为用规范化相对路径作为去重键。",
+            "补 .gitignore 排除 egg-info/缓存，确认暂存区不含构建产物。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/pyproject.toml（新建）",
+            "CaMRA/calibration/src/camra_calibration/{__init__,__main__,config,protocol,manifest,cli}.py（新建）",
+            "CaMRA/calibration/tests/{conftest,test_config,test_protocol,test_manifest}.py（新建）",
+            "CaMRA/calibration/config/examples/pilot_manifest.example.jsonl（新建）",
+            "CaMRA/calibration/.gitignore（新建）"
+          ],
+          "commands": [
+            "pip install -e CaMRA/calibration --no-deps --no-cache-dir",
+            "python -m pytest CaMRA/calibration/tests -q",
+            "python -m camra_calibration preflight",
+            "python -m camra_calibration protocol",
+            "python -m camra_calibration validate-manifest config/examples/pilot_manifest.example.jsonl"
+          ],
+          "results": [
+            "pip install -e 成功，import camra_calibration 返回 0.1.0；console script /pub/data/caohy/miniconda/envs/env_isaaclab/bin/camra-calib 已生成并可执行。",
+            "pytest 27 passed（首轮 26 passed / 1 failed，修正后全绿）。",
+            "preflight 9 项全 ok，VERDICT: ready，退出码 0；repro.env 被正确识别为路径来源。",
+            "protocol 子命令输出 v1.0.0、散列 7c4e513f…、unit J、j_min 1.0、6000 步、20 格，并逐域列出配额与种子区间（5000/4000/4240/4320/6000/7000/8000）。",
+            "validate-manifest 对示例清单输出 accepted / 退出码 0；把 split 改成 training 后输出 rejected / 退出码 2。",
+            "暂存区 13 个文件，不含 egg-info、pytest_cache、__pycache__。"
+          ],
+          "evidence": [
+            "env_setup/c10_cli.txt：导入、入口、preflight、protocol、validate-manifest 正负两路完整输出与退出码",
+            "pytest 输出 27 passed",
+            "src/camra_calibration/manifest.py 的 REQUIRED/KINDS/validate_manifest 实现",
+            "config/examples/pilot_manifest.example.jsonl（两条符合 schema 的示例）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只在calibration新增实现与测试入口，复用已有包；不复制修改参考仓库。",
         "设备路径单点配置，支持命令行/环境覆盖；原始数据使用唯一run_id和只增attempt。",
@@ -1035,7 +1081,7 @@
         "清单覆盖物理测量、50Hz状态、10Hz配对、能量summary及真实参数/版本来源。",
         "缺字段、重复trial、路径覆盖和错误split明确拒绝。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 模块可安装可导入——pip install -e 成功，import camra_calibration 得 0.1.0，console script camra-calib 生成于环境 bin 并可执行；配置预检入口 `camra-calib preflight` 逐项检查 repro_env/python/log_root/bundle_root/frozen_bundle/asset_root/go2_usd/protocol/device 共 9 项，本机输出 VERDICT: ready、退出码 0；schema 验证入口 `camra-calib validate-manifest` 走 manifest.validate_manifest，pytest 27 项全绿；(2) 清单 schema 覆盖四类产物（physics_200hz/.npz 200Hz 物理测量、state_50hz/.npz 50Hz 状态、pairing_10hz/.npz 10Hz 配对、energy_summary/.json 能量 summary）并强制记录真实参数与版本来源（controller、protocol_version、protocol_sha256、bundle_tree_sha256、profile_applied 的 friction/added_mass_kg/push_events/obs_noise、initial_state 的 px/py/yaw）；(3) 四类异常均明确拒绝并被测试固定：缺字段（缺少必备字段）、重复 trial（trial_id 重复出现）、路径覆盖（跨 trial 复用同一文件，含无 --root 时以相对路径去重）、错误 split（split 非法 / 不在协议种子块内），另有绝对路径、目录逃逸、错误后缀、能量单位非 J、近零标记不一致、协议散列不符等分支，CLI 对拒绝场景返回退出码 2。"
     },
     {
       "id": "CAL-011",

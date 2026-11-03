@@ -598,3 +598,60 @@ python3 scripts/validate_protocol.py --check-hash   # 比对冻结散列
 
 **变更规则**：任何时钟、命令、扰动、配额、种子、统计口径或容差的改动都必须出新版本号
 （`calibration_protocol_v1.1.0.json` 等），旧版本标记 `superseded`，不得就地编辑。
+
+---
+
+## 12. 模块结构与清单格式（CAL-010）
+
+### 12.1 包结构
+
+```text
+CaMRA/calibration/
+├── pyproject.toml              # camra-calibration 0.1.0，src 布局，仅标准库依赖
+├── src/camra_calibration/
+│   ├── config.py               # 三级路径解析（env > repro.env > 内置默认）+ preflight
+│   ├── protocol.py             # 冻结协议加载、散列校验、quota/seed_block/j_min 访问器
+│   ├── manifest.py             # trial 清单 JSONL 的 schema 校验
+│   └── cli.py                  # preflight / protocol / validate-manifest
+├── tests/                      # 27 项纯 CPU 测试
+├── config/calibration_protocol_v1.0.0.json(+.sha256)
+├── config/examples/pilot_manifest.example.jsonl
+└── scripts/validate_protocol.py   # 协议自身的 114 项一致性检查（独立于包）
+```
+
+安装与入口：
+
+```bash
+pip install -e CaMRA/calibration
+camra-calib preflight                       # 机器配置 9 项检查
+camra-calib protocol                        # 展示冻结协议与种子块
+camra-calib validate-manifest <清单.jsonl>  # 清单 schema 校验
+```
+
+退出码：0 通过 / 2 校验或预检失败 / 3 散列不匹配 / 4 文件缺失。
+
+### 12.2 一条 trial 记录（JSONL 一行）
+
+必备字段：
+
+| 组 | 字段 |
+| --- | --- |
+| 身份 | `trial_id`（`<split>-<family>-<profile>-<NNNN>`）、`split`、`family`、`profile`、`seed`、`attempt` |
+| 版本绑定 | `controller`、`protocol_version`、`protocol_sha256`、`bundle_tree_sha256` |
+| 结果 | `outcome`（completed/terminated/truncated）、`steps_executed`（completed 必须 = 6000） |
+| 实际配置 | `profile_applied`（friction / added_mass_kg / push_events / obs_noise） |
+| 初态 | `initial_state`（px / py / yaw） |
+| 产物 | `paths.physics_200hz`、`paths.state_50hz`、`paths.pairing_10hz`、`paths.energy_summary` |
+| 能量 | `energy`（unit=J / j_exec / j_nom / j_min=1.0 / non_computable） |
+
+### 12.3 明确拒绝的情形（均由测试固定）
+
+缺字段 · `trial_id` 重复 · `trial_id` 分段与字段不一致 · `split` 非法 · `seed` 不在协议种子块内 ·
+绝对路径 · 含 `..` 的目录逃逸 · 后缀不符 · 跨 trial 复用同一产物文件 · `energy.unit` 非 `J` ·
+`non_computable` 与 `j_nom < j_min` 不一致 · `protocol_sha256` 与当前冻结协议不符 ·
+`outcome=completed` 但 `steps_executed != 6000`。
+
+### 12.4 本任务尚未实现（后续任务负责）
+
+仿真环境构建、命令程序生成、200 Hz 能量计量、配对轨迹采集、α/δ 计算与复算、交付包。
+本模块当前只负责"协议 + 配置 + 清单"三件事，不导入 torch / isaaclab。
