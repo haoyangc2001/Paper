@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.5",
+    "version": "3.7.6",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3872,6 +3872,49 @@
           ],
           "blockers": [
             "采样口径已证明有效（单种子），但 ①未做多种子确认 ②未评估 start_stop 退化 ③测试种子 300–309 已用掉，在完成这三项前不能宣称新模型达标。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T16:35:00+08:00",
+          "summary": "对采样臂 model_3747 做十种子（400–409）复核，同时查刹车是否退化：**一好一坏**。低速侧向四点全部稳定通过（+0.15 0.0633、−0.15 0.0582、+0.30 0.0577、−0.30 0.0448，十种子浮动仅 ±0.001，阈值 0.10）；但 start_stop **十种子全部失败**——rise_time 0.5635（交付模型 0.2203，阈值 0.5）、stop_drift 0.1208（交付 0.0626，阈值 0.1）。直接原因是把 stop_event_prob 与 rel_standing_envs 一起关掉了，而前者正是 TASK-023 第 4 轮为训练刹车专门加入的。净效果：修好一个场景、弄坏一个场景，不能交付，但证明死区可被采样改变。",
+          "actions": [
+            "从冻结协议派生复核协议：4 个扫描点（±0.15、±0.30）+ start_stop（程序与阈值逐字沿用），存于仓库外。",
+            "启用新种子段 400–409（开发 100–109、旧最终 200–209、TASK-036 的 300–309 均已消耗），每点 30 回合、5 场景 × 10 种子。",
+            "GPU 0–4 被另一用户任务占满（96–100%），本次固定在空闲的 5 号卡，并在日志记录物理卡号。",
+            "跨种子汇总：对每个扫点报告 mean/min/max 与「是否全部通过」，对 start_stop 与交付模型十种子值对比，差异超过 25% 即判退化（汇总工具退出码 4）。"
+          ],
+          "files_changed": [
+            "仓库代码未改动（本轮只评估）；新增交接笔记第 44 章",
+            "/pub/data/caohy/tmp/protocol_check.json、/pub/data/caohy/tools/{gen_check_protocol,analyze_check}.py、/pub/data/caohy/scripts/t044_confirm.sh（均仓库外）"
+          ],
+          "commands": [
+            "bash /pub/data/caohy/scripts/t044_confirm.sh   # tmux camra-locomotion:T044CONF, CUDA_VISIBLE_DEVICES=5",
+            "python scripts/eval_locomotion.py --checkpoint <model_3747> --protocol /pub/data/caohy/tmp/protocol_check.json --group nominal --seed <400..409> --scenarios all --episodes_per_variant 30 --num_envs 64",
+            "python /pub/data/caohy/tools/analyze_check.py --root <confirm> --out <check_summary.json>"
+          ],
+          "results": [
+            "sweep_p15：mean 0.0633、min 0.0626、max 0.0642，10/10 种子 ≤0.10。",
+            "sweep_n15：mean 0.0582、min 0.0581、max 0.0583，10/10 通过。",
+            "sweep_p30：mean 0.0577、min 0.0576、max 0.0578，10/10 通过。",
+            "sweep_n30：mean 0.0448、min 0.0447、max 0.0448，10/10 通过。",
+            "start_stop rise_time：mean 0.5635、max 0.5853（交付 0.2203，阈值 0.50）→ 失败，2.66 倍。",
+            "start_stop stop_drift：mean 0.1208、max 0.1267（交付 0.0626，阈值 0.10）→ 失败，2.02 倍。",
+            "start_stop overshoot：0.0197（交付 0.0007，阈值 0.15）→ 通过但差 28 倍。",
+            "start_stop 变体判定 0/10 种子通过；10 个种子的数值落在窄带内，属系统性退化而非噪声。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/confirm/confirm_run.log（窗口 camra-locomotion:T044CONF、physical_gpu=5、EXIT_seed_400..409 全 0）",
+            "/pub/data/caohy/logs/camra/TASK-036/confirm/check_summary.json（逐种子明细与两项判定）",
+            "/pub/data/caohy/logs/camra/TASK-036/confirm/s400..s409/（10 个种子 × 5 场景 × 30 回合产物）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 44 章"
+          ],
+          "remaining_work": [
+            "加第三档配置 CAMRA_EXP_CMD_SAMPLING=no-standing-envs：只把 rel_standing_envs 置零、保留 stop_event_prob=0.25，从 2999 续训 250 迭代，单种子先看四点 + 刹车，判断两个旋钮能否拆开。",
+            "若可拆开 → 按该口径重训到收敛 + 选模 + 导出 + 闭环 + 新的十种子正式复测，出独立版本（训练配置已变更）。",
+            "若不可拆开 → 说明刹车与低速同源，只能在两者间权衡，或另找补偿手段（缩短停止 ramp、停止事件单独加权）。"
+          ],
+          "blockers": [
+            "采样臂已证明能消除低速死区，但同时让 start_stop 十种子全部失败（rise_time 2.66 倍、stop_drift 2.02 倍），净效果不可交付；在拆分两个采样旋钮之前，TASK-036 仍保持 false。"
           ]
         }
       ],
