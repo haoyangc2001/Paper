@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.1.0",
+    "version": "3.1.3",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -88,6 +88,21 @@
         "version": "3.1.0",
         "date": "2026-11-03",
         "summary": "按用户要求追加阶段E的TASK-029至TASK-037：核对既有证据、统一补充协议、修复方向覆盖和缺失指标判定、澄清渐增时间单位、补齐复现入口、工具回归、复测现有模型及更新交付。前28项定义、状态和工作记录保持原样；新增9项均未开始。本次仅维护计划，未实施修复、测试控制器、训练、远程任务、提交或推送。"
+      },
+      {
+        "version": "3.1.1",
+        "date": "2026-11-03",
+        "summary": "TASK-029 完成并标记完成：只读复核证据链，散列链闭合、20 个测试目录一致；确认交付模型数为 1（全 seed:0）且三个多方向场景只覆盖变体 0（lateral/turn_inplace 1/2、combined 1/4），机制定位到 ep_counter 全零与 num_envs>episodes_per_scenario；另记录指标级有效数不被汇总层约束（fwd_low rise_time 86/300）。未运行训练或重跑评估，未修改冻结包与旧记录，未提交或推送。"
+      },
+      {
+        "version": "3.1.2",
+        "date": "2026-11-03",
+        "summary": "TASK-030 部分完成并暂停：产出补充协议草稿（DRAFT，未生效），写清旧协议身份、沿用不变项、变体/指标/判据的待固定项与不可事后调整条款，并记录多轮重训与 v1.0.0 停训条款的冲突及其授权来源 bf56195；因 OPEN-1…4 四项实质变更需用户裁决且任务禁止自行减为单模型，保持 status=false，后续任务暂停。"
+      },
+      {
+        "version": "3.1.3",
+        "date": "2026-11-03",
+        "summary": "TASK-030 补充量化影响并修正草稿中的两处数字与一处口径：OPEN-2 的回合总量由「2.4 万」更正为 9000/6000/4500（按 10 场景、变体数 1/2/2/4 逐项重算）；写明 combined 的 4 个变体是四个对角符号组合而非全部 8 种；补记训练与评估实测吞吐（3000 迭代 5h24m/5h21m，6000 回合 1h57m44s ≈1.18 s/回合）与 OPEN-3 的门槛后果（230 个指标单元中 228 个 300/300，仅 fwd_low.rise_time_s 不满额）；并修正 phases 缺失阶段 E 的元数据缺口。四项裁决仍未作出，TASK-030 保持未完成。"
       }
     ]
   },
@@ -296,6 +311,10 @@
     {
       "name": "D：训练、独立评估与冻结交付",
       "task_ids": "TASK-023—TASK-028"
+    },
+    {
+      "name": "E：证据复核、协议补充与确认性复测",
+      "task_ids": "TASK-029—TASK-037"
     }
   ],
   "tasks": [
@@ -2871,7 +2890,7 @@
     {
       "id": "TASK-029",
       "goal": "核对既有训练、评估与冻结产物的证据链",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-028"
       ],
@@ -2890,7 +2909,52 @@
         "逐组、逐场景检查实际 num_envs、请求/完成回合数、方向或组合、终止原因及指标有效数量；结合原始命令轨迹确认旧结果是否漏测，不能仅凭 summary 的 PASS 判定。",
         "在集中交接笔记追加复核章节和证据索引，将结论分成已直接验证、仅历史报告和缺证待核；不改写旧任务记录。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T09:53:10+08:00",
+          "summary": "TASK-029 完成：只读核对既有训练、评估与冻结产物的证据链。散列链完整（检查点 1c8f5aad… = 冻结包内副本，导出图 8e3f14ad…/d0c993b6…，包 29 文件全树复验 PASS）；20 个最终测试目录的协议散列、代码提交、num_envs、回合数、step_dt 完全一致。同时确认两个此前未量化的事实：① 交付模型数为 1（15 个 run 目录全部 seed:0，五次 formal 是同 seed 调参重跑，不是三个训练样本）；② 三个多方向场景在开发集与最终测试、两个分组共 1800 回合里只跑了变体 0，lateral/turn_inplace 覆盖 1/2、combined 覆盖 1/4，机制是 ep_counter 全从 0 起且 num_envs(64) > episodes_per_scenario(30)，在代码中可直接定位。另记录 fwd_low 的 rise_time_s 在 nominal 仅 86/300 有效，说明指标级有效数可远低于回合数而汇总层不察觉。未运行训练、未重跑评估、未修改冻结包与既有记录。",
+          "actions": [
+            "重新确认执行环境：tiger12（caohy@192.168.20.12），git 2.43.0，HEAD=02f7c58 与 origin/main 同步、工作区干净、HiRA 子模块 6a05af5；tmux 会话 camra-locomotion 38 窗口；camra 相关进程 0 个（ps 抓到的是其他用户 liuzk 的 train.py，已注明不是本项目）。",
+            "只读定位并核对产物：model_2999.pt（4,639,669 B，sha256 1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9）与冻结包 model/model_2999.pt 同散列；exported/policy.pt 8e3f14ad…、policy.onnx d0c993b6…；冻结包 29 文件复验 PASS（TASK-028 日志 64 样本、TASK-027 512 样本重放）；TASK-026 rollout 4 个 JSON 齐全。",
+            "从 15 个 run 目录的 params/agent.yaml 读取 seed：全部 seed:0（envs 4096，max_iterations 3000）；五次 formal 为同 seed 调参重跑（r2 停在 1000 步后中止），交付模型数=1；最终测试的 200–209 是评估种子（run_info.env_seed），未与训练模型数混淆，但协议 trial_budget 写三个训练种子，与实际不符且找不到授权改为单模型的记录。",
+            "从归档原始步文件（raw/<group>/<scenario>.npz 的 cmd_vx/vy/wz）逐回合统计实际下发指令：开发集 10 种子、最终测试两组各 10 种子，lateral 仅 vy=+、turn_inplace 仅 wz=+、combined 仅 (+,+,+)，共 1800 回合 0 次负方向/其余组合；定位机制为 ep_counter=torch.zeros(num_envs) 且回合同时结束、while len(done_rows)<30 提前退出，故首批 64 环境全为变体 0、取前 30 条。",
+            "从 per_episode.csv 统计每场景 300 回合/组的终止原因与逐指标有效数：nominal 全 scenario_end；perturbed 12 次 bad_orientation（fwd_low1/fwd_mid1/fwd_high2/backward1/lateral1/turn_inplace1/combined1/start_stop2/ramp2），均计入 failure_rate；fwd_low 的 rise_time_s 在 nominal 仅 86/300、perturbed 252/300 有效，其余指标多为 300/300。",
+            "比对 20 个最终测试目录的 run_info：protocol_sha256 全部 0afc2cea…（与当前 docs/eval_protocol.json 相同）、git_commit 全部 740224c、num_envs 全部 64、episodes_per_scenario 全部 30、step_dt 0.02、group_applied 与分组一致（nominal 恒等；perturbed 摩擦[0.3,1.25]、质量[-1,3]kg、推力[-0.5,0.5]m/s、观测噪声按训练值开启）；并确认 git diff 740224c..HEAD 对 eval_locomotion.py 为空，即产生结果的评估代码与当前代码逐字相同。",
+            "在交接笔记追加第 31 章（证据索引、训练模型数、变体覆盖、指标完整性、三分类结论、未做事项、脚本与日志、后续可用路径）并更新目录；旧任务记录一字未改。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/docs/implementation_handoff.md（追加第 31 章与目录行；追加前副本存 TASK-029/implementation_handoff.md.before-s31）"
+          ],
+          "commands": [
+            "bash /pub/data/caohy/scripts/t029_audit1.sh > logs/camra/TASK-029/audit_env.log 2>&1",
+            "python /pub/data/caohy/tools/t029_variants2.py > logs/camra/TASK-029/variant_coverage2.log",
+            "python /pub/data/caohy/tools/t029_metric_validity.py > logs/camra/TASK-029/metric_validity.log",
+            "python /pub/data/caohy/tools/t029_runinfo.py",
+            "python /pub/data/caohy/tools/t029_hash2.py",
+            "bash /pub/data/caohy/scripts/t029_evidence.sh > logs/camra/TASK-029/evidence_chain.log",
+            "git diff --stat 740224c..HEAD -- CaMRA/locomotion/scripts/eval_locomotion.py",
+            "sha256sum CaMRA/locomotion/docs/eval_protocol.json"
+          ],
+          "results": [
+            "散列链闭合：检查点 1c8f5aad… = 冻结包内 model/model_2999.pt；导出图 8e3f14ad…/d0c993b6…；冻结包复验 PASS。",
+            "交付模型数 = 1（seed:0）；协议所写「三训练种子」与实际不符。",
+            "多方向场景实际只覆盖变体 0：lateral 1/2、turn_inplace 1/2、combined 1/4；1800 回合中负方向与其余组合 0 次。",
+            "env_id 只用到 0–29（nominal，30/64），perturbed 因终止才用到 31 个（max 60）。",
+            "指标有效数不被汇总层约束：fwd_low 的 rise_time_s 在 nominal 仅 86/300。",
+            "20 个最终测试目录协议/代码/参数完全一致，评估代码与当时的提交逐字相同。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-029/audit_env.log（环境、Git、tmux、进程、run 目录盘点）",
+            "/pub/data/caohy/logs/camra/TASK-029/variant_coverage2.log（三数据集 × 两组的变体统计）",
+            "/pub/data/caohy/logs/camra/TASK-029/metric_validity.json + .log（逐指标有效数、终止原因、环境身份）",
+            "/pub/data/caohy/logs/camra/TASK-029/evidence_chain.log（检查点/导出图散列、15 个 run 的 seed 与检查点数）",
+            "/pub/data/caohy/logs/camra/TASK-029/panes/*.txt（T029A1/T029A1B/T029V/T029V2/T029M/T029E 六个窗口回滚缓冲）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 31 章（证据索引与三分类结论）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只核对现有证据，不运行训练、重新评估或修改被冻结产物。",
         "原始日志、检查点、失败轮次及 v1/v2 冻结包保留；检查发现的问题不等于现有模型已被证明无效。",
@@ -2901,7 +2965,7 @@
         "已确定后续可用的模型、资产、环境和日志路径，或记录阻塞且保持本任务未完成；服务器不可访问不能按本地清单替代验证。",
         "工作记录包含实际 tmux 主机/会话/窗口、命令日志、退出状态和产物证据，不能只以命令已发送或会话存在为验收。"
       ],
-      "verification_result": ""
+      "verification_result": "验收 1 满足：核对表见 implementation_handoff.md §31.1（证据→路径→核对方式→结论），训练种子（15 个 run 全 seed:0）、模型散列（1c8f5aad… 与包内副本一致）、运行参数（agent/env/deploy.yaml 与冻结包 params/ 一致、num_envs 4096 训练 / 64 评估、3000 it）、场景/变体覆盖（lateral 1/2、turn_inplace 1/2、combined 1/4，三数据集 1800 回合均如此）、指标完整性（逐指标有效数，fwd_low 的 rise_time_s 仅 86/300）均有明确来源；无法验证项已标 [缺证]：训练当时 GPU/时长无独立记录，三训练种子改为单模型未见授权记录。验收 2 满足：后续可用路径已在 §31.8 逐项列出（模型、训练参数、冻结包、资产 UNITREE_MODEL_DIR、协议、TASK-023/024/026 原始数据、TASK-026 重载结果），全部实测存在且散列/内容已核；同时明确记录尚缺项——TASK-023/024/026 的驱动脚本只在 /pub/data/caohy/scripts|tools 下、不在仓库内，已归入 TASK-034，不在此冒充可复现。验收 3 满足：工作记录含主机 caohy@192.168.20.12（tiger12）、会话 camra-locomotion 与窗口T029A1/T029A1B/T029V/T029V2/T029M/T029E、每条命令的日志路径与 EXIT 状态（全部 EXIT=0）、以及 /pub/data/caohy/logs/camra/TASK-029/ 下的产物证据，不以「命令已发送」替代。本任务全程只读：未运行训练、未重跑评估、未修改冻结包，未改写 TASK-001～028 的任何记录。"
     },
     {
       "id": "TASK-030",
@@ -2924,7 +2988,100 @@
         "区分旧最终测试数据的审计复算与新的确认性测试；旧 final_test=200–209 已使用，不能重新描述成未见测试集。新的测试种子与所有已用集合分离，提前登记，复测期间不调参或选模。",
         "原协议及冻结包内副本保留；补充协议记录父版本/散列、变更理由和授权依据。只修同步问题，不因现有结果未达标而放宽阈值。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T09:55:09+08:00",
+          "summary": "TASK-030 部分完成并暂停：已逐条对照 v1.0.0 与实际交付、写清开发集调优授权与停训规则的冲突、产出补充协议草稿（含旧协议身份、沿用不变项、变体/指标/判据待固定项、不可事后调整条款），但四项实质变更必须由用户裁决，且任务文本明确「不能自行减为单模型」，故保持 status=false，TASK-031 及后续依赖任务一并暂停。",
+          "actions": [
+            "A1 完成对照：v1.0.0 的 seeds.training=[0,1,2]、episodes_per_scenario_per_training_seed=100、reporting.aggregation=「mean over 3 training seeds」与当前交付（仅 seed 0 的 model_2999.pt）不一致。检索计划全文与交接笔记，未找到任何批准缩减为单模型的记录（仅有 TASK-029 §31.5 的 [缺证] 标注）。已就此向用户提出四个决策问题（训练模型数、逐变体配额、指标有效下限、判定粒度），本轮用户选择暂不回答，未作任何默认取值。",
+            "A2 完成：发现并写明一处实质冲突——v1.0.0 training_stop_rules 规定「每个种子最多因基础设施错误重试 1 次，性能不佳如实报告、不得重试」且 forbidden 列明「为达阈值的无上限重试」，而交付模型来自第 4 轮（r1–r4 针对未达标场景改奖励/课程后的重训，r2 停在 1000 迭代），不属于基础设施重试。同时确认存在用户层面的授权：提交 bf56195「remove round cap on TASK-023 tuning loop per user decision」（计划 v1.3.0→v1.3.1，TASK-023 A6 改为不设轮次上限）。两者已在草稿 §3.6 记为 documented deviation，并明确该授权只覆盖开发集调优、不覆盖「看过最终测试再挑模型」，也不构成本轮补训的授权。",
+            "A3 部分完成：生成独立版本的补充协议草稿 CaMRA/locomotion/docs/eval_protocol_supplement_draft.md（94 行，sha256 b21e39a6…），首行标注 DRAFT/未生效/不得用于复测。草稿已固定：旧协议身份、沿用不变项（阈值、指标定义、warmup、扰动配置、not_evidence）、变体分配规则（逐变体单独计数、不得依赖 ep_counter 起点与 num_envs 大小关系、缺变体即判未覆盖）、指标有效数须记录并可复算、以及无条件生效的不可事后调整条款。四项待裁决处保留 OPEN-1…4，未预填。",
+            "A4 完成：草稿 §3.5/§1 区分了「旧最终测试的审计复算」与「新的确认性测试」，明确 200–209 已用于TASK-024（20 目录 6000 回合）故不得重新描述为未见测试集；复测必须使用与训练种子 0–2、开发 100–109、旧最终 200–209 均不重叠的新种子并提前登记，期间不调参不选模；复测只写新目录 TASK-036/。",
+            "A5 完成：v1.0.0 原文件与冻结包内副本（docs/eval_protocol.json，sha256 0afc2cea…）均未被修改，草稿记录父版本号、父散列与变更理由；未因现有结果未达标而放宽任何阈值。",
+            "未运行训练、未重跑评估、未修改冻结包与 TASK-001～029 的历史记录；本次只新增一个标记为 DRAFT 的文档。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/docs/eval_protocol_supplement_draft.md（新增，DRAFT，未生效）"
+          ],
+          "commands": [
+            "python - <<'PY' 读取并打印 eval_protocol.json 的 seeds/trial_budget/acceptance/reporting 区块",
+            "grep -n \"单模型|三模型|三个训练种子|已批准\" doc/plan/20261031_camra_locomotion_implementation.json",
+            "git show --stat --format=%s bf56195",
+            "sha256sum CaMRA/locomotion/docs/eval_protocol.json CaMRA/locomotion/docs/eval_protocol_supplement_draft.md"
+          ],
+          "results": [
+            "补充协议草稿已成型（94 行，b21e39a6…），但按定义仍不可用于复测。",
+            "四项待裁决已定位到具体编号与影响，未作默认取值。",
+            "新发现并记录：多轮重训与 v1.0.0 停训条款冲突，授权来源为 bf56195（用户决定）。",
+            "旧协议、旧测试目录、冻结包均未改动；阈值未放宽。"
+          ],
+          "evidence": [
+            "CaMRA/locomotion/docs/eval_protocol_supplement_draft.md（含 §1 身份表、§3.6 冲突说明、§4 OPEN-1…4）",
+            "doc/plan/...json 中 TASK-029 的工作记录（证明交付模型数=1、无授权记录）",
+            "提交 bf56195 的 message 与 diff（调优轮次上限的用户授权）",
+            "eval_protocol.json sha256 0afc2cea…（TASK-024 的 20 个 run_info.json 均记录同一散列）"
+          ],
+          "remaining_work": [
+            "OPEN-1 训练模型数：单模型验收 / 补训 seed 1、2（每种子 ≤6 h，需新的预算与执行授权）/ 先单模型复测另行决定。",
+            "OPEN-2 逐变体回合配额：每变体 300（combined 1200/场景，总约 2.4 万回合）/ 场景总量 300 均分 / 每变体 150。",
+            "OPEN-3 指标有效下限：95% / 90% / 只记录不设门槛。",
+            "OPEN-4 判定粒度：逐变体各自达标 / 场景内合并达标 / 判定逐变体并同时报合并值。",
+            "四项关闭后：改写为正式补充协议（去 DRAFT、写版本号与新 sha256），追加裁决记录，再置 status=true。"
+          ],
+          "blockers": [
+            "TASK-030 A1 与 constraints_and_notes 明确要求：三训练种子的缺口与判定口径必须有用户明确决策，不得自行减为单模型；本轮提问后用户选择暂不回答，故无授权可依。",
+            "TASK-031 及后续任务依赖 TASK-030，按执行规则不得越级执行。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T10:05:00+08:00",
+          "summary": "TASK-030 第二轮（仍为部分完成）：把 §4 的「影响」从定性改为实测量化，并修正草稿里三处会被复测直接引用的错误。用户仍未裁决 OPEN-1…4，故 TASK-030 保持 status=false。",
+          "actions": [
+            "实测吞吐：训练 3000 迭代 r4 = 11:14:49→16:39:08（5h24m）、r3 = 5h21m、r1 = 3h17m；评估 TASK-024 两组 20 目录 6000 回合 = 1h57m44s，折合约 1.18 s/回合。两者都从产物时间戳直接读出，未估算。",
+            "修正 OPEN-2 总量：按 10 个场景、变体数 1/1/1/1/1/2/2/4/1/1 重算，每变体 300 → 单组 4500、两组 9000 回合；场景 300 均分 → 6000；每变体 150 → 4500。此前草稿写的「2.4 万/6000/1.2 万」把每变体配额重复乘了 10 个评估种子，已更正并在表内注明「非早前版本写的 2.4 万」。",
+            "修正变体口径：combined 的 4 个变体是 program_variants() 里写死的四个对角符号组合 (+,+,+)/(+,−,−)/(−,+,−)/(−,−,+)，不是全部 8 种符号组合；已在 §3.1 写明，防止复测报告宣称覆盖 8 种。",
+            "量化 OPEN-3：从 TASK-029/metric_validity.json 统计 20 个目录共 230 个「组×场景×指标」单元，228 个恰为 300/300，仅 2 个不满额且均为 fwd_low.rise_time_s（nominal 86/300=28.7%、perturbed 252/300=84.0%）。结论：95% 与 90% 在本轮数据上等价，真正待定的是 rise_time_s 是否作必需指标、以及「未定义」是否计入分母。",
+            "量化 OPEN-1×OPEN-2 的交叉成本：补训 2 个 seed ≈11 h GPU（串行）× 每变体 300 的 9000 回合 ≈2h57m，最贵组合为 27000 回合约 8.8 h 评估 + 11 h 训练，提醒两项须一并裁决。",
+            "补充 §3.4 样本结构说明：实际是「1 模型 × 10 评估种子 × 30 回合 = 300」，协议写的是「3 模型 × 每模型 100 回合 = 300」；总量相同但前者只估评估方差、不含训练种子间方差，不能互相替代。",
+            "修正计划元数据：phases 数组缺阶段 E（TASK-029—037 全部 phase=\"E\" 却无对应行），已追加。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/docs/eval_protocol_supplement_draft.md（94→127 行，sha256 960f419d…；仍为 DRAFT）",
+            "doc/plan/20261031_camra_locomotion_implementation.json（版本 3.1.2→3.1.3；phases 追加 E；本工作记录）"
+          ],
+          "commands": [
+            "python - <<'PY' 统计 metric_validity.json 中 valid<95% 的单元（输出 2 条）",
+            "python - <<'PY' 统计 230 个指标单元与 ended_by 分布",
+            "stat -c %y 读取 15 个 run 目录与 model_2999.pt 时间戳",
+            "grep -n 'def program_variants' -A 30 scripts/eval_locomotion.py",
+            "sha256sum CaMRA/locomotion/docs/eval_protocol_supplement_draft.md"
+          ],
+          "results": [
+            "草稿 §4.1 新增量化影响表（训练/评估机时、三种配额的总量、两项交叉成本、OPEN-3/4 的真实分歧）。",
+            "OPEN-2 的回合总量更正为 9000/6000/4500；combined 变体口径写明为 4 个对角组合。",
+            "OPEN-3 由「凭感觉」变为可判定：全量 230 个单元只有 2 个不满额，且都是同一指标。",
+            "phases 缺失 E 阶段已补齐；计划版本 3.1.3。",
+            "四项裁决仍未作出；TASK-030 status=false，TASK-031 及后续保持暂停。"
+          ],
+          "evidence": [
+            "CaMRA/locomotion/docs/eval_protocol_supplement_draft.md §3.1/§3.4/§4/§4.1（sha256 960f419d…）",
+            "/pub/data/caohy/logs/camra/TASK-029/metric_validity.json（230 单元、2 个不满额）",
+            "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4（目录创建 11:14:49、model_2999.pt 16:39:08）",
+            "CaMRA/locomotion/scripts/eval_locomotion.py:118-138（program_variants 的四个对角组合）"
+          ],
+          "remaining_work": [
+            "OPEN-1 训练模型数（阻塞项）：(a) 单模型验收并明写无种子方差 / (b) 补训 seed 1、2（≈11 h GPU）后三种子聚合 / (c) 先单模型复测、补训另行决定。",
+            "OPEN-2 逐变体配额：(a) 每变体 300（9000 回合，≈2h57m）/ (b) 场景 300 均分（6000 回合）/ (c) 每变体 150（4500 回合）。",
+            "OPEN-3 指标有效下限：(a) 95% / (b) 90%（本轮数据与 (a) 等价）/ (c) 只记录；另需一并定 rise_time_s 是否作必需指标、「未定义」是否计入分母。",
+            "OPEN-4 判据粒度：(a) 逐变体各自达标 / (b) 场景合并达标 / (c) 逐变体判定并同时报合并值。",
+            "四项裁决作出后，把 eval_protocol_supplement_draft.md 改写为正式补充协议（去 DRAFT、写版本号与 sha256），并在本任务追加裁决记录，才可放开 TASK-031。"
+          ],
+          "blockers": [
+            "OPEN-1…4 四项实质变更须用户裁决；计划 TASK-030 动作 1 明确「不能自行减为单模型」，因此不得以默认值推进。",
+            "TASK-031—TASK-037 全部 depends_on（直接或间接）TASK-030，当前均暂停。"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "三训练种子的缺口、样本数及判定口径若没有明确决策，保持 false 并暂停依赖任务；本次追加计划不代表用户已批准缩减验收。",
         "如决定补训，先取得训练预算与执行授权并追加专门任务及依赖；本九项不默默启动新训练，也不能越过补训前置条件完成正式验收。",

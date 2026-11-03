@@ -19,6 +19,7 @@
 | 9. 评估与导出要求 | 导出路径、数值一致性 | TASK-011（待填） |
 | 10–29 | 逐任务追加的正文（论文核对、代码阅读、接口实现、训练与评估），未逐条列入本表 | TASK-003–TASK-022 |
 | 30. 阶段一交付与接手须知 | 交付物与校验入口、真实命令、必须保持一致的五件事、没做的事、踩过的坑 | TASK-028 |
+| 31. 底层验收证据复核 | 证据索引、训练模型数、变体覆盖与指标完整性的只读核对 | TASK-029 |
 
 ---
 
@@ -2046,3 +2047,151 @@ python scripts/external_command_drive.py                   # 10 Hz 外部命令�
 同一份 `doc_commands.log` 里还保留了修复前的失败：`verify_export_consistency.py` 原本把报告写回
 `<bundle>/params/`，对只读冻结包直接 `PermissionError`。**校验工具不该要求被校验对象可写**，
 已改为只读包自动写到当前目录并明确打印 `manifest not updated`；冻结包本身一个字节都没动。
+
+## 31. 底层验收证据复核（TASK-029，只读）
+
+本章只核对**已经存在的**训练、评估与冻结产物，不运行训练、不重跑评估、不修改任何被冻结文件。
+结论按三类标注：**[直接验证]** 本次亲手比对过；**[历史报告]** 只有当时的记录可查；
+**[缺证]** 找不到可核对的来源。核对脚本与日志见 `31.7`。
+
+复核基线：`02f7c58`（计划 v3.1.0），冻结 v2 清单 `6da14ce2…`，评估协议 sha256
+`0afc2cea…`。执行主机 tiger12（`caohy@192.168.20.12`），tmux 会话 `camra-locomotion`。
+
+### 31.1 证据索引
+
+| 证据 | 位置 | 本次核对方式 | 结论 |
+| --- | --- | --- | --- |
+| 选定检查点 `model_2999.pt` | `<run>2026-11-02_11-14-49_formal_s0_3000it_r4/` | 重量 sha256 | **[直接验证]** `1c8f5aad…`，4,639,669 B |
+| 冻结包 v2（29 文件） | `/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2` | 全树重验 + 样本重放 | **[直接验证]** PASS |
+| 包内检查点副本 | `model/model_2999.pt` | 与上游文件比散列 | **[直接验证]** 同一散列 `1c8f5aad…` |
+| 导出图 JIT / ONNX | `exported/policy.pt` / `.onnx` | 重量 | **[直接验证]** `8e3f14ad…` / `d0c993b6…` |
+| 评估协议版本 | `docs/eval_protocol.json` | 与 20 个 `run_info.json` 的 `protocol_sha256` 比对 | **[直接验证]** 全部 `0afc2cea…`，v1.0.0 |
+| 产生结果的评估代码 | `scripts/eval_locomotion.py` | `git diff 740224c..HEAD` | **[直接验证]** 与当时逐字相同 |
+| 最终测试（20 目录 / 6000 回合） | `TASK-024/{nominal,perturbed}/s2xx/` | 逐目录 `run_info` + `per_episode.csv` | **[直接验证]** 见 31.2 |
+| 开发集确认（10 种子） | `TASK-023/dev_it2999_s1xx_r4/` | 原始步文件 | **[直接验证]** 见 31.3 |
+| 闭环重载三臂 | `TASK-026/rollout/*.json` | 文件存在 + 汇总判定 | **[直接验证]** 4 个 JSON + 聚合 PASS |
+| 训练资源与环境 | `env/pip-freeze.txt`、`params/*.yaml` 在包内 | 存在性 | **[直接验证]** |
+| 训练当时的 GPU/时长/排队 | — | 无独立记录 | **[缺证]** 只有 session 时间戳 |
+| 是否存在 seed=1/2 的训练授权 | 计划、交接笔记 | 全文检索 | **[缺证]** 无授权记录，run 树也无对应目录 |
+
+### 31.2 训练与模型数量：**实际只有一个训练模型**
+
+15 个 run 目录的 `params/agent.yaml` **全部** `seed: 0`：
+
+```
+2026-10-31_22-35-31_formal_s0_3000it        seed:0  envs:4096  ckpts=31 last=2999
+2026-11-01_09-41-35_formal_s0_3000it_r1     seed:0  envs:4096  ckpts=31 last=2999
+2026-11-01_16-12-39_formal_s0_3000it_r2     seed:0  envs:4096  ckpts=11 last=1000   ← 中止
+2026-11-01_18-39-18_formal_s0_3000it_r3     seed:0  envs:4096  ckpts=31 last=2999
+2026-11-02_11-14-49_formal_s0_3000it_r4     seed:0  envs:4096  ckpts=31 last=2999   ← 交付这一个
+```
+
+五次 formal 是**同一 seed 下的调参重跑**（奖励与课程不同），不是五次独立训练样本。
+**[直接验证]** 因此：交付的模型数 = 1，而协议 `trial_budget` 写的是三个训练种子 —— 二者不一致。
+**[直接验证]** 十个最终测试种子是**评估种子**，与训练模型数无关；`run_info.env_seed` 分别为
+200–209，不能当作十个模型。这一点在 TASK-024 的记录里没有混淆，但协议措辞容易被误读。
+
+### 31.3 场景变体覆盖：**多方向场景实际只跑了一个方向**
+
+协议里有三个多方向场景：`lateral`（±0.3 m/s，2 个变体）、`turn_inplace`（±0.8 rad/s，2 个）、
+`combined`（4 个符号组合）。从**归档的原始步文件**统计每回合实际下发的指令：
+
+| 数据集 | lateral | turn_inplace | combined |
+| --- | --- | --- | --- |
+| 最终测试 nominal（300 回合/场景） | 300× `vy=+` | 300× `wz=+` | 300× `(+,+,+)` |
+| 最终测试 perturbed（300 回合/场景） | 300× `vy=+` | 300× `wz=+` | 300× `(+,+,+)` |
+| 开发集 seed 100–109（300 回合/场景） | 300× `vy=+` | 300× `wz=+` | 300× `(+,+,+)` |
+
+三个数据集、两个分组、1800 个回合里，**负方向与其余三个组合一次都没跑过**：
+`lateral` 覆盖 1/2，`turn_inplace` 覆盖 1/2，`combined` 覆盖 1/4。
+
+**[直接验证]** 机制在代码里可定位：`eval_locomotion.py` 用 `ep_counter % len(variants)` 分配变体，
+而 `ep_counter` 对所有环境从 0 起（`torch.zeros(bridge.num_envs)`），回合又都在同一仿真步因
+`reached` 同时结束，`while len(done_rows) < wanted` 在收满 30 条时就退出 —— 于是第一批 64 个
+环境全都拿的是变体 0，取前 30 条即为 30 个变体 0。`--num_envs 64` > `--episodes_per_scenario 30`
+使这个缺口必然出现，与随机性无关。
+
+**[直接验证]** 同一原因还钉死了环境身份：nominal 每个场景只用到 `env_id 0–29`（30/64），
+perturbed 因偶发终止才用到 31 个（`max env_id 60`）。
+
+**这不证明模型无效**：模型对同号指令的跟踪能力有实测；但「左右对称、四个组合全过」这句话
+目前没有证据支撑，TASK-024 的 `overall_pass` 实际只覆盖了半个（组合场景四分之一）命令域。
+修复与按补充协议复测分别属于 TASK-031 与 TASK-036。
+
+### 31.4 指标完整性：汇总层不保留有效数
+
+**[直接验证]** `summary.json` 里每个场景的 `episodes` 是**整数计数**，没有逐变体、逐指标的
+有效数；判定只看聚合值与阈值。逐回合明细在 `per_episode.csv`，可复核，但没有任何环节要求
+「有效样本数 ≥ 某个下限」。
+
+本次从 CSV 统计的有效数（`TASK-024`，每场景 300 回合/组）：
+
+* 绝大多数指标 300/300 有效；
+* **`fwd_low` 的 `rise_time_s` 在 nominal 只有 86/300 有效**（perturbed 为 252/300）——
+  该场景的阈值不含 `rise_time_s`，所以没有影响通过判定，但它实证了「指标级有效数可以远低于
+  回合数，而汇总层不会察觉」。
+
+**[直接验证]** 终止原因：nominal 全部 `scenario_end`；perturbed 共 12 次 `bad_orientation`
+（fwd_low 1、fwd_mid 1、fwd_high 2、backward 1、lateral 1、turn_inplace 1、combined 1、
+start_stop 2、ramp 2，共 3000 回合中的 12 次），均计入 `failure_rate`，未被静默丢弃。
+
+### 31.5 分类结论
+
+**已直接验证**
+
+* 检查点 → 冻结包 → 导出图 的散列链完整，包内副本与上游文件同散列；
+* 冻结包 29 文件全树重验 PASS，重放样本 JIT 1.43e-06 / ONNX 9.54e-07；
+* 20 个最终测试目录的协议散列、代码提交、`num_envs`、`episodes_per_scenario`、`step_dt` 完全一致；
+* `group_applied` 与分组一致：nominal 为恒等扰动，perturbed 为摩擦 `[0.3,1.25]`、质量 `[-1,3] kg`、
+  推力 `[-0.5,0.5] m/s`、观测噪声按训练值开启；
+* 每场景 300 回合/组，终止原因可追溯；
+* 多方向场景只覆盖变体 0（见 31.3）。
+
+**仅历史报告**
+
+* TASK-024 的「1h57m44s、20 次评估 exit=0」只有当时日志的时间戳；
+* 训练资源占用、排队与总机时没有独立记录；
+* TASK-026 三臂闭环的数值结论来自当时汇总，本次只确认产物文件存在与聚合判定可复跑。
+
+**缺证待核**
+
+* 三训练种子要求与实际单模型的差异，**没有任何授权记录**说明曾被批准改为单模型 —— 这属于
+  TASK-030 必须由用户裁决的决策，本任务只报告事实；
+* 训练当时的 GPU 型号/占用（当前 nvidia-smi 已被他人任务占用，不能回推当时状态）。
+
+### 31.6 本任务没有做的事
+
+未运行训练、未重跑评估、未修改冻结包、未改写 TASK-001～028 的任何记录。评估工具的缺陷
+（变体分配、有效数判定）只记录、不在此修复 —— 修复属于 TASK-031 与 TASK-032，复测属于 TASK-036。
+
+### 31.7 复核脚本与日志
+
+| 脚本 | 产出 | 用途 |
+| --- | --- | --- |
+| `t029_audit1.sh` | `TASK-029/audit_env.log` | 主机、Git、tmux、进程、run 目录盘点 |
+| `t029_variants2.py` | `TASK-029/variant_coverage2.log` | 从原始步文件统计实际变体 |
+| `t029_metric_validity.py` | `TASK-029/metric_validity.json` + `.log` | 逐指标有效数、终止原因、环境身份 |
+| `t029_runinfo.py` | 控制台 | 20 个目录的一致性 |
+| `t029_hash2.py` | 控制台 | 检查点与导出图散列 |
+
+以上均只读；脚本本体在工作区 `_t029/`，运行副本在 `/pub/data/caohy/tools/`，
+日志在 `/pub/data/caohy/logs/camra/TASK-029/`。tmux 窗口：`T029A1B`（环境）、`T029V2`（变体）、
+`T029M`（指标）、`T029E`（散列与运行清单）。
+
+### 31.8 后续任务可直接使用的路径
+
+| 用途 | 路径 | 本次状态 |
+| --- | --- | --- |
+| 选定模型 | `<run>/model_2999.pt`，`<run>=/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4` | 存在，散列已核 |
+| 训练运行参数 | `<run>/params/{agent,env,deploy}.yaml`、`camra_env_cfg.py` | 存在，与冻结包一致 |
+| 冻结包 | `/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2` | 只读，复验 PASS |
+| 资产 | `/pub/data/caohy/unitree_model/Go2`（`UNITREE_MODEL_DIR`） | 存在 |
+| 评估协议 | `CaMRA/locomotion/docs/eval_protocol.json`（`0afc2cea…`） | 与当时一致 |
+| 最终测试原始数据 | `/pub/data/caohy/logs/camra/TASK-024/{nominal,perturbed}/s2xx/` | 完整，可复算 |
+| 开发集原始数据 | `/pub/data/caohy/logs/camra/TASK-023/dev_it2999_s1xx_r4/` | 完整，可复算 |
+| 闭环重载 | `/pub/data/caohy/logs/camra/TASK-026/rollout/` | 4 个 JSON + 聚合 |
+| 复核证据（本次） | `/pub/data/caohy/logs/camra/TASK-029/` | 新增 |
+
+**尚缺、需 TASK-034 处理的**：TASK-024/023/026 的驱动脚本（`t023_devfull_r4.sh`、`t024_finaltest.sh`、
+`t024_agg.py` 等）目前只在 `/pub/data/caohy/scripts|tools/` 下，**不在仓库内**；模型与原始日志也不进 Git。
+换设备仅凭 clone 仍不能复现，这一点已写入 TASK-034 的目标。
