@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.8",
+    "version": "3.7.9",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3998,6 +3998,31 @@
           "blockers": [
             "stop_event_prob 强度轴上不存在「低速与刹车都宽裕」的配置：0.10 时低速不足，0 时刹车超阈值。方案一判定为部分成功，TASK-036 保持 false。"
           ]
+        },
+        {
+          "timestamp": "2026-11-03T17:44:00+08:00",
+          "summary": "用户裁决：采用方案二——保留 stop_event_prob=0.25（保住刹车训练样本），通过提高低速区间的跟踪奖励来打破「命令小就站着」的平衡，先做 250 迭代验证（track_lin_vel_step 权重 1.0→2.0，采样配置不动），有效再投完整重训。方案一（stop_event_prob=0.10）刹车恢复但低速不足，已由第 46 章的取舍曲线排除。",
+          "actions": [
+            "新增第五档实验模式 track-boost：只把 rewards.track_lin_vel_step.weight 从 1.0 提到 2.0，采样配置（rel_standing_envs=0.1、stop_event_prob=0.25）保持交付值不变。",
+            "第 46 章的取舍曲线表明 stop_event_prob 轴上无两全甜点，故方案二不动采样、只动奖励斜率：权重翻倍等效于把动作类惩罚的相对占比减半，直接针对「低速迈步成本 > 跟踪收益」的平衡点。"
+          ],
+          "remaining_work": [
+            "V 组（track-boost）250 迭代后单种子评估四扫点 + start_stop；若 ±0.15 显著下降且刹车不退化，再按该口径完整重训、选模、导出、闭环重载，并用新登记的种子段（400–409 已用于诊断，正式复测需再启新段）做 10 种子复测。"
+          ],
+          "blockers": [
+            "方案二验证尚未开始。"
+          ],
+          "results": [
+            "方案一已由第 46 章排除：stop_event_prob=0.10 时刹车恢复（1.07 倍交付）但 ±0.15 仍 0.1191/0.1389。",
+            "取舍曲线（四轮实验）表明 stop_event_prob 轴上无两全且宽裕的配置，插值甜点两侧均贴线。",
+            "诊断结论：死区源于训练采样中的停车样本（stop_event_prob=0.25）让策略把低速命令读作站住；与刹车共享该样本，故「少停课」与「会刹车」此消彼长，需换手段而非继续调采样。"
+          ],
+          "evidence": [
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 39–46 章（诊断与取舍曲线全文）",
+            "TASK-036/{sweep,ab,longer,b_longer,confirm,split,stoplow}/ 下各实验日志与产物"
+          ],
+          "files_changed": [],
+          "commands": []
         }
       ],
       "constraints_and_notes": [
