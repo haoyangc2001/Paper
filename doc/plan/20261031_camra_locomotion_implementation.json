@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.4",
+    "version": "3.7.5",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3831,6 +3831,47 @@
           ],
           "blockers": [
             "继续训练不能消除 ±0.15 的死区，且会让 +0.30 退回 0.0965（余量 3.5%），不足以支撑「重训后即可通过」；有效方向是改变命令采样，但尚未做多点验证。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T16:00:00+08:00",
+          "summary": "对第 41 章的采样臂（CAMRA_EXP_CMD_SAMPLING=no-standing）做与第 42 章相同的延长验证：从 B 的 3248 续训 500 迭代到 3747，在 3500、3747 各评估一次，形成三点同轨迹。**结论与基线臂相反：采样臂单调改善且四点全部离开阈值**——3747 上 +0.15/−0.15/+0.30/−0.30 分别为 0.0638/0.0582/0.0576/0.0448（阈值 0.10，最差余量 36%），交付模型不合格的 −0.30 从 0.1031 降到 0.0448；命令 0.15 的实测速度从 3–4% 提升到 67–68%，第 40 章的死区被真正改写。同迭代基线臂的 +0.15 仍是 0.1467（几乎不动），说明改采样是唯一有效的变量。",
+          "actions": [
+            "训练全程开启 CAMRA_EXP_CMD_SAMPLING=no-standing，并从新 run 的 params/env.yaml 复核rel_standing_envs=0.0、stop_event_prob=0.0，确认采样确实全程生效。",
+            "评估时不设该变量：play 配置本就把 stop_event_prob 置零、外部命令驱动把 rel_standing_envs 清零，两组在同一评估环境下打分。",
+            "从 B 的 model_3248.pt 续训 500 迭代到 3747（约 32 分钟，EXIT 0），在 model_3500 与 model_3747 各评估一次（EXIT 均 0）。",
+            "把 2999 / 3248 / 3500 / 3747 四个点在 ±0.15、±0.30 上连成曲线，与第 42 章的基线臂同迭代对照。"
+          ],
+          "files_changed": [
+            "仓库代码未改动（本轮只训练与评估）；新增交接笔记第 43 章",
+            "/pub/data/caohy/scripts/t043_b_longer.sh（仓库外驱动）"
+          ],
+          "commands": [
+            "CAMRA_EXP_CMD_SAMPLING=no-standing python train.py --resume --load_run 2026-11-03_14-14-09_exp_B_nostand --checkpoint model_3248.pt --max_iterations 500 --run_name exp_B_longer",
+            "python scripts/eval_locomotion.py --protocol <sweep> --scenarios sweep_p15,sweep_n15,sweep_p30,sweep_n30 --seed 100 --episodes_per_variant 30   # 对 model_3500 与 model_3747 各一次"
+          ],
+          "results": [
+            "B 采样臂 3248：0.0889 / 0.0810 / 0.0633 / 0.0575。",
+            "B 采样臂 3500：0.0732 / 0.0614 / 0.0741 / 0.0721。",
+            "B 采样臂 3747：0.0638 / 0.0582 / 0.0576 / 0.0448（四点全部 ≤0.0638，阈值 0.10）。",
+            "同迭代基线臂 3747：0.1467 / 0.1471 / 0.0965 / 0.0666，+0.15 与 −0.15 几乎等于交付模型的 0.1497/0.1501。",
+            "死区改写：命令 0.15 的实测速度由交付模型的 0.005/0.011（3–4%）升到 0.1018/−0.0998（67–68%）。",
+            "采样臂三点单调（每点都低于前一 checkpoint），基线臂冲高回落——同一批数据下只有采样臂是趋势。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/b_longer/b_longer_run.log（窗口 camra-locomotion:T043BLONG、EXIT 全 0）",
+            "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-03_15-19-25_exp_B_longer/（model_3300…3747 + params/env.yaml 采样复核）",
+            "/pub/data/caohy/logs/camra/TASK-036/b_longer/eval_{mid,last}/（3500 与 3747 的评估产物）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 43 章"
+          ],
+          "remaining_work": [
+            "①多种子快速验证（约 15 分钟）：用 3747 在 4 个点 × 10 个新种子 × 30 回合上复跑，确认不是单种子运气。",
+            "②查 start_stop 是否退化：去掉 stop_event_prob 是它的直接代价，必须用同一模型量一次。",
+            "两条都过 → 按采样口径重训到收敛 + 开发集选模 + 导出 + 闭环 + 新的 10 种子正式复测，并出独立版本（训练配置已变更，不能沿用 v2）。",
+            "任一条不过 → 退回部分采样调整（例如只把 rel_standing_envs 置零、保留 stop_event_prob）。"
+          ],
+          "blockers": [
+            "采样口径已证明有效（单种子），但 ①未做多种子确认 ②未评估 start_stop 退化 ③测试种子 300–309 已用掉，在完成这三项前不能宣称新模型达标。"
           ]
         }
       ],
