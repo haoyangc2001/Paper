@@ -141,7 +141,13 @@ def _sample_alternating(rng: random.Random, slow: bool, prev: tuple[float, float
 
 def build_targets(family: str, seed: int, n_segments: int, *, low_speed_every: int = 3
                   ) -> list[tuple[float, float, float]]:
-    """生成每段的保持目标。第 low_speed_every 段起被强制为低速段。"""
+    """生成每段的保持目标。
+
+    低速段强制规则：segment 0 与每 low_speed_every 段中的最后一段。segment 0
+    强制低速与"warmup 后从近静止起步"一致，并把每条程序的低速点占比抬到
+    协议 min_share_of_cell=0.25 之上（否则 ramp 从高速目标插值进来会吃掉
+    低速点，个别格会跌破阈值，见 tests/test_trials.py 的分层检查）。
+    """
     if family not in FAMILIES:
         raise ValueError(f"未知命令族 {family!r}（允许 {FAMILIES}）")
     if n_segments < 1:
@@ -150,7 +156,7 @@ def build_targets(family: str, seed: int, n_segments: int, *, low_speed_every: i
     targets: list[tuple[float, float, float]] = []
     axis = 0
     for i in range(n_segments):
-        slow = low_speed_every > 0 and (i % low_speed_every) == (low_speed_every - 1)
+        slow = low_speed_every > 0 and (i == 0 or (i % low_speed_every) == (low_speed_every - 1))
         if family == "straight_shift":
             tgt = _sample_straight_shift(rng, slow)
         elif family == "arc_combined":

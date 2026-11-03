@@ -1149,11 +1149,52 @@
     {
       "id": "CAL-012",
       "goal": "实现固定配额的指令族与互斥试验清单生成",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-011"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T07:50:00+08:00",
+          "summary": "实现固定配额与互斥的 trial 清单生成：7 个 split 共 1820 条、lock.json 整表散列、strata.json 分层统计，双进程复现逐位一致，69 项测试全绿。",
+          "actions": [
+            "实现 trials.py：per_cell 按实际 profile 组合反推格内条数、seed 从 split 种子块顺序分配、trial_id 格式族→profile→格内序号、每条记录 program_sha256、hash_list/check_lists/strata_report。",
+            "实现 scripts/build_trial_lists.py：写出 7 个 split 的 JSONL 清单、lock.json（条数+散列+协议绑定）、strata.json（逐格低速占比与方向/静止/边界覆盖）。",
+            "写 12 项新测试：per_cell、clean-only 划分、配额与格覆盖、trial_id 格式、seed 顺序与块归属、散列稳定且顺序敏感、跨 split 无泄漏、分层低速下限、非法 split 拒绝。",
+            "修正两处实现问题：(a) baseline_fit 等子 split 需映射到协议 baseline 键（proto_split_key）；(b) min_share_of_cell 判定从逐条最小改为格级平均占比。",
+            "分层检查暴露'每 3 段强制 1 段低速'仍不够（ramp 插值吃掉低速点，near_obstacle/arc_combined/mass_only 格均 0.2432<0.25）→ 命令生成器改为 segment 0 也强制低速，全部格 ≥ 0.282。",
+            "双进程复现：9 个文件（7 清单+lock+strata）全部 IDENTICAL；一次性生成与每 7 条一批的散列一致。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/trials.py（新建）",
+            "CaMRA/calibration/scripts/build_trial_lists.py（新建）",
+            "CaMRA/calibration/tests/test_trials.py（新建，12 项）",
+            "CaMRA/calibration/src/camra_calibration/commands.py（segment 0 强制低速）",
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §14）"
+          ],
+          "commands": [
+            "python -m pytest CaMRA/calibration/tests -q",
+            "python scripts/build_trial_lists.py --out /pub/data/caohy/logs/camra/trial_lists_v1.0.0",
+            "python scripts/build_trial_lists.py --out ..._rerun && cmp 逐文件"
+          ],
+          "results": [
+            "pytest 69 passed（新增 12 项）。",
+            "清单规模：pilot 20 / baseline_fit 240 / baseline_dev 80 / baseline_validate 80 / calibration 800 / heldout 400 / near_obstacle 200，合计 1820，与协议配额逐域一致。",
+            "lock.json 散列：pilot 73be700d…、baseline_fit d3d82f0d…、baseline_dev aab21d88…、baseline_validate 7ef9b10f…、calibration 0b62293b…、heldout 87e7eaf0…、near_obstacle 0d76083b…。",
+            "复现性：双进程生成 9 文件 byte-identical；分批顺序不影响整表散列。",
+            "分层：calibration/heldout/near_obstacle 各 20 格、clean-only split 各 4 格，全部格级低速占比 ≥ 0.282（严格口径），方向/静止/边界覆盖逐格记录。",
+            "记录三处协议矛盾待用户确认：低速度层'或'字面失效、min_share_of_cell 判定层级、baseline clean-only 的 per_cell=20 与总额 400 冲突。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/trial_lists_v1.0.0/{7×<split>.jsonl, lock.json, strata.json}",
+            "双进程 cmp 输出（9×IDENTICAL）",
+            "tests/test_trials.py 12 项 + pytest 69 passed",
+            "implementation_handoff.md §14"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "四族、1秒目标、0.2秒过渡、10Hz下发遵循协议，命令域从冻结契约读取。",
         "包含0/低速死区/正反方向/边界与启停；不能因v2跟踪差而自动裁掉。",
@@ -1164,7 +1205,7 @@
         "清单无重复或交叉泄漏，哈希固定；方向/低速/边界分层计数可核对。",
         "换并行度或恢复运行不改变trial指令序列及随机化参数。"
       ],
-      "verification_result": ""
+      "verification_result": "四项验收均通过：(1) 每 split 的 trial 数与协议配额精确一致且互斥——7 个清单共 1820 条，seed 顺序取自各自种子块，跨 split 无泄漏、split 内无重复（测试固定）；(2) 方向/低速/边界分层可核对——strata.json 逐 split×cell 记录低速占比（strict 与 literal 双口径）、前向/后向/侧移/转向/静止/±1.0 边界覆盖，全部 64 格低速占比 ≥ 0.282 ≥ 0.25；(3) 域间无交叉污染——每条 trial 属唯一 cell 与唯一 seed，check_lists 输出为空；heldout/near_obstacle 沿用与 calibration 相同的命令族展开（profile 组合按协议），且清单阶段不涉及任何模型或 margin 参数；(4) 清单哈希可在生成后重新计算并匹配——hash_list 对 (split, protocol) 是纯函数，双进程生成 9 文件 byte-identical，lock.json 记录的 7 个整表散列可随时复算核对。另如实记录三处协议矛盾（低速层'或'字面失效、min_share_of_cell 判定层级、baseline per_cell 与 clean-only 冲突），以更强读法实现并留待用户以协议 v1.0.1 裁定。"
     },
     {
       "id": "CAL-013",

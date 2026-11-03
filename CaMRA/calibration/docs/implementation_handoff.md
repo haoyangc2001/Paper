@@ -737,3 +737,50 @@ cd4f4c71f1c4e74cd10e05dd6a6f7df0aab3c18f39f55746fba2a555353fd619  c11_nominal_ru
 
 **待用户确认**：是否把协议的低速度层改为"且"，或保留"或"并另设 `wz≠0` 子层。
 若需要改协议，按 §11 的变更规则出 `v1.0.1`，不就地修改 v1.0.0。
+
+---
+
+## 14. 试验清单生成（CAL-012）
+
+### 14.1 模块与产物
+
+`src/camra_calibration/trials.py` + `scripts/build_trial_lists.py`。
+清单是 **(split, protocol) 的纯函数**：同一协议重复运行必然得到相同文件
+（本机双进程比对 9 个文件全部 IDENTICAL）。产物在
+`/pub/data/caohy/logs/camra/trial_lists_v1.0.0/`：
+
+| 文件 | 内容 |
+| --- | --- |
+| `<split>.jsonl` | 每行一条 trial（trial_id / split / family / profile / seed / attempt / program_sha256 等） |
+| `lock.json` | 各 split 条数与整表散列，绑定协议版本与散列 |
+| `strata.json` | 逐 split × cell 的分层统计（低速占比、方向/静止/边界覆盖） |
+
+整表散列（写进 `lock.json`，采集前必须核对）：pilot `73be700d…`、
+baseline_fit `d3d82f0d…`、baseline_dev `aab21d88…`、baseline_validate `7ef9b10f…`、
+calibration `0b62293b…`、heldout `87e7eaf0…`、near_obstacle `0d76083b…`，合计 1820 条。
+
+### 14.2 展开规则
+
+- seed 从该 split 的种子块**顺序**分配（族 → profile → 格内序号），与并行度、
+  分批方式无关（测试固定：一次性生成与每 7 条一批的散列一致）；
+- 每条 trial 记录其 `program_sha256`，把清单绑定到具体命令序列；
+- clean-only 的 split（pilot / baseline_*）只有 4 个族格。
+
+### 14.3 两处协议矛盾（已记录，未擅自改协议）
+
+1. **baseline 的 per_cell**：协议写 `baseline.per_cell = 20`（隐含 20 格），但同一段
+   又写 `baseline.profile = "clean only"`——clean-only 只有 4 个族格，4×20=80 ≠ 400。
+   实现按总额 400/240/80/80/20 反推格内条数（clean-only 格 = 总额/4）。
+2. **低速度层的"或"**（承 §13.5）：字面"或"使 `wz≡0` 的直行族 100% 命中低速层，
+   下限失效。此外分层检查还暴露了第三处问题：**只按"每 3 段强制 1 段低速"仍不够**——
+   ramp 从高速目标插值进来会吃掉低速点数，`near_obstacle/arc_combined/mass_only`
+   格均只有 0.2432 < 0.25。
+
+**当前处理**：命令生成器改为 **segment 0 也强制低速**（与 warmup 后从近静止起步一致），
+全部 64 个格（clean-only 4×4 + 五 profile 20×3）的格级低速占比 ≥ 0.282。
+`min_share_of_cell` 按**格内平均占比**判定（"share of cell"的自然读法），
+逐条最小值只作观测记录。生成器变更使命令程序散列整体更新，
+§13.4 的演示输出散列相应变为 `f089d821…`（两次运行仍 byte-identical）。
+
+**待用户确认**（与 §13.5 合并）：是否出协议 v1.0.1 明确（a）低速度层用"且"还是"或"；
+（b）`min_share_of_cell` 按格级平均还是逐条最小；（c）baseline clean-only 的格内条数。
