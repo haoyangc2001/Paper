@@ -17,6 +17,8 @@
 | 7. 论文到代码映射 | 概念→模块→文件 | TASK-002（待填） |
 | 8. 观测/动作/频率契约 | 45 维、12 关节、200/50/10 Hz | TASK-009（待填） |
 | 9. 评估与导出要求 | 导出路径、数值一致性 | TASK-011（待填） |
+| 10–29 | 逐任务追加的正文（论文核对、代码阅读、接口实现、训练与评估），未逐条列入本表 | TASK-003–TASK-022 |
+| 30. 阶段一交付与接手须知 | 交付物与校验入口、真实命令、必须保持一致的五件事、没做的事、踩过的坑 | TASK-028 |
 
 ---
 
@@ -1827,3 +1829,220 @@ python tools/t022_check_ckpt.py <run_dir>
 # 评估
 bash /pub/data/caohy/scripts/t022_eval.sh <ckpt> 64 16 eval_dev
 ```
+
+## 30. 阶段一交付与接手须知（TASK-023–TASK-028）
+
+§23–§29 记录的是怎么走到这里；本章只写**现在有什么、怎么用、别踩什么坑**。
+写这一章的原则：每条命令都在 tiger12 上真跑过，每个数字都能追到文件，做不到的事明说做不到。
+
+### 30.1 交付物与校验入口
+
+| 产物 | 位置 | 怎么校验 |
+| --- | --- | --- |
+| 第 4 轮正式训练 run | `/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4` | 同目录 `params/{agent,env}.yaml`、`git/` 由 train.py 落盘 |
+| 选中检查点 | 同上 `model_2999.pt`（4,639,669 B） | sha256 `1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9` |
+| 导出候选包 | `/pub/data/caohy/camra_bundles/candidates/r4_it2999_v1` | `params/export_manifest.json` + `scripts/verify_export_consistency.py` |
+| 最终测试（单次，不可重跑） | `/pub/data/caohy/logs/camra/TASK-024/{nominal,perturbed}/s2NN/` | 每种子 `summary.json`、`per_episode.csv`；根目录 `checkpoint.sha256` |
+| 闭环重载 | `/pub/data/caohy/logs/camra/TASK-026/rollout/` | `t026_aggregate.json` 的 `verdict.pass` |
+| **冻结包 v2（交付件）** | `/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2` | `frozen_manifest.json` + `.sha256`；`scripts/verify_frozen_bundle.py` |
+| 冻结清单（仓库内副本，17 KB） | `CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json` | 与包内清单同为 `6da14ce2…` |
+| 评估协议（训练前固定） | `CaMRA/locomotion/docs/eval_protocol.json` | `status=fixed_before_training`，`user_approved=2026-10-31` |
+| 计划与全部工作记录 | `doc/plan/20261031_camra_locomotion_implementation.json` | `validate_worklog.py … --mode update` |
+
+结论一句话：final_test 种子 200–209 单次执行，nominal 10/10、perturbed 10/10 场景通过，
+全局失败率 0.000 / 0.007；导出后闭环重载 JIT 与训练器逐位一致、ONNX 偏差 <9e-4；
+冻结包全树 0444/0555 且校验 PASS。**这些数字都能从上表文件重新算出来，不依赖任何人的记忆。**
+
+### 30.2 设备与环境
+
+执行主机 tiger12（192.168.20.12），解释器 `/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python`：
+
+| 依赖 | 版本 |
+| --- | --- |
+| Python | 3.11.18 |
+| torch | 2.7.0（CUDA 12.6） |
+| numpy | 1.26.0 |
+| isaaclab | 0.47.2 |
+| isaacsim | 5.1.0.0 |
+| rsl-rl-lib | 3.0.1 |
+| onnxruntime | 1.31.1 |
+| onnx | 1.23.2 |
+
+GPU 用 **GPU0**（`CUDA_VISIBLE_DEVICES=0`）。两条实测教训：GPU2 长期被他人的 vLLM 占用，
+占用后仿真会报 `Failed to get DOF velocities from backend`；本机 torch 构建在 GPU3/GPU4
+（不同型号）上直接报 `CUDA error: no kernel image is available`。
+
+所有命令必须在 tmux 内执行（计划顶层 `tmux_execution_policy`）：
+
+```bash
+tmux attach -t camra-locomotion     # 32 个窗口，按任务编号命名（TASK-023-*/T025*/T026RUN*/T027*）
+tmux list-windows -t camra-locomotion
+```
+
+断线后先看窗口里是否已有进程在跑，**不要重复启动**；重跑会覆盖产物或与正在跑的进程抢 GPU。
+
+### 30.3 真实命令
+
+以下每条都在 tiger12 跑过，日志位置随命令给出。
+
+**训练（第 4 轮配置，正式 3000 迭代，seed 0）**
+
+```bash
+bash /pub/data/caohy/scripts/t023_train_r4.sh 0 3000 formal_s0_3000it_r4
+# 日志 /pub/data/caohy/logs/camra/TASK-023/formal_s0_3000it_r4.log
+# 落盘 /pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/<时间戳>_formal_s0_3000it_r4/
+```
+
+**恢复训练（从中途检查点续跑，`--resume` 必须显式给 `--load_run` 与 `--checkpoint`）**
+
+```bash
+cd /pub/data/caohy/run/camra_go2
+/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python -u \
+  /home/caohy/repositories/Paper/CaMRA/locomotion/scripts/rsl_rl/train.py \
+  --task CaMRA-Go2-Velocity --headless --seed 0 --resume \
+  --load_run 2026-11-02_11-14-49_formal_s0_3000it_r4 --checkpoint model_2000.pt \
+  --max_iterations 3000 --device cuda:0
+# 注意：resume 会新建一个 run 目录，同一条曲线会散在多个目录里，登记父子关系后再引用
+```
+
+**开发集选模（只在 dev 种子 100–109 上做，final_test 不参与）**
+
+```bash
+bash /pub/data/caohy/scripts/t023_finalize_r4.sh <run_dir>     # devsweep + t023_select_r4.py
+bash /pub/data/caohy/scripts/t023_devfull_r4.sh <run_dir> 2999 # 10 个 dev 种子 × 30 回合确认
+# 结果 /pub/data/caohy/logs/camra/TASK-023/（selection*_r4.json、dev_it2999*）
+```
+
+**最终测试（单次，跑完不得因结果重跑）**
+
+```bash
+bash /pub/data/caohy/scripts/t024_finaltest.sh \
+  /pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4/model_2999.pt
+# 输出 /pub/data/caohy/logs/camra/TASK-024/{nominal,perturbed}/s2NN/summary.json
+```
+
+**导出 + 数值验证**
+
+```bash
+bash /pub/data/caohy/scripts/t025_export.sh          # 内含 export_policy_candidate.py 与 verify_export_consistency.py
+# 或分步：
+python scripts/export_policy_candidate.py --task CaMRA-Go2-Velocity \
+  --checkpoint <ckpt> --out_dir /pub/data/caohy/camra_bundles/candidates/<tag> \
+  --num_envs 64 --seed 100 --steps 300
+python scripts/verify_export_consistency.py --bundle /pub/data/caohy/camra_bundles/candidates/<tag>
+```
+
+**闭环重载 + 三臂聚合判定**
+
+```bash
+bash /pub/data/caohy/scripts/t026_rollout.sh         # jit / onnx / trainer 各一个独立进程
+python scripts/aggregate_rollout_arms.py --out_dir /pub/data/caohy/logs/camra/TASK-026/rollout
+```
+
+**冻结（版本号一旦用过不得复用；工作区不干净会被拒）**
+
+```bash
+python scripts/freeze_controller_bundle.py \
+  --candidate /pub/data/caohy/camra_bundles/candidates/r4_it2999_v1 \
+  --run-dir <run_dir> --checkpoint <run_dir>/model_2999.pt \
+  --asset-root /pub/data/caohy/unitree_model/Go2 \
+  --protocol docs/eval_protocol.json \
+  --task024-root /pub/data/caohy/logs/camra/TASK-024 \
+  --rollout-dir /pub/data/caohy/logs/camra/TASK-026/rollout \
+  --t024-agg /pub/data/caohy/tools/t024_agg.py \
+  --repo /home/caohy/repositories/Paper \
+  --out-root /pub/data/caohy/camra_bundles/frozen --version <新版本名>
+```
+
+**校验冻结包（换机器也能跑，只需要 torch + onnxruntime + numpy）**
+
+```bash
+python scripts/verify_frozen_bundle.py \
+  --bundle /pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2 --samples 512
+# PASS 时应看到 "problems": [] 与 [VERIFY-FROZEN] PASS
+```
+
+**不需要 Isaac 的数值回归（纯 CPU，可直接对只读冻结包跑）**
+
+```bash
+cd /tmp        # 冻结包是只读的，报告会写到当前目录而不是包内
+python /home/caohy/repositories/Paper/CaMRA/locomotion/scripts/verify_export_consistency.py \
+  --bundle /pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2
+# 19,200 条样本：jit 1.192e-06、onnx 1.118e-06、onnx-vs-jit 7.15e-07、确定性 0.0，PASS
+# 包只读时脚本会明确打印 "manifest not updated"，不改动冻结包
+```
+
+**单元测试与运行时契约**
+
+```bash
+python -m pytest tests/test_units.py -q                    # 纯 CPU，当前 34 passed（约 2 s）
+python scripts/verify_runtime_contracts.py                 # 需要仿真，tmux 内
+python scripts/external_command_drive.py                   # 10 Hz 外部命令接口的独立驱动示例
+```
+
+**校准入口（下游，尚未实现）**
+
+`CaMRA/calibration/` 目前只有用途说明。校准需要的输入已经齐备：冻结包的观测/动作契约
+（`params/deploy.yaml` + `export_manifest.json`）、19,200 条真实观测样本、以及闭环重载脚本。
+真正的标定要做的是：用同一冻结控制器在同一命令程序下采名义轨迹与执行轨迹、配对后拟合
+成本裕度 α 与几何裕度 δ，并用独立数据检验——这一步**本次没有做**。
+
+### 30.4 后续校准必须保持一致的五件事
+
+任何一项变了，冻结包就不再代表现在这套行为，必须重新导出、重新做闭环判定、重新标定：
+
+1. **模型**：`model_2999.pt` 的 sha256 `1c8f5aad…`。换检查点就是换策略，不是"微调参数"。
+2. **命令域**：±1.0 m/s（vx）、±0.4 m/s（vy）、±1.0 rad/s（wz），采样区间
+   `resampling_time_range=[4.0, 8.0] s`，外部命令 10 Hz 零阶保持。超出训练域的速度不给任何保证。
+3. **频率**：sim 200 Hz（`sim.dt=0.005`）× decimation 4 → 策略 50 Hz（`step_dt=0.02`）。
+   部署端若按别的频率调用，策略看到的是完全不同的动力学。
+4. **限幅与滤波**：动作项 `JointPositionAction`，`q_target = default_joint_pos + 0.25·a`，
+   wrapper `clip_actions=null`（term 的 ±100 实际不生效）；kp 25.0 / kd 0.5 / friction 0.01。
+   要在部署端加自己的限幅或滤波，就是新增一层，必须重新评估。
+5. **资产**：Go2 USD，资产树摘要 `95605072…`（已整体复制进冻结包 `assets/Go2/`）。
+   换 URDF/USD 的惯量或关节限位，等于换机器人。
+
+### 30.5 本次明确没做的
+
+清单与冻结包 `frozen_manifest.json` 的 `not_done` 一致，不重复美化：
+
+- **真机 `joint_ids_map` 重映射**：部署端 `State_RLBase.cpp` 按目标机器关节索引重排，本包给的是仿真侧顺序。
+- **0–40 ms 指令延迟**：`eval_protocol.json` 的 `not_covered` 项，未建模、未验证。
+- **sim2real**：状态估计噪声、执行器时延与摩擦差异、地形与材质多样性全部未覆盖。
+- **ONNX batch=1**：图固定 `[1,45]→[1,12]`，只能逐帧推理；批推理需重新导出并重跑等效判定。
+- **推理延迟不是实时性结论**：jit 中位 0.22–0.37 ms、onnx 1.18–1.24 ms 只是本机 headless 仿真的计算开销。
+- **上层导航与校准模块**：本阶段只交付底层控制器。
+
+### 30.6 给接手者踩过的坑
+
+1. **Isaac 入口在未捕获 traceback 后仍返回 0**。所有批量脚本都按产物判定成功，而不是看退出码。
+2. **`torch.inference_mode()` 会把仿真缓冲变成 inference tensor**，下一场景 reset 的原地写入直接崩
+   （`Inplace update to inference tensor outside InferenceMode is not allowed`）。rollout 全用 `torch.no_grad()`。
+3. **`ExternalCommandWrapper.reset()` 先让内部 env 算观测、之后才写程序指令**，所以 `reset()` 返回的那一拍
+   观测携带的是复位时采样的随机指令。自下一拍起才一致。部署端自己复位时必须复现同一顺序。
+4. **接触型动力学的混沌放大**：ONNX 与训练器每帧差 5e-7，7–45 个控制周期后就离开噪声地板，
+   末位 xy 差可达 0.11 m，但区间统计量差 <1e-3。别拿逐帧轨迹对比判"导出坏了"。
+5. **本仓库 `git status` 会报 stat 假阳性**（`<text: auto>` + CRLF）：`M` 但 `git diff --quiet HEAD` 为空。
+   判脏必须按内容复核，并额外包含未跟踪文件。
+6. **`AppLauncher` 自带 `--device`**，自定义同名参数会 `ValueError`；`parse_env_cfg` 要从
+   `unitree_rl_lab.utils.parser_cfg` 导入，别从 `isaaclab_tasks.utils`。
+7. **rsl-rl ≥3 的 policy 按观测组名索引**，传扁平张量会 `IndexError`，要传 `TensorDict`/dict。
+8. **ONNX 不支持一次喂 19,200 条**（图 batch 固定 1），验证脚本一律逐条循环。
+9. **train.py 的 `--resume` 新建 run 目录**，同一曲线会散开；引用检查点时带上完整路径与 sha256。
+10. **`tmux new-window -d` 后必须再 `send-keys` 才会真正执行**；只看会话存在不算跑起来。
+
+### 30.7 本章命令的实际运行证据
+
+写文档的同时把不需要长时间的命令真跑了一遍，证据都在 `/pub/data/caohy/logs/camra/` 下：
+
+| 命令 | 日志 | 结果 |
+| --- | --- | --- |
+| `pytest tests/test_units.py -q` | `TASK-028/doc_commands.log` | `34 passed, 3 warnings in 1.89s` |
+| `aggregate_rollout_arms.py --out_dir TASK-026/rollout` | 同上 | `VERDICT: PASS`（三臂复位采样流一致 1.8291529417037964） |
+| `verify_export_consistency.py --bundle <frozen v2>` | `TASK-028/verify_frozen_readonly.log` | 19,200 样本 PASS；jit 1.192e-06、onnx 1.118e-06、joint 2.794e-07、确定性 0.0 |
+| `verify_frozen_bundle.py --bundle <frozen v2> --samples 512` | `TASK-027/verify_v2.log` | 29 文件 PASS，重放 jit 1.43e-06 / onnx 9.54e-07 |
+| `t027_negative_v2.sh`（拒绝重出/拒绝写入/篡改必败/原包仍过） | `TASK-027/negative_v2b.log` | 4/4 符合预期 |
+
+同一份 `doc_commands.log` 里还保留了修复前的失败：`verify_export_consistency.py` 原本把报告写回
+`<bundle>/params/`，对只读冻结包直接 `PermissionError`。**校验工具不该要求被校验对象可写**，
+已改为只读包自动写到当前目录并明确打印 `manifest not updated`；冻结包本身一个字节都没动。

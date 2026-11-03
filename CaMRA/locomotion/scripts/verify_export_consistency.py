@@ -157,9 +157,25 @@ def main() -> int:
         "result": "PASS" if passed else "FAIL",
         "timestamp": __import__("time").strftime("%Y-%m-%dT%H:%M:%S%z"),
     }
+    # A verification tool must not need write access to the thing it verifies. On a frozen
+    # bundle (0444/0555) both the report and the manifest are read-only, so fall back to
+    # writing the report next to the caller and leave the bundle untouched.
+    man_path_writable = os.access(man_path, os.W_OK)
     report_path = args.report or os.path.join(bundle, "params", "export_verification.json")
+    can_update_bundle = man_path_writable and os.access(os.path.dirname(report_path), os.W_OK)
+    if args.report is None and not can_update_bundle:
+        report_path = os.path.abspath("export_verification.json")
+        print(f"[VERIFY] bundle is read-only; writing the report to {report_path} and leaving "
+              f"the manifest untouched (a frozen bundle must not change)", flush=True)
     with open(report_path, "w", encoding="utf-8") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2)
+
+    if not can_update_bundle:
+        print(f"[VERIFY] manifest not updated: {man_path} is read-only", flush=True)
+        print(f"[VERIFY] samples={obs.shape[0]} jit_max={s_jit['max_abs']:.3e} "
+              f"onnx_max={s_onnx['max_abs']:.3e} joint_rad={joint_err_rad:.3e}", flush=True)
+        print(f"[VERIFY] {report['result']} -> {report_path}", flush=True)
+        return 0 if passed else 1
 
     # record the outcome in the manifest; the bundle only becomes "verified candidate"
     man["verification"] = {
