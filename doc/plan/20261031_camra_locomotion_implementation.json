@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.4.0",
+    "version": "3.5.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3401,7 +3401,7 @@
     {
       "id": "TASK-034",
       "goal": "补齐换设备复现所需的脚本、路径配置和产物索引",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-033"
       ],
@@ -3421,7 +3421,68 @@
         "为复现命令提供模型、协议、资产根目录、输出目录与设备参数，禁止依赖未登记的 /pub/data/caohy/tools 或脚本；输出必须使用新目录。",
         "预检资源与兼容环境，缺包、缺日志或库加载失败应给出可定位的错误，不能把本机 PyTorch DLL 故障报告为控制器不合格。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T11:10:00+08:00",
+          "summary": "TASK-034 完成：把 README 引用但只存在于 /pub/data/caohy 下的 5 个临时脚本改成仓库内入口 scripts/repro/*，机器相关路径全部收敛到 config/repro.env（环境变量优先），资产根改为可配置，新增产物索引与预检工具。验证：README 里每条命令都有仓库内等价入口；选模与 TASK-024 聚合两个历史判定被逐字节复现；预检在仓库目录与 /tmp 两个工作目录都返回 ready。",
+          "actions": [
+            "定位缺口：README 的 5 条命令指向 /pub/data/caohy/scripts（t023_train_r4 / t023_finalize_r4 / t024_finaltest / t025_export / t026_rollout），冻结命令还要 --t024-agg /pub/data/caohy/tools/t024_agg.py；同时 unitree.py:20 与每个 shell 脚本都写死了解释器、日志根、资产根，另一个工作目录或另一台机器无法运行。",
+            "新增 scripts/repro/{_common,train,devsweep,finalize,finaltest,export,rollout}.sh 与 scripts/repro/select_checkpoint.py、scripts/aggregate_final_test.py：对应原临时脚本的等价实现，路径从配置解析，产出判定以产物存在为准（该栈出现过 traceback 后仍 exit 0），输出默认落到 $CAMRA_LOG_ROOT/repro/<task>，非空目录需 --allow-existing 才复用。",
+            "新增 config/repro.env（唯一默认来源）+ scripts/camra_config.py（env > file > default 三级解析，并提供 source() 说明每个值的来源）；unitree.py 的 UNITREE_MODEL_DIR 改为 UNITREE_MODEL_DIR / CAMRA_ASSET_ROOT / 交付机默认 依次回退，解析到的仍是同一棵树。",
+            "冻结脚本 7 个参数改为可选：--asset-root/--protocol/--task024-root/--rollout-dir/--t024-agg/--repo/--out-root 分别回落到 CAMRA_* 或本次 checkout 内的等价路径，并在解析后校验存在性；BUNDLE_SCRIPTS 增加 scripts/camra_config.py（冻结脚本自己要用它），只影响后续新版本，已发布的 v2 不重新生成。",
+            "新增 scripts/artifact_index.py（build/verify/show）与 docs/artifacts_index.json：登记 10 个条目（冻结包 v2/v1、候选包、检查点、训练参数、Go2 资产、TASK-024/026 原始日志、协议与补充协议），文件用 sha256、目录用树散列（排序后的 相对路径:sha256 列表再取 sha256）。新增 docs/reproduction.md 写清入库边界、取用命令与换设备四步。",
+            "新增 scripts/check_repro_readiness.py：解释器/依赖/torch 可导入性/资产/检查点/协议/入口存在与可编译/GPU/设备索引/tmux/输出目录策略，三种判定 ready(0)、infra_blocked(2)、env_incompatible(3)，显式区分「资源缺失」与「控制器不合格」。",
+            "README 重写入口表与命令段（指向 scripts/repro/*、补 check_repro_readiness 与 artifact_index），并删掉所有 /pub/data/caohy/scripts 与 /pub/data/caohy/tools 的直接引用。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/config/repro.env（新增）",
+            "CaMRA/locomotion/scripts/camra_config.py（新增，路径解析单一来源）",
+            "CaMRA/locomotion/scripts/repro/_common.sh（新增，原 5 个脚本的共同前导）",
+            "CaMRA/locomotion/scripts/repro/train.sh、devsweep.sh、finalize.sh、finaltest.sh、export.sh、rollout.sh（新增）",
+            "CaMRA/locomotion/scripts/repro/select_checkpoint.py（新增，取代 tools/t023_select_r4.py）",
+            "CaMRA/locomotion/scripts/aggregate_final_test.py（新增，取代 tools/t024_agg.py）",
+            "CaMRA/locomotion/scripts/artifact_index.py（新增）",
+            "CaMRA/locomotion/scripts/check_repro_readiness.py（新增）",
+            "CaMRA/locomotion/docs/artifacts_index.json（新增，生成物）",
+            "CaMRA/locomotion/docs/reproduction.md（新增）",
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py（资产根可配置）",
+            "CaMRA/locomotion/scripts/freeze_controller_bundle.py（7 个路径参数改为可选 + BUNDLE_SCRIPTS 补 camra_config）",
+            "CaMRA/locomotion/README.md（入口表与命令段）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 35 章 + 目录行）"
+          ],
+          "commands": [
+            "bash -n scripts/repro/*.sh  # 逐个语法检查",
+            "python -m pytest tests/ -q  # 72 passed",
+            "python scripts/check_repro_readiness.py --level full-repro --json $LOG/readiness_full.json  # VERDICT: ready",
+            "python scripts/artifact_index.py build && python scripts/artifact_index.py verify  # PASS, 10 entries",
+            "python scripts/repro/select_checkpoint.py --dev-root <TASK-023> --suffix _r4  # 选出 2999，score 0.414823",
+            "python scripts/aggregate_final_test.py --root <TASK-024> --json-out ...  # 与冻结包文本逐字节一致",
+            "cd /tmp/<tmpdir> && python <repo>/scripts/check_repro_readiness.py --level eval-now  # EXIT 0"
+          ],
+          "results": [
+            "README 中不再有指向 /pub/data/caohy/scripts 或 /pub/data/caohy/tools 的命令；18 个声明的入口全部存在且可编译。",
+            "机器路径只有一个来源（config/repro.env，环境变量优先）；从 /tmp 运行预检与选模均成功，说明路径解析不依赖 cwd。",
+            "选模完全复现：6 个候选的 score/rmse_vx/failure_rate 与 TASK-023 的 selection_r4.json 逐项相同，选中 iteration 2999，score 0.414823，verdict=selected。",
+            "TASK-024 聚合输出与冻结包里 results/task024_aggregate.txt 逐字节一致（仅过滤工具自己追加的 [agg] 行），说明冻结包内那份判定文本可由仓库内工具重新导出。",
+            "资产未被替换：assets_go2 树散列 bd2fcb2f235b979f…、4 个文件 18,815,207 B；解析方式改变后仍指向同一棵树。",
+            "预检 22 项全 ok：解释器 3.11.18、torch 2.7.0+cu126（可导入，CUDA True）、isaaclab 0.47.2、isaacsim 5.1.0.0、rsl-rl-lib 3.0.1、onnxruntime 1.31.1、GPU 6 张可见、TASK-024 20/20 种子、TASK-026 3/3 臂、候选包在位。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-034/t034_run.log（主机 tiger12.ios.ac.cn、窗口 camra-locomotion:T034、12 个 EXIT_ 全 0）",
+            "/pub/data/caohy/logs/camra/TASK-034/readiness_full.json（22 项检查明细 + VERDICT ready）",
+            "/pub/data/caohy/logs/camra/TASK-034/index_build.log 与 index_verify.log（10 条目散列）",
+            "/pub/data/caohy/logs/camra/TASK-034/selection_replay.json 与 selection_compare.log（与 selection_r4.json 逐项一致）",
+            "/pub/data/caohy/logs/camra/TASK-034/finaltest_agg_replay.log 与 t024_diff.log（diff 为空）",
+            "/pub/data/caohy/logs/camra/TASK-034/readiness_from_tmp.log（从 /tmp/<tmpdir> 运行，EXIT 0）"
+          ],
+          "remaining_work": [
+            "无本任务遗留项。干净目录上的完整四步实测（clone → 改 config → 预检 → 小批复测）按验收分工留给 TASK-035 与 TASK-037。"
+          ],
+          "blockers": [
+            "无。"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "不把大模型/完整原始日志自动加入 Git，不上传到新外部服务，不安装本机大型仿真栈或变更核心依赖。",
         "本轮只补复现入口和取用说明；服务器未授权或产物不可访问时记录阻塞，不将清单存在当作包体存在。",
@@ -3432,7 +3493,7 @@
         "模型、资产和日志的获取/校验说明完整且不含凭证，配置化后解析到相同资产；实际干净目录检查留给 TASK-035/037。",
         "工作记录包含实际 tmux 主机/会话/窗口、命令日志、退出状态和产物证据，不能只以命令已发送或会话存在为验收。"
       ],
-      "verification_result": ""
+      "verification_result": "通过：README 每一条复现命令都有仓库内入口；资产/日志/模型索引可校验（10 条目 PASS）；预检在仓库目录与 /tmp 均返回 ready；选模与 TASK-024 聚合两个历史判定被逐项/逐字节复现。"
     },
     {
       "id": "TASK-035",

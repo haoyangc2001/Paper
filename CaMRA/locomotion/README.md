@@ -10,12 +10,15 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 | --- | --- | --- |
 | 训练 | 第 4 轮调优，3000 迭代，选中 iteration 2999 | `…/2026-11-02_11-14-49_formal_s0_3000it_r4/model_2999.pt` |
 | 开发集选模 | dev 种子 100–109，10 场景 × 300 回合全部通过 | 计划 TASK-023 工作记录 |
-| 最终测试（单次） | final_test 种子 200–209：nominal 10/10、perturbed 10/10 场景通过；全局失败率 0.000 / 0.007 | `/pub/data/caohy/logs/camra/TASK-024/` |
-| 导出与数值验证 | JIT 1.19e-06、ONNX 1.12e-06（换算关节目标 2.79e-07 rad） | `/pub/data/caohy/camra_bundles/candidates/r4_it2999_v1/` |
-| 独立闭环重载 | jit / onnx / trainer 三臂 4 场景 × 32 环境，0 摔倒 0 复位；JIT 与训练器逐位一致，ONNX 差 <9e-4 | `/pub/data/caohy/logs/camra/TASK-026/rollout/t026_aggregate.json` |
-| **冻结交付件** | `camra_go2_velocity_it2999_v2`，29 文件、全树 0444/0555、校验 PASS | `/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2` |
+| 最终测试（单次） | final_test 种子 200–209：nominal 10/10、perturbed 10/10 场景通过；全局失败率 0.000 / 0.007 | `$CAMRA_LOG_ROOT/TASK-024/` |
+| 导出与数值验证 | JIT 1.19e-06、ONNX 1.12e-06（换算关节目标 2.79e-07 rad） | `$CAMRA_BUNDLE_ROOT/candidates/r4_it2999_v1/` |
+| 独立闭环重载 | jit / onnx / trainer 三臂 4 场景 × 32 环境，0 摔倒 0 复位；JIT 与训练器逐位一致，ONNX 差 <9e-4 | `$CAMRA_LOG_ROOT/TASK-026/rollout/t026_aggregate.json` |
+| **冻结交付件** | `camra_go2_velocity_it2999_v2`，29 文件、全树 0444/0555、校验 PASS | `$CAMRA_BUNDLE_ROOT/frozen/camra_go2_velocity_it2999_v2` |
 
-**接手请先读 [实施交接笔记 §30「阶段一交付与接手须知」](docs/implementation_handoff.md)**：交付物与校验入口、逐条真跑过的命令、后续校准必须保持一致的五件事、明确没做的事、以及十个踩过的坑。
+**接手请先读 [实施交接笔记 §30「阶段一交付与接手须知」](docs/implementation_handoff.md)**：交付物与校验入口、逐条真跑过的命令、后续校准必须保持一致的五件事、明确没做的事、以及踩过的坑。
+
+仓库外的模型、原始日志和冻结包用 **[`docs/artifacts_index.json`](docs/artifacts_index.json)** 登记（路径 + sha256 / 目录树散列），
+用 `python scripts/artifact_index.py verify` 一条命令核对；取用边界见 **[docs/reproduction.md](docs/reproduction.md)**。
 
 ## 来源与上游关系
 
@@ -43,52 +46,69 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 | `source/unitree_rl_lab/` | 可安装的 Python 扩展及环境实现 |
 | `source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py` | CaMRA 的 Go2 速度跟踪环境、观测、动作与奖励配置 |
 | `source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/rsl_rl_ppo_cfg.py` | PPO 训练配置 |
-| `source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py` | 机器人资产路径及模型配置（`UNITREE_MODEL_DIR`） |
+| `source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py` | 机器人资产路径及模型配置（读 `UNITREE_MODEL_DIR` / `CAMRA_ASSET_ROOT`） |
 | `scripts/rsl_rl/train.py`、`scripts/rsl_rl/play.py` | 训练和策略评估入口（上游） |
 | `scripts/eval_locomotion.py` | 按协议评估：逐场景指标、逐回合 CSV、summary JSON |
+| `scripts/aggregate_eval_runs.py` | 跨种子/分组汇总与完整性检查（缺 run/场景/变体 → 退出码 2） |
+| `scripts/recompute_metrics.py` | 从原始 npz 复算指标，与 per_episode.csv 对照 |
 | `scripts/export_policy_candidate.py`、`scripts/verify_export_consistency.py` | 导出 JIT/ONNX 并做数值一致性验证 |
 | `scripts/rollout_exported_policy.py`、`scripts/aggregate_rollout_arms.py` | 三臂闭环重载与等效性判定 |
 | `scripts/freeze_controller_bundle.py`、`scripts/verify_frozen_bundle.py` | 生成只读冻结包并校验 |
 | `scripts/external_command_drive.py` | 10 Hz 外部命令接口的独立驱动示例 |
+| **`scripts/repro/`** | **仓库内复现入口**：`train` / `devsweep` / `finalize` / `finaltest` / `export` / `rollout`（见下） |
+| `scripts/check_repro_readiness.py` | 预检：解释器、依赖、资产、检查点、协议、GPU，并区分「基础设施阻塞」与「控制器不合格」 |
+| `scripts/artifact_index.py` | 仓库外产物的路径/散列索引构建与校验 |
+| `config/repro.env` | 机器相关路径的唯一默认来源（环境变量优先） |
 | `docs/eval_protocol.json` | 训练前固定的评估协议（种子、场景、阈值、验收规则） |
+| `docs/eval_protocol_supplement_v1.0.0.md` | TASK-030 的四项裁决补充协议（单模型、每变体 300 回合、90% 有效下限、逐变体判定） |
 | `docs/frozen/` | 冻结包清单副本（包体 28 MB 在仓库外） |
 | `deploy/robots/go2/` | Go2 的 C++ 部署入口和配置（未做真机适配） |
-| `tests/test_units.py` | 纯 CPU 单元测试（当前 34 项） |
+| `tests/` | 纯 CPU 单元测试（指标、变体调度、有效性判定、跨种子聚合） |
 
 ## 环境与常用命令
 
-实测环境：Python 3.11.18、torch 2.7.0（CUDA 12.6）、isaaclab 0.47.2、isaacsim 5.1.0.0、rsl-rl 3.0.1、onnxruntime 1.31.1。上游 README 写的 Isaac Lab 2.3.0 / Isaac Sim 5.1.0 保留在 [README.upstream.md](README.upstream.md)，以实测版本为准。解释器路径 `/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python`；GPU 用 `CUDA_VISIBLE_DEVICES=0`；所有长命令在 tmux 会话 `camra-locomotion` 内执行。
+实测环境：Python 3.11.18、torch 2.7.0（CUDA 12.6）、isaaclab 0.47.2、isaacsim 5.1.0.0、rsl-rl 3.0.1、onnxruntime 1.31.1。
+上游 README 写的 Isaac Lab 2.3.0 / Isaac Sim 5.1.0 保留在 [README.upstream.md](README.upstream.md)，以实测版本为准。
+
+**所有机器相关路径都在 [`config/repro.env`](config/repro.env) 里**（解释器、日志根、资产根、包根、设备）。换机器只改这一个文件，或直接导出同名环境变量（环境变量优先）：
+
+```bash
+export CAMRA_ASSET_ROOT=/mnt/assets/unitree_model
+export CAMRA_LOG_ROOT=/mnt/logs/camra
+python scripts/check_repro_readiness.py --level eval-now   # 先预检，别用失败的运行去评价控制器
+```
 
 ```bash
 cd CaMRA/locomotion
 
-# 训练（第 4 轮配置）
-bash /pub/data/caohy/scripts/t023_train_r4.sh 0 3000 formal_s0_3000it_r4
+# 训练（默认 seed 0、3000 迭代；输出到 $CAMRA_LOG_ROOT/repro/train/）
+scripts/repro/train.sh 0 3000 formal_s0_3000it_r4
 
-# 开发集选模 / 最终测试
-bash /pub/data/caohy/scripts/t023_finalize_r4.sh <run_dir>
-bash /pub/data/caohy/scripts/t024_finaltest.sh <run_dir>/model_2999.pt
+# 开发集扫点 + 选模（输出到 $CAMRA_LOG_ROOT/repro/devsweep/）
+scripts/repro/finalize.sh <run_dir> _r4
+
+# 最终测试：2 分组 × 10 种子 × 每场景 30 回合 = 每场景 300 回合
+scripts/repro/finaltest.sh <run_dir>/model_2999.pt both
 
 # 导出 + 数值验证；三臂闭环重载 + 聚合判定
-bash /pub/data/caohy/scripts/t025_export.sh
-bash /pub/data/caohy/scripts/t026_rollout.sh
-python scripts/aggregate_rollout_arms.py --out_dir /pub/data/caohy/logs/camra/TASK-026/rollout
+scripts/repro/export.sh <run_dir>/model_2999.pt
+scripts/repro/rollout.sh <候选包> <run_dir>/model_2999.pt
 
 # 冻结与校验（版本号不得复用；工作区不干净会被拒）
 python scripts/freeze_controller_bundle.py --candidate <候选包> --run-dir <run_dir> \
-  --checkpoint <run_dir>/model_2999.pt --asset-root /pub/data/caohy/unitree_model/Go2 \
-  --protocol docs/eval_protocol.json --task024-root /pub/data/caohy/logs/camra/TASK-024 \
-  --rollout-dir /pub/data/caohy/logs/camra/TASK-026/rollout \
-  --t024-agg /pub/data/caohy/tools/t024_agg.py --repo <仓库根> \
-  --out-root /pub/data/caohy/camra_bundles/frozen --version <新版本名>
+  --checkpoint <run_dir>/model_2999.pt --version <新版本名>
 python scripts/verify_frozen_bundle.py --bundle <冻结包> --samples 512
 
 # 纯 CPU、随时可跑
-python -m pytest tests/test_units.py -q
+python -m pytest tests/ -q
 cd /tmp && python <仓库>/CaMRA/locomotion/scripts/verify_export_consistency.py --bundle <冻结包>
 ```
 
-完整命令（含参数含义、日志路径、恢复训练与校准入口）在 [交接笔记 §30.3](docs/implementation_handoff.md)。
+`scripts/repro/*.sh` 的每个脚本都会把命令行、主机、git 提交、脏文件清单、GPU 写进 `*.start.txt`；
+产出判定以**产物是否存在**为准，不以 Isaac 进程退出码为准（该栈出现过 traceback 后仍 exit 0 的情况）。
+
+完整命令（含参数含义、日志路径、恢复训练与校准入口）在 [交接笔记 §30.3](docs/implementation_handoff.md)，
+换设备复现与产物取用边界在 [docs/reproduction.md](docs/reproduction.md)。
 
 ## 与上层的接口
 

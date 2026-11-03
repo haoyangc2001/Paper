@@ -17,7 +17,18 @@ from isaaclab.utils import configclass
 
 from unitree_rl_lab.assets.robots import unitree_actuators
 
-UNITREE_MODEL_DIR = "/pub/data/caohy/unitree_model"  # Tiger12 本地资产
+# Asset root. The value is read at import time from the environment so a clone on
+# another machine points at its own tree without editing source (TASK-034):
+#   UNITREE_MODEL_DIR  wins if set (upstream-compatible name)
+#   CAMRA_ASSET_ROOT   fallback used by scripts/repro/*.sh
+#   default            the delivery machine's tree
+# The frozen bundle ships its own copy under assets/Go2, so reloading a bundle
+# never depends on this variable.
+UNITREE_MODEL_DIR = (
+    os.environ.get("UNITREE_MODEL_DIR")
+    or os.environ.get("CAMRA_ASSET_ROOT")
+    or "/pub/data/caohy/unitree_model"
+)
 UNITREE_ROS_DIR = "path/to/unitree_ros"  # Replace with the actual path to your unitree_ros package
 
 

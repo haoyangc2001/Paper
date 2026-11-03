@@ -23,6 +23,7 @@
 | 32. 变体覆盖修复 | 逐变体配额调度、variant 日志、步数保护后的未完成判定 | TASK-031 |
 | 33. 有效数与完整性判定 | 逐指标有效数/原因、缺失即证据不足、跨种子完整性 | TASK-032 |
 | 34. 停车概率渐增的时间单位 | 控制步/迭代/仿真秒的换算、注释纠错、行为不变 | TASK-033 |
+| 35. 仓库内复现入口与产物索引 | repro/* 入口、路径配置化、产物索引与预检三态判定 | TASK-034 |
 
 ---
 
@@ -2358,3 +2359,126 @@ start_stop 2、ramp 2，共 3000 回合中的 12 次），均计入 `failure_rat
 那需要把 `ramp_iters` 改成 `300 × num_steps_per_env = 7200`，这会改变前 300 个迭代的命令分布，
 即改变训练任务本身，**不是文档修正**。本轮没有该授权，也不应该用现有模型去“验证”一个它没训练过的分布。
 若要改，按计划另立训练与验证任务（重新训练 + 重新评估 + 重新冻结），`TASK-037` 已为此留了位置。
+
+## 35. 仓库内复现入口与产物索引（TASK-034）
+
+### 35.1 缺口的真实形状
+
+README 里五条命令指向 `/pub/data/caohy/scripts/`（`t023_train_r4.sh`、`t023_finalize_r4.sh`、
+`t024_finaltest.sh`、`t025_export.sh`、`t026_rollout.sh`），冻结命令还要
+`--t024-agg /pub/data/caohy/tools/t024_agg.py`。这些都是本轮临时写的脚本，**不在仓库里**，
+所以"clone 下来能不能跑"这个问题的答案是"不能"，而且失败点分散：解释器路径、日志根、资产根、
+选模脚本、聚合脚本、检查点路径各写死一处。
+
+`source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py` 第 20 行原本是
+
+```python
+UNITREE_MODEL_DIR = "/pub/data/caohy/unitree_model"  # Tiger12 本地资产
+```
+
+也就是说**连源码都绑定了这一台机器**。
+
+### 35.2 现在有哪些仓库内入口
+
+| 原临时脚本 | 仓库内入口 | 行为差异（都写进脚本注释） |
+| --- | --- | --- |
+| `t023_train_r4.sh` | `scripts/repro/train.sh [seed] [iters] [name]` | 路径来自配置；`--device` 取 `CAMRA_DEVICE`；provenance 记到 `$CAMRA_LOG_ROOT/repro/train/` |
+| `t023_devsweep_r4.sh` | `scripts/repro/devsweep.sh <run_dir> [seed] [eps] [envs] [suffix] [iters...]` | suffix 改为参数（不再写死 `_r4`）；产物判据从"退出码"改为"summary.json 存在" |
+| `t023_finalize_r4.sh` | `scripts/repro/finalize.sh <run_dir> [suffix]` | 返回值取第一个失败而不是两码相加（相加可能互相抵消成 0） |
+| `t023_select_r4.py` | `scripts/repro/select_checkpoint.py` | 目录名按正则 `dev_it<数字><suffix>` 精确匹配（原实现用 glob，见 35.7）；同时报出 per-scenario 归一化的分数 |
+| `t024_finaltest.sh` | `scripts/repro/finaltest.sh <ckpt> [group] [seeds] [eps] [envs]` | 支持单分组；非空输出目录需 `--allow-existing`；逐种子判定产物 |
+| `t024_agg.py` | `scripts/aggregate_final_test.py` | 只是池化均值口径的复现器；新协议判定在 `aggregate_eval_runs.py` |
+| `t025_export.sh` | `scripts/repro/export.sh <ckpt> [out_dir] [tag]` | 默认输出 `candidates/<run>_<iter>`；产物检查保留 |
+| `t026_rollout.sh` | `scripts/repro/rollout.sh <bundle> <ckpt>` | 三臂跑完直接调 `aggregate_rollout_arms.py` 并返回它的退出码 |
+
+所有 shell 入口共同 source `scripts/repro/_common.sh`：它从**自身位置**推仓库根（不看 `$PWD`），
+读 `config/repro.env` 但**只填未被导出的变量**，然后设 Isaac 的 `XDG_*`、`TMPDIR`、`EULA`。
+
+### 35.3 路径只有一处默认值
+
+`config/repro.env` 是唯一默认来源，解析顺序是 **导出的环境变量 > 该文件 > 模块内默认值**，
+`scripts/camra_config.py` 的 `cfg.describe()` 会打印每个值的来源（`env` / `file` / `default`），
+预检输出开头就是这张表——出问题时先看它，比读代码快。
+
+换机器只改一件事：
+
+```bash
+export CAMRA_ASSET_ROOT=/mnt/assets/unitree_model
+export CAMRA_LOG_ROOT=/mnt/logs/camra
+```
+
+资产根有三处消费方，都读同一个变量：`unitree.py`（`UNITREE_MODEL_DIR` 优先、`CAMRA_ASSET_ROOT` 次之）、
+`scripts/repro/*.sh`（存在性检查）、`freeze_controller_bundle.py`（`--asset-root` 默认值 = `$CAMRA_ASSET_ROOT/Go2`）。
+
+### 35.4 入库边界与产物索引
+
+代码入库，**模型、原始日志、冻结包不入库**。`docs/artifacts_index.json` 是这份边界的机器可读版本：
+
+| 条目 | 散列 | 体量 |
+| --- | --- | --- |
+| `frozen_bundle_v2` | `8923c6fd4f05a921…`（树） | 29,127,046 B / 31 文件 |
+| `frozen_bundle_v1_superseded` | `9cf9a07099ed195c…`（树） | 29,124,660 B / 31 文件 |
+| `candidate_bundle` | `e3b21eb382a123d8…`（树） | 5,454,281 B / 6 文件 |
+| `checkpoint_selected` | `1c8f5aad38c2b763…` | 4,639,669 B |
+| `training_run_params` | `922d473cb449b2cb…` | 32,299 B |
+| `assets_go2` | `bd2fcb2f235b979f…`（树） | 18,815,207 B / 4 文件 |
+| `raw_logs_task024` | `8df2250af159c16a…`（树） | 662,001,271 B / 362 文件 |
+| `raw_logs_task026` | `32ea7954eefb787f…`（树） | 10,597,117 B / 16 文件 |
+| `protocol` / `protocol_supplement` | `0afc2cea…` / `f50d8b7f…` | 9,167 B / 6,640 B（入库） |
+
+目录条目是树散列：对目录内每个文件算 sha256，再对排序后的 `相对路径:sha256` 列表取 sha256，
+所以换内容、加删文件、改目录结构都会变。`verify` 按**当前解析到的路径**重算，只比对内容散列、
+不比对路径字符串——换机器不会因为路径不同而误报，但少了文件一定报。
+
+取用与换设备四步写在 `docs/reproduction.md`（rsync 命令、四步流程、明确没做的事）。
+
+### 35.5 预检先分清"谁的错"
+
+`scripts/check_repro_readiness.py` 的三种判定是本任务的核心产出：
+
+| VERDICT | 退出码 | 含义 |
+| --- | --- | --- |
+| `ready` | 0 | 该层级需要的资源齐备，可以开跑 |
+| `infra_blocked` | 2 | 检查点/资产/协议/历史日志缺失——**控制器根本没被运行，不能据此评价它** |
+| `env_incompatible` | 3 | 解释器或依赖不对（含 `import torch` 失败这类"元数据在、导入炸"的情形） |
+
+两层：`--level eval-now` 只要检查点+资产+协议+入口；`--level full-repro`/`--require-evidence`
+再要求 TASK-024 的 20 个种子目录、TASK-026 的 3 条臂、候选包。
+
+### 35.6 本轮实跑证据（窗口 `camra-locomotion:T034`，主机 tiger12.ios.ac.cn）
+
+| 步骤 | 结果 |
+| --- | --- |
+| `bash -n scripts/repro/*.sh` | 7 个脚本全过 |
+| `pytest tests/ -q` | **72 passed** |
+| `check_repro_readiness --level full-repro` | **VERDICT: ready**，22 项全 ok |
+| `artifact_index build` → `verify` | 10 条目，**PASS** |
+| `repro/select_checkpoint.py` 重放 | **iteration 2999，score 0.414823**，6 个候选的 score/rmse_vx/failure_rate 与 `selection_r4.json` 逐项相同 |
+| `aggregate_final_test.py` 重放 | 与冻结包 `results/task024_aggregate.txt` **逐字节一致**（仅过滤工具自己追加的 `[agg]` 行） |
+| 从 `/tmp/<tmpdir>` 运行预检与选模 | 均 **EXIT 0**，证明路径解析不依赖 cwd |
+
+日志全在 `/pub/data/caohy/logs/camra/TASK-034/`：`t034_run.log`（12 个 `EXIT_` 全 0）、
+`readiness_full.json`、`index_verify.log`、`selection_compare.log`、`t024_diff.log`（空 diff）。
+
+### 35.7 本轮踩到的三个坑
+
+1. **`dev_it*_r4` 这个 glob 会吞掉 10 种子目录**。`TASK-023` 下同时有单种子的
+   `dev_it<iter>_r4`（6 个）和 10 种子复核的 `dev_it2999_s10x_r4`（10 个），
+   原选模脚本按后缀匹配，于是把 `2999_s100` 当迭代号去 `int()`，直接崩。
+   现在用 `^dev_it(\d+)<suffix>$` 精确匹配，并把跳过的 28 个目录（6 无后缀 + 6 `_r1` + 6 `_r3` + 10 `_s10x`）
+   打印出来——**"跳过了什么"必须可见**，否则又是静默改变口径。
+2. **CRLF 会让 bash 在 `case` 处报语法错**。用 Windows 侧重写文件后 `_common.sh` 变成 CRLF，
+   `bash -n` 报 `syntax error near unexpected token newline`，指向 `case "$_k" in ''|\#*)`。
+   检查方法：`python -c "print(open(p,'rb').read().count(b'\r'))"`，应为 0；
+   修法：`sed -i 's/\r$//'`。已确认 `scripts/repro/*.sh`、`config/repro.env` 全为 LF。
+3. **`tmux display-message -p '#S:#W'` 报的是会话当前窗口，不是命令所在窗口**。
+   第一次记录写成 `camra-locomotion:TASK-023-r3`，与实际运行的 `TASK-034` 不符。
+   必须带 `-t "$TMUX_PANE"`。这类"记录看起来对、其实是别处的窗口"正是验收要防的东西。
+
+### 35.8 明确没做的
+
+* 没有把模型、原始日志、冻结包加入 git，也没有上传到任何新服务；索引里只有路径、大小、散列；
+* 没有替换资产内容，也没有动其他机器人任务：`assets_go2` 树散列与文件数（4）保持原样；
+* 没有改协议、阈值、检查点或训练配置；本轮不训练、不重测（正式复测是 TASK-036）；
+* 冻结包 v2 未重新生成——`BUNDLE_SCRIPTS` 增加 `scripts/camra_config.py` 只影响**后续新版本**；
+* 干净目录上的完整四步实测留给 TASK-035/037，本任务只证明"路径可解析、工具可复现"。

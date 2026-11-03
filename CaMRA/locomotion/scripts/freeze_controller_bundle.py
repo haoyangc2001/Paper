@@ -40,6 +40,9 @@ BUNDLE_SCRIPTS = [
     "scripts/export_policy_candidate.py",
     "scripts/freeze_controller_bundle.py",
     "scripts/verify_frozen_bundle.py",
+    # the freeze script resolves its own defaults through this module, so the
+    # bundle has to carry it as well (TASK-034)
+    "scripts/camra_config.py",
 ]
 
 # what this release explicitly does not claim, carried in the manifest so a reader of the
@@ -311,23 +314,78 @@ python scripts/verify_frozen_bundle.py --bundle <this dir>
 """
 
 
+def _camra_path(key: str, default: str) -> str:
+    """Value of a CAMRA_* setting: environment first, then config/repro.env, then default."""
+    if os.environ.get(key):
+        return os.environ[key]
+    try:
+        from camra_config import cfg  # same directory, also shipped in the bundle
+
+        return str(cfg.path(key))
+    except Exception:  # bundle copy without config/repro.env
+        return default
+
+
+def resolve_path_defaults(args: argparse.Namespace, ap: argparse.ArgumentParser) -> None:
+    """Fill the paths TASK-034 made optional, so the command line stops carrying literals.
+
+    Order: explicit flag > CAMRA_* (env or config/repro.env) > checkout-relative path.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    log_root = _camra_path("CAMRA_LOG_ROOT", "/pub/data/caohy/logs/camra")
+    asset_root = _camra_path("CAMRA_ASSET_ROOT", "/pub/data/caohy/unitree_model")
+    bundle_root = _camra_path("CAMRA_BUNDLE_ROOT", "/pub/data/caohy/camra_bundles")
+
+    if args.asset_root is None:
+        args.asset_root = os.path.join(asset_root, "Go2")
+    if args.protocol is None:
+        args.protocol = os.path.join(here, os.pardir, "docs", "eval_protocol.json")
+    if args.repo is None:
+        args.repo = os.path.abspath(os.path.join(here, os.pardir, os.pardir, os.pardir))
+    if args.t024_agg is None:
+        args.t024_agg = os.path.join(here, "aggregate_final_test.py")
+    if args.task024_root is None:
+        args.task024_root = os.path.join(log_root, "TASK-024")
+    if args.rollout_dir is None:
+        args.rollout_dir = os.path.join(log_root, "TASK-026", "rollout")
+    if args.out_root is None:
+        args.out_root = os.path.join(bundle_root, "frozen")
+
+    for name in ("asset_root", "protocol", "repo", "t024_agg"):
+        value = getattr(args, name)
+        if not os.path.exists(value):
+            ap.error(f"--{name.replace('_', '-')} does not exist: {value} "
+                     f"(set the matching CAMRA_* variable or pass the flag)")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Freeze a validated controller bundle.")
     ap.add_argument("--candidate", required=True, help="verified candidate bundle directory")
     ap.add_argument("--run-dir", required=True, help="training run dir (holds model_*.pt and params/)")
     ap.add_argument("--checkpoint", required=True, help="checkpoint file inside --run-dir")
-    ap.add_argument("--asset-root", required=True, help="robot asset tree to copy (e.g. .../unitree_model/Go2)")
-    ap.add_argument("--protocol", required=True, help="docs/eval_protocol.json")
-    ap.add_argument("--task024-root", required=True, help="TASK-024 output root")
-    ap.add_argument("--rollout-dir", required=True, help="TASK-026 rollout output dir")
-    ap.add_argument("--t024-agg", required=True, help="tools/t024_agg.py used to summarise TASK-024")
-    ap.add_argument("--repo", required=True, help="repository root the scripts are copied from")
-    ap.add_argument("--out-root", required=True, help="where version directories live")
+    ap.add_argument("--asset-root", default=None,
+                    help="robot asset tree to copy; default $CAMRA_ASSET_ROOT/Go2")
+    ap.add_argument("--protocol", default=None,
+                    help="default: docs/eval_protocol.json of this checkout")
+    ap.add_argument("--task024-root", default=None,
+                    help="default $CAMRA_LOG_ROOT/TASK-024")
+    ap.add_argument("--rollout-dir", default=None,
+                    help="default $CAMRA_LOG_ROOT/TASK-026/rollout")
+    ap.add_argument("--t024-agg", default=None,
+                    help="default: scripts/aggregate_final_test.py (in repo since TASK-034)")
+    ap.add_argument("--repo", default=None,
+                    help="repository root the scripts are copied from; default: this checkout")
+    ap.add_argument("--out-root", default=None,
+                    help="where version directories live; default $CAMRA_BUNDLE_ROOT/frozen")
     ap.add_argument("--version", required=True, help="new version directory name (never reused)")
     ap.add_argument("--allow-dirty", action="store_true",
                     help="freeze even though CaMRA/locomotion has uncommitted or untracked files "
                          "(recorded in the manifest; a clean tree is the default requirement)")
     args = ap.parse_args()
+
+    resolve_path_defaults(args, ap)
 
     git_src = git_info(args.repo)
     if git_src["dirty"] and not args.allow_dirty:
@@ -380,7 +438,8 @@ def main() -> int:
                      os.path.join(staging, "results", f"task026_rollout_{b}.json"))
     t024 = subprocess.run([sys.executable, args.t024_agg, "both"], capture_output=True, text=True)
     with open(os.path.join(staging, "results", "task024_aggregate.txt"), "w", encoding="utf-8") as fh:
-        fh.write("re-derived from the per-seed CSVs with tools/t024_agg.py; the authoritative run is "
+        fh.write("re-derived from the per-seed CSVs with "
+                 + os.path.basename(args.t024_agg) + "; the authoritative run is "
                  "the one logged in TASK-024, this copy exists so the bundle is self-describing\n\n")
         fh.write(t024.stdout)
         if t024.stderr:
