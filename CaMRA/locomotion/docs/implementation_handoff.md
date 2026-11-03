@@ -3565,3 +3565,17 @@ A 行的刹车列取自本章 C 组同口径的实测（0.1880 / 0.0421），不
 | `TASK-036/trackboost/trackboost_run.log` | 现场日志（窗口 `camra-locomotion:T047BOOST`、EXIT 全 0） |
 | `TASK-036/trackboost/exp_V_trackboost/params/env.yaml` | 权重 2.0 与采样交付值的复核证据 |
 | `TASK-036/trackboost/s100/` | 评估产物 |
+
+### 附（第 47 章后补）：joint_position_penalty 的 5 倍罚语义核实——排除一个嫌疑
+
+诊断链中未核查 （weight −0.7，、
+）的精确语义，本节补上。源码（unitree_rl_lab mdp/rewards.py:78）：
+
+```python
+return torch.where(torch.logical_or(cmd > 0.0, body_vel > velocity_threshold),
+                   reward, stand_still_scale * reward)
+```
+
+即：**命令非零（哪怕 0.01）就按 1 倍罚**；只有「命令为 0 且机身速度 ≤0.3」时才罚 5 倍。
+死区发生在命令 0.15–0.20（非零）处，走路的姿态偏离按 1 倍计——因此该 5 倍罚**不是**死区成因，
+本嫌疑排除；死区仍归因于 `stop_event_prob` 的停车训练样本（第 44/45 章），结论不变。
