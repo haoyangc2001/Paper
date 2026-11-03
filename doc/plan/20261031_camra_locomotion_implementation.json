@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.1.3",
+    "version": "3.2.0",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -103,6 +103,16 @@
         "version": "3.1.3",
         "date": "2026-11-03",
         "summary": "TASK-030 补充量化影响并修正草稿中的两处数字与一处口径：OPEN-2 的回合总量由「2.4 万」更正为 9000/6000/4500（按 10 场景、变体数 1/2/2/4 逐项重算）；写明 combined 的 4 个变体是四个对角符号组合而非全部 8 种；补记训练与评估实测吞吐（3000 迭代 5h24m/5h21m，6000 回合 1h57m44s ≈1.18 s/回合）与 OPEN-3 的门槛后果（230 个指标单元中 228 个 300/300，仅 fwd_low.rise_time_s 不满额）；并修正 phases 缺失阶段 E 的元数据缺口。四项裁决仍未作出，TASK-030 保持未完成。"
+      },
+      {
+        "version": "3.1.4",
+        "date": "2026-11-03",
+        "summary": "TASK-030 完成并标记完成：用户采纳四项推荐（单模型验收 / 每变体 300 回合 / 90% 有效下限含不适用条款 / 逐变体判定并报合并值），据此生成正式补充验收协议 v1.0.0（sha256 f50d8b7f…），草稿留档不再生效；父协议与冻结包未修改，补训三模型仍列为未满足项。TASK-031 依赖解除。"
+      },
+      {
+        "version": "3.2.0",
+        "date": "2026-11-03",
+        "summary": "TASK-031 完成并标记完成：修复评估器只执行变体 0 的缺陷（固定槽位 + 逐变体配额 + variant 日志 + 未完成判定），新增 13 项单测（合计 47 passed），小批真跑与步数保护真跑均有证据；同时记录 summary.json 结构变化与 lateral 左右不对称的初步观察。未跑正式复测。"
       }
     ]
   },
@@ -2970,7 +2980,7 @@
     {
       "id": "TASK-030",
       "goal": "统一补充验收协议与已获批准的决策",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-029"
       ],
@@ -3080,6 +3090,44 @@
             "OPEN-1…4 四项实质变更须用户裁决；计划 TASK-030 动作 1 明确「不能自行减为单模型」，因此不得以默认值推进。",
             "TASK-031—TASK-037 全部 depends_on（直接或间接）TASK-030，当前均暂停。"
           ]
+        },
+        {
+          "timestamp": "2026-11-03T10:20:00+08:00",
+          "summary": "TASK-030 完成：用户对四项提案逐条采纳（回复「按推荐」），据此产出正式补充验收协议 v1.0.0（91 行，sha256 f50d8b7f…），四项 OPEN 全部关闭，TASK-031 解除阻塞。",
+          "actions": [
+            "记录裁决：D-1 单模型验收（冻结包 model_2999.pt，sha256 1c8f5aad…，报告须写「单模型、无训练种子间方差」，禁止三种子均值表述）；D-2 每变体 300 回合（10 评估种子 × 每种子每变体 30 回合）；D-3 有效下限 90%，指标未定义不计入分母但须报不适用比例；D-4 逐变体判定为主判据，合并值仅对照。",
+            "生成正式协议 CaMRA/locomotion/docs/eval_protocol_supplement_v1.0.0.md（91 行，sha256 f50d8b7f…）：含 D-1…D-4 裁决表、沿用不变项、执行参数（种子 300–309 提前登记、每变体 30 回合/种子、总 9000 回合）、四类判定规则、不可事后调整条款、与父协议停训条款的 documented deviation、已知未满足项清单。",
+            "保留草稿 eval_protocol_supplement_draft.md 原样（sha256 960f419d…，作为提案留档、不再生效），正式协议首段声明取代关系，避免两份文件同时被当作有效口径。",
+            "父协议 docs/eval_protocol.json（0afc2cea…）与冻结包内副本未做任何修改；阈值未放宽，仅把「每场景 300 回合」细化为「每变体 300 回合」并补判定粒度与有效数条款。",
+            "按 D-1/D-2 复核总量：单组 4500、两组 9000 回合，与 TASK-030 第二轮量化表一致；确认与「补训 2 个 seed ≈11 h」解耦，本轮不训练。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/docs/eval_protocol_supplement_v1.0.0.md（新增，91 行，sha256 f50d8b7f…）",
+            "doc/plan/20261031_camra_locomotion_implementation.json（TASK-030 status=true；版本 3.1.3→3.1.4；本记录）"
+          ],
+          "commands": [
+            "sha256sum CaMRA/locomotion/docs/eval_protocol_supplement_v1.0.0.md CaMRA/locomotion/docs/eval_protocol_supplement_draft.md",
+            "python - <<'PY' 重新核算 9000 回合：7×300 + 2×300 + 2×300 + 4×300 = 4500/组",
+            "python validate_worklog.py --mode update doc/plan/20261031_camra_locomotion_implementation.json"
+          ],
+          "results": [
+            "四项裁决已写入计划，不再存在待裁决状态；OPEN-1 取单模型、OPEN-2 取每变体 300、OPEN-3 取 90%+不适用条款、OPEN-4 取逐变体判定并报合并值。",
+            "正式补充协议 v1.0.0 生效（sha256 f50d8b7f…），父协议与冻结包未动。",
+            "TASK-030 标记完成；TASK-031 依赖解除，可按「修复方向/组合覆盖」开工。",
+            "遗留未满足项（父协议三模型要求、0–40 ms 延迟未覆盖、训练期 GPU 记录缺失）已单列，随复测报告交付。"
+          ],
+          "evidence": [
+            "CaMRA/locomotion/docs/eval_protocol_supplement_v1.0.0.md（sha256 f50d8b7f…，§1 裁决表、§3 执行参数、§4 判定规则）",
+            "CaMRA/locomotion/docs/eval_protocol_supplement_draft.md（sha256 960f419d…，提案留档）",
+            "用户回复「按推荐」（2026-11-03 10:13，对应上一条回复中的四项推荐值）",
+            "docs/eval_protocol.json sha256 0afc2cea…（未修改）"
+          ],
+          "remaining_work": [
+            "补训 seed 1、2（每模型约 5h24m，串行约 11 h）仍为未满足项，需新的预算与执行授权；本轮不复测三种子。",
+            "0–40 ms 指令延迟场景仍未实现，复测报告继续声明未覆盖。",
+            "TASK-031 起按正式协议实施评估工具修复，回归在 TASK-035 统一验证。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -3092,12 +3140,12 @@
         "旧协议与旧测试身份可追溯；独立测试隔离、开发集用途和不允许事后调整的规则完整。",
         "工作记录包含实际 tmux 主机/会话/窗口、命令日志、退出状态和产物证据，不能只以命令已发送或会话存在为验收。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。四项待裁决全部关闭并落地为正式补充协议 v1.0.0（sha256 f50d8b7f…）：D-1 单模型（冻结包 model_2999.pt，明写无种子方差，禁止三种子均值表述）；D-2 每变体 300 回合（10 种子 × 30 回合，总 9000 回合）；D-3 有效下限 90% 且未定义不计分母、须报不适用比例；D-4 逐变体判定为主、合并值仅对照。父协议与冻结包零修改，阈值未放宽；与父协议停训条款的冲突以 documented deviation 记录并注明授权来源 bf56195；未满足项（三模型要求、指令延迟、GPU 记录）单列随报告交付。"
     },
     {
       "id": "TASK-031",
       "goal": "修复评估场景中方向和组合命令的覆盖",
-      "status": false,
+      "status": true,
       "depends_on": [
         "TASK-030"
       ],
@@ -3114,7 +3162,53 @@
         "日志增加可追溯的 variant_id、episode_id、种子和请求/实际命令；使用原始命令确认左右侧移、正负转向和四种组合的真实覆盖，失败回合保留并计数。",
         "达到步数保护上限、缺变体或配额不足时输出明确的未完成/失败状态，不能因已有部分回合达标就给出 overall_pass。"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T10:45:00+08:00",
+          "summary": "TASK-031 完成：修复评估器只跑变体 0 的缺陷。新增逐变体配额调度器（纯 Python）、把 variant_id/episode_id/首步命令写入 CSV 与 npz、把步数保护命中改判为 INCOMPLETE，并用小批真跑证明左右方向与四个对角组合确实被执行；13 项新单测，与既有单测合计 47 passed。",
+          "actions": [
+            "定位四条独立原因并逐条修：① `(ep_counter % n) == vi` 且计数器全 0 → 首步 64 环境全是变体 0；② 终止条件只看场景总数 `while len(done_rows) < wanted`，`num_envs(64) > wanted(30)` 导致第一批即收满；③ 无任何变体字段，漏测无法反查；④ `guard` 命中只 WARN + break，随后仍按不足回合数聚合。",
+            "新增 `unitree_rl_lab/utils/variant_scheduler.py`：`assign_variants()` 固定槽位 i%n（各变体环境数相差 ≤1）；`VariantScheduler` 逐变体配额、超额回合计入 rejected、`coverage()` 输出接受/拒绝/缺失/未覆盖；`num_envs < num_variants` 或某变体无环境时抛 ValueError。",
+            "改 `scripts/eval_locomotion.py`：新增 `--episodes_per_variant`（协议 D-2 用 30/变体/种子），`--episodes_per_scenario` 保留为兼容入口（缺省时 //n_variants 折算并打印）；命令按固定槽位下发；循环条件改为 `until sched.complete()`；per_episode.csv 增加 variant_id/episode_id/env_seed/首步命令；npz 增加 variant_ids/episode_ids；summary.json 改为 variants[]+coverage+combined+incomplete_reason，场景通过=覆盖完整且全部变体通过，overall_pass 再叠加 coverage_complete。",
+            "新增 `tests/test_variant_scheduler.py` 13 项：槽位均衡、envs<variants 报错、同步/异步精确配额、配额不整除、环境数少于配额、超额计数、episode_id 连续、guard 未完成、未覆盖变体可见，以及“旧分配器只跑变体 0”的复现用例。运行 `pytest tests/test_variant_scheduler.py tests/test_units.py -q` → 47 passed。",
+            "小批真跑（tmux camra-locomotion:T031A，GPU 0，seed 300，quota 4/变体）：lateral accepted [4,4]、combined [4,4,4,4]，coverage_complete=True；从 raw/npz 首步命令核对到 ±0.3 侧移与四个对角组合 (0.6,±0.3,±0.5)。",
+            "步数保护真跑（tmux T031B，quota 1000/变体）：4201 步命中上限，accepted=[256,256]、missing={0:744,1:744}、incomplete_reason=step_guard_hit、overall_pass=False，不再把“没测完”判成通过。",
+            "记录一个顺带发现：小批 lateral 右移 v0 rmse_vy=0.0886 过 0.10 阈值、左移 v1=0.1037 不过；旧口径只跑右移因而永远看不到左右不对称。样本 4 回合仅作示意，不作结论。",
+            "兼容性变化写入交接笔记：summary.json 结构改变（旧字段读取脚本需同步，TASK-034 处理）、退出码仍为 0（判定看 summary）、aggregate() 的非有限值处理未改（TASK-032）。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/variant_scheduler.py（新增，153 行）",
+            "CaMRA/locomotion/scripts/eval_locomotion.py（逐变体配额、变体日志、未完成判定）",
+            "CaMRA/locomotion/tests/test_variant_scheduler.py（新增，212 行 / 13 项）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 32 章 + 目录行）"
+          ],
+          "commands": [
+            "python -m pytest tests/test_variant_scheduler.py tests/test_units.py -q  # 47 passed",
+            "bash /pub/data/caohy/scripts/t031_smoke.sh smoke_v2  # tmux camra-locomotion:T031A，EXIT_CODE=0",
+            "python scripts/eval_locomotion.py --scenarios lateral --episodes_per_variant 1000 ...  # tmux T031B，命中 guard"
+          ],
+          "results": [
+            "变体覆盖不再依赖 ep_counter 起点或 num_envs 与配额的大小关系：lateral 2/2、combined 4/4 全部执行。",
+            "逐回合证据可反查：CSV 与 npz 均带 variant_id/episode_id，首步命令可直接核对方向符号。",
+            "超额回合计入 rejected 而非静默丢弃；未覆盖/未达配额/步数保护统一给出 INCOMPLETE 且 overall_pass=False。",
+            "47 项单测通过（13 新增 + 34 既有），未回归既有契约。",
+            "未改模型、命令域、控制频率、奖励、协议阈值与冻结包；未跑正式复测。"
+          ],
+          "evidence": [
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 32 章（缺陷、修复、证据表、兼容性变化）",
+            "/pub/data/caohy/logs/camra/TASK-031/smoke_v2/{summary.json,per_episode.csv,raw/nominal/*.npz}",
+            "/pub/data/caohy/logs/camra/TASK-031/smoke_guard/{summary.json,smoke_guard.log}",
+            "tests/test_variant_scheduler.py（含旧分配器复现用例）"
+          ],
+          "remaining_work": [
+            "TASK-032 处理 aggregate() 丢弃非有限值、有效数不足仍可判通过的问题，并决定“不完整是否应非零退出”。",
+            "TASK-034 把 t023/t024 驱动与聚合脚本入库时，需同步 summary.json 新结构（variants/coverage/combined）。",
+            "正式复测（TASK-036）按协议每变体 30 回合/种子 × 10 个新种子跑 9000 回合。",
+            "小批观察到的 lateral 左右不对称需在正式复测中按 300 回合/变体确认，不能以 4 回合下结论。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不改变模型、命令域、控制频率或奖励；不能仅增加总回合数却不验证各变体配额。",
         "不要把纯调度修复混同于控制接口时序变更；如必须改变 reset 或命令施加时序，记录行为差异并按 TASK-037 的新版本要求处理。",
@@ -3125,7 +3219,7 @@
         "提前终止、异步完成、非整除配额和步数保护均有确定处理，缺测不会返回通过；记录对应回归用例，统一在 TASK-035 验证。",
         "工作记录包含实际 tmux 主机/会话/窗口、命令日志、退出状态和产物证据，不能只以命令已发送或会话存在为验收。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。四条缺陷均已修复并有证据：变体分配改为固定槽位（不再依赖从 0 起的 ep_counter），终止条件改为逐变体配额（lateral [4,4]、combined [4,4,4,4]，另加 13 项单测覆盖非整除/环境数<配额/异步完成），CSV 与 npz 均记录 variant_id/episode_id 并可读回首步命令核对方向，步数保护命中时输出 incomplete_reason=step_guard_hit 且 overall_pass=False。13 项新单测与 34 项既有单测全部通过（47 passed）。未改模型/阈值/冻结包，未跑正式复测。"
     },
     {
       "id": "TASK-032",

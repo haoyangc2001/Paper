@@ -20,6 +20,7 @@
 | 10–29 | 逐任务追加的正文（论文核对、代码阅读、接口实现、训练与评估），未逐条列入本表 | TASK-003–TASK-022 |
 | 30. 阶段一交付与接手须知 | 交付物与校验入口、真实命令、必须保持一致的五件事、没做的事、踩过的坑 | TASK-028 |
 | 31. 底层验收证据复核 | 证据索引、训练模型数、变体覆盖与指标完整性的只读核对 | TASK-029 |
+| 32. 变体覆盖修复 | 逐变体配额调度、variant 日志、步数保护后的未完成判定 | TASK-031 |
 
 ---
 
@@ -2195,3 +2196,63 @@ start_stop 2、ramp 2，共 3000 回合中的 12 次），均计入 `failure_rat
 **尚缺、需 TASK-034 处理的**：TASK-024/023/026 的驱动脚本（`t023_devfull_r4.sh`、`t024_finaltest.sh`、
 `t024_agg.py` 等）目前只在 `/pub/data/caohy/scripts|tools/` 下，**不在仓库内**；模型与原始日志也不进 Git。
 换设备仅凭 clone 仍不能复现，这一点已写入 TASK-034 的目标。
+
+## 32. 变体覆盖修复（TASK-031）
+
+上一轮复核（第 31 章）发现多方向场景只跑了变体 0。本章记录修复与证据。
+模型、命令域、控制频率、奖励、协议阈值、冻结包**均未改动**，改动只在评估工具的调度与记录。
+
+### 32.1 缺陷：四条独立原因，缺一条就不成立
+
+1. **变体选择用了从 0 开始的计数器**：`sel = (ep_counter % n) == vi`，场景开始时
+   `ep_counter` 全为 0，所以第一个仿真步 64 个环境**全部**在跑变体 0。
+2. **终止条件只看场景总数**：`while len(done_rows) < wanted`，而 `num_envs=64 > wanted=30`，
+   第一批 30 条收满即退出，环境根本没机会跑第二个回合。
+3. **没有任何字段记录「这一回合属于哪个变体」**：事后无法从 `per_episode.csv` 或 `summary` 反查，
+   漏测在报告里表现为“通过”。
+4. **步数保护命中后照常判定**：`guard` 超限只打印一行 WARN 就 `break`，
+   随后用不足的回合数聚合，`overall_pass` 仍可能为真。
+
+### 32.2 修复
+
+* 新增 `source/unitree_rl_lab/unitree_rl_lab/utils/variant_scheduler.py`（纯 Python，无 Isaac）：
+  - `assign_variants(num_envs, n)` 固定槽位 `i % n`，各变体分到的环境数相差不超过 1；
+  - `VariantScheduler` 按变体独立配额：`record(env_id)` 返回 `{variant, episode_id, accepted}`，
+    超额回合计入 `rejected`（不静默丢弃），`coverage()` 输出逐变体接受/拒绝/缺失/未覆盖；
+  - `num_envs < num_variants` 直接抛错——这种配置下必有变体永远跑不到。
+* `scripts/eval_locomotion.py`：
+  - 配额改成**逐变体**：新增 `--episodes_per_variant`（协议 D-2 用 30/变体/种子）；
+    `--episodes_per_scenario` 保留兼容，缺省时按 `// n_variants` 折算并打印一行说明；
+  - 命令按固定槽位下发，循环条件是 `until sched.complete()`；
+  - `per_episode.csv` 新增 `variant_id`、`episode_id`、`env_seed`、`cmd_vx_first/cmd_vy_first/cmd_wz_first`；
+  - `raw/<group>/<scenario>.npz` 新增 `variant_ids`、`episode_ids`（与 `lengths` 等长）；
+  - `summary.json` 改为 `scenarios[].variants[]`（逐变体判定）+ `coverage` + `combined`（仅对照）
+    + `incomplete_reason`；场景通过 = 覆盖率完整且**所有变体**通过；`overall_pass` 再叠加
+    `coverage_complete`（协议 D-4）。
+
+### 32.3 证据
+
+| 项 | 结果 |
+| --- | --- |
+| 新增单测 | `tests/test_variant_scheduler.py` 13 项，含“旧分配器只跑变体 0”的复现用例 |
+| 全量单测 | `python -m pytest tests/test_variant_scheduler.py tests/test_units.py -q` → **47 passed** |
+| 小批真跑 | tmux `camra-locomotion:T031A`，GPU 0，seed 300，quota 4/变体，nominal：`lateral` accepted `[4,4]`、`combined` `[4,4,4,4]`，`coverage_complete=True` |
+| 命令级核对 | 从 `raw/nominal/*.npz` 首步命令读回：lateral v0 `(0,+0.3,0)` / v1 `(0,−0.3,0)`；combined 四变体 `(0.6,0.3,0.5)`、`(0.6,−0.3,−0.5)`、`(−0.6,0.3,−0.5)`、`(−0.6,−0.3,0.5)` |
+| 步数保护 | tmux `T031B`，quota 1000/变体：4201 步命中上限，`accepted=[256,256]`、`missing={0:744,1:744}`、`incomplete_reason=step_guard_hit`、`overall_pass=False` |
+
+产物：`/pub/data/caohy/logs/camra/TASK-031/{smoke_v1,smoke_v2,smoke_guard}/`，日志同名 `.log`。
+注意 Kit 的 C++ 启动横幅在退出时才 flush，**日志文件末尾不是运行结果**，结果看 `[EVAL]`/`[EVAL_SUMMARY]` 行或 pane。
+
+### 32.4 顺带暴露的一个真实问题（仅示意）
+
+小批 4 回合/变体的 `lateral`：**右移 v0 的 `rmse_vy=0.0886` 过了 0.10 阈值，左移 v1 的 `0.1037` 没过**。
+旧口径只跑右移，这类左右不对称永远不会出现在报告里。样本只有 4 回合，不能当结论，
+但足以说明复测（TASK-036）必须逐变体看，不能合并平均。
+
+### 32.5 兼容性变化与没做的事
+
+* `summary.json` 结构变了（`scenarios[]` 下新增 `variants`/`coverage`/`combined`/`incomplete_reason`，
+  `pass` 改为逐变体判定）。读旧字段的脚本要同步改——`TASK-034` 把驱动脚本入库时一并处理。
+* 退出码仍为 0（“跑完了”= 0），判定只看 `summary.json`；是否“不完整即非零”留给 `TASK-032` 决定。
+* `aggregate()` 对非有限值（如 `rise_time_s` 的 NaN）仍然丢弃，未改——属 `TASK-032`。
+* 未跑正式复测，未改模型/阈值/冻结包，未重写 TASK-023/024 的任何记录。

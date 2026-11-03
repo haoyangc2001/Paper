@@ -17,6 +17,9 @@ Design notes required by the protocol:
 * **No cherry-picking**: every episode is logged, including early terminations.
   ``failure_rate`` counts ``base_contact`` / ``bad_orientation`` terminations;
   terminated episodes still contribute their pre-termination samples.
+* **Variant coverage** (TASK-031): every command variant has its own episode
+  quota and a fixed slice of environments; the loop stops only when *each*
+  variant is full. See ``unitree_rl_lab.utils.variant_scheduler``.
 * **Warm-up**: the first ``warmup.settle_s`` (1.0 s) after a reset is excluded
   from tracking metrics, per protocol.
 * **Error frame**: velocities are body-frame (``root_lin_vel_b`` /
@@ -48,7 +51,25 @@ parser.add_argument("--num_envs", type=int, default=256)
 parser.add_argument("--seed", type=int, default=200, help="Env seed; protocol final_test seeds are 200-209.")
 parser.add_argument("--group", type=str, default="nominal", choices=["nominal", "perturbed"])
 parser.add_argument("--scenarios", type=str, default="all", help="Comma-separated scenario ids, or 'all'.")
-parser.add_argument("--episodes_per_scenario", type=int, default=300)
+parser.add_argument(
+    "--episodes_per_variant",
+    type=int,
+    default=None,
+    help=(
+        "Episodes required per command variant (sign direction / sign combination). "
+        "This is the quota the loop actually enforces: multi-direction scenarios must satisfy it "
+        "separately for every variant. Protocol v1.0.0 supplement D-2 uses 30 per variant per seed."
+    ),
+)
+parser.add_argument(
+    "--episodes_per_scenario",
+    type=int,
+    default=300,
+    help=(
+        "Legacy total-per-scenario budget. Only used when --episodes_per_variant is omitted: "
+        "the per-variant quota becomes episodes_per_scenario // num_variants (so the total stays comparable)."
+    ),
+)
 parser.add_argument(
     "--action_mode",
     type=str,
@@ -83,6 +104,7 @@ from unitree_rl_lab.utils.external_command import (
     StepProgram,
 )
 from unitree_rl_lab.utils.parser_cfg import parse_env_cfg
+from unitree_rl_lab.utils.variant_scheduler import VariantScheduler, assign_variants
 
 REPO = "/home/caohy/repositories/Paper"
 DEFAULT_PROTOCOL = os.path.join(REPO, "CaMRA/locomotion/docs/eval_protocol.json")
@@ -406,6 +428,11 @@ def main() -> None:
         "num_envs": bridge.num_envs,
         "scenarios": [s["id"] for s in specs],
         "episodes_per_scenario": args_cli.episodes_per_scenario,
+        "episodes_per_variant": args_cli.episodes_per_variant,
+        "variant_coverage_rule": (
+            "per-variant quota enforced by VariantScheduler; env -> variant is a fixed slot "
+            "(i % num_variants), never an episode counter that starts at 0"
+        ),
         "step_dt": step_dt,
         "policy_hz": 1.0 / step_dt,
         "warmup_s": warmup_s,
@@ -435,14 +462,32 @@ def main() -> None:
     robot = u.scene["robot"]
     term_names = list(u.termination_manager.active_terms)
     action_dim = int(u.action_manager.total_action_dim)
+    scenario_coverage: dict = {}
 
     for spec in specs:
         variants = program_variants(spec)
         duration = float(spec["duration_s"])
         dur_steps = int(round(duration / step_dt))
-        wanted = int(args_cli.episodes_per_scenario)
+        # Per-variant quota (protocol supplement D-2). The previous version asked for a
+        # scenario-wide total and stopped as soon as that total was reached; because every
+        # environment started at ep_counter == 0, the first cohort was all variant 0 and the
+        # remaining variants were never executed (TASK-029 finding).
+        if args_cli.episodes_per_variant is not None:
+            quota = int(args_cli.episodes_per_variant)
+        else:
+            quota = max(1, int(args_cli.episodes_per_scenario) // len(variants))
+            print(
+                f"[EVAL] {spec['id']}: --episodes_per_variant not given, derived quota={quota} from "
+                f"episodes_per_scenario={args_cli.episodes_per_scenario} and {len(variants)} variant(s)",
+                flush=True,
+            )
+        variant_of_env = assign_variants(bridge.num_envs, len(variants))
+        variant_ids = torch.tensor(variant_of_env, dtype=torch.long, device=bridge.device)
+        sched = VariantScheduler(variant_of_env, quota, num_variants=len(variants))
         done_rows: list[dict] = []
         ep_steps: list[torch.Tensor] = []
+        ep_variant: list[int] = []
+        ep_episode_id: list[int] = []
         ep_counter = torch.zeros(bridge.num_envs, dtype=torch.long, device=bridge.device)
         store.t = 0
         store.start.zero_()
@@ -453,19 +498,27 @@ def main() -> None:
 
         t0 = time.time()
         guard = 0
-        while len(done_rows) < wanted:
+        guard_limit = dur_steps * 8 + 200
+        guard_hit = False
+        while not sched.complete():
             guard += 1
-            if guard > dur_steps * 8 + 200:
-                print(f"[WARN] {spec['id']}: step guard hit, stopping with {len(done_rows)} episodes", flush=True)
+            if guard > guard_limit:
+                guard_hit = True
+                print(
+                    f"[WARN] {spec['id']}: step guard hit after {guard} steps with "
+                    f"{sched.total_accepted}/{sched.target_total} episodes, missing {sched.missing()} "
+                    "-> run marked INCOMPLETE",
+                    flush=True,
+                )
                 break
 
-            # per-env command from its own episode clock and variant index
+            # per-env command from its own episode clock and its fixed variant slot
             ep_t = (u.episode_length_buf.to(torch.float32) * step_dt).unsqueeze(1)
-            # map env -> variant by its episode counter
+            # map env -> variant by a fixed slot, not by an episode counter that starts at 0
             cmds = torch.zeros(bridge.num_envs, 3, device=bridge.device)
             for vi, prog in enumerate(variants):
-                sel = (ep_counter % len(variants)) == vi
-                if sel.any():
+                sel = variant_ids == vi
+                if bool(sel.any()):
                     cmds[sel] = prog.at(ep_t[sel].squeeze(1))
             bridge.set_command_batch(cmds)
 
@@ -518,10 +571,11 @@ def main() -> None:
             if bool(close.any()):
                 ids = close.nonzero(as_tuple=False).flatten()
                 for env_id in ids.tolist():
-                    if len(done_rows) >= wanted:
-                        break
                     ep = store.episode(env_id)
-                    if ep.shape[0] < 3:
+                    # count the episode first: a rejected surplus episode must still be
+                    # visible in the coverage report, never dropped without a trace
+                    rec = sched.record(env_id)
+                    if ep.shape[0] < 3 or not rec["accepted"]:
                         continue
                     # overwrite the closing reason when the scenario simply ran out
                     if float(ep[-1, I["reason_id"]]) == 0.0:
@@ -529,8 +583,17 @@ def main() -> None:
                     m = compute_metrics(ep.detach().cpu().numpy(), spec, step_dt, warmup_s)
                     m["env_id"] = int(env_id)
                     m["episode_index"] = int(ep_counter[env_id].item())
+                    m["variant_id"] = int(rec["variant"])
+                    m["episode_id"] = int(rec["episode_id"])
+                    m["env_seed"] = int(args_cli.seed)
+                    # requested command of this episode, read back from the step log
+                    m["cmd_vx_first"], m["cmd_vy_first"], m["cmd_wz_first"] = [
+                        float(x) for x in ep[0, I["cmd_vx"] : I["cmd_vx"] + 3].tolist()
+                    ]
                     done_rows.append(m)
                     ep_steps.append(ep.cpu())
+                    ep_variant.append(int(rec["variant"]))
+                    ep_episode_id.append(int(rec["episode_id"]))
                 # reset the closed envs (IsaacLab already reset terminated ones)
                 manual = (reached & ~term & ~trunc).nonzero(as_tuple=False).flatten()
                 if manual.numel():
@@ -540,8 +603,20 @@ def main() -> None:
                 ep_counter[ids] += 1
 
         wall = time.time() - t0
+        cov = sched.coverage()
+        cov["step_guard_hit"] = bool(guard_hit)
+        cov["guard_limit_steps"] = int(guard_limit)
+        cov["wall_s"] = round(wall, 1)
+        scenario_coverage[spec["id"]] = cov
         print(
-            f"[EVAL] {spec['id']:12s} episodes={len(done_rows)} wall={wall:.1f}s "
+            f"[EVAL] {spec['id']:12s} quota/variant={quota} accepted={cov['accepted_per_variant']} "
+            f"rejected={cov['rejected_per_variant']} wall={wall:.1f}s complete={cov['complete']}",
+            flush=True,
+        )
+        if not cov["complete"]:
+            print(f"[EVAL][INCOMPLETE] {spec['id']}: missing per variant {cov['missing']}", flush=True)
+        print(
+            f"[EVAL] {spec['id']:12s} episodes={len(done_rows)} "
             f"failure_rate={sum(r['failed'] for r in done_rows) / max(1, len(done_rows)):.3f}",
             flush=True,
         )
@@ -562,7 +637,14 @@ def main() -> None:
             step_dt=np.array([step_dt], dtype=np.float64),
             group=np.array([args_cli.group]),
             scenario=np.array([spec["id"]]),
-            note=np.array(["steps concatenated per episode; slice with lengths to recover each episode"]),
+            variant_ids=np.array(ep_variant, dtype=np.int32),
+            episode_ids=np.array(ep_episode_id, dtype=np.int32),
+            note=np.array(
+                [
+                    "steps concatenated per episode; slice with lengths to recover each episode; "
+                    "variant_ids/episode_ids are parallel to lengths"
+                ]
+            ),
         )
 
         # ---- representative replay snippets (auxiliary; metrics remain the evidence) ----
@@ -583,20 +665,62 @@ def main() -> None:
             w.writerow(r)
 
     # ---- summary ----
-    summary = {"run_info": run_info, "scenarios": []}
+    # Verdict is per variant (protocol supplement D-4): a scenario passes only when every
+    # variant passes and the coverage is complete. The scenario-wide aggregate is still
+    # reported (key "combined") for comparison, but it never decides the verdict.
+    summary = {"run_info": run_info, "scenarios": [], "coverage": scenario_coverage}
     for spec in specs:
         rows = [r for r in episode_rows if r["scenario"] == spec["id"]]
-        if not rows:
-            continue
-        summary["scenarios"].append(aggregate(rows, spec, args_cli.group))
-    summary["overall_pass"] = all(s["pass"] for s in summary["scenarios"])
+        cov = scenario_coverage.get(spec["id"], {"complete": False, "step_guard_hit": True})
+        complete = bool(cov.get("complete")) and not bool(cov.get("step_guard_hit"))
+        per_variant = []
+        for vi in range(len(program_variants(spec))):
+            vrows = [r for r in rows if r.get("variant_id") == vi]
+            if not vrows:
+                per_variant.append({
+                    "scenario": f"{spec['id']}#v{vi}",
+                    "variant_id": vi,
+                    "episodes": 0,
+                    "pass": False,
+                    "uncovered": True,
+                })
+                continue
+            agg_v = aggregate(vrows, {**spec, "id": f"{spec['id']}#v{vi}"}, args_cli.group)
+            agg_v["variant_id"] = vi
+            per_variant.append(agg_v)
+        combined = aggregate(rows, spec, args_cli.group) if rows else {"scenario": spec["id"], "episodes": 0, "pass": False}
+        summary["scenarios"].append({
+            "scenario": spec["id"],
+            "group": args_cli.group,
+            "episodes": len(rows),
+            "quota_per_variant": cov.get("quota_per_variant"),
+            "coverage": cov,
+            "variants": per_variant,
+            "pass": bool(complete and all(v.get("pass") for v in per_variant)),
+            "combined": combined,
+            "failure_rate": combined.get("failure_rate"),
+            "incomplete_reason": None if complete else ("step_guard_hit" if cov.get("step_guard_hit") else "quota_not_met"),
+        })
+    summary["coverage_complete"] = all(
+        s["coverage"].get("complete") and not s["coverage"].get("step_guard_hit") for s in summary["scenarios"]
+    )
+    summary["overall_pass"] = bool(summary["coverage_complete"] and all(s["pass"] for s in summary["scenarios"]))
     summary["finished_at"] = time.strftime("%Y%m%d_%H%M%S")
     with open(os.path.join(out_dir, "summary.json"), "w", encoding="utf-8") as fh:
         json.dump(summary, fh, ensure_ascii=False, indent=2)
 
     print("[EVAL_SUMMARY] " + json.dumps(
-        {s["scenario"]: {"pass": s["pass"], "failure_rate": round(s["failure_rate"], 4)} for s in summary["scenarios"]},
+        {
+            s["scenario"]: {
+                "pass": s["pass"],
+                "failure_rate": None if s["failure_rate"] is None else round(s["failure_rate"], 4),
+                "coverage_complete": bool(s["coverage"].get("complete")) and not bool(s["coverage"].get("step_guard_hit")),
+                "per_variant_pass": [bool(v.get("pass")) for v in s["variants"]],
+            }
+            for s in summary["scenarios"]
+        },
         ensure_ascii=False), flush=True)
+    print(f"[EVAL] coverage_complete={summary['coverage_complete']} overall_pass={summary['overall_pass']}", flush=True)
     print(f"[EVAL] per_episode.csv -> {csv_path}", flush=True)
     print(f"[EVAL] summary.json  -> {os.path.join(out_dir, 'summary.json')}", flush=True)
 
