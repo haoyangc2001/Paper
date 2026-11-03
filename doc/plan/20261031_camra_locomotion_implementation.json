@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.2",
+    "version": "3.7.3",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3747,6 +3747,50 @@
           ],
           "blockers": [
             "策略存在约 0.2 m/s 的起步死区，lateral（vy=0.3）恰好落在死区出口的最差区间；在此行为未改变前，任何 0.3 m/s 量级的单轴低速验收都无法稳定通过。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T14:35:00+08:00",
+          "summary": "针对第 40 章的死区做了一次命令采样 A/B：两组都从交付检查点续训 250 迭代（2999→3248），只差 rel_standing_envs 与 stop_event_prob。结论比预期复杂：**假设成立，但主要功劳不在改采样，而在「训练尚未收敛」**——A 组不动任何配置，仅多训 250 迭代，不达标的 −0.30 就从 rmse 0.1031 降到 0.0602（约 40% 余量）；B 组再去掉站立采样后，−0.15 从「完全不动」变成走 53%（rmse 0.1497→0.0810），+0.30 降到 0.0633。死区被撬开一半，未消失（+0.15 两组都只到命令的 43%）。",
+          "actions": [
+            "为 A/B 在 camra_env_cfg.py 加默认关闭的诊断钩子 CAMRA_EXP_CMD_SAMPLING=no-standing（把 rel_standing_envs 与 stop_event_prob 置零），并让 assert_overrides_applied 对被实验故意改动的键只在报告里标注、不再抛错；不设变量时配置逐字不变。",
+            "开跑前用 1 迭代冒烟，从 dump 的 params/env.yaml 确认 rel_standing_envs=0.0、stop_event_prob=0.0 真的进入配置，覆盖校验无误报。",
+            "两组各从 model_2999.pt 续训 250 迭代（A 基线 / B 无站立），各约 16 分钟，EXIT 均为 0。",
+            "两组各在 ±0.15、±0.30 四个点评估（开发种子 100、每点 30 回合、num_envs 64），与原模型同点数据对照。",
+            "记录两个踩坑：rsl_rl 3.0.1 的 --max_iterations 是「再训多少次」而非「训到第几」（首次误传 3000，日志显示 iteration 2999/5999、ETA 三小时，立即停掉）；训练必须在 $CAMRA_RUN_ROOT 下跑，否则相对日志根 logs 会指向仓库内并报 FileNotFoundError。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py（诊断钩子 + 覆盖校验的实验豁免，默认行为不变）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 41 章）",
+            "/pub/data/caohy/scripts/t041_ab.sh（仓库外驱动）"
+          ],
+          "commands": [
+            "CAMRA_EXP_CMD_SAMPLING=no-standing python train.py --resume --load_run <base> --checkpoint model_2999.pt --max_iterations 250   # 注意 250 是增量",
+            "python scripts/eval_locomotion.py --protocol /pub/data/caohy/tmp/protocol_sweep.json --scenarios sweep_p15,sweep_n15,sweep_p30,sweep_n30 --seed 100 --episodes_per_variant 30",
+            "python /pub/data/caohy/tools/sweep_report.py --run_dir <arm> --protocol <sweep>"
+          ],
+          "results": [
+            "A 基线（不动配置，2999→3248）：+0.15 rmse 0.1025、−0.15 0.1497、+0.30 0.0722、−0.30 0.0602。",
+            "B 无站立（2999→3248）：+0.15 0.0889、−0.15 0.0810、+0.30 0.0633、−0.30 0.0575。",
+            "对照原模型（2999）：+0.15 0.1497、−0.15 0.1501、+0.30 0.0888、−0.30 0.1031。",
+            "关键结论一：仅续训 250 迭代就让 TASK-036 不达标的 −0.30 从 0.1031 降到 0.0602，说明 r4 的 3000 迭代不是收敛点，交付模型处于训练不足状态。",
+            "关键结论二：去掉站立采样在真·低速上额外生效（−0.15 从 −0.0027 到 −0.0797，即从不动到走 53%），说明「命令小就站住」确实学自零命令样本，但只是部分原因。",
+            "关键结论三：死区未消失，+0.15 两组都只到命令的 43%，250 迭代不足以抹平。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/ab/ab_run.log（主机 tiger12.ios.ac.cn、窗口 camra-locomotion:T041AB、EXIT_train_* 与 EXIT_eval_* 全 0）",
+            "/pub/data/caohy/logs/camra/TASK-036/ab/{exp_A_baseline,exp_B_nostand}/model_3248.pt（续训产物）",
+            "/pub/data/caohy/logs/camra/TASK-036/ab/eval_exp_{A_baseline,B_nostand}/（四点评估产物）",
+            "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-03_13-57-14_smoke_nostand/params/env.yaml（钩子生效证据：rel_standing_envs=0.0、stop_event_prob=0.0）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 41 章"
+          ],
+          "remaining_work": [
+            "等待用户裁决是否把「继续训练」作为修复路径：最小动作是不改任何配置、只续训到收敛（建议先测 500 与 1000 迭代，看 ±0.15 与 ±0.30 是否继续改善并趋稳），可选叠加 CAMRA_EXP_CMD_SAMPLING=no-standing 改善低速起步。",
+            "若走重训：新模型必须重新登记测试种子（300–309 已用掉），并完成选模、导出一致性、闭环重载与 10 种子 × 每变体 300 回合复测，才能更新 TASK-036 结论。",
+            "本轮 A/B 只有单种子 30 回合、250 迭代中间产物，不能作为「新模型已达标」的证据。"
+          ],
+          "blockers": [
+            "交付模型（it 2999）处于训练不足状态：仅续训 250 迭代即可让不达标项获得约 40% 余量，说明 TASK-036 的失败更可能是训练预算问题而非能力上限；在未重训并复测前，TASK-036 仍保持 false。"
           ]
         }
       ],

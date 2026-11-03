@@ -15,6 +15,7 @@ Why an override layer instead of editing ``velocity_env_cfg.py``:
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from isaaclab.managers import RewardTermCfg as RewTerm
@@ -176,6 +177,21 @@ CAMRA_UNCHANGED: dict[str, str] = {
 }
 
 
+#: Diagnostic A/B switch (TASK-036 follow-up). A 16-point velocity sweep found a
+#: ~0.2 m/s take-off deadband: the policy does not move at all for small commands.
+#: The switch removes the two knobs that make a "stand still" command frequent, so
+#: the effect can be measured. Unset means the delivered configuration is used
+#: byte for byte - this exists only so an experiment does not need a code fork.
+CMD_SAMPLING_ENV = "CAMRA_EXP_CMD_SAMPLING"
+#: Override keys the experiment is allowed to move away from CAMRA_OVERRIDES.
+EXPERIMENT_KEYS = {"commands.base_velocity.stop_event_prob"}
+
+
+def experimental_cmd_sampling() -> str:
+    """Name of the active command-sampling experiment, or "" for none."""
+    return os.environ.get(CMD_SAMPLING_ENV, "").strip()
+
+
 @configclass
 class CaMRAGo2VelocityEnvCfg(RobotEnvCfg):
     """Upstream Go2 velocity task with the CaMRA overrides applied."""
@@ -203,6 +219,14 @@ class CaMRAGo2VelocityEnvCfg(RobotEnvCfg):
             weight=-5.0,
             params={"command_name": "base_velocity", "target_m": 0.10, "window_s": 0.5, "max_ratio": 4.0},
         )
+        # experimental override last, so it wins over everything above and cannot
+        # be silently shadowed by a later assignment
+        _exp = experimental_cmd_sampling()
+        if _exp == "no-standing":
+            self.commands.base_velocity.rel_standing_envs = 0.0
+            self.commands.base_velocity.stop_event_prob = 0.0
+        elif _exp:
+            raise ValueError(f"{CMD_SAMPLING_ENV}={_exp!r} is not a known experiment")
 
 
 @configclass
@@ -244,12 +268,18 @@ def assert_overrides_applied(cfg: RobotEnvCfg) -> dict[str, Any]:
             }
         )
     report: dict[str, Any] = {}
+    _exp = experimental_cmd_sampling()
     for key, spec in CAMRA_OVERRIDES.items():
         want = spec["camra"]
         got = actual[key]
         ok = got == (tuple(want) if isinstance(want, tuple) else want)
-        report[key] = {"expected": want, "actual": got, "pass": ok}
-        if not ok:
+        entry = {"expected": want, "actual": got, "pass": ok}
+        if not ok and _exp and key in EXPERIMENT_KEYS:
+            # deliberate: record it so the deviation stays auditable, but do not
+            # fail - the experiment is the reason the value differs
+            entry["experimental_override"] = _exp
+        report[key] = entry
+        if not ok and "experimental_override" not in entry:
             raise AssertionError(f"override '{key}' not applied: expected {want}, got {got}")
     report["num_envs"] = cfg.scene.num_envs
     report["epoch"] = "camra_override_layer"
