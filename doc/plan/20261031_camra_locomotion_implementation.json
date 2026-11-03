@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.6",
+    "version": "3.7.7",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3915,6 +3915,47 @@
           ],
           "blockers": [
             "采样臂已证明能消除低速死区，但同时让 start_stop 十种子全部失败（rise_time 2.66 倍、stop_drift 2.02 倍），净效果不可交付；在拆分两个采样旋钮之前，TASK-036 仍保持 false。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T17:00:00+08:00",
+          "summary": "拆开第 44 章的两个采样旋钮：只把 rel_standing_envs 置零、保留 stop_event_prob=0.25，从 2999 续训 250 迭代（单种子 100，四扫点 + start_stop）。**病灶定位到 stop_event_prob**：只关甲时 ±0.15 仍是 0.1486/0.1460（≈交付模型的 0.1497/0.1501，死区未动），而第 44 章 B 组关掉乙后四点 0.0448–0.0638。同时刹车的 rise_time 0.1880、stop_drift 0.0421（比交付模型还好 15%/33%），说明保留乙即可保住刹车。结论：低速跟踪与刹车共享同一份停车训练样本，此消彼长，当前没有两全配置。",
+          "actions": [
+            "camra_env_cfg.py 新增第三档实验模式 no-standing-envs：只把 rel_standing_envs 置零，stop_event_prob 保留交付值 0.25（不触发覆盖校验豁免，因为交付值未被改动）。",
+            "从 2999 续训 250 迭代到 3248（约 16 分钟，EXIT 0），params/env.yaml 复核 rel_standing_envs=0.0、stop_event_prob=0.25。",
+            "单种子（100）评估 4 个扫点 + start_stop（EXIT 0），与第 41/44 章的 A、B 两组同种子对照。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py（新增 no-standing-envs 模式）",
+            "CaMRA/locomotion/docs/implementation_handoff.md（第 45 章）",
+            "/pub/data/caohy/scripts/t045_split.sh（仓库外驱动）"
+          ],
+          "commands": [
+            "CAMRA_EXP_CMD_SAMPLING=no-standing-envs python train.py --resume --load_run <base> --checkpoint model_2999.pt --max_iterations 250 --run_name exp_C_envsonly",
+            "python scripts/eval_locomotion.py --protocol /pub/data/caohy/tmp/protocol_check.json --scenarios all --seed 100 --episodes_per_variant 30",
+            "python /pub/data/caohy/tools/analyze_check.py --root <out> --out check_summary.json"
+          ],
+          "results": [
+            "C 组（只关甲）3248：+0.15 0.1486、−0.15 0.1460、+0.30 0.0405、−0.30 0.0765。",
+            "±0.15 与交付模型几乎相同（0.1497/0.1501）→ rel_standing_envs 不是死区的病灶。",
+            "刹车：rise_time 0.1880（交付 0.2203，好 15%）、stop_drift 0.0421（交付 0.0626，好 33%）、overshoot 0.0434（交付 0.0007，差 62 倍但阈值 0.15 以内）→ start_stop 通过。",
+            "对照 B 组（同时关乙）：±0.15 0.0638/0.0582、刹车 rise 0.5635/stop_drift 0.1208 十种子全挂。",
+            "结论：死区与刹车共享 stop_event_prob 的停车训练样本，B 与 C 各好一边，无两全配置。",
+            "C 组 overshoot 0.0434 与 B 组的低速改善提示两者可能都能通过中间强度（stop_event_prob≈0.10）缓解，未验证。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/split/split_run.log（窗口 camra-locomotion:T045SPLIT、EXIT 全 0）",
+            "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/*exp_C_envsonly/params/env.yaml（rel_standing_envs=0.0、stop_event_prob=0.25）",
+            "/pub/data/caohy/logs/camra/TASK-036/split/s100/（单种子评估产物）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 45 章"
+          ],
+          "remaining_work": [
+            "待用户在三选一裁决：①stop_event_prob 0.25→0.10 的中间强度，续训 250 迭代验证（约 40 分钟）；②保留 0.25 但对低速区间的跟踪奖励加权；③接受现状并写进交付说明。",
+            "若走 ① 且四点 ≤0.09、刹车回到交付水平附近 → 投完整重训（采样口径变更，需独立版本、开发集选模、导出、闭环重载，并启用新的 400 段测试种子做 10 种子复测）。",
+            "本条与第 41–44 章的实验均为单种子或单点诊断，正式判定一律以新种子的 10 种子 × 每变体 300 回合为准。"
+          ],
+          "blockers": [
+            "低速跟踪与刹车能力共享同一份 stop_event_prob 停车训练样本，当前无两全配置；在拆分验证完成前，TASK-036 保持 false。"
           ]
         }
       ],

@@ -179,8 +179,8 @@ CAMRA_UNCHANGED: dict[str, str] = {
 
 #: Diagnostic A/B switch (TASK-036 follow-up). A 16-point velocity sweep found a
 #: ~0.2 m/s take-off deadband: the policy does not move at all for small commands.
-#: The switch removes the two knobs that make a "stand still" command frequent, so
-#: the effect can be measured. Unset means the delivered configuration is used
+#: Modes: "no-standing" removes both knobs, "no-standing-envs" removes only the
+#: always-standing share and keeps the stop events that train braking. Unset means the delivered configuration is used
 #: byte for byte - this exists only so an experiment does not need a code fork.
 CMD_SAMPLING_ENV = "CAMRA_EXP_CMD_SAMPLING"
 #: Override keys the experiment is allowed to move away from CAMRA_OVERRIDES.
@@ -225,6 +225,10 @@ class CaMRAGo2VelocityEnvCfg(RobotEnvCfg):
         if _exp == "no-standing":
             self.commands.base_velocity.rel_standing_envs = 0.0
             self.commands.base_velocity.stop_event_prob = 0.0
+        elif _exp == "no-standing-envs":
+            # only the always-standing share. stop_event_prob stays at the delivered
+            # 0.25 because that is the knob that trains braking (chapter 44)
+            self.commands.base_velocity.rel_standing_envs = 0.0
         elif _exp:
             raise ValueError(f"{CMD_SAMPLING_ENV}={_exp!r} is not a known experiment")
 
