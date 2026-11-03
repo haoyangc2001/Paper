@@ -2,7 +2,7 @@
 
 适用范围：整个工作区。先确认用户本次任务，再按下面的入口阅读；各目录 README 解释项目本身，计划和交接笔记保存执行历史。
 
-## 当前任务方向（2026-11-03）
+## 当前任务：仿真能量与位置误差校准（2026-11-03）
 
 - 当前仅在 Isaac Lab 仿真中复现 CaMRA；真机接口、sim2real 和实机试验留待后续。
 - 用户已接受冻结控制器 `camra_go2_velocity_it2999_v2` 的已知低速局限，继续开展执行误差校准与独立检验。
@@ -11,13 +11,16 @@
 - 不默认继续底层调参、重新训练、更换策略或切换仿真器。旧文档中“等待修复/裁决后才能进入校准”的安排已被本次决定更新。
 - TASK-036 的 `overall_pass=False` 和 TASK-036/037 的历史未完成状态保留；本次接受现有版本不等于旧协议验收通过。
 
+本轮交付为：独立名义功率模型、配对采集工具、α/δ及独立检验结果、可复现包与上层能量成本接口。当前校准计划为0/32项完成，首个待执行任务是 CAL-001；文档整理与Git提交不计为实施任务完成。接手时重新读取计划的实际状态，按依赖选择任务，不能从旧底层计划中的 TASK-036/037继续训练，也不能提前进入导航训练。
+
 ## 最短阅读路径
 
 1. [根 README](README.md)：工作区状态、目录与子模块初始化。
-2. [CaMRA 系统说明](CaMRA/README.md)：方法与三模块接口。
-3. [校准模块](CaMRA/calibration/README.md)：当前待实现的数据流、误差定义与独立检验。
-4. [底层模块](CaMRA/locomotion/README.md)：冻结包、已知边界、环境和命令入口。
-5. [冻结清单副本](CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json) 与 [产物取用说明](CaMRA/locomotion/docs/reproduction.md)：确认拿到匹配模型及资产。
+2. [当前校准实施计划](doc/plan/20261103_camra_calibration_implementation.json)：先读 `execution_focus`、`onboarding_contract`、全局约束与任务状态，再按任务列出的来源详细学习。
+3. [CaMRA 系统说明](CaMRA/README.md)：方法与三模块接口。
+4. [校准模块](CaMRA/calibration/README.md)：当前待实现的数据流、能量成本、误差定义与独立检验。
+5. [底层模块](CaMRA/locomotion/README.md)：冻结包、已知边界、环境和命令入口。
+6. [冻结清单副本](CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json) 与 [产物取用说明](CaMRA/locomotion/docs/reproduction.md)：确认拿到匹配模型及资产。
 
 新上下文接手时，按校准计划前七项完成论文、项目源码与历史证据的学习，形成文件/接口地图和设备配置清单，再安装匹配环境、取得模型与资产、执行最小闭环。最短阅读路径用于定位资料，不能替代这些任务的逐项验收，也不能假定新机器已有旧服务器的解释器、路径和包体。
 

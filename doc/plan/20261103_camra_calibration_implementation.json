@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 仿真执行误差校准、能耗裕度与独立检验实施计划",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "created_at": "2026-11-03",
     "source_plan": "doc/plan/20261031_camra_locomotion_implementation.json；2026-11-03 用户采纳的校准协议与固定30秒能量方案",
     "mode_at_creation": "create_only",
@@ -14,6 +14,40 @@
     "task_id_namespace": "CAL-xxx；只引用本计划前序任务，旧底层计划作为来源证据而非跨计划依赖",
     "updated_at": "2026-11-03",
     "current_maintenance_mode": "plan_update_only"
+  },
+  "execution_focus": {
+    "primary_task": "复用冻结v2，在Isaac Lab仿真中实现能量与位置误差校准及独立检验。",
+    "primary_module": "CaMRA/calibration",
+    "active_plan": "doc/plan/20261103_camra_calibration_implementation.json",
+    "status_at_revision": {
+      "date": "2026-11-03",
+      "total_tasks": 32,
+      "completed_tasks": 0,
+      "first_executable_task": "CAL-001",
+      "note": "这是文档维护时的快照；恢复执行时必须重新读取tasks，不能只看此快照。"
+    },
+    "resume_rule": "完整读取本计划；按tasks顺序选择首个status=false且depends_on均完成的任务。当前未执行，应从CAL-001开始；旧底层TASK-036/037只作历史证据。",
+    "scope_focus": [
+      "CAL-001–004背景学习与理解核对",
+      "CAL-005–007新设备配置、冻结包取用和最小运行验证",
+      "CAL-008–009能量决策与实验协议",
+      "CAL-010–018采集实现、数值测试和pilot",
+      "CAL-019–023独立功率建模、几何/接口验证与正式数据锁",
+      "CAL-024–029校准、独立检验、近障检查与复算",
+      "CAL-030–032交付、文档与最终验收"
+    ],
+    "confirmed_direction": "仅仿真；复用camra_go2_velocity_it2999_v2；固定30秒，独立名义功率模型与执行能量测量；800校准、400独立检验、200近障，另设独立功率基线和pilot。",
+    "open_gate": "CAL-008根据可用信号确认具体能量指标、基线资源预算及准入；不将推荐正机械功视为已冻结电能定义。",
+    "deliverables": [
+      "采集与独立复算工具",
+      "独立名义功率模型与验证报告",
+      "成本裕度alpha和几何裕度delta",
+      "校准/独立检验/近障原始记录及报告",
+      "绑定v2版本、能量单位和状态要求的上层接口与交付包"
+    ],
+    "historical_reference": "doc/plan/20261031_camra_locomotion_implementation.json与底层交接笔记保留历史状态；当前不默认继续调参或重训。",
+    "later_work": "导航环境、策略/双评价网络及导航训练另行安排；本计划只验证后续消费接口。真机和sim2real留待后续。",
+    "progress_rule": "本次相关文档更新和Git提交不执行任何CAL任务，不改变其状态、验收标准或历史工作记录。"
   },
   "background": {
     "business_context": "使用冻结 Go2 速度跟踪器，在相同指令下比较确定性名义运动与仿真执行，建立成本和几何裕度，并独立检验后交付上层最小成本到达避障导航。",
@@ -56,7 +90,7 @@
       "真机通信、真实电池/电流测量、sim2real和实机实验",
       "首版引入未实现的指令/执行延迟、LiDAR噪声或额外地形",
       "自动改论文、图片、预算表或沿用旧示例alpha/delta数值",
-      "本次创建计划时运行任务、安装环境、远程写入、Git提交或推送"
+      "计划维护阶段启动实施、安装环境或运行仿真；Git提交、推送及其他远程操作须遵循用户授权范围"
     ]
   },
   "global_constraints": [
@@ -80,7 +114,7 @@
     "历史文件保持原样，新代码在CaMRA/calibration，原始产物放新run目录；涉及旧产物覆盖/移动先暂停。",
     "现有仓库外服务器路径只作定位线索，运行主机、可用资产和解释器以现场核验为准。",
     "交付结论必须覆盖同分布检验与近障适用性边界；经验分位数与区间不升级为任意随机环境的安全保证。",
-    "当前只创建计划，所有新任务status=false、work_records=[]、verification_result为空；不自动启动执行或Git提交。",
+    "计划创建与维护不计为实施任务完成；未实际通过验收的任务保持status=false且不补造工作记录，实施须另获授权；Git提交和推送按用户明确授权执行。",
     "CAL-001–004为新上下文背景学习与理解核对，CAL-005–007为新机器安装配置、模型/资产取用和基础运行验证；均验收后才进入CAL-008及后续设计/实现，不凭已有聊天或“旧机器能跑”跳过。"
   ],
   "uncertainty_policy": {
@@ -1094,7 +1128,7 @@
     "next_stage": "CAL-008确认能量成本细节、CAL-009冻结实验协议；CAL-010起进入模块结构与实现。",
     "learning_output": "CaMRA/calibration/docs/implementation_handoff.md中的持续更新章节；列明研究目标、方法、各目录状态、具体文件/符号、接口时序、已确认决定、证据边界和未决项。",
     "gate": "背景学习按来源逐项验收；环境安装/模型校验/最小运行必须有实际日志。后续任务不得只凭摘要或命令退出码越过前置依赖。",
-    "current_action": "本次仅维护计划和入口文档，未实施学习任务、安装、远程操作、仿真或Git提交。"
+    "current_action": "本字段说明计划维护范围：文档维护不执行CAL学习/环境/采集任务；实际实施按用户授权及任务依赖推进，Git提交和推送依用户单独授权处理。"
   },
   "plan_revision_records": [
     {
@@ -1121,6 +1155,20 @@
         "原CAL-004–028": "顺延为CAL-008–032，逐一保持原目标及验收内容"
       },
       "preserved": "原计划所有任务均无执行记录；本次只拆分前置任务并重排依赖，保留后续采集配额、能量方向及既有历史证据。"
+    },
+    {
+      "date": "2026-11-03",
+      "from_version": "1.1.0",
+      "to_version": "1.1.1",
+      "reason": "按用户要求同步当前任务文档，统一聚焦冻结v2后的仿真能量与位置误差校准。",
+      "changes": [
+        "增加execution_focus，明确当前计划、起始任务、范围和交付",
+        "相关README、AGENTS和文档索引直接链接当前计划，旧底层计划归为历史参考",
+        "同步能量成本与未来上层消费接口，并将维护阶段描述改为持续适用的授权规则"
+      ],
+      "task_count": 32,
+      "task_definitions_changed": false,
+      "preserved": "32项任务的顺序、依赖、约束、验收、status及work_records完全保留；本次没有执行任务或修改旧底层结果。"
     }
   ]
 }
