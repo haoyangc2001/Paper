@@ -956,11 +956,52 @@
     {
       "id": "CAL-009",
       "goal": "冻结完整采样、划分、统计与适用性验收协议",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-008"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T07:20:00+08:00",
+          "summary": "实测 32 并行吞吐后，写出并冻结版本化 calibration_protocol v1.0.0，配套纯标准库校验器与散列。",
+          "actions": [
+            "用 09_energy_probe.py 以 num_envs=32、30 s 窗口实测：完成 6000 物理子步、全 finite、耗时 484 s（含启动）、GPU 显存 12.8 GB、利用率 96%。",
+            "写出 CaMRA/calibration/config/calibration_protocol_v1.0.0.json：时钟、命令域与四个命令族、五个 profile 与采样规则、初态、终止、配额、种子块、trial_id、统计口径、容差、失败分类、统计准入、近障、资源预算。",
+            "写出 CaMRA/calibration/scripts/validate_protocol.py（纯标准库，不导入 torch/isaaclab）：114 项内部一致性检查 + --write-hash/--check-hash。",
+            "复核验收时发现协议缺显式终止规则与命令簇相关性处理，补齐 termination 段与 statistics.cluster_handling，校验器同步加检查后重新冻结散列。",
+            "负向测试：篡改 j_min 1.0→0.5 退出 2；把 heldout 种子起点改成与 calibration 重叠退出 2；散列不符退出 3；正常复跑 114/114 PASS。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/config/calibration_protocol_v1.0.0.json（新建）",
+            "CaMRA/calibration/config/calibration_protocol_v1.0.0.json.sha256（新建）",
+            "CaMRA/calibration/scripts/validate_protocol.py（新建）"
+          ],
+          "commands": [
+            "bash env_setup/10_scale32.sh   # 32 envs x 30 s 实测",
+            "python3 scripts/validate_protocol.py --write-hash",
+            "python3 scripts/validate_protocol.py --check-hash",
+            "python3 scripts/validate_protocol.py --protocol /tmp/neg_proto.json"
+          ],
+          "results": [
+            "32 并行实测：SCALE32_EXIT=0，physics_substeps_recorded=6000，WALL_SECONDS=484，GPU 12779 MiB / 96%。",
+            "协议 v1.0.0 冻结，sha256 = 7c4e513f5b5ff5c575a86d90701fcb438967179c78a41c5e38f9b6a3a9d2b095。",
+            "校验器 114/114 通过；内容篡改、种子重叠、散列不符三类异常分别以退出码 2/2/3 明确拒绝。",
+            "配额自洽：baseline 400（per_cell 20×20，子集 240/80/80）、pilot 20、calibration 800（40×20）、heldout 400（20×20）、near_obstacle 200（10×20），合计 1820 条。",
+            "种子块 7 段全部互斥且避开保留值（0、100-109、200-209、300-309），合计 1820 个唯一 seed。",
+            "资源预算按实测给出：pilot 0.1 h、baseline 1.3-1.7 h、calibration 2.7-3.4 h、heldout 1.3-1.7 h、近障 0.7-0.9 h，合计约 6-8 h；存储约 5.3 GB 未压缩。",
+            "协议未决项列表为空（unresolved=[]），不存在会改变正式采集语义的开口。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/config/calibration_protocol_v1.0.0.json（27 个顶层段，含 clocks/command_program/profiles/initial_state/termination/energy/split/seeds/trial_id/statistics/tolerances/invalid_rules/statistical_acceptance/near_obstacle/resource_budget）",
+            "同目录 calibration_protocol_v1.0.0.json.sha256（7c4e513f…）",
+            "CaMRA/calibration/scripts/validate_protocol.py 的 114 项检查输出 PASS",
+            "env_setup/10_scale32.log（SCALE32_EXIT=0, WALL_SECONDS=484, 6000 substeps）",
+            "env_setup/c9_neg_content.txt 与 c9_neg_seed.txt（两类篡改均退出 2）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "保留800/400/200及四族五条件等权；功率基线另列，不挤占独立检验。",
         "所有seed/program/trial与数据域事先登记；低速/边界/各方向权重写清，不因难例调权。",
@@ -974,7 +1015,7 @@
         "数值容差、量纲、近零规则、数据无效/业务失败/基建重试边界和统计准入已锁定。",
         "协议可由配置加载和机器校验，不留会改变正式采集语义的未决项。"
       ],
-      "verification_result": ""
+      "verification_result": "四项验收均通过：(1) 版本化协议 CaMRA/calibration/config/calibration_protocol_v1.0.0.json 与冻结散列 .sha256（7c4e513f5b5ff5c575a86d90701fcb438967179c78a41c5e38f9b6a3a9d2b095）同时存在，内容覆盖全部时钟（sim/policy/command/pairing/state/energy、1 s warmup、30 s 窗口、6000 物理步、301 配对点）、命令域与四个命令族（含低速分层下限 25%）、五个 profile 的取值区间与'未列出旋钮固定 clean'规则、初态与 warmup 对齐规则、显式终止规则（env 终止项、terminated/truncated 判定、部分窗口能量只覆盖实际步数、不得续跑、计入分母未覆盖侧）、五域配额与 mutual_exclusion、终止/无效/基建三类失败边界；(2) split 段逐域给出 baseline 400(240/80/80, clean only) / pilot 20 / calibration 800 / heldout 400 / near_obstacle 200 的互斥来源与 consumed_by，resource_budget 段给出基于 32 并行实测（484 s / 32 条 30 s 窗口、6000 子步、12.8 GB、96% util）的逐域工时与约 5.3 GB 存储预算，statistics.cluster_handling 明确同模板 trial 构成簇、bootstrap 以整条轨迹为最小单位、必须报告簇数与每簇样本数、跨 split 不得共用模板参数；(3) 容差（能量复算 1e-5、在线-离线 1e-4、位置 1e-6 m、时间 1e-6 s、45 维观测/12 维动作）、量纲（只允许 J）、近零规则（J_min=1.0 J 单列、禁 epsilon、>20% 触发重裁）、三类失败边界与统计准入（每 cell 完整率 ≥0.90、检验集不得反向调参、边际 90% 不推出联合 90%）均已锁定；(4) 协议可由 scripts/validate_protocol.py 加载并机器校验，114/114 项通过；篡改内容与种子重叠均以退出码 2 拒绝、散列不符以退出码 3 拒绝；协议内 unresolved=[]，不存在会改变正式采集语义的未决项。"
     },
     {
       "id": "CAL-010",

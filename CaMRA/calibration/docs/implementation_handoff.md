@@ -569,3 +569,32 @@ J_nom = Σ_{k=1..6000} P̂_nom(·) · 0.005      [ J ]
 论文的成本是 `c(x,u)` 的 a.u. 代理量、决策间隔 0.2 s、`z_ref` 为 120/140/190 a.u.。
 本轮实现改为：能量 J、0.1 s、`z_ref` 待重定。
 两者的数值**不可互换**，论文不改，差异由本文件与后续交付报告记录。
+
+---
+
+## 11. 采样协议（CAL-009）
+
+协议文件：[`../config/calibration_protocol_v1.0.0.json`](../config/calibration_protocol_v1.0.0.json)
+冻结散列：同目录 `calibration_protocol_v1.0.0.json.sha256`
+（sha256 `7c4e513f5b5ff5c575a86d90701fcb438967179c78a41c5e38f9b6a3a9d2b095`）
+
+```bash
+cd CaMRA/calibration
+python3 scripts/validate_protocol.py          # 114 项内部一致性检查
+python3 scripts/validate_protocol.py --check-hash   # 比对冻结散列
+```
+
+退出码：0 通过 / 2 校验失败 / 3 散列不符 / 4 文件缺失。校验器只用标准库，不需要仿真环境。
+
+协议锁定的关键量（与 §10 一致，不得就地修改）：
+
+| 项 | 值 |
+| --- | --- |
+| 时钟 | sim 200 Hz(0.005) · policy 50 Hz(0.02) · command 10 Hz(0.1) · pairing 10 Hz · state 50 Hz · energy 200 Hz |
+| 窗口 | 1.0 s warmup + 30 s 测量 = 6000 物理步，301 个配对点（含端点） |
+| 配额 | baseline 400(240/80/80) · pilot 20 · calibration 800 · heldout 400 · near_obstacle 200，合计 1820 |
+| 种子 | 7 段互斥块（4000/4240/4320/5000/6000/7000/8000 起），避开 0、100–109、200–209、300–309 |
+| 资源 | 32 envs 实测 484 s/32 条 30 s 窗口；全量约 6–8 h，存储约 5.3 GB |
+
+**变更规则**：任何时钟、命令、扰动、配额、种子、统计口径或容差的改动都必须出新版本号
+（`calibration_protocol_v1.1.0.json` 等），旧版本标记 `superseded`，不得就地编辑。
