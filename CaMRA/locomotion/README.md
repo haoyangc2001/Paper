@@ -6,13 +6,15 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 
 ## 当前工作范围
 
-当前先在 Isaac Lab 仿真中复现 CaMRA，优先复用已冻结的 v2 控制器，核实模型包及配套资产可重载并补齐必要验收，再开展仿真轨迹校准和上层导航；不把重新训练底层作为默认前置条件。训练、导出及真机部署源码继续保留，其中真机接口和 sim2real 工作暂不属于本阶段任务。
+当前在 Isaac Lab 仿真中复现 CaMRA。2026-11-03 已决定接受冻结 v2 控制器的已知低速局限，继续执行误差校准与独立检验，不再把继续调参或重新训练作为默认前置条件。训练、导出及真机部署源码继续保留，其中真机接口和 sim2real 工作暂不属于本阶段任务。
 
-按当前安排，先等待底层训练完成并通过验收，再继续校准和上层导航；现有 v2 的补充复测未通过结论保留，不能仅凭冻结包校验通过就进入下一阶段。
+旧补充复测未通过的结论保留，TASK-036/037 不改为通过。当前使用决定是在保留这些边界的前提下推进下一模块；包体完整性与可重载性仍需在实际执行设备上核验。
 
-上层需要的是机身坐标系速度 `[vx, vy, yaw_rate]`。本项目已有三维外部命令桥接和冻结策略闭环重载入口；运行须使用匹配的观测、动作、频率、增益与机器人资产。模型包目前位于执行服务器，普通克隆仅取得清单，不能直接得到模型权重。宇树官方现成方案的核查见 [系统说明](../README.md#宇树官方现成方案核查2026-11-03)。
+上层需要的是机身坐标系速度 `[vx, vy, yaw_rate]`。本项目已有三维外部命令桥接和冻结策略闭环重载入口；运行须使用匹配的观测、动作、频率、增益与机器人资产。模型包目前位于执行服务器，普通克隆仅取得清单，不能直接得到模型权重。宇树官方现成方案的核查记录见 [controller_options.md](docs/controller_options.md)。
 
-## 交付状态（2026-11-03）
+## 当前状态与已知边界
+
+以下为截至 2026-11-03 的历史交付与测试记录；当前沿用 v2，未发布替代模型。
 
 | 阶段 | 结论 | 证据位置 |
 | --- | --- | --- |
@@ -20,21 +22,15 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 | 开发集选模 | dev 种子 100–109，10 场景 × 300 回合全部通过 | 计划 TASK-023 工作记录 |
 | 导出与数值验证 | JIT 1.19e-06、ONNX 1.12e-06（换算关节目标 2.79e-07 rad） | `$CAMRA_BUNDLE_ROOT/candidates/r4_it2999_v1/` |
 | 独立闭环重载 | jit / onnx / trainer 三臂 4 场景 × 32 环境，0 摔倒 0 复位；JIT 与训练器逐位一致，ONNX 差 <9e-4 | `$CAMRA_LOG_ROOT/TASK-026/rollout/t026_aggregate.json` |
-| **冻结交付件** | `camra_go2_velocity_it2999_v2`，29 文件、全树 0444/0555、校验 PASS | `$CAMRA_BUNDLE_ROOT/frozen/camra_go2_velocity_it2999_v2` |
+| **冻结交付件** | `camra_go2_velocity_it2999_v2`，只读冻结包、历史校验 PASS；文件和散列以清单为准 | `$CAMRA_BUNDLE_ROOT/frozen/camra_go2_velocity_it2999_v2` |
 | 最终测试（单次，旧口径） | final_test 种子 200–209：nominal 10/10、perturbed 10/10 场景通过；全局失败率 0.000 / 0.007。注意这是**场景级**口径，15 个协议变体里实际只测了 10 个（`lateral`/`turn_inplace` 各只下发一个方向、`combined` 只下发一个对角组合），见交接笔记 §37.2 | `$CAMRA_LOG_ROOT/TASK-024/` |
-| **确认性复测（TASK-036）** | 新登记种子 300–309 × 每变体 300 回合 × 2 组 = **9000 回合**、指标有效数 100 %：**29/30 变体达标，`overall_pass=False`**。唯一不达标：nominal `lateral#v1`（`vy=−0.3`）`rmse_vy` 0.1035 > 0.1000（超 3.5 %，失败率 0，`p95` 0.1361 ≤ 0.18）；perturbed 同方向 0.1134 ≤ 0.1200 通过 | `$CAMRA_LOG_ROOT/TASK-036/report.md` |
+| **确认性复测（TASK-036）** | 15 个变体 × 每变体 300 回合 × 2 组 = **9000 回合**，种子 300–309、指标有效数 100 %：**29/30 个“组×变体”达标，`overall_pass=False`**。唯一不达标：nominal `lateral#v1`（`vy=−0.3`）`rmse_vy` 0.1035 > 0.1000（超 3.5 %，失败率 0，`p95` 0.1361 ≤ 0.18）；perturbed 同方向 0.1134 ≤ 0.1200 通过 | `$CAMRA_LOG_ROOT/TASK-036/report.md` |
 
-**当前交付结论（TASK-036 补充复测后）**：冻结包 `camra_go2_velocity_it2999_v2` 仍是交付件，
-但按补充协议 D-4 的**逐变体**判据**未通过验收**——15 个变体中 14 个在两组、300 回合、100 % 有效证据下达标，
-唯一不达标的是 nominal 横向 `vy=−0.3 m/s` 的 `rmse_vy`（0.1035 > 0.1000，超 3.5 %，失败率 0，不掉不摔）。
-因此**不得宣称已具备 calibration 交付条件**；处置选项见 [交接笔记 §37.6](docs/implementation_handoff.md)。
-旧 TASK-024 的「nominal 10/10、perturbed 10/10」在旧口径下仍然成立，但它实测只覆盖了 15 个协议变体中的 10 个。
+**历史验收结论**：按补充协议 D-4 的逐变体判据，v2 未通过验收，结果不变。旧 TASK-024 的“nominal 10/10、perturbed 10/10”在旧场景级口径下仍然成立，但它实测只覆盖了 15 个协议变体中的 10 个，不能替代 TASK-036 的结论。
 
-**失败根因与处置（交接笔记 §39–46，2026-11-03）**：不达标项的根因是训练采样中的停车样本
-（`stop_event_prob=0.25`）让策略把低速命令当成"站住"——命令 ≤0.2 m/s 时完全不动（§40）。
-四轮实验画出完整取舍曲线：停车样本越少低速越好、刹车越差，该轴上没有两全且宽裕的配置（§44/§46）。
-用户已裁决走**方案二**：保留停车样本、提高低速跟踪的奖励权重（先 250 迭代验证，见 §47）。
-注意这只影响未来的模型版本，**冻结包 v2 及其验证结论不变**。
+**已知低速边界**：交接笔记 §39–47 记录了低速诊断及采样/奖励对照。在已测单轴工况下，约 ≤0.2 m/s 的命令出现起步死区，0.3 m/s 附近也存在稳态不足。减少停车样本改善低速却损害刹车；提高跟踪奖励权重的首轮验证也未解决问题。这些观测不扩大为所有方向、组合和环境的普遍边界。
+
+**当前处置**：接受 v2 的已知局限，继续 [仿真校准与独立检验](../calibration/README.md)。校准时保留低速、停滞和失败轨迹并检查分组覆盖；不能假定裕度已消除低速不执行的问题。模型或控制配置改变后，重新评估并校准。v2 冻结包、旧阈值和历史记录保持原样。
 
 **接手请先读 [实施交接笔记 §30「阶段一交付与接手须知」](docs/implementation_handoff.md)**：交付物与校验入口、逐条真跑过的命令、后续校准必须保持一致的五件事、明确没做的事、以及踩过的坑。
 
@@ -48,13 +44,15 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 - Python 包名 `unitree_rl_lab`、启动脚本 `unitree_rl_lab.sh` 保留，以维持上游模块导入和脚本兼容性；**任务 ID 已从上游的 `Unitree-Go2-Velocity` 改为本项目的 `CaMRA-Go2-Velocity`**，因为环境配置（奖励、课程、终止条件）已按本项目要求改写。上游示例模型不能用作 Go2 控制策略。
 - 上游其他机器人任务、部署依赖一并保留，当前工作重点是 Go2 速度跟踪。
 
-## 控制器契约（来自冻结包清单，不是文档转述）
+## 控制器契约摘要
+
+下表用于快速理解接口；执行时读取冻结包 `params/deploy.yaml`、`params/export_manifest.json` 并核对 [仓库清单副本](docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json)。
 
 | 项 | 值 |
 | --- | --- |
 | 观测 | 45 维，顺序 `base_ang_vel(3,×0.2)` → `projected_gravity(3)` → `velocity_commands(3)` → `joint_pos_rel(12)` → `joint_vel_rel(12,×0.05)` → `last_action(12)` |
 | 动作 | `JointPositionAction`，12 维，`q_target = default_joint_pos + 0.25 · a`，wrapper 不裁剪动作 |
-| 关节顺序 | FL/FR/RL/RR × hip/thigh/calf（仿真侧顺序；真机需 `joint_ids_map` 重映射，**未做**） |
+| 关节顺序 | FL/FR/RL/RR hip → FL/FR/RL/RR thigh → FL/FR/RL/RR calf，按关节类型分组；完整顺序读清单 `joint_names`（真机 `joint_ids_map` 重映射未做） |
 | 控制频率 | sim 200 Hz（`dt=0.005`）× decimation 4 → 策略 50 Hz（`step_dt=0.02`）；外部命令 10 Hz 零阶保持 |
 | 增益 | kp 25.0、kd 0.5、friction 0.01 |
 | 命令域 | vx ±1.0 m/s、vy ±0.4 m/s、wz ±1.0 rad/s |
@@ -91,6 +89,8 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 实测环境：Python 3.11.18、torch 2.7.0（CUDA 12.6）、isaaclab 0.47.2、isaacsim 5.1.0.0、rsl-rl 3.0.1、onnxruntime 1.31.1。
 上游 README 写的 Isaac Lab 2.3.0 / Isaac Sim 5.1.0 保留在 [README.upstream.md](README.upstream.md)，以实测版本为准。
 
+执行主机上的仿真、评估、导出和训练命令在 tmux 中运行，保留会话、命令和日志。本地静态文档检查不需要仿真环境。当前接入优先使用 `verify_frozen_bundle.py` 与 `rollout_exported_policy.py` 核对既有 v2，不需要先重新执行下面的训练全流程。
+
 **所有机器相关路径都在 [`config/repro.env`](config/repro.env) 里**（解释器、日志根、资产根、包根、设备）。换机器只改这一个文件，或直接导出同名环境变量（环境变量优先）：
 
 ```bash
@@ -98,6 +98,8 @@ export CAMRA_ASSET_ROOT=/mnt/assets/unitree_model
 export CAMRA_LOG_ROOT=/mnt/logs/camra
 python scripts/check_repro_readiness.py --level eval-now   # 先预检，别用失败的运行去评价控制器
 ```
+
+以下保留训练与完整复现入口，按实际任务选择执行；并非当前校准工作的前置步骤。
 
 ```bash
 cd CaMRA/locomotion

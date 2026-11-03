@@ -1,0 +1,1126 @@
+{
+  "document": {
+    "name": "CaMRA 仿真执行误差校准、能耗裕度与独立检验实施计划",
+    "version": "1.1.0",
+    "created_at": "2026-11-03",
+    "source_plan": "doc/plan/20261031_camra_locomotion_implementation.json；2026-11-03 用户采纳的校准协议与固定30秒能量方案",
+    "mode_at_creation": "create_only",
+    "status_definition": {
+      "false": "尚未开始、部分完成、验证失败或受阻",
+      "true": "目标实现、所有验收满足、证据与验证结果已追加"
+    },
+    "update_rule": "每项任务只追加 work_records；满足全部验收且依赖完成后，填写 verification_result 并将 status 改为 true。不得覆写旧计划、旧状态或旧实验结论。",
+    "execution_rule": "用户授权执行后，完整读取本文件及技能 execution-rules，验证 update 模式；按数组顺序执行第一个未完成且依赖均完成的任务。创建计划不授权实施、服务器操作、提交或推送。",
+    "task_id_namespace": "CAL-xxx；只引用本计划前序任务，旧底层计划作为来源证据而非跨计划依赖",
+    "updated_at": "2026-11-03",
+    "current_maintenance_mode": "plan_update_only"
+  },
+  "background": {
+    "business_context": "使用冻结 Go2 速度跟踪器，在相同指令下比较确定性名义运动与仿真执行，建立成本和几何裕度，并独立检验后交付上层最小成本到达避障导航。",
+    "current_capability": "v2 已训练、导出、冻结，已有三维速度命令桥接、重载和跟踪评估入口。calibration 仅有 README；旧日志没有正式配对能量数据，模型包与资产在执行服务器，普通克隆只有清单。",
+    "accepted_controller": "camra_go2_velocity_it2999_v2；用户已接受其低速死区及29/30组×变体达标的已知局限。TASK-036 overall_pass=False 与 TASK-036/037=false 原样保留。",
+    "problem_to_solve": "建立不改变底层契约的配对采集、仿真能量测量、独立名义功率建模、裕度计算与独立检验链路，避免定长纯时间成本退化、数据泄漏及把覆盖率等同导航成功。",
+    "latest_user_decision": "成本改为能耗；在明确说明定长纯时间成本导致 alpha 恒为0后，用户选择“固定30秒，增加名义功率模型和执行能量测量”。不再采用旧稿时间+跟踪误差+靠障碍惩罚作为本次主成本。",
+    "handoff_assumption": "接手者位于一台尚未完成本项目配置的新执行设备，且使用没有历史聊天上下文的新模型；必须从仓库文件重建背景理解，完成环境配置、模型取用和基础运行验证后才能实现校准模块。"
+  },
+  "goal": {
+    "primary": "交付可复跑、可独立复算的仿真能耗与位置误差校准模块，并向上层交付绑定v2和适用条件的alpha/delta及真实检验结论。",
+    "success_equation": "契约和能量语义已冻结 ∧ 名义功率模型独立拟合并先冻结 ∧ 800校准+400独立检验+200近障记录完整 ∧ 不丢业务失败 ∧ 指标与覆盖可复算 ∧ 适用性判定和交接完整。科学效果未达标须如实报告并暂停，不通过改阈值或重复试验凑通过。",
+    "deliverables": [
+      "可脱离聊天上下文的背景学习核对、文件/接口地图与新设备配置/模型取用记录",
+      "版本化采样/能量/几何/数据划分协议和来源决策记录",
+      "冻结v2重载适配、确定性平面名义模型与200Hz能量测量器",
+      "独立基线采集集、冻结的非负名义功率模型和验证报告",
+      "800校准、400独立检验及200近障适用性轨迹，包含失败与完整原始记录",
+      "alpha/delta、经验覆盖、区间、分组边界及独立复算报告",
+      "绑定模型/资产/功率模型/协议散列的只读交付目录及上层消费契约",
+      "模块README、AGENTS及文档索引的准确交接入口"
+    ]
+  },
+  "scope": {
+    "included": [
+      "先学习当前代码、论文方法与旧示例定义，建立证据和差异地图",
+      "按实际执行设备配置环境、获取既有v2并核对散列",
+      "无障碍平地配对采集、五类扰动分组与四类命令",
+      "物理子步力矩/角速度测量、独立名义功率基线建模",
+      "能量超支和全程最大位置偏差的90%经验分位校准",
+      "400条独立检验、200条近障适用性检查、轨迹级统计与覆盖",
+      "单元测试、小批验证、一次正式拟合与正式检验、换目录复跑和交付",
+      "实施阶段更新当前README、AGENTS与新计划追加记录"
+    ],
+    "excluded": [
+      "底层继续调参、重训、更换模型或更换仿真器",
+      "更改v2冻结包、旧协议、旧日志和旧计划未通过状态",
+      "直接修改RC-PPO或HiRA代码/子模块锁定提交",
+      "实现上层策略/双评价网络/导航训练及大规模消融",
+      "真机通信、真实电池/电流测量、sim2real和实机实验",
+      "首版引入未实现的指令/执行延迟、LiDAR噪声或额外地形",
+      "自动改论文、图片、预算表或沿用旧示例alpha/delta数值",
+      "本次创建计划时运行任务、安装环境、远程写入、Git提交或推送"
+    ]
+  },
+  "global_constraints": [
+    "任何会改变范围、评分语义、数据来源、核心依赖、资源预算或已有产物的不确定决策必须暂停并询问用户；已确认的决定不重复询问。",
+    "实际任务终端命令统一在已确认执行主机的tmux内运行；首次建立tmux所必需的最小检查/安装命令及本地计划读取、apply_patch编辑、结构校验为明确例外。",
+    "先学习并核验当前检出，保留工作区已有修改；不能用聊天摘要代替当前文件与真实包体。",
+    "v2、观测45维、动作12维、关节顺序、增益、200/50/10Hz和命令域保持冻结契约；新增测量不得改变动力学或策略输入。",
+    "底层旧复测仍为失败，用户接受既有版本只授权后续研究，不重判旧验收。",
+    "名义运动来自确定性平面模型；无扰动物理仿真仍是执行系统。名义运动与名义功率模型须分别标识。",
+    "固定30秒使用能量成本，禁止退回J=T造成alpha恒为0；时间只作时长与诊断字段。",
+    "机械功、电机电能、电池能量必须区分。没有电机/电池参数时不得把仿真机械功标成实测电池耗电。",
+    "先独立建立并冻结名义功率模型，再拟合裕度，再打开检验集，再做近障检查；后两个集合不得用于挑模型、改协议或裕度。",
+    "不得为了维持原论文叙事强行制造正alpha、旧alpha=0.18或delta=0.12m；零值、负超支和大误差均照实处理。",
+    "所有种子、指令、分组、配额、随机化单位、有效性和统计口径须在正式运行前锁定并散列。",
+    "摔倒、停滞、不执行低速、提前结束不得按误差大小过滤。日志损坏等基础设施问题与控制器业务失败分开。",
+    "重采/恢复必须引用同一预登记trial_id并保留原尝试与原因；禁止因性能差增加样本直到通过。",
+    "能量以经核验的实际施加关节力矩和同一物理步的关节速度在200Hz积分；50Hz控制日志不直接冒充物理子步测量。",
+    "校准/检验/近障采用相同冻结模型、功率模型、成本定义和执行接口；换任一者需版本化并重新评估。",
+    "记录真实参数、采样值、散列、种子、终止原因、tmux位置及落盘日志；不在计划或日志中保存凭证。",
+    "旧论文示例、旧跟踪RMSE和观测样本仅供追溯，不能替代本次配对能量数据。",
+    "历史文件保持原样，新代码在CaMRA/calibration，原始产物放新run目录；涉及旧产物覆盖/移动先暂停。",
+    "现有仓库外服务器路径只作定位线索，运行主机、可用资产和解释器以现场核验为准。",
+    "交付结论必须覆盖同分布检验与近障适用性边界；经验分位数与区间不升级为任意随机环境的安全保证。",
+    "当前只创建计划，所有新任务status=false、work_records=[]、verification_result为空；不自动启动执行或Git提交。",
+    "CAL-001–004为新上下文背景学习与理解核对，CAL-005–007为新机器安装配置、模型/资产取用和基础运行验证；均验收后才进入CAL-008及后续设计/实现，不凭已有聊天或“旧机器能跑”跳过。"
+  ],
+  "uncertainty_policy": {
+    "rule": "执行中遇到会影响实现方向、数据/能量语义、环境稳定性、既有产物或外部成本的不确定点，保持当前任务false、记录证据并暂停询问用户。",
+    "must_pause_and_ask": [
+      "执行设备/仓库/模型来源不唯一，或散列、资产、依赖、冻结契约不匹配",
+      "正机械功、绝对机械功或电能作为主成本尚无最终明确选择，或物理测量字段的语义无法查证",
+      "独立名义功率建模集的额外资源预算、规模、模型选择及验收方案尚未冻结",
+      "需要改变800/400/200配额、30秒窗口、90%分位水平、扰动或命令分布",
+      "力矩数据不可取得，积分时刻无法对齐，或读取仪器改变动作/动力学",
+      "同一初始条件不可复现、并行环境发生交叉干扰、或失败与基础设施错误无法区分",
+      "出现零/近零名义能量而未有预登记处理，功率模型验证不合格或覆盖与基线不一致无法解释",
+      "低速死区导致不适用裕度、失败占比或覆盖明显不满足预登记交付要求，需要缩域/重训/增样本/改模型",
+      "近障检查显示裕度迁移失败，需要回采、改轮廓或变更成本/采样域",
+      "需要升级核心依赖、引入外部API/费用、远程写入之外的新服务、推送或覆盖历史记录"
+    ],
+    "question_format": "说明当前CAL任务ID、已确认事实、证据路径、不确定点、具体备选方案及各自影响。只暂停依赖该决策的工作，已授权且独立的检查可继续；不得把未回复当同意。",
+    "decision_recording": "将后续确认追加到本计划decision_records及相应任务work_records；不得改写document已记录的创建时事实。"
+  },
+  "paths": {
+    "local_workspace": "C:/Users/smile/Desktop/paper",
+    "plan": "doc/plan/20261103_camra_calibration_implementation.json",
+    "prior_plan": "doc/plan/20261031_camra_locomotion_implementation.json",
+    "agent_entry": "AGENTS.md",
+    "calibration": "CaMRA/calibration",
+    "locomotion": "CaMRA/locomotion",
+    "navigation": "CaMRA/navigation",
+    "paper": "manuscripts/CCDC/latex/1029/main.tex",
+    "historical_appendix": "manuscripts/CCDC/latex/1020/main.tex",
+    "algorithm_reference": "RC-PPO",
+    "hierarchical_reference": "HiRA",
+    "frozen_manifest": "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+    "artifacts_index": "CaMRA/locomotion/docs/artifacts_index.json",
+    "locomotion_handoff": "CaMRA/locomotion/docs/implementation_handoff.md",
+    "reproduction": "CaMRA/locomotion/docs/reproduction.md",
+    "machine_defaults": "CaMRA/locomotion/config/repro.env",
+    "old_eval_protocol": "CaMRA/locomotion/docs/eval_protocol.json",
+    "external_command": "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/external_command.py",
+    "exported_rollout": "CaMRA/locomotion/scripts/rollout_exported_policy.py",
+    "actuator_reference": "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree_actuators.py",
+    "remote_workspace": null,
+    "run_root": null,
+    "frozen_bundle_location_hint": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+    "proposed_module_layout": {
+      "config": "CaMRA/calibration/config",
+      "implementation": "CaMRA/calibration/camra_calibration",
+      "scripts": "CaMRA/calibration/scripts",
+      "tests": "CaMRA/calibration/tests",
+      "handoff": "CaMRA/calibration/docs/implementation_handoff.md",
+      "protocol": "CaMRA/calibration/config/calibration_protocol.json",
+      "local_machine_paths": "CaMRA/calibration/config/repro.env"
+    },
+    "layout_note": "proposed_module_layout为后续计划产物，当前未创建；run_root由执行设备核验后确定，不能假定本机或服务器已有。",
+    "local_workspace_note": "local_workspace仅记录计划维护时位置；接手设备必须在CAL-001确认实际仓库绝对路径，后续统一使用现场配置。"
+  },
+  "confirmed_protocol": {
+    "source": "用户采纳前一轮建议；成本与30秒方案按最新明确回复覆盖旧成本建议。",
+    "controller": "camra_go2_velocity_it2999_v2",
+    "simulation_only": true,
+    "sim_dt_s": 0.005,
+    "low_level_dt_s": 0.02,
+    "command_dt_s": 0.1,
+    "warmup_s": 1,
+    "measured_window_s": 30,
+    "warmup_rule": "1秒零命令稳定后重置测量时钟并将名义初态与实际平面位姿对齐一次；不重置机器人动力学、不在窗口内重新锚定。未能稳定作为业务异常保留。",
+    "initial_state_rule": "每pair共享平面起点、初始航向和指令种子；记录执行系统关节/速度/姿态初态，名义模型只使用其定义的平面状态。",
+    "nominal_motion": "状态(px,py,yaw)，按机身速度经航向旋转后积分；同一实际下发命令、统一时钟、固定数值积分规则。",
+    "command_limits": {
+      "vx_mps": [
+        -1,
+        1
+      ],
+      "vy_mps": [
+        -0.4,
+        0.4
+      ],
+      "yaw_rate_radps": [
+        -1,
+        1
+      ]
+    },
+    "command_program": {
+      "families": [
+        "直行变速与侧移",
+        "弧线与组合运动",
+        "交替变向",
+        "启停与原地转向"
+      ],
+      "target_change_s": 1,
+      "transition_ramp_s": 0.2,
+      "notes": "在命令生成器中编码过渡，不改变底层桥接；保存原始目标和实际施加命令。各方向、0/低速/边界的具体分层与权重在正式采样前写入协议。"
+    },
+    "execution_profiles": [
+      {
+        "id": "clean",
+        "fixed_friction": 1,
+        "added_mass_kg": 0,
+        "push": "disabled",
+        "obs_noise": "disabled"
+      },
+      {
+        "id": "friction_only",
+        "friction_range": [
+          0.3,
+          1.25
+        ],
+        "other_knobs": "clean"
+      },
+      {
+        "id": "mass_only",
+        "added_mass_kg_range": [
+          -1,
+          3
+        ],
+        "other_knobs": "clean"
+      },
+      {
+        "id": "push_only",
+        "push_velocity_xy_mps_range": [
+          -0.5,
+          0.5
+        ],
+        "push_interval_s_range": [
+          5,
+          10
+        ],
+        "other_knobs": "clean"
+      },
+      {
+        "id": "combined",
+        "friction_range": [
+          0.3,
+          1.25
+        ],
+        "added_mass_kg_range": [
+          -1,
+          3
+        ],
+        "push_velocity_xy_mps_range": [
+          -0.5,
+          0.5
+        ],
+        "push_interval_s_range": [
+          5,
+          10
+        ],
+        "obs_noise": "现有训练配置值"
+      }
+    ],
+    "perturbation_notes": [
+      "推扰是设置水平速度的冲击，不应改称已测外力牛顿值。",
+      "组间未列出的旋钮固定clean值；显式禁用隐藏训练随机化、reset平面速度/位姿随机化与自动随机命令。",
+      "摩擦/质量的采样单位、分布、每回合是否重采、噪声尺度与注入先后需从运行代码核对并写入协议，不能只记录范围。",
+      "不改变原协议；新模块记录五组实际生效配置。clean即无附加扰动的物理执行，不称为名义模型。",
+      "0–40ms命令延迟及旧稿100ms延迟当前未实现，首版排除。"
+    ],
+    "logging": {
+      "physical_energy_hz": 200,
+      "state_and_control_hz": 50,
+      "pairing_hz": 10
+    },
+    "split": {
+      "calibration_pairs": 800,
+      "heldout_pairs": 400,
+      "near_obstacle_pairs": 200,
+      "formal_cells": 20,
+      "calibration_per_cell": 40,
+      "heldout_per_cell": 20,
+      "near_obstacle_per_cell": 10,
+      "mixture_weights": "四命令族×五条件等权；派生子层权重事先固定，检验不得隐式改权。",
+      "counting": "pair/trial_id为基本样本。失败计入配额、覆盖分母和独立失败统计，完整样本与失败单列；禁止只凑够完整成功样本后隐去失败。",
+      "seed_rule": "在CAL-009枚举并冻结全体seed、program_id和trial_id，避开旧训练/开发/测试/诊断已使用种子；功率基线、pilot、校准、检验、近障五域分离。",
+      "independence": "同一轨迹时间点不是独立样本；同一命令模板/采样簇的相关性记录并按簇处理。"
+    },
+    "quantiles": {
+      "pc": 0.9,
+      "pd": 0.9,
+      "method": "nearest-rank，完整有效n条中按ceil(0.9*n)取排序值；无插值；等于阈值视为覆盖。",
+      "nonnegative_margin": "delta非负；若成本分位为负，保留原始分位并将作为安全裕度使用的alpha下限置0，明确记录而非改写误差样本。",
+      "notes": "alpha/delta只用校准集；失败比例及条件覆盖另报，成功完整轨迹上的分位不称为全部试验90%保证。"
+    },
+    "validation": {
+      "report": [
+        "能量覆盖",
+        "位置覆盖",
+        "联合覆盖",
+        "物理失败率",
+        "数据无效率",
+        "低速/各方向/五条件分组",
+        "功率模型预测误差与适用域"
+      ],
+      "overall_denominator": "预登记全部业务试验；跌倒/提前结束计为未覆盖，另给完整轨迹条件覆盖。",
+      "target_interpretation": "90%为校准分位目标，不硬造检验恰好90%；两项边际90%也不推出联合90%。",
+      "intervals": "按整条独立轨迹或预登记命令簇重采样，报告95%统计区间；规则和次数在CAL-009锁定，不按点数伪增样本。",
+      "near_obstacle": "正式采集前锁定地图、命令与物理轮廓；固定全部模型和裕度后，用200条简单通道/近障轨迹检查迁移，不调margin、不训练导航器。保留全体结果，同时列出满足名义delta膨胀边界的子组，不能把不满足前提的路径称为裕度安全试验。"
+    }
+  },
+  "energy_contract": {
+    "user_confirmed_direction": "固定30秒；名义运动模型之外增加独立的名义功率模型；仿真执行侧测量能量。",
+    "pure_time_rejected_for_this_version": "相同窗口下J_nom=J_exec=30，无成本超支信息。",
+    "selected_cost_family": "energy",
+    "primary_metric_resolution": "CAL-008必须在正式实施前根据可用物理信号冻结具体机械能量定义；下述为推荐候选而非已经核实的电池模型。",
+    "recommended_metric": "正机械功：P_exec(t)=sum_i max(tau_applied_i(t)*qdot_i(t),0)，J_exec=sum_physics_steps P_exec*0.005，单位J（机械功）。不能先sum再max让关节间负功抵消。",
+    "alternatives_requiring_decision": "若改用sum|tau*qdot|、包含负功损耗的电机能量或真实电功率，必须说明与推荐定义差异并确认，不能混合口径。",
+    "measurement_audit": "查证applied_torque/applied_effort的物理语义、力矩限幅/摩擦后值、关节顺序与步前/步后时刻；在执行设备实测取值并对照执行器链。不能把PD未限幅computed_torque当施加力矩。",
+    "baseline_model": {
+      "role": "给定名义速度指令及必要的前一步命令/变化量，预测同一v2在clean平地条件下的非负名义功率；模型内参数冻结后J_nom=sum(P_hat_nom*dt)。",
+      "source": "独立新采clean基线集或经过严格核验的独立能量数据。旧日志缺力矩，不能假定可用于拟合。数据规模/预算在CAL-008登记并确认。",
+      "fit_rules": "按完整轨迹/命令程序簇分离拟合、开发与基线检验；各子集保留必要的命令族覆盖，包含停车、低速、各方向与启停。优先简单可解释的非负模型，不用正式校准或检验数据拟合。",
+      "causality": "只读名义侧可用状态、当前/历史命令，不能输入执行力矩、执行能量、扰动标签或未来命令来虚增精度。",
+      "stationarity": "在独立clean窗口检查启停、周期和history依赖；若状态不足必须先解决/说明，不能把未验证的无记忆拟合直接接入上层。",
+      "nondegeneracy": "零/近零预测能量、静止正机械功很小和运行失败必须有预登记规则；禁止任意加小正数使比值好看。必要时缩域/改成本需暂停用户决策。"
+    },
+    "epsilon_c": "(J_exec-J_nom)/J_nom，仅对正且高于已锁定数值可靠阈值的完整记录定义；负超支保留。",
+    "epsilon_d": "同一时刻平面base位置差的全程最大值；正式定义在10Hz公共网格，另报50Hz原始最大值敏感性，禁止偷换采样最大值。",
+    "calibration_interpretation": "J_nom是模型预测机械能量，J_exec是仿真关节机械功积分；此版改变旧稿同一导航代理c作用于两条轨迹的语义，必须在设计差异与上层交付契约中明确。",
+    "downstream_effect": "上层名义步成本改为P_hat_nom*dt，并扣(1+alpha)c；history依赖模型要求增广状态。未来预算单位和基准必须重算，不沿用旧a.u.数值或论文预算。",
+    "external_push_note": "外部速度冲击对机器人做功不直接算电机输出能量；保留推扰能量来源说明。站立持力机械功小不代表电池耗电小。"
+  },
+  "decision_records": [
+    {
+      "id": "D-001",
+      "state": "confirmed",
+      "date": "2026-11-03",
+      "decision": "接受现有冻结v2的低速局限推进仿真校准；旧验收结论不变。",
+      "source": "用户前序“可以的，那就接受”"
+    },
+    {
+      "id": "D-002",
+      "state": "confirmed",
+      "date": "2026-11-03",
+      "decision": "采纳前一轮采样/记录/分位/独立检验/近障/轮廓方案，旧加权代理成本除外。",
+      "source": "用户“成本建议定义为能耗，可以用时间代替，其他的都采纳”"
+    },
+    {
+      "id": "D-003",
+      "state": "confirmed",
+      "date": "2026-11-03",
+      "decision": "固定30秒，增加名义功率模型和执行能量测量；不改为同目标到达用时。",
+      "source": "用户异步选项明确选择"
+    },
+    {
+      "id": "D-004",
+      "state": "confirmed",
+      "date": "2026-11-03",
+      "decision": "按新执行设备、全新模型上下文接手安排前置任务：先详细学习研究和项目背景，再安装配置运行环境、取用模型并验证，然后进入校准实现。",
+      "source": "用户最新要求：新环境、新模型上下文，需要充分学习背景并把环境配置放在前面。"
+    }
+  ],
+  "pending_decisions": [
+    {
+      "id": "D-ENERGY-001",
+      "owner_task": "CAL-008",
+      "issue": "最终能量指标、名义功率基线采样规模、模型验证准入和数值可靠性规则",
+      "reason": "用户已选能量方向，但仿真可用量尚需运行核验；不能把机械功当电池电耗，也不能在固定窗口中退回时间代理。",
+      "recommended": "以正关节机械功为首版，独立clean基线拟合非负名义功率；先列资源预算和验证口径，确认后冻结。",
+      "blocks": [
+        "CAL-009及之后的实现、正式采集和统计结论"
+      ],
+      "resolution_rule": "先核验已有设备信号并形成具体可审方案，再对仍影响评分语义/资源的选择询问用户。不能把本字段视为已同意任何功率常数。"
+    }
+  ],
+  "tmux_execution_policy": {
+    "scope": "执行计划时，学习/环境配置/测试/采集/统计等终端任务均在已确认执行设备tmux窗口内；初次建立tmux所需最小检查/安装命令和本次本地计划维护为例外。",
+    "bootstrap": [
+      "CAL-001先确认执行主机、工作区、权限和资源，检查tmux -V/list-sessions；新设备未装tmux时先完成必要的最小安装引导并记录，再进入会话执行其余任务。",
+      "使用独立会话camra-calibration；检查同名会话归属，复用匹配会话或用唯一后缀，不关闭别人的会话。",
+      "窗口按CAL-xxx命名，记录cwd、解释器和TMUX；实际任务从pane运行，控制终端仅管理会话。",
+      "建立落盘stdout/stderr与退出码，不依赖滚屏；长任务无缓冲；tee管道必须pipefail并保存真实退出码。"
+    ],
+    "reconnect": [
+      "断连后先查同主机会话、进程、日志和已有trial清单，不重复启动仍运行采集。",
+      "中断恢复只补基础设施原因未完成trial，使用原trial_id并记录attempt；已失败业务试验不得偷偷重跑替换。",
+      "服务器重启后tmux不会保活，依靠持久日志和已完成分片恢复。"
+    ],
+    "scheduling": "使用调度器时GPU进程仍受有效资源配额约束；不得擅自增加服务器或付费资源。"
+  },
+  "tasks": [
+    {
+      "id": "CAL-001",
+      "goal": "确认新设备与仓库入口并建立tmux工作基线",
+      "status": false,
+      "depends_on": [],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按新机器、新上下文接手：先读AGENTS、本计划与根/三模块README，不假定已读聊天或具备旧服务器的路径、依赖和模型。",
+        "确认执行主机、仓库绝对路径、GPU/驱动、存储与权限，记录Git及脏文件、HiRA固定提交状态；缺参考子模块只按锁定提交初始化，保留已有修改。",
+        "先建立tmux和持久日志；初次检测或安装tmux所需的最小引导命令可在外部终端运行，其余终端任务进入会话。不得开始仿真或重新训练。"
+      ],
+      "acceptance_criteria": [
+        "记录执行设备、工作区、GPU/驱动/磁盘、tmux会话/窗口和日志根，并区分已存在与尚缺的资源。",
+        "无害进程detach/重连后持续运行的证据存在；明确断连恢复入口。",
+        "能说明各顶层目录职责、当前仿真校准目标、只读参考范围及已有未提交修改。"
+      ],
+      "verification_result": "",
+      "read_sources": [
+        "AGENTS.md",
+        "README.md",
+        "CaMRA/README.md",
+        "CaMRA/calibration/README.md",
+        "CaMRA/locomotion/README.md",
+        "CaMRA/navigation/README.md",
+        ".gitmodules"
+      ]
+    },
+    {
+      "id": "CAL-002",
+      "goal": "详细学习论文背景、方法与当前校准目标",
+      "status": false,
+      "depends_on": [
+        "CAL-001"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "阅读当前主稿的问题定义、方法及相关实验设定；历史1020附录只用于追溯原定义，同时查阅示例数据来源说明。",
+        "理解分层解决底层运动协调和执行不确定性的工程作用；掌握x/y/z、相对成本超支、位置最大误差、alpha/delta及预算扣减的关系。",
+        "逐项对照当前决定：仅仿真、固定v2、30秒能量成本、独立功率模型、800/400/200数据及独立检验；不能把旧示例数值当实测或把经验覆盖当随机安全定理。"
+      ],
+      "acceptance_criteria": [
+        "输出方法逻辑图或明确的数据流说明，解释底层、校准、上层分别负责什么。",
+        "列出旧a.u.成本/5Hz/延迟/示例数据与当前实现协议的差异，区分已确认事实和待决事项。",
+        "能解释确定性名义运动、clean物理执行、名义功率三个概念及新能量成本对未来预算的影响。"
+      ],
+      "verification_result": "",
+      "read_sources": [
+        "manuscripts/CCDC/latex/1029/main.tex",
+        "manuscripts/CCDC/latex/1020/main.tex",
+        "manuscripts/CCDC/data/1029/manuscript_completion_20261026/README.md"
+      ]
+    },
+    {
+      "id": "CAL-003",
+      "goal": "逐个学习现有项目、冻结控制器及参考代码",
+      "status": false,
+      "depends_on": [
+        "CAL-002"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "追踪locomotion的Go2环境、观测/动作、外部命令、导出重载、执行器与资产链路；阅读交接§30、§37–47和旧计划相关决策与证据。",
+        "按RC-PPO与HiRA的README定位并阅读关键实现，解释可复用思想和接口；保持参考代码及HiRA锁定提交原样，不安装仅供阅读的参考项目全套依赖。",
+        "核对45维观测、12维动作、关节顺序、增益、200/50/10Hz、命令范围及已知低速死区。理解旧TASK-036/037状态与用户接受v2的区别。",
+        "当前阶段做源码与资料学习；运行验证放在环境配置及模型取用之后，不能仅凭静态阅读宣称可运行。"
+      ],
+      "acceptance_criteria": [
+        "列出具体文件/符号入口，追踪速度指令到观测、策略、关节动作、物理执行及记录的调用链。",
+        "说明RC-PPO成本最小化语义、预算/终止处理及HiRA时序参考与本次校准的关系。",
+        "确认当前calibration/navigation尚未实现、模型与资产不随普通克隆齐备、旧跟踪日志缺正式配对能量信号。"
+      ],
+      "verification_result": "",
+      "read_sources": [
+        "CaMRA/locomotion/docs/implementation_handoff.md",
+        "doc/plan/20261031_camra_locomotion_implementation.json",
+        "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/camra_env_cfg.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/external_command.py",
+        "CaMRA/locomotion/scripts/rollout_exported_policy.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree_actuators.py",
+        "RC-PPO/README.md",
+        "HiRA/README.md"
+      ]
+    },
+    {
+      "id": "CAL-004",
+      "goal": "完成背景理解核对与新机器实施准备清单",
+      "status": false,
+      "depends_on": [
+        "CAL-003"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "在calibration/docs的单一implementation_handoff.md记录学习结论；合并前两项成果，不另建重复过程报告。",
+        "明确当前要实现和本轮不实现的内容、模型/资料实际位置、可直接复用的代码、需要新增的模块与未决事项。",
+        "根据新设备形成具体环境配置方案：依赖及版本来源、隔离环境位置、资产/模型来源、磁盘/资源预算和预检命令。已有决定不重复询问。",
+        "理解不完整时回读对应来源；只对仍影响范围/数据语义/核心依赖/资源的真正未知点按不确定策略询问，不新增例行人工审批。"
+      ],
+      "acceptance_criteria": [
+        "交接笔记包含论文目标、三模块关系、代码/文件索引、接口与时序、已知局限、真实/示例证据边界和当前未决事项。",
+        "形成设备配置清单和模型获取清单，所有历史服务器路径标为线索并确认本机落点。",
+        "学习结论与实际文件核对一致，后续环境任务可直接按清单执行，不依赖原聊天上下文。"
+      ],
+      "verification_result": "",
+      "read_sources": [
+        "AGENTS.md",
+        "doc/plan/20261103_camra_calibration_implementation.json",
+        "CaMRA/locomotion/README.md",
+        "CaMRA/locomotion/docs/reproduction.md",
+        "CaMRA/locomotion/docs/artifacts_index.json"
+      ]
+    },
+    {
+      "id": "CAL-005",
+      "goal": "按新设备安装并配置匹配的仿真运行环境",
+      "status": false,
+      "depends_on": [
+        "CAL-004"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "依据已核实的v2运行版本和上一项清单，复用匹配环境；缺环境时创建隔离环境并安装所需Python、Torch/CUDA、Isaac Sim/Lab、rsl-rl、ONNX及本项目依赖。",
+        "按当前设备核对驱动和GPU兼容性；以冻结证据中的版本及项目安装说明为基准，不默认采用最新版本，不修改系统已有环境或为阅读RC-PPO安装JAX训练栈。",
+        "在tmux中执行安装和预检，保存可重放命令、版本清单与实际日志；需要更改核心版本或设备不兼容时先提供证据和方案。",
+        "设备路径配置使用既有CAMRA_*覆盖机制，并建立calibration的机器配置入口；不复写冻结包或用旧服务器绝对路径硬编码新源码。"
+      ],
+      "acceptance_criteria": [
+        "实际可启动目标解释器并导入需要的包，GPU和Isaac无头最小启动可用，具备真实日志而非只列安装命令。",
+        "记录解释器、依赖/驱动/CUDA版本及安装来源；项目扩展可导入，机器路径可解析。",
+        "安装过程和预检退出码/产物一致；环境或资源不足明确归为基础设施问题，不判控制器失败。"
+      ],
+      "verification_result": "",
+      "read_sources": [
+        "CaMRA/locomotion/README.md",
+        "CaMRA/locomotion/docs/reproduction.md",
+        "CaMRA/locomotion/pyproject.toml",
+        "CaMRA/locomotion/source/unitree_rl_lab/setup.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/config/extension.toml",
+        "CaMRA/locomotion/config/repro.env"
+      ]
+    },
+    {
+      "id": "CAL-006",
+      "goal": "获取并校验新设备上的冻结模型和机器人资产",
+      "status": false,
+      "depends_on": [
+        "CAL-005"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "根据清单与用户已授权的可访问来源取得camra_go2_velocity_it2999_v2、配套USD/网格、deploy.yaml和export_manifest；普通Git克隆只有清单，不能假定已有包体。",
+        "使用设备配置中的新绝对路径，只读取用冻结v2；比较文件和树散列，核对完整资产依赖，不从随机下载策略或参考模型替换。",
+        "来源不唯一、权限不可用或散列不符时记录缺项并询问，不自行重训、重新导出冻结版本或覆盖历史包。"
+      ],
+      "acceptance_criteria": [
+        "真实模型/资产文件全部存在且校验通过，包版本、大小/文件数及散列与冻结清单一致。",
+        "新主机路径配置正确，导出输入输出、动作/关节映射和资产依赖与清单一致。",
+        "记录来源与获取/校验日志；错误模型、缺文件或错散列能明确拒绝，日志不含凭证。"
+      ],
+      "verification_result": "",
+      "read_sources": [
+        "CaMRA/locomotion/docs/reproduction.md",
+        "CaMRA/locomotion/docs/artifacts_index.json",
+        "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+        "CaMRA/locomotion/scripts/verify_frozen_bundle.py",
+        "CaMRA/locomotion/config/repro.env"
+      ]
+    },
+    {
+      "id": "CAL-007",
+      "goal": "完成新环境最小闭环验证与能量信号审查",
+      "status": false,
+      "depends_on": [
+        "CAL-006"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "用现有导出策略重载与外部速度入口运行最小闭环，保持冻结观测/动作/增益/时序；不重训，不重新裁定v2旧性能。",
+        "现场核验45维/12维/200-50-10Hz及命令实际生效，不能仅以进程exit0当成功。",
+        "查证当前运行版本实际施加力矩、关节角速度、关节顺序、限幅/摩擦语义与物理子步回调时序，确认后续200Hz测量可行。",
+        "暂不开始正式功率建模或800/400/200采集；缺信号或运行不匹配先定位基础设施与接口问题。"
+      ],
+      "acceptance_criteria": [
+        "最小rollout真实完成，位姿/关节速度/力矩数据有限且时序明确，产物与日志对应。",
+        "形成实际力矩字段与执行器源码的对应证据、可采频率及步前/步后时刻说明。",
+        "设备、依赖、模型及控制接口均通过基础运行核验；不能验证的项保留false并记录缺口。"
+      ],
+      "verification_result": "",
+      "read_sources": [
+        "CaMRA/locomotion/scripts/rollout_exported_policy.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/external_command.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree_actuators.py"
+      ]
+    },
+    {
+      "id": "CAL-008",
+      "goal": "冻结能量成本与名义功率基线的前置决策",
+      "status": false,
+      "depends_on": [
+        "CAL-007"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "使用D-003的固定30秒能量路线，不再退回到达时间或原加权代理成本。",
+        "根据已证实信号提出正机械功/绝对功/电能的具体可审定义；仍改变评分语义的选择必须询问用户。",
+        "额外功率基线规模、资源上限、模型验证准入、P接近0处理在运行前确定，不能偷偷增加预算。",
+        "说明新名义功率预测与执行机械功不是旧稿同一代理c的逐状态重算；把差异作为明确方法版本。"
+      ],
+      "acceptance_criteria": [
+        "D-ENERGY-001已获得明确选择和记录；主公式、符号、单位、站立/负功/外部冲击处理无歧义。",
+        "功率基线的采样数量/分割/资源预算及拟合模型候选、准入指标和阈值已确认。",
+        "定义零/近零J_nom与失败的记录、覆盖分母和不可计算处理；没有任意加epsilon掩盖退化。",
+        "上层步成本/预算单位/history状态需求有明确接口说明。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-009",
+      "goal": "冻结完整采样、划分、统计与适用性验收协议",
+      "status": false,
+      "depends_on": [
+        "CAL-008"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "保留800/400/200及四族五条件等权；功率基线另列，不挤占独立检验。",
+        "所有seed/program/trial与数据域事先登记；低速/边界/各方向权重写清，不因难例调权。",
+        "落实90%分位、总体及条件覆盖、95%区间及其重采样次数；明确不是联合90%保证。",
+        "预先定义覆盖/功率模型/近障判定的准入要求与未满足后的暂停流程。",
+        "近障地图、命令生成规则及名义物理无碰撞要求在正式采集前预登记；轮廓只由冻结资产及独立基线/pilot验证，不按正式误差改变通道或路线。"
+      ],
+      "acceptance_criteria": [
+        "版本化calibration_protocol及其散列存在，包含所有时钟、命令/扰动分布、配额、初态、终止和失败规则。",
+        "列出模型基线/pilot/800/400/200互斥来源与资源预算、命令簇相关性处理。",
+        "数值容差、量纲、近零规则、数据无效/业务失败/基建重试边界和统计准入已锁定。",
+        "协议可由配置加载和机器校验，不留会改变正式采集语义的未决项。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-010",
+      "goal": "建立校准模块结构、机器配置与数据清单格式",
+      "status": false,
+      "depends_on": [
+        "CAL-009"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只在calibration新增实现与测试入口，复用已有包；不复制修改参考仓库。",
+        "设备路径单点配置，支持命令行/环境覆盖；原始数据使用唯一run_id和只增attempt。",
+        "每条记录保留hash、split、family、profile、program/trial/seed、终止和validity字段。"
+      ],
+      "acceptance_criteria": [
+        "模块可安装/导入且有配置预检和schema验证入口。",
+        "清单覆盖物理测量、50Hz状态、10Hz配对、能量summary及真实参数/版本来源。",
+        "缺字段、重复trial、路径覆盖和错误split明确拒绝。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-011",
+      "goal": "实现确定性名义运动与共享命令时间轴",
+      "status": false,
+      "depends_on": [
+        "CAL-010"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "用实际施加机身指令旋转到世界坐标积分，初始航向正确处理。",
+        "冻结数值积分方法，命令边界按半开区间；只在测量起点锚定一次。",
+        "不把无扰动物理Go2轨迹当名义，不为降低误差动态时间扭曲或逐步重置名义位置。"
+      ],
+      "acceptance_criteria": [
+        "直行/侧移/圆弧/零输入/非零航向有解析或独立积分对照。",
+        "10Hz下发、50Hz状态、200Hz物理时钟在30秒边界一致，1秒warmup不混入正式数据。",
+        "连续两次同程序运行名义轨迹一致，扰动不改变名义轨迹。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-012",
+      "goal": "实现固定配额的指令族与互斥试验清单生成",
+      "status": false,
+      "depends_on": [
+        "CAL-011"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "四族、1秒目标、0.2秒过渡、10Hz下发遵循协议，命令域从冻结契约读取。",
+        "包含0/低速死区/正反方向/边界与启停；不能因v2跟踪差而自动裁掉。",
+        "split按预登记种子和指令簇分离；trial随机数独立于num_envs、完成顺序和batch大小。"
+      ],
+      "acceptance_criteria": [
+        "800/400各20格40/20，近障每格10共200，功率基线/pilot另列。",
+        "清单无重复或交叉泄漏，哈希固定；方向/低速/边界分层计数可核对。",
+        "换并行度或恢复运行不改变trial指令序列及随机化参数。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-013",
+      "goal": "实现五类物理执行条件并保存实际施加配置",
+      "status": false,
+      "depends_on": [
+        "CAL-012"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "显式设置clean与各单旋钮条件，combined叠加摩擦/质量/推扰/现有观测噪声。",
+        "推扰按速度冲击实现；排除未实现延迟、LiDAR和地形随机化。",
+        "核对reset、材料桶、质量、噪声和推扰事件的实际采样单位与生效时刻，不依赖文字label。"
+      ],
+      "acceptance_criteria": [
+        "逐组运行配置diff与采样记录证明只有指定旋钮变化。",
+        "每条trial的摩擦/质量/事件时刻/噪声设置可追溯；禁用隐藏随机化。",
+        "相同trial复用独立随机流，轨迹相互隔离，分组标签与实际配置一致。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-014",
+      "goal": "实现200Hz物理能量计量与50Hz状态记录",
+      "status": false,
+      "depends_on": [
+        "CAL-013"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "使用CAL-008冻结能量定义，在每物理步按同一步力矩/速度积分；不能每4子步抽一个点冒充全积分。",
+        "保存实际施加/请求力矩的区分、关节顺序、dt、时间戳和终止前最后有效步。",
+        "测量器只观察不改动力学；保存可离线复算的物理原始功率/力矩速度数据。"
+      ],
+      "acceptance_criteria": [
+        "常功率、交替正负功、关节间抵消、非整数窗口与单位转换的独立参考结果一致。",
+        "30秒完整窗口为6000物理步；能量不重算warmup、复位或其他episode。",
+        "运行时测量启用/关闭不改变动作与状态，差异在协议数值容差内。",
+        "50Hz状态与200Hz能量字段对应同一trial，完整度可检查。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-015",
+      "goal": "实现独立基线及正式配对轨迹采集器",
+      "status": false,
+      "depends_on": [
+        "CAL-014"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "重载v2导出策略，经已有外部命令桥接执行；观测/动作/增益保持不变。",
+        "同一实际指令生成名义轨迹和执行记录；无障碍采集场地足够容纳30秒最大位移，环境隔离。",
+        "自动复位后的新轨迹不能拼入旧trial；结束时原子保存，恢复不覆盖旧分片。",
+        "单回合允许完整1秒warmup及30秒测量；显式核验并配置trial时限，避免沿用训练默认20秒超时。保持真实摔倒/碰撞终止，不为凑30秒禁用业务失败或拼接复位后轨迹。"
+      ],
+      "acceptance_criteria": [
+        "命令、位姿、能量、profile和metadata完整对应，30秒1500条控制区间与301个含端点配对时刻口径明确。",
+        "正确捕获初始状态、1秒warmup边界、最后物理步、termination/truncation与中断。",
+        "能从清单仅执行指定split和trial子集，并核对是否重复/缺失。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-016",
+      "goal": "实现配对、失败分类与独立误差复算",
+      "status": false,
+      "depends_on": [
+        "CAL-015"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "10Hz公共时间网格线性配对；角度只用于运动学与诊断，位置不做相位对齐。",
+        "完整窗口才有正式epsilon；部分业务轨迹保留前缀诊断并在总体覆盖记失败，不伪装完整。",
+        "日志损坏属于data_invalid；停滞/摔倒属于业务结果，不能算基础设施重试。"
+      ],
+      "acceptance_criteria": [
+        "能量超支、位置最大偏差、50Hz敏感性、低速/终止标志独立复算一致。",
+        "零时长、NaN、近零分母、时间跳变、重复trial、错误状态来源均有明确错误分类。",
+        "配对报告列全体、完整、失败、无效分母，任何排除有原因和来源。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-017",
+      "goal": "完成CPU数值、数据划分与恢复逻辑测试",
+      "status": false,
+      "depends_on": [
+        "CAL-016"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只测真实风险：符号单位、关节索引、采样时刻、泄漏、失败计数及resume幂等。",
+        "解析直线/圆弧、已知功率及人工构造误差的测试数据须标为test_fixture。",
+        "不将单元测试或合成fixture当作正式仿真证据。"
+      ],
+      "acceptance_criteria": [
+        "数值参考、配额、seed独立、边界转换与错误分支测试通过并记录命令。",
+        "故意缺分片/重复/乱时钟/NaN/业务失败时不会错误通过。",
+        "不同批大小与断点恢复产生相同trial清单和派生统计。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-018",
+      "goal": "完成小批闭环采集与故障恢复验证",
+      "status": false,
+      "depends_on": [
+        "CAL-017"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "pilot独立于正式split，覆盖四族×五条件及低速/停车，规模在协议确定。",
+        "detach/重连只验证任务持续，不中断正式数据；故障注入仅用于工具pilot。",
+        "如需修改协议，先版本化并重新验证pilot，不能污染正式数据。"
+      ],
+      "acceptance_criteria": [
+        "实际日志证明200/50/10Hz、五条件、力矩测量、30秒配对和散列均生效。",
+        "离线能量/误差与在线值复算通过，真实失败和模拟日志损坏分类正确。",
+        "恢复只补未完成trial、保留attempt，pilot产物不进入基线拟合/正式统计。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-019",
+      "goal": "采集独立clean名义功率建模数据",
+      "status": false,
+      "depends_on": [
+        "CAL-018"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按CAL-008批准规模/资源预算执行固定清单，覆盖停车、低速、各方向、组合和过渡。",
+        "只使用clean条件的能量测量建立基线；不借用正式校准/检验/近障结果。",
+        "保留失败/无效及尝试，不因为功率曲线不好看补采性能样本。"
+      ],
+      "acceptance_criteria": [
+        "功率基线清单、原始能量/轨迹、split与样本数满足协议。",
+        "拟合/开发/基线验证的轨迹或命令簇互斥。",
+        "全体能量测量可复算，数据和环境散列已保存。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-020",
+      "goal": "拟合并验证冻结非负名义功率模型",
+      "status": false,
+      "depends_on": [
+        "CAL-019"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "模型候选和选择规则只用独立基线训练/开发集，不看正式误差。",
+        "记录单位/输入/history/归一化与适用域，不能用执行信号或扰动标签偷看输出。",
+        "静止/低速J_nom近零及模型外输入按协议处理；不通过人为大截距掩盖问题。"
+      ],
+      "acceptance_criteria": [
+        "独立基线验证达到预登记模型准入，分组/过渡误差与非负性/因果性测试通过。",
+        "冻结模型及输入schema/版本/散列，J_nom可从命令独立复算。",
+        "若失败，记录并暂停；不能跳过验证后用alpha吸收未查明拟合缺陷。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-021",
+      "goal": "确定并验证Go2物理占地轮廓",
+      "status": false,
+      "depends_on": [
+        "CAL-020"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "仅从冻结Go2资产及独立clean基线/pilot的关节运动包络推导几何；在打开正式校准/检验结果前冻结轮廓，单位/坐标/参考点一致。",
+        "足端地面接触是正常行走，障碍接触与跌倒终止分开；delta只加执行偏差。",
+        "不直接复用旧稿0.20m圆或硬件0.70×0.32m尺寸，不修改冻结机器人碰撞几何。"
+      ],
+      "acceptance_criteria": [
+        "轮廓生成方法、资产版本、仿真几何尺寸、腿部包络及独立覆盖检查可复算，输入不含正式校准/检验数据。",
+        "障碍物几何只包含一次机器人轮廓，delta膨胀不重复。",
+        "独立几何测试覆盖旋转、窄通道、擦边与连续扫掠碰撞。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-022",
+      "goal": "验证能耗成本与未来上层接口的一致性",
+      "status": false,
+      "depends_on": [
+        "CAL-021"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不实现或训练导航器；只交付步成本计算API/schema和说明。",
+        "c_nom=P_hat_nom*0.1秒，后续扣(1+alpha)c_nom；机械J预算与旧a.u.预算分开。",
+        "若模型有history依赖，明确增广状态/重置规则；不假设命令即全部Markov状态。"
+      ],
+      "acceptance_criteria": [
+        "每步成本相加与整条J_nom一致，输入/单位/状态/重置定义可直接消费。",
+        "确认不会固定30秒导致能量比恒为0，人工同能量案例可为0且保留。",
+        "旧论文预算和数据的未来同步需求已登记，没有自动改稿或复用旧能量数值。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-023",
+      "goal": "冻结正式采集清单与数据锁",
+      "status": false,
+      "depends_on": [
+        "CAL-022"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "功率模型/协议/代码/资产与split manifest全部散列，后续变更需新版本。",
+        "正式检验及近障的能量/误差结果在margin冻结前不可用于选择。",
+        "正式样本如遇数据损坏，按固定重试政策处理，保留全部attempt。",
+        "轮廓、近障地图、名义路径和生成规则一并冻结。只有名义路径满足已冻结物理轮廓安全要求的设计才进入预登记近障清单；不得读取正式执行误差挑地图。"
+      ],
+      "acceptance_criteria": [
+        "可机检的锁文件绑定所有依赖、配额、seed、权重、统计准入及资源预算。",
+        "正式800/400/200清单与基线/pilot无交叉。",
+        "采集器能阻止未冻结模型、错误split、覆盖既有run和打开检验调参。",
+        "锁文件含冻结物理轮廓与200条近障地图/命令清单，均形成于正式采集之前。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-024",
+      "goal": "采集800条正式校准试验并审查完整性",
+      "status": false,
+      "depends_on": [
+        "CAL-023"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "每格40条，失败也计trial配额，整批按已冻结协议运行。",
+        "不先跑检验挑选有利裕度；不为达目标增加/替换低速或失败样本。",
+        "完成数、失败数、有效数与日志损坏逐格对账。"
+      ],
+      "acceptance_criteria": [
+        "800个预登记trial均有结果或明确基础设施阻塞，不存在静默缺失。",
+        "原始/派生数据、200Hz积分、10Hz配对复算一致。",
+        "功率模型未改，数据来源和profile/命令族分组分母正确。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-025",
+      "goal": "计算并冻结alpha/delta及校准适用性结论",
+      "status": false,
+      "depends_on": [
+        "CAL-024"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只对协议定义的完整有效样本用nearest-rank；失败在总体统计单列，不造完整误差。",
+        "保存原始90%成本分位和非负alpha，记录静止/近零不适用与各条件分布。",
+        "如果失败多/误差过大/模型退化无法交付，按预登记判定暂停，不直接看检验试图修正。"
+      ],
+      "acceptance_criteria": [
+        "epsilon_c/epsilon_d、90%排序位置、ties覆盖、总体/条件分母及低速统计可复算。",
+        "alpha/delta及区间仅来源校准数据，未引用旧0.18/0.12或检验。",
+        "冻结margin版本/散列及适用域，是否达到预登记校准准入有明确结论。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-026",
+      "goal": "采集400条独立检验试验",
+      "status": false,
+      "depends_on": [
+        "CAL-025"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "每格20条，使用冻结margin/功率模型/v2和未用于拟合的预登记指令、种子。",
+        "检验只执行一次正式批次，性能差不能重采、改模型后复用同一独立性声明。",
+        "失败、无效和缺失保留，基础设施恢复遵照manifest而非改seed。"
+      ],
+      "acceptance_criteria": [
+        "400条试验完整对账，原始数据、命令、分组、散列可追溯。",
+        "拟合/校准/检验的程序与trial不存在泄漏。",
+        "执行期间模型、成本与margin散列未变。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-027",
+      "goal": "输出独立覆盖、统计区间与可用性判定",
+      "status": false,
+      "depends_on": [
+        "CAL-026"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "报告边际及联合覆盖、业务失败、近零能量及数据无效分母。",
+        "按轨迹/命令簇统计，不把50Hz点数作为独立样本；单固定v2不声称多训练种子方差。",
+        "90%目标不等于自动通过；按预登记准入判定，若不满足记录并暂停等待处置。"
+      ],
+      "acceptance_criteria": [
+        "总体、20格和低速/方向子组统计、95%区间与独立复算一致。",
+        "明确完整条件覆盖与全体试验覆盖，边际90%与联合关系解释准确。",
+        "检验结论可追溯且没有反向改变alpha/delta或名义模型；准入未满足不将任务标true。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-028",
+      "goal": "采集200条近障适用性试验",
+      "status": false,
+      "depends_on": [
+        "CAL-027"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "每格10条，简单通道/近障地图清单提前锁定，不需训练上层策略。",
+        "沿用完全相同能量定义和功率模型，能量不加入旧靠障碍惩罚。",
+        "正式margin/模型不再调，物理碰撞/跌倒记录失败而非排除；通道尺寸不能按已见误差调整。",
+        "分别记录名义路径是否满足物理轮廓边界、是否满足再膨胀delta的边界；不能把名义路径本来侵入膨胀区域的碰撞解释为裕度安全条件失效。"
+      ],
+      "acceptance_criteria": [
+        "200个预登记trial、地图/轮廓/碰撞/clearance/能量和几何误差记录齐全。",
+        "采集锁表明v2、功率模型、成本、alpha/delta与独立检验一致。",
+        "近障结果未参与前述任何拟合与选择，配额和分组可核对。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-029",
+      "goal": "完成近障迁移评估与全数据独立审计",
+      "status": false,
+      "depends_on": [
+        "CAL-028"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按已冻结近障准入检查成本/位置/联合覆盖、物理碰撞及轮廓正确性。",
+        "对全部分片独立复算能量、误差、配额、split和散列；不得仅重复调用同一在线函数自证。",
+        "发现迁移失败按不确定策略暂停，不能现场改delta后仍称独立检验通过。"
+      ],
+      "acceptance_criteria": [
+        "功率基线/800/400/200的计数、来源和散列完全一致，原始复算误差在预登记容差内。",
+        "近障与空旷条件差异、低速/转向局限及未覆盖扰动有明确结论。",
+        "真实结果满足预登记适用性要求；否则保持false并给出可审处置选项。",
+        "近障全体200条与满足名义delta边界的子组均独立列数及统计；若无可用子组或未满足预登记适用性准入，如实报告，不改变地图重试凑通过。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-030",
+      "goal": "验证独立目录重载与可复现交付包",
+      "status": false,
+      "depends_on": [
+        "CAL-029"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "交付包绑定v2但不改v2本体，包含功率模型、margin、协议、schema、真实报告及数据索引。",
+        "原始大文件保留仓库外已确认位置，目录散列/访问边界清楚，不上传新服务。",
+        "重载仅复算/小样回放，不重训、不重跑400独立检验来改结论。"
+      ],
+      "acceptance_criteria": [
+        "新进程/目录仅凭交付包与明确依赖可计算同一名义能量及margin校验结果。",
+        "缺模型/错资产/错频率/错功率版本/错单位明确拒绝。",
+        "真实包体、逐文件/树散列、取用说明和复现日志存在。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-031",
+      "goal": "同步模块说明和Agent当前入口",
+      "status": false,
+      "depends_on": [
+        "CAL-030"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "README解释本目录；AGENTS记录当前已完成事项/下一项导航及快速入口，历史证据仍可追溯。",
+        "更新CaMRA/calibration、系统README、doc索引和必要根入口，不改稿件及参考代码。",
+        "不宣称电池电能、严格随机安全保证、导航训练完成或v2旧测试通过。"
+      ],
+      "acceptance_criteria": [
+        "所有入口指向真实脚本/配置/日志/报告，命令与设备路径说明可用。",
+        "能量语义、功率模型适用域、alpha/delta和真实检验结果准确完整。",
+        "全部本地链接/锚点有效，旧计划/模型/协议/稿件的保护差异检查通过。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "CAL-032",
+      "goal": "完成计划对账与最终交接",
+      "status": false,
+      "depends_on": [
+        "CAL-031"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "逐项对照验收和真实证据，按技能追加日志及运行update校验。",
+        "未完成/失败/待决项不能因代码写完或进程exit0改true。",
+        "不自动Git提交/推送，若之后用户另行授权再执行。"
+      ],
+      "acceptance_criteria": [
+        "本计划无前向依赖或虚假完成，每项工作有命令、日志、证据和验证结论。",
+        "交付清单、代码/配置变更范围、测试、资源、已知边界和导航下一步明确。",
+        "update模式通过，所有最终验收确实满足；任何阻塞明确标出而非宣称完成。"
+      ],
+      "verification_result": ""
+    }
+  ],
+  "final_acceptance": [
+    "新上下文背景学习、理解核对、新设备依赖安装、模型资产取用及最小闭环均已验证，交付不依赖历史聊天或旧服务器路径。",
+    "所有任务严格依赖执行且有追加式work_records和非空verification_result；未达验收的任务保留false。",
+    "v2、资产和执行契约校验成立，旧失败结果和旧计划完全保留。",
+    "主能量定义、单位、测量时序和名义功率模型已经确认、验证并冻结；定长时间不能冒充能量超支。",
+    "独立功率基线、800校准、400检验、200近障来源可追溯、互不泄漏，失败不被丢弃。",
+    "能量200Hz积分、状态50Hz记录、10Hz配对的数值与时间轴测试通过；物理rollout证据实际存在。",
+    "alpha/delta及总体/分组/完整条件覆盖均可由原始数据复算；未覆盖/失败/不适用完整报告。",
+    "功率模型和覆盖/近障结果满足预登记准入要求；若科学效果不满足，报告并暂停处置，不伪装成功。",
+    "上层接口明确机械能量步成本、预算单位和可能的history状态要求；不自动修改论文旧预算。",
+    "交付包散列可校验、独立目录可重载；README/AGENTS/索引提供最快接手路径，远程日志可定位。",
+    "代码与文档完成不等于训练/导航/真机已验证；没有未经授权的提交、推送、重训或历史覆盖。"
+  ],
+  "onboarding_contract": {
+    "assumption": "不要求接手模型拥有历史聊天记忆，也不假定设备已安装依赖或拥有模型资产。",
+    "first_stage": [
+      "CAL-001 仓库/设备/tmux与基础项目阅读",
+      "CAL-002 论文背景与当前方法",
+      "CAL-003 各项目源码与冻结接口",
+      "CAL-004 学习结论及新设备配置清单"
+    ],
+    "second_stage": [
+      "CAL-005 实际安装并配置依赖环境",
+      "CAL-006 获取并验证v2和资产",
+      "CAL-007 最小闭环与能量信号核验"
+    ],
+    "next_stage": "CAL-008确认能量成本细节、CAL-009冻结实验协议；CAL-010起进入模块结构与实现。",
+    "learning_output": "CaMRA/calibration/docs/implementation_handoff.md中的持续更新章节；列明研究目标、方法、各目录状态、具体文件/符号、接口时序、已确认决定、证据边界和未决项。",
+    "gate": "背景学习按来源逐项验收；环境安装/模型校验/最小运行必须有实际日志。后续任务不得只凭摘要或命令退出码越过前置依赖。",
+    "current_action": "本次仅维护计划和入口文档，未实施学习任务、安装、远程操作、仿真或Git提交。"
+  },
+  "plan_revision_records": [
+    {
+      "date": "2026-11-03",
+      "from_version": "1.0.0",
+      "to_version": "1.1.0",
+      "reason": "按用户要求加强新环境、新模型上下文的前置学习和实际环境配置。",
+      "previous_task_count": 28,
+      "current_task_count": 32,
+      "task_id_migration": {
+        "原CAL-001": [
+          "CAL-001"
+        ],
+        "原CAL-002": [
+          "CAL-002",
+          "CAL-003",
+          "CAL-004"
+        ],
+        "原CAL-003": [
+          "CAL-005",
+          "CAL-006",
+          "CAL-007"
+        ],
+        "原CAL-004–028": "顺延为CAL-008–032，逐一保持原目标及验收内容"
+      },
+      "preserved": "原计划所有任务均无执行记录；本次只拆分前置任务并重排依赖，保留后续采集配额、能量方向及既有历史证据。"
+    }
+  ]
+}
