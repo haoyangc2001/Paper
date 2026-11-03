@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.1",
+    "version": "3.7.2",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3705,6 +3705,48 @@
           ],
           "blockers": [
             "低速（≈0.3 m/s）单轴稳态缺口 29–44% 是策略层面的稳定平衡点，不是随机误差；在未重训或未改口径前，lateral 与 fwd_low 都贴着阈值，随时可能翻车。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T13:25:00+08:00",
+          "summary": "在裁决②的诊断之后补做了一次速度扫描（16 个单变体命令，vy=±0.05…±0.40，开发种子 100，每点 30 回合，不触碰 300–309）。结果推翻了 §39.6 的精度假设：**|vy| ≤ 0.20 m/s 时机器人完全不动（稳态 0.000）**，越过 0.20 后缺口变成近似固定的 ~0.09，命令越大相对缺口越小。所以不是「奖励不敏感导致走得不准」，而是「小命令就站着」的起步行为。相应地，降低 lateral 命令会让结果变差，收紧奖励 std 大概率治不了。",
+          "actions": [
+            "从 eval_protocol.json 派生临时扫描协议（16 个单变体常量，vy 步长 0.05，其余字段逐字沿用），存于 /pub/data/caohy/tmp，不进仓库、不构成协议修订。",
+            "先冒烟对账：vy=+0.30 在种子 100 上 rmse_vy=0.0888，与种子 300–309 的 0.0886–0.0888 一致，证明扫描链路与正式评估同口径，曲线可直接读。",
+            "跑满 16 点 × 30 回合（480 回合，8 分钟），从 raw npz 按协议 warmup 窗口统计稳态速度、缺口与 rmse。",
+            "用曲线反过来检验三个候选处置的可行为：降低 lateral 命令、提高命令幅值、收紧奖励 std。"
+          ],
+          "files_changed": [
+            "仓库代码与协议未改动；新增交接笔记第 40 章",
+            "/pub/data/caohy/tmp/protocol_sweep.json（临时扫描协议，仓库外）",
+            "/pub/data/caohy/scripts/t040_sweep.sh、/pub/data/caohy/tools/{gen_sweep_protocol,sweep_report}.py（仓库外）"
+          ],
+          "commands": [
+            "python /pub/data/caohy/tools/gen_sweep_protocol.py",
+            "bash /pub/data/caohy/scripts/t040_sweep.sh   # tmux camra-locomotion:T040SWEEP",
+            "python /pub/data/caohy/tools/sweep_report.py --run_dir TASK-036/sweep/full --protocol /pub/data/caohy/tmp/protocol_sweep.json"
+          ],
+          "results": [
+            "|vy| ≤ 0.20：稳态实测 −0.0007（−0.20）与 +0.0059（+0.20），即完全不执行；0.05–0.15 各点同样为 0.000。",
+            "|vy| = 0.25：±0.134 / ±0.141（缺 0.11）；0.30：±0.201 / ±0.213（缺 0.09–0.10）；0.35：±0.257 / ±0.261（缺 0.09）；0.40：±0.302 / ±0.316（缺 0.085–0.099）。固定缺口约 0.09。",
+            "rmse 随幅值先升后降：0.20 → 0.196/0.201，0.25 → 0.117/0.118，0.30 → 0.089/0.103，0.40 → 0.086/0.105。lateral 的 0.30 正好在「刚出死区」的最差区间。",
+            "推翻「降低命令」：命令降到 0.20–0.25 后 rmse 反而升到 0.12–0.20，比 0.30 更差。",
+            "推翻「提高命令」：0.40 的正向 0.0855 略好、负向 0.1045 与 0.1031 持平，不能解决问题。",
+            "推翻「收紧奖励 std」：精度问题是按比例的全幅值误差，而死区是「是否执行」的开关，改精度项治不了开关。",
+            "新成因假设：训练侧 rel_standing_envs 与 stop_event_prob=0.25 让「停」成为高频样本，策略学到「命令小就站住」。修法应是让低速非零命令进入训练分布（或惩罚「命令非零却长时间静止」），仍属重训但改的是采样而非精度项。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/sweep/sweep_run.log（主机 tiger12.ios.ac.cn、窗口 camra-locomotion:T040SWEEP、git 435b802、冒烟对账与各步 EXIT）",
+            "/pub/data/caohy/logs/camra/TASK-036/sweep/sweep_curve.json（16 点结构化结果）",
+            "/pub/data/caohy/logs/camra/TASK-036/sweep/full/raw/nominal/*.npz（480 回合原始轨迹）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 40 章（方法与结论全文）"
+          ],
+          "remaining_work": [
+            "等待用户在三条处置中重新裁决：①按新成因重训低速起步行为（提高 0.1–0.3 m/s 非零命令的采样比例，或对「非零命令长时间静止」加惩罚；新模型须重新登记测试种子）；②改口径（阈值或命令幅值，属放宽标准需明确声明）；③接受死区并把「|vy| ≤ 0.2 m/s 不执行、>0.2 缺约 0.09」写进交付说明供校准层建模。",
+            "若进入 ①：先做 300–500 迭代的小对照（两组采样配置各训一次），确认低速非零命令的稳态速度真的抬起来，再投入完整重训；死区边界（0.20–0.25）建议补点并多种子确认后再写进任何协议。"
+          ],
+          "blockers": [
+            "策略存在约 0.2 m/s 的起步死区，lateral（vy=0.3）恰好落在死区出口的最差区间；在此行为未改变前，任何 0.3 m/s 量级的单轴低速验收都无法稳定通过。"
           ]
         }
       ],
