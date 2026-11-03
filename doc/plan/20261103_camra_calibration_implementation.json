@@ -362,6 +362,14 @@
       "date": "2026-11-03",
       "decision": "按新执行设备、全新模型上下文接手安排前置任务：先详细学习研究和项目背景，再安装配置运行环境、取用模型并验证，然后进入校准实现。",
       "source": "用户最新要求：新环境、新模型上下文，需要充分学习背景并把环境配置放在前面。"
+    },
+    {
+      "id": "D-005",
+      "state": "confirmed",
+      "date": "2026-11-03",
+      "decision": "D-ENERGY-001 四项裁定：①主能量指标采用正关节机械功 J_exec=Σ_k Σ_j max(τ_j·q̇_j,0)·0.005，逐关节截断后求和，单位 J；②名义功率基线 400 条 clean（拟合240/开发80/验证80，按整条轨迹或命令簇分离）；③模型准入为验证集逐轨迹 J_nom 相对误差 90% 分位 ≤10%，另加非负性、因果性与分组检查；④近零 J_nom 采用绝对阈值 J_min=1.0 J/30s，低于阈值记 non_computable 单列、计入覆盖分母但不参与 α。",
+      "source": "用户在 CAL-008 决策点对四项推荐方案的明确选择（正机械功 / 400条 / 90分位≤10% / 绝对阈值+单列）",
+      "evidence": "CaMRA/calibration/docs/implementation_handoff.md §10；实测依据见同文件 §9"
     }
   ],
   "pending_decisions": [
@@ -374,7 +382,11 @@
       "blocks": [
         "CAL-009及之后的实现、正式采集和统计结论"
       ],
-      "resolution_rule": "先核验已有设备信号并形成具体可审方案，再对仍影响评分语义/资源的选择询问用户。不能把本字段视为已同意任何功率常数。"
+      "resolution_rule": "先核验已有设备信号并形成具体可审方案，再对仍影响评分语义/资源的选择询问用户。不能把本字段视为已同意任何功率常数。",
+      "state": "resolved",
+      "resolved_at": "2026-11-03",
+      "resolved_by": "D-005",
+      "resolution_summary": "四项均获用户明确选择：正关节机械功；400条基线(240/80/80)；准入90%分位相对误差≤10%；近零阈值J_min=1.0J单列处理。可执行定义见 implementation_handoff.md §10。"
     }
   ],
   "tmux_execution_policy": {
@@ -396,9 +408,49 @@
     {
       "id": "CAL-001",
       "goal": "确认新设备与仓库入口并建立tmux工作基线",
-      "status": false,
+      "status": true,
       "depends_on": [],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T22:15:00+08:00",
+          "summary": "确认执行设备tiger10、仓库入口与tmux持久化基线，区分已有与尚缺资源。",
+          "actions": [
+            "按最短阅读路径读取 AGENTS.md、根 README、CaMRA 及三个模块 README、.gitmodules。",
+            "采集执行主机、工作区绝对路径、GPU/驱动、磁盘、tmux 会话与窗口、日志根。",
+            "在 tmux 会话 camra-baseline 中启动无害心跳进程（每 2 秒写时间戳），关闭 ssh 连接后再重连，验证进程持续运行。",
+            "检查主仓库 Git 提交、分支、脏文件与 HiRA 子模块锁定提交。",
+            "逐项探测仓库外资源（解释器、Isaac Lab 源码、冻结包、资产、检查点、候选包、历史日志）的存在性。"
+          ],
+          "files_changed": [],
+          "commands": [
+            "ssh caohy@192.168.20.10 'hostname; hostname -I; uname -r'",
+            "nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv,noheader",
+            "df -h /home/caohy /pub",
+            "git rev-parse --short HEAD; git branch --show-current; git status --short; git submodule status",
+            "tmux new-session -d -s camra-baseline -n heartbeat 'bash -c \"for i in $(seq 1 60); do echo ... >> heartbeat.log; sleep 2; done\"'",
+            "tmux ls; tmux list-windows -t camra-baseline"
+          ],
+          "results": [
+            "执行主机 tiger10.ios.ac.cn / 192.168.20.10，内核 5.15.0-130-generic。",
+            "工作区 /home/caohy/repositories/Paper，HEAD a92724f，分支 main，git status --short 为空（无未提交修改）。",
+            "HiRA 子模块锁定在 6a05af55521e5f6668c50e9f90cf7049b3e35cd9（heads/master）。",
+            "GPU：3 × NVIDIA A100-PCIE-40GB（各 40960 MiB），驱动 560.35.03，compute mode Default。",
+            "磁盘：/home/caohy（NFS 192.168.1.15）20T 用 18%；/pub 29T 仅剩 1.9T（94% 已用），后续大数据写入需注意。",
+            "tmux 现有会话：0、1、camra-baseline、camra-env、paper-study-20261103；日志根 /pub/data/caohy/logs/camra 与 /pub/data/caohy/logs/rsl_rl 均存在。",
+            "已有资源：env_isaaclab 解释器、/pub/data/caohy/src/IsaacLab-2.3.0/source/isaaclab、冻结包 camra_go2_velocity_it2999_v2、Go2 资产、model_2999.pt。",
+            "尚缺资源：/pub/data/caohy/camra_bundles/candidates/r4_it2999_v1、/pub/data/caohy/logs/camra/TASK-024、TASK-026、TASK-036（历史原始日志与候选包；本任务不依赖，后续按需取用）。",
+            "模块代码量：locomotion 74 个 py；calibration 与 navigation 各 0 个 py（仅 README），与计划描述一致。",
+            "心跳进程 pid 3678499 在 ssh 断开后继续推进，重连后可见 tick 4 → tick 15 连续写入。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/c1_device_baseline.txt（设备、Git、GPU、磁盘、tmux、资源存在性全量快照）",
+            "/pub/data/caohy/logs/camra/env_setup/c1_tmux_heartbeat.log（同一 pid 3678499 跨断连持续写入，tick 1..15）",
+            "预检脚本 scripts/check_repro_readiness.py 的 tmux 项可复现会话状态：expected session camra-locomotion，实际会话另行记录"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "按新机器、新上下文接手：先读AGENTS、本计划与根/三模块README，不假定已读聊天或具备旧服务器的路径、依赖和模型。",
         "确认执行主机、仓库绝对路径、GPU/驱动、存储与权限，记录Git及脏文件、HiRA固定提交状态；缺参考子模块只按锁定提交初始化，保留已有修改。",
@@ -409,7 +461,7 @@
         "无害进程detach/重连后持续运行的证据存在；明确断连恢复入口。",
         "能说明各顶层目录职责、当前仿真校准目标、只读参考范围及已有未提交修改。"
       ],
-      "verification_result": "",
+      "verification_result": "三项验收均通过：(1) 设备/工作区/GPU/驱动/磁盘/tmux/日志根已记录，并逐项标注已有（env_isaaclab、IsaacLab 源码、冻结包、Go2 资产、model_2999.pt）与尚缺（candidates 包、TASK-024/026/036 日志）资源，见 c1_device_baseline.txt；(2) tmux 心跳进程 pid 3678499 在 ssh 断连后持续运行，重连后 tick 4→15 连续，恢复入口为 tmux attach -t camra-baseline（camra-env 为安装/仿真会话）；(3) 顶层目录职责见 AGENTS.md 与根 README：CaMRA 为实现（locomotion 冻结、calibration/navigation 待实现）、RC-PPO 与 HiRA 为只读参考（HiRA 锁定 6a05af5）、manuscripts 为写作资料、doc 为计划与记录；当前目标为仿真能量与位置误差校准；git status 为空，无未提交修改。",
       "read_sources": [
         "AGENTS.md",
         "README.md",
@@ -423,11 +475,45 @@
     {
       "id": "CAL-002",
       "goal": "详细学习论文背景、方法与当前校准目标",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-001"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T22:25:00+08:00",
+          "summary": "读通 1029 主稿的问题定义与方法，落实三模块数据流、证据边界与协议差异，并写入校准交接笔记。",
+          "actions": [
+            "逐段阅读 manuscripts/CCDC/latex/1029/main.tex：摘要、贡献、MCRA/RC-PPO 回顾、四足闭环执行、执行误差校准、鲁棒 MCRA 学习与部署、实验设定。",
+            "核对示例数据性质：读取 data/1029/manuscript_completion_20261026/protocol.json 与 README.md，确认 data_status 与 empirical_validation。",
+            "对照计划 confirmed_protocol、energy_contract、global_constraints，整理论文/旧稿与当前实现协议的差异，并区分已确认事实与待决事项。",
+            "在 CaMRA/calibration/docs/implementation_handoff.md 建立交接笔记 §1（数据流）、§2（证据边界）、§3（差异）、§4（三个核心概念）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/docs/implementation_handoff.md（新建）"
+          ],
+          "commands": [
+            "sed -n '1,420p' manuscripts/CCDC/latex/1029/main.tex",
+            "python3 -c \"json.load(open('manuscripts/CCDC/data/1029/manuscript_completion_20261026/protocol.json'))['data_status']\"",
+            "grep -n 'data_status\\|empirical_validation' manuscripts/CCDC/data/1029/manuscript_completion_20261026/README.md"
+          ],
+          "results": [
+            "主稿把问题表述为 min Σc 受到达、全程避障与预算上界约束；状态增广 (x,y,z)，组合残差 W=max{V_h, V_c-z/z_ref}；CaMRA 仅加 c̃=(1+α)c 与 F_δ 两处执行侧修正。",
+            "paper 明确 J 是 a.u. 导航代理成本、不是电能；高层决策间隔 0.2 s（5 Hz）、episode 30 s、z_ref=120/140/190 a.u.。",
+            "protocol.json: data_status=internal_synthetic_working_manuscript，empirical_validation=false；README 明确 authored_example/computed_from_synthetic，且禁止改名当采集证据。",
+            "已确认差异 9 项（成本语义、窗口、决策间隔、频率、样本划分、分位数、扰动 profile、命令域、α/δ 数值），待决事项 6 项（能量指标口径、applied_torque 语义、功率模型形式与准入、基线预算、零/近零 J_nom 规则、指令延迟）。",
+            "论文数值 SR 73.3%/BVR 9.0%、α=0.09、δ=0.18 等确认属示例，不得作为本次采样或检验证据。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/docs/implementation_handoff.md §1.2：三模块数据流与职责表",
+            "同文件 §3.1/§3.2：已确认事实 9 项与待决事项 6 项分列",
+            "同文件 §4：确定性名义运动 / clean 物理执行 / 名义功率三概念及对预算的 5 条影响",
+            "同文件 §2.1：protocol.json 与 README 原文引用，明确示例数据不可当实测"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "阅读当前主稿的问题定义、方法及相关实验设定；历史1020附录只用于追溯原定义，同时查阅示例数据来源说明。",
         "理解分层解决底层运动协调和执行不确定性的工程作用；掌握x/y/z、相对成本超支、位置最大误差、alpha/delta及预算扣减的关系。",
@@ -438,7 +524,7 @@
         "列出旧a.u.成本/5Hz/延迟/示例数据与当前实现协议的差异，区分已确认事实和待决事项。",
         "能解释确定性名义运动、clean物理执行、名义功率三个概念及新能量成本对未来预算的影响。"
       ],
-      "verification_result": "",
+      "verification_result": "三项验收均通过，产物为 CaMRA/calibration/docs/implementation_handoff.md：(1) §1.2 给出从上层的机身速度命令（10 Hz）到底层 45→12 维的冻结接口，再到物理执行，以及校准侧名义/执行双路、α/δ 回灌导航的完整数据流，并用职责表说明三个模块各自负责与不负责的内容；(2) §3.1 列出 9 项已确认事实（成本语义 a.u.→J、窗口固定 30 s、决策间隔 5 Hz→10 Hz、样本划分、90% nearest-rank、五 profile、命令域、α/δ 待实测等）及各自依据，§3.2 单列 6 项待决事项（能量指标口径、applied_torque 语义、功率模型形式与准入、基线预算、零/近零 J_nom 规则、指令延迟排除），并在 §2.1 标明论文 SR 73.3%/BVR 9.0%/α=0.09/δ=0.18 等均为 authored_example；(3) §4 分别定义确定性名义运动（平面 (px,py,yaw) 积分、逐位可复现）、clean 物理执行（无附加扰动仍属执行系统）、名义功率（独立 clean 数据拟合的非负 P̂_nom，J_nom=ΣP̂_nom·Δt），并说明上层步成本改为 P̂_nom·Δt、按 (1+α) 扣减、history 依赖需增广状态、a.u. 预算整体失效、纯时间成本导致 α≡0。",
       "read_sources": [
         "manuscripts/CCDC/latex/1029/main.tex",
         "manuscripts/CCDC/latex/1020/main.tex",
@@ -448,11 +534,51 @@
     {
       "id": "CAL-003",
       "goal": "逐个学习现有项目、冻结控制器及参考代码",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-002"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T22:40:00+08:00",
+          "summary": "追踪速度指令→观测→策略→关节动作→物理执行→记录的完整调用链，确认力矩语义，核对 RC-PPO 与 HiRA 的可复用边界，并落实三项现状确认。",
+          "actions": [
+            "精读 scripts/rollout_exported_policy.py：SCENARIOS 命令程序、build_policy 三臂、接口自检、主循环记录字段与 npz 落盘内容。",
+            "精读 external_command.py 的类结构（CommandProgram 族、ExternalCommandBridge、ExternalCommandWrapper、CommandStepRecord）。",
+            "精读 camra_env_cfg.py 的 override 层与 assert_overrides_applied。",
+            "精读 assets/robots/unitree_actuators.py 的 compute/_clip_effort，确定 applied_effort 的物理语义与步前/步后时序。",
+            "grep 全仓库脚本与测试中的 applied_torque / joint_effort，确认是否存在力矩采集。",
+            "查阅冻结包 results/task024_aggregate.txt 的指标字段清单。",
+            "对照 RC-PPO/README.md 与 HiRA/README.md（及底层交接笔记 §13），确定二者与本次校准的关系与不可照搬之处。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §6 调用链章节）"
+          ],
+          "commands": [
+            "sed -n '1,120p;150,373p' CaMRA/locomotion/scripts/rollout_exported_policy.py",
+            "sed -n '1,120p' CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree_actuators.py",
+            "grep -rn 'applied_torque|joint_effort|effort' --include=*.py scripts/ tests/",
+            "head -30 <bundle>/results/task024_aggregate.txt"
+          ],
+          "results": [
+            "调用链七步已明确：命令程序 → ExternalCommandBridge 每策略步回写 → observation_manager 45 维 → JIT/ONNX/trainer 推理（no_grad）→ JointPositionAction（default+0.25·a，不裁剪）→ 每物理步 UnitreeActuator.compute（PD+延迟+力矩转速限幅−摩擦）→ 50 Hz 记录。",
+            "力矩语义确认：applied_effort = PD 力矩经力矩—转速曲线限幅后再减摩擦 Fs·tanh(q̇/Va)+Fd·q̇，即 ArticulationData.applied_torque；不是未限幅 computed_torque。步前关节速度被 _joint_vel 保存用于限幅曲线。",
+            "现有脚本只记录 50 Hz 的 cmd/vx/vy/wz/roll/pos/actions，无 applied_torque、无关节速度、无 200 Hz 子步数据；全仓库 grep 仅命中 export 脚本里的 effort_limit_sim 配置字段名。",
+            "TASK-024 汇总指标仅 fail/stand_drift_m/max_roll_deg/max_pitch_deg/rmse_*/p95_abs_err_*/rise_time_s/stop_drift_m/overshoot_mps，无能量、力矩或成本字段，也无名义—执行配对。",
+            "RC-PPO：独立 policy + 两个 critic，max(V_h, V_energy−energy)，对两个裁剪候选取 maximum 后最小化，energy 是剩余预算非电池能量，gae 重建 done 不等于环境终止。",
+            "HiRA：Isaac Gym + legged_gym/rsl_rl 栈，只作分层速度接口与时序/流程参考；其 cost 是首达步数均值，不实现预算条件双评价与执行校准。"
+          ],
+          "evidence": [
+            "implementation_handoff.md §6.1 调用链七步表（文件/符号级）",
+            "同文件 §6.2 力矩语义四条执行顺序 + 反例说明（不用 computed_torque）",
+            "同文件 §6.6 三项确认，分别对应本任务第 3 条验收",
+            "grep 输出：scripts/ 与 tests/ 下无 applied_torque 采集（唯一命中为配置字段名）",
+            "<bundle>/results/task024_aggregate.txt：指标字段清单无能量项"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "追踪locomotion的Go2环境、观测/动作、外部命令、导出重载、执行器与资产链路；阅读交接§30、§37–47和旧计划相关决策与证据。",
         "按RC-PPO与HiRA的README定位并阅读关键实现，解释可复用思想和接口；保持参考代码及HiRA锁定提交原样，不安装仅供阅读的参考项目全套依赖。",
@@ -464,7 +590,7 @@
         "说明RC-PPO成本最小化语义、预算/终止处理及HiRA时序参考与本次校准的关系。",
         "确认当前calibration/navigation尚未实现、模型与资产不随普通克隆齐备、旧跟踪日志缺正式配对能量信号。"
       ],
-      "verification_result": "",
+      "verification_result": "三项验收均通过，产物为 implementation_handoff.md §6：(1) §6.1 以七步表列出文件/符号级入口（SCENARIOS → ExternalCommandWrapper.set_program/ExternalCommandBridge._install/_apply_locked/notify_step → observation_manager.compute → torch.jit.load/OnnxPolicy/OnPolicyRunner → JointPositionAction 的 default+0.25·a → UnitreeActuator.compute → 50 Hz 记录），§6.3 给出 45 维观测顺序、12 维动作、关节顺序与 200/50/10 Hz 时序；(2) §6.4 说明 RC-PPO 的 max(V_h, V_energy−energy) 联合评价、对两个裁剪候选取 maximum 并最小化、energy 为剩余预算而非电池能量、gae 重建 done 不等于终止标志，并指出 α 作用于成本/预算、δ 作用于安全指示与可达目标，校准不改其语义；§6.5 说明 HiRA 仅作分层速度接口与时序参考、其 cost 是首达步数均值、不实现双评价与执行校准；(3) §6.6 三项确认均有可复现证据：calibration/navigation 各 0 个 .py、仓库仅有冻结清单副本而包体在仓库外、scripts/tests 下无 applied_torque 采集且 TASK-024 汇总指标不含能量/力矩/成本字段。另在 §6.2 落实了 applied_torque 的物理语义（PD→力矩转速限幅→扣摩擦→joint_efforts），为 CAL-007/008 的能量口径提供依据。",
       "read_sources": [
         "CaMRA/locomotion/docs/implementation_handoff.md",
         "doc/plan/20261031_camra_locomotion_implementation.json",
@@ -480,11 +606,46 @@
     {
       "id": "CAL-004",
       "goal": "完成背景理解核对与新机器实施准备清单",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-003"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T22:50:00+08:00",
+          "summary": "把 CAL-002/003 的学习结论合并进单一交接笔记，补齐文件索引、设备配置清单与模型获取清单，形成不依赖聊天上下文的接手入口。",
+          "actions": [
+            "在 CaMRA/calibration/docs/implementation_handoff.md 追加 §7 文件与代码索引（计划/说明、底层代码、底层脚本、协议与产物索引、参考项目五类）。",
+            "追加 §8.1 设备配置清单（主机、工作区、解释器、关键包、Isaac Lab 源码落点、GPU/驱动、磁盘、tmux、日志根、必要环境变量、证据目录）。",
+            "追加 §8.2 模型与产物获取清单：历史服务器路径统一标注为线索，逐项给出本机落点与散列校验结果，并列出未取对象及其必要性判断。",
+            "追加 §8.3 三条可直接执行的后续入口命令（预检、冻结包校验、最小闭环）。",
+            "逐条回查笔记中的版本号、散列与路径是否与现场一致（pip freeze、sha256sum、ls、df）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §7、§8）"
+          ],
+          "commands": [
+            "cat >> CaMRA/calibration/docs/implementation_handoff.md <<'DOC' ... §7/§8 ... DOC",
+            "wc -l CaMRA/calibration/docs/implementation_handoff.md",
+            "sha256sum <run_dir>/model_2999.pt <run_dir>/params/env.yaml",
+            "df -h /home/caohy /pub"
+          ],
+          "results": [
+            "交接笔记现为 366 行，含 §1 论文目标与三模块数据流、§2 证据边界与已知局限、§3 已确认差异与未决事项、§4 三个核心概念、§6 调用链与力矩语义、§7 文件索引、§8 设备与模型清单。",
+            "设备清单中 11 项均取自现场命令输出，未使用历史文档里的旧值。",
+            "模型获取清单 6 项：4 项已在本机并通过散列校验（冻结包、Go2 资产、检查点、训练参数），2 项明确标为未取（候选包、TASK-024/026/036 原始日志）并说明本次校准不依赖。",
+            "笔记中的三条命令与本次实际执行过的命令一致，可原样复跑。"
+          ],
+          "evidence": [
+            "implementation_handoff.md §7.1–§7.5：五类索引覆盖计划、代码、脚本、协议产物、参考项目",
+            "同文件 §8.1：设备配置清单 11 项，含 OMNI_KIT_ACCEPT_EULA / TMPDIR / XDG_* 等实测必需项",
+            "同文件 §8.2：历史路径（tiger12）标注为线索，本机落点与散列校验结果逐项列出",
+            "同文件 §8.3：可复跑的预检/校验/闭环命令"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "在calibration/docs的单一implementation_handoff.md记录学习结论；合并前两项成果，不另建重复过程报告。",
         "明确当前要实现和本轮不实现的内容、模型/资料实际位置、可直接复用的代码、需要新增的模块与未决事项。",
@@ -496,7 +657,7 @@
         "形成设备配置清单和模型获取清单，所有历史服务器路径标为线索并确认本机落点。",
         "学习结论与实际文件核对一致，后续环境任务可直接按清单执行，不依赖原聊天上下文。"
       ],
-      "verification_result": "",
+      "verification_result": "三项验收均通过：(1) 交接笔记覆盖全部必备内容——§1.1 论文目标（MCRA 目标式、增广状态与 ĝ、W=max{V_h,V_c-z/z_ref}、c̃ 与 F_δ 两处修正）、§1.2 三模块关系与数据流、§7 文件/代码索引（5 类共 25 条）、§6.3 接口与时序（45 维观测、12 维动作、关节顺序、200/50/10 Hz、增益与命令域）、§2.2 已知局限（TASK-036 overall_pass=False、lateral#v1 rmse_vy 0.1035>0.10、低速死区）、§2.1 真实/示例证据边界（data_status=internal_synthetic_working_manuscript）、§3.2 当前未决事项 6 项；(2) §8.1 设备配置清单 11 项均取自现场命令输出，§8.2 把 tiger12 路径统一标注为线索并给出 6 项本机落点与散列校验（4 项已校验通过、2 项明确未取且说明不影响本次校准）；(3) 笔记内容与实际文件逐项核对一致：预检 `VERDICT: ready`、`verify_frozen_bundle.py` PASS（树 d0f0ec…）、检查点 sha256 1c8f5aad… 与交接笔记 §30.1 逐位相同、最小闭环 4 场景 fails=0，且 §8.3 三条命令可直接复跑，不需要任何聊天上下文。",
       "read_sources": [
         "AGENTS.md",
         "doc/plan/20261103_camra_calibration_implementation.json",
@@ -508,11 +669,56 @@
     {
       "id": "CAL-005",
       "goal": "按新设备安装并配置匹配的仿真运行环境",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-004"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T21:50:00+08:00",
+          "summary": "在 tiger10 新建隔离 conda 环境并装齐与冻结清单匹配的仿真栈，实测无头 Kit 启动与预检分流。",
+          "actions": [
+            "核对本机 GPU/驱动（3×A100-PCIE-40GB，驱动 560.35.03，CUDA 上限 12.6），据此确定 torch 必须用 cu126 而非官方文档的 cu128。",
+            "conda 创建隔离环境 env_isaaclab（Python 3.11.15），未改动 CuroboV2、na_mcra 等既有环境。",
+            "安装 torch 2.7.0+torchvision 0.22.0（cu126）、isaacsim[all,extscache]==5.1.0、isaaclab 2.3.0 及其扩展、rsl-rl-lib 3.0.1、onnx 1.23.2、onnxruntime 1.31.1、pyyaml 6.0.2。",
+            "因 GitHub 不可达，改用 pip 轮子内自带源码树还原 /pub/data/caohy/src/IsaacLab-2.3.0/{apps,source}，对 5 个扩展执行 editable 安装并卸载仅作引导壳的 meta 轮子。",
+            "逐包与冻结包 env/pip-freeze.txt 比对，补齐参考环境有而我方缺的 argcomplete/dex_retargeting/pin-pink，并移除参考环境没有、且会与 psutil==5.9.8 冲突的 ipywidgets/ipython。",
+            "实测无头启动：scripts/list_envs.py 启动 Kit 并注册 5 个 Unitree 任务；随后三臂闭环进一步验证（见 CAL-007）。",
+            "分别以 --level eval-now 与 --level full-repro 运行预检并记录真实退出码（不经管道吞掉）。"
+          ],
+          "files_changed": [],
+          "commands": [
+            "conda create -y -n env_isaaclab python=3.11",
+            "pip install torch==2.7.0 torchvision==0.22.0 -i https://pypi.tuna.tsinghua.edu.cn/simple",
+            "pip install 'isaaclab[isaacsim,all]==2.3.0' -c constraints.txt -i <tuna> --extra-index-url https://pypi.nvidia.com",
+            "pip uninstall -y isaaclab && pip install --no-deps -e src/IsaacLab-2.3.0/source/{isaaclab,isaaclab_assets,isaaclab_rl,isaaclab_tasks,isaaclab_mimic}",
+            "pip install 'argcomplete==3.7.2' 'dex_retargeting==0.4.6' 'pin-pink==3.1.0'",
+            "python scripts/list_envs.py",
+            "python scripts/check_repro_readiness.py --level eval-now > c5_readiness_eval.txt 2>&1; echo $?",
+            "python scripts/check_repro_readiness.py --level full-repro > c5_readiness_full.txt 2>&1; echo $?"
+          ],
+          "results": [
+            "环境 /pub/data/caohy/miniconda/envs/env_isaaclab 建立完成，Python 3.11.15；既有 CuroboV2 / na_mcra 未改动。",
+            "版本与冻结清单逐项对齐：torch 2.7.0+cu126、isaacsim 5.1.0.0、isaaclab 0.47.2、assets 0.2.3、rl 0.4.4、tasks 0.11.6、mimic 1.0.15、rsl-rl-lib 3.0.1、numpy 1.26.0、onnx 1.23.2、onnxruntime 1.31.1。",
+            "torch.cuda.is_available()=True，torch.version.cuda=12.6，可见 3 张 A100。",
+            "无头启动成功：Kit 起来后注册 Unitree-G1-29dof-Velocity、Unitree-Go2-Velocity、Unitree-H1-Velocity 及两个 Mimic 任务（list_envs 仅按 Unitree 前缀列出，CaMRA-Go2-Velocity 在 go2/__init__.py 中另注册）。",
+            "预检 --level eval-now 真实退出码 0，VERDICT: ready（19 项检查全 ok，仅 tmux 项 warn）。",
+            "预检 --level full-repro 真实退出码 2，VERDICT: infra_blocked，blocking checks 为 task024_raw_logs / task026_rollout / candidate_bundle —— 属资源缺失，未据此评判控制器。",
+            "安装期遇到的问题与处置已归档：tmux 残留失效代理、pip 缓存回写 NFS 卡死、flatdict 需 pkg_resources、mimic 可选依赖引发 psutil 冲突。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/01_conda_create.log：Python 3.11.15",
+            "同目录 02_install.log：torch + 全套 nvidia 12.6 依赖安装成功（STEP2_EXIT=0）",
+            "同目录 03_install_isaaclab.log：isaaclab+isaacsim 244 包 STEP3_EXIT=0",
+            "同目录 04_pip_freeze_tiger10.txt 与冻结包 env/pip-freeze.txt 的逐包比对结果",
+            "同目录 07_smoke.log：无头启动 + 任务注册真实日志",
+            "同目录 c5_readiness_eval.txt（退出码 0 / ready）与 c5_readiness_full.txt（退出码 2 / infra_blocked）",
+            "同目录 README.md：安装来源、版本对照表与踩坑处置"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "依据已核实的v2运行版本和上一项清单，复用匹配环境；缺环境时创建隔离环境并安装所需Python、Torch/CUDA、Isaac Sim/Lab、rsl-rl、ONNX及本项目依赖。",
         "按当前设备核对驱动和GPU兼容性；以冻结证据中的版本及项目安装说明为基准，不默认采用最新版本，不修改系统已有环境或为阅读RC-PPO安装JAX训练栈。",
@@ -524,7 +730,7 @@
         "记录解释器、依赖/驱动/CUDA版本及安装来源；项目扩展可导入，机器路径可解析。",
         "安装过程和预检退出码/产物一致；环境或资源不足明确归为基础设施问题，不判控制器失败。"
       ],
-      "verification_result": "",
+      "verification_result": "三项验收均通过：(1) 目标解释器 /pub/data/caohy/miniconda/envs/env_isaaclab/bin/python 可启动，torch/numpy 正常导入且 torch.cuda.is_available()=True（3 张 A100）；无头 Isaac 启动有真实日志——scripts/list_envs.py 启动 Kit 并注册 5 个 Unitree 任务（07_smoke.log），非仅列安装命令；(2) 解释器、依赖与驱动版本已逐项记录（torch 2.7.0+cu126、isaacsim 5.1.0.0、isaaclab 0.47.2、assets 0.2.3、rl 0.4.4、tasks 0.11.6、rsl-rl-lib 3.0.1、numpy 1.26.0、onnx 1.23.2、onnxruntime 1.31.1；驱动 560.35.03 / CUDA 12.6），安装来源写明（conda 隔离环境 + 清华镜像 + pypi.nvidia.com + 由 pip 轮子还原的 Isaac Lab v2.3.0 源码 editable），并与冻结清单对齐；项目扩展 unitree_rl_lab 可导入，CAMRA_* 机器路径全部可解析（预检 19 项 ok）；(3) 退出码与产物一致且分流正确：--level eval-now 真实退出码 0 / VERDICT: ready，--level full-repro 真实退出码 2 / VERDICT: infra_blocked（blocking: task024_raw_logs、task026_rollout、candidate_bundle），即资源缺失被明确归为基础设施问题而非控制器失败。注：此前一次记录中误把 tail 的退出码当成脚本退出码，本次已用重定向后直接取 $? 的方式重新取证。",
       "read_sources": [
         "CaMRA/locomotion/README.md",
         "CaMRA/locomotion/docs/reproduction.md",
@@ -537,11 +743,53 @@
     {
       "id": "CAL-006",
       "goal": "获取并校验新设备上的冻结模型和机器人资产",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-005"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T22:55:00+08:00",
+          "summary": "从授权主机取回冻结包、Go2 资产与检查点，完成文件/树散列校验、19 项契约比对与两组负向拒绝测试。",
+          "actions": [
+            "经本地中转以 tar 管道从 caohy@192.168.20.12 只读取回冻结包 camra_go2_velocity_it2999_v2（29 文件）与检查点/参数，未在远端做任何写入。",
+            "从冻结包 assets/Go2 部署机器人资产到 /pub/data/caohy/unitree_model/Go2，并恢复可写权限。",
+            "用纯 stdlib 脚本独立复算 29 个文件的 sha256、字节数与树散列，与包内 frozen_manifest.json 及 .sha256 三方对照。",
+            "按清单规则（relpath 带 Go2/ 前缀）复算资产树散列，与 assets.go2_tree.tree_sha256 对照。",
+            "把包内 params/deploy.yaml 与仓库清单副本的 contract 段逐项比对（时序、增益、默认关节位、动作 scale/offset/clip、命令域、观测项顺序与 scale、总维数、joint_ids_map）。",
+            "负向测试 A：复制冻结包并篡改 model_2999.pt 一个字节，重新运行 verify_frozen_bundle.py。",
+            "负向测试 B：复制冻结包并删除 model_2999.pt，重新运行 verify_frozen_bundle.py，测试后清理临时目录。"
+          ],
+          "files_changed": [],
+          "commands": [
+            "ssh .12 'tar -C <frozen> -cf - camra_go2_velocity_it2999_v2' | ssh .10 'tar -C <frozen> -xf -'",
+            "cp -r <bundle>/assets/Go2 /pub/data/caohy/unitree_model/Go2",
+            "python3 <stdlib tree-hash 复算脚本>",
+            "python scripts/verify_frozen_bundle.py --bundle <bundle> --samples 512",
+            "python3 <deploy.yaml vs repo manifest 19 项比对脚本>",
+            "python scripts/verify_frozen_bundle.py --bundle <tampered> --samples 8",
+            "python scripts/verify_frozen_bundle.py --bundle <missing-file> --samples 8"
+          ],
+          "results": [
+            "冻结包 29 文件全部存在，逐文件 sha256 与字节数均与清单一致；树散列复算 d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f 与清单相同；包内清单 sha256 6da14ce2fa2e6d1f4ed3a9148351ff1e8e886600f9b6ba0596890d916d5de00b 与 .sha256 相同。",
+            "Go2 资产 4 文件，树散列 9560507238240de79eb8a2f3a80b82e69a0adc25bde982062340a1750db1f7c9 与清单 assets.go2_tree 一致（注意清单用 Go2/ 前缀规则，与 artifacts_index 的 '<rel>:<sha>' 规则不同，两者分别校验均通过）。",
+            "verify_frozen_bundle.py --samples 512：PASS，重放 512 条样本，jit_vs_trainer 1.43e-06、onnx_vs_trainer 9.54e-07、onnx_vs_jit 1.67e-06，problems 为空，readonly_paths_checked=true。",
+            "契约比对 19/19 项一致：step_dt=0.02、stiffness=25.0、damping=0.5、default_joint_pos、action scale=0.25、offset、clip=None、命令域 ±1.0/±0.4/±1.0、6 个观测项顺序与 scale、总维 45、joint_ids_map 为恒等映射。",
+            "负向测试 A（篡改 1 字节）：退出码 2，[VERIFY-FROZEN] FAIL，树散列变为 a6237353…，problems 非空。",
+            "负向测试 B（删除模型文件）：退出码 2，[VERIFY-FROZEN] FAIL（仅 28 文件），problems 非空。",
+            "全程日志只含路径与散列，无任何凭证。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/c6_contract_diff.txt：deploy.yaml 与仓库清单 19 项比对，SUMMARY 19/19 一致",
+            "同目录 c6_neg_tampered.txt：篡改后退出码 2，树散列变为 a6237353…，problems 非空",
+            "同目录 c6_neg_missing.txt：删文件后退出码 2，仅识别到 28 文件",
+            "verify_frozen_bundle.py --samples 512 的 PASS 输出：29 files / tree d0f0ec… / manifest 6da14ce2… / reload pass=true",
+            "c1_device_baseline.txt 的 EXIST 行：冻结包、Go2 资产、检查点均在本机落点"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "根据清单与用户已授权的可访问来源取得camra_go2_velocity_it2999_v2、配套USD/网格、deploy.yaml和export_manifest；普通Git克隆只有清单，不能假定已有包体。",
         "使用设备配置中的新绝对路径，只读取用冻结v2；比较文件和树散列，核对完整资产依赖，不从随机下载策略或参考模型替换。",
@@ -552,7 +800,7 @@
         "新主机路径配置正确，导出输入输出、动作/关节映射和资产依赖与清单一致。",
         "记录来源与获取/校验日志；错误模型、缺文件或错散列能明确拒绝，日志不含凭证。"
       ],
-      "verification_result": "",
+      "verification_result": "三项验收均通过：(1) 29 个文件全部存在，逐文件 sha256/字节数一致，树散列 d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f 与清单相同，包内清单 sha256 6da14ce2… 与 .sha256 相同；verify_frozen_bundle.py --samples 512 判定 PASS（重放 512 条样本，jit_vs_trainer 1.43e-06），Go2 资产树 9560507… 与 assets.go2_tree 一致；(2) 新主机路径全部可解析（readiness 的 asset_root/go2_usd/checkpoint/checkpoint_params 均 ok），包内 deploy.yaml 与仓库清单 contract 段 19/19 项一致（含 step_dt、stiffness/damping、default_joint_pos、action scale/offset/clip=None、命令域、6 项观测顺序与 scale、总维 45、joint_ids_map 恒等）；补充说明：export_manifest.json 本身不含 default_joint_pos 字段，该值以 deploy.yaml 为权威来源且与清单一致，先前一次比对按错文件取键已纠正；(3) 来源与日志齐全（tar 管道自 192.168.20.12 只读取回，日志仅含路径与散列、无凭证），且两类异常均被明确拒绝：篡改 model 一个字节 → 退出码 2、[VERIFY-FROZEN] FAIL、树散列变为 a6237353…、problems 非空；删除 model 文件 → 退出码 2、FAIL 且仅识别 28 文件。",
       "read_sources": [
         "CaMRA/locomotion/docs/reproduction.md",
         "CaMRA/locomotion/docs/artifacts_index.json",
@@ -564,11 +812,51 @@
     {
       "id": "CAL-007",
       "goal": "完成新环境最小闭环验证与能量信号审查",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-006"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T23:05:00+08:00",
+          "summary": "用冻结 JIT 策略完成 4 场景最小闭环，并用三个只读探针实测 200 Hz 物理子步的力矩/关节速度可采性，发现并定位了关节速度不逐子步刷新的陷阱。",
+          "actions": [
+            "运行 rollout_exported_policy.py --backend jit（8 envs、seed 100、4 场景），核对跟踪指标、失败数、复位数与 4 项接口自检。",
+            "编写只读探针 09_energy_probe.py：包装 sim.step，在每个物理子步记录 applied_torque、joint_vel、root_pos，输出 json+npz。",
+            "v2 探针：尝试直接读 PhysX 视图速度，验证该路径的可用性。",
+            "查阅 IsaacLab 源码 ArticulationData.joint_vel 与 Articulation.update，定位关节速度的时间戳门控机制。",
+            "v3 探针：在每个 sim.step 后调用 robot.update(sim_dt)，对比同步前后速度与能量诊断值，并与 root_physx_view.get_dof_velocities() 逐位比对。",
+            "在交接笔记追加 §9（最小闭环结果、可采性、陷阱、步前/步后时刻、未能验证项）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §9）"
+          ],
+          "commands": [
+            "python scripts/rollout_exported_policy.py --headless --task CaMRA-Go2-Velocity --bundle <frozen> --backend jit --num_envs 8 --seed 100 --out_dir <out>",
+            "python env_setup/09_energy_probe.py --headless --bundle <frozen> --out_dir <out> --num_envs 2 --seconds 2.0",
+            "python env_setup/09c_energy_probe_v3.py --headless ... （每子步 robot.update(sim_dt)）",
+            "grep -n 'def update' -A 40 source/isaaclab/isaaclab/assets/articulation/articulation_data.py",
+            "grep -n '_joint_vel' source/isaaclab/isaaclab/assets/articulation/articulation_data.py"
+          ],
+          "results": [
+            "4 场景全部完成：stand rmse 0.0248/0.0166/0.0099、start_stop 0.0883/0.0358/0.0357、turn 0.0337/0.0254/0.1075、ramp 0.1201/0.0380/0.0523；fails=0、resets=0；接口自检 no_trainer_dependency / obs_dim(45) / obs_pipeline_reproducible / action_scale_offset 全为 True。",
+            "探针在 2.0 s 窗口记录到 400 个物理子步（= 200 Hz），τ/q̇/pos 全部 finite，joint_names 与清单完全一致，max|τ|=15.78 N·m，max|q̇|=8.67 rad/s。",
+            "发现陷阱：robot.data.joint_vel 是时间戳门控的惰性读取，decimation 内不调 robot.update(sim_dt) 时整段沿用上一次 scene.update 的值（步前步后逐位相同），而 applied_torque 每子步都会更新。",
+            "v3 验证：每子步调用 robot.update(sim_dt) 后速度在子步间变化 1.85 rad/s，且与 root_physx_view.get_dof_velocities() 逐位相同（sync_equals_direct_physx=true）。",
+            "口径影响显著：同一 2.0 s 窗口正功 0.0520 J（陈旧速度）vs 0.0629 J（同步速度），低估约 20%；净功 −0.0228 J vs −0.0024 J。",
+            "未验证项已如实列出：真实电能/电池功率、0–40 ms 延迟影响、真机 joint_ids_map 重映射、ONNX 批推理、30 s 长窗口稳定性。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/08_rollout.log 与 08_rollout_jit/（4 场景指标、接口自检、4 个 trace npz）",
+            "同目录 09_energy_probe_out/energy_probe.json + .npz（200 Hz 子步记录、关节顺序、有限性）",
+            "同目录 09b_energy_probe_out/（PhysX 直读路径探测）",
+            "同目录 09c_energy_probe_out/energy_probe.json 的 sync_strategy 段（逐位相等证明）与能量诊断对比",
+            "implementation_handoff.md §9.1–§9.5"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "用现有导出策略重载与外部速度入口运行最小闭环，保持冻结观测/动作/增益/时序；不重训，不重新裁定v2旧性能。",
         "现场核验45维/12维/200-50-10Hz及命令实际生效，不能仅以进程exit0当成功。",
@@ -580,7 +868,7 @@
         "形成实际力矩字段与执行器源码的对应证据、可采频率及步前/步后时刻说明。",
         "设备、依赖、模型及控制接口均通过基础运行核验；不能验证的项保留false并记录缺口。"
       ],
-      "verification_result": "",
+      "verification_result": "三项验收均通过：(1) 最小闭环真实完成——冻结 JIT 策略在 stand/start_stop/turn/ramp 四场景全部 fails=0、resets=0，位姿由 trace npz 给出，关节速度与力矩由只读探针在同一环境实测（2.0 s 记录 400 个物理子步 = 200 Hz，形状 (400,2,12)，τ/q̇/pos 全部 finite，max|τ|=15.78 N·m、max|q̇|=8.67 rad/s），时序定义已写入 §9.4；(2) 力矩字段与源码对应已落实：applied_torque 即 UnitreeActuator 写入的 applied_effort（PD + 力矩转速限幅 − 摩擦），可采频率 200 Hz 经实测确认，步前/步后时刻分别给出（applied_torque 取 sim.step 返回后；joint_vel 分 pre/post，同一子步可差 13.44 rad/s），并发现 robot.data.joint_vel 受时间戳门控、必须每子步 robot.update(sim_dt) 才刷新（同步值与 root_physx_view.get_dof_velocities() 逐位相同），用陈旧速度会把正功低估约 20%；(3) 设备/依赖/模型/控制接口均通过基础运行核验（readiness ready、冻结包 PASS、接口自检 4/4 True），未验证项按第 3 条要求保留 false 并逐条记录于 §9.5（真实电能/电池功率、0–40 ms 延迟、真机 joint_ids_map、ONNX 批推理、30 s 长窗口稳定性）。",
       "read_sources": [
         "CaMRA/locomotion/scripts/rollout_exported_policy.py",
         "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/external_command.py",
@@ -590,11 +878,67 @@
     {
       "id": "CAL-008",
       "goal": "冻结能量成本与名义功率基线的前置决策",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-007"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-03T23:10:00+08:00",
+          "summary": "整理 CAL-007 实测信号，形成四项必须由用户裁定的决策；本任务按不确定决策规则暂停，等待选择。",
+          "actions": [
+            "汇总 200 Hz 力矩/关节速度可采性、步前步后差异与关节速度刷新陷阱的实测数据。",
+            "对照 energy_contract 的推荐指标与备选口径，列出四项互斥选择及其对评分语义、资源与后续任务的影响。",
+            "评估正式采集的资源量级：本次 8 envs × 8 s 场景约 2 分钟，推算 30 s 全量 800 条约 10–15 小时（提高并行度可显著缩短）。"
+          ],
+          "files_changed": [],
+          "commands": [],
+          "results": [
+            "已确认事实：applied_torque 每物理子步更新且等于 applied_effort；joint_vel 需每子步 robot.update(sim_dt) 才刷新，否则沿用 50 Hz 旧值；正功诊断值在两种取速下相差约 20%（0.0520 vs 0.0629 J / 2 s / env）。",
+            "已确认事实：净功在该样例中为负（−0.0228 / −0.0024 J），说明允许负功抵消的口径会产生负能量与零分母风险。",
+            "已确认事实：仿真无电机与电池参数，任何电能口径都无法在当前环境验证。"
+          ],
+          "evidence": [
+            "implementation_handoff.md §9.2–§9.5",
+            "env_setup/09c_energy_probe_out/energy_probe.json 的 sync_strategy 与 diagnostic_energy 段"
+          ],
+          "remaining_work": [
+            "D-ENERGY-001：主能量指标口径（正机械功 / 绝对功 / 净功 / 电能模型）",
+            "功率基线采样数量、拟合-开发-验证划分与资源预算",
+            "功率模型准入指标与阈值、零/近零 J_nom 的可靠性与不可计算规则",
+            "上层步成本、预算单位与 history 状态的接口说明"
+          ],
+          "blockers": [
+            "四项决策均会改变评分语义或资源开销，按 global_constraints 第 1 条与 uncertainty_policy 必须由用户明确选择，不得由实现者代选。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T23:25:00+08:00",
+          "summary": "用户对四项均采纳推荐方案，据此形成 D-ENERGY-001 的可执行规范并登记到 decision_records。",
+          "actions": [
+            "在计划 decision_records 追加 D-005 记录四项裁定与来源，并把 pending_decisions 的 D-ENERGY-001 标记为 resolved。",
+            "在 implementation_handoff.md 追加 §10：主公式与符号表、站立/负功/推扰/摩擦四类边界处理、功率模型与因果约束、近零规则、400 条基线的划分与资源估算、模型候选与准入、ε_c/ε_d/α/δ 计算式、上层消费契约、与论文的语义差异。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §10）"
+          ],
+          "commands": [],
+          "results": [
+            "D-ENERGY-001 四项：正关节机械功；400 条基线（240/80/80）；准入 90% 分位相对误差 ≤10%；J_min=1.0 J 绝对阈值单列。",
+            "主公式固定为 J_exec = Σ_k Σ_j max(τ_j·q̇_j, 0)·0.005，逐关节先截断再求和，单位 J，6000 个物理步。",
+            "边界处理明确：站立按近零规则、负功被逐关节截断不计入、外部推扰不计入 J_exec 仅作标签、摩擦已在 applied_effort 中扣除不重复。",
+            "近零规则明确：J_nom<1.0 J 记 non_computable，单列并计入覆盖分母但不参与 α；禁止加任意 epsilon。",
+            "上层接口明确：步成本 c_t=P̂_nom·0.1（J）、预算按 (1+α) 扣减、z_ref 须按 J 重定、history 预留 K∈{1,2,4} 由 CAL-020 定、Σc_t 须与 J_nom 一致。"
+          ],
+          "evidence": [
+            "implementation_handoff.md §10.1–§10.8（公式、边界、基线、准入、接口、差异）",
+            "计划 decision_records 的 D-005 条目（含来源与证据指向）",
+            "pending_decisions 的 D-ENERGY-001 已标记 state=resolved、resolved_by=D-005"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "使用D-003的固定30秒能量路线，不再退回到达时间或原加权代理成本。",
         "根据已证实信号提出正机械功/绝对功/电能的具体可审定义；仍改变评分语义的选择必须询问用户。",
@@ -607,7 +951,7 @@
         "定义零/近零J_nom与失败的记录、覆盖分母和不可计算处理；没有任意加epsilon掩盖退化。",
         "上层步成本/预算单位/history状态需求有明确接口说明。"
       ],
-      "verification_result": ""
+      "verification_result": "四项验收均通过，裁定记录于 decision_records 的 D-005，可执行定义见 implementation_handoff.md §10：(1) D-ENERGY-001 已明确选择并记录——主指标为正关节机械功 J_exec=Σ_k Σ_j max(τ_j·q̇_j,0)·0.005（k=1..6000，逐关节截断后求和，单位 J），并逐项规定站立（走近零规则）、负功（截断不计入、J_exec≥0）、外部推扰（不计入、仅作条件标签）、摩擦（applied_effort 已扣除、不重复），禁止写成 max(Σ_j τ_j q̇_j,0)；(2) 功率基线定为 400 条 clean、按整条轨迹/命令簇分为 240/80/80，资源估算 5–7 小时（8 envs）与约 1.2 GB 存储，模型候选按 M1 非负线性二次 → M2 非负梯度树 → M3 小型 MLP 排序；准入为独立验证集逐轨迹 J_nom 相对误差 90% 分位 ≤10%，外加 100% 非负性、因果性（禁执行侧输入）与低速/启停/转向分组报告；(3) 近零规则为绝对阈值 J_min=1.0 J/30 s，J_nom<J_min 记 non_computable，单列并计入覆盖分母但不参与 α，明确禁止加任意 epsilon 美化比值，并规定若该阈值使 >20% 样本不可计算须回到本任务重新裁定；(4) 上层接口明确：步成本 c_t=P̂_nom·0.1（J）、预算 z 按 (1+α) 扣减、z_ref 须按 J 重定不得沿用 120/140/190 a.u.、history 预留 K∈{1,2,4} 由 CAL-020 的输入 schema 决定且 K>1 时导航状态须增广、Σ_t c_t 须与整条 J_nom 在容差内一致。"
     },
     {
       "id": "CAL-009",
