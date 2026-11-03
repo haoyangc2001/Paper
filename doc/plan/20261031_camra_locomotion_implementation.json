@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 阶段一：项目学习、目标设备准备与 Go2 底层速度跟踪器实现",
-    "version": "3.7.0",
+    "version": "3.7.1",
     "created_at": "2026-10-31",
     "source_plan": "本次对话：先完成整体实施路线的第1、2步；前半部分逐项学习论文与所有相关项目，之后依据实际训练设备实施，供另一模型接手执行。",
     "status_definition": {
@@ -3659,6 +3659,52 @@
           ],
           "blockers": [
             "nominal lateral#v1（vy=−0.3）rmse_vy 0.1035 超出阈值 0.1000 达 3.5%；按补充协议 D-4 该场景判不通过，nominal 组要求全部场景通过，故 overall_pass=False，不能宣称具备 calibration 交付条件。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-03T13:20:00+08:00",
+          "summary": "执行用户裁决②「先查左右不对称成因」（只读诊断，不跑仿真、不动模型）。结论与最初假设不同：左右不对称真实但次要，主因是**低速单轴工况的稳态缺口**——命令 0.3 m/s 时实测只到 0.169–0.213（缺 29–44%），0.5 m/s 以上缺口 ≤11%；同样 vy=0.3 在 combined（伴随 vx=0.6）里只缺 10%、rmse 0.039，说明不是侧向能力不足。误差 93–96% 来自稳态偏置而非波动，且第 2 秒即达稳态，不是评测时长不够，也不是环境槽位混淆。",
+          "actions": [
+            "把 rmse 按 rmse²=bias²+std² 拆开（窗口与官方复算一致，episode_step×step_dt>1.0），判定是系统性少走还是抖动：lateral#v0 偏置占 96.2%、#v1 占 92.8%。",
+            "把 500 步按 1 秒分箱看时间演化：第 2 秒即稳定在 +0.213/−0.200，第 10 秒不变，排除收敛未完成。",
+            "统计 v0/v1 占用的环境槽位：0–58 与 1–59 交织，排除「变体绑死某批环境」的混淆；并核对十种子 rmse 变动 <1%（v0 0.0886–0.0888、v1 0.1031–0.1040），排除随机扰动抽签。",
+            "对同一批复测数据的其它场景做同样分解（fwd_low/mid/high、backward、combined、ramp），发现缺口随总速度模长单调下降：1.0→4%、0.6→11%、0.5→11%、0.3→29–44%；combined（模长 0.84）的 vy=0.3 只缺 10%，推翻「侧向能力上限」假设。",
+            "查训练配置排除方向性因素：命令范围 (-1,1)/(-0.4,0.4)/(-1,1) 均匀重采样、16 个基线奖励项无按轴向权重、heading 逻辑评估时关闭。",
+            "量化次要因素：bias 差 0.013（v1 多缺 15%）、std 差 0.010（v1 大 60%）、yaw 漂移 −0.047 vs +0.460 °/s、左右腿动作幅值比 0.753 vs 0.762（**未随方向镜像反转**），说明存在静态左右偏置，但量级不足以单独解释 0.1035。",
+            "结论落到处置建议：治本重训低速区间（奖励 std=0.15 使 0.1 量级误差进入平坦段）/ 改口径（阈值按命令幅值比例，或降低 lateral 命令）/ 接受边界并传给下游校准。任务状态保持 false。"
+          ],
+          "files_changed": [
+            "仓库代码与文档未改动（诊断只读既有 npz）；新增交接笔记第 39 章",
+            "/pub/data/caohy/tools/diag_lateral.py（仓库外，bias/std 分解 + 跨轴通用）",
+            "/pub/data/caohy/tools/diag_lateral_time.py（仓库外，1 秒分箱 + 槽位归属）"
+          ],
+          "commands": [
+            "python /pub/data/caohy/tools/diag_lateral.py --scenario lateral --out TASK-036/diag/lateral_split.json",
+            "python /pub/data/caohy/tools/diag_lateral_time.py --group nominal --out TASK-036/diag/lateral_time.json",
+            "python /pub/data/caohy/tools/diag_lateral.py --scenario combined --out TASK-036/diag/combined_split.json",
+            "for sc in fwd_low fwd_mid fwd_high ramp backward; do python ... --scenario $sc --axis vx; done"
+          ],
+          "results": [
+            "lateral#v1 rmse 0.1035 = bias 0.0997 + std 0.0278（偏置占 92.8%）；#v0 0.0887 = 0.0870 + 0.0174（96.2%）。",
+            "两侧都缺：vy=+0.3 实测 0.213（71%），vy=−0.3 实测 0.200（67%），不是单向问题。",
+            "时间分箱：0–1 s 到 9–10 s，v0 由 0.183 升到 0.212 后持平，v1 由 −0.165 到 −0.204；2 s 即稳态。",
+            "跨场景缺口：fwd_high 4%、fwd_mid 11%、backward 11%、lateral 29–33%、fwd_low 44%；combined 的 vy 仅 7–10%。ramp 的 bias 只占 6.3%（std 0.106），是动态滞后，验证了方法能区分两类误差。",
+            "fwd_low（vx=0.3）rmse 0.1330 对阈值 0.15 仅剩 11% 余量，是下一个会撞线的场景；lateral#v0 余量 0.0113、#v1 超 0.0035，两侧都贴着阈值。",
+            "左右腿动作幅值比 0.75 在两个方向上都不反转，指向静态左右偏置；yaw 漂移 v1 为 +0.46 °/s（10 s 约 4.6°）。",
+            "已排除：命令分布不对称、奖励方向性、槽位混淆、评测时长不足、随机抽签、侧向能力上限。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/TASK-036/diag/lateral_split.json（四组 lateral 的 bias/std/偏置占比）",
+            "/pub/data/caohy/logs/camra/TASK-036/diag/lateral_time.json（1 秒分箱、稳态分位数、env 槽位）",
+            "/pub/data/caohy/logs/camra/TASK-036/diag/{combined,fwd_low,fwd_mid,fwd_high,ramp,backward}_*.json（对照场景）",
+            "CaMRA/locomotion/docs/implementation_handoff.md 第 39 章（方法与结论全文）"
+          ],
+          "remaining_work": [
+            "等待用户在三条处置中裁决：①重训低速区间（新版本 + 重新登记测试种子）；②改口径（阈值按命令幅值比例，或把 lateral 命令降到 0.2，属放宽标准需明确声明）；③接受边界并把「低速稳态只达命令 56–71%」传给 calibration/navigation。",
+            "若选 ①：优先验证奖励 std=0.15 是否使 0.1 量级误差失去梯度，以及低速段足端打滑；两项目前都只有间接证据，需要训练侧对照实验。"
+          ],
+          "blockers": [
+            "低速（≈0.3 m/s）单轴稳态缺口 29–44% 是策略层面的稳定平衡点，不是随机误差；在未重训或未改口径前，lateral 与 fwd_low 都贴着阈值，随时可能翻车。"
           ]
         }
       ],
