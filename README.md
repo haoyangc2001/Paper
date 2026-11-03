@@ -1,5 +1,13 @@
 # 四足机器人导航研发工作区
 
+## 当前目标：先在仿真中复现 CaMRA
+
+当前阶段仅在仿真中完成 Go2 分层最小成本到达避障的复现：接入可用的底层速度控制器，采集名义与受扰动执行轨迹，校准并独立检验成本裕度 α 和几何裕度 δ，再实现上层导航与对比实验。真机接口、上机适配和实机试验留到后续阶段。
+
+底层优先复用已有策略，不把重新训练作为开展校准和导航的默认前置条件。当前先沿用 Isaac Lab 框架及已冻结的 `camra_go2_velocity_it2999_v2`，核实模型、资产和接口可重载并完成必要的补充验收；若采用其他现成策略，须使用其配套观测、动作和控制配置，并重新采集校准数据。
+
+当前安排为等待底层训练完成并通过验收，再继续校准与上层导航。现有 v2 控制器的补充复测未通过，具体结果保留在 [底层说明](CaMRA/locomotion/README.md)，不将冻结包校验通过等同于控制器验收通过。
+
 ## 目录结构
 
 ```text
@@ -19,7 +27,7 @@ paper/
 └── README.md
 ```
 
-实现代码集中在 [CaMRA](CaMRA/README.md) 下。`CaMRA/locomotion/` 已引入宇树官方训练与部署框架；`CaMRA/calibration/` 和 `CaMRA/navigation/` 目前仅包含用途说明。开发顺序为：训练底层速度跟踪器，冻结后采集执行误差并校准、检验裕度，最后训练上层导航器。
+实现代码集中在 [CaMRA](CaMRA/README.md) 下。`CaMRA/locomotion/` 已基于宇树官方框架完成一版控制器训练与冻结；模型包保存在执行服务器，仓库内保留清单及验证入口。`CaMRA/calibration/` 和 `CaMRA/navigation/` 目前仅包含用途说明。后续顺序为：复用并核验现有底层 → 仿真执行误差校准与独立检验 → 上层导航训练及评估。宇树官方现成方案的核查结果见 [CaMRA README](CaMRA/README.md#宇树官方现成方案核查2026-11-03)。
 
 - [CaMRA Locomotion](CaMRA/locomotion/README.md)：基于宇树官方 `unitree_rl_lab`，接收速度指令、输出关节控制，承担平衡、步态协调和动作平滑；上游版本见 [来源记录](CaMRA/locomotion/UPSTREAM.md)。
 - [calibration](CaMRA/calibration/README.md)：比较名义轨迹与实际执行，计算并独立检验成本裕度 α 和几何裕度 δ。
@@ -53,7 +61,7 @@ git submodule status -- HiRA
 git -c submodule.HiRA.url=git@github.com:haoyangc2001/HiRA.git submodule update --init --recursive -- HiRA
 ```
 
-底层实施入口：[28 项计划](doc/plan/20261031_camra_locomotion_implementation.json)。先阅读其中 `implementation_clarifications` 和 `external_learning_report`，了解配置依据、待验证项和已知历史问题；任务命令按计划要求放在执行主机的 tmux 中运行。
+底层实施入口：[实施计划（28 项原任务及 9 项补充任务）](doc/plan/20261031_camra_locomotion_implementation.json)。先阅读其中 `implementation_clarifications` 和 `external_learning_report`，了解配置依据、待验证项和已知历史问题；任务命令按计划要求放在执行主机的 tmux 中运行。当前以仿真复现和现有模型的必要验收为范围，计划中的历史真机说明不作为本阶段前置条件。
 
 ## 当前稿件
 

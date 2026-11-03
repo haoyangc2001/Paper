@@ -4,6 +4,14 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 
 底层控制器接收机身坐标系下的目标速度 `[vx, vy, yaw_rate]`，结合本体状态输出 12 个关节的位置调整量，由关节控制器执行。**本阶段已交付一个冻结控制器**，供相邻的 `calibration/` 执行误差校准模块和 `navigation/` 上层导航模块使用。
 
+## 当前工作范围
+
+当前先在 Isaac Lab 仿真中复现 CaMRA，优先复用已冻结的 v2 控制器，核实模型包及配套资产可重载并补齐必要验收，再开展仿真轨迹校准和上层导航；不把重新训练底层作为默认前置条件。训练、导出及真机部署源码继续保留，其中真机接口和 sim2real 工作暂不属于本阶段任务。
+
+按当前安排，先等待底层训练完成并通过验收，再继续校准和上层导航；现有 v2 的补充复测未通过结论保留，不能仅凭冻结包校验通过就进入下一阶段。
+
+上层需要的是机身坐标系速度 `[vx, vy, yaw_rate]`。本项目已有三维外部命令桥接和冻结策略闭环重载入口；运行须使用匹配的观测、动作、频率、增益与机器人资产。模型包目前位于执行服务器，普通克隆仅取得清单，不能直接得到模型权重。宇树官方现成方案的核查见 [系统说明](../README.md#宇树官方现成方案核查2026-11-03)。
+
 ## 交付状态（2026-11-03）
 
 | 阶段 | 结论 | 证据位置 |
@@ -61,7 +69,7 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 | `scripts/export_policy_candidate.py`、`scripts/verify_export_consistency.py` | 导出 JIT/ONNX 并做数值一致性验证 |
 | `scripts/rollout_exported_policy.py`、`scripts/aggregate_rollout_arms.py` | 三臂闭环重载与等效性判定 |
 | `scripts/freeze_controller_bundle.py`、`scripts/verify_frozen_bundle.py` | 生成只读冻结包并校验 |
-| `scripts/external_command_drive.py` | 10 Hz 外部命令接口的独立驱动示例 |
+| `scripts/external_command_drive.py` | 10 Hz 外部命令通道示例，使用零或随机关节动作；策略行走演示使用 `rollout_exported_policy.py` |
 | **`scripts/repro/`** | **仓库内复现入口**：`train` / `devsweep` / `finalize` / `finaltest` / `export` / `rollout`（见下） |
 | `scripts/check_repro_readiness.py` | 预检：解释器、依赖、资产、检查点、协议、GPU，并区分「基础设施阻塞」与「控制器不合格」 |
 | `scripts/artifact_index.py` | 仓库外产物的路径/散列索引构建与校验 |
@@ -124,5 +132,4 @@ cd /tmp && python <仓库>/CaMRA/locomotion/scripts/verify_export_consistency.py
 观测顺序、动作缩放、关节顺序、控制频率、增益和命令域写进 `params/deploy.yaml` 与
 `params/export_manifest.json`，两者是唯一权威来源——**不要从文档或记忆里取值**。
 
-接入上层时仍需注意：真机 `joint_ids_map` 重映射、0–40 ms 指令延迟、状态估计噪声、执行器时延与
-sim2real 标定**全部未做**；本包是仿真验证过的控制器，不是可直接上机的部署件。
+本阶段在仿真内接入上层，沿用冻结契约并记录实际命令与执行轨迹。已知未覆盖的 0–40 ms 指令延迟、状态估计噪声和执行器时延应与已测试扰动分开记录。真机 `joint_ids_map` 重映射与 sim2real 标定留待后续；本包的现有验证范围为仿真。
