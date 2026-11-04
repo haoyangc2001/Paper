@@ -88,7 +88,7 @@ class Config:
 
     @property
     def protocol_path(self) -> Path:
-        return Path(__file__).resolve().parent.parent.parent / "config" / "calibration_protocol_v1.0.0.json"
+        return Path(__file__).resolve().parent.parent.parent / "config" / "calibration_protocol_v1.0.1.json"
 
     @classmethod
     def load(cls, environ: dict[str, str] | None = None, repro_env: Path | None = None) -> "Config":

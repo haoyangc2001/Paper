@@ -370,6 +370,14 @@
       "decision": "D-ENERGY-001 四项裁定：①主能量指标采用正关节机械功 J_exec=Σ_k Σ_j max(τ_j·q̇_j,0)·0.005，逐关节截断后求和，单位 J；②名义功率基线 400 条 clean（拟合240/开发80/验证80，按整条轨迹或命令簇分离）；③模型准入为验证集逐轨迹 J_nom 相对误差 90% 分位 ≤10%，另加非负性、因果性与分组检查；④近零 J_nom 采用绝对阈值 J_min=1.0 J/30s，低于阈值记 non_computable 单列、计入覆盖分母但不参与 α。",
       "source": "用户在 CAL-008 决策点对四项推荐方案的明确选择（正机械功 / 400条 / 90分位≤10% / 绝对阈值+单列）",
       "evidence": "CaMRA/calibration/docs/implementation_handoff.md §10；实测依据见同文件 §9"
+    },
+    {
+      "id": "D-006",
+      "state": "confirmed",
+      "date": "2026-11-04",
+      "decision": "协议 v1.0.1 四项裁定：① pilot 由 clean-only 改为覆盖五类执行条件（4 族 × 5 profile = 20 格、每格 1 条，种子块迁至 5100–5119，旧 5000–5019 列入保留）；② 低速度层由'或'改为'且'（|vx|≤0.3 且 |wz|≤0.3）；③ min_share_of_cell 按格级平均判定，逐条最小仅作观测；④ baseline 的 clean-only 格内条数显式写明（cells=4、per_cell=100，fit 60/dev 20/validate 20）。v1.0.0 标记 superseded，未就地修改。",
+      "source": "用户在 CAL-018 阻塞点的两项明确选择（'出 v1.0.1，pilot 覆盖五条件' + '一并裁定三项歧义'）",
+      "evidence": "CaMRA/calibration/config/calibration_protocol_v1.0.1.json（sha256 16aa5ebe…，119/119 校验通过）；docs/implementation_handoff.md §20.1"
     }
   ],
   "pending_decisions": [
@@ -1515,7 +1523,7 @@
     {
       "id": "CAL-018",
       "goal": "完成小批闭环采集与故障恢复验证",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-017"
       ],
@@ -1551,6 +1559,53 @@
           "blockers": [
             "pilot 口径冲突：协议 clean only vs CAL-018 四族×五条件，需用户裁定"
           ]
+        },
+        {
+          "timestamp": "2026-11-04T12:40:00+08:00",
+          "summary": "按用户裁定出协议 v1.0.1（pilot 覆盖五条件 + 三项歧义），修低速生成器，重采 20 条 pilot 全 completed，并完成故障注入与恢复端到端验证。",
+          "actions": [
+            "生成 config/calibration_protocol_v1.0.1.json：pilot 改 4 族×5 profile（20 格×1 条、种子 5100–5119、旧块列保留）、低速层改'且'、min_share 按格级平均、baseline clean-only 显式 cells=4/per_cell=100；v1.0.0 标 superseded 且未就地改。",
+            "同步 validate_protocol.py（按 split 自身 cells 算 per_cell、pilot 覆盖检查、低速层 AND/share_scope/enforcement 检查）→ v1.0.1 119/119 通过，散列 16aa5ebe…。",
+            "同步 protocol.py 默认版本 1.0.1、config.protocol_path、trials.py（pilot 不再 clean-only），更新 test_protocol/test_manifest/test_trials，全量 138 项通过。",
+            "修两处低速生成器缺陷：alternating 强制低速时只翻一个轴导致 seed 5103 仅 0.2027 → 改为全轴幅值钳制；低速段 ramp 改为从低速包络内出发 → ~1300 条程序最小逐条占比升到 0.402。",
+            "归档 v1.0.0 清单与 pilot 产物到 *_superseded，重新生成 trial_lists_v1.0.1。",
+            "32 envs 重采 pilot：20/20 completed（16 条 clean 组 + 4 条 combined），check_collection VERDICT pass，recompute_errors 退出码 0，ε_d 0.5050–2.3645 m（均值 1.2503）。",
+            "写 scripts/fault_injection_check.py 并跑真实 trial 的 9 个故障场景（缺目录/截断 npz/NaN/时间跳变/重复/业务失败改写/DONE 删除续采），9/9 命中预期。",
+            "恢复端到端：沙箱副本删一条 DONE 后重跑，selected=16/skipped=15/processed=1，新建 __a2 且原目录不动。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/config/calibration_protocol_v1.0.1.json(+.sha256)（新建）",
+            "CaMRA/calibration/scripts/validate_protocol.py",
+            "CaMRA/calibration/src/camra_calibration/{protocol,config,trials,commands,inspect}.py",
+            "CaMRA/calibration/scripts/{recompute_errors,fault_injection_check}.py",
+            "CaMRA/calibration/tests/{test_protocol,test_manifest,test_trials}.py",
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §20）"
+          ],
+          "commands": [
+            "python scripts/validate_protocol.py --protocol config/calibration_protocol_v1.0.1.json --write-hash",
+            "python -m pytest CaMRA/calibration/tests -q",
+            "bash env_setup/14_pilot_v101.sh",
+            "python scripts/fault_injection_check.py --source-trial-dir ... --workdir ...",
+            "bash env_setup/15_resume.sh"
+          ],
+          "results": [
+            "v1.0.1：119/119 校验通过，sha256 16aa5ebeb24f4d0d2d7810d646b8e36f7d783d5e93efdedb5eef88432a71f2ac。",
+            "清单：pilot 20 条覆盖 20 格（4 族 × 5 profile），seed 5100–5119，lock.protocol_version=1.0.1。",
+            "pilot 采集：20/20 completed，6000 步/1500 控制步/301 配对点；ε_d 0.5050–2.3645（均值 1.2503）；check VERDICT pass。",
+            "五条件生效：clean 430.4 / friction_only 411.1 / mass_only 497.1 / push_only 410.7 / combined 476.8 J（均值）；实际参数 f=0.6385、Δm=0.680 kg、4 次推扰、combined f=1.1224+0.669 kg+4 次+训练噪声。",
+            "故障注入：9/9 命中（missing_shard×2、nan、time_jump、duplicate、business_failure、official=False、续采入列）。",
+            "恢复端到端：skipped_done=15、processed=1、新建 __a2、原目录保持、6000 步完成。",
+            "pytest 138 passed。"
+          ],
+          "evidence": [
+            "config/calibration_protocol_v1.0.1.json.sha256（16aa5ebe…）+ validate_protocol 119/119",
+            "/pub/data/caohy/logs/camra/trials/pilot/（20 条 + records.jsonl + errors_report.json + pilot_check.json）",
+            "/pub/data/caohy/logs/camra/fault_sandbox/fault_report.json（9 场景 ok=true, VERDICT pass）",
+            "/pub/data/caohy/logs/camra/trials_resume_test/pilot/（__a2 目录 + 原目录）与 env_setup/15_resume.log",
+            "implementation_handoff.md §20"
+          ],
+          "remaining_work": [],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -1563,7 +1618,7 @@
         "离线能量/误差与在线值复算通过，真实失败和模拟日志损坏分类正确。",
         "恢复只补未完成trial、保留attempt，pilot产物不进入基线拟合/正式统计。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 实际日志证明 200/50/10 Hz、五条件、力矩测量、30 秒配对与散列均生效——20 条 pilot 全部 completed、每条 6000 物理步 / 1500 控制步 / 301 配对点，meta 记录 sim_dt=0.005、decimation=4、protocol_sha256（16aa5ebe…）、program_sha256、bundle 信息与 profile_applied；五条件实际参数各不相同（friction_only f=0.6385、mass_only Δm=0.680 kg、push_only 4 次推扰、combined 三者叠加+训练噪声），平均 j_exec 分别为 clean 430.4 / friction_only 411.1 / mass_only 497.1 / push_only 410.7 / combined 476.8 J；(2) 离线能量/误差与在线值复算通过，真实失败与模拟日志损坏分类正确——pilot 的 ε_d 由 pair/recompute 路径独立复算（0.5050–2.3645 m，均值 1.2503），20 条全部 official；故障注入从真实 trial 复制后 9/9 命中预期（missing_shard×2、nan、time_jump、duplicate、business_failure 且 official=False、DONE 删除后重新入列），business_failure 与 data_invalid 严格分离；(3) 恢复只补未完成 trial、保留 attempt，pilot 产物不进入基线拟合/正式统计——沙箱副本删除一条 DONE 后重跑：selected=16、skipped_done=15、processed=1、outcome=completed，新建 <trial>__a2 且原目录全部产物保持不动；v1.0.0 的旧 pilot 与旧清单已归档到 *_superseded 并在 §20.6 声明不参与任何统计；协议 v1.0.1 已冻结（119/119）并记录 D-006。138 项 pytest 全绿。"
     },
     {
       "id": "CAL-019",

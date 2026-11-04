@@ -14,7 +14,7 @@ def make_trial(tid="pilot-straight_shift-clean-0000", **over):
         "split": "pilot",
         "family": "straight_shift",
         "profile": "clean",
-        "seed": 5000,
+        "seed": 5100,
         "attempt": 1,
         "controller": "camra_go2_velocity_it2999_v2",
         "protocol_version": PROTO.version,
@@ -63,7 +63,7 @@ def test_bad_split_rejected():
 
 
 def test_seed_outside_block_rejected():
-    r = validate_manifest([make_trial(seed=6000)], protocol=PROTO)  # 6000 属 calibration
+    r = validate_manifest([make_trial(seed=6000)], protocol=PROTO)  # 6000 属 calibration，不在 pilot 块
     assert not r.ok and any("种子块" in e for e in r.errors)
 
 

@@ -21,8 +21,9 @@ from typing import Iterable
 from .commands import FAMILIES, build_program
 from .protocol import Protocol, ProtocolError
 
-#: baseline 与 pilot 只用 clean profile（协议 split.baseline.profile = "clean only"）
-CLEAN_ONLY_SPLITS = ("pilot", "baseline_fit", "baseline_dev", "baseline_validate")
+#: baseline 只用 clean profile（协议 split.baseline.profile = "clean only"）；
+#: pilot 自 v1.0.1 起覆盖全部五个 profile（4 族 × 5 条件，每格 1 条）。
+CLEAN_ONLY_SPLITS = ("baseline_fit", "baseline_dev", "baseline_validate")
 
 SPLIT_ORDER = ("pilot", "baseline_fit", "baseline_dev", "baseline_validate",
                "calibration", "heldout", "near_obstacle")

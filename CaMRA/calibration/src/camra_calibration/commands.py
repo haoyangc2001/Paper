@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import random
 from dataclasses import dataclass
 from typing import Sequence
@@ -33,6 +34,18 @@ LOW_SPEED_WZ = 0.3
 
 def clip(cmd: Sequence[float]) -> tuple[float, float, float]:
     return tuple(min(max(float(v), lo), hi) for v, (lo, hi) in zip(cmd, LIMITS))  # type: ignore[return-value]
+
+
+def _force_low_speed(cmd: Sequence[float]) -> tuple[float, float, float]:
+    """把目标压到低速层内：|vx| ≤ 0.3 且 |wz| ≤ 0.3（保留符号与 0）。
+
+    必要性：alternating 只翻转一个轴，若其余轴仍是高速，该段并不属于低速层
+    （v1.0.1 实测 seed 5103 占比掉到 0.2027）。强制低速段必须**所有轴**都低速。
+    """
+    vx, vy, wz = float(cmd[0]), float(cmd[1]), float(cmd[2])
+    vx = math.copysign(min(abs(vx), LOW_SPEED_VX), vx) if vx else 0.0
+    wz = math.copysign(min(abs(wz), LOW_SPEED_WZ), wz) if wz else 0.0
+    return clip((vx, vy, wz))
 
 
 def _lerp(a: Sequence[float], b: Sequence[float], t: float) -> tuple[float, float, float]:
@@ -167,6 +180,8 @@ def build_targets(family: str, seed: int, n_segments: int, *, low_speed_every: i
             prev = targets[-1] if targets else (0.0, 0.0, 0.0)
             tgt = _sample_alternating(rng, slow, prev, axis)
             axis = (axis + 1) % 3
+        if slow:
+            tgt = _force_low_speed(tgt)
         targets.append(tgt)
     return targets
 
@@ -182,6 +197,8 @@ def build_program(family: str, seed: int, *, duration_s: float = 30.0,
     if abs(duration_s - n_segments * target_period_s) > 1e-9:
         raise ValueError("duration 必须是 target_period 的整数倍")
     targets = build_targets(family, seed, n_segments, low_speed_every=low_speed_every)
+    low_segments = {i for i, t in enumerate(targets)
+                    if abs(t[0]) <= LOW_SPEED_VX and abs(t[2]) <= LOW_SPEED_WZ}
 
     cmds: list[tuple[float, float, float]] = []
     for j in range(n_points):
@@ -190,7 +207,11 @@ def build_program(family: str, seed: int, *, duration_s: float = 30.0,
         local = t - seg * target_period_s
         alpha = 1.0 if ramp_s <= 0 else min(1.0, local / ramp_s)
         prev = targets[seg - 1] if seg > 0 else (0.0, 0.0, 0.0)
-        cmds.append(clip(_lerp(prev, targets[seg], alpha)))
+        # 低速段：ramp 也从低速包络内的起点出发，使整段 10 个点都真正属于低速层。
+        # 代价是段边界可能出现从高速到 0.3 的阶跃——这正是"减速停车"类指令的形态，
+        # 且保证了 v1.0.1 的 min_share_of_cell 在每格 1 条时仍成立。
+        start = _force_low_speed(prev) if seg in low_segments else prev
+        cmds.append(clip(_lerp(start, targets[seg], alpha)))
 
     return Program(
         family=family, seed=seed, duration_s=duration_s,

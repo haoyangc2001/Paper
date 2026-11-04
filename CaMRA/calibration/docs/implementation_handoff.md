@@ -1070,3 +1070,78 @@ NaN/Inf → `nan`；业务失败（terminated/interrupted）→ `business_failur
 `test_pairing.py` / `test_store.py` 的解析场与合成误差一律标注 **test_fixture**，
 只用于验证口径与错误分支；**不得**当作仿真证据。真实数据结论只来自
 `trials/<split>/` 下的采集产物与 `errors_report.json`。
+
+---
+
+## 20. 协议 v1.0.1 与 pilot 五条件闭环（CAL-018）
+
+### 20.1 v1.0.1 的四处变更（用户 2026-11-04 裁定）
+
+| # | 变更 | 依据 |
+| --- | --- | --- |
+| 1 | pilot 由 clean-only 改为**覆盖五类执行条件**（4 族 × 5 profile = 20 格，每格 1 条），种子块 5000–5019 → **5100–5119**，旧块列入保留 | CAL-018 要求"四族×五条件"，与 v1.0.0 的 clean-only 冲突 |
+| 2 | 低速度层由"或"改为**"且"**（`|vx| ≤ 0.3` 且 `|wz| ≤ 0.3`） | 字面"或"使 `wz≡0` 的直行族 100% 命中，下限失效 |
+| 3 | `min_share_of_cell` 明确按**格级平均**判定，逐条最小值只作观测 | 原表述未定层级 |
+| 4 | baseline 的 clean-only 格内条数显式写明：cells=4、per_cell=100（fit 60 / dev 20 / validate 20） | 原 `per_cell=20` 隐含 20 格，与总额 400 矛盾 |
+
+v1.0.1 冻结散列：`16aa5ebeb24f4d0d2d7810d646b8e36f7d783d5e93efdedb5eef88432a71f2ac`
+（`validate_protocol.py` **119/119** 通过，含新增的 pilot 覆盖与低速层检查）。
+v1.0.0 保留为 `superseded`，未就地修改。
+
+### 20.2 为保证 v1.0.1 低速层成立而做的两处生成器修正
+
+pilot 每格只有 1 条，"格级平均"退化为逐条判定，因此**每条**程序的低速占比都必须 ≥ 0.25：
+
+1. `alternating` 只翻转一个轴，其余轴可能仍是高速 → 强制低速段改为**全轴幅值钳制**
+   （`|vx| ≤ 0.3` 且 `|wz| ≤ 0.3`）；此前 seed 5103 仅 0.2027。
+2. 低速段的 ramp 也**从低速包络内的起点出发**（而非从上一段的高速目标插值），
+   使整段 10 个点都落在低速层；代价是段边界可能出现高速→0.3 的阶跃，这正是
+   "减速停车"类指令的真实形态。
+
+修正后 ~1300 条程序（4 族 × 4 个 seed 区间）的最小逐条占比 **0.402**（此前 0.2027）。
+
+### 20.3 pilot 实测（v1.0.1，20 条，32 envs）
+
+| 项 | 结果 |
+| --- | --- |
+| 结构 | 4 族 × 5 profile = **20 格，每格 1 条**，seed 5100–5119 |
+| 结果 | **20/20 completed**（无终止、无中断），每批 6000 物理步 / 1500 控制步 / 301 配对点 |
+| ε_d | 0.5050 – 2.3645 m，均值 **1.2503**（20 条全部正式，无前缀诊断） |
+| 能量（按条件） | clean 430.4 / friction_only 411.1 / mass_only 497.1 / push_only 410.7 / combined 476.8 J（均值） |
+| 五条件实际值 | friction_only f=0.6385；mass_only Δm=0.680 kg；push_only 4 次推扰；combined f=1.1224 + 0.669 kg + 4 次 + 训练噪声 |
+| 检查 | `check_collection.py` VERDICT pass；`recompute_errors.py` 退出码 0 |
+| 吞吐 | 16 条/批 488.8 s、4 条/批约 480 s → **固定成本由 sim.step 决定**（见 §17.5），1820 条约 7–8 h |
+
+### 20.4 故障注入（工具 sandbox，不触碰正式数据）
+
+`scripts/fault_injection_check.py` 从一条真实完成 trial 复制副本并逐项注入故障，9/9 命中预期：
+
+| 场景 | 预期 | 实际 |
+| --- | --- | --- |
+| baseline（真实 trial） | ok / official | ok |
+| 目录不存在 | data_invalid:missing_shard | 一致 |
+| npz 截断 | data_invalid:missing_shard | 一致 |
+| exec_pos 注入 NaN | data_invalid:nan | 一致 |
+| 时间轴 +0.01 s | data_invalid:time_jump | 一致 |
+| 同名目录重复 | `{trialX: 2}` | 一致 |
+| outcome 改写为 terminated | business_failure、official=False | 一致 |
+| 删除 DONE | 重新入列 1 条 | 一致 |
+
+### 20.5 恢复端到端（沙箱副本）
+
+把 `trials/pilot` 复制到 `trials_resume_test/`，删掉
+`pilot-alternating-mass_only-0000/DONE` 后原样重跑采集：
+
+```text
+selected=16  skipped_done=15  processed=1  outcome=completed  6000 步  wall 472 s
+→ 新建 pilot-alternating-mass_only-0000__a2，原目录（含全部产物）保持不动
+```
+
+即：恢复只补未完成 trial、保留 attempt、绝不覆盖旧分片，且不重采已完成数据。
+
+### 20.6 v1.0.0 产物的处置
+
+旧 pilot（20 条 clean-only）与旧清单已归档到
+`/pub/data/caohy/logs/camra/trials_superseded_v1.0.0/pilot` 与
+`trial_lists_v1.0.0_superseded/`，**不进入**任何正式统计或功率基线拟合
+（协议 split.pilot.rule 明确 pilot 产物不得进基线拟合/正式统计）。

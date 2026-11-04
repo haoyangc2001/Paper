@@ -18,21 +18,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "src"))
 
-import numpy as np  # noqa: E402
-import torch  # noqa: E402
-
-from camra_calibration.pairing import (  # noqa: E402
-    Issue, aggregate, compute_trial_errors, detect_duplicates,
-)
-
-
-def _load(path: Path):
-    if not path.is_file():
-        return None
-    try:
-        return torch.load(path, map_location="cpu")
-    except Exception:  # 损坏的分片按 data_invalid 处理
-        return "CORRUPT"
+from camra_calibration.inspect import classify_trial_dir  # noqa: E402
+from camra_calibration.pairing import aggregate, detect_duplicates  # noqa: E402
 
 
 def main() -> int:
@@ -56,47 +43,11 @@ def main() -> int:
     for tr in manifest:
         tid = tr["trial_id"]
         d = base / tid
-        if not d.is_dir():
-            rows.append(compute_trial_errors(
-                trial_id=tid, outcome="missing", t_pair=[], exec_pos=[], nom_pos=[],
-                j_exec=None, j_nom=None, source=str(d)).__class__(
-                trial_id=tid, outcome="missing", complete=False, official=False,
-                issues=[Issue("missing_shard", "trial 目录不存在", str(d))]))
-            continue
-        meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
-        pair = _load(d / "pairing_10hz.npz")
-        state = _load(d / "state_50hz.npz")
-        energy = json.loads((d / "energy.json").read_text(encoding="utf-8"))
-        outcome = meta.get("outcome", "unknown")
-
-        if pair == "CORRUPT" or pair is None or state == "CORRUPT" or state is None:
-            rows.append(compute_trial_errors(
-                trial_id=tid, outcome=outcome, t_pair=[], exec_pos=[], nom_pos=[],
-                j_exec=None, j_nom=None, source=str(d)).__class__(
-                trial_id=tid, outcome=outcome, complete=(outcome == "completed"),
-                official=False,
-                issues=[Issue("missing_shard", "pairing_10hz/state_50hz 缺失或损坏", str(d))]))
-            continue
-
-        j_exec = energy.get("j_exec")
-        j_nom = energy.get("j_nom")
-        r = compute_trial_errors(
-            trial_id=tid, outcome=outcome,
-            t_pair=pair["t"].numpy(), exec_pos=pair["exec_pos"].numpy(),
-            nom_pos=pair["nominal_pos"].numpy(),
-            j_exec=j_exec, j_nom=j_nom, j_min=args.j_min,
-            cmd=pair["cmd"].numpy() if "cmd" in pair else None,
-            t50=(np.arange(state["root_pos"].shape[0]) + 1) * 0.02 if "root_pos" in state else None,
-            exec50_pos=state["root_pos"][:, :2].numpy() if "root_pos" in state else None,
-            steps_executed=meta.get("steps_executed"),
-            expected_steps=meta.get("steps_expected", 6000),
-            source=str(d),
-        )
-        # 额外：50 Hz 只对完整窗口有意义；前缀诊断时补一条说明
-        if not r.complete and r.epsilon_d is not None:
-            r.notes.append("prefix 诊断：仅前 %d 个配对点" % int(np.asarray(pair["t"]).size))
-        (d / "errors.json").write_text(
-            json.dumps(r.to_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        r = classify_trial_dir(d, trial_id=tid, j_min=args.j_min)
+        if d.is_dir():   # 目录存在就写，包括 data_invalid 的诊断
+            (d / "errors.json").write_text(
+                json.dumps(r.to_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8")
         rows.append(r)
 
     # 重复 trial 检测（同一 trial_id 出现多个 attempt 目录）

@@ -92,6 +92,10 @@ def validate(p: dict, path: Path) -> Checker:
     split = p.get("split", {})
     c.eq("cells = families x profiles", split.get("cells"), len(fam_ids) * len(prof_ids))
     c.eq("cells == 20", split.get("cells"), 20)
+    ls = p.get("command_program", {}).get("low_speed_strata", {})
+    c.check("low_speed.rule uses AND", "且" in ls.get("rule", "且"), ls.get("rule", ""))
+    c.check("low_speed.share_scope is cell-level", "cell-level" in ls.get("share_scope", ""))
+    c.check("low_speed.enforcement documented", bool(ls.get("enforcement")))
     for layer in fam:
         c.check(f"family[{layer.get('id')}] has description", bool(layer.get("description")))
 
@@ -99,12 +103,16 @@ def validate(p: dict, path: Path) -> Checker:
     for name, total in (("baseline", 400), ("calibration", 800), ("heldout", 400), ("near_obstacle", 200)):
         d = split.get(name, {})
         c.eq(f"{name}.total", d.get("total"), total)
-        c.eq(f"{name}.per_cell x cells", d.get("per_cell", 0) * split.get("cells", 0), d.get("total"))
+        cells = d.get("cells", split.get("cells", 0))   # clean-only 的 split 用自己的格数
+        c.eq(f"{name}.per_cell x cells", d.get("per_cell", 0) * cells, d.get("total"))
     base = split.get("baseline", {})
     sub = base.get("subsets", {})
     c.eq("baseline.subsets sum", sum(sub.values()) if sub else -1, base.get("total"))
     c.eq("baseline.profile clean_only", base.get("profile"), "clean only")
-    c.eq("pilot.total", split.get("pilot", {}).get("total"), 20)
+    pilot = split.get("pilot", {})
+    c.eq("pilot.total", pilot.get("total"), 20)
+    c.eq("pilot.per_cell x cells", pilot.get("per_cell", 0) * pilot.get("cells", 0), pilot.get("total"))
+    c.eq("pilot.covers_all_profiles", pilot.get("cells"), split.get("cells"))
     for name in ("calibration", "heldout", "near_obstacle"):
         c.check(f"{name}.consumed_by non-empty", bool(split.get(name, {}).get("consumed_by")))
     c.eq("heldout.may_tune", split.get("heldout", {}).get("may_tune"), False)

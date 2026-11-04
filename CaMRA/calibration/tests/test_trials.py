@@ -20,16 +20,18 @@ def test_per_cell_matches_protocol():
     assert per_cell("calibration", PROTO) == 40
     assert per_cell("heldout", PROTO) == 20
     assert per_cell("near_obstacle", PROTO) == 10
-    # clean-only 的 split 只有 4 个族格，条数由总额反推
-    assert per_cell("pilot", PROTO) == 5
+    # pilot 自 v1.0.1 起覆盖五 profile：20 格 × 1 条
+    assert per_cell("pilot", PROTO) == 1
     assert per_cell("baseline_fit", PROTO) == 60
     assert per_cell("baseline_dev", PROTO) == 20
     assert per_cell("baseline_validate", PROTO) == 20
 
 
 def test_clean_only_splits_use_only_clean():
-    for split in ("pilot", "baseline_fit", "baseline_dev", "baseline_validate"):
+    for split in ("baseline_fit", "baseline_dev", "baseline_validate"):
         assert profiles_for(split, PROTO) == ("clean",)
+    # pilot 覆盖五个 profile（协议 v1.0.1）
+    assert profiles_for("pilot", PROTO) == tuple(PROTO.profile_ids())
     assert len(profiles_for("calibration", PROTO)) == 5
 
 
@@ -109,7 +111,7 @@ def test_strata_report_covers_every_cell_and_low_speed_floor():
     assert set(rep["splits"]) == set(SPLIT_ORDER)
     for split, v in rep["splits"].items():
         assert v["all_cells_low_speed_ok"], split
-        assert v["cells"] == (4 if split in ("pilot", "baseline_fit", "baseline_dev", "baseline_validate") else 20)
+        assert v["cells"] == (4 if split in ("baseline_fit", "baseline_dev", "baseline_validate") else 20)
         for cell in v["detail"].values():
             # 格级约束按平均占比判定；逐条最小值只作观测
             assert cell["low_speed_share_strict"] >= 0.25, (split, cell)

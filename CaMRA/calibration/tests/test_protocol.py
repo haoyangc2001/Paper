@@ -7,7 +7,7 @@ from camra_calibration.protocol import Protocol, ProtocolError, default_path
 
 def test_default_protocol_loads_and_is_frozen():
     p = Protocol.load()
-    assert p.version == "1.0.0"
+    assert p.version == "1.0.1"
     assert p.frozen
     assert p.unit == "J"
     assert p.j_min == 1.0
@@ -38,9 +38,9 @@ def test_seed_blocks_disjoint_and_avoid_reserved():
 
 def test_tampered_hash_rejected(tmp_path: Path):
     src = default_path()
-    dst = tmp_path / "calibration_protocol_v1.0.0.json"
+    dst = tmp_path / "calibration_protocol_v1.0.1.json"
     dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
-    (tmp_path / "calibration_protocol_v1.0.0.json.sha256").write_text("0" * 64 + "  x\n", encoding="utf-8")
+    (tmp_path / "calibration_protocol_v1.0.1.json.sha256").write_text("0" * 64 + "  x\n", encoding="utf-8")
     with pytest.raises(ProtocolError):
         Protocol.load(dst)
 
@@ -50,9 +50,9 @@ def test_non_frozen_rejected(tmp_path: Path):
     import json
     pay = json.loads(default_path().read_text(encoding="utf-8"))
     pay["state"] = "draft"
-    dst = tmp_path / "calibration_protocol_v1.0.0.json"
+    dst = tmp_path / "calibration_protocol_v1.0.1.json"
     dst.write_text(json.dumps(pay, ensure_ascii=False), encoding="utf-8")
     d = hashlib.sha256(dst.read_bytes()).hexdigest()
-    (tmp_path / "calibration_protocol_v1.0.0.json.sha256").write_text(f"{d}  x\n", encoding="utf-8")
+    (tmp_path / "calibration_protocol_v1.0.1.json.sha256").write_text(f"{d}  x\n", encoding="utf-8")
     with pytest.raises(ProtocolError):
         Protocol.load(dst)
