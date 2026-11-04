@@ -1145,3 +1145,68 @@ selected=16  skipped_done=15  processed=1  outcome=completed  6000 步  wall 472
 `/pub/data/caohy/logs/camra/trials_superseded_v1.0.0/pilot` 与
 `trial_lists_v1.0.0_superseded/`，**不进入**任何正式统计或功率基线拟合
 （协议 split.pilot.rule 明确 pilot 产物不得进基线拟合/正式统计）。
+
+---
+
+## 21. CAL-020 名义功率模型：预登记与实现（数据无关部分）
+
+CAL-020 在形式上依赖 CAL-019 的产物（拟合必须用 240 条 `baseline_fit`），但
+**模型候选、选型规则、验收口径与全部代码不依赖任何基线数值**。本节记录在
+采集进行中先完成的部分：预登记先于数据冻结，反而比"看完数据再定规则"更严格。
+
+### 21.1 预登记（`config/power_model_prereg_v1.json`，sha256 `fb00b366…`）
+
+| 项 | 内容 |
+| --- | --- |
+| 冻结时刻 | 2026-11-04T12:35+08:00（此时 `baseline_fit` 采到 224/240，`dev`/`validate` 尚未开始） |
+| 目标量 | `J_nom = Σ_{i=0..299} P̂_nom(u_i, …, u_{i−K}) · 0.1`，单位 J，30 s 窗口 |
+| 允许输入 | 当前命令 `u_i=[vx,vy,wz]` 与过去 K 条命令（10 Hz 命令点） |
+| 禁止输入 | 执行侧力矩/关节速度/功率、`J_exec`、扰动标签、profile 名、质量/摩擦参数、未来命令 |
+| 输入源 | `pairing_10hz.npz:cmd`（301×3 float32），且必须与由 `(family, seed)` 重建的 `Program` 逐点一致（atol 1e-5） |
+| 三重绑定 | `Program.sha256()` == 清单 `program_sha256` == `meta.json.program_sha256`；任一不符即排除 |
+
+候选（§10.5 的 M1 展开，先简单后复杂）：
+
+| 名称 | 特征块 | K | 参数量 |
+| --- | --- | --- | --- |
+| `C1_lin_k0` | `1,|vx|,|vy|,|wz|` | 0 | 4 |
+| `C2_quad_k0` | 加 `vx²,vy²,wz²,|vx||wz|,|vy||wz|,|vx||vy|` | 0 | 10 |
+| `C3_quad_k1` | 二次 + 1 条历史块 | 1 | 20 |
+| `C4_lin_k2` | 线性 + 2 条历史块 | 2 | 12 |
+
+选型规则（只用 `baseline_dev`）：取 dev 逐轨迹相对误差 90% nearest-rank 分位最小者；
+若其它候选落在最佳值 **+0.5 个百分点**以内，则按 `n_params` 少 → `history_k` 小 → 名称升序
+取更简单者。`validate` 只在**冻结（权重与散列落盘）之后**评估一次，且不得回头改选型。
+
+排除原因预登记为 8 类（`missing_dir / not_done / outcome_not_completed / steps_mismatch /
+program_mismatch / cmd_mismatch / j_exec_invalid / pairing_missing`），脚本对未知原因直接断言失败。
+
+### 21.2 为什么非负与因果是构造性的
+
+- 特征只由 `|vx|,|vy|,|wz|` 及其两两乘积构成 → 恒 ≥ 0；权重由 NNLS 求解 → 恒 ≥ 0；
+  因此 `P̂ ≥ 0`、`J_nom ≥ 0` **不需要截断**。`truncation_share` 仍逐条计算并上报（实测 0）。
+- 区间 `i` 的特征只取 `u_i` 与 `u_{max(0,i−l)}`，越界钳到首点；改动 `u_{>i}` 不可能改变
+  第 `≤ i` 个区间的输出（实测前缀差 0.0），这条在拟合、评估、复算三处都跑。
+
+### 21.3 实现与测试
+
+| 文件 | 作用 |
+| --- | --- |
+| `src/camra_calibration/power.py` | 特征/设计矩阵、NNLS 拟合、`PowerModel`（预测/域检查/截距份额/序列化+散列）、选型、分组评估、准入判定 |
+| `scripts/fit_power_model.py` | 装配 → 拟合 → 选型 → 冻结 → 评估 validate → 报告；`--check-split` 只做装配检查不拟合 |
+| `tests/test_power.py` | 25 项：特征非负/因果前缀不变/历史钳位、精确权重回收（1e-9）、确定性、序列化往返与篡改检测、域检查、选型三级 tie-break、分组与非可算、准入阈值 |
+| `config/power_model_prereg_v1.json(+.sha256)` | 预登记，脚本强制校验侧车散列 |
+
+全量 pytest：**163 passed**（原 138 + 新增 25）。
+
+### 21.4 装配路径实测（pilot，仅连通性，不拟合）
+
+`--check-split pilot`：20/20 可用、0 排除、`cmd` 长度均为 301、`J_exec` 150.53–617.75 J。
+证明三重绑定（清单/meta/重建 Program）与 `cmd` 逐点比对在真实产物上成立。
+
+### 21.5 待完成（依赖 CAL-019 采完）
+
+1. `baseline_fit` 240 / `dev` 80 / `validate` 80 全部 completed 后运行
+   `scripts/fit_power_model.py`（不加 `--check-split`），产出 `config/power_model_v1.json` 与报告；
+2. 按 §10.5 判定：dev/validate 的 q90 ≤ 10%、非负 100%、截断 0、可复算逐位一致；
+3. 未达标则按预登记 `on_failure` 记录并暂停——不得先用 α 吸收，也不得擅自装 sklearn 上 M2。

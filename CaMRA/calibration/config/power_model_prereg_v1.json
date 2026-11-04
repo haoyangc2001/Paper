@@ -1,0 +1,98 @@
+{
+  "version": "power-prereg-v1",
+  "state": "frozen",
+  "cal_task": "CAL-020",
+  "frozen_at": "2026-11-04T12:35:00+08:00",
+  "frozen_before": "任何 baseline_fit/baseline_dev/baseline_validate 的拟合与误差计算（数据集于本文件冻结时尚未采完，dev/validate 尚未生成）",
+  "basis": [
+    "implementation_handoff.md §10.3（名义侧功率模型）",
+    "implementation_handoff.md §10.5（模型候选 M1/M2/M3、准入 90% 分位 ≤10%）",
+    "decision_records D-005（400 条 clean 基线，240/80/80）",
+    "decision_records D-ENERGY-001（正关节机械功、J_min=1.0 J）"
+  ],
+  "target": {
+    "quantity": "J_nom",
+    "unit": "J",
+    "window_s": 30.0,
+    "n_intervals": 300,
+    "interval_s": 0.1,
+    "substeps_per_interval": 20,
+    "substep_s": 0.005,
+    "formula": "J_nom = Σ_{i=0..299} P̂_nom(u_i, u_{i-1}, ..., u_{i-K}) · 0.1"
+  },
+  "inputs": {
+    "allowed": [
+      "当前命令 u_i = [vx, vy, wz]（10 Hz 命令点）",
+      "过去 K 条命令 u_{i-l}, 1 ≤ l ≤ K"
+    ],
+    "forbidden": [
+      "执行侧关节力矩/关节速度/关节功率",
+      "J_exec 或任何执行能量测量",
+      "扰动标签、profile 名称、质量/摩擦参数",
+      "未来命令 u_{i+l}, l ≥ 1"
+    ],
+    "source_field": "pairing_10hz.npz:cmd（301×3 float32，10 Hz 公共网格）",
+    "binding": "cmd 必须与由 (family, seed) 重建的 Program 逐点一致（容差 1e-5），且 Program.sha256() 等于清单与 meta.json 记录的 program_sha256；任一不符则该 trial 排除并计入 exclusions"
+  },
+  "candidates": [
+    {
+      "name": "C1_lin_k0",
+      "base": "linear",
+      "history_k": 0,
+      "description": "非负线性：1, |vx|, |vy|, |wz|（§10.5 的 M1 最简形式）"
+    },
+    {
+      "name": "C2_quad_k0",
+      "base": "quadratic",
+      "history_k": 0,
+      "description": "非负二次 + 交叉项：加 vx², vy², wz², |vx||wz|, |vy||wz|, |vx||vy|"
+    },
+    {
+      "name": "C3_quad_k1",
+      "base": "quadratic",
+      "history_k": 1,
+      "description": "非负二次 + 1 条历史命令块（捕捉加速/减速过渡）"
+    },
+    {
+      "name": "C4_lin_k2",
+      "base": "linear",
+      "history_k": 2,
+      "description": "非负线性 + 2 条历史命令块（低参数量的过渡补偿）"
+    }
+  ],
+  "fit": {
+    "split": "baseline_fit",
+    "objective": "relative-weighted non-negative least squares",
+    "weights": "1 / J_exec_i（等价于最小化 Σ((J_nom − J_exec)/J_exec)²）",
+    "solver": "scipy.optimize.nnls，列先按 L2 范数归一化再回代",
+    "intercept_policy": "允许 bias 特征，但必须上报截距占 J_nom 的份额；不得用增大截距来掩盖拟合缺陷。若选中模型的截距份额 > 0.5，视为「以截距吸收误差」，需在报告中标注并说明",
+    "diagnostics_only": "absolute（未加权）最小二乘不参与选型，只作对照记录"
+  },
+  "selection": {
+    "split": "baseline_dev",
+    "metric": "逐轨迹相对误差 |J_nom − J_exec| / J_exec 的 90% nearest-rank 分位",
+    "rule": "取 dev q90 最小者；若其它候选的 dev q90 落在最佳值 +0.005（0.5 个百分点）以内，则按 n_params 少 → history_k 小 → 名称升序 取更简单者",
+    "tie_tol": 0.005,
+    "validate_visibility": "选型只允许读取 dev 指标；validate 仅在模型冻结（权重与散列落盘）之后评估一次，且不得据此回头改选型"
+  },
+  "acceptance": {
+    "validate_q90_rel_err_max": 0.10,
+    "dev_q90_rel_err_max": 0.10,
+    "nonneg_share_min": 1.0,
+    "truncation_share_max": 0.0,
+    "causality": "前缀不变性：改动 u_{>i} 不改变第 ≤ i 个区间的 P̂；且模型输入集不含 forbidden 列表中的任何量",
+    "groups_reported": ["family（4 族）", "low_speed（strict ≥0.3 与否）", "transition（过渡占比 ≥0.2 与否）"],
+    "j_min": 1.0,
+    "j_min_max_share": 0.2,
+    "recomputability": "从落盘模型文件 + 命令序列独立复算的 J_nom 必须与拟合进程内数值逐位一致"
+  },
+  "exclusions": {
+    "rule": "只使用 outcome=completed、6000 步、program 散列三重绑定一致、cmd/J_exec 有限且为正的 trial；其余全部计入 exclusions 明细，不静默丢弃",
+    "reasons": ["missing_dir", "not_done", "outcome_not_completed", "steps_mismatch", "program_mismatch", "cmd_mismatch", "j_exec_invalid", "pairing_missing"]
+  },
+  "fallbacks": {
+    "M2_nonneg_gbt": "§10.5 的 M2（非负梯度提升树）需要 scikit-learn，当前 env_isaaclab 未安装；M1 系列未达标时不得擅自安装，按 uncertainty_policy 向用户申请后再引入",
+    "M3_mlp": "§10.5 的 M3（输出层非负的小 MLP）同样需先申请；仅在 M1/M2 均未达标时启用"
+  },
+  "on_failure": "记录完整报告并暂停 CAL-020：不得用 α 吸收未查明拟合缺陷，不得跳过验证直接冻结模型，不得通过补采「好看的」性能样本改善误差"
+}
