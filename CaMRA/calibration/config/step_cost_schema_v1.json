@@ -1,0 +1,41 @@
+{
+  "alpha_default": 0.0,
+  "augmented_state_spec": {
+    "augmented_state": "none: command is the full Markov input",
+    "dt_s": 0.1,
+    "history_k": 0,
+    "model_sha256": "bfe3b1594c08f729af78d4a22adf204ea0f96491892b98e1e0b24932f2ea1f55",
+    "reset_rule": "zero_history",
+    "unit": "J"
+  },
+  "budget": [
+    "unit",
+    "kind",
+    "initial_J",
+    "spent_J",
+    "remaining_J",
+    "exhausted",
+    "z_ratio"
+  ],
+  "dt_s": 0.1,
+  "history_k": 0,
+  "model_sha256": "bfe3b1594c08f729af78d4a22adf204ea0f96491892b98e1e0b24932f2ea1f55",
+  "model_version": "power-v1",
+  "notes": [
+    "c_nom = P̂_nom(u_t)·0.1 s；c_t = (1+α)·c_nom。",
+    "单位只允许 J；旧论文的 a.u. 预算不得与本预算混用。",
+    "K>0 时必须把最近 K 条命令并入状态，reset 时按 reset_rule 处理。"
+  ],
+  "schema": "camra-step-cost-v1",
+  "sha256": "a2a5fbc62f58dc46f44f0b88f140b148ef6dcf288a064b6ad98b7ff74ad95518",
+  "step": [
+    "t_s",
+    "command",
+    "power_W",
+    "cost_nom_J",
+    "cost_J",
+    "alpha",
+    "unit"
+  ],
+  "unit": "J"
+}
