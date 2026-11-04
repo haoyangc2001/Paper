@@ -1402,11 +1402,47 @@
     {
       "id": "CAL-016",
       "goal": "实现配对、失败分类与独立误差复算",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-015"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T11:35:00+08:00",
+          "summary": "实现 10 Hz 配对、ε_c/ε_d/50 Hz 敏感性复算与业务/数据/基建三类失败分类；pilot 20 条复算完成（12 完整、8 业务失败、0 无效），并修掉 float32 时间轴缺陷。",
+          "actions": [
+            "实现 src/camra_calibration/pairing.py：check_time_grid（起点 0/等间隔/单调/有限，容差随存储精度）、check_positions、deviation（同形、不做对齐）、deviation_on_grid（名义线性插值、禁外推）、epsilon_c（j_nom 缺失/近零分母/负超支保留）、low_speed_share（且口径）、compute_trial_errors（完整才算正式、部分窗口只前缀诊断、50 Hz 敏感性、错误分类）、detect_duplicates、aggregate（all/observed/complete/business_failed/data_invalid 分母 + exclusions）。",
+            "实现 scripts/recompute_errors.py：逐 trial 读配对/状态/能量/meta，校验网格与形状，复算 ε 并写 <trial>/errors.json 与 <split>/errors_report.json；缺分片/损坏 npz 记 missing_shard，重复 attempt 记 duplicate_dirs。",
+            "发现并修真实缺陷：首版采集把配对时间写成 float32（0.1 不可精确表示，300 段累积 1.53e-6 超协议 1e-6），导致 20 条全判 time_jump；采集器改 float64，校验容差按 dtype（float32→1e-5 / float64→1e-6），并修 aggregate 把 None 转 NaN 的问题。",
+            "在 pilot 上复算：complete 12 / business_failed 8 / data_invalid 0；ε_d 0.5217–4.8632（均值 1.4609），50 Hz 敏感性 0.5217–4.8632（与 10 Hz 最大差 4.4e-5）；ε_c 0 条可用（j_nom 未就绪，按 j_nom_missing 记录，未造数）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/pairing.py（新建）",
+            "CaMRA/calibration/scripts/recompute_errors.py（新建）",
+            "CaMRA/calibration/scripts/collect_trials.py（配对时间改 float64）",
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §18）"
+          ],
+          "commands": [
+            "python -m pytest CaMRA/calibration/tests -q",
+            "python scripts/recompute_errors.py --manifest-dir ... --out-root ... --split pilot"
+          ],
+          "results": [
+            "分母：all 20 / observed 20 / complete 12 / business_failed 8 / data_invalid 0；exclusions 为空。",
+            "ε_d 正式：n=12，0.5217–4.8632 m，均值 1.4609；前缀诊断 n=8，0.7401–3.7012，均值 1.6037。",
+            "ε_d(50 Hz)：n=12，0.5217–4.8632，与 10 Hz 最大差 4.4e-5 m（插值敏感性可忽略）。",
+            "ε_c：n_available=0、n_non_computable=0，原因 j_nom_missing（功率模型未建）。",
+            "低速占比（命令侧）：0.0166 / 0.2592 / 0.6013（min/mean/max）。",
+            "失败样例 pilot-straight_shift-clean-0000：terminated、prefix_only、ε_d=1.731 m（前 259 点）、business_failure。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/trials/pilot/errors_report.json",
+            "/pub/data/caohy/logs/camra/trials/pilot/<trial>/errors.json（20 份）",
+            "implementation_handoff.md §18（含 float32 时间轴缺陷与修法）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "10Hz公共时间网格线性配对；角度只用于运动学与诊断，位置不做相位对齐。",
         "完整窗口才有正式epsilon；部分业务轨迹保留前缀诊断并在总体覆盖记失败，不伪装完整。",
@@ -1417,16 +1453,53 @@
         "零时长、NaN、近零分母、时间跳变、重复trial、错误状态来源均有明确错误分类。",
         "配对报告列全体、完整、失败、无效分母，任何排除有原因和来源。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 能量超支、位置最大偏差、50 Hz 敏感性与低速/终止标志均可独立复算且一致——ε_c=(J_exec−J_nom)/J_nom 在 fixture 上与解析值一致（含负超支保留），真实数据因 j_nom 未就绪按 j_nom_missing 单列（不造数）；ε_d 为 max_t‖·‖₂（fixture 验证取 max 非 mean），50 Hz 敏感性把名义轨迹线性插值到 50 Hz 后重算，pilot 上与 10 Hz 最大差 4.4e-5 m；低速占比由 pairing_10hz 的 cmd 独立重算（0.0166/0.2592/0.6013），终止标志来自 meta.outcome 并在失败分类中体现；(2) 零时长、NaN、近零分母、时间跳变、重复 trial、错误状态来源均有明确分类并被测试固定——zero_window / nan / non_computable / time_jump / non_monotonic / duplicate_trial / wrong_source / missing_shard / shape_mismatch 各自有 reason 与 source，NaN 归 data_invalid 而非 business_failure，unknown outcome 归 wrong_source；(3) 配对报告给出全体/完整/失败/无效四套分母且任何排除都有原因与来源——denominators={all 20, observed 20, complete 12, business_failed 8, data_invalid 0}，exclusions 逐条列出 类:reason 计数，缺口记 missing_shard、重复 attempt 记 duplicate_dirs，且 prefix_diagnostic 与 official 分开统计（8 条 terminated/interrupted 明确 official=false）。"
     },
     {
       "id": "CAL-017",
       "goal": "完成CPU数值、数据划分与恢复逻辑测试",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-016"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T11:45:00+08:00",
+          "summary": "补齐 CPU 数值/划分/恢复测试：配对与分类 24 项、批次与续采 13 项，全量 138 项 pytest 全绿；故意构造的错误分支均不通过。",
+          "actions": [
+            "抽出 src/camra_calibration/store.py：plan_batches/flatten_batches/resume_filter/TrialStore（原子写、DONE 最后写、非 DONE 目录用 __a2 不覆盖、records 追加 fsync），并让 collect_trials.py 改用该模块。",
+            "写 tests/test_pairing.py 24 项（全部标注 test_fixture）：ε_c 精确与负超支、j_nom 缺失/近零、ε_d 取 max、插值精确性与外推拒绝、网格偏移/跳变/非单调/NaN/单点、形状与 NaN、完整 vs 前缀、NaN→data_invalid、completed 步数不足→data_invalid、unknown outcome→wrong_source、分母与排除、None 跳过、低速且口径、50 Hz 敏感性一致、重复检测。",
+            "写 tests/test_store.py 13 项：批次切片保序与空/非法输入、不同批大小 records 与 done 集合完全一致、续采幂等、allow_overwrite、attempt 后缀不覆盖、崩溃后恢复新建 attempt、原子写、records 不截断、跨 split 种子互斥与配额、批大小不改变整表散列。",
+            "跑全量 pytest 并记录命令。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/store.py（新建）",
+            "CaMRA/calibration/scripts/collect_trials.py（改用 store 模块）",
+            "CaMRA/calibration/tests/test_pairing.py（新建 24 项）",
+            "CaMRA/calibration/tests/test_store.py（新建 13 项）",
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §19）"
+          ],
+          "commands": [
+            "python -m pytest CaMRA/calibration/tests -q",
+            "python -m pytest CaMRA/calibration/tests/test_pairing.py -q",
+            "python -m pytest CaMRA/calibration/tests/test_store.py -q"
+          ],
+          "results": [
+            "全量 138 passed（新增 37 项：pairing 24 + store 13）。",
+            "批大小 8 与 32 生成的 records 逐行相同、done 集合相同；整表散列相同。",
+            "续采幂等：连续两次 resume_filter 结果一致（skip 4/10 场景断言）。",
+            "attempt 语义：首次=1；已存在无 DONE→__a2、再次→__a3，原目录保持。",
+            "错误分支全部命中预期 reason：missing_shard/duplicate_trial/time_jump/non_monotonic/nan/zero_window/shape_mismatch/wrong_source，业务失败 official=false。"
+          ],
+          "evidence": [
+            "pytest 输出 138 passed",
+            "tests/test_pairing.py 与 tests/test_store.py（文件头注明 test_fixture）",
+            "implementation_handoff.md §19"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只测真实风险：符号单位、关节索引、采样时刻、泄漏、失败计数及resume幂等。",
         "解析直线/圆弧、已知功率及人工构造误差的测试数据须标为test_fixture。",
@@ -1437,7 +1510,7 @@
         "故意缺分片/重复/乱时钟/NaN/业务失败时不会错误通过。",
         "不同批大小与断点恢复产生相同trial清单和派生统计。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 数值参考、配额、seed 独立、边界转换与错误分支测试通过并记录命令——138 项 pytest 全绿（`python -m pytest CaMRA/calibration/tests -q`），其中新增 pairing 24 项与 store 13 项；配额与 seed 独立性由 test_split_seed_blocks_are_disjoint_and_quota_exact 固定（7 个 split 各配额精确、1820 个 seed 全局唯一且落在各自块内）；边界转换含 steps_for 非整数窗口拒绝、float32/float64 网格容差、10 Hz→50 Hz 插值、attempt 1→2→3；(2) 故意缺分片/重复/乱时钟/NaN/业务失败时不会错误通过——对应断言分别命中 missing_shard、duplicate_trial/duplicate_dirs、time_jump/non_monotonic、nan、business_failure 且 official=false，并有 completed 但步数不足→data_invalid、unknown outcome→wrong_source 两条防漏检用例；(3) 不同批大小与断点恢复产生相同 trial 清单和派生统计——plan_batches 在 1/7/8/32 下 flatten 后与原始列表逐项相同、整表散列一致；8 与 32 两种批大小写出的 records 逐行相同、done 集合相同；resume_filter 连续调用结果幂等，崩溃后恢复新建 attempt 且不覆盖旧分片。"
     },
     {
       "id": "CAL-018",

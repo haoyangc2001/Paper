@@ -999,3 +999,74 @@ clean profile、trial_seed 6000、straight_shift、2 envs、episode 余量 0.2 s
 第一版记录器逐子步 `.tolist()` + 6 次 GPU→CPU 拷贝，慢到 480 s/8 条；
 现改为 **GPU 预分配缓冲 + 设备端 float64 累加**，只在 `finish()` 一次性搬回，
 记录开销降到每子步 <10 ms。
+
+---
+
+## 18. 配对、失败分类与误差独立复算（CAL-016）
+
+### 18.1 口径
+
+| 项 | 定义 |
+| --- | --- |
+| 配对网格 | 10 Hz 公共网格 301 点（t=0 与 t=30 s 含端点），位置按时间**线性配对** |
+| 对齐 | 位置**不做任何相位对齐**（不平移、不 DTW）；yaw 只作运动学/诊断 |
+| 正式 ε | 仅 `outcome=completed` 且数据自洽（网格/形状/步数全部通过）才产出 |
+| 前缀诊断 | terminated / interrupted / truncated 只保留前缀诊断，`official=false`，计入失败侧 |
+| ε_c | `(J_exec − J_nom)/J_nom`；`J_nom` 缺失记 `j_nom_missing`；`J_nom < J_min` 记 `non_computable`（单列、不进 α 分位）；负超支保留原值 |
+| ε_d | `max_t ‖p_exec − p_nom‖₂`；50 Hz 敏感性 = 把名义轨迹线性插值到 50 Hz 时刻后的最大偏差 |
+| 失败分类 | `business_failure`（stalled/low_speed/terminated/interrupted/truncated）、`data_invalid`（nan/time_jump/non_monotonic/zero_window/shape_mismatch/missing_shard/duplicate_trial/wrong_source）、`infra_retry`（采集日志判定） |
+
+实现：`src/camra_calibration/pairing.py`（纯标准库 + numpy）与 `scripts/recompute_errors.py`。
+
+### 18.2 一个真实数据缺陷（已修）
+
+首版采集把 `pairing_10hz.npz` 的 `t` 写成 **float32**。0.1 在 float32 下不可精确表示，
+300 段累积后 `max|Δ−0.1| = 1.53e-6`，超过协议 `time_sync_abs_s = 1e-6`，
+导致 20 条 trial 全部被判 `time_jump`。
+
+处置：① 采集器改为写 **float64** `t`（新数据精确到 1e-16）；
+② `check_time_grid` 的容差按**存储精度**取——float32 网格 1e-5、float64 网格 1e-6，
+用于兼容早期产物且在报告里可见。这条修改同时修正了 `aggregate` 把 `None` 当数值
+转出 NaN 的问题。
+
+### 18.3 pilot 复算结果（20 条，clean）
+
+| 项 | 结果 |
+| --- | --- |
+| 分母 | all 20 / observed 20 / **complete 12** / business_failed 8 / **data_invalid 0** |
+| ε_d（正式，12 条） | 0.5217 – 4.8632 m，均值 1.4609 |
+| ε_d（前缀诊断，8 条） | 0.7401 – 3.7012 m，均值 1.6037（`official=false`） |
+| ε_d(50 Hz 敏感性) | 0.5217 – 4.8632 m，均值 1.4609（与 10 Hz 最大差 4.4e-5 m） |
+| ε_c | **0 条可用**：`J_nom` 尚未就绪（功率模型属 CAL-019/020），按 `j_nom_missing` 记录，未造数 |
+| 低速占比（命令侧） | 0.0166 / 0.2592 / 0.6013（min/mean/max） |
+| 失败样例 | `pilot-straight_shift-clean-0000`：outcome=terminated、prefix_only、ε_d=1.731 m（前 259 个配对点）、error_class=business_failure |
+
+排除计数与原因在 `errors_report.json` 的 `exclusions` 字段逐条给出；
+任何未观测到的 trial 记 `missing_shard`，重复 attempt 记 `duplicate_dirs`。
+
+---
+
+## 19. CPU 数值、划分与恢复逻辑测试（CAL-017）
+
+### 19.1 覆盖
+
+| 文件 | 项数 | 覆盖 |
+| --- | --- | --- |
+| `tests/test_pairing.py` | 24 | ε_c 精确值与负超支、j_nom 缺失/近零分母、ε_d 取 max 非 mean、网格点插值精确性与外推拒绝、网格起点偏移/跳变/非单调/NaN/单点、位置形状与 NaN、完整 vs 前缀诊断、NaN→data_invalid（不误判业务失败）、completed 但步数不足→data_invalid、unknown outcome→wrong_source、分母与排除计数、None 跳过、低速"且"语义、50 Hz 敏感性一致、重复 trial 检测 |
+| `tests/test_store.py` | 13 | 批次切片保序、空/非法 n_env、**不同批大小 records 完全一致**、续采幂等（含跳过计数）、allow_overwrite、首次 attempt=1、已存在无 DONE→`__a2/__a3` 且原目录不动、崩溃后恢复新建 attempt、DONE 在后缀目录也算完成、原子写不留 `.tmp`、records 追加不截断、跨 split 种子块互斥且配额精确、批大小不改变整表散列 |
+| 既有 | 101 | 协议/清单/时间轴/名义/命令/profile/能量等 |
+
+合计 **138 项 pytest 全绿**（`python -m pytest CaMRA/calibration/tests -q`）。
+
+### 19.2 故意构造的错误路径（都必须失败而不是静默通过）
+
+缺分片 → `missing_shard`；损坏 npz → `missing_shard`；重复 trial → `duplicate_dirs` +
+`duplicate_trial`；乱时钟（起点偏移/非单调/间隔跳变）→ `time_jump`/`non_monotonic`；
+NaN/Inf → `nan`；业务失败（terminated/interrupted）→ `business_failure` 且 `official=false`；
+未知 outcome → `wrong_source`。上述每一条都有对应断言。
+
+### 19.3 关于 fixture 的边界
+
+`test_pairing.py` / `test_store.py` 的解析场与合成误差一律标注 **test_fixture**，
+只用于验证口径与错误分支；**不得**当作仿真证据。真实数据结论只来自
+`trials/<split>/` 下的采集产物与 `errors_report.json`。

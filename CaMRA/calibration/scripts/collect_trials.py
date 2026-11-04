@@ -36,6 +36,7 @@ from camra_calibration.energy import steps_for  # noqa: E402
 from camra_calibration.nominal import PlanarState, integrate  # noqa: E402
 from camra_calibration.profiles import sample_applied, sample_initial_pose  # noqa: E402
 from camra_calibration.protocol import Protocol  # noqa: E402
+from camra_calibration.store import TrialStore, plan_batches, resume_filter  # noqa: E402
 from camra_calibration.timeline import Timeline  # noqa: E402
 
 BUCKET_OF = {"clean": "off", "friction_only": "off", "mass_only": "off",
@@ -59,53 +60,6 @@ def bucket(profile: str) -> str:
         return BUCKET_OF[profile]
     except KeyError:
         raise SystemExit(f"未知 profile {profile!r}")
-
-
-class TrialStore:
-    """落盘布局 + 原子写 + 断点续采（不覆盖旧分片）。"""
-
-    def __init__(self, root: Path, split: str):
-        self.base = root / split
-        self.base.mkdir(parents=True, exist_ok=True)
-        self.records = self.base / "records.jsonl"
-
-    def is_done(self, trial_id: str) -> bool:
-        d = self.base / trial_id
-        return (d / "DONE").is_file()
-
-    def prepare(self, trial_id: str) -> tuple[Path, int]:
-        d = self.base / trial_id
-        if not d.exists():
-            d.mkdir(parents=True)
-            return d, 1
-        # 已存在但不是 DONE → 换 attempt 子目录，绝不覆盖旧分片
-        n = 2
-        while (self.base / f"{trial_id}__a{n}").exists():
-            n += 1
-        d2 = self.base / f"{trial_id}__a{n}"
-        d2.mkdir(parents=True)
-        return d2, n
-
-    def write_json(self, d: Path, name: str, payload: dict) -> None:
-        tmp = d / f".{name}.tmp"
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-                       encoding="utf-8")
-        os.replace(tmp, d / name)
-
-    def write_npz(self, d: Path, name: str, payload: dict) -> None:
-        tmp = d / f".{name}.tmp"
-        torch.save(payload, tmp)
-        os.replace(tmp, d / name)
-
-    def mark_done(self, d: Path) -> None:
-        (d / "DONE").write_text("ok\n", encoding="utf-8")
-
-    def append_record(self, record: dict) -> None:
-        line = json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n"
-        with self.records.open("a", encoding="utf-8") as fh:
-            fh.write(line)
-            fh.flush()
-            os.fsync(fh.fileno())
 
 
 def main() -> int:
@@ -140,8 +94,7 @@ def main() -> int:
     mine = mine[args.offset:]
     if args.limit > 0:
         mine = mine[:args.limit]
-    todo = [t for t in mine if args.allow_overwrite or not store.is_done(t["trial_id"])]
-    skipped = len(mine) - len(todo)
+    todo, skipped = resume_filter(mine, store, allow_overwrite=args.allow_overwrite)
     if not todo:
         print(json.dumps({"split": args.split, "bucket": args.bucket,
                           "selected": len(mine), "skipped_done": skipped,
@@ -188,10 +141,10 @@ def main() -> int:
     stats = {"completed": 0, "terminated": 0, "truncated": 0, "interrupted": 0}
     batches_done = 0
 
-    for bi in range(0, len(todo), n_env):
+    for batch_index, batch in enumerate(plan_batches(todo, n_env)):
         if args.max_batches and batches_done >= args.max_batches:
             break
-        batch = todo[bi:bi + n_env]
+        bi = batch_index * n_env
         k = len(batch)
         # ---- 每 env 一条 trial：命令表 / profile / 初态 ----
         tables, applied, poses, progs = [], [], [], []
@@ -290,7 +243,9 @@ def main() -> int:
             pair_pos = torch.cat([torch.tensor(initial_pose_rows[i][:2]).float().unsqueeze(0),
                                   pos50[idx]], dim=0)
             n_pairs = pair_pos.shape[0]
-            t = torch.arange(n_pairs, dtype=torch.float32) * pair_dt
+            # 时间轴必须 float64：float32 无法精确表示 0.1，300 段后偏差达 1.5e-6，
+            # 会触碰协议 time_sync 容差（见 §18.2）
+            t = torch.arange(n_pairs, dtype=torch.float64) * pair_dt
             nom = integrate(PlanarState(poses[i]["px"], poses[i]["py"], poses[i]["yaw"]),
                             progs[i].commands[:window_ctrl // 5 + 1], pair_dt)
             nom_pos = torch.tensor([[s.px, s.py] for s in nom], dtype=torch.float32)
