@@ -1337,11 +1337,55 @@
     {
       "id": "CAL-015",
       "goal": "实现独立基线及正式配对轨迹采集器",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-014"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T11:05:00+08:00",
+          "summary": "实现配对轨迹采集器：每 env 一条 trial 的批量命令表、逐 trial 原子落盘与断点续采、终止即停批不拼轨迹；pilot 20 条全部落盘并通过离线核对（VERDICT pass）。",
+          "actions": [
+            "实现 sim/batch_program.py 的 TableProgram：每 env 一张 10 Hz 命令表，at(t) 返回 (num_envs,3)，warmup 期间强制零命令；5 项单测覆盖每 env 不同命令、零阶保持、warmup、越界钳制、形状校验。",
+            "实现 scripts/collect_trials.py：读清单按 bucket 分进程；批内逐 env 采样 profile/初态/命令表；1 s warmup（200 物理步）+ 30 s 窗口（1500 控制步）；任一 env 终止即停批并区分 terminated/interrupted；每 trial 原子写 physics_200hz/state_50hz/pairing_10hz/energy/meta 最后写 DONE；续采只看 DONE，非 DONE 目录改 __a2 不覆盖。",
+            "实现 scripts/check_collection.py：覆盖/重复/缺失、200 Hz 6000 步与 50 Hz 1500 条与 301 配对点、配对 dt=0.1、能量离线复算（1e-5）、元数据字段与 sim_dt/decimation/warmup 自洽；非完整 trial 校验步数与 meta 一致且注明未外推。",
+            "记录器性能重写：首版逐子步 .tolist()+6 次 GPU→CPU 拷贝，8 envs×30 s 需 480 s；改为 GPU 预分配缓冲 + 设备端 float64 累加，仅 finish() 一次性搬回。",
+            "微基准定位瓶颈：sim.step 63.4 ms/子步、robot.update 4.5 ms、读取 4.5 ms、能量 2.3 ms，且 sim.step 与环境数无关 → 瓶颈是 GPU 争用而非记录代码；结论是正式采集应用 num_envs=32。",
+            "跑 pilot（20 条，bucket off）：20/20 落盘，12 completed + 7 interrupted + 1 terminated，能量 156.55–679.56 J，复算误差 8.1e-10，check_collection VERDICT pass。",
+            "修正检查器对非 complete trial 的误判（提前终止本就 <6000 步），改为按 outcome 分支校验。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/sim/batch_program.py（新建）",
+            "CaMRA/calibration/sim/recorder.py（重写为 GPU 缓冲版）",
+            "CaMRA/calibration/scripts/collect_trials.py（新建）",
+            "CaMRA/calibration/scripts/check_collection.py（新建）",
+            "CaMRA/calibration/tests/test_batch_program.py（新建，5 项）",
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §17）"
+          ],
+          "commands": [
+            "python -m pytest CaMRA/calibration/tests -q",
+            "bash env_setup/13_pilot.sh（collect pilot + check）",
+            "python scripts/check_collection.py --split pilot ..."
+          ],
+          "results": [
+            "pytest 102 passed（新增 5 项 batch_program 测试）。",
+            "pilot 20 条全部落盘（6000/1500/301/配对 dt=0.1 全部符合），records 20 条无重复/缺失/额外。",
+            "outcome 分布：completed 12、interrupted 7、terminated 1；三者均落盘并计入覆盖。",
+            "能量：j_exec 156.55–679.56 J；离线复算最大相对误差 8.1e-10；逐关节和 = j_exec。",
+            "抽查 pilot-arc_combined-clean-0003：配对 t 0→30.0 s，deviation 均值 1.13 m、最大 2.11 m，末端 exec (0.222,-3.618) vs nominal (0.936,-3.410)。",
+            "吞吐：8 envs 每批 421–484 s（含启动），瓶颈为 sim.step 63.4 ms/子步（GPU 争用）；32 envs 预期 13–15 s/trial。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/trials/pilot/（20 个 trial 目录 + records.jsonl + pilot_check.json）",
+            "trials/pilot_check.json（expected=done=records=20，problems=[]，VERDICT pass）",
+            "env_setup/13_pilot.log（三批 batch 行、COLLECT_EXIT=0、CHECK_EXIT=2→修正后 pass）",
+            "env_setup/prof_step.log（每子步开销分解）",
+            "implementation_handoff.md §17"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "重载v2导出策略，经已有外部命令桥接执行；观测/动作/增益保持不变。",
         "同一实际指令生成名义轨迹和执行记录；无障碍采集场地足够容纳30秒最大位移，环境隔离。",
@@ -1353,7 +1397,7 @@
         "正确捕获初始状态、1秒warmup边界、最后物理步、termination/truncation与中断。",
         "能从清单仅执行指定split和trial子集，并核对是否重复/缺失。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 命令、位姿、能量、profile 与 metadata 完整对应——每 trial 目录含 physics_200hz(6000×12 tau/qdot + 根状态)、state_50hz(1500 条 × 动作/命令/位姿/关节量)、pairing_10hz(301 点：t=0 初态 + 每 0.1 s，含 exec_pos/nominal_pos/deviation/cmd)、energy.json（j_exec + per_joint_j，逐关节和等于 j_exec）与 meta.json（身份/版本/outcome/步数/profile_applied/初始位姿/cfg 报告），实测配对 dt=0.1、t 从 0 到 30.0，1500 控制区间与 301 配对点口径明确；(2) 正确捕获初始状态、warmup 边界、最后物理步、termination/truncation/中断——初始位姿由 trial seed 采样后逐 env 直写并记录 spawn_pos_xyz，warmup 严格 200 物理步且不计入窗口（不符直接报错），任一 env 终止即停批以免自动复位拼接，terminated/interrupted/truncated 三态分别落盘并注明未外推，首批实测出现 1 条真实终止（5176 步）与 7 条 interrupted，均保留原始步数；(3) 可从清单只跑指定 split 与 trial 子集并核对重复/缺失——collect_trials 支持 --split/--bucket/--offset/--limit/--max-batches，check_collection 对照清单输出 expected/done/records、missing/duplicates/extra（pilot：20/20/20，三者全空），续采只跳过 DONE、非 DONE 目录另起 __a2 不覆盖旧分片。102 项 pytest 全绿。"
     },
     {
       "id": "CAL-016",

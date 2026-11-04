@@ -922,3 +922,80 @@ clean profile、trial_seed 6000、straight_shift、2 envs、episode 余量 0.2 s
 `meter_on.npz`（tau/qdot/根状态 200 Hz + 全部 50 Hz 字段，2.4 MB）、
 `meter_off.npz`（仅 50 Hz）、`meter_on.json` / `meter_off.json`（元数据与能量摘要）、
 `verify_report.json`（逐字段 diff、离线复算、完整度、VERDICT pass）。
+
+---
+
+## 17. 配对轨迹采集器（CAL-015）
+
+### 17.1 结构
+
+| 文件 | 职责 |
+| --- | --- |
+| `sim/batch_program.py` | `TableProgram`：每 env 一张 10 Hz 命令表，`at(t)` 返回 `(num_envs,3)`；warmup 期间强制零命令 |
+| `scripts/collect_trials.py` | 采集器：读清单 → 按 bucket 分批 → 逐 env 施加 profile/初态/命令 → 1 s warmup + 30 s 窗口 → 逐 trial 原子落盘 |
+| `scripts/check_collection.py` | 离线核对：覆盖/重复/缺失、形状与口径、能量复算、元数据自洽 |
+
+一个进程只建一次 env（§15.6 的二次 `gym.make` 挂死），按 **bucket** 分进程：
+`combined`（obs corruption 开）与其余四个（关）不能同进程，因为该开关是 cfg 级。
+
+### 17.2 关键机制
+
+- **每 env 一条独立 trial**：命令表、摩擦/质量、初态位姿、push 时刻全部按该 env 的
+  trial seed 采样；`TableProgram` 让同一批里的每个 env 跑不同命令族。
+- **warmup 边界**：先跑 50 个控制步（200 物理步）零命令，`begin_window()` 之后才开始
+  记录；实测 `warmup_steps == 200` 否则直接报错。
+- **时序上限**：`episode_length_s = 1 + 30 + 0.2`，并在建 env 后断言
+  `max_episode_length > warmup_ctrl + window_ctrl`（训练默认 20 s 会截断）。
+- **终止不拼轨迹**：任一 env 触发 termination 立即停止整批（IsaacLab 会在下一步自动
+  复位，继续跑就会把新轨迹写进同一数组）；该 env 记 `terminated`，兄弟 env 记
+  `interrupted`，两者都落盘、都计入覆盖分母，且 meta 注明"未外推补足 30 s"。
+- **原子保存**：每个文件先写 `.tmp` 再 `os.replace`，`DONE` 最后写；续采只看 `DONE`，
+  已存在但没有 `DONE` 的目录改用 `<trial_id>__a2`，绝不覆盖旧分片。
+- **命令/名义一致**：同一条 `build_program(family, seed)` 既生成下发命令表，也用于
+  `nominal.integrate` 出 301 点名义轨迹，因此"同一实际指令"是构造性保证。
+
+### 17.3 产物口径
+
+每条 trial 一个目录（`trials/<split>/<trial_id>/`）：
+
+| 文件 | 内容 | 形状 |
+| --- | --- | --- |
+| `physics_200hz.npz` | tau / qdot / 根位姿 / 根速度 / sim_dt | (6000, 12) 等 |
+| `state_50hz.npz` | action / cmd / 根位姿 / 根速度 / 关节位置速度 | (1500, …) |
+| `pairing_10hz.npz` | t / exec_pos / nominal_pos / nominal_yaw / deviation / cmd | (301, …) |
+| `energy.json` | j_exec / per_joint_j / unit / j_nom 状态 | — |
+| `meta.json` | 身份、版本、outcome、步数、profile_applied、初始位姿、cfg 报告 | — |
+| `DONE` | 完成标记（原子性依据） | — |
+
+配对点 = **t=0 初态 + 每 0.1 s 的 300 个点**（取 50 Hz 第 5k−1 条），共 301 个，
+与 `Timeline.pairing_points` 一致；能量按 D-ENERGY-001 逐物理步累计。
+
+`energy.j_nom` 目前写 `null` + `j_nom_status="not_available_pending_power_model"`：
+名义功率模型属于 CAL-019/020，采集阶段不能凭空造数。`records.jsonl` 是采集索引，
+最终 manifest（含 j_nom）在各 split 采集完成、功率模型就绪后统一装配。
+
+### 17.4 pilot 实测（20 条，split=pilot，bucket=off）
+
+| 项 | 结果 |
+| --- | --- |
+| 覆盖 | 20/20 落盘，records 20 条，无缺失/重复/清单外 |
+| 结果分布 | completed 12、interrupted 7、terminated 1（真实摔倒，未补足、未拼接） |
+| 形状 | 完整 trial：6000 物理步 / 1500 控制步 / 301 配对点（0→30.0 s，dt=0.1） |
+| 能量 | j_exec 156.55–679.56 J；离线复算最大相对误差 **8.1e-10** |
+| 一致性 | 逐关节求和 = j_exec（515.808069 J）；50 Hz×4 = 200 Hz 步数 |
+| 判定 | `check_collection.py` **VERDICT pass** |
+
+### 17.5 吞吐实测与并行度结论（重要）
+
+同一批 8 envs × 30 s 实测 wall **421–484 s**；微基准分解每物理子步：
+`sim.step` **63.4 ms**、`robot.update` 4.5 ms、数据读取 4.5 ms、能量运算 2.3 ms。
+`sim.step` 与环境数几乎无关（2 envs 时也是 63 ms），说明当前瓶颈是**GPU 争用**
+（同时 23 个用户、load 130–160），不是我们的记录代码。
+
+因此吞吐取决于每步摊到多少 env：8 envs ≈ 60 s/trial，**32 envs ≈ 13–15 s/trial**。
+正式采集（CAL-018 pilot 与后续 split）应使用 `--num_envs 32`；
+按该口径 1820 条约 6–8 h，与协议 `resource_budget` 的估算一致。
+
+第一版记录器逐子步 `.tolist()` + 6 次 GPU→CPU 拷贝，慢到 480 s/8 条；
+现改为 **GPU 预分配缓冲 + 设备端 float64 累加**，只在 `finish()` 一次性搬回，
+记录开销降到每子步 <10 ms。
