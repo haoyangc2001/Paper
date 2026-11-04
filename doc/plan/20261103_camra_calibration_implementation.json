@@ -1816,11 +1816,54 @@
     {
       "id": "CAL-021",
       "goal": "确定并验证Go2物理占地轮廓",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-020"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T15:50:00+08:00",
+          "summary": "从冻结 USD 只读提取几何，按全部 clean 帧的碰撞体投影包络冻结 footprint-v1（0.889×0.585 m，43 顶点），独立全帧覆盖检查 0 越界；期间抓到并修掉「抽样建包络」的越界缺陷。",
+          "actions": [
+            "写 scripts/extract_asset_geometry.py：用 omni.usd.libs 的 pxr 直接读 USD（不启 Isaac 应用），产出 19 链接/18 关节/27 碰撞体（17 圆柱、5 球、5 立方体）的 JSON。",
+            "写 src/camra_calibration/geometry.py：凸包、Polygon（面积/最小宽度/外接半径/包含/有符号距离/旋转/膨胀/支撑/Minkowski）、纯平移精确扫掠判据、采样扫掠凸包。",
+            "写 src/camra_calibration/footprint.py：按 PhysX 约定组装关节链（含子链接侧旋转之逆）、批量 FK、碰撞体采样点、包络构造、覆盖检查、Footprint 冻结对象（内容散列+侧车）。",
+            "写 scripts/build_footprint.py 与 check_footprint.py：前者用 403 条 clean 试验的 604500 帧建包络并自检；后者独立重算、双散列、全帧覆盖、输入范围与名义站姿包含检查。",
+            "写 tests/test_geometry.py 24 项：旋转、窄通道、擦边、连续扫掠，另加资产 FK 自洽、批量/单帧一致、轮廓包含与 delta 只膨胀一次。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/geometry.py（新建）",
+            "CaMRA/calibration/src/camra_calibration/footprint.py（新建）",
+            "CaMRA/calibration/scripts/{extract_asset_geometry,build_footprint,check_footprint}.py（新建）",
+            "CaMRA/calibration/tests/test_geometry.py（新建）",
+            "CaMRA/calibration/config/go2_asset_geometry_v1.json(+.sha256)（新建，c80e73c6…）",
+            "CaMRA/calibration/config/footprint_v1.json(+.sha256)（新建，a11a3572…）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§22）"
+          ],
+          "commands": [
+            "bash env_setup/usdpy.sh scripts/extract_asset_geometry.py --usd <asset>/Go2/usd/go2.usd --out config/go2_asset_geometry_v1.json",
+            "python scripts/build_footprint.py --manifest-dir trial_lists_v1.0.1 --out-root trials --out config/footprint_v1.json --stride 1",
+            "python scripts/check_footprint.py --stride 1 --dense-trials 0 --report footprint/footprint_check.json",
+            "python -m pytest tests -q"
+          ],
+          "results": [
+            "资产自洽：FK(q≡0) 复现链接静止平移最大误差 1.40e-08 m；关节顺序用 init_state 反查，403 条首帧最大偏差 0.058 rad。",
+            "轮廓 footprint-v1：43 顶点，面积 0.4580 m2，最小宽度 0.5768 m，外接半径 0.5055 m，跨度 0.889×0.585 m；名义站姿 0.2676 m2、仅机身 0.0500 m2（面积比 1.71）。",
+            "覆盖：604500 帧（403 条 clean 试验，stride 1）越界点 0，最大有符号距离 −0.0；独立重算顶点与冻结值逐位一致（delta 0.0）。",
+            "发现并修正抽样陷阱：stride=5 建包络时逐帧检查抓到 7 点越界（最多 1.81 mm），改为 stride=1 后归零，build 脚本默认已改 1 并注明原因。",
+            "δ 只膨胀一次：危险集唯一入口 Footprint.obstacle_dilation(obstacle, δ)，测试用支撑函数断言一次/两次的差值 ~δ。",
+            "pytest 189 passed。"
+          ],
+          "evidence": [
+            "config/footprint_v1.json(+.sha256 a11a3572…)；config/go2_asset_geometry_v1.json(+.sha256 c80e73c6…)",
+            "/pub/data/caohy/logs/camra/footprint/footprint_check.json：recompute delta 0.0、coverage outside=0 / 604500 帧、input_scope 无正式数据、VERDICT pass",
+            "/pub/data/caohy/logs/camra/env_setup/{24_rebuild_footprint,25_footprint_check_full}.log",
+            "tests/test_geometry.py 24 项 + implementation_handoff.md §22"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "仅从冻结Go2资产及独立clean基线/pilot的关节运动包络推导几何；在打开正式校准/检验结果前冻结轮廓，单位/坐标/参考点一致。",
         "足端地面接触是正常行走，障碍接触与跌倒终止分开；delta只加执行偏差。",
@@ -1831,7 +1874,7 @@
         "障碍物几何只包含一次机器人轮廓，delta膨胀不重复。",
         "独立几何测试覆盖旋转、窄通道、擦边与连续扫掠碰撞。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 方法与可复算性——轮廓由 config/go2_asset_geometry_v1.json（从冻结 USD 只读提取，散列 c80e73c6…）与 403 条 clean 试验的 604500 帧关节记录构造，FK(q≡0) 复现资产链接静止位姿（1.40e-08 m）、关节顺序用 init_state 反查（0.058 rad 内）；独立脚本重算顶点与冻结值逐位一致（delta 0.0），输入只含 baseline_{fit,dev,validate} 与 pilot-clean，检查脚本显式禁止 calibration/heldout/near_obstacle 出现（input_scope.ok=true）；（2）障碍几何只含一次轮廓、delta 不重复——唯一入口 Footprint.obstacle_dilation(obstacle, δ) 内部对轮廓只膨胀一次并与障碍做一次 Minkowski 和，测试用支撑函数断言沿 +y 支撑=0.1+0.25+δ，且叠加 2δ 会比 1δ 大 ~δ（可检测重复）；δ 本身留待 CAL-025，不在本任务预设；（3）独立几何测试覆盖四类情形——旋转（面积/外接半径不变、90° 交换长宽、所需通道宽度随朝向从 0.4 变到 1.0）、窄通道（通过/拒绝边界、退化边不产生 0 宽度）、擦边（边界点 distance=0、外移 δ 的点必须被 F⊕disc(δ) 覆盖、圆盘取外切保证保守）、连续扫掠（细长障碍起终点都判不碰但扫掠命中、与 2000 步密采样完全一致、采样凸包随加密单调收敛）。另记录一处真实缺陷：采样建包络会漏掉中间帧（7 点越界、1.81 mm），已改为逐帧并写进 build 脚本默认值与 §22.4。"
     },
     {
       "id": "CAL-022",
