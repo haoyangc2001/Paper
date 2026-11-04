@@ -1210,3 +1210,63 @@ program_mismatch / cmd_mismatch / j_exec_invalid / pairing_missing`），脚本�
    `scripts/fit_power_model.py`（不加 `--check-split`），产出 `config/power_model_v1.json` 与报告；
 2. 按 §10.5 判定：dev/validate 的 q90 ≤ 10%、非负 100%、截断 0、可复算逐位一致；
 3. 未达标则按预登记 `on_failure` 记录并暂停——不得先用 α 吸收，也不得擅自装 sklearn 上 M2。
+
+### 21.6 采集缺口：批循环的连带截断与修复（2026-11-04，D-007）
+
+首次运行后暴露一个真实缺陷，必须记录：
+
+| 项 | 事实 |
+| --- | --- |
+| 现象 | `baseline_validate` 第 0 批 32 条在 **1616/6000 步**同时结束；批级 outcome=`terminated`，逐条 1 条 terminated + 31 条 interrupted |
+| 根因 | 采集批循环在 `te.any()` 为真时立刻 `break`（"任一条终止即整批中止"），同批其余 env 的运动被截断，写成 `outcome=interrupted` |
+| 影响 | validate 只剩 48 条可用且 **straight_shift 整族缺失**；此时出结论会违反"分组必须覆盖"的预登记口径 |
+| 真实失败 | `baseline_validate-straight_shift-clean-0013` 是唯一真正终止的 trial（业务失败，保留） |
+
+处置（用户裁定 D-007）：
+
+1. **修 `check_collection.py` 两处**
+   - 目录索引由 `{tid: p}` 推导（谁覆盖谁取决于文件系统顺序）改为**取含 DONE 的最大 attempt**；
+   - "重复"语义纠正：只报"同一 trial 存在多个 DONE 目录"与"同一 `(trial, attempt)` 写了两次 record"；
+     多次 attempt 记入新增字段 `retried_attempts`，**不再**误报为重复 trial。
+2. **重采 31 条连带截断**：把旧目录的 `DONE` 改名为 `DONE.interrupted_a1`（**零删除**，产物全留），
+   以原 trial_id 重采，`TrialStore` 自动建 `__a2`；真实摔倒那条不重采。
+3. 结果：31/31 completed（6000 步、85.6 s/批）。同一批 env 的 `sim.step` 从 63 ms 降到 **14 ms**
+   —— 说明此前吞吐是被别的用户占满 GPU 拖住的（load 130–360），不是本流程的固有成本。
+
+**顺带修掉一个散列缺陷**：`PowerModel.sha256()` 原先把 `train.frozen_at` 算进散列，
+同一批数据重跑会得到不同散列，无法证明"重跑未改动模型"。现在散列只覆盖
+`content_dict()`（权重 / 特征 schema / 输入域 / 单位 / J_min），`train` 与 `notes` 照旧落盘但不参与散列。
+连跑两次拟合散列一致 `bfe3b159…`，即重跑不改身份的硬证据。
+
+### 21.7 最终验收（CAL-020）
+
+预登记散列 `fb00b366…`（未改动）；只读 `baseline_fit` 拟合、只读 `baseline_dev` 选型、冻结后才评估 validate。
+
+| 候选 | 非零/总参数 | fit q90 | dev q90 |
+| --- | --- | --- | --- |
+| `C1_lin_k0` | 3/4 | 0.0960 | 0.0929 |
+| **`C2_quad_k0`（选中）** | **6/10** | **0.0561** | **0.0524** |
+| `C3_quad_k1` | 6/20 | 0.0560 | 0.0524 |
+| `C4_lin_k2` | 3/12 | 0.0986 | 0.0914 |
+
+C2 与 C3 的 dev q90 相同，按预登记 tie-break（参数少者优先）取 **C2**。
+
+| 项 | 结果 |
+| --- | --- |
+| 冻结模型 | `config/power_model_v1.json`，sha256 `bfe3b1594c08f729af78d4a22adf204ea0f96491892b98e1e0b24932f2ea1f55`，schema `23adc481…` |
+| 权重（W） | bias 3.03、`\|vx\|` 4.72、`\|vy\|` 4.84、`vx²` 31.54、`vy²` 48.31、`wz²` 2.39；`\|wz\|` 与三个交叉项被 NNLS 压到 0 |
+| dev (n=80) | q90 **0.0524**，median 0.0195 |
+| validate (n=79) | q90 **0.0554**，median 0.0241，max 0.1373，bias\_median **+0.0062**（几乎无系统偏差） |
+| 分组（validate） | alternating 0.0359(20) / arc\_combined 0.0469(20) / start\_stop\_turn 0.0667(20) / **straight\_shift 0.0911(19)**；低速组 0.0667(33) vs 高速 0.0469(46)；过渡重 0.0475(51) vs 过渡轻 0.0667(28) |
+| 唯一排除 | `baseline_validate-straight_shift-clean-0013`（terminated 业务失败，official=false） |
+| 非负 | 权重全非负；截断份额 **0.0** |
+| 因果 | 前缀不变性 3/3，`|ΔP̂|` = 0 |
+| 可复算 | 从落盘模型重算 `J_nom` 与进程内数值**逐位一致** |
+| 截距份额 | 中位 0.188、最大 0.614（已上报；未靠大截距吸收误差） |
+| 准入 | `dev_q90` / `validate_q90` / `nonneg` / `non_computable` 四项全过 → **VERDICT admitted** |
+
+站立（全零命令）`J_nom = 3.03 W × 30 s ≈ 91 J`，与 `J_min = 1.0 J` 相距 90 倍，说明近零分支
+不会把正常低速样本误判为 `non_computable`（实测 validate 0 条）。
+
+**尚未做的（留给后续任务）**：`J_nom` 还没回填进各 trial 的 `energy.json`（仍为 `null`），
+该回填与 `ε_c` 重算属于 CAL-022/023 的数据锁与消费契约；本任务只交付可独立复算的冻结模型。

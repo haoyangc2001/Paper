@@ -220,6 +220,31 @@ def test_save_load_detects_tampering(tmp_path):
         PowerModel.load(p)
 
 
+def test_hash_ignores_provenance_metadata():
+    """重跑拟合时 train/frozen_at 会变，但模型身份必须不变。"""
+    m = true_model()
+    a = PowerModel(weights=m.weights, feature_names=m.feature_names, base=m.base,
+                   history_k=0, fit_mode="relative",
+                   train={"split": "x", "frozen_at": "2026-01-01T00:00:00Z",
+                          "candidate": "C2_quad_k0"}, domain=m.domain)
+    b = PowerModel(weights=m.weights, feature_names=m.feature_names, base=m.base,
+                   history_k=0, fit_mode="relative",
+                   train={"split": "x", "frozen_at": "2026-12-31T23:59:59Z",
+                          "candidate": "C2_quad_k0"}, domain=m.domain)
+    assert a.sha256() == b.sha256()
+    assert a.sha256() == m.sha256()
+    assert a.to_dict()["train"] != b.to_dict()["train"]   # 溯源仍各自保留
+
+
+def test_hash_changes_with_domain():
+    m = true_model()
+    m2 = PowerModel(weights=m.weights, feature_names=m.feature_names, base=m.base,
+                    history_k=0, fit_mode="relative", train={},
+                    domain={"abs_vx": {"max": 2.0}, "abs_vy": {"max": 1.0},
+                            "abs_wz": {"max": 1.0}})
+    assert m.sha256() != m2.sha256()
+
+
 def test_hash_depends_on_schema_and_weights():
     m = true_model()
     names_lin = feature_names("linear", 0)

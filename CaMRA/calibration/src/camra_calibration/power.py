@@ -266,7 +266,12 @@ class PowerModel:
         return float(phi[bias_idx[0]] * self._w[bias_idx[0]] / total)
 
     # ---- 序列化 ----
-    def to_dict(self) -> dict:
+    def content_dict(self) -> dict:
+        """参与散列的**模型内容**：决定预测的一切，不含任何时间戳或溯源元数据。
+
+        这样同一批拟合数据重跑得到同一散列（可证明"重跑没有改动模型"），
+        而 ``train`` 里的 frozen_at / 提交号等易变字段不会污染身份。
+        """
         return {
             "version": self.version,
             "unit": "J",
@@ -281,10 +286,15 @@ class PowerModel:
             "n_intervals": int(self.n_intervals),
             "substeps_per_interval": SUBSTEPS_PER_INTERVAL,
             "j_min": float(self.j_min),
-            "train": self.train,
             "domain": self.domain,
-            "notes": list(self.notes),
         }
+
+    def to_dict(self) -> dict:
+        """落盘内容 = 模型内容 + 溯源（train/notes），溯源不参与散列。"""
+        out = self.content_dict()
+        out["train"] = self.train
+        out["notes"] = list(self.notes)
+        return out
 
     @classmethod
     def from_dict(cls, payload: dict) -> "PowerModel":
@@ -310,7 +320,8 @@ class PowerModel:
         return hashlib.sha256(blob).hexdigest()
 
     def sha256(self) -> str:
-        blob = json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"),
+        """模型身份散列：只覆盖 :meth:`content_dict`（预测相关内容，无时间戳）。"""
+        blob = json.dumps(self.content_dict(), sort_keys=True, separators=(",", ":"),
                           ensure_ascii=False).encode()
         return hashlib.sha256(blob).hexdigest()
 

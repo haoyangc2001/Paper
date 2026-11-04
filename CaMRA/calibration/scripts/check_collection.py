@@ -3,7 +3,8 @@
 
 对照清单核对：
   * 覆盖：清单里该 split（可选 profile 过滤）的每条 trial 是否都有 DONE 目录；
-  * 重复/缺失：records.jsonl 与目录是否一致，trial_id 是否唯一；
+  * 重复/缺失：records.jsonl 与目录是否一致；多次 attempt（`__aN`）记为重试历史而**不是**重复，
+    真正的重复只有"同一 trial 有多个 DONE 目录"或"同一 (trial, attempt) 写了两次 record"；
   * 形状与口径：200 Hz 6000 步、50 Hz 1500 条、配对 301 点（含端点）、command 表长度；
   * 能量：用落盘 tau/qdot 离线复算并与 energy.json 比对（容差 1e-5）；
   * 元数据：sim_dt/decimation/protocol_sha256/初始位姿/outcome/steps 是否齐全且自洽。
@@ -52,8 +53,29 @@ def main() -> int:
     expected = [t["trial_id"] for t in manifest]
 
     base = Path(args.out_root) / args.split
-    dirs = {p.name.split("__a")[0]: p for p in base.iterdir() if p.is_dir()} if base.is_dir() else {}
-    done = {p.name.split("__a")[0] for p in base.iterdir() if p.is_dir() and (p / "DONE").is_file()} if base.is_dir() else set()
+
+    def _attempt(p: Path) -> int:
+        """目录名 `<trial>` 记作 attempt 1，`<trial>__aN` 记作 N。"""
+        return int(p.name.split("__a")[-1]) if "__a" in p.name else 1
+
+    # 目录索引按 attempt 归并：多次 attempt 是"重试历史"，不是重复 trial。
+    # 每个 trial 只取**含 DONE 的最大 attempt**作为正式产物（与 fit_power_model 的装载器一致）。
+    attempts: dict[str, list[int]] = {}
+    done_dirs: dict[str, list[Path]] = {}
+    dirs: dict[str, Path] = {}
+    if base.is_dir():
+        for p in sorted(base.iterdir()):
+            if not p.is_dir():
+                continue
+            tid = p.name.split("__a")[0]
+            n = _attempt(p)
+            attempts.setdefault(tid, []).append(n)
+            if (p / "DONE").is_file():
+                done_dirs.setdefault(tid, []).append(p)
+                cur = dirs.get(tid)
+                if cur is None or _attempt(cur) < n:
+                    dirs[tid] = p
+    done = set(dirs)
     records = []
     rec_path = base / "records.jsonl"
     if rec_path.is_file():
@@ -63,9 +85,15 @@ def main() -> int:
     missing = [t for t in expected if t not in done]
     if missing:
         problems.append(f"缺失 {len(missing)} 条: {missing[:5]}")
-    dup = [k for k, v in Counter(r["trial_id"] for r in records).items() if v > 1]
+    # 真正的重复只有两种：同一 trial 有多个 DONE 目录，或同一 (trial, attempt) 写了两次 record。
+    dup = sorted(tid for tid, ps in done_dirs.items() if len(ps) > 1)
     if dup:
-        problems.append(f"records 中重复 trial_id: {dup[:5]}")
+        problems.append(f"同一 trial 存在多个 DONE 目录: {dup[:5]}")
+    dup_rec = sorted(k for k, v in Counter((r["trial_id"], r.get("attempt", 1))
+                                          for r in records).items() if v > 1)
+    if dup_rec:
+        problems.append(f"records 中 (trial, attempt) 重复: {dup_rec[:5]}")
+    retried = {tid: sorted(ns) for tid, ns in attempts.items() if len(ns) > 1}
     extra = [t for t in done if t not in set(expected)]
     if extra:
         problems.append(f"清单外多出 {len(extra)} 条: {extra[:5]}")
@@ -140,7 +168,8 @@ def main() -> int:
 
     report = {
         "split": args.split, "expected": len(expected), "done": len(done & set(expected)),
-        "records": len(records), "missing": missing, "duplicates": dup, "extra": extra,
+        "records": len(records), "missing": missing, "duplicates": dup,
+        "duplicate_records": dup_rec, "retried_attempts": retried, "extra": extra,
         "outcomes": dict(Counter(r["outcome"] for r in records)),
         "energy_summary": {
             "n": len(energies),
