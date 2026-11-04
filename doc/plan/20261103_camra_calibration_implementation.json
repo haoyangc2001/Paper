@@ -1210,11 +1210,54 @@
     {
       "id": "CAL-013",
       "goal": "实现五类物理执行条件并保存实际施加配置",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-012"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T09:20:00+08:00",
+          "summary": "实现五类物理执行条件：trial 级确定性采样、cfg 级隐藏随机化全部显式处置、逐 env PhysX 精确写入并读回校验，82 项测试全绿，5 profile 读回 20/20 通过。",
+          "actions": [
+            "实现 src/camra_calibration/profiles.py（纯标准库）：sample_applied 按 <seed>:profile:<id> 盐采样摩擦/质量/推扰时刻与幅度/噪声（combined 的噪声逐项核对训练配置现有值），AppliedProfile.check_invariants 校验 knobs_changed 与协议 PROFILE_KNOBS 一致，to_manifest_record 输出 profile_applied 字段，sample_initial_pose 按 <seed>:initial 盐采样平面位姿，knob_diff 输出 5×5 diff 矩阵。",
+            "实现 sim/profiles_sim.py（torch/isaaclab）：configure_env_for_profile 移除 physics_material/add_base_mass/base_external_force_torque/push_robot 四个事件项、reset 位姿与关节速度区间退化为 0、按 profile 开关观测 corruption 并核对噪声值；apply_friction/apply_mass/apply_initial_pose/apply_push 逐 env 直写并读回校验；PushExecutor 按时刻表推。",
+            "写 scripts/check_profiles.py（--profiles 子集，每进程只建一个 env）与 scripts/merge_profile_checks.py（合并汇总）。",
+            "写 13 项新测试（采样确定性、盐分离、不变量、范围、push 边界、噪声值、manifest 形状、diff 矩阵、初态范围）。",
+            "无头验证两进程执行（corruption=False 组 4 profile 共用一个 env；combined 单独），每 profile 2 envs / seed 6000,6001。",
+            "调试中定位并修复 6 个问题（详见 §15.6 踩坑）：进程内二次 gym.make 挂死、sim_app.close() 强退吞证据、get_root_transforms 四元数为 xyzw 顺序、set_* 收 CPU 索引而 write_root_* 收 GPU 索引、质量/惯量读回需 float32 容差、pkill -9 打坏 CUDA 状态。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/profiles.py（新建）",
+            "CaMRA/calibration/sim/{__init__,profiles_sim}.py（新建）",
+            "CaMRA/calibration/scripts/check_profiles.py（新建）",
+            "CaMRA/calibration/scripts/merge_profile_checks.py（新建）",
+            "CaMRA/calibration/tests/test_profiles.py（新建，13 项）",
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §15）"
+          ],
+          "commands": [
+            "python -m pytest CaMRA/calibration/tests -q",
+            "bash env_setup/11_check_profiles.sh（两进程 + merge）",
+            "bash env_setup/11b_combined.sh（combined 重跑 + merge）"
+          ],
+          "results": [
+            "pytest 82 passed（新增 13 项）。",
+            "无头验证：5 profile 的 PhysX 读回 20/20 全过（摩擦逐位、质量容差 1e-5、惯量 1e-6、位置逐位、yaw<1e-5、push 读回 delta=0），overall_ok=True，MERGE 退出码 0。",
+            "cfg 级 diff vs clean：clean/friction_only/mass_only/push_only 完全一致（diff 为空），仅 combined 差 obs_corruption_enabled=True 与噪声值——cfg 层只有指定旋钮变化。",
+            "隐藏随机化处置：4 个事件项移除、reset 位姿/速度与关节速度区间退化为 0、剩余事件项参数记录在 remaining_event_terms。",
+            "每条 trial 的摩擦/质量/push 时刻与幅度/噪声均由 seed 确定性采样并可复算（AppliedProfile.sha256），可追溯写入 manifest。",
+            "证据文件：/pub/data/caohy/logs/camra/profile_checks/{clean,friction_only,mass_only,push_only,combined}.json + summary.json + 两个 status.json。"
+          ],
+          "evidence": [
+            "profile_checks/summary.json（overall_ok=true, cfg_level_diff_vs_clean, per_profile_readback_ok 全 true）",
+            "profile_checks/<profile>.json（cfg_report + applied + initial_poses + readback 逐项）",
+            "env_setup/11_check_profiles.log 与 11b_combined.log（OFF_EXIT=0 / ON_EXIT=0 / FINAL_MERGE_EXIT=0）",
+            "pytest 82 passed",
+            "implementation_handoff.md §15（含踩坑记录）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "显式设置clean与各单旋钮条件，combined叠加摩擦/质量/推扰/现有观测噪声。",
         "推扰按速度冲击实现；排除未实现延迟、LiDAR和地形随机化。",
@@ -1225,7 +1268,7 @@
         "每条trial的摩擦/质量/事件时刻/噪声设置可追溯；禁用隐藏随机化。",
         "相同trial复用独立随机流，轨迹相互隔离，分组标签与实际配置一致。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 逐组运行配置 diff 与采样记录证明只有指定旋钮变化——cfg 级 diff vs clean 对 clean/friction_only/mass_only/push_only 为空、仅 combined 出现 obs_corruption_enabled 与噪声值，PhysX 读回逐项比对摩擦（逐位相等）/质量（1 ULP 容差）/惯量（1e-6）/初态（位置逐位、yaw<1e-5）/推扰（delta=0）20/20 全过；(2) 每条 trial 的摩擦/质量/事件时刻/噪声设置可追溯——AppliedProfile 由 seed 确定性采样（三套互不重叠的盐），to_manifest_record 直接落入清单 profile_applied 字段，check_invariants 强制 knobs_changed 与协议 PROFILE_KNOBS 相等，隐藏随机化全部显式处置（4 个事件项移除、reset 位姿/速度与关节速度区间退化为 0、仅保留 trial 指定的平面位姿），噪声开关逐 profile 设置且 combined 的噪声逐项核对训练配置现有值；(3) 相同 trial 复用独立随机流（<seed>:profile:<id> 与命令流 <seed>:<family>、初态流 <seed>:initial 互不重叠，确定性由测试固定），逐 env 写入相互隔离（每 env 只写自己的 shapes/masses/位姿/速度，读回逐 env 校验），分组标签与实际配置一致由 knob_diff 矩阵 + check_invariants + PhysX 读回三方印证。82 项 pytest 全绿；证据在 /pub/data/caohy/logs/camra/profile_checks/ 与 env_setup 日志。"
     },
     {
       "id": "CAL-014",

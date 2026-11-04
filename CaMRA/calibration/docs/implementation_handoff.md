@@ -784,3 +784,80 @@ calibration `0b62293b…`、heldout `87e7eaf0…`、near_obstacle `0d76083b…`�
 
 **待用户确认**（与 §13.5 合并）：是否出协议 v1.0.1 明确（a）低速度层用"且"还是"或"；
 （b）`min_share_of_cell` 按格级平均还是逐条最小；（c）baseline clean-only 的格内条数。
+
+---
+
+## 15. 五类物理执行条件（CAL-013）
+
+### 15.1 实现结构
+
+| 模块 | 职责 | 依赖 |
+| --- | --- | --- |
+| `src/camra_calibration/profiles.py` | 按 trial seed 确定性采样 applied 配置、不变量校验、manifest 记录、knob-diff 矩阵、初态位姿采样 | 纯标准库 |
+| `sim/profiles_sim.py` | cfg 级改造 + 逐 env PhysX 直写（摩擦/质量/初态/推扰） | torch / isaaclab |
+| `scripts/check_profiles.py` | 无头验证：cfg diff + PhysX 读回（`--profiles` 子集，**每进程只建一个 env**） | AppLauncher |
+| `scripts/merge_profile_checks.py` | 合并子集 JSON 为 summary.json | 纯标准库 |
+
+随机流盐：命令 `<seed>:<family>`、profile `<seed>:profile:<id>`、初态 `<seed>:initial`，三者互不重叠。
+
+### 15.2 采样规则（与协议 profiles 段一致）
+
+| profile | friction | added_mass | push | obs_noise |
+| --- | --- | --- | --- | --- |
+| clean | 1.0 | 0.0 | 无 | 禁用 |
+| friction_only | U(0.3,1.25) | 0.0 | 无 | 禁用 |
+| mass_only | 1.0 | U(-1,3) kg | 无 | 禁用 |
+| push_only | 1.0 | 0.0 | 5-10 s 间隔，±0.5 m/s | 禁用 |
+| combined | U(0.3,1.25) | U(-1,3) | 同上 | **训练配置现有值** |
+
+摩擦取 static == dynamic 单一值（restitution 固定 clean 值 0.0，协议未列出的旋钮不变）；
+obs_noise 的"训练配置现有值"取自 `velocity_env_cfg.py` PolicyCfg 的 Unoise
+（ang_vel ±0.2 / gravity ±0.05 / joint_pos ±0.01 / joint_vel ±1.5），施加时逐项核对。
+
+### 15.3 隐藏随机化全部显式处置（cfg 级）
+
+`configure_env_for_profile` 在 gym.make 前：
+
+- **移除**事件项：`physics_material`、`add_base_mass`（逐 env 直写替代）、
+  `base_external_force_torque`（本就是 0）、`push_robot`（时刻表推替代）；
+- `reset_base` 位姿区间退化为 0（初态由 trial 指定后直写），速度区间显式全 0；
+- `reset_robot_joints` 关节速度区间退化为 0（位置缩放已是 (1,1) no-op）；
+- `observations.policy.enable_corruption` 按 profile 开关（combined True，其余 False）。
+
+### 15.4 逐 env 精确写入（PhysX 读回校验）
+
+32 envs 并行时每个 env 属于不同 trial（摩擦/质量/推扰各不相同），
+事件项的全局随机范围无法表达，因此全部逐 env 直写：
+
+| 旋钮 | 写入 | 读回 |
+| --- | --- | --- |
+| 摩擦 | `set_material_properties`（逐 env × 27 shapes，static=dynamic=f，rest=0） | 逐位相等 |
+| 质量 | `set_masses`（base 刚体加增量）+ 按质量比缩放默认惯量（同官方实现） | 质量容差 1e-5（float32 1 ULP≈5e-7）、惯量 1e-6 |
+| 初态 | `write_root_pose_to_sim`（trial 的 px/py/yaw，z 用默认根高） | 位置逐位、yaw<1e-5 |
+| 推扰 | `write_root_velocity_to_sim`（当前速度+[vx,vy,0,0,0,0]，同官方 push_by_setting_velocity） | 读回 delta=0 |
+
+### 15.5 验证结果（profile_checks/）
+
+两个独立进程（clean/friction_only/mass_only/push_only 共用一个 corruption=False env；
+combined 单独 corruption=True env），每 profile 2 envs（seed 6000/6001）：
+
+- **PhysX 读回 20/20 项全过**（摩擦 10、质量 10、初态 10、推扰 2），`overall_ok=True`；
+- **cfg 级 diff vs clean**：clean/friction_only/mass_only/push_only 完全一致（diff 为空），
+  仅 combined 差 `obs_corruption_enabled=True` + 噪声值——证明 cfg 层只有指定旋钮变化；
+- **分组标签与实际配置一致**：`AppliedProfile.check_invariants()` 校验 knobs_changed
+  集合与协议 PROFILE_KNOBS 逐 profile 相等（单测固定），applied 记录含摩擦/质量/
+  push 时刻与幅度/噪声，可写入 manifest 的 `profile_applied` 字段。
+
+### 15.6 踩坑记录（对 CAL-014/018 采集器直接有效）
+
+1. **同一进程 `env.close()` 后再 `gym.make` 会挂死**（108% CPU 自旋，两次复现，
+   与 corruption 无关）——采集器每进程只建一个 env；多 profile 校验分进程跑。
+2. **`sim_app.close()` 会强制退出进程**：所有落盘/打印必须在 close 之前完成，
+   否则退出码 0 但证据全丢（本次实际发生过）。
+3. `get_root_transforms()` 的四元数是 **(qx,qy,qz,qw)**，而 `robot.data.root_quat_w`
+   是 (w,x,y,z)——yaw 恢复公式必须按前者写。
+4. PhysX `set_masses/set_material_properties` 收 **CPU** int64 索引，
+   `write_root_pose/velocity_to_sim` 收 **GPU** 索引。
+5. 质量写入后 PhysX 会重算惯量（float32 舍入 ~1e-9），读回比较必须用容差。
+6. `pkill -9` 仿真进程可能把 CUDA 状态打坏（"Skipping NVIDIA GPU due CUDA being
+   in bad state"）——停仿真优先用 tmux 会话与普通 kill。
