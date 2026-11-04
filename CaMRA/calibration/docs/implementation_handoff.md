@@ -861,3 +861,64 @@ combined 单独 corruption=True env），每 profile 2 envs（seed 6000/6001）�
 5. 质量写入后 PhysX 会重算惯量（float32 舍入 ~1e-9），读回比较必须用容差。
 6. `pkill -9` 仿真进程可能把 CUDA 状态打坏（"Skipping NVIDIA GPU due CUDA being
    in bad state"）——停仿真优先用 tmux 会话与普通 kill。
+
+---
+
+## 16. 200 Hz 能量计量与 50 Hz 状态记录（CAL-014）
+
+### 16.1 实现
+
+| 模块 | 内容 | 依赖 |
+| --- | --- | --- |
+| `src/camra_calibration/energy.py` | `EnergyMeter`（在线逐物理步累计）、`integrate_series`（独立离线复算）、`steps_for`（非整数窗口直接报错）、`reference_naive_sum_then_clip`（**仅作反例对照**） | 标准库 + numpy |
+| `sim/recorder.py` | `TrialRecorder`：200 Hz 物理记录（tau / qdot / 根位姿 / 根速度）+ 50 Hz 状态（动作 / 命令 / 位姿 / 关节量）+ 每 env 一个计量器 | torch |
+| `scripts/check_meter.py` | 单回合 31 s（1 s warmup + 30 s 窗口）驱动，`--mode on|off` | AppLauncher |
+| `scripts/verify_meter_runs.py` | on/off 逐字段比对 + 离线复算 + 完整度（不启动仿真） | torch |
+
+### 16.2 三条硬约束的落实
+
+1. **逐物理步**：`TrialRecorder.after_physics_step()` 挂在 `sim.step` 包装上，每个子步读一次
+   `applied_torque` 与该子步 `robot.update(sim_dt)` 后的 `joint_vel`（§9.3 的时间戳门控），
+   逐子步累加；不存在"每 4 子步抽 1 点"。
+2. **逐关节截断**：`max(τ_j·q̇_j, 0)` 先按关节截断再求和；反例函数
+   `reference_naive_sum_then_clip` 在测试里证明两者在关节间正负功场景下结果不同
+   （契约 0.01 J vs 反例 0.0 J）。
+3. **只观察**：模块不调用任何 `set_*`/`write_*`；是否扰动动力学由 on/off 双跑实测（§16.4）。
+
+warmup 与窗口：`begin_warmup()` 后的物理步只计数（200 步），`begin_window()` 之后才开始
+累计，因此 warmup 不可能混入能量；`begin_window()` 重复调用直接报错。
+
+### 16.3 独立参考结果（15 项 pytest）
+
+| 场景 | 参考 | 结果 |
+| --- | --- | --- |
+| 常功率 100 步 × 12 关节 × 2 W | 解析 12 J | 一致（rel 1e-15） |
+| 正负交替 | 恰为全正情形的一半 | 一致 |
+| 关节间抵消（+2 W 与 −2 W 同刻） | 契约 0.01 J / 反例 0.0 J | 明确不等，反例被记录为禁用 |
+| 全负功 | 0 | 一致 |
+| 非整数窗口 2.5 s @ dt=0.006 | 必须报错；417 步 → 2.502 s | `steps_for` 抛错；计量器按 417×0.006 精确累计 |
+| 单位换算 | mN·m→N·m、deg/s→rad/s | 与 J 口径差 <1e-12 |
+| 随机 500 步 | 在线 vs 离线 | 一致（rel 1e-12） |
+
+### 16.4 单回合实测（meter_check/）
+
+clean profile、trial_seed 6000、straight_shift、2 envs、episode 余量 0.2 s：
+
+| 项 | 结果 |
+| --- | --- |
+| 单回合结构 | 200 warmup 步 + **6000 窗口步** + 1500 控制步，outcome=completed |
+| 能量 | env0 **507.1266 J**、env1 **493.3150 J**（30 s，单位 J） |
+| 离线复算 | 相对误差 **2.9e-15 / 9.2e-16**（协议容差 1e-5） |
+| 测量开关影响 | 8 个 50 Hz 字段（动作/命令/位姿/四元数/根线速度/根角速度/关节位置/关节速度）**逐位相同**，max abs diff = 0 |
+| 完整度自检 | `EnergyMeter.verify_complete()` 空；逐步求和与逐关节求和均等于总量 |
+
+第一版把 `episode_length_s` 设为正好 31.0 s，窗口最后一步与 `time_out` 撞在同一控制步、
+被记成 `truncated`。这不是业务失败，而是时限设置问题：现加 0.2 s 余量并在启动前断言
+`max_episode_length > warmup_ctrl + window_ctrl`，落盘记录 `episode_length_s=31.2`。
+
+### 16.5 产物
+
+`/pub/data/caohy/logs/camra/meter_check/`：
+`meter_on.npz`（tau/qdot/根状态 200 Hz + 全部 50 Hz 字段，2.4 MB）、
+`meter_off.npz`（仅 50 Hz）、`meter_on.json` / `meter_off.json`（元数据与能量摘要）、
+`verify_report.json`（逐字段 diff、离线复算、完整度、VERDICT pass）。

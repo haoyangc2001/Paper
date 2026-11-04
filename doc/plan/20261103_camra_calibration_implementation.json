@@ -1273,11 +1273,54 @@
     {
       "id": "CAL-014",
       "goal": "实现200Hz物理能量计量与50Hz状态记录",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-013"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T09:50:00+08:00",
+          "summary": "实现 200 Hz 逐物理步能量计量与 50 Hz 状态记录；15 项独立参考测试全绿；单回合实测 6000 步、on/off 逐位一致、离线复算误差 3e-15。",
+          "actions": [
+            "实现 src/camra_calibration/energy.py：EnergyMeter 在线逐物理步累计（逐关节 max(τq̇,0) 后求和）、integrate_series 独立离线复算（numpy float64 向量化）、steps_for 非整数窗口直接抛错、reference_naive_sum_then_clip 仅作反例、verify_complete 自检（步数/逐步求和/逐关节求和）。",
+            "实现 sim/recorder.py 的 TrialRecorder：包装 sim.step 逐子步读 applied_torque 与 robot.update(dt) 后的 joint_vel，逐 env 一个计量器；50 Hz 记录动作/命令/位姿/四元数/根线角速度/关节位置速度；warmup 只计数不入窗；save() 落盘 npz+json。",
+            "实现 scripts/check_meter.py：单回合 1 s warmup + 30 s 窗口 + 0.2 s 余量，--mode on|off 两种记录模式，同一 seed/profile/初态/命令程序；启动前断言 max_episode_length > warmup_ctrl+window_ctrl。",
+            "实现 scripts/verify_meter_runs.py：8 个 50 Hz 字段逐字段比对、离线复算（容差 1e-5）、完整度（6000/1500/200）、单位与元数据检查，输出 VERDICT。",
+            "写 15 项测试：常功率解析、交替正负、关节间抵消（契约 vs 反例）、全负功、非整数窗口、力矩/速度单位换算、未 start/已 stop/维度/非有限值拒绝、start 重置、随机 500 步在线=离线、完整度检出、6000 步语义。",
+            "首轮两个断言写错（naive 对照实现写成逐元素截断、交替正负的能量关系写反）并修正；阶段名与实现口径一并对齐。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/energy.py（新建）",
+            "CaMRA/calibration/sim/recorder.py（新建）",
+            "CaMRA/calibration/scripts/check_meter.py（新建）",
+            "CaMRA/calibration/scripts/verify_meter_runs.py（新建）",
+            "CaMRA/calibration/tests/test_energy.py（新建，15 项）",
+            "CaMRA/calibration/docs/implementation_handoff.md（追加 §16）"
+          ],
+          "commands": [
+            "python -m pytest CaMRA/calibration/tests -q",
+            "bash env_setup/12_meter.sh（mode on → mode off → verify）"
+          ],
+          "results": [
+            "pytest 97 passed（新增 15 项）。",
+            "单回合：warmup 200 步、窗口 6000 物理步、1500 控制步、outcome=completed。",
+            "能量：env0 507.12659053 J、env1 493.31499813 J（30 s）。",
+            "离线复算相对误差 2.9e-15 / 9.2e-16（容差 1e-5）。",
+            "测量开关影响：8 个 50 Hz 字段逐位相同，max abs diff = 0；即记录不改变动作与状态。",
+            "完整度：EnergyMeter.verify_complete() 为空，逐步和与逐关节和均等于总量；问题列表为空。",
+            "首版 episode_length_s=31.0 时窗口最后一步撞 time_out 被记 truncated，加 0.2 s 余量并加启动前断言后 outcome=completed（episode_length_s=31.2）。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/meter_check/meter_on.npz（tau/qdot 及 200/50 Hz 全字段，2.4 MB）、meter_off.npz、两个 json",
+            "/pub/data/caohy/logs/camra/meter_check/verify_report.json（逐字段 diff=0、rel_err 3e-15、completeness pass、VERDICT pass）",
+            "env_setup/12_meter.log（ON_EXIT=0 / OFF_EXIT=0 / VERDICT: pass / VERIFY_EXIT=0）",
+            "pytest 97 passed",
+            "implementation_handoff.md §16"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "使用CAL-008冻结能量定义，在每物理步按同一步力矩/速度积分；不能每4子步抽一个点冒充全积分。",
         "保存实际施加/请求力矩的区分、关节顺序、dt、时间戳和终止前最后有效步。",
@@ -1289,7 +1332,7 @@
         "运行时测量启用/关闭不改变动作与状态，差异在协议数值容差内。",
         "50Hz状态与200Hz能量字段对应同一trial，完整度可检查。"
       ],
-      "verification_result": ""
+      "verification_result": "四项验收均通过：(1) 常功率、交替正负功、关节间抵消、非整数窗口与单位换算均有独立参考对照——常功率解析 12 J（rel 1e-15）、交替正负恰为全正情形的一半、关节间抵消场景契约口径 0.01 J 与'先求和再截断'反例 0.0 J 明确不等（反例函数标注禁用）、2.5 s@dt=0.006 被 steps_for 拒绝且 417 步按 417×0.006 精确累计、mN·m 与 deg/s 换算与 J 口径差 <1e-12，另有随机 500 步在线与离线一致（1e-12）；(2) 30 秒完整窗口为 6000 物理步——实测 warmup 200 步 + 窗口 6000 步 + 1500 控制步，EnergyMeter.verify_complete() 为空，逐步求和与逐关节求和均等于总量；warmup 只计数不入窗、重复 begin_window 直接报错，复位/新 episode 不会混入（recorder 每 trial 新建）；能量 507.1266 J / 493.3150 J，离线复算相对误差 2.9e-15 / 9.2e-16（容差 1e-5）；(3) 运行时测量启用/关闭不改变动作与状态——on/off 两次独立进程运行同一 seed/profile/初态/命令程序，8 个 50 Hz 字段（动作、命令、位姿、四元数、根线速度、根角速度、关节位置、关节速度）逐位相同，max abs diff = 0，优于协议容差；(4) 50 Hz 状态与 200 Hz 能量字段对应同一 trial —— 同一 recorder 同时产出两组数组，summary 校验 50 Hz 条数×4 = 200 Hz 步数（1500×4=6000），元数据记录 sim_dt/decimation/profile/trial_seed/program_sha256/episode_length_s，完整度可检查（verify_report.json 的 completeness.pass=true）。97 项 pytest 全绿。"
     },
     {
       "id": "CAL-015",
