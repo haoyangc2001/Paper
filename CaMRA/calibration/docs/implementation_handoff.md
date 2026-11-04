@@ -1453,3 +1453,246 @@ CAL-025 产出 α、δ 之后**人工**同步，本任务不自动改稿、也�
    `footprint_v1.json`（`a11a3572…`）、`step_cost_schema_v1.json`（`a2a5fbc6…`）三个散列。
 
 `git status` 中 `manuscripts/` 无改动，符合"不自动改稿"。
+
+---
+
+## 24. CAL-023 正式数据锁与近障地图（data-lock-v1）
+
+目标：把正式采集（800 校准 / 400 检验 / 200 近障）所需的**全部依赖与口径**冻结成一份
+可机检文件，并给采集器装上"不满足就拒绝启动"的门禁。
+
+### 24.1 协议 v1.0.2（唯一的变更：近障场地尺寸）
+
+冻结前实测发现 v1.0.1 的 `near_obstacle.maps = "8x8 m"` 与 30 s 命令清单冲突：
+
+| 命令族 | 名义路径长度 | 包围盒（x × y） |
+| --- | --- | --- |
+| straight_shift | 12.1–16.3 m | 最多 10.1 × 3.6 |
+| arc_combined | 11.1–16.1 m | 最多 11.8 × 11.5 |
+| alternating | 12.2–17.9 m | ≤ 4.9 × 3.5 |
+| start_stop_turn | 1.9–4.9 m | ≤ 3.8 × 3.3 |
+
+按用户裁定（选项 A）改为**每例自适应场地**：
+
+```text
+arena = 名义路径包围盒 + 2 × (轮廓法向半宽 + 目标净距 + 1.0 m)
+        向上取 0.5 m，且不小于 8×8 m；边界墙计入地图
+```
+
+v1.0.2 只改这一条，配额/seed/扰动/统计口径与 v1.0.1 完全相同；**v1.0.1 未被就地修改**
+（散列 `16aa5ebe…` 仍是 baseline 400 条与 pilot 的绑定），v1.0.2 以
+`supersedes: "1.0.1"` + `supersede_reason` 记录。校验 **119/119 通过**，
+新散列 `da76c72e8d0bcda1373a750b7e95778fea11290a9023c63acc7a1a68e97c711e`。
+
+在 v1.0.2 下重建的 7 份清单与 v1.0.1 **逐字节相同**（清单内容不依赖协议版本），
+只有 `lock.json` 里的 `protocol_sha256` 更新为新散列。
+
+### 24.2 近障地图（`config/near_obstacle_maps_v1.json`）
+
+设计规则（只依赖冻结轮廓与名义运动，不读任何执行误差）：
+
+1. 由命令序列积分名义路径；在 12%–88% 弧长上取 60 个候选点，按 ±5 帧的转向角挑选
+   **局部最直**的 6 个锚点（弯道处横向净距没有意义）；
+2. 每个锚点量出轮廓的法向半宽 `h`，把矩形障碍放在距中心线 `h + 净距` 处；
+   约 35% 的锚点做成**双侧门**（gate），其余单侧；
+3. 放完后逐帧复核整条路径的最小净距；不足目标就把该障碍沿"当前最近帧 → 障碍"方向
+   外推（最多 3 m），仍不行就撤掉（记录 `n_dropped`），至少保留 3 个；
+4. 净距档位 `{0.05, 0.10, 0.20, 0.35} m` 按"格序 + 格内序号"轮转，
+   20 格 × 10 条 → **四档各 50 条**。
+
+实测结果：
+
+| 项 | 值 |
+| --- | --- |
+| 条数 | **200**（20 格 × 10，seed 8000–8199，与清单逐条绑定 `program_sha256`） |
+| 档位分布 | 0.05 / 0.10 / 0.20 / 0.35 各 **50** |
+| 实际净距 | **0.050 – 0.370 m**（每例都达到其目标档位） |
+| 场地 | 宽 8.0–16.0 m、高 8.0–15.0 m（自适应） |
+| 障碍数 | 每例 4–7 个（7 个占 158 例） |
+| 边界余量 | 障碍中心距最近墙 ≥ **0.76 m**；路径到墙 ≥ 1.0 m（由场地公式保证） |
+| 文件散列 | `78c0145f…` |
+
+设计器还踩过两个坑，都已修正并留证：
+* 首版用"从路径中点径向推"外推，U 形路径上会把障碍推向另一段，导致净距恒为 0 ——
+  改为**每次按当前最近帧**定方向；
+* 逐帧 Python 距离计算使单例耗时 50 s（200 例要 2.8 h）——改为批量 SAT/顶点距离
+  （一次算完 301 帧），并顺手修掉一个把距离算大的实现错误（测试断言 0.623 m 抓到 0.894 m）。
+
+### 24.3 数据锁（`config/data_lock_v1.json`）
+
+锁里绑定（缺一项都不成锁）：
+
+| 组 | 内容 |
+| --- | --- |
+| 协议 | v1.0.2 文件散列 + `baseline_bound`（v1.0.1 散列，说明 baseline/pilot 在旧版采集） |
+| 模型 | `power_model_v1.json`：文件散列 `e718595d…` / 内容散列 `bfe3b159…` |
+| 轮廓 | `footprint_v1.json`：文件散列 `edff8978…` / 内容散列 `a11a3572…` |
+| 接口 | `step_cost_schema_v1.json`：文件散列 `fe03749e…` / 内容散列 `a2a5fbc6…` |
+| 资产 | 几何 JSON `c80e73c6…` + `go2.usd` + `go2_description_physics.usd` 散列 |
+| 清单 | 7 个 split 的 jsonl 散列、条数、seed 块、配额（与协议逐项核对） |
+| 近障 | `near_obstacle_maps_v1.json` 散列 `78c0145f…` + 200 例 + 四档 + 轮廓绑定 |
+| 代码 | 44 个 `.py` 逐文件散列 + 目录树散列 `c40e5a95…` |
+| 口径 | `statistics`（0.9 nearest-rank、α/δ 规则、bootstrap 10000/95%）、`statistical_acceptance`、`resource_budget`（协议实测：32 条 484 s、12779 MiB、1820 条约 6–8 h、5.3 GB） |
+| 门禁 | 采集顺序、正式 split 列表、margin 门禁、地图门禁、禁止覆盖、重试政策、调参禁令 |
+
+锁文件散列 `907310c7782d3fb8…`。**文件散列与内容散列要分开看**：
+文件散列覆盖整份 JSON（含 `sha256` 字段本身），内容散列只覆盖模型/轮廓的预测相关内容，
+所以两者的值不同，本节的两种写法都属正确。
+
+### 24.4 采集门禁（`src/camra_calibration/lock.py` + `collect_trials.py`）
+
+`collect_trials.py` 新增 `--lock / --maps / --margins`，任何一条不满足都在**启动仿真前**退出：
+
+| 触发条件 | 行为 |
+| --- | --- |
+| 正式 split（calibration/heldout/near_obstacle）未给 `--lock` | `REFUSED: ... 必须给出 --lock 数据锁` |
+| split 不在锁里 | 拒绝（防拼错/未登记域） |
+| 锁与现场散列不符（换模型/换轮廓/换清单） | 拒绝并列出前 5 项不一致 |
+| 清单 jsonl 与锁记录不符 | 拒绝 |
+| `heldout` / `near_obstacle` 而 `config/margins_v1.json` 不存在 | 拒绝（CAL-025 前不得采集检验/近障） |
+| `near_obstacle` 未给 `--maps` 或散列不符 | 拒绝 |
+| 正式 split 加 `--allow-overwrite` | 拒绝（重试只走改名 DONE + 新 attempt） |
+
+`baseline_*` / `pilot` 属已完成的历史数据，即使给 `--lock` 也只做一致性核对，不阻塞。
+
+### 24.5 验收实测
+
+| 验收项 | 结果 |
+| --- | --- |
+| 可机检锁绑定依赖、配额、seed、权重、统计准入、资源预算 | 是（`config/data_lock_v1.json`，见 24.3） |
+| 800/400/200 清单与 baseline/pilot 无交叉 | 是：七份清单两两 seed 与 trial_id 交集为空；seed 块 4000/4240/4320/5100/6000/7000/8000 互不重叠 |
+| 采集器能阻止未冻结模型、错误 split、覆盖既有 run、打开检验调参 | 是：6 类门禁均有单测（`tests/test_lock.py` 15 项，含"未知 split 被拒""margin 未冻结时 heldout/近障被拒""正式 split 拒绝 overwrite""地图散列不符被拒"） |
+| 锁含冻结轮廓与 200 条近障地图/命令清单，且形成于正式采集之前 | 是：轮廓 `a11a3572…`（CAL-021，早于本任务）、地图 `78c0145f…`（本任务）、正式 800/400/200 尚未采集一例 |
+
+**校验执行情况（如实记录）**：打包检查脚本 `check_data_lock.py` 在收尾时机器负载升到 150+
+（36 个用户），它每次门禁探测都会重算 44 个代码文件 + 7 份清单的散列，跑 30 分钟未结束。
+因此另跑了一个等价探针（`env_setup/32_lock_probe.py`，同样的断言，但只做**一次**全量散列，
+门禁部分复用该结果），结论：
+
+```text
+lock data_lock_v1.json sha 907310c7…
+artifacts: OK          quotas: OK          mutual_exclusion: OK
+maps: n=200 tiers={0.05:50, 0.1:50, 0.2:50, 0.35:50} ids_match=True fp_bound=True
+      clearance_min=0.050  target_met=True  arena=(8.0,16.0,8.0,15.0)  bad_wall=0
+gates: heldout/near_obstacle 无 margin → refused；三个正式 split + overwrite → refused；
+       未知 split → refused（`calibration_no_margin=ALLOWED` 是探针自己的断言写错：
+       校准 split 本来就不该被 margin 门禁拦住）
+```
+
+受影响的测试文件（`test_protocol` / `test_trials` / `test_lock`，共 **55 项**）单独跑通 `EXIT=0`；
+CAL-020/021/022 交付时全量 210 项曾通过。打包检查脚本留待机器空闲时复跑（脚本本身已入库）。
+
+### 24.6 留给 CAL-024/028 的前置
+
+1. 近障采集还缺**仿真侧障碍注入**：`collect_trials.py` 目前不生成静态障碍，也不读地图里的
+   `start_pose`。CAL-028 必须先用 `--maps` 把地图变成场景（障碍碰撞体 + 指定起点），
+   再跑采集；本任务只冻结了设计，没有实现注入。
+2. `heldout` / `near_obstacle` 采集前必须先有 `config/margins_v1.json`（CAL-025 产出），
+   否则采集器会拒绝启动。
+3. 地图的净距是按**轮廓**算的；δ 出来后要检查 `δ ≤ clearance_achieved_m`，不满足的 case
+   按协议记 `non_compliant` 并在 CAL-028 报告中单列，不得回头改地图。
+
+## 25. CAL-024 采集受阻：存储与整机负载导致的真实阻塞（2026-11-04 夜）
+
+本节记录的是**环境阻塞与绕行方案**，不是任务完成；CAL-024 仍为未完成状态，
+一条正式校准数据都还没产出。
+
+### 25.1 现象：`/home` 的 NFS 读写严重抖动
+
+* `/home/caohy` 是 `192.168.1.15:/data/home/lcs/caohy` 的 **nfs4** 挂载（`soft,timeo=600,retrans=2`）；
+* 19:00 之后该挂载点出现分钟级卡顿：`git add` 一次耗时 10 分钟、`git commit` 超过 20 分钟未返回、
+  `import camra_calibration.lock`（读一个 3 KB 的 .py）150 s 不返回、`du -sh` 90 s 不返回；
+* 同一时刻 `/pub`（`/dev/sda1` ext4，本地盘）读 210 MB/s、写 266 MB/s 正常，
+  `/tmp`（`/dev/sdb2` ext4）正常；
+* 进程状态证据：阻塞中的进程 `State: D`、`wchan = rpc_wait_bit_killable`，
+  单线程卡在该等待点（其余 76 线程 futex 等待）。
+
+### 25.2 绕行：把校准代码树逐文件复制到本地盘，并校验与数据锁完全一致
+
+NFS 上整体 `tar`/`cp -r` 会被拖死，改为**逐文件 + 每次 120 s 超时 + 4 次重试**：
+
+```text
+env_setup/36_codecopy.sh  → /pub/data/caohy/camra_run/calibration
+结果：81 个文件、0 失败、耗时约 3 h（单文件 5–15 s）
+```
+
+复制后用数据锁做独立校验（`DataLock.verify_artifacts(".")`，root 指向副本）：
+
+```text
+load 0.15s sha 907310c7782d3fb8
+verify 95.10s n_bad=0        ← 代码树散列、配置散列、清单散列全部吻合
+```
+
+也就是说：**副本内容与 CH-023 冻结的锁逐位一致**，用它采集不改变数据语义；
+采集器启动时会打印 `LOCK OK: ... sha 907310c7782d3fb8 split calibration`。
+
+另外两项必要的环境改动（都在启动脚本里固定下来）：
+
+* `PYTHONDONTWRITEBYTECODE=1`：否则 import 会尝试往 NFS 写 `__pycache__`，直接卡死；
+* `HOME=/pub/data/caohy/fakehome`：Isaac 会往 `~/.nvidia-omniverse/logs` 写日志，
+  默认指向 NFS，启动期每次写日志都被阻塞（`fd → /home/caohy/.nvidia-omniverse/logs/omni.kit.extension.log`）；
+* 再用 `env -i` 剥掉 VSCode/NVM 等一堆指向 `/home` 的变量，启动时间从「17 s 卡住」变为「正常推进」。
+
+### 25.3 仍未解决：Isaac 启动卡在 GPU fabric 的 P2P 校验
+
+三次尝试（32 envs 全环境 / 32 envs 最小环境 / 8 envs 最小环境）都停在同一个位置：
+
+```text
+[gpu.foundation.plugin] IOMMU is enabled. Running CUDA peer-to-peer bandwidth and latency validation.
+Unidirectional P2P=Enabled Bandwidth (P2P Writes) Matrix (GB/s)
+   D\D     0
+     0 1273.43
+P2P=Enabled Latency (P2P Writes) Matrix (us)   → 之后不再有任何输出
+```
+
+* 进程持有 GPU 显存（2489 MiB）但 `utilization.gpu = 0%`，主线程长期 `D`；
+* 该点与 `--num_envs` 无关（8 与 32 一样停），因此**不是**本项目代码的问题；
+* 整机当时 `load average 190–208`、47 个登录用户、内存 503 GB 只剩 83 GB、swap 已用尽；
+  GPU 0 上另有两个 `katago` 计算进程（各约 950 MiB）；
+* 同一批脚本在 13:30–14:00（load ≈ 130、存储正常）时可正常跑完 400 条，说明是**环境状态劣化**而非配置错误。
+
+### 25.4 git 提交同样被阻塞
+
+CAL-023 的产物（协议 v1.0.2、200 条近障地图、数据锁、门禁代码、测试）**已全部写入仓库工作树**，
+但 `git add`/`git commit` 在 NFS 上反复卡死（`COMMIT_EXIT=137` 是被外部 kill 打断）。
+当前 `HEAD` 仍为 `babc948`（CAL-022）。恢复后需要：
+
+```bash
+cd /home/caohy/repositories/Paper
+git add -A CaMRA/calibration doc/plan
+git -c user.name=caohy -c user.email=caohy@local commit -m 'feat(camra): lock the formal data set and freeze 200 near-obstacle maps'
+```
+
+（已尝试过 `gc.auto=0 / maintenance.auto=false / core.fsyncObjectFiles=false` 等降载措施，仍受制于挂载点本身。）
+
+### 25.5 已写好但**故意未入库**的 CAL-025 组件
+
+新增 `src/camra_calibration/margins.py`、`scripts/fit_margins.py`、`tests/test_margins.py`
+会改变数据锁记录的 44 个代码文件的树散列，从而让锁对采集失效。因此在本轮采集完成之前，
+这三份文件**只放在** `/pub/data/caohy/camra_run/pending_code/`，不入仓库；CAL-024 结束后再入库，
+并按需重建数据锁（届时以"只新增分析模块、不改采集路径"为由记录一次锁重建）。
+
+内容要点：
+
+* `nearest_rank(values, q)`：严格按协议取升序第 `ceil(q·n)` 个，**不插值**
+  （与 `np.percentile` 的线性插值不同，测试里对此有断言）；
+* `bootstrap_quantile(..., clusters=)`：以整条轨迹为最小重采样单位，可按 cell 整簇重采样，
+  10000 次、95%、固定种子 20261104；
+* `build_margins(...)`：`alpha = max(0, Q0.90(ε_c))`（原始分位保留，含负超支）、`delta = Q0.90(ε_d)`；
+  同时给出两段的区间与 `ties`（等于阈值计为覆盖）；
+* `Margins` 冻结对象：内容散列只覆盖 α/δ/适用域，不含时间戳与路径（与功率模型一致的做法）；
+* `calibration_verdict(...)`：任一 cell 完整记录占比 < 0.9 即 `blocked`（协议 `min_complete_share_rule`）。
+
+### 25.6 恢复后按此顺序继续
+
+1. 确认 `/home` 写延迟恢复正常（`dd conv=fsync` < 1 s、`git status` 秒回）；
+2. 提交 CAL-023（见 25.4），核对 `git log` 出现该提交；
+3. 在**空闲时段**（load < 60、`nvidia-smi` 上无 katago 类常驻计算进程）重跑 CAL-024：
+
+   ```bash
+   bash /pub/data/caohy/logs/camra/env_setup/39_cal024_env.sh    # 32 envs，最小环境 + 本地 HOME
+   ```
+
+   若 Isaac 仍停在 P2P 校验，改用 `CUDA_VISIBLE_DEVICES=1` 或 `2`（另两张卡上没有常驻计算进程）；
+4. 采完后 `check_collection.py --split calibration`，再按 D-007 的办法处理业务失败（改名保留 + 新 attempt 重采）；
+5. 最后把 `pending_code/` 的三份文件移入仓库，跑 `pytest tests -q`，再执行 CAL-025。

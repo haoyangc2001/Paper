@@ -77,7 +77,37 @@ def main() -> int:
     ap.add_argument("--env-seed", type=int, default=100)
     ap.add_argument("--allow-overwrite", action="store_true",
                     help="默认跳过已完成 trial；加此参数才会重采并新建 attempt 目录")
+    ap.add_argument("--lock", default=None,
+                    help="正式 split（calibration/heldout/near_obstacle）必须给出数据锁 JSON")
+    ap.add_argument("--maps", default=None, help="near_obstacle 必须给出冻结地图 JSON")
+    ap.add_argument("--margins", default=None,
+                    help="margin 冻结文件（默认 config/margins_v1.json）；检验/近障前置条件")
     args = ap.parse_args()
+
+    # ---- 正式数据门禁：任何一项不满足就在启动仿真前退出 ----
+    from camra_calibration.lock import DataLock, LockError, enforce_collection
+    if args.split in ("calibration", "heldout", "near_obstacle"):
+        if not args.lock:
+            raise SystemExit(f"REFUSED: {args.split} 是正式数据，必须给出 --lock 数据锁")
+        try:
+            dlock = DataLock.load(args.lock)
+            enforce_collection(dlock, args.split, Path(__file__).resolve().parent.parent,
+                               manifest_dir=Path(args.manifest_dir),
+                               maps_path=Path(args.maps) if args.maps else None,
+                               margins_path=Path(args.margins) if args.margins else None,
+                               allow_overwrite=args.allow_overwrite)
+        except LockError as exc:
+            raise SystemExit(f"REFUSED: {exc}")
+        print(f"LOCK OK: {dlock.path} sha {dlock.sha256[:16]} split {args.split}")
+    elif args.lock:
+        try:
+            dlock = DataLock.load(args.lock)
+            if dlock.list_entry(args.split) is not None:
+                bad = dlock.verify_artifacts(Path(__file__).resolve().parent.parent)
+                if bad:
+                    raise SystemExit("REFUSED: 锁与现场不一致：\n  " + "\n  ".join(bad[:5]))
+        except LockError as exc:
+            raise SystemExit(f"REFUSED: {exc}")
 
     proto = Protocol.load()
     tl = Timeline.from_protocol(proto)

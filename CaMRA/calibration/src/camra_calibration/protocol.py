@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-DEFAULT_VERSION = "1.0.1"
+DEFAULT_VERSION = "1.0.2"
 
 
 class ProtocolError(RuntimeError):

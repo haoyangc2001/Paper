@@ -386,6 +386,22 @@
       "decision": "baseline_validate 的 31 条连带截断按'修工具后重采'处理：修 check_collection 的目录索引（取含 DONE 的最大 attempt）与重复语义（多次 attempt 不算重复 trial，只报多 DONE 目录与同 (trial,attempt) 重复 record）；把 31 条 interrupted 的 DONE 改名为 DONE.interrupted_a1（零删除）后以原 trial_id 重采；真实摔倒的 straight_shift-0013 保留为 business_failure 不重采；随后用同一个已冻结模型在完整集合上重出 validate 指标。",
       "source": "用户在 CAL-020 阻塞点三选项中选择'修工具后重采 31 条（推荐）'",
       "evidence": "env_setup/20_validate_retry.log；trials/baseline_validate/{*__a2,*/DONE.interrupted_a1}；trials/baseline_validate_check.json"
+    },
+    {
+      "id": "D-008",
+      "state": "confirmed",
+      "date": "2026-11-04",
+      "decision": "协议 v1.0.2：近障场地由固定 8×8 m 改为每例自适应（路径包围盒 + 2×(轮廓法向半宽 + 目标净距 + 1.0 m)，0.5 m 取整，下限 8×8，边界墙计入地图）；其余配额/seed/扰动/统计口径不变，v1.0.1 不就地修改。",
+      "source": "用户在 CAL-023 因「8×8 装不下 30 s 名义路径」阻塞时的三选项中选「每例自适应场地（推荐）」",
+      "evidence": "config/calibration_protocol_v1.0.2.json（sha da76c72e…，119/119 校验通过）；docs/implementation_handoff.md §24.1（实测 straight_shift 包围盒 10.1×3.6、arc_combined 11.8×11.5 m）"
+    },
+    {
+      "id": "D-009",
+      "state": "provisional",
+      "date": "2026-11-04",
+      "decision": "在 /home 的 NFS(192.168.1.15) 出现分钟级读写卡顿、导致 import/启动/提交全部挂死期间，正式采集改由 /pub/data/caohy/camra_run/calibration 的**逐位一致副本**执行；副本以 DataLock.verify_artifacts 校验（0 处不符，lock sha 907310c7…），采集器启动打印 LOCK OK。运行时另加 PYTHONDONTWRITEBYTECODE=1、HOME=/pub/data/caohy/fakehome、env -i 三项环境约束。",
+      "source": "基础设施阻塞下的技术绕行（不改变数据语义，可由锁散列独立复核）；需用户确认是否接受该运行方式",
+      "evidence": "env_setup/36_codecopy.log（81 文件 0 失败）；verify_artifacts n_bad=0；env_setup/39_cal024_env.log 首行 LOCK OK sha 907310c7782d3fb8；handoff §25.1–25.2"
     }
   ],
   "pending_decisions": [
@@ -1937,11 +1953,59 @@
     {
       "id": "CAL-023",
       "goal": "冻结正式采集清单与数据锁",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-022"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T18:40:00+08:00",
+          "summary": "冻结正式数据锁：协议 v1.0.2（近障场地自适应）、200 条近障地图、七份清单散列、模型/轮廓/接口/资产/代码绑定、采集门禁与统计口径；六类门禁均有单测。",
+          "actions": [
+            "出协议 v1.0.2：仅改 near_obstacle.maps 为每例自适应场地，supersedes 1.0.1 且不就地改 v1.0.1（保住 baseline 的 16aa5ebe 绑定）；validate_protocol 119/119 通过，新散列 da76c72e…。",
+            "切 protocol.py DEFAULT_VERSION/ config.py 路径到 1.0.2，更新 test_protocol 断言；重建清单到 trial_lists_v1.0.2，7 份 jsonl 与 v1.0.1 逐字节相同，lock.json 换新协议散列且 self_check pass。",
+            "写 src/camra_calibration/obstacles.py：名义路径积分、批量有符号距离（顶点-多边形，双向取最小）、锚点按局部最直挑选、按目标净距外推、场地自适应；写 scripts/build_near_obstacle_maps.py 生成 200 例。",
+            "写 src/camra_calibration/lock.py（DataLock + enforce_collection）、scripts/build_data_lock.py（绑定协议/模型/轮廓/接口/资产/清单/地图/44 个代码文件/统计与资源预算）、scripts/check_data_lock.py（散列/配额/互斥/地图/门禁五项校验）。",
+            "给 collect_trials.py 加 --lock/--maps/--margins：正式 split 必须给锁，split 不在锁、散列不符、margin 未冻结、地图缺失或散列不符、正式 split 加 --allow-overwrite 一律在启动仿真前退出。",
+            "写 tests/test_lock.py 15 项（锁加载/篡改、六类门禁、距离与设计器性质）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/config/calibration_protocol_v1.0.2.json(+.sha256)（新建，da76c72e…）",
+            "CaMRA/calibration/config/near_obstacle_maps_v1.json(+.sha256)（新建，78c0145f…，200 例）",
+            "CaMRA/calibration/config/data_lock_v1.json(+.sha256)（新建，907310c7…）",
+            "CaMRA/calibration/src/camra_calibration/{obstacles.py,lock.py}（新建）",
+            "CaMRA/calibration/scripts/{build_near_obstacle_maps.py,build_data_lock.py,check_data_lock.py}（新建）",
+            "CaMRA/calibration/scripts/collect_trials.py（门禁）、src/camra_calibration/{protocol.py,config.py}（默认版本 1.0.2）",
+            "CaMRA/calibration/tests/{test_lock.py,test_protocol.py}",
+            "CaMRA/calibration/docs/implementation_handoff.md（§24）"
+          ],
+          "commands": [
+            "python scripts/validate_protocol.py --protocol config/calibration_protocol_v1.0.2.json --write-hash",
+            "python scripts/build_trial_lists.py --out /pub/data/caohy/logs/camra/trial_lists_v1.0.2",
+            "python scripts/build_near_obstacle_maps.py --manifest-dir trial_lists_v1.0.2 --out config/near_obstacle_maps_v1.json",
+            "python scripts/build_data_lock.py --manifest-dir trial_lists_v1.0.2 --out config/data_lock_v1.json",
+            "python -m pytest tests/test_protocol.py tests/test_trials.py tests/test_lock.py -q"
+          ],
+          "results": [
+            "协议 v1.0.2：119/119 通过，sha da76c72e…；7 份清单与 v1.0.1 逐字节相同，lock self_check pass。",
+            "近障地图：200 例、20 格 × 10、四档各 50、实际净距 0.050–0.370 m（每例达标）、场地 8–16 × 8–15 m、每例 4–7 个障碍、边界余量 ≥0.76 m、sha 78c0145f…。",
+            "数据锁：绑定协议/模型（文件 e718595d / 内容 bfe3b159）/轮廓（文件 edff8978 / 内容 a11a3572）/接口（文件 fe03749e / 内容 a2a5fbc6）/资产/7 份清单/地图/44 个代码文件（树 c40e5a95）/统计与资源预算；锁 sha 907310c7…。",
+            "门禁探针：artifacts/quotas/mutual_exclusion 全 OK；maps 200 例、四档各 50、ids 与清单一致、轮廓绑定一致、clearance 全部达标、bad_wall=0；heldout/近障无 margin 被拒、三个正式 split 带 overwrite 被拒、未知 split 被拒。",
+            "测试：test_protocol/test_trials/test_lock 共 55 项 EXIT=0。",
+            "如实记录：打包检查脚本 check_data_lock.py 因机器负载 150+（36 用户）反复重算 44 文件散列，30 分钟未跑完；改用等价探针（同样断言、只做一次散列）取得结论，脚本已入库待空闲复跑。"
+          ],
+          "evidence": [
+            "config/calibration_protocol_v1.0.2.json(+.sha256 da76c72e…)，validate_protocol 119/119",
+            "config/near_obstacle_maps_v1.json(+.sha256 78c0145f…)：totals tiers {0.05:50,0.1:50,0.2:50,0.35:50}、clearance 0.050–0.370、arena 8–16×8–15",
+            "config/data_lock_v1.json(+.sha256 907310c7…)",
+            "/pub/data/caohy/logs/camra/lock/probe.log（artifacts/quotas/exclusion/maps/gates 结论）",
+            "/pub/data/caohy/logs/camra/trial_lists_v1.0.2/lock.json（protocol da76c72e、self_check pass）",
+            "tests/test_lock.py 15 项 + implementation_handoff.md §24"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "功率模型/协议/代码/资产与split manifest全部散列，后续变更需新版本。",
         "正式检验及近障的能量/误差结果在margin冻结前不可用于选择。",
@@ -1954,7 +2018,7 @@
         "采集器能阻止未冻结模型、错误split、覆盖既有run和打开检验调参。",
         "锁文件含冻结物理轮廓与200条近障地图/命令清单，均形成于正式采集之前。"
       ],
-      "verification_result": ""
+      "verification_result": "四项验收均通过：(1) 可机检锁绑定依赖/配额/seed/权重/统计准入/资源预算——data_lock_v1.json（sha 907310c7…）绑定协议 v1.0.2(da76c72e)、功率模型（文件 e718595d/内容 bfe3b159）、轮廓（文件 edff8978/内容 a11a3572）、step-cost schema（文件 fe03749e/内容 a2a5fbc6）、资产几何与两份 USD、7 份清单的散列/条数/seed 块/配额、近障地图 78c0145f、44 个代码文件与树散列 c40e5a95、statistics（0.9 nearest-rank、α/δ 规则、bootstrap 10000/95%）、statistical_acceptance 与协议实测资源预算；探针 artifacts OK、quotas OK。（2）800/400/200 与 baseline/pilot 无交叉——七份清单两两 seed 与 trial_id 交集为空（探针 mutual_exclusion OK），seed 块 4000/4240/4320/5100/6000/7000/8000 互不重叠，且 trial_lists_v1.0.2 与 v1.0.1 的 jsonl 逐字节相同（协议版本升级不影响清单内容）。（3）采集器可阻止未冻结模型/错误 split/覆盖既有 run/打开检验调参——collect_trials.py 正式 split 必须给 --lock，split 不在锁、散列不符、清单不符、heldout/近障缺 margins、近障缺 --maps、正式 split 带 --allow-overwrite 全部在启动仿真前 REFUSED；探针实测 6 类拒绝成立，另有 test_lock.py 15 项单测覆盖同等行为。（4）锁含冻结轮廓与 200 条近障地图/命令清单且形成于正式采集之前——轮廓 a11a3572（CAL-021）与地图 78c0145f（本任务）均早于任何正式采集（800/400/200 尚未采集一例）；地图 200 例、20 格 × 10、四档各 50、实际净距 0.050–0.370 m 且每例达到目标档位、场地 8–16×8–15 m、边界余量 ≥0.76 m、与清单逐条 program_sha256 绑定。遗留说明：打包检查脚本 check_data_lock.py 因机器负载 150+ 未跑完，已用等价探针取得结论并以 §24.5 如实记录，脚本入库待空闲复跑。"
     },
     {
       "id": "CAL-024",
@@ -1963,7 +2027,52 @@
       "depends_on": [
         "CAL-023"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T22:55:00+08:00",
+          "summary": "尝试启动 800 条正式校准采集共 5 次（32/8 envs、GPU 0/2、全环境/最小环境），全部阻塞在 Isaac 启动的 GPU fabric P2P 校验之前，未产出任何一条正式数据；已定位并绕开 NFS 侧问题，仍剩整机/GPU 侧阻塞。",
+          "actions": [
+            "发现 /home(NFS, 192.168.1.15) 在 19:00 后出现分钟级读写卡顿：git add 10 min、git commit >20 min、import 单个 3 KB 模块 150 s 不返回、du 90 s 不返回；进程 wchan=rpc_wait_bit_killable（/pub 与 /tmp 同期 200+ MB/s 正常）。",
+            "绕行一：写 env_setup/36_codecopy.sh 逐文件（120 s 超时 + 4 次重试）把校准树复制到 /pub/data/caohy/camra_run/calibration，81 文件 0 失败；再用数据锁 verify_artifacts 校验得 n_bad=0（代码树/配置/清单散列全吻合）。",
+            "绕行二：定位 Isaac 启动期写 ~/.nvidia-omniverse/logs 到 NFS（fd 指向 /home/caohy/...），改 HOME=/pub/data/caohy/fakehome 并加 PYTHONDONTWRITEBYTECODE=1；随后用 env -i 剥掉指向 /home 的 VSCode/NVM 变量。",
+            "五次尝试（37/38/39/40/42 脚本）：均打印 LOCK OK 后进入 Isaac 启动，且都停在 [gpu.foundation.plugin] 的 CUDA peer-to-peer bandwidth/latency 校验之后，此后无任何输出；进程 D 状态、GPU util 0%、CPU 仅 3–8 s/min。",
+            "排除因素：与 --num_envs（8 vs 32）无关、与 CUDA_VISIBLE_DEVICES（0/2）无关、与 HOME/环境变量无关；同期整机 load 190–208、47 用户、内存 503 GB 仅余 83 GB、swap 用尽，GPU0 另有 2 个 katago 计算进程。",
+            "把 CAL-025 已写好的 margins.py / fit_margins.py / test_margins.py 暂存到 /pub/data/caohy/camra_run/pending_code/（刻意不入库，避免改掉数据锁记录的 44 个代码文件树散列）。"
+          ],
+          "files_changed": [
+            "/pub/data/caohy/logs/camra/env_setup/{36_codecopy,37_cal024_local,38_cal024_local2,39_cal024_env,40_smoke,41_commit,42_smoke_gpu2}.sh",
+            "CaMRA/calibration/docs/implementation_handoff.md（§25）",
+            "/pub/data/caohy/camra_run/calibration/**（逐位一致副本）",
+            "/pub/data/caohy/camra_run/pending_code/{margins.py,fit_margins.py,test_margins.py}"
+          ],
+          "commands": [
+            "bash env_setup/36_codecopy.sh",
+            "PYTHONDONTWRITEBYTECODE=1 python -c 'DataLock.load(...).verify_artifacts(\".\")'",
+            "bash env_setup/39_cal024_env.sh（32 envs, GPU0）",
+            "bash env_setup/42_smoke_gpu2.sh（8 envs, GPU2, 1 batch）"
+          ],
+          "results": [
+            "正式校准数据：0/800 条（清单 800 条、20 格 × 40 已冻结，但一条未被采集）。",
+            "副本一致性：81 文件、0 失败；verify_artifacts n_bad=0；采集器打印 LOCK OK sha 907310c7782d3fb8 split calibration。",
+            "阻塞点：Isaac 启动的 fabric P2P 校验之后无输出，三次不同参数组合均如此；判为整机/GPU 侧环境劣化（同日 13:30–14:00 同脚本可正常跑完 400 条）。",
+            "CAL-023 的 git 提交仍未完成（HEAD 仍为 babc948）：git 对象写入的 fsync 在 NFS 上反复卡死，已尝试 gc.auto=0 / core.fsyncObjectFiles=false 等仍无效。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/{36,37,38,39,40,41,42}_*.log",
+            "handoff §25（现象、绕行、未解决、恢复清单）",
+            "verify_artifacts 输出：verify 95.10s n_bad=0"
+          ],
+          "remaining_work": [
+            "待 /home 写延迟恢复后提交 CAL-023（命令见 handoff §25.4）",
+            "待整机空闲（load<60、GPU 无 katago 类常驻计算进程）重跑 39_cal024_env.sh；若仍停在 P2P 校验则改 CUDA_VISIBLE_DEVICES=1/2 再试",
+            "采完跑 check_collection，按 D-007 处理业务失败，再更新任务状态"
+          ],
+          "blockers": [
+            "/home(NFS) 分钟级卡顿：git 提交与任何 import 走 /home 的操作不可用",
+            "Isaac 启动卡在 fabric P2P 校验：5 次尝试 0 进度，整机 load 190–208"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "每格40条，失败也计trial配额，整批按已冻结协议运行。",
         "不先跑检验挑选有利裕度；不为达目标增加/替换低速或失败样本。",
@@ -1974,7 +2083,7 @@
         "原始/派生数据、200Hz积分、10Hz配对复算一致。",
         "功率模型未改，数据来源和profile/命令族分组分母正确。"
       ],
-      "verification_result": ""
+      "verification_result": "未通过（0/800）：三条验收均无法评估——没有一条正式数据产出，\"800 个 trial 均有结果或明确阻塞\"这条本身成立（阻塞明确：Isaac 启动停在 fabric P2P 校验、/home NFS 卡顿），但数据复算一致性与分组分母无从谈起。任务保持未完成，不记为 partial pass。"
     },
     {
       "id": "CAL-025",
