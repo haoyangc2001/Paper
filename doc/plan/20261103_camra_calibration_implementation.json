@@ -1519,7 +1519,40 @@
       "depends_on": [
         "CAL-017"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T12:05:00+08:00",
+          "summary": "开工前发现协议与任务约束冲突，按不确定性策略暂停，等待用户在两种 pilot 口径间裁定。",
+          "actions": [
+            "核对协议 v1.0.0 split.pilot：total=20、per_cell=1、profile='clean only'、consumed_by=['CAL-018']。",
+            "核对现有 pilot 清单构成：4 个 cell（straight_shift/arc_combined/alternating/start_stop_turn × clean），每格 5 条，共 20 条。",
+            "比对 CAL-018 约束：'pilot 独立于正式 split，覆盖四族×五条件及低速/停车，规模在协议确定' —— 五条件（5 个 profile）与协议的 clean only 直接矛盾。",
+            "核对协议 mutation_rule：配额/扰动/统计口径变更必须出新版本并标记旧版 superseded，不得就地改 v1.0.0。"
+          ],
+          "files_changed": [],
+          "commands": [
+            "python -c 读取 protocol.split.pilot 与 pilot.jsonl 构成"
+          ],
+          "results": [
+            "协议 pilot = clean only（4 格 × 5 条），无法覆盖 5 个 profile；CAL-018 要求 4 族 × 5 条件 = 20 条。",
+            "两条路径互斥：(a) 出 v1.0.1 让 pilot 覆盖 5 profile；(b) 保持 v1.0.0，五条件覆盖改由工具级 pilot 承担（不进正式数据）。",
+            "已采集的 20 条 clean pilot（VERDICT pass）当前归属 v1.0.0，若改协议需重新标注或重采。"
+          ],
+          "evidence": [
+            "config/calibration_protocol_v1.0.0.json 的 split.pilot 与 mutation_rule",
+            "trial_lists_v1.0.0/pilot.jsonl 的 4 cell × 5 条构成",
+            "trials/pilot/（20 条已采，errors_report.json 显示 12 complete / 8 business_failed）"
+          ],
+          "remaining_work": [
+            "等待用户裁定 pilot 口径（见 pending_decisions D-006）",
+            "裁定后：若改协议则出 v1.0.1 并重采 pilot；若保持则改用工具级五条件验证",
+            "继续 CAL-018 的故障注入与恢复验证（日志损坏、detach 重连、只补未完成 trial）"
+          ],
+          "blockers": [
+            "pilot 口径冲突：协议 clean only vs CAL-018 四族×五条件，需用户裁定"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "pilot独立于正式split，覆盖四族×五条件及低速/停车，规模在协议确定。",
         "detach/重连只验证任务持续，不中断正式数据；故障注入仅用于工具pilot。",
