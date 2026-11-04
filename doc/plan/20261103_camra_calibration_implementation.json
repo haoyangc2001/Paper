@@ -378,6 +378,14 @@
       "decision": "协议 v1.0.1 四项裁定：① pilot 由 clean-only 改为覆盖五类执行条件（4 族 × 5 profile = 20 格、每格 1 条，种子块迁至 5100–5119，旧 5000–5019 列入保留）；② 低速度层由'或'改为'且'（|vx|≤0.3 且 |wz|≤0.3）；③ min_share_of_cell 按格级平均判定，逐条最小仅作观测；④ baseline 的 clean-only 格内条数显式写明（cells=4、per_cell=100，fit 60/dev 20/validate 20）。v1.0.0 标记 superseded，未就地修改。",
       "source": "用户在 CAL-018 阻塞点的两项明确选择（'出 v1.0.1，pilot 覆盖五条件' + '一并裁定三项歧义'）",
       "evidence": "CaMRA/calibration/config/calibration_protocol_v1.0.1.json（sha256 16aa5ebe…，119/119 校验通过）；docs/implementation_handoff.md §20.1"
+    },
+    {
+      "id": "D-007",
+      "state": "confirmed",
+      "date": "2026-11-04",
+      "decision": "baseline_validate 的 31 条连带截断按'修工具后重采'处理：修 check_collection 的目录索引（取含 DONE 的最大 attempt）与重复语义（多次 attempt 不算重复 trial，只报多 DONE 目录与同 (trial,attempt) 重复 record）；把 31 条 interrupted 的 DONE 改名为 DONE.interrupted_a1（零删除）后以原 trial_id 重采；真实摔倒的 straight_shift-0013 保留为 business_failure 不重采；随后用同一个已冻结模型在完整集合上重出 validate 指标。",
+      "source": "用户在 CAL-020 阻塞点三选项中选择'修工具后重采 31 条（推荐）'",
+      "evidence": "env_setup/20_validate_retry.log；trials/baseline_validate/{*__a2,*/DONE.interrupted_a1}；trials/baseline_validate_check.json"
     }
   ],
   "pending_decisions": [
@@ -1623,7 +1631,7 @@
     {
       "id": "CAL-019",
       "goal": "采集独立clean名义功率建模数据",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-018"
       ],
@@ -1657,6 +1665,40 @@
             "按验收口径核对 fit/dev/validate 的命令簇互斥与覆盖"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-04T13:45:00+08:00",
+          "summary": "400 条 clean 基线全部采集完成并逐子集核验；fit/dev 全 completed，validate 经历一次批级连带截断后按 D-007 重采补齐。",
+          "actions": [
+            "三个子集顺序采集（32 envs）：fit 240 于 12:35 完成、dev 80 于 13:15:48 完成、validate 首轮于 13:38 结束。",
+            "对每个子集跑 check_collection.py：fit/dev 直接 pass；validate 首轮暴露 1 terminated + 31 interrupted（批循环'任一条终止即整批中止'的连带截断）。",
+            "按 D-007 修 check_collection 的目录索引与重复语义，31 条 interrupted 的 DONE 改名保留后重采，31/31 completed。",
+            "对三个子集重跑 check_collection：expected=done=240/80/80，problems 为空，VERDICT pass。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/scripts/check_collection.py",
+            "/pub/data/caohy/logs/camra/env_setup/20_validate_retry.sh"
+          ],
+          "commands": [
+            "bash env_setup/16_baseline.sh（tmux camra-env:baseline）",
+            "bash env_setup/20_validate_retry.sh（tmux camra-env:retry）",
+            "python scripts/check_collection.py --split {baseline_fit,baseline_dev,baseline_validate}"
+          ],
+          "results": [
+            "采样条数：fit 240/240 completed；dev 80/80 completed；validate 80/80（79 completed + 1 terminated 业务失败）。",
+            "能量可复算：三子集离线复算最大相对误差 1.03e-09 / 6.74e-10 / 7.34e-10，均远低于 1e-5 容差。",
+            "命令簇互斥：fit seeds 4000–4239、dev 4240–4319、validate 4320–4399，与 pilot 5100–5119 互不相交。",
+            "真值与口径均已落盘：每批 meta 含 protocol_sha256、program_sha256、bundle_tree_sha256、profile_applied、初始位姿。",
+            "重采还查明吞吐真相：机器负载下降后 sim.step 由 63 ms 降到 14 ms（31 条 6000 步仅 85.6 s），此前 15 s/条是外部占卡所致。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/16_baseline.log（每批 batch/trials/outcome/steps/wall_s 与三个 *_EXIT=0）",
+            "/pub/data/caohy/logs/camra/env_setup/20_validate_retry.log（ROUND 1 targets=31 → collect_EXIT=0 → check VERDICT pass）",
+            "/pub/data/caohy/logs/camra/trials/baseline_{fit,dev,validate}_check.json（problems=[]、ok=true、max_rel_err≤1.03e-9）",
+            "trials/baseline_validate/ 下 31 个 __a2 目录 + 31 个 DONE.interrupted_a1（原产物零删除）"
+          ],
+          "remaining_work": [],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -1669,12 +1711,12 @@
         "拟合/开发/基线验证的轨迹或命令簇互斥。",
         "全体能量测量可复算，数据和环境散列已保存。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 清单/样本数/原始能量与轨迹满足协议——400 条按 240/80/80 全部落地，check_collection 三份报告 expected=done=240/80/80、problems 为空、VERDICT pass，validate 的 1 条 terminated 按业务失败保留（official=false）而非补采；（2）拟合/开发/基线验证互斥——fit seeds 4000–4239、dev 4240–4319、validate 4320–4399，与 pilot 5100–5119 及正式 800/400/200 配额种子块均不相交，每条 trial 的 program_sha256 由 (family,seed) 唯一确定；（3）全体能量测量可复算且散列已保存——用落盘 tau/qdot 离线复算 J_exec，三子集最大相对误差 1.03e-09/6.74e-10/7.34e-10；meta 保存 protocol_sha256(16aa5ebe…)、program_sha256、bundle_tree_sha256、profile_applied 与初始位姿。validate 曾出现 31 条批级连带截断，已按 D-007 以原 trial_id 重采（attempt=2）并保留旧产物，check 复验通过。"
     },
     {
       "id": "CAL-020",
       "goal": "拟合并验证冻结非负名义功率模型",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-019"
       ],
@@ -1719,6 +1761,44 @@
           "blockers": [
             "拟合阶段依赖 CAL-019 的 400 条基线产物（12:30 时 fit 224/240、dev/validate 未开始），故 status 保持 false"
           ]
+        },
+        {
+          "timestamp": "2026-11-04T14:00:00+08:00",
+          "summary": "按预登记完成拟合并通过准入：选定 C2_quad_k0，validate q90=0.0554（≤10%），四项准入全过；期间修正模型散列与时序、并补齐 validate 缺口。",
+          "actions": [
+            "baseline 三子集齐备后自动触发 fit_power_model.py：只用 fit(240) 拟合四个预登记候选，只用 dev(80) 按规则选型，落盘冻结后才评估 validate。",
+            "首轮 validate 仅 48 条可用（31 条连带截断 + 1 条业务失败），判定该次 validate 读数作废；按 D-007 修工具并重采 31 条。",
+            "修正 PowerModel.sha256()：原先把 train.frozen_at 算进散列导致重跑换散列，改为只覆盖 content_dict（权重/schema/域/单位/J_min），train 与 notes 照旧落盘。",
+            "重采后连跑两次拟合验证身份稳定（散列均 bfe3b159…），再以同一次冻结结果出 validate 指标。",
+            "新增 2 项测试（散列不受溯源影响、散列随输入域变化），全量 pytest 165 通过。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/power.py（content_dict/to_dict 拆分 + 散列口径）",
+            "CaMRA/calibration/tests/test_power.py（+2 项散列测试）",
+            "CaMRA/calibration/config/power_model_v1.json(+.sha256)（冻结模型，新建）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§21.6–21.7）"
+          ],
+          "commands": [
+            "bash env_setup/18_cal020_fit.sh（等数据齐 → check_collection → 拟合）",
+            "bash env_setup/22_refit_x2.sh（连跑两次拟合比对散列）",
+            "python -m pytest tests -q"
+          ],
+          "results": [
+            "选型：C1 dev q90 0.0929 / C2 0.0524 / C3 0.0524 / C4 0.0914；C2 与 C3 同为 0.0524，按 tie-break 取参数更少的 C2_quad_k0（6/10 非零）。",
+            "validate(n=79) q90 0.0554、median 0.0241、max 0.1373、bias_median +0.0062；dev(n=80) q90 0.0524。",
+            "分组全部上报：alternating 0.0359(20)/arc_combined 0.0469(20)/start_stop_turn 0.0667(20)/straight_shift 0.0911(19)；低速 0.0667(33) vs 高速 0.0469(46)；过渡重 0.0475(51) vs 轻 0.0667(28)。",
+            "非负构造性成立（截断份额 0.0）、因果前缀不变性 3/3 delta=0、从落盘模型复算 J_nom 与进程内逐位一致、截距份额中位 0.188。",
+            "准入 4/4 通过 → VERDICT admitted；模型 sha256 bfe3b1594c08f729af78d4a22adf204ea0f96491892b98e1e0b24932f2ea1f55，schema 23adc481…。",
+            "pytest 165 passed。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/config/power_model_v1.json 与 .sha256（bfe3b159…）",
+            "/pub/data/caohy/logs/camra/power_fit/power_fit_report.json(+.sha256)：candidates/dev/validate/groups/nonneg/causality/recomputability/admission 全量",
+            "/pub/data/caohy/logs/camra/env_setup/22_refit_x2.log（两次拟合散列一致）",
+            "implementation_handoff.md §21.6–21.7"
+          ],
+          "remaining_work": [],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -1731,7 +1811,7 @@
         "冻结模型及输入schema/版本/散列，J_nom可从命令独立复算。",
         "若失败，记录并暂停；不能跳过验证后用alpha吸收未查明拟合缺陷。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 独立基线验证达到预登记准入，分组/过渡/非负性/因果性全过——dev q90 0.0524、validate(n=79) q90 0.0554（阈值 0.10），分组误差全部上报（4 族最差 straight_shift 0.0911，低速组 0.0667 vs 高速 0.0469，过渡重 0.0475 vs 轻 0.0667），权重全非负、截断份额 0、前缀不变性 3/3 delta=0、无 out_of_domain、0 条 non_computable；（2）冻结模型及输入 schema/版本/散列齐备且 J_nom 可从命令独立复算——power_model_v1.json（sha bfe3b159…，schema 23adc481…）只含权重、特征名、history_k=0、输入域与单位，从该文件重算的 J_nom 与拟合进程内数值逐位一致，连跑两次拟合散列相同；输入只含当前命令，禁止项（力矩/执行能量/扰动标签/未来命令）构造性不可达；（3）未达标分支未触发故无需暂停——首轮 validate 因 31 条批级连带截断而作废，按 D-007 重采后以同一冻结模型出数，未用 α 吸收、未引外部依赖（M2/M3 未启用）。遗留：J_nom 尚未回填各 trial 的 energy.json，属 CAL-022/023 范围。"
     },
     {
       "id": "CAL-021",
