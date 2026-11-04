@@ -1879,11 +1879,49 @@
     {
       "id": "CAL-022",
       "goal": "验证能耗成本与未来上层接口的一致性",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-021"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T15:58:00+08:00",
+          "summary": "交付 step-cost-v1 接口（J-only 预算、单步/重置/历史滑增广），实测逐步相加与 J_nom 等价、ε_c 非退化且同能量 0 被保留；旧稿同步需求已登记未改稿。",
+          "actions": [
+            "写 src/camra_calibration/step_cost.py：BudgetState（只接受 J / mechanical_J）、StepCost（dt 必须等于模型 step_cost_dt、单步成本、reset_rule、K 条历史滑窗、augmented_state_spec）、StepCostRecord、trajectory_cost、energy_ratio、write_schema。",
+            "修两处细节：单步功率取 step_power 的第 K 个区间（K=0 时原先取 -2 会越界）；K>0 时首条命令作为自己的历史，与 power.feature_matrix 的钳位约定一致。",
+            "写 scripts/check_step_cost.py：对 40 条 validate × {10,30,45}s 视窗比对逐步和与 J_nom；用合成 K=1 模型验证一般性；统计真实 ε_c 分布；人工同能量与近零分支；预算扣减与单位隔离。",
+            "写 tests/test_step_cost.py 21 项并落盘 config/step_cost_schema_v1.json(+.sha256)。",
+            "在 handoff §23.5 登记旧论文预算/数据的 5 条同步需求（单位、成本定义、F_δ、旧数值禁用、三个散列），manuscripts 未改动。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/step_cost.py（新建）",
+            "CaMRA/calibration/scripts/check_step_cost.py（新建）",
+            "CaMRA/calibration/tests/test_step_cost.py（新建）",
+            "CaMRA/calibration/config/step_cost_schema_v1.json(+.sha256)（新建，a2a5fbc6…）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§23）"
+          ],
+          "commands": [
+            "python scripts/check_step_cost.py --manifest-dir trial_lists_v1.0.1 --out-root trials --report step_cost/step_cost_check.json",
+            "python -m pytest tests -q"
+          ],
+          "results": [
+            "逐步和 vs J_nom：120 组（40 条 × 10/30/45 s）最大相对差 2.4e-15，全部相等；K=1 合成模型同样相等（9.2e-16）。",
+            "真实 ε_c：n=40，范围 [−0.0686, +0.1591]，均值 −0.0042，正/负 13/27，std 0.0444 → 非退化，不因固定 30 s 恒为 0。",
+            "人工同能量 ε_c(432.1234,432.1234)=0.0 原样保留；J_nom=0.5<J_min 记 non_computable。",
+            "预算：5 步 6.6496 J / 600 J，z_ratio 0.9889；unit='a.u.' 与 kind='legacy_au' 均被拒绝。",
+            "schema sha a2a5fbc6…（含模型散列 bfe3b159…）；pytest 210 passed；manuscripts 零改动。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/step_cost/step_cost_check.json(+.sha256)：四项检查全 pass，VERDICT pass",
+            "config/step_cost_schema_v1.json(+.sha256 a2a5fbc6…)",
+            "tests/test_step_cost.py 21 项 + implementation_handoff.md §23",
+            "git status 中 manuscripts/ 无改动"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不实现或训练导航器；只交付步成本计算API/schema和说明。",
         "c_nom=P_hat_nom*0.1秒，后续扣(1+alpha)c_nom；机械J预算与旧a.u.预算分开。",
@@ -1894,7 +1932,7 @@
         "确认不会固定30秒导致能量比恒为0，人工同能量案例可为0且保留。",
         "旧论文预算和数据的未来同步需求已登记，没有自动改稿或复用旧能量数值。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 逐步成本与整条 J_nom 一致且可直接消费——对 40 条 validate 分别在 10/30/45 s 视窗共 120 组比对，Σc_nom 与 model.j_nom 最大相对差 2.4e-15；合成的 history_k=1 模型同样等价（9.2e-16），说明 K>0 时接口与 power.feature_matrix 的滞后约定一致；输入只接受 [vx,vy,wz] 与 0.1 s 步长（dt 必须等于模型 step_cost_dt，否则抛错），单位强制为 J，状态与重置由 augmented_state_spec/reset_rule 明确（K=0 无需增广，K>0 必须把最近 K 条命令并入观测），schema 落盘为 config/step_cost_schema_v1.json（sha a2a5fbc6…）。（2）能量比不因固定 30 s 退化——真实 40 条 episode 的 ε_c ∈ [−0.0686,+0.1591]、正负 13/27、std 0.0444，非恒 0；人工同能量案例 ε_c=0.0 原样保留（不夹不加 epsilon），J_nom<J_min 走 non_computable 单列。（3）旧预算/数据的同步需求已登记且未自动改稿——handoff §23.5 列出单位（a.u.→J）、成本定义、F_δ 膨胀、旧数值禁用、三个散列共 5 条待人工同步项，manuscripts/ 目录零改动，未复用任何旧能量数值。"
     },
     {
       "id": "CAL-023",
