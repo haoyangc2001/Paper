@@ -1627,7 +1627,38 @@
       "depends_on": [
         "CAL-018"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T12:30:00+08:00",
+          "summary": "用协议 v1.0.1 清单启动 400 条 clean 基线采集（fit 240 / dev 80 / validate 80），32 envs 顺序执行，逐批落盘检查。",
+          "actions": [
+            "由 build_trial_lists 生成 baseline_fit/dev/validate 三个子清单（total 400，seed 4000–4319，与 pilot 5100–5119 不相交）。",
+            "写 env_setup/16_baseline.sh：对三个子集依次 collect_trials.py --num_envs 32 后立刻跑 check_collection.py，真实退出码落盘。",
+            "在 tmux 会话 camra-env 的 baseline 窗口运行（CUDA_VISIBLE_DEVICES=0，no-cache，日志 env_setup/16_baseline.log）。"
+          ],
+          "files_changed": [
+            "/pub/data/caohy/logs/camra/env_setup/16_baseline.sh",
+            "/pub/data/caohy/logs/camra/trial_lists_v1.0.1/baseline_{fit,dev,validate}.jsonl"
+          ],
+          "commands": [
+            "bash /pub/data/caohy/logs/camra/env_setup/16_baseline.sh"
+          ],
+          "results": [
+            "12:30 进度：baseline_fit 224/240 完成，dev/validate 尚未开始。",
+            "每批 32 条约 472–498 s（约 15 s/条），与 §17.5 判断一致：单步耗时由 sim.step 决定，与 env 数几乎无关。",
+            "预计 fit 与 dev/validate 全部完成约需再 50 分钟。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/16_baseline.log（逐批 batch/trials/outcome/steps/wall_s）",
+            "ls /pub/data/caohy/logs/camra/trials/baseline_fit | wc -l = 224"
+          ],
+          "remaining_work": [
+            "等 baseline_validate 采完后跑 check_collection 三份报告，核对 400 条是否全部 official",
+            "按验收口径核对 fit/dev/validate 的命令簇互斥与覆盖"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "按CAL-008批准规模/资源预算执行固定清单，覆盖停车、低速、各方向、组合和过渡。",
         "只使用clean条件的能量测量建立基线；不借用正式校准/检验/近障结果。",
@@ -1647,7 +1678,49 @@
       "depends_on": [
         "CAL-019"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-04T12:40:00+08:00",
+          "summary": "在 baseline 采集进行中先完成 CAL-020 的数据无关部分：预登记（先于数据冻结）+ 非负功率模型实现 + 25 项测试 + 装配路径实测；拟合与准入仍等 CAL-019 产物。",
+          "actions": [
+            "先冻结 config/power_model_prereg_v1.json：目标量 J_nom=Σ P̂(u_i..u_{i-K})·0.1、允许/禁止输入、4 个候选（C1_lin_k0 / C2_quad_k0 / C3_quad_k1 / C4_lin_k2）、dev-only 选型规则（q90 最小，0.5pp 内取简单）、validate 只在冻结后评估一次、8 类预登记排除原因、失败时不得用 α 吸收且不得擅自装 sklearn 上 M2。",
+            "实现 src/camra_calibration/power.py：非负特征块（|vx|,|vy|,|wz| 及两两乘积）、带历史块的因果设计矩阵、NNLS 拟合（列归一化，relative 加权=1/J_exec）、PowerModel（预测/输入域/截距份额/规范散列/读写与侧车）、预登记选型、分组评估（family、低速、过渡）、准入判定。",
+            "实现 scripts/fit_power_model.py：装配（三重绑定 program_sha256 = 清单/meta/由(family,seed)重建；cmd 逐点比对 atol 1e-5；j_exec 与 meta 交叉核对）→ 只用 fit 拟合 → 只用 dev 选型 → 落盘冻结 → 之后才评估 validate → 报告+散列；另加 --check-split 只做装配检查不拟合。",
+            "写 tests/test_power.py 25 项：特征非负/因果前缀不变/历史钳位、精确权重回收、拟合确定性、序列化往返与篡改检测、输入域、选型三级 tie-break、分组与非可计算、准入阈值。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/config/power_model_prereg_v1.json(+.sha256)",
+            "CaMRA/calibration/src/camra_calibration/power.py",
+            "CaMRA/calibration/scripts/fit_power_model.py",
+            "CaMRA/calibration/tests/test_power.py",
+            "CaMRA/calibration/docs/implementation_handoff.md（新增 §21）"
+          ],
+          "commands": [
+            "python -m pytest tests -q（env_isaaclab，tmux camra-env:cal020，日志 env_setup/17_cal020_tests.log）",
+            "python scripts/fit_power_model.py --manifest-dir trial_lists_v1.0.1 --out-root trials --check-split pilot"
+          ],
+          "results": [
+            "全量 pytest 163 passed（原 138 + test_power 25），PYTEST_EXIT=0。",
+            "预登记散列 fb00b3666cadb863756586e0beb7ca08c7b95006bb31ca489465a4615a5016ef，脚本强制校验侧车后才允许拟合。",
+            "装配路径在真实产物上验证：pilot 20/20 可用、0 排除、cmd 均 301 点、J_exec 150.53–617.75 J，三重散列绑定与 cmd 逐点比对均通过。",
+            "已提交 c60edeb（未推送）。"
+          ],
+          "evidence": [
+            "config/power_model_prereg_v1.json.sha256 = fb00b366…",
+            "/pub/data/caohy/logs/camra/env_setup/17_cal020_tests.log（163 passed / PYTEST_EXIT=0）",
+            "fit_power_model.py --check-split pilot 输出：n_used=20 n_excluded=0 VERDICT loader_ok",
+            "implementation_handoff.md §21"
+          ],
+          "remaining_work": [
+            "等 baseline_fit/dev/validate 全部 completed 后运行 fit_power_model.py（不加 --check-split），产出 config/power_model_v1.json 与 power_fit_report.json",
+            "按 §10.5 判定：dev/validate q90 ≤ 10%、非负 100%、截断 0、J_nom 从落盘模型可复算且逐位一致、分组（family/低速/过渡）误差全部上报",
+            "未达标则按预登记 on_failure 记录并暂停，不得用 α 吸收或跳过验证"
+          ],
+          "blockers": [
+            "拟合阶段依赖 CAL-019 的 400 条基线产物（12:30 时 fit 224/240、dev/validate 未开始），故 status 保持 false"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "模型候选和选择规则只用独立基线训练/开发集，不看正式误差。",
         "记录单位/输入/history/归一化与适用域，不能用执行信号或扰动标签偷看输出。",
