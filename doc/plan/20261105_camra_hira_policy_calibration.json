@@ -1354,7 +1354,7 @@
       "id": "HIRA-014",
       "phase": "隔离实现",
       "goal": "实现源动作映射与每物理子步PD力矩控制",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-013"
       ],
@@ -1373,7 +1373,44 @@
         "动作/PD适配器",
         "reports/action_pd_tests.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T18:10:00+08:00",
+          "summary": "实现源动作映射与每物理子步 PD：q_target = 默认角 + 0.25a 只在策略步算一次，τ 用每个子步新鲜 q/qdot 重算并只裁一次；10 项自测全过，含正负饱和、单关节扰动、子步间 q_target 恒定而 τ 变化、按名字写回 Lab 顺序、拒绝重复裁剪、无隐藏速度限幅。",
+          "actions": [
+            "新增 adapters/hira_go2/action_pd.py：ActionTorqueAdapter（set_policy_action/compute_substep/reset）与两份独立公式 source_q_target/source_pd_torque（供测试做 oracle）。",
+            "set_policy_action 只接受已裁剪动作，超过 ±100 直接 ValueError，避免重复裁剪导致观测里的上一动作与实际执行动作分叉。",
+            "compute_substep 每子步读取新鲜 q/qdot（Lab 顺序 → 源顺序）、算 τ=kp(q_target−q)−kd·qdot、按每关节 effort 裁一次、再映射回 Lab 顺序；last_trace 记录 clipped action、q_target、τ_PD、τ_clipped、写入 effort 与饱和关节数。",
+            "新增 tests/check_action_pd.py：A1–A10，覆盖逐关节公式、零动作、±100 饱和、单关节扰动符号、4 子步语义、顺序映射与逆、重复裁剪拒绝、增益来源、日志完整性、无隐藏速度限幅。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/action_pd.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_action_pd.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/action_pd_tests.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§16）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-014 记录）"
+          ],
+          "commands": [
+            "python tests/check_action_pd.py（CPU，无 Isaac；10/10）"
+          ],
+          "results": [
+            "A1/A2 q_target 与独立公式逐关节差 0.0；零动作时等于默认角。",
+            "A3 ±100 动作得到 τ_PD=500 N·m，裁到 23.7/23.7/35.55，12 关节全部记入饱和计数。",
+            "A4 单关节 ±0.1 rad 扰动给出 τ=∓2.000，其余关节和为 0.0，符号与幅值均对。",
+            "A5 4 个物理子步共用同一 q_target，但 τ 每步不同（q/qdot 新鲜）；子步计数=4。",
+            "A6 τ 按关节名写回 Lab 顺序，逐关节一致；置换往返差 0.0。",
+            "A7 超界动作（±101、−100.5）被拒；clipped == clamp(PD) 成立，未出现二次限幅。",
+            "A8 增益 kp=20/kd=0.5/scale=0.25，与源一致且不等于 v2 的 25。",
+            "A9 trace 六项字段齐全；A10 qdot=40 rad/s（>30.1 上限）时 τ=+20.0，未被速度限幅。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/action_pd_tests.json（10/10）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §16"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "kp/kd等按HiRA契约，不沿用v2默认25或自行改为更平稳数值。",
         "策略周期内q_target不变，但PD力矩必须根据子步状态重算。"
@@ -1382,7 +1419,7 @@
         "同状态下q_target与限幅tau匹配独立源公式，满足预登记容差。",
         "施加通路与日志一致，发现重复限幅/PD会拒绝，不允许靠看起来能走验收。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足。(1) 同状态下 q_target 与限幅 tau 匹配独立源公式：A1/A2 用 source_q_target 逐关节对照，差 0.0；A3/A4 用 source_pd_torque 对照，±100 动作下 τ_PD=500 被裁到每关节 effort（23.7/23.7/35.55），单关节 ±0.1 rad 扰动给出 ∓2.000 且其余关节为 0；A5 证明 4 个子步共用 q_target 但 τ 随新鲜 q/qdot 改变，符合'策略周期内目标不变、PD 每子步重算'的约束。(2) 施加通路与日志一致、重复限幅/PD 会被拒：A7 对超界动作（±101、-100.5）直接抛错，且 clipped == clamp(PD) 成立（只裁一次）；A9 逐子步记录 clipped action、q_target、τ_PD、τ_clipped、写入 effort 与饱和关节数，A6 证明这些量按关节名与 Lab 顺序一一对应；A8 确认增益取自源（20/0.5，非 v2 的 25），A10 确认 qdot=40 rad/s 时 τ=+20.0 未被任何速度限幅改写。如实说明边界：本任务只证明公式与映射正确，Isaac Lab 在 write→step 之间取到的 q/qdot 是否即子步所用值，留待 HIRA-015 的同状态 oracle 对照与后续闭环验证。"
     },
     {
       "id": "HIRA-015",

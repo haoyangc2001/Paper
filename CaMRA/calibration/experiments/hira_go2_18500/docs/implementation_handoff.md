@@ -803,3 +803,63 @@ Lab 侧拿到世界系角速度，必须 `R(q)ᵀ` 转一次。**世界 yaw_rate
 （`robot.data.root_quat_w`、`root_ang_vel_w`、`joint_pos` 的取值时机）要在
 HIRA-014 的闭环里做，那时才能验证"取的是物理子步后的值还是策略步前的值"。
 本轮的 oracle 对照证明的是**公式与顺序正确**，不是"接进仿真后自动正确"。
+
+---
+
+## 16. 动作映射与每子步 PD（HIRA-014）
+
+### 16.1 产物
+
+| 产物 | 位置 |
+|---|---|
+| 动作/PD 适配器 | `CaMRA/locomotion/adapters/hira_go2/action_pd.py` |
+| 自测 | `experiments/hira_go2_18500/tests/check_action_pd.py`（A1–A10，10/10） |
+| 报告 | `experiments/hira_go2_18500/reports/action_pd_tests.json` |
+
+### 16.2 一条控制链，三个"只发生一次"
+
+```
+策略步（0.02 s）：a_clipped = clip(a, ±100)        ← 只裁一次
+                 q_target = q_default + 0.25·a     ← 只在入口算一次
+物理子步（0.005 s × 4）：
+                 τ_PD = 20·(q_target − q) − 0.5·q̇  ← 每子步用新鲜 q/q̇ 重算
+                 τ = clip(τ_PD, ±effort)           ← 只裁一次
+                 write(τ)
+```
+
+对应的三条强制：
+
+- `set_policy_action` 收到超过 ±100 的动作**直接拒绝**——不在这里再裁，否则
+  "观测里的上一动作"和"真正执行的动作"会在边界处分叉。
+- `compute_substep` 必须每步传新的 `q/q̇`；`q_target` 在 4 步内恒定（A5 实测）。
+- 力矩裁剪只此一处，A7 用 `clipped == clamp(PD)` 直接验证。
+
+### 16.3 10 项自测
+
+| ID | 查什么 | 结果 |
+|---|---|---|
+| A1 | `q_target = q_default + 0.25a` 逐关节 | 差 0.0 |
+| A2 | 零动作 → 默认角 | 差 0.0 |
+| A3 | ±100 动作 → τ 顶到 ±effort | τ_PD=500 → 裁到 23.7/23.7/35.55，12 关节全饱和 |
+| A4 | 单关节 ±0.1 rad 扰动 | τ=∓2.000，其余关节 0.0 |
+| A5 | 4 子步共用 q_target、τ 每步变 | 通过 |
+| A6 | τ 按名字写回 Lab 位置 | 逐关节一致，置换往返差 0.0 |
+| A7 | 超界动作被拒、力矩只裁一次 | 通过 |
+| A8 | kp=20、kd=0.5（不是 v2 的 25） | 通过 |
+| A9 | 六项日志齐全 | 缺字段 0 |
+| A10 | 无隐藏速度限幅 | q̇=40 rad/s（>30.1 上限）时 τ=+20.0 未被裁 |
+
+A10 值得单独说：如果哪里偷偷按 `velocity_limit` 限了力矩，40 rad/s 这个点会立刻
+露出不同的数；实测它老老实实等于 `0.5×40`。
+
+### 16.4 与 HIRA-013 的衔接
+
+`ObservationAdapter.apply_action` 返回的裁剪后动作，直接喂给
+`ActionTorqueAdapter.set_policy_action`，两边对"上一动作"的定义因此天然一致：
+同一个 ±100 裁剪值，既进 33:45 观测块，也进 q_target。
+
+### 16.5 仍然没做的
+
+这一层只保证"给定 q/q̇ 与动作，算出的 τ 与源公式一致"。它**不保证** Isaac Lab 在
+`write_joint_effort_target → write_data_to_sim → sim.step()` 之间取到的 q/q̇ 就是
+子步真正使用的值——那是 HIRA-015 的同状态 oracle 对照与 HIRA-016 之后的闭环要回答的。

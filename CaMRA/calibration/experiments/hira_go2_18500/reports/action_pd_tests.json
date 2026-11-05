@@ -1,0 +1,92 @@
+{
+  "report": "action_pd_tests",
+  "task": "HIRA-014",
+  "constants": {
+    "stiffness": 20.0,
+    "damping": 0.5,
+    "action_scale": 0.25,
+    "clip_actions": 100.0,
+    "decimation": 4
+  },
+  "effort_limits_source": {
+    "FL_hip_joint": 23.700000762939453,
+    "FL_thigh_joint": 23.700000762939453,
+    "FL_calf_joint": 35.54999923706055,
+    "FR_hip_joint": 23.700000762939453,
+    "FR_thigh_joint": 23.700000762939453,
+    "FR_calf_joint": 35.54999923706055,
+    "RL_hip_joint": 23.700000762939453,
+    "RL_thigh_joint": 23.700000762939453,
+    "RL_calf_joint": 35.54999923706055,
+    "RR_hip_joint": 23.700000762939453,
+    "RR_thigh_joint": 23.700000762939453,
+    "RR_calf_joint": 35.54999923706055
+  },
+  "checks": [
+    {
+      "id": "A1-q-target",
+      "name": "q_target = q_default + 0.25*a，逐关节与公式一致",
+      "ok": true,
+      "detail": "max_abs_diff=0.000e+00，逐关节一致=True"
+    },
+    {
+      "id": "A2-zero-action",
+      "name": "零动作时关节目标等于默认角",
+      "ok": true,
+      "detail": "max_abs_diff=0.000e+00"
+    },
+    {
+      "id": "A3-saturation",
+      "name": "±100 动作把力矩顶到每关节 ±effort（先算 PD 再裁一次）",
+      "ok": true,
+      "detail": "τ_PD = kp*25 = 500.0 N·m，裁到 [23.7, 23.7, 35.55]…；饱和关节数=12（PD 原始值 500 已被裁）"
+    },
+    {
+      "id": "A4-single-joint",
+      "name": "单关节偏离 0.1 rad → τ = -kp*0.1（符号反向、其他关节为零）",
+      "ok": true,
+      "detail": "RL_calf_joint: +0.1 rad → τ=-2.000，-0.1 rad → τ=2.000，其余关节和=0.000e+00"
+    },
+    {
+      "id": "A5-substep-pd",
+      "name": "4 个物理子步共用一个 q_target，但每步用新鲜 q/qdot 重算 τ",
+      "ok": true,
+      "detail": "q_target 四步相同=True，τ 每步变化=True，子步计数=4"
+    },
+    {
+      "id": "A6-order-map",
+      "name": "源顺序的 τ 按名字写到 Lab 位置；置换可逆",
+      "ok": true,
+      "detail": "逐关节按名字对齐=True，置换往返最大差=0.000e+00"
+    },
+    {
+      "id": "A7-no-double-clip",
+      "name": "超界动作被拒；力矩只裁一次（clipped == clamp(PD)）",
+      "ok": true,
+      "detail": "超上界被拒=True，超下界被拒=True，单次裁剪成立=True"
+    },
+    {
+      "id": "A8-gains",
+      "name": "kp=20、kd=0.5（不是 v2 的 25）",
+      "ok": true,
+      "detail": "stiffness=20.0, damping=0.5, action_scale=0.25"
+    },
+    {
+      "id": "A9-trace",
+      "name": "每子步记录 raw/clipped 动作、q_target、τ_PD、τ_clipped、写入 effort",
+      "ok": true,
+      "detail": "缺字段=[]"
+    },
+    {
+      "id": "A10-no-velocity-limit",
+      "name": "qdot=40 rad/s(>30.1 上限) 时 τ=-kd*qdot，未被速度限幅",
+      "ok": true,
+      "detail": "τ=20.000（=0.5*40），最小速度上限=20.07"
+    }
+  ],
+  "verdict": {
+    "all_passed": true,
+    "failed": [],
+    "n_checks": 10
+  }
+}
