@@ -1,0 +1,154 @@
+{
+  "report": "timing_command_reset",
+  "task": "HIRA-016",
+  "device": "cuda:0",
+  "timing": {
+    "sim_dt": 0.005,
+    "policy_dt": 0.02,
+    "command_dt": 0.1,
+    "decimation": 4,
+    "command_policy_steps": 5,
+    "window_s": 30.0,
+    "warmup_physics_steps": 200,
+    "paired_points": 301
+  },
+  "counters": {
+    "warmup_physics_steps": 200,
+    "window_physics_steps": 6000,
+    "policy_steps": 1500,
+    "command_intervals": 300,
+    "paired_points": 301,
+    "terminations_in_window": 0
+  },
+  "command_sequence": [
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.3,
+      0.0,
+      0.0
+    ],
+    [
+      0.1,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.3,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.5
+    ]
+  ],
+  "terminations": [
+    {
+      "env_id": 0,
+      "physics_step": 28,
+      "policy_step": 7,
+      "command_index": 0,
+      "sim_time": 0.14,
+      "root_height": 0.09788642078638077,
+      "tilt_deg": 0.5395922660827637,
+      "command": [
+        0.20000000298023224,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "env_id": 0,
+      "physics_step": 32,
+      "policy_step": 8,
+      "command_index": 0,
+      "sim_time": 0.16,
+      "root_height": 0.0954146459698677,
+      "tilt_deg": 1.004051923751831,
+      "command": [
+        0.20000000298023224,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "C1-warmup",
+      "name": "warmup 只推进 200 个物理步，不产生策略步",
+      "ok": true,
+      "detail": "physics_step=200（期望 200），policy_step=0"
+    },
+    {
+      "id": "C2-counters",
+      "name": "6000 物理步 / 1500 策略步 / 300 命令区间 / 301 配对点",
+      "ok": true,
+      "detail": "physics=6000/6000，policy=1500/1500，intervals=300/300，paired_points=301"
+    },
+    {
+      "id": "C3-decimation",
+      "name": "相邻策略步之间恰好 4 个物理子步",
+      "ok": true,
+      "detail": "实测步距集合=[4]（期望 {4}）"
+    },
+    {
+      "id": "C4-command-interval",
+      "name": "每个命令区间恰好 5 次重新观测与推理",
+      "ok": true,
+      "detail": "区间数=300，每区间策略步数集合=[5]"
+    },
+    {
+      "id": "C5-command-fidelity",
+      "name": "命令块 = [2vx, 2vy, 0.25wz]，0.1 m/s 未被清零、vy 未被吞掉",
+      "ok": true,
+      "detail": "最大偏差=0.000e+00，低速候选违规=0，cmd=[0.1,0,0] → obs[6]=0.200"
+    },
+    {
+      "id": "C6-q-target",
+      "name": "窗口内 q_target 恒等于 default + 0.25·clipped_action",
+      "ok": true,
+      "detail": "最大偏差=5.960e-08"
+    },
+    {
+      "id": "N2-command-override",
+      "name": "新命令在一个策略步内生效（0.5→0.2 对应 obs 1.0→0.4），无内部锁定或重采样",
+      "ok": true,
+      "detail": "obs[6]: 1.000 → 0.400（期望 1.0 → 0.4）"
+    },
+    {
+      "id": "N1-wrong-decimation",
+      "name": "decimation 写成 3 时步距检查会报错（检查器有效性）",
+      "ok": true,
+      "detail": "合成轨迹步距集合={3}，与期望 {4} 不符 → 检查器判失败。说明：真实重建 decimation=3 的场景需要第二个 InteractiveScene，而 prim 路径（/World/envs/env_*）不允许同进程存在两份场景"
+    },
+    {
+      "id": "C7-termination-capture",
+      "name": "env0 摔倒时先抓到终止状态再重置（高度 < 0.15 m）",
+      "ok": true,
+      "detail": "抓到 1 条；root_height=0.098，tilt=0.5°"
+    },
+    {
+      "id": "C8-per-env-reset",
+      "name": "只重置 env0：其上一动作清零、root 回 0.42，其他 env 的上一动作与命令不变",
+      "ok": true,
+      "detail": "env0 prev_abs 3.898→0.000，env1..3 不变=True，命令不变=True，env0 高度=0.420"
+    },
+    {
+      "id": "N3-cross-env",
+      "name": "重置 env0（确实发生）不改变其他 env 的命令块与上一动作",
+      "ok": true,
+      "detail": "本次重置 env 数=1，env1..3 命令块最大变化=0.000e+00，上一动作不变=True"
+    }
+  ],
+  "trace_file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/reports/timing_command_trace.jsonl",
+  "verdict": {
+    "all_passed": true,
+    "failed": [],
+    "n_checks": 11
+  }
+}

@@ -1499,7 +1499,7 @@
       "id": "HIRA-016",
       "phase": "数值验证",
       "goal": "验证外部命令、三时钟和逐env终止重置",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-015"
       ],
@@ -1519,7 +1519,46 @@
         "reports/timing_command_reset.json",
         "逐步事件trace"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T19:15:00+08:00",
+          "summary": "建立最小闭环 runner 并验证三时钟、外部命令与逐 env 终止：6000 物理步/1500 策略步/300 命令区间/301 配对点全部按实际计数成立，命令块逐点等于 [2vx,2vy,0.25wz] 且 0.1 m/s 未被清零，env0 摔倒时先抓终止状态再单独重置、其他 env 不受影响；11 项检查全过。过程中抓到并修掉一个致命 bug：sim.step() 不刷新 articulation data 缓冲，导致控制开环。",
+          "actions": [
+            "新增 adapters/hira_go2/env_runner.py：SimulationContext + 仅含机器人的 InteractiveScene；三时钟由真实计数器推进（每策略步 4 个物理子步、每 5 个策略步更新一次外部命令）；逐 env 终止判定（高度<0.15 m 或倾角>60°）并在 reset 前抓取 TerminationRecord；reset 时显式写 root pose/关节角并只清零对应 env 的上一动作。",
+            "新增 tests/check_timing_command_reset.py：分 --phase main（1 env，warmup+30 s 窗口+命令保真+q_target+命令覆盖负测试）、--phase termination（4 env，终止与跨 env 隔离）、--phase merge（纯 python 合并）三段，规避同进程无法创建第二个 InteractiveScene 的限制。",
+            "验证命令通路：窗口循环施加 5 条命令，逐策略步核对 obs[6:9] 与 [2vx,2vy,0.25wz]，专门检查 0.1 m/s 不被 0.2 死区清零、纯 vy/纯 wz 不被 heading 反算吞掉。",
+            "修 bug：初版 30 s 窗口里高度恒 0.42、倾角恒 0，定位为 sim.step() 后未调用 robot.update()，PD 与观测都在用旧状态（开环）；每个物理子步补 update 后重跑，高度 0.248–0.337 m、倾角最大 7.8°、力矩峰值 32.28 N·m、0 次终止。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/env_runner.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_timing_command_reset.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/timing_command_reset.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/timing_command_trace.jsonl（新建，1500 行）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§18）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-016 记录）"
+          ],
+          "commands": [
+            "python tests/check_timing_command_reset.py --headless --device cuda:0 --phase main --window 30（约 203 s）",
+            "python tests/check_timing_command_reset.py --phase termination（4 env）",
+            "python tests/check_timing_command_reset.py --phase merge（无需 torch/Isaac）"
+          ],
+          "results": [
+            "计数：warmup 200 物理步且策略步 0；窗口 6000 物理步 / 1500 策略步 / 300 命令区间 / 301 配对点；步距集合 {4}；每区间推理次数 {5}。",
+            "命令保真：obs[6:9] 与 [2vx,2vy,0.25wz] 最大偏差 0.0；cmd=0.1 → obs[6]=0.200；命令 0.5→0.2 后下一策略步 obs 1.0→0.4。",
+            "q_target 在窗口内恒等于 default+0.25·clipped，最大偏差 5.96e-8。",
+            "逐 env 终止：env0 抓到 root_height=0.098 m 的终止记录（reset 前），重置后高度 0.420 m、上一动作 3.898→0；env1..3 上一动作与命令逐位不变。",
+            "负测试：N1 decimation=3 的合成轨迹被步距检查判失败；N2 旧命令覆盖被一个策略步内的观测变化排除；N3 真重置 env0 后 env1..3 命令块变化 0.0。",
+            "行为事实：30 s 窗口内 0 次终止，高度 0.248–0.337 m、倾角 ≤7.8°、力矩峰值 32.28 N·m（hip 23.7 已饱和）；滚动/跟踪能力留待 HIRA-017。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/timing_command_reset.json（11/11）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/timing_command_trace.jsonl（1500 步逐步 trace）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §18"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "实际时钟由计数/时间戳验证，不仅检查配置值。",
         "禁止沿用旧整批连坐或自动reset后状态当终止位置。"
@@ -1528,7 +1567,7 @@
         "完整窗口6000物理步/1500策略步/300命令区间/301配对点，warmup另记200物理步。",
         "故意错误decimation、旧命令覆盖、跨env污染被检出。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足。(1) 完整窗口 6000 物理步/1500 策略步/300 命令区间/301 配对点、warmup 另记 200 物理步：全部由 runner 的真实计数器与逐步 trace 验证（C1/C2），相邻策略步步距集合为 {4}（C3）、每命令区间推理次数集合为 {5}（C4），命令块与 [2vx,2vy,0.25wz] 的最大偏差为 0.0、0.1 m/s 未被清零（C5），q_target 与 default+0.25·clipped 的最大偏差 5.96e-8（C6）。(2) 故意错误 decimation、旧命令覆盖、跨 env 污染均被检出：N1 用步距 {3} 的合成轨迹证明检查器会判失败（真实重建 decimation=3 场景受 '同进程只能有一个 InteractiveScene（/World/envs/env_*）'限制，已在报告中说明）；N2 证明命令写入后一个策略步内即生效、无内部锁定；N3 在真正发生一次 env0 重置的前提下，env1..3 的命令块变化 0.0、上一动作逐位不变；C7/C8 证明终止状态在 reset 前抓取（root_height 0.098 m，reset 后 0.420 m）且逐 env 清零互不干扰。另如实记录：初版因 sim.step() 后未调用 robot.update() 导致 data 缓冲不刷新、控制实际开环（表现为 30 s 高度恒 0.42 m），该 bug 已修复并重跑；修复前后时钟检查均通过，说明仅靠计数无法发现开环，故报告同时保留高度/倾角/力矩序列。"
     },
     {
       "id": "HIRA-017",
