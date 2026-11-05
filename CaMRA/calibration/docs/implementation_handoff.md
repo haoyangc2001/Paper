@@ -1696,3 +1696,56 @@ git -c user.name=caohy -c user.email=caohy@local commit -m 'feat(camra): lock th
    若 Isaac 仍停在 P2P 校验，改用 `CUDA_VISIBLE_DEVICES=1` 或 `2`（另两张卡上没有常驻计算进程）；
 4. 采完后 `check_collection.py --split calibration`，再按 D-007 的办法处理业务失败（改名保留 + 新 attempt 重采）；
 5. 最后把 `pending_code/` 的三份文件移入仓库，跑 `pytest tests -q`，再执行 CAL-025。
+
+## 26. 采集器语义修正：逐 env 终止，不再整批连坐（2026-11-05 晨）
+
+### 26.1 缺陷现场
+
+GPU 1 上首次正式采集 5 批即暴露：扰动 profile 下摔倒率约 4%，而旧语义是
+"任一 env 触发 termination → 立即 break 整批"，导致 **5 条真摔倒连坐 155 条**
+interrupted（160 条里 97% 白跑）：
+
+```text
+trials/calibration_superseded_batchabort/：5 terminated + 155 interrupted
+```
+
+按该摔倒率外推 800 条：约 25 次批级中止，浪费的算力与正式数据缺口都不可接受。
+
+### 26.2 新语义（scripts/collect_trials.py）
+
+* 循环不再 break：每个 env 记录各自的终止控制步 ``stop_ctrl[i]``，
+  其余 env 继续跑满 30 s 窗口；
+* 物理上安全：32 个 env 的 PhysX 子树相互独立，IsaacLab 的自动复位只影响
+  终止 env 自己，不会把新轨迹拼进兄弟 env 的缓冲；
+* 落盘按各自窗口切片：physics_200hz 截到 ``n_ctrl_i*dec`` 步、50 Hz 状态截到
+  ``n_ctrl_i`` 行、配对点按同一规则截断、名义积分用同一前缀；
+* 能量口径：满窗 env 仍用设备端逐步累加（``rec.total_j[i]``）；提前终止的 env
+  用切片后的 tau/qdot 以 float64 复算，公式与 ``recorder.finish`` 的复算完全一致，
+  ``energy.json`` 新增 ``j_exec_source`` 字段区分两种来源；
+* ``meta.json`` 的 ``steps_executed``/``control_steps`` 逐 env 记录，
+  notes 注明"逐 env 终止，不连坐同批"；
+* 批级日志从单一 outcome 改为 ``outcomes`` 计数（如
+  ``{"completed": 31, "terminated": 1}``）+ ``steps_max``。
+
+### 26.3 效果（重启后前 4 批）
+
+```text
+batch 0  outcomes {completed: 30, terminated: 2}  steps_max 1500  wall 60.8 s
+batch 1  outcomes {completed: 31, terminated: 1}  steps_max 1500  wall 52.5 s
+batch 2  outcomes {completed: 31, terminated: 1}  steps_max 1500  wall 54.0 s
+batch 3  outcomes {completed: 31, terminated: 1}  steps_max 1500  wall 55.1 s
+```
+
+128 条 trial 全部落盘、0 条 interrupted，约 1.7 s/条——802 条理论时长约 25 分钟
+（GPU 1，机器 load ~150）。terminated 是业务失败，计入配额、不重采、不补数据。
+
+### 26.4 数据锁重建（采集开始前完成）
+
+代码树散列 ``c40e5a95… → 9e84a2d1…``（仅 scripts/collect_trials.py 变更），
+数据锁 ``907310c7… → 21131216…``，重建后对 /pub 运行副本
+``verify_artifacts`` 得 **n_bad=0**；协议/模型/轮廓/接口/资产/清单/地图全部不变。
+
+### 26.5 旧产物处置
+
+`trials/calibration`（155 interrupted + 5 terminated，全部来自旧语义）整体改名为
+`trials/calibration_superseded_batchabort`，**零删除**；正式目录从空开始重新采集。

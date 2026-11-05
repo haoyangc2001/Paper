@@ -10,8 +10,12 @@
   * 记录：200 Hz 力矩/关节速度/根状态 + 50 Hz 状态 + 1 s warmup 边界；
   * 名义：同一命令程序 + 同一起点积分出 301 个配对点。
 
-任何 env 触发 termination 立即停止整批，避免 IsaacLab 自动复位把新轨迹拼进旧 trial；
-未终止的兄弟 env 记为 interrupted，三者（completed/terminated/interrupted）都落盘计数。
+任何 env 触发 termination/truncation 只结束它自己：记录其终止控制步后其余 env 继续跑满
+窗口（§26，替代旧的"整批中止"。env 间物理独立，IsaacLab 的自动复位只影响该 env
+自己的子树）；每个 env 的数据在落盘时按各自窗口切片，提前终止者的能量用切片后的
+tau/qdot 以 float64 复算（公式与 recorder.finish 的复算一致，离线可复现）。
+四种 outcome（completed/terminated/truncated/interrupted）都落盘计数；
+新实现下正常流程不应再产生 interrupted（它是旧连坐语义的产物，保留仅为兼容旧产物）。
 """
 from __future__ import annotations
 
@@ -21,6 +25,7 @@ import json
 import os
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -29,6 +34,7 @@ for p in (str(CAL / "src"), str(CAL)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
+import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 from camra_calibration.commands import build_program  # noqa: E402
@@ -214,9 +220,11 @@ def main() -> int:
         sim.step = patched_step
         rec.begin_warmup()
         started = time.time()
-        outcome = "completed"
-        stop_ctrl = window_ctrl
-        term_mask = torch.zeros(n_env, dtype=torch.bool)
+        # 逐 env 记录各自的终止控制步（§26）：谁摔倒谁下场，其余 env 继续跑满窗口。
+        # env 之间物理独立，IsaacLab 的自动复位只影响该 env 自己的子树，不会污染兄弟。
+        stop_ctrl = np.full(n_env, window_ctrl, dtype=np.int64)
+        env_outcome = ["completed"] * n_env
+        finished = np.zeros(n_env, dtype=bool)
         with torch.no_grad():
             for _ in range(warmup_ctrl):
                 act = policy(obs)
@@ -231,43 +239,46 @@ def main() -> int:
                 obs = obs["policy"]
                 cmd = u.command_manager.get_command("base_velocity").detach().clone()
                 rec.after_policy_step(act, cmd)
-                if bool(te.any()):
-                    term_mask = te.detach().cpu()
-                    outcome = "terminated"
-                    stop_ctrl = c + 1
-                    break
-                if bool(tr_.any()):
-                    term_mask = tr_.detach().cpu()
-                    outcome = "truncated"
-                    stop_ctrl = c + 1
+                for flag, tag in ((te, "terminated"), (tr_, "truncated")):
+                    fired = flag.detach().cpu().numpy().astype(bool) & ~finished
+                    if fired.any():
+                        for i in np.nonzero(fired)[0]:
+                            stop_ctrl[i] = c + 1
+                            env_outcome[i] = tag
+                        finished |= fired
+                if finished.all():
                     break
         sim.step = orig_step
         elapsed = time.time() - started
+        outcomes_here = env_outcome[:k]
+        outcome = ("completed" if all(o == "completed" for o in outcomes_here)
+                   else "terminated" if "terminated" in outcomes_here else "truncated")
         rec.finish(outcome)
         arrays = rec.stack()
-        steps_executed = rec.window_steps
         batches_done += 1
 
-        # ---- 逐 trial 落盘 ----
+        # ---- 逐 trial 落盘（按各自的有效窗口切片，§26）----
         for i, tr in enumerate(batch):
-            trial_outcome = outcome
-            if outcome != "completed" and not bool(term_mask[i]):
-                trial_outcome = "interrupted"
+            trial_outcome = env_outcome[i]
+            n_ctrl_i = int(stop_ctrl[i])
+            n_sub_i = n_ctrl_i * dec
+            full_window = n_ctrl_i == window_ctrl
             stats[trial_outcome] += 1
             d, attempt = store.prepare(tr["trial_id"])
-            phys = {"tau": arrays["tau"][:, i, :], "qdot": arrays["qdot"][:, i, :],
-                    "root_pos": arrays["root_pos_200hz"][:, i, :],
-                    "root_quat": arrays["root_quat_200hz"][:, i, :],
-                    "root_lin_vel": arrays["root_lin_vel_200hz"][:, i, :],
-                    "root_ang_vel": arrays["root_ang_vel_200hz"][:, i, :],
+            phys = {"tau": arrays["tau"][:n_sub_i, i, :], "qdot": arrays["qdot"][:n_sub_i, i, :],
+                    "root_pos": arrays["root_pos_200hz"][:n_sub_i, i, :],
+                    "root_quat": arrays["root_quat_200hz"][:n_sub_i, i, :],
+                    "root_lin_vel": arrays["root_lin_vel_200hz"][:n_sub_i, i, :],
+                    "root_ang_vel": arrays["root_ang_vel_200hz"][:n_sub_i, i, :],
                     "sim_dt": torch.tensor([sim_dt])}
             store.write_npz(d, "physics_200hz.npz", phys)
-            state = {k.replace("_50hz", ""): v[:, i, :] for k, v in arrays.items() if k.endswith("_50hz")}
+            state = {key.replace("_50hz", ""): v[:n_ctrl_i, i, :]
+                     for key, v in arrays.items() if key.endswith("_50hz")}
             store.write_npz(d, "state_50hz.npz", state)
 
             # 配对：t=0 初态 + 每 0.1 s（50 Hz 第 5k-1 条） → 301 点
-            pos50 = arrays["root_pos_50hz"][:, i, :2]
-            quat50 = arrays["root_quat_50hz"][:, i, :]
+            pos50 = arrays["root_pos_50hz"][:n_ctrl_i, i, :2]
+            quat50 = arrays["root_quat_50hz"][:n_ctrl_i, i, :]
             idx = torch.arange(1, window_ctrl // 5 + 1) * 5 - 1
             idx = idx[idx < pos50.shape[0]]
             pair_pos = torch.cat([torch.tensor(initial_pose_rows[i][:2]).float().unsqueeze(0),
@@ -277,7 +288,7 @@ def main() -> int:
             # 会触碰协议 time_sync 容差（见 §18.2）
             t = torch.arange(n_pairs, dtype=torch.float64) * pair_dt
             nom = integrate(PlanarState(poses[i]["px"], poses[i]["py"], poses[i]["yaw"]),
-                            progs[i].commands[:window_ctrl // 5 + 1], pair_dt)
+                            progs[i].commands[:n_ctrl_i // 5 + 1], pair_dt)
             nom_pos = torch.tensor([[s.px, s.py] for s in nom], dtype=torch.float32)
             nom_yaw = torch.tensor([s.yaw for s in nom], dtype=torch.float32)
             dev = torch.linalg.norm(pair_pos - nom_pos[:n_pairs], dim=-1)
@@ -288,11 +299,24 @@ def main() -> int:
                                     dtype=torch.float32).squeeze(0),
             })
 
+            # 能量：满窗 env 直接用设备端逐步累加；提前终止的 env 用切片后的 tau/qdot
+            # 以 float64 复算（公式与 recorder.finish 的复算完全一致，离线可复现）。
+            if full_window:
+                j_exec = float(rec.total_j[i].item())
+                per_joint = [float(x) for x in rec.per_joint_j[i].tolist()]
+                j_exec_source = "device_accumulated"
+            else:
+                pw = (arrays["tau"][:n_sub_i, i, :].double()
+                      * arrays["qdot"][:n_sub_i, i, :].double()).clamp_min(0.0)
+                j_exec = float(pw.sum(-1).sum(0) * sim_dt)
+                per_joint = [float(x) for x in (pw.sum(0) * sim_dt).tolist()]
+                j_exec_source = "recomputed_from_truncated_arrays"
             energy = {"unit": "J", "metric_id": "D-ENERGY-001",
-                      "j_exec": float(rec.total_j[i].item()),
+                      "j_exec": j_exec,
                       "j_nom": None, "j_nom_status": "not_available_pending_power_model",
-                      "steps_executed": steps_executed,
-                      "per_joint_j": [float(x) for x in rec.per_joint_j[i].tolist()]}
+                      "steps_executed": n_sub_i,
+                      "j_exec_source": j_exec_source,
+                      "per_joint_j": per_joint}
             store.write_json(d, "energy.json", energy)
             meta = {
                 "trial_id": tr["trial_id"], "split": args.split, "family": tr["family"],
@@ -301,8 +325,8 @@ def main() -> int:
                 "protocol_version": proto.version, "protocol_sha256": proto.sha256,
                 "bundle_tree_sha256": tr.get("program_sha256", bundle_tree),
                 "program_sha256": progs[i].sha256(),
-                "outcome": trial_outcome, "steps_executed": steps_executed,
-                "steps_expected": window_steps, "control_steps": stop_ctrl,
+                "outcome": trial_outcome, "steps_executed": n_sub_i,
+                "steps_expected": window_steps, "control_steps": n_ctrl_i,
                 "warmup_steps": rec.warmup_steps, "warmup_ctrl_steps": warmup_ctrl,
                 "pairing_points": n_pairs, "pairing_dt": pair_dt,
                 "profile_applied": applied[i].to_manifest_record(),
@@ -317,19 +341,21 @@ def main() -> int:
                 "energy": {"unit": "J", "j_exec": energy["j_exec"]},
                 "notes": ("同一命令程序生成名义轨迹；energy.j_nom 待功率模型（CAL-019/020）"
                           if trial_outcome == "completed" else
-                          f"outcome={trial_outcome}，未外推补足 30 s"),
+                          f"outcome={trial_outcome}，于 {n_ctrl_i}/{window_ctrl} 控制步终止"
+                          "（逐 env 终止，不连坐同批，§26）"),
             }
             store.write_json(d, "meta.json", meta)
             store.append_record({
                 "trial_id": tr["trial_id"], "split": args.split, "family": tr["family"],
                 "profile": tr["profile"], "seed": tr["seed"], "attempt": attempt,
-                "outcome": trial_outcome, "steps_executed": steps_executed,
+                "outcome": trial_outcome, "steps_executed": n_sub_i,
                 "dir": str(d.relative_to(Path(args.out_root))),
                 "j_exec": energy["j_exec"], "pairing_points": n_pairs,
             })
             store.mark_done(d)
         print(json.dumps({"batch": bi // n_env, "trials": [t["trial_id"] for t in batch],
-                          "outcome": outcome, "steps": steps_executed,
+                          "outcomes": dict(Counter(outcomes_here)),
+                          "steps_max": int(stop_ctrl[:k].max()),
                           "wall_s": round(elapsed, 1)}, ensure_ascii=False), flush=True)
 
     print(json.dumps({"split": args.split, "bucket": args.bucket,
