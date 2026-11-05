@@ -1,0 +1,74 @@
+{
+  "report": "readiness_gaps",
+  "task": "HIRA-005",
+  "generated_at": "2026-11-05T16:08:00+08:00",
+  "summary": {
+    "onboarding_complete": true,
+    "integration_passed": false,
+    "total_gaps": 21,
+    "blocking_gaps": 0,
+    "note": "无阻塞项可进入 HIRA-006；但 G1 门禁未通过，禁止开始任何采集"
+  },
+  "resources": {
+    "present": [
+      {"item": "env_isaaclab", "path": "/pub/data/caohy/miniconda/envs/env_isaaclab", "detail": "torch 2.7.0+cu126 / isaaclab 0.47.2 / numpy 1.26.0"},
+      {"item": "HiRA submodule", "path": "Paper/HiRA @ 6a05af55", "detail": "只读；含 actor checkpoint 与 URDF"},
+      {"item": "hira actor checkpoint", "path": "HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt", "detail": "4.4 MB, sha d30e5212…，actor 45-512-256-128-12"},
+      {"item": "go2 urdf", "path": "HiRA/legged_gym_go2/resources/robots/go2/urdf/go2.urdf", "detail": "25 KB"},
+      {"item": "go2 usd", "path": "/pub/data/caohy/unitree_model/Go2/usd", "detail": "18 MB"},
+      {"item": "v2 frozen bundle", "path": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2", "detail": "28 MB，仅对照"},
+      {"item": "v2 training run", "path": "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion", "detail": "4.5 MB，只读"},
+      {"item": "v2 calibration trials", "path": "/pub/data/caohy/logs/camra/trials", "detail": "68 GB / 1820 条，HIRA-037 对照用"},
+      {"item": "hira experiment root", "path": "CaMRA/calibration/experiments/hira_go2_18500", "detail": "已建 config/reports/docs/tests"},
+      {"item": "hira logs root", "path": "/pub/data/caohy/logs/camra_hira", "detail": "env_setup/integration/trials，与 v2 隔离"}
+    ],
+    "missing_on_this_host": [
+      {"item": "candidate bundle r4_it2999_v1", "expected": "/pub/data/caohy/camra_bundles/candidates/r4_it2999_v1", "impact": "仅影响 v2 候选侧对照，不影响 HiRA 接入", "how_to_get": "rsync from caohy@192.168.20.12 同路径"},
+      {"item": "v2 raw eval logs TASK-024", "expected": "/pub/data/caohy/logs/camra/TASK-024", "size": "662 MB / 362 files", "impact": "HIRA-037 与 v2 同口径比较的深度受限", "how_to_get": "rsync from 192.168.20.12"},
+      {"item": "v2 raw eval logs TASK-026", "expected": "/pub/data/caohy/logs/camra/TASK-026", "size": "10.6 MB / 16 files", "impact": "同上", "how_to_get": "rsync from 192.168.20.12"},
+      {"item": "v2 raw eval logs TASK-036", "expected": "/pub/data/caohy/logs/camra/TASK-036", "size": "1.3 GB / 685 files", "impact": "同上", "how_to_get": "rsync from 192.168.20.12"}
+    ],
+    "access": "本机 caohy 对 /pub/data/caohy 与仓库有读写；.12 需 ssh 内网；无凭证入库"
+  },
+  "categories": {
+    "source_unclear": [
+      {"id": "G-S1", "item": "训练期命令课程范围", "why": "checkpoint infos=None，无法恢复", "owner_task": "HIRA-009", "action": "在预登记中声明不可得，改用源码命令域并记录差异", "blocking": false},
+      {"id": "G-S2", "item": "domain randomization 参数", "why": "同上", "owner_task": "HIRA-008", "action": "契约中标注未知，不假设与源码一致", "blocking": false},
+      {"id": "G-S3", "item": "观测噪声配置与训练随机种子", "why": "同上", "owner_task": "HIRA-013", "action": "clean 关闭噪声；扰动按新五 profile 定义并记录实际施加值", "blocking": false},
+      {"id": "G-S4", "item": "训练步数", "why": "文件名 model_18500 与内部 iter=16000 不一致", "owner_task": "HIRA-011", "action": "以 actor 权重身份（张量散列）为准，不引用步数作为证据", "blocking": false},
+      {"id": "G-S5", "item": "训练期是否覆盖 PD/action_scale", "why": "覆盖记录缺失", "owner_task": "HIRA-014", "action": "以源码值 kp=20/kd=0.5/scale=0.25 为准，在适配器与测试中显式断言", "blocking": false}
+    ],
+    "measurable_mapping": [
+      {"id": "G-M1", "item": "源关节顺序 ↔ Lab 关节顺序", "why": "两引擎的 DOF 构造顺序不同", "owner_task": "HIRA-013", "action": "按 DOF 名称建立双向置换表，并用同姿态力矩对照验证", "blocking": true},
+      {"id": "G-M2", "item": "default_dof_pos 向量", "why": "顺序依赖资产构造", "owner_task": "HIRA-013", "action": "按名称映射到 12 个具名默认角（FL_hip 0.1 … RR_calf -1.5）", "blocking": true},
+      {"id": "G-M3", "item": "四元数约定 (xyzw vs wxyz)", "why": "Gym 与 Lab 常用约定不同", "owner_task": "HIRA-013", "action": "同姿态投影重力对照，逐分量确认符号", "blocking": true},
+      {"id": "G-M4", "item": "clip_observations=100 是否启用", "why": "源在 get_observations 侧裁剪，Lab 路径不同", "owner_task": "HIRA-013", "action": "构造越界观测验证是否被截", "blocking": false},
+      {"id": "G-M5", "item": "URDF effort ↔ Lab motor effort", "why": "导入后执行器参数可能被改写", "owner_task": "HIRA-012", "action": "逐关节读两侧限幅值对照", "blocking": true},
+      {"id": "G-M6", "item": "高层 repeat 与 10 Hz 外部命令的相位", "why": "hierarchical 路径为 5 策略步/高层步", "owner_task": "HIRA-016", "action": "固定命令 5 步检查命令不变，确认不引入额外重复", "blocking": false}
+    ],
+    "dynamics_difference": [
+      {"id": "G-D1", "item": "执行器模型差异", "why": "Gym 手动 set force，Lab 为 actuator 模型", "owner_task": "HIRA-012", "action": "对齐 PD/gains/限幅，用同状态力矩对比量化残差", "blocking": false},
+      {"id": "G-D2", "item": "接触/摩擦求解器差异", "why": "两引擎求解器不同", "owner_task": "HIRA-017", "action": "只要求闭环行为量级一致，不要求逐帧动力学一致", "blocking": false},
+      {"id": "G-D3", "item": "资产差异（URDF vs USD）", "why": "质量/惯量/碰撞体可能不同", "owner_task": "HIRA-012", "action": "读回 Lab 资产的质量与惯量，与 URDF 对照并记录", "blocking": false},
+      {"id": "G-D4", "item": "结论措辞边界", "why": "不能声称复现源 Gym 的逐帧动力学", "owner_task": "HIRA-020", "action": "冻结包与报告统一表述为『HiRA 策略在本次 Isaac Lab 执行系统中的结果』", "blocking": false}
+    ],
+    "legacy_binding": [
+      {"id": "G-L1", "item": "默认设备 cuda:0", "why": "GPU0 被他人 katago 占用，且 v2 期实测会卡死 Isaac 启动", "owner_task": "HIRA-021", "action": "运行时显式指定空闲 GPU（当前 GPU2）并记录", "blocking": true},
+      {"id": "G-L2", "item": "默认日志根 /pub/data/caohy/logs/camra", "why": "会写进 v2 数据树", "owner_task": "HIRA-021", "action": "覆盖为 /pub/data/caohy/logs/camra_hira", "blocking": true},
+      {"id": "G-L3", "item": "默认 tmux 会话 camra-locomotion", "why": "与本轮 camra-hira-calibration 不一致", "owner_task": "HIRA-021", "action": "覆盖会话名", "blocking": false},
+      {"id": "G-L4", "item": "CONTROLLER_VERSION 硬编码 v2 名", "why": "HiRA 包路径会被拼错", "owner_task": "HIRA-010", "action": "引入控制器解析层，HiRA 用 camra_hira_go2_18500_lab_v1", "blocking": true},
+      {"id": "G-L5", "item": "protocol.DEFAULT_VERSION = 1.0.2", "why": "沿用 v2 协议等于混用冻结物", "owner_task": "HIRA-023", "action": "出独立协议并显式传路径", "blocking": false},
+      {"id": "G-L6", "item": "enforce_collection 默认 margins_v1.json", "why": "会用 v2 裕度放行 HiRA", "owner_task": "HIRA-029", "action": "HiRA 门禁指向自己的 margins 文件", "blocking": false},
+      {"id": "G-L7", "item": "build_data_lock 的 rglob('*.py') 覆盖 v2 全部代码", "why": "新增 HiRA 代码会改 v2 锁树散列", "owner_task": "HIRA-029", "action": "HiRA 锁只绑定自身代码子树；v2 锁不动，历史复算用只读快照", "blocking": false},
+      {"id": "G-L8", "item": "--allow-overwrite 保护", "why": "误用会覆盖旧产物", "owner_task": "HIRA-021", "action": "沿用该门禁并加测试断言", "blocking": false}
+    ]
+  },
+  "recorded_source_choices": [
+    {"choice": "使用 model_18500.pt 作为 actor 来源", "authority": "计划 source_controller_contract.identity_authority（GO2HighLevelCfgPPO.runner.low_level_model_path）", "verified": "sha d30e5212… 与计划一致"},
+    {"choice": "推理使用均值而非采样", "authority": "rsl_rl actor_critic.act_inference 源码", "verified": "代码确认，std 仅训练期使用"},
+    {"choice": "不拉取 HiRA 新提交", "authority": "HIRA-001 constraints", "verified": "子模块停留 6a05af55，dirty=0"},
+    {"choice": "不安装 Isaac Gym", "authority": "计划 tmux_execution_policy.environment_rule", "verified": "本轮未安装任何 Gym 依赖"},
+    {"choice": "三个导出文件不互换", "authority": "计划 other_exports_rule", "verified": "三者字节散列不同，以 checkpoint 提取 actor 为准"}
+  ],
+  "verdict": "onboarding 阶段（HIRA-001..005）完成：入口、对照表、数据流、资源与四类缺口已全部落文档，无未记录的来源选择，无阻塞项。可进入 HIRA-006；接入未通过，禁止采集。"
+}

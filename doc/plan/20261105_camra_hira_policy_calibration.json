@@ -621,7 +621,7 @@
       "id": "HIRA-004",
       "phase": "接手与环境",
       "goal": "追踪HiRA来源策略的完整执行语义",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-003"
       ],
@@ -645,7 +645,49 @@
         "reports/hira_source_trace.json",
         "handoff：HiRA源码语义与证据行/符号"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T16:02:00+08:00",
+          "summary": "追踪 HiRA 底层 actor 完整执行语义：确定性均值推理、无归一化/无循环、45→512→256→128→12 ELU；**确认命令被每步改写的两条路径**（wz 被 heading 误差覆盖、0.2 m/s 死区）；核对每子步 PD 与 URDF 力矩限幅；发现文件名 model_18500 与内部 iter=16000 不一致且 infos=None。",
+          "actions": [
+            "读 on_policy_runner.py:221 load / :229 get_inference_policy 与 actor_critic.py:123 act / :130 act_inference，确认推理用均值、std 仅训练期使用。",
+            "grep 全库确认无 running_mean / EmpiricalNormalization / obs_normalizer，无 LSTM/GRU。",
+            "CPU 只读加载 checkpoint，核对 17 个张量：actor.0 (512,45)、actor.2 (256,512)、actor.4 (128,256)、actor.6 (12,128)、std (12)。",
+            "读 go2_env.compute_observations 与 normalization 配置，逐段核对 45 维与缩放（0.25/1/[2,2,0.25]/1/0.05/1）。",
+            "读 legged_robot.py:300-310 _post_physics_step_callback：确认 heading_command=True 时**每个策略步**都覆盖 commands[:,2] = clip(0.5*wrap_to_pi(commands[:,3]-heading), -1, 1)。",
+            "读 legged_robot.py:312-326 _resample_commands：确认 commands[:, :2] *= (norm > 0.2) 造成低速死区。",
+            "读 legged_robot.py:67-74 与 :328-350：确认每物理子步重算 PD、torque_limits 来自 URDF props['effort']。",
+            "读 _reset_dofs 与 init_state：确认关节角 0.5–1.5 倍随机化、初始高度 1 m、episode 20 s。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/hira_source_trace.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（新增 §7，327 行）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-004 记录 + 风险状态更新）"
+          ],
+          "commands": [
+            "grep -n 'def act|def act_inference|normaliz' HiRA/rsl_rl/rsl_rl/modules/actor_critic.py",
+            "grep -n 'def load' -A 22 HiRA/rsl_rl/rsl_rl/runners/on_policy_runner.py",
+            "grep -n 'def _post_physics_step_callback' -A 22 HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot.py",
+            "python -c torch.load(model_18500.pt, map_location='cpu')（只读张量核对）"
+          ],
+          "results": [
+            "推理确定性：act_inference 返回 actor(obs) 均值；std(12,) 不参与推理；无观测归一化、无循环状态、无历史缓存。",
+            "网络：45→512→256→128→12、ELU、最后一层无激活，与计划预期一致（已用张量形状核实，非照抄）。",
+            "命令改写两条：①每策略步 commands[:,2] 被 heading 误差×0.5 覆盖（非仅重采样时）；②resample 时平面速度模长 ≤0.2 m/s 被清零。观测第 6:9 维消费的是改写后的值。",
+            "动作链路：clip(±100) → ×0.25 + q_default → P 控制 20/0.5 → clip(±URDF effort)，每物理子步重算。",
+            "时序：sim 0.005 / policy 0.02（decimation 4）/ 外部命令 0.1（5 策略步）/ 内部重采样 10 s / 源 episode 20 s。",
+            "元数据不一致：文件名 model_18500 但 checkpoint iter=16000，infos=None → 训练配置不可从 checkpoint 恢复，文件名不能作步数证据。",
+            "风险 R-01 升级为 confirmed 且比预期更糟；R-02/03/04 均 confirmed。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/hira_source_trace.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §7",
+            "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot.py:300-310, 312-326, 67-74, 328-350"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "保持HiRA只读，不启动其高层训练。",
         "当前源码配置只能作为来源线索，训练时配置仍需结合checkpoint和可取得记录核验。"
@@ -654,13 +696,13 @@
         "模型选择、观测拼接、PD与时钟都能追溯到实际调用链。",
         "明确列出可由代码确认项、需运行时确认项和缺失历史配置项。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) 模型选择、观测拼接、PD 与时钟都能追溯到实际调用链——模型载入追到 on_policy_runner.py:221 load → load_state_dict，推理追到 :229 get_inference_policy → actor_critic.py:130 act_inference（均值，不采样）；观测追到 go2_env.py:31-45 compute_observations 的六段拼接与 normalization 缩放；PD 追到 legged_robot.py:67-74 的每子步 _compute_torques（:328-350，P 控制 20/0.5 + clip URDF effort）；时钟追到 decimation=4、resampling_time=10、episode_length_s=20 与 hierarchical high_level_action_repeat=5；(2) 三类清单齐备——可代码确认项 11 条（含 heading 每步覆盖 wz、0.2 m/s 死区、reset 随机化）、需运行时确认项 6 条（state_dict 匹配、URDF effort vs Lab motor effort、四元数约定、默认角顺序置换、观测裁剪、高层 repeat 相位）、缺失历史配置项 3 条（训练期课程/随机化/种子因 infos=None 不可恢复；文件名 18500 与 iter 16000 不一致，步数不可单独确认；训练期是否覆盖 PD 参数不可验证）。另：本轮保持 HiRA 只读（子模块 dirty=0），未启动其高层训练。"
     },
     {
       "id": "HIRA-005",
       "phase": "接手与环境",
       "goal": "完成新上下文接手理解核对和接入风险清单",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-004"
       ],
@@ -678,7 +720,40 @@
         "docs/onboarding_map.md",
         "reports/readiness_gaps.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T16:10:00+08:00",
+          "summary": "完成接手地图：10 个入口、来源→目标 18 项配置对照、速度命令到校准结果的 10 段数据流、资源清单（10 项在位 / 4 项本机缺失）、21 条缺口按四类落责任任务；记录 5 项来源选择，无未记录选择。",
+          "actions": [
+            "写 docs/onboarding_map.md：入口表（AGENTS/计划/handoff/地图/基线/实现地图/来源追踪/历史证据/复现说明）、配置对照表、数据流图、资源表、四类未知项、就绪判断。",
+            "写 reports/readiness_gaps.json：source_unclear 5 条、measurable_mapping 6 条、dynamics_difference 4 条、legacy_binding 8 条，每条含 why / owner_task / action / blocking。",
+            "核实本机资源：env/子模块/checkpoint/URDF/USD/v2 冻结包/v2 训练目录/v2 1820 条 trial 均在位；发现 4 项缺失（候选包 r4_it2999_v1、TASK-024/026/036 原始日志）并给出 rsync 取得路径。",
+            "记录 5 项来源选择及其 authority 与验证方式，证明不存在未记录的来源选择。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/onboarding_map.md（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/readiness_gaps.json（新建）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-005 记录）"
+          ],
+          "commands": [
+            "ls -d /pub/data/caohy/{camra_bundles/frozen/...,logs/rsl_rl/...,unitree_model/Go2/usd,logs/camra/TASK-0xx}（存在性核实）",
+            "python -m json.tool reports/readiness_gaps.json"
+          ],
+          "results": [
+            "入口 10 项全部给绝对路径；对照表 18 项逐条给责任任务。",
+            "数据流 10 段：命令→观测→actor→q_target→每子步 PD→200 Hz 记录→J_exec→J_nom→ε_c/ε_d→α/δ 与检验。",
+            "资源：在位 10 项（含 68 GB v2 trial 产物）；本机缺失 4 项（候选包、TASK-024 662 MB、TASK-026 10.6 MB、TASK-036 1.3 GB），均给出 .12 的 rsync 路径，不阻塞接入但限制 HIRA-037 的对照深度。",
+            "缺口 21 条：来源不明 5、可测映射 6、动力学差异 4、旧工具绑定 8；blocking=true 的 7 条全部指向 HIRA-010/012/013/021。",
+            "来源选择 5 项已登记（checkpoint 身份、均值推理、不拉子模块、不装 Gym、三导出不互换），无未记录选择。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/onboarding_map.md",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/readiness_gaps.json"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不能用已阅读一句话替代理解证据。",
         "本轮还没有接入通过；缺环境不当成策略性能失败。"
@@ -687,7 +762,7 @@
         "新执行者仅凭文档能定位全部入口、输入输出和需配置的资源。",
         "各关键差异有责任任务；不存在未记录的来源选择。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) 新执行者仅凭文档即可定位全部入口、输入输出与需配置资源——onboarding_map.md §1 给出 10 个入口的绝对路径，§2 给出 18 项来源→目标配置对照（每项带责任任务），§3 给出从速度命令到 α/δ 的 10 段数据流（每段标注对应文件与函数），§4 给出 14 项资源的在位/缺失状态与取得路径（含 .12 的 rsync 命令），§6 给出逐维度就绪判断；(2) 各关键差异均有责任任务且不存在未记录的来源选择——readiness_gaps.json 把 21 条缺口分为来源不明 5（HIRA-009/008/013/011/014）、可测映射 6（HIRA-013/012/016）、动力学差异 4（HIRA-012/017/020）、旧工具绑定 8（HIRA-010/021/023/029），每条含 why/owner_task/action/blocking；recorded_source_choices 记录 5 项来源选择及其 authority 与验证方式（checkpoint 身份、均值推理、不拉子模块、不装 Isaac Gym、三导出不互换）；并明确 integrating_passed=false：本轮未做任何数值对照或闭环，禁止采集。如实记录一处资源缺口：v2 的 TASK-024/026/036 原始日志不在本机，HIRA-037 对照深度将受限，届时须说明。"
     },
     {
       "id": "HIRA-006",
@@ -1964,12 +2039,13 @@
   "integration_risks": [
     {
       "id": "R-01",
-      "title": "heading_command 继承为 True，Go2 底层配置未覆盖",
+      "title": "heading_command 继承为 True：wz 每个策略步都被改写，另有 0.2 m/s 死区",
       "evidence": "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot_config.py:44 heading_command = True；go2/go2_config.py 的 GO2RoughCfg 未定义 commands 覆盖",
-      "impact": "外部写入的 yaw rate 可能在命令重采样时被 heading 误差反算覆盖，策略消费的命令不等于外部命令",
+      "impact": "legged_robot.py:307-310 在每个策略步把 commands[:,2] 覆盖为 clip(0.5*wrap_to_pi(heading目标-当前朝向),-1,1)，并非只在重采样时；另 :326 把平面速度模长 ≤0.2 m/s 清零。外部写入的 [vx,vy,wz] 无法按原值到达策略",
       "verified_in_task": "HIRA-016（外部命令无暗中改写），并牵连 HIRA-013（观测的命令切片）",
-      "verification_method": "固定 commands[:, :3] 跨过至少一个重采样周期，记录策略实际消费的命令与写入值逐项比对",
-      "status": "open"
+      "verification_method": "HIRA-016 必须在适配层设 heading_command=False 并处理 0.2 m/s 死区，再按 5 策略步窗口比对写入值与策略消费值",
+      "status": "source_confirmed",
+      "confirmed_at": "HIRA-004"
     },
     {
       "id": "R-02",
@@ -1978,7 +2054,8 @@
       "impact": "若 Lab 适配层每策略步只算一次力矩并重复施加，轨迹与 200 Hz 能量积分都不等价",
       "verified_in_task": "HIRA-014（每物理子步 PD）、HIRA-019（200 Hz 真实力矩与计量）",
       "verification_method": "同状态同动作，对照一个策略步内 4 个子步的力矩序列与源 oracle",
-      "status": "open"
+      "status": "source_confirmed",
+      "confirmed_at": "HIRA-004"
     },
     {
       "id": "R-03",
@@ -1987,7 +2064,8 @@
       "impact": "与固定起点、同 seed 可复现的采集语义冲突；照搬会让每条 trial 起始状态不同",
       "verified_in_task": "HIRA-016（reset 与上一动作逐 env 清零）、HIRA-012（机器人与执行器配置）",
       "verification_method": "同 seed 两次运行的首帧关节角与根位姿必须一致，或差异被显式记录为有意设计",
-      "status": "open"
+      "status": "source_confirmed",
+      "confirmed_at": "HIRA-004"
     },
     {
       "id": "R-04",
@@ -1996,7 +2074,8 @@
       "impact": "差一倍会彻底改变行为，但机器人仍能行走，冒烟测试抓不出来",
       "verified_in_task": "HIRA-008（接口契约冻结）、HIRA-014",
       "verification_method": "适配层与测试显式断言解析值 0.25，并用源 _compute_torques 做 oracle 对照",
-      "status": "open"
+      "status": "source_confirmed",
+      "confirmed_at": "HIRA-004"
     },
     {
       "id": "R-05",

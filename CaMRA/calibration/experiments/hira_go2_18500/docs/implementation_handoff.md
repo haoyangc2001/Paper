@@ -241,3 +241,87 @@ CaMRA 的做法是把"底层能不能稳住"和"上层怎么决策"分开，再�
 
 - **复用**：命令程序、名义积分、profile 定义、记录器与能量公式、配对误差、统计口径、门禁机制
 - **隔离**：控制器包、协议版本、功率模型、足迹、α/δ、数据锁、trial_id/run_id/输出目录，以及 6.2 的 8 项默认值
+
+---
+
+## 7. HiRA 来源策略的执行语义（HIRA-004）
+
+机器可读版见 `reports/hira_source_trace.json`。以下只写关键结论与必须处理的三件事。
+
+### 7.1 载入与推理
+
+- 载入：`on_policy_runner.py:221 load()` → `actor_critic.load_state_dict(...)`；推理：`:229 get_inference_policy()` → `act_inference()`
+- **确定性**：`act_inference` 直接返回 `actor(obs)` 的均值，不采样（`std` 只训练期用）
+- **无观测归一化、无循环状态、无历史缓存**（全库 grep 不到 running_mean / EmpiricalNormalization / LSTM）
+- 网络：45 → 512 → 256 → 128 → 12，ELU，最后一层无激活（已用 checkpoint 张量核对）
+
+**一处必须记住的矛盾**：文件名 `model_18500.pt`，但 checkpoint 里 `iter = 16000`，且 `infos = None`。
+所以**文件名不能当训练步数证据**，训练期覆盖过的配置也无法从 checkpoint 恢复。
+
+### 7.2 观测（45 维，逐段已核）
+
+| 切片 | 量 | 缩放 |
+|---|---|---|
+| 0:3 | 机身角速度 | ×0.25 |
+| 3:6 | 机身系投影重力 | ×1 |
+| 6:9 | 命令 `[vx, vy, wz]` | ×2 / ×2 / ×0.25 |
+| 9:21 | `q − q_default` | ×1 |
+| 21:33 | `q̇` | ×0.05 |
+| 33:45 | **上一策略步裁剪后的动作** | ×1 |
+
+不含机身线速度，无额外历史拼接。观测在**每个策略步末尾**计算一次；分层路径在每次低层调用前还会再算一次。
+
+### 7.3 动作与力矩
+
+`clip(a, ±100)` → `q_target = 0.25·a + q_default` → `τ = clip(20·(q_target − q) − 0.5·q̇, ±URDF_effort)`，
+**每个物理子步重算一次**（`decimation=4`）。`torque_limits` 逐关节取自 URDF 的 `effort`。
+
+### 7.4 命令管线——最危险的一段
+
+```
+外部写入 commands[:, :3]
+   ↓  每个策略步（不是只在重采样时）
+legged_robot.py:307-310  commands[:,2] = clip(0.5 * wrap_to_pi(commands[:,3] − heading), −1, 1)
+   ↓  每 10 s 对到期 env
+legged_robot.py:326      commands[:, :2] *= (‖commands[:, :2]‖ > 0.2)
+   ↓
+观测第 6:9 维（策略看到的是被改写后的值）
+```
+
+两条改写：
+
+1. **wz 每步被 heading 误差覆盖**——因为基类 `heading_command=True` 而 `GO2RoughCfg` 没覆盖；
+2. **平面速度模长 ≤ 0.2 m/s 直接清零**——形成低速死区。
+
+**这两条必须在适配层处理**：`heading_command=False`；死区要么关掉、要么显式记录为受控条件。
+否则「外部命令」这个说法不成立，后面所有命令相关的统计都会偏。
+
+### 7.5 reset 语义
+
+- 关节角按 `q_default × rand(0.5, 1.5)` 随机化；初始高度 1 m 落下；episode 20 s
+- reset 时 `self.actions` 清零 → 观测第 33:45 维在 reset 后为 0
+- 与采集要求"固定起点、同 seed 可复现"冲突，适配层必须替换
+
+### 7.6 三类清单（HIRA-004 的验收要求）
+
+**A. 代码可确认**：网络结构与激活、推理用均值、无归一化、`clip_actions=100`、`action_scale=0.25`、
+`p=20 / d=0.5`、URDF 力矩限幅、每子步 PD、45 维六段与缩放、每步改写 wz、0.2 m/s 死区、reset 随机化。
+
+**B. 需运行时确认**：`state_dict` 键名与适配器是否完全匹配；URDF `effort` 逐关节值 vs Lab 导入后的 motor effort；
+四元数 `(w,x,y,z)` 约定在 Lab 侧投影重力是否一致；`default_dof_pos` 的源顺序 ↔ Lab 顺序置换；
+`clip_observations=100` 在 Lab 侧是否启用；`high_level_action_repeat=5` 与 10 Hz 外部命令的相位关系。
+
+**C. 缺失的历史配置**：训练期实际命令课程范围、domain randomization 参数、噪声配置、随机种子
+（`infos=None` 无法恢复）；`model_18500` 与 `iter=16000` 不一致，训练步数无法单独确认；
+训练期是否覆盖 `action_scale / stiffness / damping` 无法验证。
+
+### 7.7 对 R-01..R-04 的更新
+
+| 风险 | 状态 | 说明 |
+|---|---|---|
+| R-01 heading 改写 | **confirmed（比预期更糟）** | 不是只在重采样时，而是每个策略步都覆盖；另有 0.2 m/s 死区 |
+| R-02 每子步 PD | confirmed | 代码路径已确认 |
+| R-03 reset 随机化 | confirmed | 0.5–1.5 倍 + 1 m 落下 |
+| R-04 action_scale 双源 | confirmed | 解析值 0.25 |
+
+"confirmed" 指**源侧行为已确认**；我们的适配层是否做对，仍由 HIRA-014/016 的数值对照判定。

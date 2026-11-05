@@ -1,0 +1,137 @@
+{
+  "report": "hira_source_trace",
+  "task": "HIRA-004",
+  "generated_at": "2026-11-05T15:58:00+08:00",
+  "submodule_commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+  "scope": "HiRA 底层 actor 的完整执行语义，静态阅读 + checkpoint 只读张量核对；未启动 HiRA 高层训练，未修改子模块",
+  "model_loading": {
+    "path": "HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt",
+    "sha256": "d30e52122125cf3db576408d4bf736703cdee6719944f55c423b4af3cb03d2e8",
+    "loader": "rsl_rl/runners/on_policy_runner.py:221 load(path, load_optimizer=True) → alg.actor_critic.load_state_dict(loaded_dict['model_state_dict'])",
+    "inference_entry": "on_policy_runner.py:229 get_inference_policy → actor_critic.act_inference",
+    "deterministic": true,
+    "inference_rule": "modules/actor_critic.py:130 act_inference 直接返回 self.actor(observations) 的均值，不采样；std(12,) 仅训练期使用",
+    "observation_normalization": "none: rsl_rl 与 legged_gym 中 grep 不到 running_mean / EmpiricalNormalization / obs_normalizer，观测原样进网络",
+    "recurrent_state": "none: ActorCritic 为纯 MLP，无 LSTM/GRU，无历史缓存（唯一的『历史』是观测里显式拼入的上一动作）",
+    "tensor_shapes_verified": {
+      "actor.0.weight": [512, 45],
+      "actor.2.weight": [256, 512],
+      "actor.4.weight": [128, 256],
+      "actor.6.weight": [12, 128],
+      "std": [12],
+      "n_state_tensors": 17,
+      "activation": "elu（层索引 0/2/4/6 之间有 activation，最后一层后不再接）"
+    },
+    "filename_vs_metadata": {
+      "filename_says": "model_18500",
+      "checkpoint_iter": 16000,
+      "infos": null,
+      "conclusion": "文件名不能作为训练步数证据；训练期覆盖的配置无法从 checkpoint 恢复（infos 为 None），只能把源码配置当作来源线索"
+    }
+  },
+  "observation": {
+    "dim": 45,
+    "builder": "envs/go2/go2_env.py:31-45 compute_observations",
+    "slices": [
+      {"slice": "0:3", "quantity": "base_ang_vel", "expr": "self.base_ang_vel * obs_scales.ang_vel", "scale": 0.25, "frame": "机身系"},
+      {"slice": "3:6", "quantity": "projected_gravity", "expr": "self.projected_gravity", "scale": 1.0, "frame": "机身系"},
+      {"slice": "6:9", "quantity": "commands[:, :3]", "expr": "self.commands[:, :3] * self.commands_scale", "scale": [2.0, 2.0, 0.25], "frame": "机身系"},
+      {"slice": "9:21", "quantity": "joint position offset", "expr": "(self.dof_pos - self.default_dof_pos) * obs_scales.dof_pos", "scale": 1.0, "order": "源 DOF 顺序"},
+      {"slice": "21:33", "quantity": "joint velocity", "expr": "self.dof_vel * obs_scales.dof_vel", "scale": 0.05, "order": "源 DOF 顺序"},
+      {"slice": "33:45", "quantity": "previous action", "expr": "self.actions（step 开头裁剪后的值）", "scale": 1.0}
+    ],
+    "no_noise_when_clean": "self.add_noise 为假时不加噪；_get_noise_scale_vec 的索引为 9:21 / 21:33 / 33:45，与观测切片一致",
+    "when_computed": "每个策略步末尾（step 的 decimation 循环之后）计算一次；分层路径在每次低层调用前额外调一次 compute_observations",
+    "clipping": "normalization.clip_observations = 100（在 get_observations 侧生效，见 base 实现）",
+    "cautions_confirmed": [
+      "不包含机身线速度，也没有额外历史拼接——与计划写的 45 维定义一致",
+      "四元数只出现在 projected_gravity 的计算里，观测本身不含四元数，因此 xyzw/wxyz 之争只影响该投影的计算路径"
+    ]
+  },
+  "action_and_torque": {
+    "size": 12,
+    "pipeline": [
+      "envs/base/legged_robot.py:57-59 clip_actions = normalization.clip_actions (100)，self.actions = clip(actions, ±100)",
+      "control.action_scale 解析为 0.25（GO2RoughCfg.control 覆盖基类 0.5）",
+      "action 目标角 = 0.25 * a + default_dof_pos",
+      "PD(P): tau = p_gains*(target - dof_pos) - d_gains*dof_vel，p_gains=20，d_gains=0.5（按 joint 组）",
+      "clip(tau, ±torque_limits)，torque_limits 逐关节取自 URDF props['effort']（legged_robot.py:274-279）",
+      "每个物理子步重新执行上述计算（legged_robot.py:67-74）"
+    ],
+    "per_substep_recompute": true,
+    "evidence": "legged_robot.py:67-74：for _ in range(decimation): self.torques = self._compute_torques(self.actions); set_dof_actuation_force_tensor; simulate",
+    "note": "同一组 action 在 4 个子步里被重复使用，但力矩每步重算（因为 dof_pos / dof_vel 在变），这正是 200 Hz 能量积分必须逐子步记录的原因"
+  },
+  "timing": {
+    "sim_dt_s": 0.005,
+    "policy_dt_s": 0.02,
+    "decimation": 4,
+    "external_command_dt_s": 0.1,
+    "policy_steps_per_external_command": 5,
+    "internal_resample_s": 10.0,
+    "source_episode_length_s": 20,
+    "evidence": [
+      "base/legged_robot_config.py:68 decimation = 4",
+      "go2/go2_config.py env.episode_length_s = 20",
+      "base/legged_robot_config.py commands.resampling_time = 10.",
+      "hierarchical_go2_env.py:141-160 high_level_action_repeat = 5"
+    ]
+  },
+  "command_pipeline_the_critical_part": {
+    "entry": "commands[:, :3] = [vx, vy, wz]；commands[:, 3] 是 heading 目标（仅 heading_command=True 时使用）",
+    "per_step_rewrite": {
+      "location": "envs/base/legged_robot.py:307-310（_post_physics_step_callback，每个策略步都执行）",
+      "code": "if heading_command: heading = atan2(forward.y, forward.x); commands[:, 2] = clip(0.5 * wrap_to_pi(commands[:, 3] - heading), -1, 1)",
+      "effect": "只要继承基类回调，外部写入的 wz 每步都会被 heading 误差乘以 0.5 后覆盖；不是只在重采样时发生"
+    },
+    "resample_rewrite": {
+      "location": "envs/base/legged_robot.py:312-326（_resample_commands，每 10 s 对到期 env 执行）",
+      "code": "commands[:, :2] *= (norm(commands[:, :2]) > 0.2)",
+      "effect": "平面速度模长不超过 0.2 m/s 时被直接清零，形成低速死区"
+    },
+    "heading_command_source": "base/legged_robot_config.py:44 默认 True；GO2RoughCfg 未覆盖 commands",
+    "observation_consumes": "commands[:, :3]（即被改写后的值），所以观测里的 wz 不等于外部写入值",
+    "adapter_requirement": [
+      "必须显式设 heading_command = False（否则 wz 被每步覆盖）",
+      "必须替换或显式说明 0.2 m/s 死区（CaMRA 需要低速层，不能静默清零）",
+      "外部命令每 0.1 s 写入后，需在 5 个策略步内保持不变，且要被逐帧记录 'policy 实际消费的命令'"
+    ]
+  },
+  "reset_semantics": {
+    "joint_randomization": "legged_robot.py:_reset_dofs 用 default_dof_pos * torch_rand_float(0.5, 1.5)",
+    "root_init": "base/legged_robot_config.py:52 init_state.pos = [0,0,1]（1 m 落下）、rot 单位四元数",
+    "episode_termination": "超时 20 s（send_timeouts=True）+ 姿态/接触类终止（见 rewards/termination 配置）",
+    "previous_action": "self.actions 在 reset 时清零（_reset_dofs 同批 env），因此观测第 33:45 维在 reset 后为 0",
+    "adapter_requirement": "采集语义要求固定起点与同 seed 可复现，必须替换为显式固定姿态或把随机化来源记录为受控变量"
+  },
+  "confirmed_by_code": [
+    "actor 45→512→256→128→12、ELU、最后一层无激活",
+    "推理走 act_inference（均值），不采样",
+    "无观测归一化、无循环状态",
+    "clip_actions=100、action_scale=0.25（Go2 覆盖）、p=20、d=0.5",
+    "torque 逐关节按 URDF effort 限幅",
+    "PD 每物理子步重算，decimation=4",
+    "观测 45 维六段与缩放",
+    "heading_command 每步覆盖 wz；resample 有 0.2 m/s 死区",
+    "reset 随机化关节角 0.5–1.5 倍并 1 m 落下"
+  ],
+  "needs_runtime_confirmation": [
+    "checkpoint 的 state_dict 键名与实际加载是否完全匹配（键名已核对为 actor.0/2/4/6，需在适配器里再断言一次）",
+    "URDF effort 的逐关节数值（静态读 URDF 可列出，但需与 Isaac Lab 导入后的 motor effort 对照）",
+    "base_quat 的 (w,x,y,z) 与 (x,y,z,w) 约定在 Isaac Lab 侧的投影重力计算是否一致",
+    "default_dof_pos 的实际向量（由 URDF/资产构造顺序决定）与源关节顺序的置换关系",
+    "观测 clip_observations=100 在 Lab 侧是否启用（源为 get_observations 时裁剪）",
+    "分层路径 high_level_action_repeat=5 与外部 10 Hz 命令的相位关系（本轮只接底层，需确认不会引入额外重复）"
+  ],
+  "missing_history": [
+    "训练时的实际命令课程范围、domain randomization 参数、噪声配置与随机种子未保存在 checkpoint（infos=None）",
+    "文件名 model_18500 与内部 iter=16000 不一致，训练步数无法从这两者任一单独确认",
+    "训练期是否覆盖了 action_scale / stiffness / damping（源码值为 0.25/20/0.5，但训练覆盖无法验证）"
+  ],
+  "risks_resolved_or_narrowed": [
+    {"id": "R-01", "status": "confirmed_and_worse", "detail": "不是只在重采样时改写，而是每个策略步都覆盖 wz；另有 0.2 m/s 死区"},
+    {"id": "R-02", "status": "confirmed", "detail": "每个物理子步重算力矩，已由代码确认"},
+    {"id": "R-03", "status": "confirmed", "detail": "关节角 0.5–1.5 倍随机化 + 1 m 落下"},
+    {"id": "R-04", "status": "confirmed", "detail": "解析值 0.25（Go2 覆盖基类 0.5）"}
+  ]
+}
