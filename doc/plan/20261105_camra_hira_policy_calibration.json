@@ -1130,7 +1130,7 @@
       "id": "HIRA-011",
       "phase": "隔离实现",
       "goal": "提取并导出来源checkpoint的确定性actor",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-010"
       ],
@@ -1149,7 +1149,48 @@
         "exported/policy.pt及来源manifest",
         "reports/actor_export_parity.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T17:20:00+08:00",
+          "summary": "从 model_18500.pt 导出确定性 actor 为独立 TorchScript 产物；结构由 state_dict 形状反推（45→512→256→128→12）并与源配置交叉核对；CPU/GPU 共 29 个用例全部一致；确认源策略无观测归一化；记录两处真实差异（文件名 iter 与内部 iter 不符、TorchScript 归档字节不可复现）。",
+          "actions": [
+            "新增 CaMRA/locomotion/adapters/hira_go2/export_actor.py：按文件路径加载源 actor_critic.py（不 import rsl_rl 包），只构造 act_inference 路径。",
+            "状态字典逐键审计：仅允许 actor.* / critic.* / std 三类前缀，出现 normalizer/running_mean/running_var/obs_rms 任一即判为存在训练期统计量；实测 16 键、越界 0 键、无全零张量。",
+            "结构反推 + 交叉核对：从 actor.{0,2,4,6}.weight 得到 45→512→256→128→12，与 legged_robot_config.py class policy 段解析出的 actor_hidden_dims 逐一比对，不一致即失败；激活名由源 get_activation 解析（elu）。",
+            "strict=True 载入并二次核形状，eval() + requires_grad_(False)；断言 MLP 层数与激活位置符合源实现。",
+            "导出 TorchScript（script 模式成功，未回退 trace），保存后重新 torch.jit.load 复算权重指纹。",
+            "9 组固定输入库（零/常量/±1/高斯/±100 边界/单维 100 脉冲/贴近真实量级的混合）+ 20 组随机观测，batch 覆盖 1/2/4/8/16/32/45；CPU 与 GPU 各跑一遍。",
+            "归档字节稳定性自检：同进程再序列化一次并比较散列，结论写入报告与清单的 hash_rule。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/export_actor.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/exported/policy.pt（新建，768018 B）",
+            "CaMRA/calibration/experiments/hira_go2_18500/exported/policy_manifest.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/actor_export_parity.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§13）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-011 记录）"
+          ],
+          "commands": [
+            "python export_actor.py --checkpoint HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt --source-actor HiRA/rsl_rl/rsl_rl/modules/actor_critic.py --source-config HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot_config.py --prereg config/integration_acceptance_prereg_v1.json --export-dir exported --report reports/actor_export_parity.json",
+            "同一命令连跑三次（含一次写入 /pub 临时目录）用于归档字节稳定性对照"
+          ],
+          "results": [
+            "结构 45→512→256→128→12（4 层 Linear，ELU 插在 1/3/5），189324 参数；检查点 sha256 d30e5212… 导出前后未变。",
+            "CPU：9 个输入库用例与 20 组随机观测的 max_abs_diff 全为 0.0；独立二次构造的 actor 同样 0.0（一致性来自权重而非共享对象）。",
+            "GPU：导出 vs GPU 源 0.0；GPU 源 vs CPU 源最大绝对差 1.465e-3，出现在 ±100 边界（该点输出量级约 4257，相对差 5.5e-7），判定由预登记 rtol 1e-4 主导。",
+            "归一化：n_keys=16 全部落在 actor/critic/std，normalizer_like_keys 为空，has_normalizer=false；观测缩放确认在源 env 组包时施加，不在策略内部。",
+            "发现一：文件名 model_18500.pt 内部 iter=16000，iter_consistency.consistent=false；身份判定改以 sha256 为准。",
+            "发现二：TorchScript 归档字节不可复现（同进程再序列化即变），archive_bytes_stable_in_process=false；内容标识改用 actor_tensor_digest=99236fbc…，重新载入后与源一致。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/actor_export_parity.json（29 用例，passed=true）",
+            "CaMRA/calibration/experiments/hira_go2_18500/exported/policy_manifest.json",
+            "handoff §13"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不使用随机act()代替确定性act_inference，不加载高层导航网络。",
         "不能用strict=False忽略shape或缺失权重；不改变权重以改善表现。"
@@ -1158,7 +1199,7 @@
         "45→12形状、eval/inference模式、权重与导出hash明确。",
         "导出与源actor数值差在HIRA-009容差内，未知normalizer问题为零。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足。(1) 形状/模式/散列明确：actor 为 45→512→256→128→12（宽度由 state_dict 反推并与源配置交叉核对，非照抄默认值），导出物只含 actor、eval 模式、requires_grad 全 false，检查点 sha256 d30e5212… 导出前后一致，归档 sha256 与跨格式稳定的 actor_tensor_digest 99236fbc… 均写入清单。(2) 数值在 HIRA-009 容差内且未知 normalizer 为零：CPU 9 个输入库用例 + 20 组随机观测 max_abs_diff 全为 0.0（远优于 atol 1e-5/rtol 1e-4），GPU 导出与源逐位一致、GPU 与 CPU 的最大绝对差 1.465e-3 出现在输出量级 4257 的±100 边界、相对差 5.5e-7，符合 actor_gpu atol 1e-4 + rtol 1e-4；状态字典 16 键全部属于 actor/critic/std，无任何 normalizer/running_* 键，故不存在未识别的归一化统计量。另如实记录两处差异，不掩饰：检查点文件名 iter 18500 与内部 iter 16000 不一致（身份以 sha256 为准）；TorchScript 归档字节在重新序列化后变化，故归档散列仅作出处凭证、不作权重指纹。"
     },
     {
       "id": "HIRA-012",

@@ -570,3 +570,69 @@ repo  v2 锁 b214809b…  n_bad=0   代码树 ff6631de…  54 个文件（未变
 
 新增 adapter 代码放在 `locomotion/adapters/`，**不在** v2 锁的 5 个代码目录内，
 所以旧锁的代码树散列不变、旧判定可复算。这正是"新实验用自己的锁、不覆盖旧锁"的实现前提。
+
+---
+
+## 13. 确定性 actor 的导出与数值对照（HIRA-011）
+
+### 13.1 产物
+
+| 产物 | 位置 | 要点 |
+|---|---|---|
+| 导出器 | `CaMRA/locomotion/adapters/hira_go2/export_actor.py` | 按路径加载源 `actor_critic.py`，不 import `rsl_rl` 包 |
+| 推理物 | `exported/policy.pt` | TorchScript `script` 模式，768 018 B，189 324 参数，只含 actor |
+| 来源清单 | `exported/policy_manifest.json` | 检查点散列、结构、逐张量散列、归档散列、规则说明 |
+| 对照报告 | `reports/actor_export_parity.json` | 29 个用例（9 输入库 + 20 随机组）CPU/GPU 全过 |
+
+### 13.2 结构是反推出来的，不是抄来的
+
+第一版最容易犯的错是照抄 `LeggedRobotCfg` 的默认 `actor_hidden_dims = [256, 256, 256]`。
+实测这个检查点是 **45→512→256→128→12**（`go2_config` 里被改过）。所以导出器从
+`state_dict` 的形状反推宽度，再与源配置文本解析出的 `actor_hidden_dims` 交叉核对；
+两边不一致直接失败。激活函数同理：名字从源配置读、构造函数从源模块的
+`get_activation` 取，不自己写一个 `nn.ELU()` 假装等价。
+
+### 13.3 三个"不"
+
+- **不用 `act()`**：`act()` 里是 `Normal(mean, mean*0 + std).sample()`，带随机数；
+  导出走 `act_inference`，即 `self.actor(obs)`。
+- **不用 `strict=False`**：键缺失、键多余、形状不符全部直接失败。载入后再逐键比一次形状，
+  防"键同名但被 reshape"。
+- **不改权重**：检查点以只读打开，导出前后各算一次 sha256，不一致立即失败（实测一致，
+  `d30e5212…`）。
+
+### 13.4 数值结论
+
+| 对照 | 最大绝对差 | 结论 |
+|---|---|---|
+| CPU：导出 vs 源 actor（9 用例，batch 1/2/4/8/32/45） | **0.0** | 逐位一致 |
+| CPU：独立二次构造 vs 源 actor | **0.0** | 不是共享对象引用带来的巧合 |
+| CPU：20 组随机观测 | **0.0** | T-12 的 repeats=20 已覆盖 |
+| GPU：导出 vs GPU 源 | **0.0** | 同一图，同 kernel |
+| GPU 源 vs CPU 源 | 1.465e-3 | 见下 |
+
+GPU 与 CPU 的差全部来自 fp32 非结合律：最大绝对差出现在 ±100 边界输入，
+但该点输出量级约 **4 257**，相对差 **5.5e-7**，判定由预登记的 `rtol 1e-4` 主导。
+这不是精度回退，也不是"把阈值调宽"——预登记里 `actor_gpu` 本来就是 atol 1e-4 + rtol 1e-4。
+
+### 13.5 两个真发现
+
+1. **文件名不等于训练步数**：`model_18500.pt` 内部 `iter` 是 **16000**。
+   身份判定一律以 sha256 为准（`d30e5212…`），报告里把这一条如实记成
+   `iter_consistency.consistent = false`，不假装对得上。
+2. **TorchScript 归档字节不可复现**：同进程内再序列化一次，散列就变了
+   （`721a891a…` vs `a9626591…`，`archive_bytes_stable_in_process = false`）。
+   所以归档散列只能当"本次产物出处凭证"，**不能当内容标识**。真正的内容标识是
+   `actor_tensor_digest = 99236fbc…`：它由名字排序后的 name+shape+dtype+bytes 拼成，
+   重新载入导出物后逐张量比对一致（`reload_tensor_digest_matches_source = true`）。
+   这条写进了 `hash_rule`，避免下游把归档散列当"权重指纹"用。
+
+### 13.6 "未知 normalizer 问题为零"是怎么答的
+
+不是"没看见就说没有"，而是逐键审计：状态字典只应出现 `actor.*` / `critic.*` / `std` 三类，
+出现 `normalizer.*` / `running_mean` / `running_var` / `obs_rms` 任一子串即判定存在训练期统计量。
+实测 `n_keys = 16`，三类之外 **0 个键**，`has_normalizer = false`、`degenerate_tensors = []`（无全零张量）。
+
+于是观测缩放的位置也确定了：**不在策略里**，而是源 env `compute_observations` 组包时按
+`obs_scales` 乘进去（契约 `observation.blocks` 的 0.25 / 1.0 / [2,2,0.25] / 1.0 / 0.05 / 1.0）。
+这一句是 HIRA-012 之后写观测适配器时的前提。
