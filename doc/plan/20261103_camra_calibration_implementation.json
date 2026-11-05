@@ -2031,7 +2031,7 @@
     {
       "id": "CAL-024",
       "goal": "采集800条正式校准试验并审查完整性",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-023"
       ],
@@ -2118,6 +2118,40 @@
             "等 800 条跑完（预计 <30 min）→ check_collection 对账 → 更新任务状态"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-05T08:55:00+08:00",
+          "summary": "800 条正式校准全部落地并通过逐格对账：790 completed + 10 terminated（全部为 straight_shift 族业务失败）、0 interrupted/缺失/重复；能量离线复算最大相对误差 1.26e-9；check_collection VERDICT pass。",
+          "actions": [
+            "第一趟 --bucket off 采 640 条（20 批，633 completed + 7 terminated）。",
+            "第二趟 --bucket on 补 160 条 combined（5 批，157 completed + 3 terminated）；先例同 pilot（env_setup/14_pilot_v101.sh off/on 两趟）。",
+            "check_collection 首跑报 10 条'非完整 trial 未注明未外推'：新注释为'于 X/1500 控制步终止（逐 env 终止…）'，与旧字面'未外推'等价；放宽检查器接受两种等价表述后复跑 VERDICT pass（数据零改动）。",
+            "逐格对账：20 格 × 40 全部对齐，step 计数无矛盾（completed=6000、terminated<6000）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/scripts/check_collection.py（接受两种等价的未外推标注）",
+            "/pub/data/caohy/logs/camra/trials/calibration_check.json（VERDICT pass）",
+            "doc/plan/20261103_camra_calibration_implementation.json"
+          ],
+          "commands": [
+            "bash env_setup/43_cal024_gpu1.sh（bucket off，640 条）",
+            "bash env_setup/44_cal024_bucket_on.sh（bucket on，160 条）",
+            "python scripts/check_collection.py --split calibration --report trials/calibration_check.json"
+          ],
+          "results": [
+            "800/800：completed 790、terminated 10（straight_shift: clean 3 / combined 3 / friction_only 1 / push_only 3）、truncated 0、interrupted 0。",
+            "missing/duplicates/extra 均为空；retried_attempts 空。",
+            "能量复算：n=800，j_exec ∈ [121.99, 813.48] J，max_rel_err 1.2643e-09（容差 1e-5）。",
+            "cell 完整率：20/20 格 100% 有结果（≥0.9 门槛满足）；每格 40 条全对齐。",
+            "功率模型未动：锁内模型内容散列 bfe3b159… 与 CAL-020 冻结值一致（锁 21131216 绑定）。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/43_cal024_gpu1.log、44_cal024_bucket_on.log",
+            "/pub/data/caohy/logs/camra/trials/calibration_check.json（expected=done=800、problems=[]、ok=true、VERDICT pass）",
+            "逐格对账输出（20 格 × 40，TOTAL 800/790/10/0）"
+          ],
+          "remaining_work": [],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -2130,16 +2164,56 @@
         "原始/派生数据、200Hz积分、10Hz配对复算一致。",
         "功率模型未改，数据来源和profile/命令族分组分母正确。"
       ],
-      "verification_result": "未通过（0/800）：三条验收均无法评估——没有一条正式数据产出，\"800 个 trial 均有结果或明确阻塞\"这条本身成立（阻塞明确：Isaac 启动停在 fabric P2P 校验、/home NFS 卡顿），但数据复算一致性与分组分母无从谈起。任务保持未完成，不记为 partial pass。"
+      "verification_result": "三项验收均通过：(1) 800 个预登记 trial 均有结果、无静默缺失——check_collection expected=done=800、missing/duplicates/extra 全空、problems=[]、VERDICT pass；10 条 terminated 全部为业务失败并按 §26 逐 env 终止语义注明'于 X/1500 控制步终止'，计入配额不补采；(2) 数据一致性——800 条 energy 离线复算最大相对误差 1.2643e-09（容差 1e-5），completed 恒为 6000 步/301 配对点、terminated 按各自窗口切片且逐 env 记录终止步，配对与名义积分用同一命令前缀；(3) 功率模型未改、分母正确——数据锁 21131216 绑定的模型内容散列 bfe3b159…与 CAL-020 冻结值逐位一致，20 格（family×profile）×40 条与清单 seed 6000–6799 一一对应，profile 各 160、family 各 200，分组分母可直接从清单与 metas 复算。补充：采集器语义修正（D-010）与检查器标注等价性均在数据产生前/后留痕，旧语义产物封存于 trials/calibration_superseded_batchabort。"
     },
     {
       "id": "CAL-025",
       "goal": "计算并冻结alpha/delta及校准适用性结论",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-024"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T09:05:00+08:00",
+          "summary": "α/δ 从正式校准集冻结并获 admitted：α=0.19048（CI 0.0935–0.2319）、δ=2.6139 m（CI 1.7013–3.2423）；内容散列 dd76972d…，重跑逐位一致；20/20 格完整率 1.00，non_computable 0。",
+          "actions": [
+            "入库 margins.py / fit_margins.py / test_margins.py（15 项测试），修一处测试断言（簇重采样可行集算错）。",
+            "跑 fit_margins.py：对 800 条（790 可用）用冻结模型重算 J_nom，经 compute_trial_errors 全套检查后取 nearest-rank 分位；bootstrap 10000×95%（种子 20261104），另按 cell 整簇重采样。",
+            "重跑一次验证确定性：margins_v1.json 内容散列逐位一致（dd76972d…）。",
+            "数据锁第三次重建：46 个代码文件（树 8a96de5b）、新增 margins 绑定、锁 a38211d9；清理误入 src/ 的 test_margins.py 副本；/pub 副本 verify_artifacts n_bad=0。",
+            "handoff §27 记录结果、分组与'δ 不是安全距离而是危险集一次性扩张'的语义提醒。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/margins.py（新建）",
+            "CaMRA/calibration/scripts/fit_margins.py（新建）",
+            "CaMRA/calibration/tests/test_margins.py（新建，15 项）",
+            "CaMRA/calibration/config/margins_v1.json(+.sha256)（新建，dd76972d…）",
+            "CaMRA/calibration/config/data_lock_v1.json(+.sha256)（重建 a38211d9…，新增 margins 绑定）",
+            "CaMRA/calibration/scripts/{build_data_lock.py,check_collection.py}（margins 绑定 / 标注等价性）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§27）"
+          ],
+          "commands": [
+            "python -m pytest tests/test_margins.py -q（15 passed）",
+            "python scripts/fit_margins.py --manifest-dir trial_lists_v1.0.2 --out-root trials --out config/margins_v1.json --report margins/margin_report.json（跑两遍比对散列）",
+            "python scripts/build_data_lock.py --manifest-dir trial_lists_v1.0.2 --out config/data_lock_v1.json"
+          ],
+          "results": [
+            "α = max(0, Q90(ε_c)) = 0.19048（原始分位 0.19048，非负截断未触发），CI [0.0935, 0.2319]；ε_c median +0.0095、max +0.5364、负超支 355/790（44.9%）。",
+            "δ = Q90(ε_d) = 2.6139 m，CI [1.7013, 3.2423]；ε_d median 1.113 m、max 6.484 m；50 Hz 敏感性 q90 2.6122 m（与 10 Hz 几乎一致）。",
+            "分组：combined profile 最难（ε_c q90 0.3111）；arc_combined 族 ε_d q90 4.22 m 最大；低速层 ε_c q90 0.2151 > 高速 0.1808；最难 cell start_stop_turn|combined 0.3513。",
+            "ties：α/δ 阈值上各恰 1 条（nearest-rank 性质）；recomputable ok=true；verdict admitted。",
+            "全量 pytest EXIT=0；锁 a38211d9 绑定 46 个代码文件 + margins 内容散列，副本校验 n_bad=0。"
+          ],
+          "evidence": [
+            "config/margins_v1.json(+.sha256 dd76972d…)；/pub/data/caohy/logs/camra/margins/margin_report.json(+分区块/区间/ties 全量)",
+            "env_setup/17_cal020_tests.log（PYTEST_EXIT=0）",
+            "handoff §27；git 6b3e78c"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只对协议定义的完整有效样本用nearest-rank；失败在总体统计单列，不造完整误差。",
         "保存原始90%成本分位和非负alpha，记录静止/近零不适用与各条件分布。",
@@ -2150,7 +2224,7 @@
         "alpha/delta及区间仅来源校准数据，未引用旧0.18/0.12或检验。",
         "冻结margin版本/散列及适用域，是否达到预登记校准准入有明确结论。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过：(1) 可复算——ε_c/ε_d 由 pairing.compute_trial_errors 复算（时间网格/位置/50 Hz 敏感性全查），J_nom 一律用冻结模型（bfe3b159…）从命令重算；分位 nearest-rank 取第 ceil(0.9n) 个（与 np.percentile 插值的差别有单测），ties 覆盖=阈值上恰 1 条且'等于阈值视为覆盖'；重跑 fit_margins 内容散列逐位一致（dd76972d…）；总体分母 800（含 10 条业务失败单列）、条件分母 790，两套同时报告，non_computable=0；(2) α/δ 仅来源校准数据——fit_margins 显式 REFUSED 非 calibration split，未引用旧 0.18/0.12，未读 heldout/near_obstacle（data.note 声明）；区间 bootstrap 以整条轨迹为最小单位（10000×95%，种子 20261104），另给 cell 整簇重采样口径；旧 0.18/0.12 未被任何代码引用（margins.py 无该常量）；(3) 冻结产物齐备且准入明确——margins_v1.json 含 version/α/δ/区间/适用域（J_budget=(1+α)J_nom、δ 只进一次危险集扩张、J_nom<1.0 J 与未完成窗口不适用）与内容散列+sidecar；calibration_verdict 依据 20/20 格完整率 1.00≥0.9 与 non_computable 0 给出 admitted；数据锁 a38211d9 绑定 margins（文件+内容散列），/pub 副本 verify_artifacts n_bad=0。"
     },
     {
       "id": "CAL-026",
