@@ -1874,3 +1874,45 @@ verdict = admitted（20/20 格完整率 1.00 ≥ 0.9；non_computable 占比 0�
 
 数据锁第四次重建：代码 48 个文件、树 d39c89f9…、锁 **3a21dad2…**；
 协议/模型/轮廓/接口/margins/清单/地图均未变。
+
+## 29. CAL-028 进行中：近障障碍注入已实现，端到端冒烟未通过（2026-11-05 上午）
+
+### 29.1 已实现
+
+* sim/obstacles_sim.py：按冻结地图把障碍物做成 **kinematic 刚体槽位**（每 env 7 个，未使用的停到 y=+1000），
+  逐批次用 write_root_pose_to_sim 改写位姿；场地坐标 + env 原点偏移；
+* scripts/collect_trials.py：near_obstacle split 读 --maps、起点位姿改用地图 start_pose、meta 记录
+  clearance/目标档位/gate 宽度/arena；
+* 场地边界墙不建模（每例尺寸不同），改为离线几何检查是否越界并如实上报；
+* 数据锁第五/六次重建（代码 49 个文件、树 a4052f27…、锁 1be2c601…），副本 verified n_bad=0。
+
+### 29.2 未通过
+
+2 条 2 envs 的冒烟（env_setup/46_near_smoke.sh）在 GPU1/GPU2 上各跑 >10 分钟未出批：
+进程持续 R 状态、CPU 100
+## 29. CAL-028 进行中：近障障碍注入已实现，端到端冒烟未通过（2026-11-05 上午）
+
+### 29.1 已实现
+
+* `sim/obstacles_sim.py`：按冻结地图把障碍物做成 **kinematic 刚体槽位**（每 env 7 个，
+  未使用的停到 y=+1000），逐批次用 `write_root_pose_to_sim` 改写位姿；场地坐标 + env 原点偏移；
+* `scripts/collect_trials.py`：near_obstacle split 读 `--maps`、起点位姿改用地图 `start_pose`，
+  meta 记录 clearance 目标/实际、gate 宽度、arena；
+* 场地边界墙**不建模**（每例 arena 尺寸不同），改为离线几何检查是否越界并如实上报；
+* 数据锁重建（代码 49 个文件、树 a4052f27…、锁 1be2c601…），运行副本 verified n_bad=0。
+
+### 29.2 未通过
+
+2 条 2 envs 的冒烟（`env_setup/46_near_smoke.sh`）在 GPU1、GPU2 上各跑超过 10 分钟未出批：
+进程持续 R 状态、CPU 打满（累计约 570 s CPU），但既没有 batch 日志也没有落盘。
+
+已排除：导入错误（`from isaaclab.sim import sim_utils` 改为 `import isaaclab.sim as sim_utils`，已修）；
+CUDA bad state 告警（成功跑完 800 条的 43 号日志同样有 4 条，属良性）。
+
+待查：kinematic 槽位写入是否与 `use_fabric` 的位姿推送冲突；7×n_env 个 kinematic 体是否拖慢了接触管线。
+
+### 29.3 建议下一步
+
+先用 `num_envs=1`、1 条、把窗口临时截短做最小复现，在循环里每 100 个控制步打印一次耗时，
+区分"`set_slots` 一次性开销"与"每步物理变慢"；再决定槽位方案（必要时改用静态碰撞体 + 每例重建场景）。
+本任务状态保持未完成，不因代码写完记为 true。

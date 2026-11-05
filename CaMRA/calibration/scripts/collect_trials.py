@@ -115,6 +115,15 @@ def main() -> int:
         except LockError as exc:
             raise SystemExit(f"REFUSED: {exc}")
 
+    # 近障 split：地图（障碍物 + 起点位姿）在正式采集前已冻结并锁进数据锁
+    maps_by_id: dict[str, dict] = {}
+    if args.split == "near_obstacle":
+        if not args.maps:
+            raise SystemExit("REFUSED: near_obstacle 需要 --maps（冻结地图）")
+        payload = json.loads(Path(args.maps).read_text(encoding="utf-8"))
+        maps_by_id = {c["trial_id"]: c for c in payload["cases"]}
+        print(f"MAPS: {len(maps_by_id)} cases from {args.maps}", flush=True)
+
     proto = Protocol.load()
     tl = Timeline.from_protocol(proto)
     warmup_s = tl.warmup_s
@@ -147,6 +156,8 @@ def main() -> int:
     from sim.batch_program import TableProgram
     from sim.profiles_sim import (apply_friction, apply_initial_pose, apply_mass,
                                   apply_push, configure_env_for_profile)
+    from sim.obstacles_sim import (N_SLOTS, add_obstacle_slots, build_batch_poses,
+                                   set_slots)
     from sim.recorder import TrialRecorder
     from unitree_rl_lab.utils.external_command import DEFAULT_LIMITS, ExternalCommandWrapper
     from unitree_rl_lab.utils.parser_cfg import parse_env_cfg
@@ -157,6 +168,8 @@ def main() -> int:
     env_cfg.seed = args.env_seed
     env_cfg.episode_length_s = warmup_s + window_s + 0.2
     rep = configure_env_for_profile(env_cfg, sample_applied(todo[0]["profile"], todo[0]["seed"]))
+    # 近障：先给场景加固定槽位（障碍物按 env 克隆、逐批次改写位姿）
+    ob_names = add_obstacle_slots(env_cfg, N_SLOTS) if maps_by_id else []
     raw = gym.make("CaMRA-Go2-Velocity", cfg=env_cfg)
     env = ExternalCommandWrapper(raw, limits=DEFAULT_LIMITS, enforce_limits=True, on_reset="zero")
     u = raw.unwrapped
@@ -190,7 +203,13 @@ def main() -> int:
             progs.append(pr)
             tables.append([list(c) for c in pr.commands[:window_ctrl // 5]])
             applied.append(sample_applied(tr["profile"], tr["seed"], duration_s=window_s))
-            poses.append(sample_initial_pose(tr["seed"]))
+            case = maps_by_id.get(tr["trial_id"])
+            if case is not None:
+                sp = case["start_pose"]
+                poses.append({"px": float(sp["px"]), "py": float(sp["py"]),
+                              "yaw": float(sp["yaw"])})
+            else:
+                poses.append(sample_initial_pose(tr["seed"]))
         padded = [[[0.0, 0.0, 0.0] for _ in range(window_ctrl // 5)] for _ in range(n_env - k)]
         table_t = torch.tensor(tables + padded, dtype=torch.float32)
         program = TableProgram(table_t, dt=pair_dt, warmup_s=warmup_s, device=args.device)
@@ -198,6 +217,11 @@ def main() -> int:
         obs, _ = env.reset()
         obs = obs["policy"]
         env.set_program(program)
+        if ob_names:
+            origins = env.unwrapped.scene.env_origins
+            slot_poses = build_batch_poses([maps_by_id[tr["trial_id"]] for tr in batch],
+                                           origins, n_env, len(ob_names))
+            set_slots(env, ob_names, slot_poses)
         for i in range(k):
             apply_friction(robot, [i], applied[i].friction, restitution=applied[i].restitution)
             apply_mass(robot, [i], applied[i].added_mass_kg)
@@ -339,6 +363,14 @@ def main() -> int:
                 "batch_size": k, "wall_seconds": round(elapsed, 3),
                 "cfg_report": rep.to_dict(),
                 "energy": {"unit": "J", "j_exec": energy["j_exec"]},
+                "near_obstacle": (None if not maps_by_id else {
+                    "clearance_target_m": maps_by_id[tr["trial_id"]]["clearance_target_m"],
+                    "clearance_nominal_m": maps_by_id[tr["trial_id"]]["clearance_achieved_m"],
+                    "n_obstacles": maps_by_id[tr["trial_id"]]["n_obstacles"],
+                    "gate_width_m": maps_by_id[tr["trial_id"]]["gate_width_m"],
+                    "arena": maps_by_id[tr["trial_id"]]["arena"],
+                    "start_pose_from_map": True,
+                }),
                 "notes": ("同一命令程序生成名义轨迹；energy.j_nom 待功率模型（CAL-019/020）"
                           if trial_outcome == "completed" else
                           f"outcome={trial_outcome}，于 {n_ctrl_i}/{window_ctrl} 控制步终止"
