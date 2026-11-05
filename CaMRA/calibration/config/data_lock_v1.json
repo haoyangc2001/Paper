@@ -16,6 +16,7 @@
   "cal_task": "CAL-023",
   "code": {
     "files": {
+      "scripts/audit_all_splits.py": "baf0d5043527c82b913c05714b3702c46fad9200f25764582bbfa6e2af48e005",
       "scripts/build_data_lock.py": "46d6a1329cbb9f45d15e7f8d371a98ab565ab1844cc9801170f5e7523ea47ad2",
       "scripts/build_footprint.py": "e1c29914bdc9f4920bf095374db574619a63ac9c1cf21d521cc5c314757283ef",
       "scripts/build_near_obstacle_maps.py": "fe4f3cb76119241e1648cbbb9b245f9386bf81c0731445de3d15256e4d2fec8a",
@@ -29,6 +30,7 @@
       "scripts/collect_trials.py": "48f944aaaed84fb5320b3b1b0770d7f5cd374995941245047236386e4d905139",
       "scripts/demo_nominal.py": "b2eee9b27e0d1f95ea3f3fcd41f3c5437533b365ecd4af91a0e225411d731028",
       "scripts/evaluate_heldout.py": "1741510cc85514d1c6b4daa47a88d9ec3e71695e8691514d83dd74ea51025b00",
+      "scripts/evaluate_near_obstacle.py": "97278e797ef1963352d8989ef4e0b51f7deebc841aa8de1c676687a975e8c59f",
       "scripts/extract_asset_geometry.py": "f83fa8c32d9c16c6ff3497ba840636564779724b6039a89badd4457a3176f3b7",
       "scripts/fault_injection_check.py": "2be1b3724a67ebab4d3ed69eb60a8d9bf52a4e0ab399ab1cbcd61db7ccf3eec3",
       "scripts/fit_margins.py": "0b5af2298b152fdeea9e5bd17e60d021079cc5c02db273c03bd90157fc84c49b",
@@ -55,6 +57,7 @@
       "src/camra_calibration/lock.py": "2517b8bf769d05b8140e40a0ed93b397f0395f12c9f2dd559455cd392729290a",
       "src/camra_calibration/manifest.py": "73296120c16eabc076397f0814a3f18bbb78f47870b126b2983c1af1180e6d5c",
       "src/camra_calibration/margins.py": "9b2183e37e0f97cff18cd528254dbdf09d4467099e4a2bb672382a83057fcb1b",
+      "src/camra_calibration/near_obstacle.py": "f3912abccd60a4e4803dbfdb01580e3a5b5675e133e9596b28066c3dd1eff5fc",
       "src/camra_calibration/nominal.py": "a620a49ae8673fbc28fbddfe2ec6108a60880772f1894bd34640336f464cb6e4",
       "src/camra_calibration/obstacles.py": "e9b979e2bbd76bfaadf35b60e603299075b1a0547131d503089ca1b8d88cbe11",
       "src/camra_calibration/pairing.py": "f536fa494db036d8d134321e0d099f5d7a1c589fd7678c24d5f71cabdc969321",
@@ -66,7 +69,7 @@
       "src/camra_calibration/timeline.py": "624a208f49186e82d15be37803b03cf51838b08a27fda653096cbe50869a17f7",
       "src/camra_calibration/trials.py": "42630b24794ceec0f68ad39618afa3cd6d3590bdbdaa7712a4ae2aa2288c56ee"
     },
-    "tree_sha256": "b17b90db0df4008b08ab46740dab5fb0026fe351768fea84095c09d10fd9e511"
+    "tree_sha256": "df874d835dec4c9b377ed516e03f8279b0a1f18130ce50f43deeef7f376aac90"
   },
   "collection_rules": {
     "formal_splits": [
@@ -90,7 +93,7 @@
     "retry_policy": "数据损坏/中断只允许改名为 DONE.interrupted_* 后以新 attempt 重采，保留全部 attempt 与旧产物",
     "tuning_ban": "heldout / near_obstacle 在 margin 冻结前不得采集；不得用其结果选模型、改协议或改 margin"
   },
-  "created_at": "2026-11-05T03:29:23+00:00",
+  "created_at": "2026-11-05T05:17:31+00:00",
   "footprint": {
     "content_sha256": "a11a3572d61be81a8eac9fe10fe203069f2b61d5555510335e6853aff42199ab",
     "path": "/home/caohy/repositories/Paper/CaMRA/calibration/config/footprint_v1.json",
