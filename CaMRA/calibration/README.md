@@ -1,69 +1,59 @@
-# 执行误差校准与独立检验
+# CaMRA 校准目录（camra_calibration）
 
-本模块在底层控制器冻结后，比较同一速度指令对应的名义轨迹与仿真执行轨迹，校准成本裕度 α 和几何裕度 δ，并用独立数据检验。结果供上层导航修正预算扣减与障碍物安全边界。
+本目录是 CaMRA（四足机器人成本/几何裕度校准）的**证据与工具目录**，不包含稿件、
+不改动 `unitree_rl_lab` 与冻结控制器本体。
 
-## 当前状态
+## 一条链路在做什么
 
-目前仅有本说明，采集、配对、校准与检验代码尚未实现。这是 CaMRA 接下来的开发模块。
-
-实施入口为 [校准计划](../../doc/plan/20261103_camra_calibration_implementation.json)，共32项任务，当前均未执行。计划面向新机器与新模型上下文：CAL-001–004详细学习背景并核对理解，CAL-005–007安装配置环境、获取v2与资产并验证最小闭环，之后才进入协议确定、采集与功率建模、校准和独立检验，再交付上层接口。
-
-本模块是当前实施重点。首项为 CAL-001，先阅读计划的 `execution_focus` 和前置学习要求，再根据实际任务状态继续。交付目标包括采集与复算工具、独立名义功率模型、α/δ、检验报告及绑定版本的上层能量成本接口；当前没有正式采集结果。
-
-已决定使用 `camra_go2_velocity_it2999_v2` 推进仿真校准，保留其低速死区及旧复测未通过的记录，不以继续训练为默认前置条件。底层边界见 [locomotion README](../locomotion/README.md#当前状态与已知边界)。
-
-## 输入与输出
-
-| 类别 | 内容 |
-| --- | --- |
-| 固定执行系统 | v2 模型、配套机器人资产、观测/动作映射、控制频率和增益 |
-| 采样条件 | 指令序列、初始状态、随机种子、时长及实际施加的扰动配置 |
-| 配对轨迹 | 同一指令、起点和时间基准下的名义轨迹与执行轨迹 |
-| 能量基线 | 独立clean数据、经过验证并冻结的名义功率模型、能量指标与单位 |
-| 校准产物 | 误差样本、α/δ、分位数设置、数据划分及生成配置 |
-| 独立检验产物 | 成本、几何和联合覆盖率，分组统计、失败记录及适用范围 |
-
-运行参数读取冻结包 `params/deploy.yaml` 与 `params/export_manifest.json`。仓库只保留 [清单副本](../locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json)，包体获取方法见 [复现说明](../locomotion/docs/reproduction.md)。
-
-## 待实现的数据流程
-
-1. 固定控制器及执行配置，核验能量测量信号，锁定命令、扰动、采样协议和数据划分。
-2. 独立采集clean基线，拟合、验证并冻结非负名义功率模型。
-3. 用确定性导航模型生成名义轨迹，用冻结 Go2 策略执行同一指令；名义能量由功率模型计算，执行能量由物理步测量积分。
-4. 在统一时间轴配对，使用800条校准试验的误差确定 α、δ，然后固定裕度。
-5. 使用400条独立试验检验单项及联合覆盖，再用200条近障试验检查适用性；均不用于重新调参。
-6. 保存原始轨迹、派生数据、配置、模型散列与复算结果，供上层使用和后续复核。
-
-关闭随机扰动后的物理仿真仍可能存在跟踪误差，不能直接作为名义运动模型。已有底层跟踪 RMSE 和冻结包中的观测样本用于控制器评估、导出核对，不等同于本模块所需的配对轨迹。
-
-## 本版能量成本
-
-测量窗口固定30秒，时间仅作诊断。名义侧增加功率模型并累计预测能量，执行侧按200Hz记录实际施加关节力矩与关节角速度，计算同一能量指标；状态按50Hz记录，正式位置配对使用10Hz公共网格。
-
-计划推荐以各关节正机械功的累积作为首版成本。具体公式、负功处理、近零名义能量规则、基线规模与准入阈值，在 CAL-008 查证可用信号后确认；当前不视为已冻结。机械功不能直接称为电池耗电。名义功率建模与pilot数据独立于正式800/400/200条数据。
-
-这是对旧稿代理成本的明确版本变更。未来上层需消费相同功率模型、能量单位和状态接口，重新确定能量预算，不能直接沿用旧稿 a.u. 预算。本次不改论文。
-
-## 裕度定义
-
-当 `J_nom > 0` 时，相对成本超支与最大平面位置偏差为：
-
-```text
-epsilon_c = (J_exec - J_nom) / J_nom
-epsilon_d = max_t ||p_exec(t) - p_nom(t)||_2
-
-alpha = max(0, Q_pc(epsilon_c))
-delta = Q_pd(epsilon_d)
+```
+协议 → 清单 → 采集 → 功率模型 → 边际(alpha, delta) → 检验覆盖 → 近障评估 → 审计 → 交付包
 ```
 
-`Q_p` 为校准样本的经验分位数，本版两项均采用90% nearest-rank分位数；保留原始成本分位数与负超支，供安全裕度使用的 α 下限取0。正式计算还要求完整记录和高于预登记可靠阈值的 `J_nom`，近零与失败记录单列。当前没有采集数据，不填写校准结果。
+| 阶段 | 关键产物 | 说明 |
+|---|---|---|
+| 协议 | `config/calibration_protocol_v1.0.2.json` | 时钟、命令域、profile、配额、统计口径、准入规则 |
+| 清单 | `doc/plan` + `/pub/.../trial_lists_v1.0.2/*.jsonl` | 七分片、1820 条，seed 块两两互斥 |
+| 采集 | `scripts/collect_trials.py` + `sim/` | 冻结 v2 策略 + 逐 env 终止语义 + 可选障碍注入 |
+| 功率模型 | `config/power_model_v1.json` | 只看速度命令预测能耗（NNLS，validate q90 5.5%） |
+| 足迹 | `config/footprint_v1.json` | 冻结资产 + 60 万帧凸包，0.889×0.585 m |
+| 边际 | `config/margins_v1.json` | alpha=0.19048、delta=2.6139 m（nearest-rank + bootstrap） |
+| 数据锁 | `config/data_lock_v1.json` | 协议/模型/足迹/接口/margins/清单/地图/代码树全绑定 |
+| 评估 | `scripts/evaluate_{heldout,near_obstacle}.py` | 成本/位置/联合覆盖、四套分母、按格与子组 |
+| 审计 | `scripts/audit_all_splits.py` | 独立 numpy 重算能量 + 配额/seed/散列 |
+| 交付 | `delivery/bundle_manifest_v1.json` | 路径 + 散列索引，仓库外大文件只引用 |
 
-## 检验与交付要求
+## 常用命令
 
-- 校准集与独立检验集分开；记录种子、指令和轨迹来源，避免重用检验结果调参。
-- 保留失败、停滞、低速不执行及提前结束的轨迹，显式记录任何排除及原因。
-- 单独检查低速区间的误差与覆盖情况；扩大裕度不能自动解决底层不执行小速度指令的问题。
-- 分别报告成本、几何与联合覆盖；这些覆盖率不等同于导航成功率或任意随机条件下的形式化保证。
-- 更换模型、接口、频率、增益、资产或扰动分布后，记录版本并重新评估校准适用性。
+```bash
+# 采集（正式 split 必须带锁；combined 需 --bucket on 单独一趟）
+python scripts/collect_trials.py --manifest-dir $MAN --split calibration --bucket off \
+  --out-root $OUT --num_envs 32 --lock config/data_lock_v1.json
 
-仿真采集与实验命令在执行主机的 tmux 中运行，日志和产物使用新目录。实现后在本页补充实际入口与经过验证的最小示例；当前没有可运行的校准命令。
+# 覆盖率 / 审计 / 交付包
+python scripts/evaluate_heldout.py --manifest-dir $MAN --out-root $OUT --report $R1
+python scripts/evaluate_near_obstacle.py --manifest-dir $MAN --out-root $OUT --report $R2
+python scripts/audit_all_splits.py --manifest-dir $MAN --out-root $OUT --lock config/data_lock_v1.json --report $R3
+python scripts/build_delivery_bundle.py --manifest-dir $MAN --logs-root $LOGS --out delivery/bundle_manifest_v1.json
+python scripts/verify_delivery_bundle.py --manifest delivery/bundle_manifest_v1.json --report $R4
+
+# 测试
+python -m pytest tests -q
+```
+
+## 三条硬规矩
+
+1. **不改冻结值**：协议、功率模型、足迹、margins 一旦冻结，后续只能用不能改；
+   检验/近障的结果不得回填 alpha、delta 或模型（协议 `heldout.may_not`）。
+2. **代码改动要重建锁**：`scripts/build_data_lock.py` 绑定代码树散列，改了任何 `.py`
+   都必须重建，否则正式采集会被门禁 REFUSED。
+3. **零删除**：旧的、作废的、失败的数据一律改名封存（如
+   `trials/calibration_superseded_batchabort`），不删。
+
+## 已知限制（如实记录）
+
+* 冻结 v2 速度跟踪器**没有避障能力**，近障 5–35 cm 净距下 138/196 条几何重叠；
+  δ 是危险集扩张的必要条件而非充分条件，可用性取决于尚未实现的上层导航策略。
+* `straight_shift|clean` 完整率 0.80 < 0.9，按协议该 cell 不得进入正式结论。
+* 场地边界墙未建模，越界用几何余量检查代替（14 条越界已如实上报）。
+
+详细过程见 `docs/implementation_handoff.md`（§1–§34）。

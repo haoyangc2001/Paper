@@ -75,3 +75,12 @@
 需要执行或更新 JSON 计划时，使用 `create-plan-worklog` 技能并维护依赖、状态和追加式工作记录。当前底层计划是历史证据；本页不把旧任务改为通过，也不替代校准实施计划中的逐项验收。
 
 交接时说明改了哪些文件、验证了什么、尚缺什么资源，以及后续最直接的入口。
+
+## CaMRA 校准（2026-11-05 现状）
+
+* 目录：`CaMRA/calibration/`，入口见该目录 `README.md`；
+* 已完成：协议 v1.0.2、数据锁（72cd3029）、功率模型（bfe3b159）、足迹（a11a3572）、
+  边际 alpha=0.19048 / delta=2.6139 m（dd76972d）、七分片 1820 条数据、
+  检验覆盖（cost 0.8690 / position 0.9144 / joint 0.7935）、近障评估、全数据审计（ok）；
+* 下一步：稿件同步（§23.5 的 5 条）与 `straight_shift|clean` 完整率缺口裁定；
+* 过程证据：`CaMRA/calibration/docs/implementation_handoff.md`（§1–§34）。
