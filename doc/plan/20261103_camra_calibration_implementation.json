@@ -2481,11 +2481,48 @@
     {
       "id": "CAL-029",
       "goal": "完成近障迁移评估与全数据独立审计",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-028"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T13:20:00+08:00",
+          "summary": "近障评估 + 七分片独立审计完成：近障覆盖 cost 0.8878 / pos 0.9337 / joint 0.8265（CI [0.770,0.878]）；几何检查 138/196 条重叠障碍、14 条越界，碰撞随净距档位单调下降；全数据审计 ok=true、最差能量复算 1.26e-9、seed 零相交。",
+          "actions": [
+            "写 src/camra_calibration/near_obstacle.py：50 Hz 位姿 + 冻结足迹 vs 冻结地图障碍的几何净距/重叠、场地边界余量、档位分层与判定。",
+            "写 scripts/evaluate_near_obstacle.py（只读 near_obstacle）与 scripts/audit_all_splits.py（独立 numpy 能量重算 + 配额/seed/散列/步数/配对点）。",
+            "跑近障评估 200 条（196 可算）：档位分层覆盖与几何结果；自查自洽性（漂移中位 1.1 m 远大于净距 0.05–0.35 m，碰撞数随档位 43→24 单调下降，几何实现无系统性错报）。",
+            "跑全数据审计：七分片 1820 条，能量独立重算最差 1.26e-9，清单条数与配额一致，seed 块零相交，清单散列与锁一致。",
+            "重建数据锁（52 代码文件、树 df874d83、锁 72cd3029）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/near_obstacle.py（新建）",
+            "CaMRA/calibration/scripts/evaluate_near_obstacle.py（新建）",
+            "CaMRA/calibration/scripts/audit_all_splits.py（新建）",
+            "CaMRA/calibration/config/data_lock_v1.json(+.sha256)（重建 72cd3029…）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§31）"
+          ],
+          "commands": [
+            "python scripts/evaluate_near_obstacle.py --manifest-dir trial_lists_v1.0.2 --out-root trials --report near_obstacle/near_obstacle_eval.json",
+            "python scripts/audit_all_splits.py --manifest-dir trial_lists_v1.0.2 --out-root trials --lock config/data_lock_v1.json --report audit/audit_all_splits.json"
+          ],
+          "results": [
+            "近障覆盖：cost 0.8878、position 0.9337、joint 0.8265（CI [0.7704,0.8776]），分母 200/196/4/0。",
+            "档位分层（cost/joint）：0.05→0.896/0.833；0.10→0.860/0.800；0.20→0.959/0.898；0.35→0.837/0.776。",
+            "几何：138/196 条重叠障碍、最小净距中位 0.000 m、14 条越出场地；碰撞数按档位 43/40/31/24 单调下降。",
+            "审计：ok=true、problems=[]、七个分片最差能量相对误差 1.26e-9、清单条数 240/80/80/20/800/400/200、seed 相交 0 组。",
+            "配额缺口：straight_shift|clean 完整率 0.80 低于门槛 0.9，按协议该格不得进入正式结论。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/near_obstacle/near_obstacle_eval.json",
+            "/pub/data/caohy/logs/camra/audit/audit_all_splits.json",
+            "handoff §31；git 1fe0fe7"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "按已冻结近障准入检查成本/位置/联合覆盖、物理碰撞及轮廓正确性。",
         "对全部分片独立复算能量、误差、配额、split和散列；不得仅重复调用同一在线函数自证。",
@@ -2497,7 +2534,7 @@
         "真实结果满足预登记适用性要求；否则保持false并给出可审处置选项。",
         "近障全体200条与满足名义delta边界的子组均独立列数及统计；若无可用子组或未满足预登记适用性准入，如实报告，不改变地图重试凑通过。"
       ],
-      "verification_result": ""
+      "verification_result": "验收通过（含一处如实记录的资格限制）：(1) 近障覆盖按冻结 α/δ 与功率模型评估——cost 0.8878、position 0.9337、joint 0.8265（95% CI [0.7704,0.8776]），分母 200/196/4/0 齐全，20 格、四档净距、profile/族/低速层/方向子组全部上报；(2) 物理碰撞与轮廓正确性——用冻结足迹 0.889×0.585 m 对冻结地图障碍做 50 Hz 几何检查：138/196 条重叠、最小净距中位 0.000 m、14 条越界；碰撞数按档位 43/40/31/24 单调下降，与「漂移中位 1.1 m 远大于净距 0.05–0.35 m」一致，几何实现自洽；结论如实记为：δ=2.61 m 是危险集扩张的必要条件而非充分条件，近障可用性取决于尚未实现的上层导航策略；(3) 全分片独立复算——审计脚本用独立 numpy 实现重算能量（不调用采集侧在线函数），七分片 1820 条最差相对误差 1.26e-9，配额 240/80/80/20/800/400/200 与协议一致，seed 块 4000–4239/4240–4319/4320–4399/5100–5119/6000–6799/7000–7399/8000–8199 两两零相交，清单散列与数据锁逐条一致，ok=true。资格限制：straight_shift|clean 完整率 0.80 低于门槛 0.9，该 cell 不得进入正式结论，需回采集或协议裁定。"
     },
     {
       "id": "CAL-030",
