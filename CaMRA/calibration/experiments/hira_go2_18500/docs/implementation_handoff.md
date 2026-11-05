@@ -636,3 +636,99 @@ GPU 与 CPU 的差全部来自 fp32 非结合律：最大绝对差出现在 ±10
 于是观测缩放的位置也确定了：**不在策略里**，而是源 env `compute_observations` 组包时按
 `obs_scales` 乘进去（契约 `observation.blocks` 的 0.25 / 1.0 / [2,2,0.25] / 1.0 / 0.05 / 1.0）。
 这一句是 HIRA-012 之后写观测适配器时的前提。
+
+---
+
+## 14. HiRA 专属资产与执行器（HIRA-012）
+
+### 14.1 产物
+
+| 产物 | 位置 |
+|---|---|
+| URDF 解析器（纯标准库） | `CaMRA/locomotion/adapters/hira_go2/urdf_model.py` |
+| 资产/执行器配置 | `CaMRA/locomotion/adapters/hira_go2/asset_cfg.py` |
+| 静态审计与契约交叉核对 | `CaMRA/locomotion/adapters/hira_go2/asset_audit.py` |
+| 静态门禁（无需 GPU） | `experiments/hira_go2_18500/tests/audit_asset_static.py` |
+| 运行时审计（Isaac Lab） | `experiments/hira_go2_18500/tests/check_asset_runtime.py` |
+| 卡点诊断 | `experiments/hira_go2_18500/tests/diag_asset_stage.py` |
+| 报告 | `experiments/hira_go2_18500/reports/asset_actuator_audit.json`（R1–R8 全过） |
+
+### 14.2 为什么不复用 v2 的 USD
+
+v2 用的 `Go2/usd/go2.usd` 来自 unitree_ros 的 `go2_description`；HiRA 用的是
+`legged_gym_go2/resources/robots/go2/urdf/go2.urdf`（29 个 link、16 个 fixed 关节，
+带头部零件与脚部球）。两者外形都是 Go2，但**不是同一份资产**。
+本轮直接用 `sim_utils.UrdfFileCfg` 从源 URDF 导入，USD 落在
+`/pub/data/caohy/logs/camra_hira/assets/usd_cache`（5 个文件，base 18.8 MB）。
+
+### 14.3 执行器：让 PD 只生效一次
+
+源是 `default_dof_drive_mode = 3`（纯 effort），每个物理子步自己算
+`τ = kp(q_des − q) − kd·q̇`，裁到 URDF effort 后写进仿真。Lab 侧对应：
+
+```
+IdealPDActuatorCfg(stiffness=0.0, damping=0.0,
+                   effort_limit=<URDF effort>, effort_limit_sim=<同值>)
+```
+
+`stiffness=damping=0` 时它退化成 `applied = clip(τ_ff, ±effort)`，正好是"透传 + 裁一次"。
+四条实测：
+
+| 检查 | 结果 |
+|---|---|
+| USD 侧刚度/阻尼 | 全 0（`get_dof_stiffnesses/get_dof_dampings`） |
+| 力矩透传 | 命令与施加的最大差 **0.0** |
+| 裁剪 | 命令 ±1000 → 施加 **±23.7**（= URDF effort） |
+| 隐式 PD 残留 | 关节偏离默认角 0.3 rad、命令 0 → 施加**恒 0** |
+
+最后一条是关键：如果 `ImplicitActuatorCfg` 或 USD drive 还留着 20/0.5，
+这里会立刻看到非零力矩。
+
+### 14.4 重要发现：URDF 顺序 ≠ USD 顺序
+
+```
+URDF : FL_hip FL_thigh FL_calf | FR_hip FR_thigh FR_calf | RL_… | RR_…   （按腿）
+USD  : FL_hip FR_hip RL_hip RR_hip | FL_thigh … | FL_calf …              （按关节类型）
+```
+
+置换（USD 第 i 个 = URDF 第 perm[i] 个）= `[0,3,6,9,1,4,7,10,2,5,8,11]`，双向唯一。
+契约里写"order_target 不得假定等于 order_source"，这不是保守措辞——实测就是不一样。
+HIRA-013 的观测/动作适配器必须按名字建双射，任何"按位置对齐"都会把 hip 的动作
+打到 thigh 上。
+
+### 14.5 质量与 link 合并
+
+29 个 link → 19 个 body。被合并掉的 10 个是 `FL/FR/RL/RR_calflower{,1}` 与 `imu`、`radar`
+（都是 fixed 子链接，质量为 0）；`FL/FR/RL/RR_foot` 和 `Head_upper/Head_lower` 保留为独立 body。
+总质量 **15.019 kg**，与 URDF 逐链接求和相差 **1.1e-8**（纯 float32）。
+
+### 14.6 契约里标的 `unknown_from_static_asset` 补上了
+
+| 项 | 值 |
+|---|---|
+| effort | hip/thigh **23.7**，calf **35.55**（`get_dof_max_forces`） |
+| velocity limit | hip/thigh **30.1**，calf **20.07**（`get_dof_max_velocities`） |
+| 限位 | 与 URDF 差 ≤ 5.1e-7 rad（预登记阈值 1e-3） |
+
+effort/velocity 的残差是 7.6e-7 / 1.5e-6，量级正好是 float32 表示误差，不是配置差异。
+
+### 14.7 两个坑（都花了时间）
+
+1. **`Articulation.reset()` 不写 `init_state`**。它只重置执行器和外力，初始关节角要由
+   env 的重置事件显式 `write_joint_state_to_sim`。第一版在 `sim.reset()` 后直接读
+   `joint_pos`，读到的是"0 角 + 重力下垂几毫秒"，误差 1.318 rad，看上去像
+   `init_state` 没生效。真因是读数时机，不是配置。HIRA-013 的逐 env reset 必须补这一步。
+2. **`simulation_app.close()` 在本机会卡住 >5 min**（headless、卡被多人共享）。
+   第一次跑时误以为是 URDF 导入卡死，白等了一轮；后来用分阶段脚本
+   （`diag_asset_stage.py`）证明导入只要 9 s，卡的是关停。现在报告落盘后直接
+   `os._exit(code)`，并把这条登记为环境差异。
+
+### 14.8 声明的引擎差异（不假定为零）
+
+- 源 `num_velocity_iterations = 0`，PhysX 要求 ≥1 → 取 1
+- 源 `collapse_fixed_joints` 会保留 `dont_collapse="true"` 的关节；Isaac Lab 的 URDF
+  导入没有等价开关，实测合并结果如上（不产生 DOF、总质量不变，但 link 划分不同）
+- 碰撞体里的 cylinder 在两边都被替换为胶囊（源 `replace_cylinder_with_capsule = True`）
+- 源 thickness 0.01 → `CollisionPropertiesCfg(contact_offset=0.01, rest_offset=0.0)`
+- isaacgym 与 PhysX 5.1 的接触/摩擦模型不同，**接触力数值不可假定相等**，
+  这一点在 HIRA-014 的闭环行为里才会真正显形

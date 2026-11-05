@@ -1205,7 +1205,7 @@
       "id": "HIRA-012",
       "phase": "隔离实现",
       "goal": "构建HiRA专属Isaac Lab机器人和执行器配置",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-011"
       ],
@@ -1224,7 +1224,51 @@
         "HiRA专属Lab环境/资产配置",
         "reports/asset_actuator_audit.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T17:40:00+08:00",
+          "summary": "为 HiRA 单独建立 Lab 资产与执行器配置：从源 URDF 直接导入（不复用 v2 USD），纯 effort 执行器 + 零增益使 PD 只在适配器里生效一次；运行时 8 项检查全过；实测 USD 关节顺序与 URDF 不同（按关节类型分组），置换已登记供 HIRA-013 使用；补齐契约中 unknown 的 effort/velocity。",
+          "actions": [
+            "新增 adapters/hira_go2/urdf_model.py：纯标准库 URDF 解析（link 质量/惯性/碰撞几何、joint 类型/轴/限位/effort/velocity、fixed 与 dont_collapse），不 import isaaclab。",
+            "新增 adapters/hira_go2/asset_cfg.py：ArticulationCfg 从源 URDF 导入（merge_fixed_joints、replace_cylinders_with_capsules、joint_drive.target_type=none、contact_offset 0.01），执行器为 IdealPDActuatorCfg(stiffness=0, damping=0, effort_limit=URDF effort)；另附 explicit_pd_torque 纯函数。",
+            "新增 adapters/hira_go2/asset_audit.py：静态审计（源事实 + 与契约逐项交叉核对 + 导入计划 + 声明的引擎差异）。",
+            "新增 tests/audit_asset_static.py（无需 GPU 的门禁）与 tests/check_asset_runtime.py（Isaac Lab 运行时 8 项检查 R1–R8），另加 tests/diag_asset_stage.py 用于分阶段定位卡点。",
+            "运行时验证：USD 侧 stiffness/damping 全 0；力矩命令原样透传（差 0.0）并裁到 ±23.7；0 命令 + 0.3 rad 偏置下施加力矩恒 0；总质量 15.019 kg 与 URDF 差 1.1e-8。",
+            "记录工程环境差异：simulation_app.close() 在本机 headless 会卡 >5 min，报告落盘后改为 os._exit(code)。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/urdf_model.py（新建）",
+            "CaMRA/locomotion/adapters/hira_go2/asset_cfg.py（新建）",
+            "CaMRA/locomotion/adapters/hira_go2/asset_audit.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/audit_asset_static.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_asset_runtime.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/diag_asset_stage.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/asset_actuator_audit.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§14）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-012 记录）"
+          ],
+          "commands": [
+            "python tests/audit_asset_static.py（静态 10 项检查，全过）",
+            "python tests/check_asset_runtime.py --headless --device cuda:0 --urdf ... --contract ... --out reports/asset_actuator_audit.json --usd-dir /pub/data/caohy/logs/camra_hira/assets/usd_cache（R1–R8 全过）",
+            "python tests/diag_asset_stage.py --stage 6（确认导入 9 s 完成、卡点在 close）"
+          ],
+          "results": [
+            "R1 双向：12 关节按名字双射成立；USD 顺序为 FL/FR/RL/RR 逐个关节类型分组，与 URDF 逐腿顺序不同，置换 [0,3,6,9,1,4,7,10,2,5,8,11]。",
+            "R2 限位：与 URDF 最大差 5.1e-7 rad（阈值 1e-3）；effort/velocity 残差 7.6e-7 / 1.5e-6，属 float32 表示误差。",
+            "R3/R4 增益：USD 侧 stiffness/damping 全 0；执行器组 stiffness=0、damping=0、effort_limit 等于 URDF。",
+            "R5/R6 力矩：命令与施加差 0.0；±1000 命令裁到 ±23.7；零命令 + 0.3 rad 偏置施加恒 0，证明无隐式 PD。",
+            "R7 质量：29 link → 19 body（calflower×8、imu、radar 被合并）；总质量 15.019 kg，相对差 1.1e-8。",
+            "R8 默认角：init_state 解析误差 1.2e-8，写入仿真回读误差同为 1.2e-8；同时发现 Articulation.reset() 不写 init_state。",
+            "契约缺口补齐：effort = 23.7（hip/thigh）、35.55（calf）；velocity = 30.1 / 20.07，均来自导入后的 PhysX 读数。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/asset_actuator_audit.json（R1–R8 全过，含静态段与运行时段）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §14"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不能改v2的UNITREE_GO2_CFG或源URDF。",
         "导入后的动力学等价需证据；数值/接触差异不能默认为零。"
@@ -1233,7 +1277,7 @@
         "所有12关节与碰撞体参数可读取并对应来源，单位/轴/增益/限幅无隐式覆盖。",
         "PD只生效一次，资产和执行器配置不影响原v2任务。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足。(1) 12 关节与碰撞体参数可读取且对应来源：静态段逐关节比对 URDF <limit> 的 lower/upper/effort/velocity 与契约 records 完全一致，运行时读回的 dof_limits/dof_max_forces/dof_max_velocities 与 URDF 差 ≤5.1e-7 rad、7.6e-7、1.5e-6（float32 量级）；单位取 SI（rad/N·m/N·m·s/rad），轴由 URDF 显式给出且在装配式核对中未出现符号翻转；增益不再由 USD 提供（读回全 0），限幅只发生在显式执行器一处（±1000 → ±23.7），无隐式覆盖。(2) PD 只生效一次且不影响 v2：执行器组 stiffness=0/damping=0，USD 侧 get_dof_stiffnesses/get_dof_dampings 全 0，零命令 + 0.3 rad 偏置下 applied_torque 恒 0，故 PD 只可能在适配器里算一次；新增代码全部在 adapters/hira_go2 与 experiments/hira_go2_18500 下，未触碰 UNITREE_GO2_CFG、未改源 URDF（sha 已记录）、未改 v2 配置。另登记三条不假定为零的引擎差异：velocity 迭代 0→1、fixed 关节合并策略不同（29 link→19 body，总质量不变）、接触模型 isaacgym≠PhysX 5.1。"
     },
     {
       "id": "HIRA-013",
