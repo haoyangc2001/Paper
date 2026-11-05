@@ -402,6 +402,14 @@
       "decision": "在 /home 的 NFS(192.168.1.15) 出现分钟级读写卡顿、导致 import/启动/提交全部挂死期间，正式采集改由 /pub/data/caohy/camra_run/calibration 的**逐位一致副本**执行；副本以 DataLock.verify_artifacts 校验（0 处不符，lock sha 907310c7…），采集器启动打印 LOCK OK。运行时另加 PYTHONDONTWRITEBYTECODE=1、HOME=/pub/data/caohy/fakehome、env -i 三项环境约束。",
       "source": "基础设施阻塞下的技术绕行（不改变数据语义，可由锁散列独立复核）；需用户确认是否接受该运行方式",
       "evidence": "env_setup/36_codecopy.log（81 文件 0 失败）；verify_artifacts n_bad=0；env_setup/39_cal024_env.log 首行 LOCK OK sha 907310c7782d3fb8；handoff §25.1–25.2"
+    },
+    {
+      "id": "D-010",
+      "state": "confirmed",
+      "date": "2026-11-05",
+      "decision": "采集器从'任一 env 终止即整批中止'改为'逐 env 记录终止控制步、其余 env 跑满窗口'：每条 trial 落盘时按各自窗口切片，提前终止者的能量用切片 tau/qdot 以 float64 复算（与 recorder.finish 复算公式一致），energy.json 新增 j_exec_source；据此重建数据锁（代码树 c40e5a95→9e84a2d1，锁 907310c7→21131216，重建后对运行副本 verify_artifacts n_bad=0）；旧语义产出的 160 条（5 terminated+155 interrupted）整体改名 trials/calibration_superseded_batchabort 封存，零删除。",
+      "source": "GPU1 首采 5 批暴露 97% 连坐浪费（5 摔倒→155 interrupted），沿用 D-007 的'修工具+零删除'先例",
+      "evidence": "handoff §26；git 1b61d65；env_setup/43_cal024_gpu1.log 前 4 批 outcomes 计数"
     }
   ],
   "pending_decisions": [
@@ -2071,6 +2079,45 @@
             "/home(NFS) 分钟级卡顿：git 提交与任何 import 走 /home 的操作不可用",
             "Isaac 启动卡在 fabric P2P 校验：5 次尝试 0 进度，整机 load 190–208"
           ]
+        },
+        {
+          "timestamp": "2026-11-05T08:20:00+08:00",
+          "summary": "NFS 恢复后：CAL-023 补提交（11860a1）；GPU1 首采暴露批级连坐缺陷（160 条里 155 条 interrupted）→ 修为逐 env 终止并重建锁（21131216）→ GPU1 重采，前 4 批 124 完成 + 4 真摔倒、0 连坐、约 55 s/批。",
+          "actions": [
+            "07:24 复检：NFS 恢复（/home import 1.2 s，此前 150 s 不返回），load 149。",
+            "07:28 CAL-023 补提交 11860a1；同时在 GPU1 启动 800 条采集。",
+            "首 5 批（160 条）暴露缺陷：5 条真摔倒连坐 155 条 interrupted（97% 浪费），按摔倒率外推 800 条不可行。",
+            "修 collect_trials.py：逐 env 记录终止控制步、其余 env 继续跑满窗口（env 物理独立，自动复位不污染兄弟）；落盘按各自窗口切片；提前终止者能量用切片 tau/qdot float64 复算并记 j_exec_source；批日志改 outcomes 计数。",
+            "封存旧产物（改名 calibration_superseded_batchabort，零删除）；重建数据锁（tree 9e84a2d1、锁 21131216），副本 verify_artifacts n_bad=0。",
+            "GPU1 重采：前 4 批 32 条/批、outcomes {completed:31±1, terminated:1±1}、0 interrupted、52–61 s/批。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/scripts/collect_trials.py（逐 env 终止语义）",
+            "CaMRA/calibration/config/data_lock_v1.json(+.sha256)（锁重建 21131216）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§26）",
+            "/pub/data/caohy/logs/camra/env_setup/43_cal024_gpu1.sh",
+            "/pub/data/caohy/logs/camra/trials/calibration → calibration_superseded_batchabort（改名封存）"
+          ],
+          "commands": [
+            "git commit 11860a1（CAL-023 锁与地图）",
+            "git commit 1b61d65（采集器语义修正 + 锁重建）",
+            "bash env_setup/43_cal024_gpu1.sh（GPU1, 32 envs, 副本运行）"
+          ],
+          "results": [
+            "旧语义 5 批：5 terminated + 155 interrupted（97% 浪费）。",
+            "新语义前 4 批：124 completed + 4 terminated、0 interrupted、52.5–60.8 s/批（≈1.7 s/条）。",
+            "锁重建后副本校验 n_bad=0；采集器打印 LOCK OK sha 21131216ec577803。",
+            "摔倒率约 3–4% 属业务失败，计入配额、不补采。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/43_cal024_gpu1.log（LOCK OK + 逐批 outcomes）",
+            "git log：11860a1、1b61d65",
+            "handoff §26"
+          ],
+          "remaining_work": [
+            "等 800 条跑完（预计 <30 min）→ check_collection 对账 → 更新任务状态"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
