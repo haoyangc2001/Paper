@@ -410,7 +410,7 @@
       "id": "HIRA-001",
       "phase": "接手与环境",
       "goal": "建立仓库版本、历史证据与tmux执行基线",
-      "status": false,
+      "status": true,
       "depends_on": [],
       "source_paths": [
         "AGENTS.md",
@@ -427,7 +427,50 @@
         "本轮handoff：版本、任务与tmux基线",
         "reports/repository_baseline.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T15:33:00+08:00",
+          "summary": "建立本轮基线：主仓库 13fd248（工作树干净）、HiRA 子模块 6a05af55（未拉新提交）、旧计划 32/32；建 tmux 会话 camra-hira-calibration（10 窗口）与隔离的实验根/日志根；回收我方 4 小时前的残留诊断进程；登记 6 条接入风险。未启动任何实验、未改旧证据。",
+          "actions": [
+            "只读核查：git HEAD/branch/upstream/工作树、HiRA 子模块提交与其自身工作树（均 0 dirty）、旧计划 32 项状态与 13 条决策记录。",
+            "设备与环境核查：tiger10/caohy/CST，3×A100-PCIE-40GB 驱动 560.35.03，env_isaaclab（torch 2.7.0+cu126、isaaclab 0.47.2、numpy 1.26.0）。",
+            "显存归属实测：GPU0 为他人两个 katago、GPU1 为他人 python、GPU2 空闲；发现并回收我方 47_diag_near.py 残留（11:21 起、4 h 10 min、占 2.8 GiB），GPU2 现剩 4 MiB。",
+            "建立 tmux 会话 camra-hira-calibration 与计划指定的十个窗口；旧会话 camra-env（46 窗口）保持不动，确认无 collect_trials / env_isaaclab 进程存活。",
+            "建立实验根 CaMRA/calibration/experiments/hira_go2_18500/{config,reports,docs,tests} 与隔离日志根 /pub/data/caohy/logs/camra_hira/{env_setup,integration,trials}。",
+            "只读核对三个权重文件散列，与计划登记值逐位一致（d30e5212 / 6d6f4d36 / 0069ce66）。",
+            "把 6 条接入风险写入计划顶层 integration_risks 与本轮 handoff 第 2 节，每条含证据位置、影响、验证任务与方法。"
+          ],
+          "files_changed": [
+            "doc/plan/20261105_camra_hira_policy_calibration.json（新增 integration_risks，HIRA-001 记录）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/repository_baseline.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（新建）",
+            "/pub/data/caohy/logs/camra_hira/**（新建日志根）",
+            "/pub/data/caohy/logs/camra_hira/env_setup/repository_baseline.json（基线副本）"
+          ],
+          "commands": [
+            "git rev-parse HEAD; git status --porcelain | wc -l; git submodule status; git -C HiRA rev-parse HEAD",
+            "tmux new-session -d -s camra-hira-calibration -n onboarding（再建 env/adapter/integration/pilot/baseline/calibration/heldout/near/audit）",
+            "sha256sum HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt（及两个 policy_1.pt）",
+            "kill -9 1372136（回收我方残留 47_diag_near.py）"
+          ],
+          "results": [
+            "主仓库 HEAD 13fd248，main 与 origin/main 一致，dirty_count=0。",
+            "HiRA 子模块 6a05af55（heads/master），自身 dirty_count=0，本轮未拉取新提交（遵守 HIRA-001 约束）。",
+            "旧计划 32/32 完成、13 条决策、无未完成项；README 已于同日改写为 HiRA 计划，仓库内不再残留“0/32 待执行”的陈旧表述。",
+            "权重三散列与计划登记值逐位一致；三者字节互不相同。",
+            "资源：/pub 29T 用 27T 剩 1.3T（96%），v2 trials 68G；load 172.57；GPU2 空闲可用。",
+            "tmux camra-hira-calibration 十窗口就绪；旧 v2 产物零写入、零移动、零删除。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/repository_baseline.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§1 基线、§2 风险）",
+            "计划顶层 integration_risks（R-01…R-06）",
+            "tmux list-windows -t camra-hira-calibration（10 窗口）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只读核查起步；不拉取HiRA最新提交，不覆盖已有本地工作。",
         "已有任务仍在运行时先查归属，不能重复开采集。"
@@ -436,13 +479,13 @@
         "报告含主仓库和HiRA精确提交、工作树状态及旧任务实际计数。",
         "会话/窗口、日志根、环境待检查清单可定位；没有启动实验或修改旧证据。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) 报告含精确版本与计数——主仓库 13fd248（main，与 origin/main 一致，dirty 0）、HiRA 子模块 6a05af55（heads/master，dirty 0）、旧计划 32/32 与 13 条决策记录，均写入 repository_baseline.json 与 handoff §1；(2) 会话/日志根/待检查清单可定位且未动旧证据——tmux 会话 camra-hira-calibration 十窗口就绪，日志根 /pub/data/caohy/logs/camra_hira 与实验根 CaMRA/calibration/experiments/hira_go2_18500 均已建立，环境待检查清单见 baseline.pending_checks_for_next_tasks，本轮未启动任何实验或训练、未拉取 HiRA 新提交、未写入/移动/删除任何 v2 文件（v2 trials 68G 原样保留）；唯一进程级动作是回收我方 11:21 启动的 47_diag_near.py 残留（占 GPU2 2.8 GiB，非登记任务），已在记录与 handoff §3 如实登记。另：6 条接入风险（heading_command、每子步 PD、reset 随机化、action_scale 双源、共享机器资源、重试口径）已结构化登记，逐条挂到验证任务。"
     },
     {
       "id": "HIRA-002",
       "phase": "接手与环境",
       "goal": "理解论文方法及本轮重复校准的科学问题",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-001"
       ],
@@ -460,7 +503,38 @@
       "evidence_outputs": [
         "handoff：方法理解、三对象数据流与范围说明"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T15:42:00+08:00",
+          "summary": "只读学习论文方法章与 CaMRA 系统说明，产出四组件（控制器/功率模型/α/δ）的输入-输出-职责表、三个不同对象（确定性名义/clean 执行/扰动执行）的区分、以及论文旧口径（a.u.、5 Hz、60 s）与当前实现（J、10 Hz、30 s）的六项差异；明确本轮只新增控制器校准实验。",
+          "actions": [
+            "只读 CaMRA/README.md：模块责任、系统流程四步、统一运行接口（200/50/10 Hz）、v2 与 HiRA 的冻结契约边界。",
+            "只读论文 main.tex 第 259–344 行（Execution-Calibrated CaMRA：系统概览、冻结速度接口、执行误差校准），提取名义模型 f̄_cl、配对定义、ε_c/ε_d 定义与 α=Q_pc(ε_c)、δ=Q_pd(ε_d)、c̃=(1+α)c、F_δ={x:d(x,F)≤δ}。",
+            "grep 论文中 a.u./Hz 的用法，确认旧口径：J 为 a.u. 代理成本、预算 120/140/190（部署 230）a.u.、60 s horizon、50/5 Hz。",
+            "把理解写成 handoff §5：四组件职责表、三对象区分、换控制器为何必须重做、六项口径差异、范围声明。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（新增 §5，191 行）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-002 记录）"
+          ],
+          "commands": [
+            "sed -n '259,344p' manuscripts/CCDC/latex/1029/main.tex（只读）",
+            "grep -n 'a\\.u\\.|Hz' manuscripts/CCDC/latex/1029/main.tex（只读）"
+          ],
+          "results": [
+            "四组件职责写成表：控制器（命令+本体观测 → 12 维关节偏移 → 力矩）；功率模型（命令 → P̂ → J_nom）；α（ε_c → 0.9 分位标量 → (1+α)c）；δ（ε_d → 0.9 分位标量 → F⊕disc(δ)）；独立检验（冻结裕度 + 未参与校准的 trial → 覆盖率与区间）。",
+            "三对象明确区分：确定性名义模型只能用命令积分的平面模型；clean rollout 仍是执行系统（关扰动不消除跟踪误差，v2 实测 ε_d 中位 1.1 m）；扰动 rollout 才是 α/δ 的主样本。",
+            "六项口径差异已列：J 单位（a.u.→J）、成本算法（代理成本→正关节机械功）、预算量级、时间窗（60→30 s）、频率（50/5→200/50/10 Hz）、裕度来源（示例值→经验分位）。",
+            "范围声明写死：只新增控制器校准；不做导航训练/真机/稿件修改；覆盖率不等于导航成功率或形式化安全保证。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §5",
+            "manuscripts/CCDC/latex/1029/main.tex 第 246/405/637 行（只读引用，未改动）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "论文只读，不同步字句、数字、公式或图片。",
         "不把校准覆盖解释成导航成功概率或形式化随机安全保证。"
@@ -469,13 +543,13 @@
         "用明确输入/输出解释控制器、功率模型、α、δ、独立检验各自职责。",
         "明确本轮只新增控制器校准实验，未扩展到导航训练、真机或稿件修改。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) 用明确输入/输出解释了四个组件——控制器（输入机身速度命令与本体观测，输出 12 维关节偏移并转为每子步力矩）、功率模型（输入命令序列，输出 P̂ 与 J_nom=ΣP̂·0.1 s）、α（输入配对 ε_c，输出 0.9 分位标量并放大成本为 (1+α)c）、δ（输入配对 ε_d，输出 0.9 分位标量并膨胀危险集 F⊕disc(δ)），另单列独立检验的输入（冻结裕度+未参与校准的 trial）与输出（覆盖率+区间），见 handoff §5.2；同时区分了确定性名义模型、clean 物理执行、扰动物理执行三个对象（§5.3），并说明换控制器必须重做全部校准的原因（§5.4）；(2) 范围已明确写死——本轮只新增控制器校准实验（HiRA actor 接入 + 独立重复 α/δ），不扩展到导航训练、真机/sim2real、底层重训或稿件修改（§5.6）；论文仅只读：本轮未修改 manuscripts/ 下任何文件，未同步字句、数字、公式或图片，六项旧新口径差异只以表格记录（§5.5），不据此改稿；并显式声明覆盖率不得解释为导航成功概率或形式化随机安全保证。"
     },
     {
       "id": "HIRA-003",
       "phase": "接手与环境",
       "goal": "追踪现有校准实现与历史失败处理",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-002"
       ],
@@ -496,7 +570,43 @@
         "reports/existing_pipeline_map.json",
         "handoff：可复用点、必须隔离点及既有风险"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T15:52:00+08:00",
+          "summary": "按函数与字段追踪 v2 校准链路 20 个阶段，定位 8 处会对 HiRA 造成静默混用的隐式绑定（日志根/设备/会话名/控制器版本/协议版本/默认 margins/代码树散列范围/覆盖开关），并整理 6 起历史事故对 HiRA 的启示；产出 existing_pipeline_map.json 与 handoff §6。",
+          "actions": [
+            "读 config.py 全文：DEFAULTS 九项（CAMRA_LOG_ROOT、CAMRA_DEVICE=cuda:0、CAMRA_TMUX_SESSION、CONTROLLER_VERSION 等）+ preflight 检查项。",
+            "读 protocol.py 默认（DEFAULT_VERSION=1.0.2、load(path=None, verify_hash=True)）与 collect_trials.py 全部参数默认值（--device cuda:0、--lock/--maps/--margins 默认 None、--allow-overwrite 默认 False）。",
+            "读 lock.py enforce_collection 的默认 margins 路径（config/margins_v1.json）与 maps 散列校验；读 build_data_lock.py 的 tree_hashes(cal, CODE_DIRS) 对 5 个目录 rglob('*.py')。",
+            "按 20 个阶段整理 pipeline（协议→时间轴→命令→名义→profile→采集→记录→能量→配对→存储→对账→功率→足迹→步成本→裕度→检验→近障→审计→锁→交付），每项写 file/symbol/input/output/key_fields。",
+            "整理 6 起历史事故（整批连坐、early reset、散列含时间戳、低速停滞、近障几何重叠、最高 attempt 与一次性补采）及其对 HiRA 的处理要求。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/existing_pipeline_map.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（新增 §6，243 行）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-003 记录）"
+          ],
+          "commands": [
+            "cat src/camra_calibration/config.py",
+            "grep -n 'DEFAULT_VERSION|def load' src/camra_calibration/protocol.py",
+            "grep -n 'add_argument' scripts/collect_trials.py",
+            "grep -n 'margins_v1|maps|def enforce_collection' src/camra_calibration/lock.py",
+            "grep -n 'rglob|tree_hashes' scripts/build_data_lock.py"
+          ],
+          "results": [
+            "20 个阶段的文件/函数/输入/输出/关键字段全部落到 existing_pipeline_map.json。",
+            "8 处隐式绑定定位到具体文件与默认值：日志根 /pub/data/caohy/logs/camra、cuda:0、camra-locomotion、camra_go2_velocity_it2999_v2、协议 1.0.2、margins_v1.json、rglob('*.py') 覆盖 v2 全部 54 个 py、--allow-overwrite。",
+            "可复用清单 7 项（命令程序/名义积分/profile/记录器与能量/配对误差/统计口径/门禁机制）；必须隔离清单 8 项。",
+            "历史事故逐条给出对 HiRA 的要求，其中两条写死：低速边界不得假设与 v2 相同、业务失败禁止用成功重试替换（R-06）。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/existing_pipeline_map.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §6"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "按函数与实际字段阅读，不只复述README。",
         "旧v2的一次性补采裁定不得当成新实验通用规则。"
@@ -505,7 +615,7 @@
         "给出从外部命令到原始数据、能量、误差、裕度、检验的实际文件/函数地图。",
         "隐式v2绑定及重试/分母的风险均有位置和处理建议。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) 给出从外部命令到原始数据、能量、误差、裕度、检验的实际文件/函数地图——existing_pipeline_map.json 按 20 个阶段逐项写明 file、symbol、input、output、key_fields，覆盖 collect_trials.py 批循环、sim/recorder.TrialRecorder、energy D-ENERGY-001、pairing.compute_trial_errors、power.py/fit_power_model.py、footprint.py/build_footprint.py、margins.py/fit_margins.py、coverage.py/evaluate_heldout.py、near_obstacle.py/evaluate_near_obstacle.py、audit_all_splits.py、lock.py/build_data_lock.py、交付包脚本；(2) 隐式 v2 绑定与重试/分母风险均有位置与处理建议——8 处绑定逐条给出 location/value/risk/action（含 cuda:0 与 katago 冲突、tree_hashes 覆盖 v2 全部 py、默认 margins_v1.json 会为 HiRA 放行），6 起历史事故（含最高 attempt 计数与 v2 一次性补采）逐条标注 status 与对 HiRA 的要求，并明确旧补采裁定不得作为新实验通用规则（R-06）；全部结论来自函数与字段阅读，非 README 复述。"
     },
     {
       "id": "HIRA-004",
@@ -1849,6 +1959,62 @@
     {
       "tasks": "HIRA-036–040",
       "description": "独立审计、统一口径对比v2、复现包与最终交接"
+    }
+  ],
+  "integration_risks": [
+    {
+      "id": "R-01",
+      "title": "heading_command 继承为 True，Go2 底层配置未覆盖",
+      "evidence": "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot_config.py:44 heading_command = True；go2/go2_config.py 的 GO2RoughCfg 未定义 commands 覆盖",
+      "impact": "外部写入的 yaw rate 可能在命令重采样时被 heading 误差反算覆盖，策略消费的命令不等于外部命令",
+      "verified_in_task": "HIRA-016（外部命令无暗中改写），并牵连 HIRA-013（观测的命令切片）",
+      "verification_method": "固定 commands[:, :3] 跨过至少一个重采样周期，记录策略实际消费的命令与写入值逐项比对",
+      "status": "open"
+    },
+    {
+      "id": "R-02",
+      "title": "PD 在每个物理子步重算，而非每策略步一次",
+      "evidence": "base/legged_robot.py:67-74：for _ in range(decimation): _compute_torques(actions) → set_dof_actuation_force_tensor → simulate",
+      "impact": "若 Lab 适配层每策略步只算一次力矩并重复施加，轨迹与 200 Hz 能量积分都不等价",
+      "verified_in_task": "HIRA-014（每物理子步 PD）、HIRA-019（200 Hz 真实力矩与计量）",
+      "verification_method": "同状态同动作，对照一个策略步内 4 个子步的力矩序列与源 oracle",
+      "status": "open"
+    },
+    {
+      "id": "R-03",
+      "title": "源 reset 随机化关节角并从 1 m 落下",
+      "evidence": "base/legged_robot.py:_reset_dofs 用 default_dof_pos * rand(0.5,1.5)；base/legged_robot_config.py:52 init_state.pos = [0,0,1]",
+      "impact": "与固定起点、同 seed 可复现的采集语义冲突；照搬会让每条 trial 起始状态不同",
+      "verified_in_task": "HIRA-016（reset 与上一动作逐 env 清零）、HIRA-012（机器人与执行器配置）",
+      "verification_method": "同 seed 两次运行的首帧关节角与根位姿必须一致，或差异被显式记录为有意设计",
+      "status": "open"
+    },
+    {
+      "id": "R-04",
+      "title": "action_scale 双源：基类 0.5，Go2 覆盖 0.25",
+      "evidence": "base/legged_robot_config.py:66 action_scale = 0.5；go2/go2_config.py control 段 action_scale = 0.25（子类生效，已静态确认）",
+      "impact": "差一倍会彻底改变行为，但机器人仍能行走，冒烟测试抓不出来",
+      "verified_in_task": "HIRA-008（接口契约冻结）、HIRA-014",
+      "verification_method": "适配层与测试显式断言解析值 0.25，并用源 _compute_torques 做 oracle 对照",
+      "status": "open"
+    },
+    {
+      "id": "R-05",
+      "title": "共享机器：他人占显存、负载 172、磁盘 96%",
+      "evidence": "GPU0 zhengyangz 两个 katago（952+954 MiB）、GPU1 caozp python（2028 MiB）；load 172.57；/pub 27T/29T，剩 1.3T；v2 trials 68 G",
+      "impact": "GPU0 在 katago 忙时会让 Isaac 启动卡死；吞吐需本机重测；新增约 70 G 数据需入预算",
+      "verified_in_task": "HIRA-006（环境配置）、HIRA-009（资源预算预登记）",
+      "verification_method": "每次运行指定空闲 GPU（当前 GPU2 空闲 4 MiB），实测首批吞吐后再登记预算",
+      "status": "open"
+    },
+    {
+      "id": "R-06",
+      "title": "重试口径已变：成功重试不得替换业务失败",
+      "evidence": "计划 repeated_calibration_contract.retry；CaMRA/calibration/README.md 于 2026-11-05 改写，明确 v2 一次性补采不推广",
+      "impact": "v2 近障 8/10→9/10 仅为历史特例；HiRA 的失败 trial 必须留在主分母且保留全部 attempt",
+      "verified_in_task": "HIRA-023（计数优先级与测试）、HIRA-024（数据锁）",
+      "verification_method": "采集器测试：terminated 计为失败，重试不从分母顶掉原 trial",
+      "status": "open"
     }
   ]
 }

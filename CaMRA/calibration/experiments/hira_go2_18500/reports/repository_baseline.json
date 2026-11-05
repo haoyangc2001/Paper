@@ -1,0 +1,157 @@
+{
+  "report": "repository_and_execution_baseline",
+  "task": "HIRA-001",
+  "generated_at": "2026-11-05T15:32:00+08:00",
+  "device": {
+    "hostname": "tiger10.ios.ac.cn",
+    "user": "caohy",
+    "timezone": "CST (+0800)",
+    "gpus": [
+      {"index": 0, "name": "NVIDIA A100-PCIE-40GB", "used_mib_at_probe": 1922, "owner_notes": "zhengyangz: katago-standard 952 MiB + katago 954 MiB (not ours)"},
+      {"index": 1, "name": "NVIDIA A100-PCIE-40GB", "used_mib_at_probe": 2038, "owner_notes": "caozp: python 2028 MiB (not ours)"},
+      {"index": 2, "name": "NVIDIA A100-PCIE-40GB", "used_mib_at_probe": 4, "owner_notes": "clean; free after reclaiming our leftover 2.8 GiB"}
+    ],
+    "driver": "560.35.03",
+    "environment": {
+      "name": "env_isaaclab",
+      "python": "/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python",
+      "torch": "2.7.0+cu126",
+      "cuda": "12.6",
+      "isaaclab": "0.47.2",
+      "numpy": "1.26.0"
+    }
+  },
+  "repository": {
+    "path": "/home/caohy/repositories/Paper",
+    "head": "13fd248615f69d776aa7063f110c7483750c5673",
+    "head_short": "13fd248",
+    "head_subject": "docs: plan HiRA controller integration and calibration",
+    "head_date": "2026-11-05",
+    "branch": "main",
+    "upstream": "origin/main",
+    "dirty_count": 0,
+    "submodules": [
+      {
+        "path": "HiRA",
+        "commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+        "describe": "heads/master",
+        "dirty_count": 0,
+        "action_taken": "none: HIRA-001 forbids pulling new HiRA commits; status recorded read-only"
+      }
+    ]
+  },
+  "historical_evidence": {
+    "old_plan": "doc/plan/20261103_camra_calibration_implementation.json",
+    "tasks_total": 32,
+    "tasks_done": 32,
+    "tasks_not_done": [],
+    "decision_records": 13,
+    "cross_check": "plan states 32/32; README of 2026-11-05 already rewritten to point at the HiRA plan, so no stale '0/32' wording remains in the repo root or calibration README",
+    "preserved_verdicts": [
+      "v2 low-speed limitation accepted on 2026-11-03; TASK-036 overall_pass=False and TASK-036/037 unfinished state are kept",
+      "near-obstacle one-off refill is recorded in calibration handoff section 32 and is explicitly not to be generalised"
+    ]
+  },
+  "checkpoint_identity_verified": {
+    "hira_actor_checkpoint": {
+      "path": "HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt",
+      "bytes": 4613734,
+      "sha256": "d30e52122125cf3db576408d4bf736703cdee6719944f55c423b4af3cb03d2e8",
+      "matches_plan": true
+    },
+    "other_exports": [
+      {"path": "HiRA/logs/rough_go2/exported/policies/policy_1.pt", "sha256": "6d6f4d361fedad6b2ed76df3763651968ab76bccb3297d32b851d02ce3a60160", "matches_plan": true},
+      {"path": "HiRA/legged_gym_go2/deploy/pre_train/go2/policy_1.pt", "sha256": "0069ce66a92d4cfa29e4f07aa27a6687728da47dff5c5aebed0e9163d267462f", "matches_plan": true}
+    ],
+    "note": "three files have different byte hashes; identity will be settled in HIRA-011 by extracting the actor from the designated checkpoint, not by filename"
+  },
+  "execution_baseline": {
+    "tmux_session": "camra-hira-calibration",
+    "windows": ["onboarding", "env", "adapter", "integration", "pilot", "baseline", "calibration", "heldout", "near", "audit"],
+    "preexisting_sessions": {
+      "camra-env": "46 windows, all v2 work finished (last window recompute); no collect_trials or env_isaaclab python alive",
+      "others": ["0", "1", "paper-study-20261103"]
+    },
+    "logs_root": "/pub/data/caohy/logs/camra_hira",
+    "logs_subdirs": ["env_setup", "integration", "trials"],
+    "experiment_root": "CaMRA/calibration/experiments/hira_go2_18500",
+    "experiment_subdirs": ["config", "reports", "docs", "tests"],
+    "isolation": "new logs root and experiment root are separate from the v2 tree (/pub/data/caohy/logs/camra); no v2 file was written, moved or removed"
+  },
+  "resources": {
+    "pub_disk": {"total": "29T", "used": "27T", "available": "1.3T", "use_percent": 96},
+    "v2_trials_size": "68G",
+    "v2_logs_total": "69G",
+    "load_average_1m_5m_15m": [172.57, 156.50, 144.04],
+    "implication": "a second full HiRA set (1820 trials) is expected to be order 70 GB, which fits in the 1.3 TB left; throughput must be re-measured on this box rather than assumed from the v2 run"
+  },
+  "actions_taken": [
+    "read-only inspection of repository, submodule, plan and environment",
+    "created tmux session camra-hira-calibration with the ten windows named by the plan",
+    "created experiment root directories and the isolated logs root",
+    "killed our own leftover diagnostic process (pid 1372136, HiRA-unrelated 47_diag_near.py started 11:21, 4 h 10 min, holding 2.8 GiB on GPU 2); it was not part of any registered task and GPU 2 is now free",
+    "no experiment was launched, no training started, no v2 evidence modified, no HiRA commit pulled"
+  ],
+  "risks": [
+    {
+      "id": "R-01",
+      "title": "heading_command defaults to True and the Go2 config does not override it",
+      "evidence": "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot_config.py:44 (heading_command = True); go2/go2_config.py defines GO2RoughCfg.env but no commands override",
+      "impact": "an externally written yaw-rate command may be recomputed from heading error at command resampling, silently rewriting what the policy sees",
+      "verified_in_task": "HIRA-016 (external command not silently rewritten), also HIRA-013 (command slice of the observation)",
+      "verification_method": "hold commands[:, :3] fixed across at least one resample period, log the command actually consumed by the policy, diff against what was written",
+      "status": "open"
+    },
+    {
+      "id": "R-02",
+      "title": "PD is recomputed inside every physics substep, not once per policy step",
+      "evidence": "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot.py:67-74 (for _ in range(decimation): _compute_torques(actions) -> set_dof_actuation_force_tensor -> simulate)",
+      "impact": "an Isaac Lab adapter that computes torque once per policy step and holds it for four substeps changes both the trajectory and the 200 Hz energy integral",
+      "verified_in_task": "HIRA-014 (per-substep PD) and HIRA-019 (real 200 Hz torque and energy metering)",
+      "verification_method": "single-step oracle comparison of the four torques emitted inside one policy step for identical state and action",
+      "status": "open"
+    },
+    {
+      "id": "R-03",
+      "title": "Source reset randomises joint angles and drops the robot from 1 m",
+      "evidence": "base/legged_robot.py:_reset_dofs uses default_dof_pos * torch_rand_float(0.5, 1.5); base/legged_robot_config.py:52 init_state.pos = [0.0, 0.0, 1.0]",
+      "impact": "the collection semantics require a fixed start pose and seed-reproducible rollouts; inheriting the training reset would make every trial differ",
+      "verified_in_task": "HIRA-016 (reset and previous-action cleared per env) and HIRA-012 (robot and actuator config)",
+      "verification_method": "two runs with the same seed must produce identical first-frame joint positions and root pose, or the divergence must be documented as intentional",
+      "status": "open"
+    },
+    {
+      "id": "R-04",
+      "title": "action_scale has two sources (0.5 in the base config, 0.25 in the Go2 config)",
+      "evidence": "base/legged_robot_config.py:66 action_scale = 0.5; go2/go2_config.py control block action_scale = 0.25; the Go2 subclass wins",
+      "impact": "a factor-of-two error changes the policy behaviour completely while still producing a walking robot, so it can pass a naive smoke test",
+      "verified_in_task": "HIRA-008 (freeze the interface contract) and HIRA-014",
+      "verification_method": "oracle against the source _compute_torques for the same action, plus an explicit assertion that the resolved scale is 0.25 in both the adapter and its test",
+      "status": "open"
+    },
+    {
+      "id": "R-05",
+      "title": "Shared machine: foreign GPU memory, high load, 96 percent disk",
+      "evidence": "GPU0 held by two katago processes, GPU1 by another user's python; load average 172; /pub 27T of 29T used",
+      "impact": "GPU 0 is known to stall Isaac startup when katago is busy; batch size and throughput must be re-measured, and a second 70 GB data set must be budgeted",
+      "verified_in_task": "HIRA-006 (environment) and HIRA-009 (resource budget preregistration)",
+      "verification_method": "use a free GPU index per run, record utilisation and wall time for the first pilot batch, register the measured numbers before the formal runs",
+      "status": "open"
+    },
+    {
+      "id": "R-06",
+      "title": "Retry semantics changed: a successful retry may not replace a business failure",
+      "evidence": "plan repeated_calibration_contract.retry; calibration README rewritten on 2026-11-05 stating the v2 one-off refill is not to be generalised",
+      "impact": "the v2 near-obstacle cell that was refilled from 8/10 to 9/10 stays a historical exception; a HiRA trial that fails stays in the main denominator with all attempts",
+      "verified_in_task": "HIRA-023 (counting priority and tests) and HIRA-024 (lock)",
+      "verification_method": "collector test that a terminated trial is counted as failed and that a retry does not displace it from the denominator",
+      "status": "open"
+    }
+  ],
+  "pending_checks_for_next_tasks": [
+    "HIRA-002..005: reading tasks, must produce a checkable handover map with file paths, classes, tensors and data flow",
+    "HIRA-006: confirm the Isaac Lab 2.3.0 environment can host a HiRA adapter without installing Isaac Gym; verify CUDA state on the chosen GPU index before each run",
+    "HIRA-007: re-verify checkpoint and URDF identity on the execution device, record URDF asset hashes (not yet hashed in this task)",
+    "HIRA-009: register tolerances and the resource budget before any numerical comparison"
+  ]
+}
