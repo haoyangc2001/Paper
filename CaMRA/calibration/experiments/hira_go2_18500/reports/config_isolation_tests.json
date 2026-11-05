@@ -1,0 +1,73 @@
+{
+  "report": "config_isolation_tests",
+  "task": "HIRA-010",
+  "controller_id": "camra_hira_go2_18500_lab_v1",
+  "experiment_id": "hira_go2_18500",
+  "adapter_root": "/home/caohy/repositories/Paper/CaMRA/locomotion/adapters/hira_go2",
+  "cases": [
+    {
+      "id": "U1",
+      "name": "缺必需环境变量必须失败",
+      "pass": true,
+      "detail": "按预期拒绝：缺少必需的环境变量（无默认值）：HIRA_PROTOCOL"
+    },
+    {
+      "id": "U2",
+      "name": "controller_id 指向 v2 必须失败",
+      "pass": true,
+      "detail": "controller_id 必须是 camra_hira_go2_18500_lab_v1，得到 'camra_go2_velocity_it2999_v2'"
+    },
+    {
+      "id": "U3",
+      "name": "protocol 指向 v2 必须失败",
+      "pass": true,
+      "detail": "protocol 指向 v2 资源（命中 '/config/calibration_protocol_v1.0.2.json'）：/home/caohy/repositories/Paper/CaMRA/calibration/config/calibration_protocol_v1.0.2.json"
+    },
+    {
+      "id": "U4",
+      "name": "margins 指向 v2 必须失败",
+      "pass": true,
+      "detail": "margins 指向 v2 资源（命中 '/config/margins_v1.json'）：/home/caohy/repositories/Paper/CaMRA/calibration/config/margins_v1.json"
+    },
+    {
+      "id": "U5",
+      "name": "data_root 指向 v2 日志根必须失败",
+      "pass": true,
+      "detail": "data_root 不能是 v2 的日志根：/pub/data/caohy/logs/camra"
+    },
+    {
+      "id": "U6",
+      "name": "正常配置零问题",
+      "pass": true,
+      "detail": "0 problems（身份与拒混均通过）"
+    },
+    {
+      "id": "U7",
+      "name": "缺 hira 产物时报缺失而非 fallback",
+      "pass": true,
+      "detail": "5 项问题，其中缺失文件 5 项（无 fallback）"
+    },
+    {
+      "id": "U8",
+      "name": "run_id 路径穿越必须拒绝",
+      "pass": true,
+      "detail": "三种非法 run_id 全部被拒"
+    },
+    {
+      "id": "U9",
+      "name": "v2 旧产物散列未变",
+      "pass": true,
+      "detail": "v2 data_lock_v1.json sha b214809bd287b170… 未变"
+    },
+    {
+      "id": "U10",
+      "name": "指纹含真实 checkpoint 散列",
+      "pass": true,
+      "detail": "fingerprint.ok，checkpoint d30e52122125cf3d…"
+    }
+  ],
+  "n_cases": 10,
+  "n_pass": 10,
+  "ok": true,
+  "note": "U7 的缺失项是 HIRA-023/026/029 才会生成的 hira_* 产物；此刻报缺失正是预期行为，证明没有 fallback 到 v2"
+}

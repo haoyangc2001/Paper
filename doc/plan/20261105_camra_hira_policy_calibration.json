@@ -1059,7 +1059,7 @@
       "id": "HIRA-010",
       "phase": "隔离实现",
       "goal": "建立显式控制器与实验配置入口",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-009"
       ],
@@ -1080,7 +1080,42 @@
         "独立实验配置/runner框架",
         "reports/config_isolation_tests.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T17:05:00+08:00",
+          "summary": "建立 HiRA 显式配置入口与拒混层：11 个资源字段无默认值、三类检查分离（身份/污染/存在），10 项自测全过；新增 adapter 代码不入 v2 代码树，旧锁 b214809b 与树 ff6631de 未变，只读快照仍可复算。",
+          "actions": [
+            "新增 CaMRA/locomotion/adapters/hira_go2/{__init__,experiment}.py：HiraExperiment（11 个必填资源、device/visible_devices/controller_id/experiment_id）、from_env（只认 HIRA_* 前缀、缺项即抛）、identity/v2_contamination/existence 三类检查、fingerprint、run_dir/integration_dir/output_paths（无 fallback，run_id 拒路径穿越）。",
+            "新增 experiments/hira_go2_18500/tests/check_config_isolation.py：U1–U10 十项自测，输出 reports/config_isolation_tests.json。",
+            "自测抓到并修正一处真 bug：v2 标记过宽把 hira_power_model_v1.json 误判为 v2；改为带 /config/ 前缀的精确标记并在注释里记录。",
+            "验证旧证据未受影响：仓库 v2 锁 b214809b n_bad=0、代码树 ff6631de（54 文件）不变；/pub 只读快照锁同为 b214809b、n_bad=0。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/__init__.py（新建）",
+            "CaMRA/locomotion/adapters/hira_go2/experiment.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_config_isolation.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/config_isolation_tests.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§12）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-010 记录）"
+          ],
+          "commands": [
+            "python tests/check_config_isolation.py（两轮：首轮 9/10，修 bug 后 10/10）",
+            "python -c 'DataLock.load(...).verify_artifacts(\".\")'（仓库与快照各一次）"
+          ],
+          "results": [
+            "10/10 自测通过：U1 缺变量失败、U2–U5 四类 v2 污染全部被拒、U6 正常配置零问题、U7 缺 hira 产物如实报 7 项缺失（证明无 fallback）、U8 路径穿越被拒、U9 v2 旧产物散列未变、U10 指纹含 d30e5212…。",
+            "旧锁与代码树未变：b214809b / ff6631de / 54 文件 / n_bad=0；只读快照同样 n_bad=0，可定位用于历史复算。",
+            "所有 HiRA 关键资源显式绑定，无 v2 默认值、无输出 fallback。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/config_isolation_tests.json（10/10）",
+            "CaMRA/locomotion/adapters/hira_go2/experiment.py",
+            "handoff §12"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "新增目录不复制整套第三方训练框架；旧实现不做无关重构。",
         "不得给旧锁重算hash伪装旧代码未变。"
@@ -1089,7 +1124,7 @@
         "HiRA所有关键资源显式绑定；缺配置或传入v2资源时会明确失败。",
         "旧产物hash未变，旧锁绑定的代码快照可定位并可用于历史复算。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) HiRA 所有关键资源显式绑定，缺配置或传入 v2 资源会明确失败——HiraExperiment 的 11 个资源字段无默认值，from_env 只认 HIRA_* 且缺项即抛 ConfigError；identity/v2_contamination/existence 三类检查分别覆盖身份被改、路径指向 v2 冻结物或 v2 日志根、以及文件缺失或不可写；自测 U1–U5 与 U7 共 6 项失败路径全部实测被拒，U6 正常配置零问题；(2) 旧产物散列未变、旧锁绑定的代码快照可定位并可用于历史复算——仓库 v2 锁 b214809bd287b170 的 verify_artifacts 返回 n_bad=0，代码树仍 ff6631def88013a0、54 个文件；/pub/data/caohy/camra_run/calibration 只读快照锁同为 b214809b 且 n_bad=0；新增 adapter 位于 locomotion/adapters/，不在 v2 锁的 5 个代码目录内，故未改旧锁也未重算其散列。另如实记录：首轮自测 9/10，U6 暴露 v2 标记过宽把 hira_power_model_v1.json 误判，已修正为带 /config/ 前缀的精确标记并留注释。"
     },
     {
       "id": "HIRA-011",

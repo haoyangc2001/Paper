@@ -520,3 +520,53 @@ T-14 clean 闭环行为｜T-15 回归破坏必被拒
 | 费用 | 0（全本地） |
 
 暂停触发：吞吐低于 1 条/10 s 持续 10 分钟；剩余磁盘 <500 GB；诊断超 90 分钟；需放宽任何已登记阈值。
+
+---
+
+## 12. 显式配置入口与拒混（HIRA-010）
+
+### 12.1 新增位置
+
+- `CaMRA/locomotion/adapters/hira_go2/experiment.py`：`HiraExperiment` 配置对象 + `ConfigError`
+- `CaMRA/calibration/experiments/hira_go2_18500/tests/check_config_isolation.py`：10 项自测
+- 报告：`reports/config_isolation_tests.json`（**10/10 通过**）
+
+### 12.2 设计要点（为什么不是"加个 if"）
+
+`HiraExperiment` 的 11 个资源字段**没有默认值**，缺一个就抛 `ConfigError`；`from_env` 只认
+`HIRA_*` 前缀。这样"忘了给"和"给了 v2 的"是两种不同的失败，且都在启动仿真之前发生。
+
+三类检查分开：
+
+| 检查 | 抓什么 | 例 |
+|---|---|---|
+| `identity_problems` | controller_id / experiment_id 被改成 v2 | `camra_go2_velocity_it2999_v2` |
+| `v2_contamination_problems` | 任一字段路径命中 v2 冻结物或 v2 日志根 | 协议、模型、足迹、margins、锁、地图 |
+| `existence_problems` | 文件/目录缺失、目录不可写 | 无 fallback，缺就是缺 |
+
+输出路径也只能落在 `data_root` / `bundle_root` 下，`run_id` 含 `../` 或 `/` 直接拒绝。
+
+### 12.3 自测覆盖（10 项）
+
+U1 缺环境变量必失败｜U2 controller_id 指向 v2｜U3 protocol 指向 v2｜U4 margins 指向 v2｜
+U5 data_root 指向 v2 日志根｜U6 正常配置零问题｜U7 缺 hira 产物时报缺失而非 fallback｜
+U8 run_id 路径穿越｜U9 v2 旧产物散列未变｜U10 指纹含真实 checkpoint 散列（`d30e5212…`）
+
+**U7 最有意义**：此刻 `hira_*` 协议/模型/裕度/地图/锁都还没生成（HIRA-023/026/029 才产出），
+`validate(require_files=True)` 如实报 7 类缺失——这正好证明它**没有偷偷回退到 v2 的那一套**。
+
+### 12.4 自测抓到的一个真 bug
+
+第一版把 `power_model_v1.json` 这类名字直接当标记，结果 `hira_power_model_v1.json`
+被自己的规则误判成 v2（U6 直接失败）。修正为带 `/config/` 前缀的精确标记，
+并把这条教训写进代码注释——**标记要盯路径语义，不能只盯文件名后缀**。
+
+### 12.5 旧证据未受影响（acceptance 第 2 条）
+
+```
+repo  v2 锁 b214809b…  n_bad=0   代码树 ff6631de…  54 个文件（未变）
+/pub/data/caohy/camra_run/calibration  锁 b214809b…  n_bad=0  ← 历史复算用的只读快照
+```
+
+新增 adapter 代码放在 `locomotion/adapters/`，**不在** v2 锁的 5 个代码目录内，
+所以旧锁的代码树散列不变、旧判定可复算。这正是"新实验用自己的锁、不覆盖旧锁"的实现前提。
