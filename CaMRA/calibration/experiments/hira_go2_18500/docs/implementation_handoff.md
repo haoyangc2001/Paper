@@ -732,3 +732,74 @@ effort/velocity 的残差是 7.6e-7 / 1.5e-6，量级正好是 float32 表示误
 - 源 thickness 0.01 → `CollisionPropertiesCfg(contact_offset=0.01, rest_offset=0.0)`
 - isaacgym 与 PhysX 5.1 的接触/摩擦模型不同，**接触力数值不可假定相等**，
   这一点在 HIRA-014 的闭环行为里才会真正显形
+
+---
+
+## 15. 45 维观测适配器（HIRA-013）
+
+### 15.1 产物
+
+| 产物 | 位置 |
+|---|---|
+| 适配器 | `CaMRA/locomotion/adapters/hira_go2/observation.py`（只用 torch，不 import isaaclab） |
+| 自测 | `experiments/hira_go2_18500/tests/check_observation_adapter.py`（O1–O13，13/13 通过） |
+| 报告 | `experiments/hira_go2_18500/reports/observation_adapter_tests.json` |
+
+### 15.2 三处最容易做错的地方，都用结构固定住
+
+1. **关节顺序**：`JointOrder` 按名字建双射，存两份索引（目标→源、源→目标），
+   构造时校验"重复/缺失/互逆"，不做任何按位置对齐。
+2. **上一动作的语义**：存的是 `clip(a, ±100)`、**未乘 action_scale** 的动作。
+   源里 `self.actions` 就是这个量，0.25 只在 `_compute_torques` 里乘。
+   如果把 `0.25·a` 存进观测，模型看到的输入会和训练时差 4 倍。
+3. **缩放只做一次**：命令进来已是 m/s、rad/s，适配器只乘 `[2, 2, 0.25]`；
+   观测裁剪在最后做一次 `clip(±100)`。
+
+### 15.3 顺序不是"顺便对齐"的问题
+
+HIRA-012 实测的 Lab DOF 顺序是按关节类型分组的：
+
+```
+Lab : FL_hip FR_hip RL_hip RR_hip | FL_thigh … | FL_calf …
+源  : FL_hip FL_thigh FL_calf | FR_hip …
+```
+
+自测里 O2 用一份**独立 oracle**（逐块标量实现，不复用适配器任何逻辑）对照，
+第一次跑就抓到 20 个点越界、最大差 2.466——原因是置换方向写反了
+（`target_to_source` 用了 `source_index_of_target`）。两个索引互为逆，
+所以"往返一致"的测试照样通过，只有和 oracle 逐点比才暴露。
+**这就是为什么 O3（可逆性）不能代替 O2（逐点对照）。**
+
+### 15.4 13 项自测
+
+| ID | 查什么 | 结果 |
+|---|---|---|
+| O1 | 六块 3/3/3/12/12/12 = 45 | 通过 |
+| O2 | 与独立 oracle 逐点对照 | max_abs 1.5e-8，0 越界 |
+| O3 | 双射可逆、重复/缺失被拒 | 通过 |
+| O4 | 上一动作 = `clip(a,±100)` 未缩放 | 250 → 100，观测 33:45 逐位相同 |
+| O5 | 改上一动作只影响 33:45 | 0:33 变化 0.0 |
+| O6 | 观测裁剪 ±100，两侧与 oracle 一致 | 通过 |
+| O7 | 逐 env reset 只清该 env | `[1,1,0,1]` |
+| O8 | 噪声只落 9:33；clean 不加噪；无向量时加噪被拒 | 0:9 与 33:45 变化 0.0 |
+| O9 | 只缩放一次（1.0→0.25、0.5→1.0、0.4→0.1） | 通过 |
+| O10 | 恰 45 维、不含机身线速度 | 通过 |
+| O11 | 投影重力 = R(q)ᵀ(0,0,−1)，单位长度 | 3 个姿态全对 |
+| O12 | 世界角速度 → 机体系 | yaw90 下 (1,0,0)→(0,−1,0)，z 分量不变 |
+| O13 | xyzw 当 wxyz 用会错 | 错序差 0.632，换序后 6e-8 |
+
+### 15.5 四元数与角速度的约定
+
+模块统一用 **wxyz**（Isaac Lab），函数名里写死 `_wxyz`；源 isaacgym 是 **xyzw**。
+O13 的意义就是把这件事量化：同一个四元数按错顺序读，投影重力会差 0.632（远大于任何容差）。
+
+`body_angular_velocity_wxyz` 也单独提供：源的 `base_ang_vel` 是机体系量，
+Lab 侧拿到世界系角速度，必须 `R(q)ᵀ` 转一次。**世界 yaw_rate ≠ 机体系 z 分量**，
+这两者在机器人倾斜时差别不小。
+
+### 15.6 还没做的部分
+
+观测适配器目前只覆盖"拼接与语义"。它与真实 Isaac Lab 状态张量的对接
+（`robot.data.root_quat_w`、`root_ang_vel_w`、`joint_pos` 的取值时机）要在
+HIRA-014 的闭环里做，那时才能验证"取的是物理子步后的值还是策略步前的值"。
+本轮的 oracle 对照证明的是**公式与顺序正确**，不是"接进仿真后自动正确"。

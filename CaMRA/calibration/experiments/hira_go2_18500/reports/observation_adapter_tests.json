@@ -1,0 +1,152 @@
+{
+  "report": "observation_adapter_tests",
+  "task": "HIRA-013",
+  "tolerances": {
+    "atol": 1e-06,
+    "rtol": 1e-05,
+    "source": "integration_acceptance_prereg_v1.tolerances.observation_float32"
+  },
+  "orders": {
+    "source_order": [
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint"
+    ],
+    "target_order": [
+      "FL_hip_joint",
+      "FR_hip_joint",
+      "RL_hip_joint",
+      "RR_hip_joint",
+      "FL_thigh_joint",
+      "FR_thigh_joint",
+      "RL_thigh_joint",
+      "RR_thigh_joint",
+      "FL_calf_joint",
+      "FR_calf_joint",
+      "RL_calf_joint",
+      "RR_calf_joint"
+    ],
+    "source_index_of_target": [
+      0,
+      3,
+      6,
+      9,
+      1,
+      4,
+      7,
+      10,
+      2,
+      5,
+      8,
+      11
+    ],
+    "target_index_of_source": [
+      0,
+      4,
+      8,
+      1,
+      5,
+      9,
+      2,
+      6,
+      10,
+      3,
+      7,
+      11
+    ]
+  },
+  "checks": [
+    {
+      "id": "O1-blocks",
+      "name": "六块尺寸与顺序",
+      "ok": true,
+      "detail": "[('ang_vel', 0, 3), ('projected_gravity', 3, 6), ('command', 6, 9), ('dof_pos', 9, 21), ('dof_vel', 21, 33), ('prev_action', 33, 45)]，合计 45"
+    },
+    {
+      "id": "O2-oracle",
+      "name": "与独立 oracle 逐点对照（含命令缩放/默认角/关节置换）",
+      "ok": true,
+      "detail": "max_abs_diff=1.490e-08, 越界=0"
+    },
+    {
+      "id": "O3-bijection",
+      "name": "按名字双射可逆，重复/缺失被拒",
+      "ok": true,
+      "detail": "随机置换往返一致=True，重复被拒=True，缺失被拒=True"
+    },
+    {
+      "id": "O4-prev-action",
+      "name": "上一动作 = clip(a, ±100)，不乘 action_scale",
+      "ok": true,
+      "detail": "clip 后 env0 第 0 位=-3.000，观测 33:45 与之逐位相同；未裁剪值 250 → 100"
+    },
+    {
+      "id": "O5-isolation",
+      "name": "上一动作只影响 33:45",
+      "ok": true,
+      "detail": "0:33 最大变化 0.000e+00，33:45 最大变化 1.018e+02"
+    },
+    {
+      "id": "O6-clip",
+      "name": "观测裁剪到 ±100，且与 oracle 的裁剪一致",
+      "ok": true,
+      "detail": "最大值 100.000，命令块上下限 100.0/-100.0"
+    },
+    {
+      "id": "O7-reset",
+      "name": "reset 某一 env 只清零该 env 的上一动作",
+      "ok": true,
+      "detail": "reset env2 后 prev_action 逐 env 最大绝对值 = [1.0, 1.0, 0.0, 1.0]"
+    },
+    {
+      "id": "O8-noise",
+      "name": "噪声只落在 9:33；clean 跑法不加噪；无噪声向量时加噪被拒",
+      "ok": true,
+      "detail": "0:9 变化 0.000e+00，9:33 变化 1.469e+00，33:45 变化 0.000e+00，无向量加噪被拒=True"
+    },
+    {
+      "id": "O9-single-scale",
+      "name": "命令只乘一次 [2, 2, 0.25]，角速度只乘 0.25，重力不缩放",
+      "ok": true,
+      "detail": "ang_vel[0]=0.250（1.0*0.25），gravity[2]=-1.000，cmd=[1.0, 0.5, 0.1]"
+    },
+    {
+      "id": "O10-dim",
+      "name": "观测恰为 45 维，且不含机身线速度",
+      "ok": true,
+      "detail": "shape=(1, 45)，块名=['ang_vel', 'projected_gravity', 'command', 'dof_pos', 'dof_vel', 'prev_action']"
+    },
+    {
+      "id": "O11-projected-gravity",
+      "name": "投影重力 = R(q)^T (0,0,-1)，单位长度",
+      "ok": true,
+      "detail": "identity:[0.0, 0.0, -1.0] vs [0.0, 0.0, -1.0]；yaw90:[0.0, -0.0, -0.9999998807907104] vs [0.0, 0.0, -1.0]"
+    },
+    {
+      "id": "O12-body-ang-vel",
+      "name": "世界角速度经 R(q)^T 转到机体系；yaw 不改变 z 分量",
+      "ok": true,
+      "detail": "世界 (1,0,0) → 机体 [-0.0, -1.0, 0.0]；世界 (0,0,1) → 机体 z=1.000"
+    },
+    {
+      "id": "O13-quat-order",
+      "name": "xyzw 当 wxyz 用会算错；显式换序后与旋转矩阵一致",
+      "ok": true,
+      "detail": "错序差 0.632，换序后差 5.960e-08"
+    }
+  ],
+  "verdict": {
+    "all_passed": true,
+    "failed": [],
+    "n_checks": 13
+  }
+}

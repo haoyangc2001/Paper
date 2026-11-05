@@ -1283,7 +1283,7 @@
       "id": "HIRA-013",
       "phase": "隔离实现",
       "goal": "实现来源语义一致的45维观测适配器",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-012"
       ],
@@ -1302,7 +1302,44 @@
         "观测适配器与映射测试",
         "reports/observation_adapter_tests.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T17:55:00+08:00",
+          "summary": "实现源语义一致的 45 维观测适配器：按名字双射处理关节顺序、六块顺序与缩放、上一动作按裁剪后未缩放语义保存、噪声只落 9:33、逐 env reset 隔离；13 项自测全过，其中独立 oracle 抓到一次置换方向写反（往返测试掩盖、逐点对照暴露）。",
+          "actions": [
+            "新增 adapters/hira_go2/observation.py：JointOrder（双向索引 + 重复/缺失/互逆校验）、ObservationAdapter（build/apply_action/reset、last_blocks 留档）、build_noise_vector、四元数与角速度换系函数（统一 wxyz，另给 xyzw→wxyz 转换）。",
+            "六块按源顺序拼接并缩放：ang_vel 0.25、projected_gravity 1.0、command [2,2,0.25]、dof_pos 1.0（减默认角）、dof_vel 0.05、prev_action 1.0；末尾一次性 clip 到 ±100。",
+            "上一动作语义按源实现：保存 clip(a,±100) 且不乘 action_scale；apply_action 返回裁剪后动作供力矩计算。",
+            "逐 env reset 只清零指定 env 的上一动作；噪声向量只覆盖 9:21 与 21:33，clean 跑法默认不加噪，且无噪声向量时显式加噪会被拒绝。",
+            "新增 tests/check_observation_adapter.py：O1–O13，含独立 oracle（逐块标量实现，不复用适配器逻辑）、双射可逆/拒绝、噪声 mask、单次缩放、四元数顺序陷阱。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/observation.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_observation_adapter.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/observation_adapter_tests.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§15）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-013 记录）"
+          ],
+          "commands": [
+            "python tests/check_observation_adapter.py（CPU，无 Isaac；两轮：首轮 12/13，修正置换方向后 13/13）"
+          ],
+          "results": [
+            "O2 独立 oracle 对照：max_abs_diff 1.5e-8、0 越界（atol 1e-6/rtol 1e-5）；首轮曾出现 20 点越界、max 2.466，定位为 target_to_source 与 source_to_target 索引互换。",
+            "O3 双射：恒等与随机置换往返一致，重复/缺失关节名均被拒绝。",
+            "O4/O5 上一动作：250 被裁到 100 且不乘 0.25；改动上一动作只影响 33:45（0:33 变化 0.0）。",
+            "O6/O9 缩放与裁剪：输入 1e3 时观测饱和在 ±100；命令 0.5/0.25/0.4 → 1.0/0.5/0.1，角速度 1.0 → 0.25，重力不缩放。",
+            "O7 逐 env reset：reset env2 后 prev_action 逐 env 最大绝对值为 [1,1,0,1]。",
+            "O8 噪声：只落 9:33（变化 1.469），0:9 与 33:45 变化 0.0；无噪声向量时 include_noise=True 被拒绝。",
+            "O11–O13 姿态：投影重力与独立旋转矩阵一致（单位长度保持）；世界角速度经 R^T 转机体系且 yaw 不改变 z；xyzw 误当 wxyz 会差 0.632。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/observation_adapter_tests.json（13/13）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §15"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不用v2现成45维观测直接喂模型；不能多拼线速度或沿用v2默认姿态。",
         "不把世界yaw_rate、heading误差或四元数不同排列混为一谈。"
@@ -1311,7 +1348,7 @@
         "六块尺寸与顺序正确，任意关节名称置换可逆且无重复/漏项。",
         "已知姿态/角速度和非零上一动作的oracle对照通过；一env reset不污染其他env。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足。(1) 六块尺寸与顺序正确、任意关节名称置换可逆且无重复漏项：O1 确认 3/3/3/12/12/12=45，O3 对恒等置换与随机置换均验证往返一致，并对重复名与缺失名分别抛出 ValueError；O2 用独立 oracle（逐块标量实现）在含真实置换、非零默认角、命令缩放的输入上逐点对照，max_abs_diff 1.5e-8、0 越界。(2) 已知姿态/角速度与非零上一动作的 oracle 对照通过、逐 env reset 不污染其他 env：O11/O12 用独立旋转矩阵核对投影重力与世界→机体角速度（含 yaw90 下 (1,0,0)→(0,-1,0)），O4/O5 证明上一动作按 clip(±100) 未缩放语义进入 33:45 且不影响其他块，O7 证明 reset env2 后仅第 2 行清零（[1,1,0,1]）。另如实记录两处过程事实：首轮 12/13，O2 暴露置换方向写反（往返测试无法发现，只有逐点 oracle 能抓到），已修正；四元数顺序若按 xyzw 误读会带来 0.632 的偏差，故模块函数名统一带 _wxyz 并提供显式转换。本轮未接真实 Isaac Lab 状态张量，该对接留待 HIRA-014 闭环验证。"
     },
     {
       "id": "HIRA-014",
