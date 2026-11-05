@@ -2022,3 +2022,72 @@ seed 相交：0 组；清单散列与数据锁逐条一致
 * `scripts/audit_all_splits.py`（独立能量重算 + 配额/seed/散列/步数/配对点审计）
 * 报告：`/pub/data/caohy/logs/camra/near_obstacle/near_obstacle_eval.json`、
   `/pub/data/caohy/logs/camra/audit/audit_all_splits.json`
+
+## 32. 一次性补采：`straight_shift|clean` 的两条业务失败（2026-11-05 下午）
+
+### 32.1 为什么补
+
+CAL-029 收口时该格完整率 0.80（8/10，2 条 terminated）低于协议门槛 0.9，
+按 `min_complete_share_rule` 该格不得进入正式结论。用户裁定：**补跑这 2 条**，
+而非让该格缺席。
+
+这是**人为裁定的一次性补采，不是协议预登记流程**。协议原文对业务失败的口径是
+"计入配额、不补采"；本次例外必须在此留痕，且**不得类推到其他格**（其余 19 格均为 1.00）。
+
+### 32.2 怎么做的（零删除 + 可审计）
+
+1. 两条失败的 `DONE` 改名为 `DONE.terminated_a1`（原产物、原 meta、原能量全部保留）；
+2. 采集器断点续采：`selected=160 skipped_done=158 processed=2`，只跑这 2 条，
+   新产物落在 `*__a2` 目录（`attempt=2`）；
+3. `check_collection` 按最大 attempt 取：`expected=done=200`、`records=202`
+   （两次重试各留一条记录）、`retried_attempts` 明确列出这两个 id、`VERDICT pass`。
+
+### 32.3 结果：一条救回来了，一条又摔了
+
+| trial | seed | attempt 1 | attempt 2 |
+|---|---|---|---|
+| `…-0004` | 8004 | terminated（4596 步） | **terminated（4668 步）** |
+| `…-0008` | 8008 | terminated（5400 步） | completed（6000 步） |
+
+`seed 8004` 两次都在 4600 步附近倒，说明该扰动组合下这个 rollout 确实不稳，
+不是偶然；没有继续重试（重试到成功才是真正的选择偏倚）。
+
+该格完整率 **9/10 = 0.90**，达到门槛。全 split 现为
+**197 completed + 3 terminated**（另 2 条 terminated 在 `start_stop_turn|combined`
+与 `straight_shift|mass_only`）。
+
+### 32.4 重算后的近障结果（n=197）
+
+| 指标 | 覆盖 | 95% CI |
+|---|---|---|
+| 成本 `ε_c ≤ α` | 175/197 = **0.8883** | [0.8426, 0.9289] |
+| 位置 `ε_d ≤ δ` | 184/197 = **0.9340** | [0.8985, 0.9645] |
+| 联合 | 163/197 = **0.8274** | [0.7716, 0.8782] |
+
+* 独立性参照 0.8883×0.9340 = 0.8297，实测 0.8274，比值 **0.9972**
+  → 联合缺口仍由两项边际相乘解释，非新缺陷；
+* 成本边际差 **1.2 pp**（原 1.1 pp），列为 open risk；
+* `cells_below_share = {}`：**20 格全部 ≥ 0.9**，无资格缺口；
+* 几何：138/197 条足迹与障碍重叠、13 条越出场地、最小净距中位 0.0 m；
+  按档位 43/40/31/24，仍随净距单调下降（补跑的那条是 5 cm 档，几何上仍重叠，
+  只是没摔倒——这与"δ 是必要条件不是充分条件"一致）。
+
+### 32.5 全分片审计（重算）
+
+七个分片 1820 条全部 `ok=true`、`problems=[]`、seed 相交 0 组；
+`near_obstacle` 的 200 条含 2 次重试记录，审计按最大 attempt 计 200 条，未重复计数。
+
+### 32.6 旧报告留档
+
+重算前把两份报告复制为 `*.pre_refill`（零删除）：
+`near_obstacle/near_obstacle_eval.json.pre_refill`、
+`audit/audit_all_splits.json.pre_refill`。
+交付包索引已按新报告重建并复验（`ok=true`、20 项、α/δ 逐位一致）。
+
+### 32.7 论文稿约束（用户明令，本目录不得违反）
+
+**任何 agent 不得改动任何论文稿**（`manuscripts/**`、`*.tex`、`*.bib`、投稿 PDF、
+`docs/paper*`、`submission*`）：不改字、不改数字、不改单位、不改图表、不重新编译。
+需要同步时只产出差异清单交用户本人执行。该约束同时写入
+`AGENTS.md`（仓库根）与用户级长期记忆 `MEMORY.md`。
+因此 §23.5 的五条稿件同步需求**永久停留在"建议清单"状态**，不再作为待办推进。

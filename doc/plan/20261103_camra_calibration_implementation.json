@@ -426,6 +426,14 @@
       "decision": "近障 200 条的碰撞判定：障碍物作为真实 kinematic 碰撞体注入场景（PhysX 会真拦），另以冻结足迹 + 记录位姿做几何重叠检查作为主判据，两者不一致时逐例列出；场地边界墙不建模（每例 arena 尺寸不同），改为离线几何检查是否越界并如实上报。",
       "source": "用户在'碰撞怎么判'的三选项中选'几何重叠为主 + 真碰撞体（推荐）'",
       "evidence": "handoff §29.1；config/near_obstacle_maps_v1.json（每例 arena/障碍/起点）"
+    },
+    {
+      "id": "D-013",
+      "state": "confirmed",
+      "date": "2026-11-05",
+      "decision": "near_obstacle 的 straight_shift|clean 格完整率 0.80 低于门槛 0.9，按用户裁定做**一次性补采**该格 2 条业务失败：原 DONE 改名 DONE.terminated_a1 保留（零删除），断点续采写 __a2，check_collection 按最大 attempt 取。结果 seed 8008 成功（6000 步）、seed 8004 二次仍 terminated（4668 步），该格 9/10 = 0.90 达标，全 split 197 completed + 3 terminated。**此为例外，不得类推**：协议对业务失败的口径仍是计入配额不补采，其余 19 格均为 1.00；重试只做一轮，不追求'重试到成功'，两轮皆倒的 seed 如实保留为失败。",
+      "source": "用户在'补跑 or 让该格缺席'的两选项中选'补跑一下'",
+      "evidence": "env_setup/50_refill.log（selected=160 skipped=158 processed=2, outcomes 1 completed/1 terminated）；trials/near_obstacle/*-0004/DONE.terminated_a1 与 *-0004__a2、*-0008__a2；near_obstacle_check.json（expected=done=200, records=202, retried_attempts 2 条, VERDICT pass）；handoff §32"
     }
   ],
   "pending_decisions": [
@@ -2521,6 +2529,44 @@
           ],
           "remaining_work": [],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-05T14:12:00+08:00",
+          "summary": "按 D-013 补采 straight_shift|clean 的 2 条业务失败后重算：该格 9/10=0.90 达标、cells_below_share 归空；近障覆盖变为 cost 0.8883 / position 0.9340 / joint 0.8274（n=197），独立性比值 0.9972 仍成立。",
+          "actions": [
+            "两条 terminated 的 DONE 改名 DONE.terminated_a1（零删除），断点续采生成 __a2（attempt=2）。",
+            "check_collection：expected=done=200、records=202、retried_attempts 列出两条、VERDICT pass。",
+            "重跑 evaluate_near_obstacle 与 audit_all_splits；旧报告另存 *.pre_refill 留档。",
+            "重建交付包索引并做空目录重载验证（ok=true、20 项、α/δ 逐位一致）。"
+          ],
+          "files_changed": [
+            "/pub/data/caohy/logs/camra/trials/near_obstacle/（2 个 DONE.terminated_a1 + 2 个 __a2 目录）",
+            "/pub/data/caohy/logs/camra/near_obstacle/near_obstacle_eval.json（重算，旧版 .pre_refill）",
+            "/pub/data/caohy/logs/camra/audit/audit_all_splits.json（重算，旧版 .pre_refill）",
+            "CaMRA/calibration/delivery/bundle_manifest_v1.json（按新报告重建）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§32）"
+          ],
+          "commands": [
+            "bash env_setup/50_refill.sh（同步副本 → 封存 DONE → 断点续采 2 条 → check_collection）",
+            "bash env_setup/51_recompute.sh（备份旧报告 → evaluate_near_obstacle → audit_all_splits）",
+            "python scripts/build_delivery_bundle.py ... && python scripts/verify_delivery_bundle.py ..."
+          ],
+          "results": [
+            "补采：seed 8008 成功（6000 步）、seed 8004 二次仍 terminated（4668 步，较首次 4596 步更晚倒）。",
+            "该格完整率 8/10 → 9/10 = 0.90（达门槛）；cells_below_share 由 {straight_shift|clean:0.80} 变为空。",
+            "近障覆盖：cost 175/197=0.8883 [0.8426,0.9289]、position 184/197=0.9340 [0.8985,0.9645]、joint 163/197=0.8274 [0.7716,0.8782]。",
+            "独立性：0.8883×0.9340=0.8297 vs 实测 0.8274，比值 0.9972；成本边际差 1.2 pp（原 1.1 pp）。",
+            "几何：138/197 重叠、13 条越界、最小净距中位 0.0 m；档位 43/40/31/24 仍单调下降。",
+            "审计：七分片 ok=true、problems=[]、seed 相交 0 组、近障按最大 attempt 计 200 条不重复计数。"
+          ],
+          "evidence": [
+            "env_setup/{50_refill,51_recompute}.log",
+            "near_obstacle/near_obstacle_eval.json（+ .pre_refill）与 audit/audit_all_splits.json（+ .pre_refill）",
+            "near_obstacle_check.json；delivery/bundle_verify.json（ok=true, 20 项）",
+            "handoff §32"
+          ],
+          "remaining_work": [],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -2534,7 +2580,7 @@
         "真实结果满足预登记适用性要求；否则保持false并给出可审处置选项。",
         "近障全体200条与满足名义delta边界的子组均独立列数及统计；若无可用子组或未满足预登记适用性准入，如实报告，不改变地图重试凑通过。"
       ],
-      "verification_result": "验收通过（含一处如实记录的资格限制）：(1) 近障覆盖按冻结 α/δ 与功率模型评估——cost 0.8878、position 0.9337、joint 0.8265（95% CI [0.7704,0.8776]），分母 200/196/4/0 齐全，20 格、四档净距、profile/族/低速层/方向子组全部上报；(2) 物理碰撞与轮廓正确性——用冻结足迹 0.889×0.585 m 对冻结地图障碍做 50 Hz 几何检查：138/196 条重叠、最小净距中位 0.000 m、14 条越界；碰撞数按档位 43/40/31/24 单调下降，与「漂移中位 1.1 m 远大于净距 0.05–0.35 m」一致，几何实现自洽；结论如实记为：δ=2.61 m 是危险集扩张的必要条件而非充分条件，近障可用性取决于尚未实现的上层导航策略；(3) 全分片独立复算——审计脚本用独立 numpy 实现重算能量（不调用采集侧在线函数），七分片 1820 条最差相对误差 1.26e-9，配额 240/80/80/20/800/400/200 与协议一致，seed 块 4000–4239/4240–4319/4320–4399/5100–5119/6000–6799/7000–7399/8000–8199 两两零相交，清单散列与数据锁逐条一致，ok=true。资格限制：straight_shift|clean 完整率 0.80 低于门槛 0.9，该 cell 不得进入正式结论，需回采集或协议裁定。"
+      "verification_result": "验收通过（含一处如实记录的资格限制）：(1) 近障覆盖按冻结 α/δ 与功率模型评估——cost 0.8878、position 0.9337、joint 0.8265（95% CI [0.7704,0.8776]），分母 200/196/4/0 齐全，20 格、四档净距、profile/族/低速层/方向子组全部上报；(2) 物理碰撞与轮廓正确性——用冻结足迹 0.889×0.585 m 对冻结地图障碍做 50 Hz 几何检查：138/196 条重叠、最小净距中位 0.000 m、14 条越界；碰撞数按档位 43/40/31/24 单调下降，与「漂移中位 1.1 m 远大于净距 0.05–0.35 m」一致，几何实现自洽；结论如实记为：δ=2.61 m 是危险集扩张的必要条件而非充分条件，近障可用性取决于尚未实现的上层导航策略；(3) 全分片独立复算——审计脚本用独立 numpy 实现重算能量（不调用采集侧在线函数），七分片 1820 条最差相对误差 1.26e-9，配额 240/80/80/20/800/400/200 与协议一致，seed 块 4000–4239/4240–4319/4320–4399/5100–5119/6000–6799/7000–7399/8000–8199 两两零相交，清单散列与数据锁逐条一致，ok=true。资格限制：straight_shift|clean 完整率 0.80 低于门槛 0.9，该 cell 不得进入正式结论，需回采集或协议裁定。 【补采后更新（D-013）】原 straight_shift|clean 完整率 0.80 的资格缺口已按用户裁定补采处置：2 条业务失败各重试一次，1 条成功、1 条仍倒（seed 8004），该格 9/10=0.90 达标，cells_below_share 归空，20 格全部具备进入正式结论的资格；近障覆盖重算为 cost 0.8883 / position 0.9340 / joint 0.8274（n=197），独立性比值 0.9972，成本边际差 1.2 pp 仍列为 open risk。原两条 terminated 产物以 DONE.terminated_a1 保留、旧报告以 .pre_refill 留档，均为零删除。"
     },
     {
       "id": "CAL-030",
@@ -2662,6 +2708,33 @@
           "evidence": [
             "doc/plan/20261103_camra_calibration_implementation.json",
             "git 提交链"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-05T14:15:00+08:00",
+          "summary": "补采后复对账：原两项未决之一（cell 完整率缺口）已按 D-013 关闭；稿件同步项按用户 2026-11-05 明令永久转为只读清单，不再是待办。",
+          "actions": [
+            "复核 32 个任务状态与证据路径；确认 CAL-029 的资格缺口已消除（cells_below_share 为空）。",
+            "把「不得改动任何论文稿」写入 AGENTS.md（仓库根）与用户级 MEMORY.md，并把 §23.5 的五条同步需求改为只读清单。",
+            "重跑计划校验器 --mode update。"
+          ],
+          "files_changed": [
+            "doc/plan/20261103_camra_calibration_implementation.json",
+            "AGENTS.md"
+          ],
+          "commands": [
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "32/32 仍为完成；未决项由 2 项降为 1 项（稿件同步，且性质变为'只读清单交用户执行'）",
+            "工作树无稿件变更（git status 仅 AGENTS.md / handoff / bundle_manifest）"
+          ],
+          "evidence": [
+            "git status 输出",
+            "AGENTS.md 新增硬约束段",
+            "handoff §32.7"
           ],
           "remaining_work": [],
           "blockers": []
