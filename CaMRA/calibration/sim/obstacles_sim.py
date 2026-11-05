@@ -23,8 +23,10 @@ import torch
 #: 障碍物边长/高度（与地图一致：0.3×0.3 的柱子）
 OBS_SIZE: float = 0.3
 OBS_HEIGHT: float = 0.6
-#: 未使用槽位的停放位置（场地外，不会与任何机器人相交）
-PARK_XY: tuple[float, float] = (0.0, 1000.0)
+#: 未使用槽位的停放位置（场地最大 16×15 m，停到 y=30 已在场外十余米，机器人跑不到）。
+#: 注：曾怀疑停放太远会撑爆 broadphase 包围盒——实测与停放距离无关（见 §30），
+#: 真正的元凶是每个槽位的自定义材质，已移除。
+PARK_XY: tuple[float, float] = (0.0, 30.0)
 #: 槽位数量 = 地图中最大障碍数
 N_SLOTS: int = 7
 
@@ -47,8 +49,9 @@ def add_obstacle_slots(env_cfg, n_slots: int = N_SLOTS) -> list[str]:
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     kinematic_enabled=True, disable_gravity=True),
                 collision_props=sim_utils.CollisionPropertiesCfg(),
-                mass_props=sim_utils.MassPropertiesCfg(mass=5.0),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.35, 0.35, 0.40)),
+                # 不指定自定义材质：每个 PreviewSurface 会触发一次材质/着色器编译，
+                # 在本机（渲染器告警、libXt/libGLU 缺失）实测每槽位约 85 s，直接把
+                # gym.make 从 4 s 拖到 >10 min。默认材质足够，视觉无需求。
             ),
             init_state=RigidObjectCfg.InitialStateCfg(
                 pos=(PARK_XY[0], PARK_XY[1], OBS_HEIGHT / 2.0)),
