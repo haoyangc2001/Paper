@@ -1,0 +1,98 @@
+{
+  "report": "legacy_evidence_availability",
+  "task": "HIRA-007",
+  "generated_at": "2026-11-05T16:24:00+08:00",
+  "verdict": {
+    "v2_config_artifacts_all_present": true,
+    "v2_reports_all_present": true,
+    "v2_trial_corpus_present": true,
+    "delivery_bundle_reverifies": true,
+    "raw_source_logs_missing_on_this_host": true,
+    "can_use_v2_as_comparison_base": true,
+    "limits": "v2 的校准与检验数字可由本机 trial 语料独立复算；但训练期评估（TASK-024/026/036）的原始日志不在本机，只能引用结论，不能复算"
+  },
+  "v2_frozen_artifacts": [
+    {"name": "protocol", "path": "CaMRA/calibration/config/calibration_protocol_v1.0.2.json", "file_sha256_prefix": "da76c72e8d0bcda1", "content_sha256": null, "present": true, "recomputable": "配置文件，可直接校验散列"},
+    {"name": "power_model", "path": "CaMRA/calibration/config/power_model_v1.json", "file_sha256_prefix": "e718595d1f2e1c41", "content_sha256": "bfe3b1594c08f729af78d4a22adf204ea0f96491892b98e1e0b24932f2ea1f55", "present": true, "recomputable": "可由 baseline 400 条重新拟合验证"},
+    {"name": "footprint", "path": "CaMRA/calibration/config/footprint_v1.json", "file_sha256_prefix": "edff8978ff89467b", "content_sha256": "a11a3572…（43 顶点凸包）", "present": true, "recomputable": "可由 clean 帧关节角重建并逐位比对"},
+    {"name": "margins", "path": "CaMRA/calibration/config/margins_v1.json", "file_sha256_prefix": "2be77607b31c2fa5", "content_sha256": "dd76972dd49fc8d078982c73c5bcb6c6e3eaa5fe1dc89281866b3801d538b5ec", "present": true, "recomputable": "可由 calibration 800 条重算 α/δ"},
+    {"name": "data_lock", "path": "CaMRA/calibration/config/data_lock_v1.json", "file_sha256_prefix": "b214809bd287b170", "content_sha256": null, "present": true, "recomputable": "锁内绑定项可逐条重算"},
+    {"name": "step_cost_schema", "path": "CaMRA/calibration/config/step_cost_schema_v1.json", "file_sha256_prefix": "fe03749e8679c4a1", "content_sha256": "a2a5fbc6…", "present": true, "recomputable": "schema 文件"},
+    {"name": "near_obstacle_maps", "path": "CaMRA/calibration/config/near_obstacle_maps_v1.json", "file_sha256_prefix": "78c0145f0ecddc71", "content_sha256": null, "present": true, "recomputable": "200 例地图，可由设计器重建"}
+  ],
+  "delivery_bundle_recheck": {
+    "manifest": "CaMRA/calibration/delivery/bundle_manifest_v1.json",
+    "verified_at": "2026-11-05T16:20+08:00",
+    "result": {"ok": true, "n_checked": 20, "problems": []},
+    "alpha_reloaded": 0.19048279965649906,
+    "delta_reloaded": 2.6138664115280967,
+    "margins_sha256": "dd76972dd49fc8d078982c73c5bcb6c6e3eaa5fe1dc89281866b3801d538b5ec",
+    "note": "在空临时目录重载索引、重算 20 项散列、重新加载 margins 与功率模型并复算样例 trial，结果与冻结值逐位一致"
+  },
+  "v2_reports_present": [
+    "audit/audit_all_splits.json",
+    "delivery/bundle_verify.json",
+    "footprint/footprint_check.json",
+    "heldout/heldout_coverage.json",
+    "lock/data_lock_check.json",
+    "margins/margin_report.json",
+    "near_obstacle/near_obstacle_eval.json",
+    "power_fit/power_fit_report.json",
+    "step_cost/step_cost_check.json",
+    "meter_check/{meter_off,meter_on,verify_report}.json",
+    "profile_checks/{clean,friction_only,mass_only,push_only,combined,summary}.json",
+    "fault_sandbox/fault_report.json",
+    "env_setup/{c11_nominal_run1,c11_nominal_run2}.json"
+  ],
+  "v2_trial_corpus": {
+    "root": "/pub/data/caohy/logs/camra/trials",
+    "size": "68 GB",
+    "per_split_directory_counts": {
+      "baseline_fit": 240,
+      "baseline_dev": 80,
+      "baseline_validate": 111,
+      "pilot": 20,
+      "calibration": 800,
+      "heldout": 400,
+      "near_obstacle": 202
+    },
+    "trial_counts_after_attempt_dedup": {
+      "baseline_fit": 240,
+      "baseline_dev": 80,
+      "baseline_validate": 80,
+      "pilot": 20,
+      "calibration": 800,
+      "heldout": 400,
+      "near_obstacle": 200,
+      "total": 1820
+    },
+    "why_differ": "目录数含重试 attempt 目录：baseline_validate 多 31 个（__a2，D-007 批级截断重采），near_obstacle 多 2 个（__a2，D-013 一次性补采）。按最大 attempt 去重后为 80 与 200",
+    "warning": "这两个重试特例在 HiRA 新契约下不可复制（R-06）；引用 v2 数字时必须同时说明其分母含历史重试"
+  },
+  "missing_raw_evidence": [
+    {"name": "TASK-024 raw eval logs", "expected_path": "/pub/data/caohy/logs/camra/TASK-024", "size": "662 MB / 362 files", "availability": "absent on this host", "where": "caohy@192.168.20.12 同路径"},
+    {"name": "TASK-026 raw eval logs", "expected_path": "/pub/data/caohy/logs/camra/TASK-026", "size": "10.6 MB / 16 files", "availability": "absent on this host", "where": "caohy@192.168.20.12 同路径"},
+    {"name": "TASK-036 raw eval logs", "expected_path": "/pub/data/caohy/logs/camra/TASK-036", "size": "1.3 GB / 685 files", "availability": "absent on this host", "where": "caohy@192.168.20.12 同路径"},
+    {"name": "candidate bundle r4_it2999_v1", "expected_path": "/pub/data/caohy/camra_bundles/candidates/r4_it2999_v1", "availability": "absent on this host", "where": "caohy@192.168.20.12 同路径"}
+  ],
+  "recomputable_from_local_evidence": [
+    {"what": "逐 trial 执行能量 J_exec", "how": "从 physics_200hz.npz 的 tau/qdot 用独立 numpy 重算", "already_shown": "audit_all_splits 七分片 1820 条，最差相对误差 1.26e-9"},
+    {"what": "α 与 δ", "how": "从 calibration 800 条的 pairing 重算 ε_c/ε_d 后取 nearest-rank 0.9 分位", "already_shown": "fit_margins 重跑散列逐位一致（dd76972d）"},
+    {"what": "名义功率模型", "how": "从 baseline 400 条重新拟合 NNLS 并按 dev 选型", "already_shown": "fit_power_model 重跑散列一致（bfe3b159）"},
+    {"what": "足迹凸包", "how": "从 clean 帧关节角 + 冻结资产重建", "already_shown": "build_footprint 重建后逐位一致（a11a3572）"},
+    {"what": "heldout / near_obstacle 覆盖率", "how": "从各自的 trial 记录重算 ε_c/ε_d 与阈值比较", "already_shown": "evaluate_heldout / evaluate_near_obstacle 报告"},
+    {"what": "近障几何重叠与越界", "how": "从冻结地图 + 记录位姿重算", "already_shown": "near_obstacle_eval.json"}
+  ],
+  "report_only_no_raw_data": [
+    {"what": "TASK-036 底层复测结论（overall_pass=False）", "why": "原始日志不在本机，无法复算", "use": "只能作为历史结论引用，不得当作本机复算结果"},
+    {"what": "TASK-024/026 训练期评估数字", "why": "同上", "use": "同上"},
+    {"what": "论文中的示例数值（a.u.、60 s、5 Hz 等）", "why": "不是本项目已完成实测", "use": "不得作为本实验证据"},
+    {"what": "candidate bundle r4_it2999_v1 的 JIT/ONNX 内容", "why": "本机缺失", "use": "不影响 HiRA 接入；若 HIRA-037 需要 v2 候选侧对照再取"}
+  ],
+  "usage_rules_for_hira": [
+    "v2 的 α/δ、功率模型、足迹只能作为**对照**，不得作为 HiRA 的冻结值",
+    "比较时须同时注明 v2 分母含两次历史重试（baseline_validate 31 条、near_obstacle 2 条）",
+    "不得用历史摘要或报告文字替代原始数据；凡是引用『仅报告』类结论，必须显式标注不可复算",
+    "HIRA-037 若需要 TASK-024/036 原始日志，须先从 .12 取回，取不到则如实缩小比较范围"
+  ]
+}

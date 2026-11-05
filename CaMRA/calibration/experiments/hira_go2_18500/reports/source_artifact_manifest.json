@@ -1,0 +1,81 @@
+{
+  "report": "source_artifact_manifest",
+  "task": "HIRA-007",
+  "generated_at": "2026-11-05T16:22:00+08:00",
+  "verdict": {
+    "checkpoint_hash_matches": true,
+    "source_commit_matches": true,
+    "asset_dependencies_complete": true,
+    "all_readonly": true
+  },
+  "source_identity": {
+    "submodule_path": "HiRA",
+    "commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+    "describe": "heads/master",
+    "tree_sha1": "fded2ec9b4939148c01692f4cea051b5a1986993",
+    "dirty_count": 0,
+    "action": "not updated this round (HIRA-001 constraint); identity recorded only"
+  },
+  "checkpoint": {
+    "path": "HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt",
+    "bytes": 4613734,
+    "sha256": "d30e52122125cf3db576408d4bf736703cdee6719944f55c423b4af3cb03d2e8",
+    "matches_plan_registered_value": true,
+    "top_level_keys": ["model_state_dict", "optimizer_state_dict", "iter", "infos"],
+    "iter": 16000,
+    "infos": null,
+    "actor_tensors": {
+      "actor.0.weight": [512, 45],
+      "actor.0.bias": [512],
+      "actor.2.weight": [256, 512],
+      "actor.2.bias": [256],
+      "actor.4.weight": [128, 256],
+      "actor.4.bias": [128],
+      "actor.6.weight": [12, 128],
+      "actor.6.bias": [12],
+      "std": [12]
+    },
+    "note": "文件名 18500 与内部 iter 16000 不一致，infos 为 None；身份以字节散列与张量形状为准，不引用文件名作为训练步数证据"
+  },
+  "other_exports_identity_only": [
+    {
+      "path": "HiRA/logs/rough_go2/exported/policies/policy_1.pt",
+      "sha256": "6d6f4d361fedad6b2ed76df3763651968ab76bccb3297d32b851d02ce3a60160",
+      "matches_plan_registered_value": true,
+      "disposition": "identity check only; NOT used as the main route"
+    },
+    {
+      "path": "HiRA/legged_gym_go2/deploy/pre_train/go2/policy_1.pt",
+      "sha256": "0069ce66a92d4cfa29e4f07aa27a6687728da47dff5c5aebed0e9163d267462f",
+      "matches_plan_registered_value": true,
+      "disposition": "identity check only; NOT used as the main route"
+    }
+  ],
+  "exports_rule_applied": "三个文件的 sha256 互不相同；按计划 other_exports_rule，主路线只从指定 checkpoint 重新提取 actor，两个导出的字节不同不证明权重等价，因此不互换、不替代",
+  "urdf_and_meshes": {
+    "urdf": {
+      "path": "HiRA/legged_gym_go2/resources/robots/go2/urdf/go2.urdf",
+      "bytes": 25386,
+      "sha256_prefix": "5fea735381cd9905",
+      "referenced_mesh_pattern": "../dae/*.dae"
+    },
+    "meshes": [
+      {"file": "dae/base.dae", "sha256_prefix": "f777940215d5072d", "exists": true},
+      {"file": "dae/calf.dae", "sha256_prefix": "a875e0e2bb2433d8", "exists": true},
+      {"file": "dae/calf_mirror.dae", "sha256_prefix": "c65ac56ddfca59b6", "exists": true},
+      {"file": "dae/foot.dae", "sha256_prefix": "f37a2d16dd2e6975", "exists": true},
+      {"file": "dae/hip.dae", "sha256_prefix": "1f1a020683056677", "exists": true},
+      {"file": "dae/thigh.dae", "sha256_prefix": "167a6c6545f792f9", "exists": true},
+      {"file": "dae/thigh_mirror.dae", "sha256_prefix": "ab1d3b0ef1184735", "exists": true}
+    ],
+    "meshes_total_size": "25M",
+    "dependency_complete": true,
+    "note": "URDF 引用的 7 个 mesh 全部在位；Isaac Lab 侧另用 USD 资产（/pub/data/caohy/unitree_model/Go2/usd，18 MB），两者不是同一份资产，HIRA-012 需逐项对照质量与惯量"
+  },
+  "readonly_policy": {
+    "applied": true,
+    "actions_taken": "仅读取与计算散列；未修改、未移动、未重命名任何来源文件",
+    "verification": "HiRA 子模块 git status 为空（dirty=0）"
+  },
+  "blocking": []
+}

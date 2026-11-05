@@ -768,7 +768,7 @@
       "id": "HIRA-006",
       "phase": "接手与环境",
       "goal": "配置执行设备上的匹配Isaac Lab环境与独立路径",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-005"
       ],
@@ -787,7 +787,49 @@
         "本机路径配置样例与依赖清单",
         "tmux/env日志"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T16:15:00+08:00",
+          "summary": "复用 env_isaaclab 完成环境预检：GPU 上最小启动 Isaac Lab 通过（app 60.7 s、20 步 0.02 s、dt 0.005、退出码 0）；建立 HiRA 独立数据根与 bundle 根并验证可写；配置样例落 config/hira.env；环境零改动、未装 Isaac Gym。",
+          "actions": [
+            "在 tmux camra-hira-calibration:env 中以后台脚本启动 headless Isaac Lab（AppLauncher → SimulationContext(dt=0.005, device=cuda:0) → 地面+灯光 → reset → 20 步），日志落 /pub/data/caohy/logs/camra_hira/env_setup/env_min_start.log。",
+            "采集环境事实：Python 3.11.15、Linux 5.15.0-130、torch 2.7.0+cu126（CUDA 可用，1 块可见 A100）、isaacsim 5.1.0.0、isaaclab 0.47.2、numpy 1.26.0、gymnasium 1.2.0、rsl-rl-lib 3.0.1、scipy 1.15.3、psutil 5.9.8。",
+            "确定 GPU 映射：CUDA_VISIBLE_DEVICES=2 → 进程内 cuda:0 = 物理 GPU2（GPU0/1 被他人占用）。",
+            "新建 /pub/data/caohy/camra_hira_bundles 并验证与 logs/camra_hira 均可写；/pub 剩 1.3 T。",
+            "写 config/hira.env 作为本机路径配置样例（数据根、bundle 根、实验根、只读来源、v2 只读位置、Isaac 运行期变量）。",
+            "记录运行期两条硬要求：PYTHONDONTWRITEBYTECODE=1 与 HOME=/pub/data/caohy/fakehome（均为 v2 期实测的 NFS 卡死原因）。",
+            "判定 CUDA bad state 告警为良性（v2 成功日志同样出现，且本次物理正常步进），并写明环境问题不得记为控制器失败的归因规则。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/environment_preflight.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/hira.env（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/env_min_start.log（运行日志副本）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§8）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-006 记录）"
+          ],
+          "commands": [
+            "bash /tmp/60_env_min.sh（tmux env 窗口，headless 最小启动）",
+            "python /tmp/envprobe.py（基础环境与 CUDA）",
+            "python -c 'importlib.metadata.version(...)'（依赖清单）",
+            "mkdir -p /pub/data/caohy/camra_hira_bundles 并做写入测试"
+          ],
+          "results": [
+            "ISAACLAB_MIN_OK：app up 60.7 s、20 steps 0.02 s、physics dt 0.005、device cuda:0、MIN_EXIT=0、总 64.1 s。",
+            "依赖清单完整且与 v2 采集期一致；环境零改动，未安装 Isaac Gym。",
+            "两个新路径可写；v2 位置仅按只读策略使用（未写入任何 v2 文件）。",
+            "配置样例 config/hira.env 覆盖 8 类变量，含 v2 只读位置与 Isaac 运行期变量。",
+            "告警：CUDA bad state ×4 判为良性（有 v2 先例 + 本次物理正常），已记录复核条件。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra_hira/env_setup/env_min_start.log（ISAACLAB_MIN_OK / MIN_EXIT=0）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/environment_preflight.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/hira.env",
+            "handoff §8"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不覆盖原环境，不默认安装Isaac Gym，不硬编码原服务器/pub路径。",
         "更改计划外核心版本、费用或设备资源预算需按uncertainty_policy确认。"
@@ -796,13 +838,13 @@
         "指定绝对解释器可在GPU上导入并最小启动目标Isaac Lab。",
         "版本、路径、空间、日志、tmux信息可复查；无未知依赖失败被记为控制器失败。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) 指定绝对解释器可在 GPU 上导入并最小启动目标 Isaac Lab——/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python 在 CUDA_VISIBLE_DEVICES=2 下启动 headless App（60.7 s），创建 SimulationContext(dt=0.005, device=cuda:0)，加载地面与灯光，reset 后 20 次 sim.step() 用时 0.02 s，打印 ISAACLAB_MIN_OK 且 MIN_EXIT=0；torch 报告 is_available=True、1 块可见 A100。(2) 版本、路径、空间、日志、tmux 均可复查，且无未知依赖失败被记为控制器失败——environment_preflight.json 记录 Python/OS/8 个关键包版本、驱动 560.35.03、三块物理卡的占用归属、运行期 CUDA_VISIBLE_DEVICES=2→cuda:0 的映射、两条新建可写路径与 /pub 剩余 1.3 T、日志绝对路径与 tmux 窗口、以及 10 条 preflight 检查项（全部 pass）；同时写明 failure_attribution_rule：依赖缺失/CUDA 异常/NFS 卡顿一律记为环境问题，不得写成控制器性能失败。另：环境零改动（未安装/升级/卸载任何包），未安装 Isaac Gym 符合计划约束；v2 证据零写入。"
     },
     {
       "id": "HIRA-007",
       "phase": "接手与环境",
       "goal": "获取并验证指定checkpoint、来源资产及旧证据",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-006"
       ],
@@ -821,7 +863,48 @@
         "reports/source_artifact_manifest.json",
         "reports/legacy_evidence_availability.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T16:26:00+08:00",
+          "summary": "核对来源与旧证据：checkpoint 散列与计划一致、URDF 引用的 7 个 mesh 全部在位、旧的 7 份 v2 冻结产物与 22 份报告均在位、交付包 20 项复验通过；明确列出可复算项 6 类与仅报告项 4 类，并指出 v2 两处历史重试的分母影响。",
+          "actions": [
+            "核对 HiRA 子模块 commit 6a05af55 / tree fded2ec9 / dirty 0，checkpoint sha d30e5212…（4,613,734 B）与计划登记值一致，并列出 9 个 actor 张量形状。",
+            "核对两个 export policy_1.pt 的散列（6d6f4d36… / 0069ce66…），按计划标注为主路线之外的身份核对项，不互换。",
+            "解析 URDF 引用的 7 个 dae（base/calf/calf_mirror/foot/hip/thigh/thigh_mirror），逐个计算散列并确认存在（合计 25 MB）。",
+            "逐项列出 v2 冻结产物的文件散列与内容散列（protocol da76c72e、power e718595d/bfe3b159、footprint edff8978/a11a3572、margins 2be77607/dd76972d、lock b214809b、step_cost fe03749e/a2a5fbc6、maps 78c0145f）。",
+            "重跑 verify_delivery_bundle：ok=true、n_checked=20、problems=[]、α=0.19048279965649906、δ=2.6138664115280967。",
+            "统计 v2 trial 语料：目录数 240/80/111/20/800/400/202，去重后 240/80/80/20/800/400/200（共 1820），68 GB；注明 111 与 202 含 __a2 重试。",
+            "核实 4 项本机缺失（TASK-024/026/036、candidate bundle），给出 .12 的取得路径。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/source_artifact_manifest.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/legacy_evidence_availability.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§9）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-007 记录）"
+          ],
+          "commands": [
+            "sha256sum model_18500.pt（及两个 policy_1.pt、7 个 dae）",
+            "git -C HiRA rev-parse HEAD^{tree}",
+            "python scripts/verify_delivery_bundle.py --manifest delivery/bundle_manifest_v1.json",
+            "ls -d trials/<split>/*/ | wc -l（逐 split 计数）"
+          ],
+          "results": [
+            "来源身份：checkpoint 与计划登记值逐位一致；子模块提交与 tree 已记录；三个 PPO 文件字节不同，仅 checkpoint 走主路线。",
+            "资产依赖完整：7 个 mesh 全部存在并记录散列；同时提示 URDF 与 Isaac Lab 的 USD 是两份不同资产，HIRA-012 需对照质量与惯量。",
+            "旧证据：7 份冻结产物全部在位且散列可核；22 份报告在位；交付包复验 ok=true（20 项，α/δ 逐位一致）。",
+            "可独立复算 6 类（能量、α/δ、功率模型、足迹、覆盖率、近障几何）；仅报告 4 类（TASK-036 结论、TASK-024/026 数字、论文示例、候选包内容）。",
+            "分母提醒：baseline_validate 111 目录 = 80 trial + 31 __a2；near_obstacle 202 = 200 + 2 __a2；两者在 HiRA 新契约下不可复制。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/source_artifact_manifest.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/legacy_evidence_availability.json",
+            "/pub/data/caohy/logs/camra/delivery/bundle_verify_hira007.json",
+            "handoff §9"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "权重和资产保持只读；资源不齐先记录阻塞，不从同名文件猜替代品。",
         "按本计划指定来源解决多文件问题；指定hash变化时暂停。"
@@ -830,7 +913,7 @@
         "checkpoint字节hash匹配d30e5212…，来源提交匹配且资产依赖完整。",
         "旧证据哪些可独立复算、哪些仅有报告明确列出，不能用历史摘要假装取得原始数据。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) checkpoint 字节散列匹配 d30e5212…，来源提交匹配且资产依赖完整——model_18500.pt sha256 与计划登记值逐位一致（4,613,734 B），actor 张量 45-512-256-128-12 已核对；HiRA 子模块 6a05af55 / tree fded2ec9 / dirty 0；URDF 5fea7353… 引用的 7 个 dae 全部存在并逐个记录散列（25 MB）；(2) 旧证据的可复算性明确区分，未用历史摘要假装取得原始数据——legacy_evidence_availability.json 列 6 类可独立复算项（逐 trial 能量已有 1.26e-9 的独立复算、α/δ、功率模型、足迹、覆盖率、近障几何）与 4 类仅报告项（TASK-036 结论、TASK-024/026 数字、论文示例、候选包内容），并指明后者的原始日志在 .12；交付包重跑复验 ok=true、20 项、α/δ 逐位一致；同时写明 v2 目录数 111/202 含 __a2 重试（去重后 80/200），引用其数字必须附注该分母，且该重试特例在 HiRA 新契约下不可复制。全程只读：子模块与资产 dirty=0，v2 证据零写入。"
     },
     {
       "id": "HIRA-008",

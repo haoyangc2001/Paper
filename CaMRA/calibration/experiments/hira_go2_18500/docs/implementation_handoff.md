@@ -325,3 +325,98 @@ legged_robot.py:326      commands[:, :2] *= (‖commands[:, :2]‖ > 0.2)
 | R-04 action_scale 双源 | confirmed | 解析值 0.25 |
 
 "confirmed" 指**源侧行为已确认**；我们的适配层是否做对，仍由 HIRA-014/016 的数值对照判定。
+
+---
+
+## 8. 环境就绪（HIRA-006）
+
+机器可读版见 `reports/environment_preflight.json`。
+
+### 8.1 结论
+
+| 项 | 结果 |
+|---|---|
+| 解释器 | `/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python`（Python 3.11.15） |
+| 核心包 | torch 2.7.0+cu126 / isaacsim 5.1.0.0 / isaaclab 0.47.2 / numpy 1.26.0 / gymnasium 1.2.0 / rsl-rl-lib 3.0.1 |
+| CUDA | `is_available=True`，进程内可见 1 块 A100（物理 GPU2） |
+| **最小启动** | **通过**：`ISAACLAB_MIN_OK`，app 启动 60.7 s，20 步 0.02 s，dt 0.005，device cuda:0，退出码 0 |
+| 环境改动 | **零**：未安装/升级/卸载任何包；未装 Isaac Gym（符合计划） |
+| 存储 | `/pub` ext4，29 T 用 27 T，剩 1.3 T |
+
+日志：`/pub/data/caohy/logs/camra_hira/env_setup/env_min_start.log`，跑在 tmux `camra-hira-calibration:env`。
+
+### 8.2 GPU 映射（容易搞错的一点）
+
+`CUDA_VISIBLE_DEVICES=2` → 进程内只有 1 块可见卡 → 代码里写 `cuda:0` 指的就是**物理 GPU2**。
+物理 GPU0 是他人两个 katago，GPU1 是他人 python；v2 期实测 GPU0 会让 Isaac 启动卡死。
+
+### 8.3 路径
+
+| 变量 | 值 | 权限 |
+|---|---|---|
+| `CAMRA_HIRA_DATA_ROOT` | `/pub/data/caohy/logs/camra_hira` | 可写（新建） |
+| `CAMRA_HIRA_BUNDLE_ROOT` | `/pub/data/caohy/camra_hira_bundles` | 可写（新建） |
+| `CAMRA_HIRA_EXPERIMENT_ROOT` | `.../experiments/hira_go2_18500` | 可写 |
+| `CAMRA_V2_READONLY_LOG_ROOT` | `/pub/data/caohy/logs/camra` | **只读策略**（v2 的 68 GB） |
+| `CAMRA_HIRA_SOURCE_ROOT` | `Paper/HiRA` @ 6a05af55 | 只读子模块 |
+
+配置样例：`config/hira.env`（换机器只改这一份，源码不硬编码绝对路径）。
+
+### 8.4 两条运行期硬要求（v2 期踩过的坑）
+
+1. `PYTHONDONTWRITEBYTECODE=1` —— 否则 import 写 `.pyc` 落到 NFS 会卡死；
+2. `HOME=/pub/data/caohy/fakehome` —— 否则 Isaac 往 `~/.nvidia-omniverse/logs` 写日志也会卡死。
+
+`env -i` 启动时还要带 `TMPDIR / XDG_*` 指向本地盘。
+
+### 8.5 告警判断
+
+`Skipping NVIDIA GPU due CUDA being in bad state` 出现 4 次。**判为良性**：v2 期成功跑完 800 条的日志里同样有；
+本次物理 0.02 s 跑完 20 步、device 报 `cuda:0`、退出码 0。每次运行仍记录该告警，若出现 util=0 且无进度，
+再按脏 CUDA 上下文处理（换卡或清残留进程）。
+
+### 8.6 归因规则（写死）
+
+依赖缺失、CUDA 异常、NFS 卡顿一律记为**环境问题**并记录，**不得写成控制器性能失败**。
+
+---
+
+## 9. 来源与旧证据核对（HIRA-007）
+
+机器可读版：`reports/source_artifact_manifest.json`、`reports/legacy_evidence_availability.json`。
+
+### 9.1 来源身份
+
+| 对象 | 值 | 与计划 |
+|---|---|---|
+| HiRA 子模块 | `6a05af55`，tree `fded2ec9`，dirty 0 | 一致 |
+| actor checkpoint | `d30e5212…`（4,613,734 B），45-512-256-128-12 | **一致** |
+| export `policy_1.pt` ×2 | `6d6f4d36…` / `0069ce66…` | 一致，**但只作身份核对，不作主路线** |
+| URDF | `5fea7353…`（25,386 B），引用 7 个 `dae/*.dae` | 7 个 mesh **全部在位**（25 MB） |
+
+三个 PPO 文件字节互不相同。按计划，主路线只从指定 checkpoint 重新提取 actor；两个导出不互换、不替代。
+
+### 9.2 旧证据：哪些能复算，哪些只有报告
+
+**可独立复算（本机有原始数据）**：逐 trial 能量（audit 已用独立 numpy 复算 1820 条，最差 1.26e-9）、
+α/δ（从 800 条重算）、名义功率模型（从 400 条重拟合）、足迹（从 clean 帧重建）、
+heldout 与近障覆盖率、近障几何重叠。
+
+**仅有报告、无法复算**：TASK-036 底层复测结论（`overall_pass=False`）、TASK-024/026 训练期评估数字、
+论文示例数值、候选包 `r4_it2999_v1` 的 JIT/ONNX 内容。原因：原始日志（662 MB / 10.6 MB / 1.3 GB）
+在旧设备 `.12`，本机没有。
+
+交付包复验：`ok=true`、20 项散列全对、α=0.19048279965649906、δ=2.6138664115280967。
+
+### 9.3 引用 v2 时必须带上的两个注脚
+
+1. `baseline_validate` 目录 111 个 = 80 个 trial + 31 个 `__a2`（D-007 批级截断重采）；
+2. `near_obstacle` 目录 202 个 = 200 个 trial + 2 个 `__a2`（D-013 一次性补采）。
+
+按最大 attempt 去重后才是 80 与 200。**这两个重试特例在 HiRA 新契约下不可复制（R-06）**，
+将来引用 v2 数字作对照时，必须同时说明其分母含历史重试。
+
+### 9.4 资产提醒
+
+URDF（源，Isaac Gym 用）与 USD（Isaac Lab 用，`/pub/data/caohy/unitree_model/Go2/usd`）
+**不是同一份资产**。质量、惯量、碰撞体可能不同，HIRA-012 必须逐项对照并记录差异。
