@@ -1425,7 +1425,7 @@
       "id": "HIRA-015",
       "phase": "数值验证",
       "goal": "完成独立来源oracle与适配器的同状态对照",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-014"
       ],
@@ -1444,7 +1444,47 @@
         "tests/reference_fixtures及hash",
         "reports/source_adapter_parity.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T18:40:00+08:00",
+          "summary": "建立独立来源 oracle（不 import 适配器、不读 URDF，用旋转矩阵与按名字取字典的实现路径）与 9 条固定样本，在 cpu/cuda 与 float64/float32 四组配置上逐块对照观测、actor 输出、q_target、τ_PD、τ_clipped、写入 effort，全部通过；五类负测试（错顺序/错缩放/错四元数/错默认角/错增益）全部被检出。",
+          "actions": [
+            "新增 tests/make_reference_fixtures.py：手写数值生成 9 条样本（静止、倾斜、转向、非零关节速度、非零上一动作、裁剪边界、关节置换、侧倾 90°、低速巡航），四元数统一归一化；每条第自带默认角、effort 上限、源顺序与目标顺序，重复生成逐字节一致。",
+            "新增 tests/source_oracle.py：只吃 fixture JSON，用 R^T v（旋转矩阵）而非叉乘展开、按名字取字典而非索引置换、Python float 而非 torch，重算观测/q_target/τ。",
+            "新增 tests/check_source_adapter_parity.py：把同一 fixture 同时喂给 oracle 与适配器，逐块比较 obs（含六块拆分）、actor 输出、q_target、τ_PD、τ_clipped、写入 effort（按目标顺序命名对齐）；设备 cuda 与 cpu 各跑 float64/float32。",
+            "五类负测试：按位置对齐、命令缩放改 0.5、四元数 xyzw 当 wxyz、默认角偏 0.05 rad、kp 换 25，逐条断言对照必须报失败。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/reference_fixtures/fixtures_v1.json（新建，sha256 eefc3718…）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/reference_fixtures/MANIFEST.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/make_reference_fixtures.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/source_oracle.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_source_adapter_parity.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/source_adapter_parity.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§17）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-015 记录）"
+          ],
+          "commands": [
+            "python tests/make_reference_fixtures.py（生成 9 条样本 + 清单）",
+            "python tests/check_source_adapter_parity.py（cpu/cuda × float64/float32 四组 + 5 条负测试）"
+          ],
+          "results": [
+            "四组配置均 9/9 通过：float64 下 obs 差 1.26e-8、q_target 0.0、τ 0.0；float32 下 obs 1.79e-7、q_target 7.6e-7、τ 1.9e-6，均远低于预登记容差（1e-6/1e-5、1e-4/1e-5）。",
+            "actor 输出差 2.4e-7（同一导出策略分别吃两边观测），来自观测端 1.8e-7 的放大。",
+            "F07（打乱顺序表达同一物理状态）obs 差 9e-9，证明实现只按名字对齐；F08 侧倾 90° 重力全落 y 轴仍通过。",
+            "五类负测试全部被检出，暴露量级：错顺序 2.5 rad、错缩放 0.125、错四元数 0.866、错默认角 0.05、错增益 3.75 N·m，均比容差高 4 个数量级以上。",
+            "如实记录：F06 因全分量被裁到 ±100，其差恰为 0，不能单独作为精度证据；精度证据来自不饱和样本，裁剪一致性由 F06 单独证明。",
+            "修掉一个只在 GPU 暴露的 bug：同一 TorchScript 连续 .to() 后参数设备元数据与权重不一致，改为每设备单独 torch.jit.load。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/source_adapter_parity.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/reference_fixtures/MANIFEST.json（sha256 eefc3718…）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §17"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "同状态数值等价与跨引擎长轨迹一致性分开，不要求后者逐帧相同。",
         "只在原Gym环境已有且兼容时可附加只读来源回放；不为该项默认新装Gym或改变目标平台。"
@@ -1453,7 +1493,7 @@
         "所有必需fixture达到冻结容差，负测试检出预设错误。",
         "CPU及实际使用GPU后端均有结果，来源oracle与目标实现没有共用待验证逻辑。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足。(1) 所有必需 fixture 达到冻结容差、负测试检出预设错误：9 条样本在 cpu/cuda × float64/float32 四组配置下全部 9/9 通过，float64 的 obs 最大绝对差 1.26e-8、q_target 与 τ 差 0.0；float32（生产精度）obs 1.79e-7、q_target 7.6e-7、τ 1.9e-6，均低于 observation_float32(1e-6/1e-5)、q_target(1e-6/1e-5)、torque(1e-4/1e-5) 的预登记阈值；五类负测试（按位置对齐 2.5 rad、命令缩放 0.125、四元数顺序 0.866、默认角 0.05 rad、kp=25 造成 3.75 N·m）全部被判失败。(2) CPU 与实际使用的 GPU 后端均有结果，且 oracle 与目标实现不共用待验证逻辑：oracle 不 import hira_go2、不读 URDF，只吃 fixture JSON，用旋转矩阵而非叉乘展开、按名字取字典而非索引置换，数据用 Python float；cuda:0 与 cpu 两组结果完全一致（同批次对照），说明被测实现没有隐藏的设备相关分支。边界如实登记：本任务只证明同状态数值等价，不证明跨引擎长轨迹逐帧一致；F06 因整体饱和其差为 0，不单独作为精度证据。"
     },
     {
       "id": "HIRA-016",
