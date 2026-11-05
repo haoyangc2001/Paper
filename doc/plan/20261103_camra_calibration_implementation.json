@@ -2396,6 +2396,37 @@
           "blockers": [
             "近障冒烟不产出 trial：CPU 打满但无进度，原因未定位"
           ]
+        },
+        {
+          "timestamp": "2026-11-05T11:05:00+08:00",
+          "summary": "最小复现把瓶颈定位到 gym.make（场景创建）而非步进：加 7 个 kinematic 槽位后，env 创建阶段持续满 CPU 超过 10 分钟仍未返回；此前无槽位时 env 创建约 60–90 s。",
+          "actions": [
+            "写独立诊断脚本 47_diag_near.py（不进仓库/不入锁）：同进程对比'槽位停放'与'按地图摆位'的每步耗时。",
+            "实测卡在 gym.make 之前打印了 'cfg built in 0.3s, slots=7'，之后 10+ 分钟只有 CPU 消耗（state=R，620 s CPU）没有返回，步进计时根本没跑到。",
+            "据此判定瓶颈在场景创建（7 个 kinematic RigidObject 克隆），不是 set_slots 或每步物理。"
+          ],
+          "files_changed": [
+            "/pub/data/caohy/logs/camra/env_setup/47_diag_near.py",
+            "/pub/data/caohy/logs/camra/env_setup/47_run_diag.sh"
+          ],
+          "commands": [
+            "bash env_setup/47_run_diag.sh（num_envs=1, 200 steps）"
+          ],
+          "results": [
+            "cfg 0.3 s 建好、7 个槽位注入成功",
+            "gym.make 未在 10 分钟内返回；进程 R 状态、620 s CPU"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/47_diag_near.log"
+          ],
+          "remaining_work": [
+            "首要怀疑：未用槽位停在 y=+1000 造成极大的 broadphase AABB，PhysX/USD 的创建代价爆炸；先改成停在场地下沿外 5 m 内再试",
+            "若仍慢，改用静态碰撞体（无 RigidBodyAPI，spawn_cuboid + CollisionAPI）并每例重建场景",
+            "兜底方案：一进程一例（障碍在 cfg 里直接生成，无需改位姿），200 例按 ~2 min/例串行"
+          ],
+          "blockers": [
+            "近障场景创建耗时爆炸，注入方案未跑通"
+          ]
         }
       ],
       "constraints_and_notes": [
