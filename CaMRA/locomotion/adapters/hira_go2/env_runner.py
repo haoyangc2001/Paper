@@ -105,6 +105,7 @@ class HiraLabRunner:
         timing: TimingConfig | None = None,
         env_spacing: float = 2.0,
         dtype: torch.dtype = torch.float32,
+        order_mode: str = "urdf",
     ):
         import isaaclab.sim as sim_utils
         from isaaclab.assets import Articulation, ArticulationCfg
@@ -137,13 +138,19 @@ class HiraLabRunner:
         self.env_origins = self.scene.env_origins.clone()
 
         self.joint_names_lab = list(self.robot.joint_names)
-        self.order = JointOrder(SOURCE_ORDER, self.joint_names_lab)
+        # order_mode="urdf"：假定源（isaacgym）DOF 顺序 = URDF 声明顺序（契约当前写法）
+        # order_mode="lab" ：假定源顺序 = 引擎 BFS 顺序（即与 Lab 的 DOF 顺序相同）
+        # 这是一个**必须用实验判定**的问题：两种假定都自洽，但只有一种能复现源行为。
+        self.order_mode = order_mode
+        source_order = list(self.joint_names_lab) if order_mode == "lab" else list(SOURCE_ORDER)
+        self.source_order = source_order
+        self.order = JointOrder(source_order, self.joint_names_lab)
         default_source = torch.tensor(
-            [HIRA_DEFAULT_ANGLES[name] for name in SOURCE_ORDER], dtype=dtype, device=device
+            [HIRA_DEFAULT_ANGLES[name] for name in source_order], dtype=dtype, device=device
         )
         effort_table = self._effort_limits(urdf_path)
         effort_source = torch.tensor(
-            [effort_table[name] for name in SOURCE_ORDER], dtype=dtype, device=device
+            [effort_table[name] for name in source_order], dtype=dtype, device=device
         )
 
         self.default_source = default_source
@@ -249,6 +256,7 @@ class HiraLabRunner:
         self.torque_adapter.set_policy_action(clipped)
 
         substeps = []
+        saturated_total = 0
         for _ in range(self.timing.decimation):
             trace = self.torque_adapter.compute_substep(
                 self.robot.data.joint_pos, self.robot.data.joint_vel
@@ -261,6 +269,7 @@ class HiraLabRunner:
             self.robot.update(self.timing.sim_dt)
             self.physics_step += 1
             substeps.append(float(trace["tau_clipped_source"].abs().max()))
+            saturated_total += int(trace["n_saturated_joints"])
 
         self._last_action_source = clipped
         if record is not None:
@@ -276,6 +285,7 @@ class HiraLabRunner:
                     "clipped_action_row0": clipped[0].detach().cpu().tolist(),
                     "q_target_row0": trace["q_target_source"][0].detach().cpu().tolist(),
                     "tau_max_abs": max(substeps),
+                    "n_saturated_joints": saturated_total,
                     "height_row0": float(height[0]),
                     "tilt_deg_row0": float(tilt[0]),
                     "obs_row0": obs[0].detach().cpu().tolist(),

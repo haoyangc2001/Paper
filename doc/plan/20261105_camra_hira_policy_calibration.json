@@ -1592,7 +1592,59 @@
         "reports/clean_closed_loop.json",
         "原始trace、轨迹/视频索引"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T21:20:00+08:00",
+          "summary": "完成 clean 闭环 33 条（11 命令 × 3 seed × 30 s）：10 条通过、C-08 速度误差 0.288 超 0.25 门槛；无摔倒/NaN，饱和率 0%，33 条重复逐位一致（clean 无隐藏随机化）。修正了一个协议错误（warmup 导致机器人先塌陷，误差被放大 6 倍）；排除关节顺序假设；用 wz 扫描把 C-08 归因到策略步态切换（能力），但按 uncertainty_policy 暂停等待用户裁定是否按'能力不足、记录并继续'处理。",
+          "actions": [
+            "新增 tests/check_clean_closed_loop.py：按预登记 11 条命令 × 3 seed 分片运行、合并判定，统计机体速度/RMSE/最低高度/倾角/饱和率/摔倒，并验证三个 seed 的重复一致性。",
+            "新增 tests/diag_posture.py：区分'PD 跟不上'与'目标越限'，输出逐关节力矩均值、限位与默认角；支持 --order-mode {urdf,lab} 与 --warmup-steps 两个对照开关。",
+            "新增 tests/diag_wz_coupling.py：固定 vx=0.4，扫描 wz=0/0.15/0.3/0.45 与 [0.2,0,0.3]，检验前向速度是否随转向指令跳变。",
+            "修正协议：闭环评估的 warmup 由 200 物理步改为 0（源行为是 reset 后立刻由策略接管）；HIRA-016 保留 warmup 仅用于时钟验证。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_clean_closed_loop.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/diag_posture.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/diag_wz_coupling.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/clean_closed_loop.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/posture_diagnosis.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/wz_coupling.json（新建）",
+            "CaMRA/locomotion/adapters/hira_go2/env_runner.py（新增 order_mode 与饱和计数）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§19）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-017 失败记录，status 保持 false）"
+          ],
+          "commands": [
+            "python tests/check_clean_closed_loop.py --phase run --shard {0,1} --num-shards 2（约 53 min，两个分片并行）",
+            "python tests/check_clean_closed_loop.py --phase merge",
+            "python tests/diag_posture.py --order-mode urdf|lab --warmup-steps 200|0",
+            "python tests/diag_wz_coupling.py（5 条组合命令 × 20 s）"
+          ],
+          "results": [
+            "10/11 命令通过；C-01..C-07 与 C-09..C-11 的误差 0.032–0.234，全部无摔倒、无 NaN、饱和率 0%。",
+            "C-08 [0.4,0,0.3] 实测 (0.660,−0.122,0.243)，速度误差 0.288 > 0.25 → 未达门槛。",
+            "33 条重复逐位一致（11 条命令 × 3 seed 完全相同），说明 clean 无隐藏随机化；但每个命令只有一个独立样本。",
+            "协议修正：warmup=200 时 C-02 误差 0.187，warmup=0 时 0.032；机器人高度从 0.248 回到 0.29–0.31 区间。",
+            "顺序假设对照：把源顺序改成 Lab BFS 顺序后高度塌到 0.108 m、跟踪误差 22.9 rad、力矩饱和 → 现用（URDF 声明顺序）假设正确。",
+            "wz 扫描：vx=0.4 时 wz 0→0.15 使前向速度 0.364→0.625；[0.2,0,0.3] 仅 0.013 → 步态切换，属策略行为。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/clean_closed_loop.json（verdict: blocking_failures=[C-08]）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/posture_diagnosis.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/wz_coupling.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §19"
+          ],
+          "remaining_work": [
+            "等待用户裁定 C-08 归因口径：按'策略能力不足、记录并继续'（预登记 T-14 条款）放行 HIRA-018，或保持阻断并追加归因实验。"
+          ],
+          "blockers": [
+            {
+              "id": "B-017-C08",
+              "type": "preregistered_gate_failure",
+              "detail": "C-08 速度误差 0.288 > 0.25；证据指向策略步态切换（能力），但需用户确认判定口径后方可继续 HIRA-018"
+            }
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "不据低速不佳擅自删命令、调PD、选别的checkpoint或宣称扩大δ可修复。",
         "此为接入诊断数据，不能进入功率拟合、校准或heldout。"
@@ -1601,7 +1653,7 @@
         "必需闭环测试满足预登记工程准入且无未解释NaN、发散、方向错误、单位错误或执行链偏差。",
         "能力限制和接入错误分别列证据；未解决的关键异常使本任务false并阻断后续。"
       ],
-      "verification_result": ""
+      "verification_result": "未通过（status 保持 false）。11 条命令 × 3 seed × 30 s 全部执行完毕：10 条满足预登记工程准入，C-08 的速度误差 0.288 超过 0.25 m/s 阈值。稳定性与方向两项均满足：33 条全部无摔倒、无非有限值，C-02..C-07 平均机身速度符号全部与命令一致；饱和率全为 0%（阈值 30%）。归因证据：关节顺序假设已用对照排除（改成 Lab BFS 顺序会导致高度 0.108 m、跟踪误差 22.9 rad、力矩饱和）；wz 扫描显示同一 vx=0.4 指令下，wz 由 0 增至 0.15 会使前向速度从 0.364 跳到 0.625，而 [0.2,0,0.3] 仅 0.013，属策略在带转向组合命令下的步态切换，不是缩放/映射/时序错误（后三者已由 HIRA-015/016 独立验证为精确）。同时如实记录两点：初版因 200 步 warmup 让机器人先塌陷，把 C-02 误差从 0.032 放大到 0.187，协议已改为 warmup=0；33 条重复逐位一致，说明 clean 无隐藏随机化，但每命令只有 1 个独立样本、不能按 33 个独立点做统计。按预登记 blocking_rules 的 T-14 与 uncertainty_policy，改造判定口径须先征得用户同意，故暂停于此，未推进 HIRA-018。"
     },
     {
       "id": "HIRA-018",
