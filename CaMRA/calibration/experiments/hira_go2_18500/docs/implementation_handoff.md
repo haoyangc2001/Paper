@@ -1192,3 +1192,101 @@ HIRA-012 的资产审计只核对了质量、限位、effort、能力矩，**漏
 - HIRA-020 冻结控制器包时，**必须把材质摩擦写入 bundle 的资产配置**（源 1.0），
   并把"导入默认 0.5"作为已修复缺口登记。
 - HIRA-017/018 的结论只在 friction=1.0 下成立；后续采集也必须显式设置摩擦，不能依赖导入默认值。
+
+## §21 HIRA-019：200 Hz 真实力矩与能量计量（17/17）
+
+### 21.1 结论
+
+`reports/hira_energy_meter_validation.json`：17 项检查全部通过（`verdict.all_passed=true`，
+`failed=[]`）。核心数字：
+
+| 项 | 实测 | 判据 |
+|---|---|---|
+| 实际施加 vs 我们写入的限幅力矩 | max\|Δ\| = **0.0**（2000 子步） | ≤1e-4 |
+| computed_torque vs applied_torque | max\|Δ\| = **0.0** | ≤1e-4 |
+| 在线（torch f64）vs numpy 复算 vs EnergyMeter 重放 | 三次相同，rel = **0.0** | ≤1e-9（T-10） |
+| 记录器开/关整条轨迹 | 散列相同，逐元素 max\|Δ\| = **0.0** | 逐位一致 |
+| 强制饱和时请求 vs 施加 | 10069.9 J vs 543.3 J（**18.5×**） | 必须能区分 |
+
+### 21.2 力矩来源（E01–E04、E13）
+
+`applied_torque` 不是"我们想施加的力矩"，而是 Isaac Lab 里这条链的产物，本次在运行时把
+源码行号与文件散列一并抓进报告（`provenance` 段）：
+
+- `articulation.py` L1865：`_joint_effort_target_sim[:, indices] = control_action.joint_efforts`
+- 同文件 L1869：`_data.applied_torque[:, indices] = actuator.applied_effort` —— **同一份值**
+- 同文件 L216：`set_dof_actuation_forces(self._joint_effort_target_sim, ...)` —— 写进 PhysX
+
+运行期对照给出三条硬结论：实际施加与写入值逐位相同（执行器没有再改一笔）；
+`computed_torque` 与 `applied_torque` 也相同（`IdealPDActuator` 的 kp/kd 都是 0，没有隐藏 PD）；
+限幅只发生在我们这一层，且实际施加从不越界。
+
+**请求力矩不能当施加值用**：动作 +100 时 τ_PD 达 500 N·m，实际施加被裁到 35.55 N·m，
+两种口径算出的能量差 18.5 倍。这条是本任务最先要防的错误。
+
+### 21.3 相位（E06）
+
+同一段 10 s 数据，按子步**起始**速度算得 J = 198.070 J，按子步**结束**速度算得 212.161 J，
+相差 **6.64%**（单步内 \|Δq̇\| 最大 14.44 rad/s）。契约取后者，与 v2 记录器 `sim/recorder.py`
+的顺序逐字一致：先取 `applied_torque`（属于刚执行完的子步）→ `robot.update(dt)` → 取 `joint_vel`。
+相位选错不会报错，只会让每个 trial 的能量系统性偏低 6.6%，所以这一条必须显式量出来。
+
+### 21.4 逐关节截断（E07、E11）
+
+错误口径（先对关节求和再截断）在同一段数据上给出 56.492 J，契约口径 212.161 J，**差 73.4%**——
+关节间的正负功大量互相抵消。E11 用已知力矩直接证明：+3 N·m 把 calf 转起来后改施 −3 N·m，
+其中 52 个"仍正向运动"的子步单步能量**逐位为 0**（若用 \|τ·q̇\| 或先求和再截断，这些步会非零）。
+
+### 21.5 边界（E09、E10、E12、E14、E15）
+
+- 零力矩 200 子步：J = `0.0`（逐位），机器人从 0.076 m 原地瘫下——符号基线成立。
+- 已知单关节 +3 N·m、100 子步：J = 5.130677794，闭式值 Σmax(3·q̇,0)dt = 5.130677794（rel 1.7e-16），
+  其余 11 个关节贡献**恰好 0**。
+- 外部速度冲击 1 m/s + 零关节力矩：J 仍为 `0.0` —— 推扰功不计入关节正功。
+- warmup 200 步后开窗：`warmup_steps=200`、`steps=40`，一步都没有混进窗口。
+- 窗口停在 1347 步（= 336×4+3，非 4 的倍数）：`partial=true`，逐步与逐关节求和仍等于总量。
+
+### 21.6 只读（E16、E17）
+
+- AST 扫描 `energy_recorder.py`：`set_*` / `write_*` / `apply_*` / `reset_*` / `step` 调用 **0 处**。
+- 跨进程开/关对照：250 个策略步 × 40 个量（root 位姿、12 关节 q 与 q̇、12 个施加力矩），
+  sha256 相同、逐元素 max\|Δ\| = **0.0**。两份原始数组留档为
+  `reports/energy_readonly_{on,off}.npy`，可随时重新求差。
+
+### 21.7 本轮踩到的坑
+
+**float32 里做"闭式值"对照会造出假失败**。第一版 E10 报 rel 5.98e-08 失败，原因是
+`3.0 * qdot_float32_array` 在 numpy 里仍是 float32，`sum()` 也在 float32 里累加；
+计量器本身是 float64。把对照量显式升到 float64 后 rel = 1.7e-16。
+留档仍是 float32（与 v2 同精度），但**任何对照运算必须升到 float64**。
+
+### 21.8 观察（不构成失败，留给 pilot 复核）
+
+同一段 10 s、命令 [0.5,0,0] 的闭环里，逐关节能量分布极不对称：
+RL_thigh 46.35 J、RL_calf 46.35 J、RR_thigh 37.62 J、RR_calf 56.78 J，
+而前腿四个关节合计只有约 19 J（FL_calf 5.33、FR_calf 5.27…）。
+映射与力矩链已由 E02/E03 逐位核对排除，所以这不是索引错位；
+更可能是该策略在 0.5 m/s 下把载荷压在后腿上。**pilot 阶段需要单独确认前腿是否被"拖着走"**
+（这直接影响能量口径的代表性），本次不据此下结论。
+
+### 21.9 接线状态
+
+`HiRAEnergyRecorder` 已经接进 `HiraLabRunner`（`runner.recorder`，默认 None，路径完全不变）：
+
+```
+runner.recorder = recorder; recorder.begin_window()
+runner.policy_step()        # 内部 4 次 substep，每步写一次 record()
+recorder.finish()           # 返回 float64 逐步/逐关节/总量 + float32 原始留档
+```
+
+`policy_step` 的 4 子步循环改由新方法 `substep()` 驱动（同一代码路径），
+并新增 `step_known_torque()` 供"已知力矩"类实验使用——两者都不绕过 `write_effort_lab → advance`。
+
+### 21.10 复现命令
+
+```bash
+python tests/check_energy_meter.py --headless --device cuda:0 --phase exec
+python tests/check_energy_meter.py --headless --device cuda:0 --phase readonly --recorder on
+python tests/check_energy_meter.py --headless --device cuda:0 --phase readonly --recorder off
+python tests/check_energy_meter.py --phase merge      # 需要带 numpy 的解释器
+```

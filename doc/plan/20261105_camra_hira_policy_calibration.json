@@ -1767,7 +1767,7 @@
       "id": "HIRA-019",
       "phase": "闭环接入验证",
       "goal": "验证新执行器的200Hz真实力矩与能量计量",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-018"
       ],
@@ -1787,7 +1787,59 @@
         "reports/hira_energy_meter_validation.json",
         "独立复算结果及采样相位图/事件表"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T22:50:00+08:00",
+          "summary": "在新显式 PD 执行器上重建 200 Hz 能量计量并逐项自证，17 项检查全部通过。力矩来源用源码行 + 运行期逐位对照双重确认（applied_torque = actuator.applied_effort，就是 set_dof_actuation_forces 收到的那份值）；相位按 v2 记录器口径取子步结束速度，并量化出 pre 口径会低 6.64%；逐关节截断与先求和再截断差 73.4%；在线/两套离线实现三次结果完全一致（rel 0.0）；开/关记录器跨进程逐位一致。",
+          "actions": [
+            "新建 CaMRA/locomotion/adapters/hira_go2/energy_recorder.py（HiRAEnergyRecorder）：逐子步留档 applied/written/request/computed 力矩、q̇_pre、q̇_post、joint_acc、root 位置，以 float64 在设备端累计、float32 留原始值；begin_warmup/begin_window/finish 与 v2 TrialRecorder 同形。",
+            "env_runner.py：新增 write_effort_lab()/advance()/substep()/step_known_torque()/_record_substep()，policy_step 的 4 子步循环改由 substep() 驱动；runner.recorder 默认 None，关闭时路径完全不变。",
+            "新建 tests/check_energy_meter.py，分 exec / readonly(on|off) / merge 三阶段；exec 覆盖 E01–E16，readonly 跨进程对照 E17，merge 生成最终报告。",
+            "E01 在运行时从 Isaac Lab 源码抓取三处关键行号与文件散列（articulation.py L1865/L1869/L216），把'力矩来源'做成可核查的证据而不是断言。",
+            "E13 用 ConstantPolicy(+100) 强制饱和，对照'请求力矩'与'实际施加'两种口径的能量。",
+            "E15 用新增的 substep() 把窗口停在 1347 步（336×4+3），验证非整策略步结束。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/energy_recorder.py（新建）",
+            "CaMRA/locomotion/adapters/hira_go2/env_runner.py（新增子步/记录钩子）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_energy_meter.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/hira_energy_meter_validation.json（新建，最终 17 项）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/energy_meter_validation.exec.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/energy_readonly_on.json / _off.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/energy_readonly_on.npy / _off.npy（原始数组留档）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§21）"
+          ],
+          "commands": [
+            "python tests/check_energy_meter.py --headless --device cuda:0 --phase exec",
+            "python tests/check_energy_meter.py --headless --device cuda:0 --phase readonly --recorder on",
+            "python tests/check_energy_meter.py --headless --device cuda:0 --phase readonly --recorder off",
+            "python tests/check_energy_meter.py --phase merge"
+          ],
+          "results": [
+            "E02/E03：2000 子步内 |applied−written| 与 |computed−applied| 均为 0.0（执行器不再改一笔、无隐藏 PD）。",
+            "E04：max(|applied|−effort) = −10.25 N·m，从不越限；正常行走窗口饱和关节-子步数 = 0。",
+            "E05：在线 212.160537211 J；numpy integrate_series 与纯 Python EnergyMeter 重放同值，rel = 0.0（判据 1e-9）。",
+            "E06：pre 口径 198.070 J vs post 212.161 J，差 6.64%（单步 |Δq̇| 最大 14.44 rad/s）——相位必须显式对齐。",
+            "E07/E11：先求和再截断给出 56.492 J（差 73.4%）；反向力矩下 52 个正向运动子步的单步能量逐位为 0。",
+            "E09/E10/E12：零力矩 J=0.0；已知 +3 N·m 单关节 5.130677794 J 与闭式值 rel 1.7e-16、其余 11 关节恰为 0；1 m/s 外部冲击下 J 仍为 0.0（推扰功不计入）。",
+            "E13：动作 +100 时 τ_PD=500 N·m 被裁到 35.55；J(请求)=10069.9 J vs J(施加)=543.3 J，差 18.5 倍，2400 个越限关节-子步的 |applied| 恰等于 effort（偏差 0.0）。",
+            "E14/E15：warmup 200 步一步未入窗（steps=40）；窗口停在 1347 步（非 4 的倍数）时 partial=true 且守恒自洽。",
+            "E16/E17：AST 扫描记录器内 set_*/write_*/apply_*/reset_*/step 调用 0 处；开/关记录器的 250 帧轨迹（root 位姿 + q/q̇ + 施加力矩）sha256 相同、逐元素 max|Δ| = 0.0。",
+            "观察（不作结论）：同一 10 s 窗口内后腿四个关节占总能量 187 J，前腿仅约 19 J，需在 pilot 复核前腿是否被拖行。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/hira_energy_meter_validation.json（verdict.all_passed=true，17/17）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/energy_meter_validation.exec.json（含 provenance 与 16 项明细）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/energy_readonly_on.json / _off.json / *.npy",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §21"
+          ],
+          "remaining_work": [
+            "HIRA-020 冻结控制器包时把 HiRAEnergyRecorder 的接线与本次 17 项结果写进门禁矩阵（T-10 行）。",
+            "pilot 阶段复核前腿能量占比异常偏低是否为拖行（观察项，非阻塞）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "仅记录未限幅PD请求力矩不能称为实际施加；字段无法确认则暂停。",
         "外部推扰功不算进关节正功，不把机械功说成电池能耗。"
@@ -1796,7 +1848,7 @@
         "实际effort来源与子步相位有证据，能量公式、单位和零分母处理与契约一致。",
         "离线相对误差≤1e-5、在线对离线≤1e-4；记录开/关差异满足预登记可解释容差，无动力学写操作。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（17/17）。力矩来源：applied_torque = actuator.applied_effort，与 set_dof_actuation_forces 收到的 _joint_effort_target_sim 同源同值（源码 L1865/L1869/L216 + 2000 子步逐位对照 max|Δ|=0.0），请求力矩与 computed_torque 只作对照；强制饱和处两者能量差 18.5 倍，证明不能混用。相位：τ 属于刚执行完的子步、q̇ 取子步结束时刻（与 v2 记录器顺序一致），pre 口径会使 J 偏低 6.64%。复算：在线 torch float64 与 numpy integrate_series、纯 Python EnergyMeter 三者相同（rel 0.0，判据 1e-9；任务判据 1e-5/1e-4 更宽松）。边界：零输入=0.0、已知单关节正功与闭式值 rel 1.7e-16、负功逐关节丢弃（52 步逐位 0）、推扰不计入、warmup 排除、提前结束与非整策略步结束均自洽。只读：AST 扫描 0 处写调用；开/关记录器跨进程轨迹 sha256 一致、逐元素 max|Δ|=0.0。"
     },
     {
       "id": "HIRA-020",

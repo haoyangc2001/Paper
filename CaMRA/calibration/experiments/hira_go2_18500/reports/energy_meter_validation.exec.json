@@ -1,0 +1,282 @@
+{
+ "report": "energy_meter_validation",
+ "task": "HIRA-019",
+ "phase": "exec",
+ "contract": {
+  "metric_id": "D-ENERGY-001",
+  "formula": "J = Σ_k Σ_j max(τ_j[k]·q̇_j[k], 0)·dt",
+  "dt_s": 0.005,
+  "unit": "J",
+  "joints": 12,
+  "clip": "逐关节截断后求和（不先求和再截断）",
+  "phase": "τ 属于刚执行完的子步；q̇ 取该子步结束时刻（robot.update 之后）"
+ },
+ "provenance": {
+  "articulation": {
+   "path": "/pub/data/caohy/IsaacLab/source/isaaclab/isaaclab/assets/articulation/articulation.py",
+   "sha256": "9cc03b85642c36c801ff9683e94b8ccc3fbef1178761338974b433dacc78ef75",
+   "hits": {
+    "applied_torque_assignment": {
+     "needle": "self._data.applied_torque[:, actuator.joint_indices] = actuator.applied_effort",
+     "lines": [
+      1869
+     ],
+     "text": [
+      "self._data.applied_torque[:, actuator.joint_indices] = actuator.applied_effort"
+     ]
+    },
+    "effort_from_actuator": {
+     "needle": "self._joint_effort_target_sim[:, actuator.joint_indices] = control_action.joint_efforts",
+     "lines": [
+      1865
+     ],
+     "text": [
+      "self._joint_effort_target_sim[:, actuator.joint_indices] = control_action.joint_efforts"
+     ]
+    },
+    "write_to_physx": {
+     "needle": "set_dof_actuation_forces(self._joint_effort_target_sim",
+     "lines": [
+      216
+     ],
+     "text": [
+      "self.root_physx_view.set_dof_actuation_forces(self._joint_effort_target_sim, self._ALL_INDICES)"
+     ]
+    },
+    "update_buffers": {
+     "needle": "def update(self, dt: float):",
+     "lines": [
+      222
+     ],
+     "text": [
+      "def update(self, dt: float):"
+     ]
+    }
+   }
+  },
+  "articulation_data": {
+   "path": "/pub/data/caohy/IsaacLab/source/isaaclab/isaaclab/assets/articulation/articulation_data.py",
+   "sha256": "bfe53518d1c511455b3538dcee487845ccfe1b62ddbd9c2cd92794137d390994",
+   "hits": {
+    "computed_torque_doc": {
+     "needle": "Joint torques computed from the actuator model (before clipping)",
+     "lines": [
+      316
+     ],
+     "text": [
+      "\"\"\"Joint torques computed from the actuator model (before clipping). Shape is (num_instances, num_joints)."
+     ]
+    },
+    "applied_torque_doc": {
+     "needle": "Joint torques applied from the actuator model (after clipping)",
+     "lines": [
+      324
+     ],
+     "text": [
+      "\"\"\"Joint torques applied from the actuator model (after clipping). Shape is (num_instances, num_joints)."
+     ]
+    }
+   }
+  },
+  "actuator_config": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/config/hira_source_contract_v1.json"
+ },
+ "environment": {
+  "friction": 1.0,
+  "friction_as_imported": 0.5,
+  "policy": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/exported/policy.pt",
+  "policy_sha256": "721a891a22da99f26ce243d538334ba24d3c0e5f04bdf20f837b9960babbfe9e",
+  "urdf": "/home/caohy/repositories/Paper/HiRA/legged_gym_go2/resources/robots/go2/urdf/go2.urdf",
+  "urdf_sha256": "5fea735381cd99059703a544b163be698f7cb8a6382fa9921349539a12ea546e",
+  "torch": "2.7.0+cu126",
+  "lab_root": "/pub/data/caohy/IsaacLab"
+ },
+ "effort_limits": {
+  "FL_hip_joint": 23.700000762939453,
+  "FL_thigh_joint": 23.700000762939453,
+  "FL_calf_joint": 35.54999923706055,
+  "FR_hip_joint": 23.700000762939453,
+  "FR_thigh_joint": 23.700000762939453,
+  "FR_calf_joint": 35.54999923706055,
+  "RL_hip_joint": 23.700000762939453,
+  "RL_thigh_joint": 23.700000762939453,
+  "RL_calf_joint": 35.54999923706055,
+  "RR_hip_joint": 23.700000762939453,
+  "RR_thigh_joint": 23.700000762939453,
+  "RR_calf_joint": 35.54999923706055
+ },
+ "checks": [
+  {
+   "id": "E01",
+   "name": "力矩来源：applied_torque 与交给 PhysX 的是同一份 applied_effort",
+   "ok": true,
+   "detail": "articulation.py L[1869] 赋值 applied_torque、L[1865] 该值进入 _joint_effort_target_sim、L[216] 写进 PhysX（文件 sha 9cc03b85642c）"
+  },
+  {
+   "id": "E02",
+   "name": "实际施加 == 我们写入的限幅力矩（执行器不再改一笔）",
+   "ok": true,
+   "detail": "2000 子步，|applied−written| max=0.000e+00（阈值 1e-4，预登记 torque atol）",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "E03",
+   "name": "computed_torque == applied_torque（无隐藏 PD/增益二次加工）",
+   "ok": true,
+   "detail": "|computed−written| max=0.000e+00，|applied−computed| max=0.000e+00",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "E04",
+   "name": "实际施加从不越限幅",
+   "ok": true,
+   "detail": "max(|applied|−effort)=-1.025e+01；窗口内饱和关节-子步数=0",
+   "over_limit": -10.254393577575684
+  },
+  {
+   "id": "E05",
+   "name": "在线（torch float64）与两套离线实现一致",
+   "ok": true,
+   "detail": "在线 J=212.160537211；numpy 复算 212.160537211（rel 0.000e+00）；EnergyMeter 重放 212.160537211（rel 0.000e+00）；阈值 rel ≤1e-9（预登记 T-10）",
+   "online_J": 212.1605372109484,
+   "numpy_J": 212.1605372109484,
+   "meter_J": 212.1605372109484,
+   "rel_vs_numpy": 0.0,
+   "rel_vs_meter": 0.0
+  },
+  {
+   "id": "E06",
+   "name": "相位选择不是可有可无：pre 与 post 口径确实不同",
+   "ok": true,
+   "detail": "同一段数据按子步起始速度算得 J=198.070170，按子步结束速度算得 212.160537，相对差 6.64%（单步 |Δq̇| max=1.444e+01 rad/s）；契约取后者，与 v2 记录器一致",
+   "rel_pre_vs_post": 0.06641370246187694,
+   "J_pre": 198.0701704184685
+  },
+  {
+   "id": "E07",
+   "name": "逐关节截断与先求和再截断确实不同",
+   "ok": true,
+   "detail": "错误口径（先求和再截断）J=56.491647 vs 契约 212.160537，相对差 73.37%",
+   "rel_naive": 0.7337315995625138
+  },
+  {
+   "id": "E08",
+   "name": "守恒自检：逐步/逐关节求和 == 总量，全部非负有限",
+   "ok": true,
+   "detail": "无异常",
+   "problems": []
+  },
+  {
+   "id": "E09",
+   "name": "零力矩 → 能量恒为 0（符号与截断的基线）",
+   "ok": true,
+   "detail": "200 子步零力矩，J=0.0（要求逐位 0）；机器人高度 0.076→0.076 m",
+   "J": 0.0
+  },
+  {
+   "id": "E10",
+   "name": "已知单关节 +3 N·m：能量等于闭式值，其余 11 关节贡献恒 0",
+   "ok": true,
+   "detail": "前 100 子步 J=5.130677794，闭式值 Σmax(3·q̇,0)dt=5.130677794（rel 1.73e-16）；非驱动关节 |J| max=0.0e+00",
+   "J_phase_a": 5.130677793575452,
+   "J_expected": 5.130677793575451
+  },
+  {
+   "id": "E11",
+   "name": "反向力矩在关节仍正向运动时产生负功 → 被逐关节截断丢弃",
+   "ok": true,
+   "detail": "后 100 子步中 q̇_calf>0 的有 52 步，这些步的单步能量 max=0.0（要求逐位 0；若用 |τ·q̇| 或先求和再截断这里会非零）",
+   "n_opposing_steps": 52
+  },
+  {
+   "id": "E12",
+   "name": "外部速度冲击（1 m/s）下零关节力矩 → 能量仍为 0",
+   "ok": true,
+   "detail": "注入 Δv=(1,0,0) m/s 后 J=0.0；推扰做功不计入关节正功（约束：不把机械功说成电池能耗）"
+  },
+  {
+   "id": "E13",
+   "name": "饱和时请求力矩与实际施加差一个量级：不能拿请求值当施加值",
+   "ok": true,
+   "detail": "动作=+100 的 200 子步：2400 个关节-子步越限，越限处 |applied| 恰为 effort（偏差 0.00e+00）；J(请求)=10069.9 J vs J(施加)=543.30 J，倍数 18.5×",
+   "ratio": 18.534763988351123,
+   "n_saturated_entries": 2400
+  },
+  {
+   "id": "E14",
+   "name": "warmup 的 200 个物理步一步都没进窗口",
+   "ok": true,
+   "detail": "warmup_steps=200，窗口 steps=40（10 个策略步 = 40 子步），窗口 J=0.003906",
+   "warmup_steps": 200,
+   "window_steps": 40
+  },
+  {
+   "id": "E15",
+   "name": "提前结束/非整策略步结束时，计量仍然自洽",
+   "ok": true,
+   "detail": "steps=1347（1344+3，不是 4 的倍数）、partial=True、J=28.828038；守恒问题：无",
+   "steps": 1347
+  },
+  {
+   "id": "E16",
+   "name": "记录器源码内没有任何写仿真/写资产的调用（AST 扫描）",
+   "ok": true,
+   "detail": "energy_recorder.py：禁用调用 0 处（set_*/write_*/apply_*/step 全部未出现）",
+   "forbidden": []
+  }
+ ],
+ "experiments": {
+  "policy_window": {
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "steps": 2000,
+   "elapsed_s": 10.0,
+   "J_online": 212.1605372109484,
+   "J_pre_phase": 198.0701704184685,
+   "J_naive_sum_then_clip": 56.491646879117,
+   "per_joint_J": [
+    1.3432837422113653,
+    5.368507412530682,
+    5.332103384584595,
+    0.6191309783036577,
+    3.131399980789867,
+    5.273867027487938,
+    1.9765899511553238,
+    46.35328168526855,
+    46.34668878044223,
+    2.015362066301924,
+    37.62046786748683,
+    56.77985433438547
+   ],
+   "saturated_substeps": 0,
+   "max_abs_request_vs_applied": 0.0,
+   "max_abs_tau": 24.0804500579834,
+   "max_abs_qdot": 12.936591148376465,
+   "root_height_min": 0.31255653500556946,
+   "root_height_max": 0.4200302064418793
+  },
+  "known_torque": {
+   "joint": "FL_calf_joint",
+   "torque_Nm": [
+    3.0,
+    -3.0
+   ],
+   "steps_per_phase": 100,
+   "J_phase_a": 5.130677793575452,
+   "J_phase_b": 5.538601330097008,
+   "qdot_max_phase_a": 20.070026397705078,
+   "qdot_min_phase_b": -20.06061553955078,
+   "n_opposing_steps": 52
+  },
+  "forced_saturation": {
+   "J_request": 10069.861568170023,
+   "J_applied": 543.2959154213569,
+   "ratio": 18.534763988351123,
+   "n_saturated_entries": 2400,
+   "max_abs_request": 500.0,
+   "max_abs_applied": 35.54999923706055
+  }
+ }
+}

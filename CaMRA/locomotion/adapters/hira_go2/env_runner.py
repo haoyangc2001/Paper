@@ -172,6 +172,8 @@ class HiraLabRunner:
         self.policy_step_count = 0
         self.command_index = 0
         self.trace = RunnerTrace()
+        # HIRA-019：可选的 200 Hz 计量记录器（只读；None 时路径完全不变）
+        self.recorder = None
         self._last_action_source = torch.zeros((num_envs, 12), device=device, dtype=dtype)
         self.reset_all()
 
@@ -264,16 +266,7 @@ class HiraLabRunner:
         substeps = []
         saturated_total = 0
         for _ in range(self.timing.decimation):
-            trace = self.torque_adapter.compute_substep(
-                self.robot.data.joint_pos, self.robot.data.joint_vel
-            )
-            self.robot.set_joint_effort_target(trace["effort_written_lab"])
-            self.robot.write_data_to_sim()
-            self.sim.step(render=False)
-            # sim.step() 不会刷新 articulation 的 data 缓冲；不 update 的话
-            # 下一次 PD 用的是**上一步之前的** q/qdot，观测也会冻在初始状态。
-            self.robot.update(self.timing.sim_dt)
-            self.physics_step += 1
+            trace = self.substep()
             substeps.append(float(trace["tau_clipped_source"].abs().max()))
             saturated_total += int(trace["n_saturated_joints"])
 
@@ -341,11 +334,73 @@ class HiraLabRunner:
             trace = self.torque_adapter.compute_substep(
                 self.robot.data.joint_pos, self.robot.data.joint_vel
             )
-            self.robot.set_joint_effort_target(trace["effort_written_lab"])
-            self.robot.write_data_to_sim()
-            self.sim.step(render=False)
-            self.robot.update(self.timing.sim_dt)
-            self.physics_step += 1
+            self.write_effort_lab(trace["effort_written_lab"])
+            self.advance()
+            self._record_substep(trace)
+
+    # ------------------------------------------------------------------ #
+    # 单子步动作与记录钩子（HIRA-019）
+    def write_effort_lab(self, tau_lab: torch.Tensor) -> None:
+        """把 Lab 顺序的力矩写进仿真缓冲（触发执行器模型 → PhysX）。"""
+        self.robot.set_joint_effort_target(tau_lab.to(self.device, self.dtype))
+        self.robot.write_data_to_sim()
+
+    def advance(self) -> None:
+        """推进一个物理子步并刷新 data 缓冲。
+
+        ``sim.step()`` 不会刷新 articulation 的 data 缓冲；不 update 的话
+        下一次 PD 用的是**上一步之前的** q/qdot，观测也会冻在初始状态（HIRA-016 实测）。
+        """
+        self.sim.step(render=False)
+        self.robot.update(self.timing.sim_dt)
+        self.physics_step += 1
+
+    def substep(self) -> dict:
+        """按当前 q_target 推进一个物理子步（不做策略推理、不推进策略计数）。
+
+        采集/验证需要"窗口停在策略步中间"时必须用这个入口：``policy_step`` 一次走 4 步，
+        无法表达非整策略步结束。
+        """
+        trace = self.torque_adapter.compute_substep(
+            self.robot.data.joint_pos, self.robot.data.joint_vel
+        )
+        self.write_effort_lab(trace["effort_written_lab"])
+        self.advance()
+        self._record_substep(trace)
+        return trace
+
+    def step_known_torque(self, tau_source: torch.Tensor, saturated: int = 0) -> dict:
+        """用一个**外部给定**的源顺序力矩推进一步（已知功率/符号测试用）。
+
+        走的是同一条 ``write_effort_lab → advance → _record_substep`` 通路，
+        所以测的是真实执行链，而不是另写一份绕过 PhysX 的模拟。
+        """
+        tau_source = tau_source.to(self.device, self.dtype).reshape(self.num_envs, 12)
+        trace = {
+            "tau_clipped_source": tau_source,
+            "joint_vel_source": self.order.target_to_source(self.robot.data.joint_vel),
+            "n_saturated_joints": int(saturated),
+        }
+        self.write_effort_lab(self.order.source_to_target(tau_source))
+        self.advance()
+        self._record_substep(trace)
+        return trace
+
+    def _record_substep(self, trace: dict) -> None:
+        """把"实际施加的力矩 + 本子步结束时刻的速度"交给记录器（只读）。"""
+        if self.recorder is None:
+            return
+        self.recorder.record(
+            tau_applied_lab=self.robot.data.applied_torque,
+            tau_written_source=trace["tau_clipped_source"],
+            tau_request_source=trace.get("tau_pd_source"),
+            qdot_pre_source=trace["joint_vel_source"],
+            qdot_post_lab=self.robot.data.joint_vel,
+            tau_computed_lab=self.robot.data.computed_torque,
+            joint_acc_lab=self.robot.data.joint_acc,
+            root_pos_lab=self.robot.data.root_pos_w,
+            saturated_joints=int(trace["n_saturated_joints"]),
+        )
 
     def run_window(self, commands: list[list[float]], window_s: float | None = None) -> RunnerTrace:
         """按 10 Hz 施加外部命令跑满一个窗口；命令列表循环使用。"""
