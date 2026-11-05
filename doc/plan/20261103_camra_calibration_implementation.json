@@ -2229,11 +2229,42 @@
     {
       "id": "CAL-026",
       "goal": "采集400条独立检验试验",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-025"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T09:25:00+08:00",
+          "summary": "400 条独立检验全部落地：397 completed + 3 terminated、0 缺失/重复/额外；能量复算 1.09e-9；check_collection VERDICT pass；margin 门禁以 a38211d9 锁放行，仅执行一次正式批次，未重采未改模型。",
+          "actions": [
+            "env_setup/45_cal026_heldout.sh：GPU1 顺序跑 --bucket off（320 条，13 批）与 --bucket on（80 条 combined，3 批），共用冻结 margin(a38211d9 锁)/功率模型/v2。",
+            "check_collection 对账：expected=done=400、problems=[]、ok=true。",
+            "逐条 meta 记录 margin 门禁放行时的锁散列（LOCK OK a38211d9b50cbc8c split heldout）。"
+          ],
+          "files_changed": [
+            "/pub/data/caohy/logs/camra/env_setup/45_cal026_heldout.sh",
+            "/pub/data/caohy/logs/camra/trials/heldout/**（400 条）",
+            "/pub/data/caohy/logs/camra/trials/heldout_check.json"
+          ],
+          "commands": [
+            "bash env_setup/45_cal026_heldout.sh",
+            "python scripts/check_collection.py --split heldout --report trials/heldout_check.json"
+          ],
+          "results": [
+            "400/400：completed 397、terminated 3、truncated 0、interrupted 0；missing/duplicates/extra 全空。",
+            "能量复算：n=400，j_exec ∈ [116.31, 884.76] J，max_rel_err 1.0930e-09。",
+            "独立性：heldout seeds 7000–7399 与 baseline/calibration/pilot 的 seed 块互不相交（锁内 mutual exclusion），命令模板未用于拟合。",
+            "单次正式批次：无 --allow-overwrite、无重采、模型与 margin 自 CAL-025 冻结后未改（锁 a38211d9 绑定）。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/45_cal026_heldout.log（LOCK OK + 两趟 EXIT=0 + VERDICT pass）",
+            "/pub/data/caohy/logs/camra/trials/heldout_check.json"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "每格20条，使用冻结margin/功率模型/v2和未用于拟合的预登记指令、种子。",
         "检验只执行一次正式批次，性能差不能重采、改模型后复用同一独立性声明。",
@@ -2244,7 +2275,7 @@
         "拟合/校准/检验的程序与trial不存在泄漏。",
         "执行期间模型、成本与margin散列未变。"
       ],
-      "verification_result": ""
+      "verification_result": "验收通过：(1) 每格 20 条 × 20 格全部落地（expected=done=400，problems=[]、VERDICT pass），3 条 terminated 为业务失败按预登记保留不补采；(2) 冻结输入——margin 门禁在采集前以锁 a38211d9 放行（LOCK OK 日志），功率模型内容散列 bfe3b159…与 v2 控制器自冻结后未变，heldout seeds 7000–7399 与其他 split 的互斥由锁内清单散列与 seed 块保证；(3) 只执行一次正式批次——两次 bucket 进程是该批次的两半（combined 的 cfg 开关所迫），无任何重采或失败重跑。"
     },
     {
       "id": "CAL-027",
