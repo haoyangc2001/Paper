@@ -410,6 +410,14 @@
       "decision": "采集器从'任一 env 终止即整批中止'改为'逐 env 记录终止控制步、其余 env 跑满窗口'：每条 trial 落盘时按各自窗口切片，提前终止者的能量用切片 tau/qdot 以 float64 复算（与 recorder.finish 复算公式一致），energy.json 新增 j_exec_source；据此重建数据锁（代码树 c40e5a95→9e84a2d1，锁 907310c7→21131216，重建后对运行副本 verify_artifacts n_bad=0）；旧语义产出的 160 条（5 terminated+155 interrupted）整体改名 trials/calibration_superseded_batchabort 封存，零删除。",
       "source": "GPU1 首采 5 批暴露 97% 连坐浪费（5 摔倒→155 interrupted），沿用 D-007 的'修工具+零删除'先例",
       "evidence": "handoff §26；git 1b61d65；env_setup/43_cal024_gpu1.log 前 4 批 outcomes 计数"
+    },
+    {
+      "id": "D-011",
+      "state": "confirmed",
+      "date": "2026-11-05",
+      "decision": "CAL-027 按协议本意收口：检验的预登记要求是'报告总体/20 格/低速层/方向子组/95% 区间/联合单列'，90% 是校准分位目标且协议明写'不硬造检验恰好 90%'，故报告齐全即完成；status=below_target 仅作与 90% 参照的事实陈述，同时记录 joint_explained_by_independence=true 与 cost_shortfall_pp=3.1。论文只能分别报告三项、不得声称'联合 90%'；边际成本覆盖差 3.1pp 列为最终报告 open risk；严禁据检验回填 α/δ 或功率模型。",
+      "source": "用户在'联合 79.4% 怎么算'的三选项中选'按协议本意收口（推荐）'",
+      "evidence": "heldout/heldout_coverage.json 的 verdict 块；handoff §28.5"
     }
   ],
   "pending_decisions": [
@@ -2280,11 +2288,50 @@
     {
       "id": "CAL-027",
       "goal": "输出独立覆盖、统计区间与可用性判定",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-026"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T09:55:00+08:00",
+          "summary": "400 条检验覆盖统计完成：成本 86.90%、位置 91.44%、联合 79.35%；联合恰等于两项边际乘积（比值 0.9986，独立性成立）；四套分母/20 格/低速层/方向子组/两套区间全部上报，按 D-011 收口。",
+          "actions": [
+            "写 src/camra_calibration/coverage.py：含等号阈值、方向五类分层、四套分母、cell 与子组覆盖、trial/簇两套 bootstrap、三态判定（含'联合≡边际乘积'解释标志）。",
+            "写 scripts/evaluate_heldout.py：只读 heldout（他 split 直接 REFUSED），加载冻结 margins/model，复算 ε_c/ε_d 后出报告。",
+            "写 tests/test_coverage.py 8 项；全量 pytest 248 项通过。",
+            "跑真实数据：397 条可算，cost 345、position 363、joint 315；未覆盖 82 条含明细。",
+            "数据锁第四次重建（48 代码文件、树 d39c89f9、锁 3a21dad2），副本 verify_artifacts n_bad=0。",
+            "handoff §28 记录结果、分组、独立性发现与收口口径。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/src/camra_calibration/coverage.py（新建）",
+            "CaMRA/calibration/scripts/evaluate_heldout.py（新建）",
+            "CaMRA/calibration/tests/test_coverage.py（新建，8 项）",
+            "CaMRA/calibration/config/data_lock_v1.json(+.sha256)（第四次重建 3a21dad2…）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§28）"
+          ],
+          "commands": [
+            "python -m pytest tests/test_coverage.py -q（8 passed）",
+            "python scripts/evaluate_heldout.py --manifest-dir trial_lists_v1.0.2 --out-root trials --report heldout/heldout_coverage.json",
+            "python scripts/build_data_lock.py --manifest-dir trial_lists_v1.0.2 --out config/data_lock_v1.json"
+          ],
+          "results": [
+            "成本覆盖 345/397 = 0.8690，CI [0.8363, 0.9018]；位置 363/397 = 0.9144，CI [0.8866, 0.9421]；联合 315/397 = 0.7935，CI [0.7531, 0.8338]。",
+            "独立性：0.8690×0.9144=0.7946 vs 实测 0.7935，比值 0.9986 → 两项误差独立，联合缺口是算术必然。",
+            "分组：clean 成本 1.000/联合 0.900；mass_only 0.692/0.641；combined 0.662/0.613；push_only 位置 0.861；低速层联合 0.840 vs 高速 0.778。",
+            "最难 cell：arc_combined|combined 0.450、arc_combined|push_only 0.500、start_stop_turn|combined 0.500；20 格完整率均 1.00。",
+            "分母：expected 400 / complete 397 / business_failed 3 / non_computable 0 / data_invalid 0；未覆盖 82 条已列明细。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/heldout/heldout_coverage.json（overall/per_cell/groups/uncovered/verdict 全量）",
+            "env_setup/17_cal020_tests.log（248 passed，PYTEST_EXIT=0）",
+            "handoff §28；git caeaaac"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "报告边际及联合覆盖、业务失败、近零能量及数据无效分母。",
         "按轨迹/命令簇统计，不把50Hz点数作为独立样本；单固定v2不声称多训练种子方差。",
@@ -2295,7 +2342,7 @@
         "明确完整条件覆盖与全体试验覆盖，边际90%与联合关系解释准确。",
         "检验结论可追溯且没有反向改变alpha/delta或名义模型；准入未满足不将任务标true。"
       ],
-      "verification_result": ""
+      "verification_result": "三项验收均通过（按 D-011 口径）：(1) 边际与联合覆盖分别报告且分母齐全——成本 0.8690 [0.8363,0.9018]、位置 0.9144 [0.8866,0.9421]、联合 0.7935 [0.7531,0.8338]，四套分母 400/397/3/0/0 同时给出，20 格与低速层、四方向子组逐项列出；(2) 区间以整条轨迹为最小重采样单位——10000×95%、种子 20261104，另给 cell 整簇口径（联合 [0.7045,0.8763]），未按 50 Hz 点数计数、未声称训练种子方差；(3) 判定按预登记并留痕——status=below_target 仅指与 90% 参照的差距，joint_explained_by_independence=true（联合≡边际乘积，比值 0.9986）、cost_shortfall_pp=3.1 已写进报告；未据此调整 α/δ 或模型（协议 may_not），数据锁 3a21dad2 仍绑定原冻结值。"
     },
     {
       "id": "CAL-028",
