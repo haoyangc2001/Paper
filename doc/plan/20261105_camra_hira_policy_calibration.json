@@ -1939,7 +1939,7 @@
       "id": "HIRA-021",
       "phase": "校准链路接入",
       "goal": "完成新控制器采集通路与隔离恢复测试",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-020"
       ],
@@ -1961,7 +1961,53 @@
         "独立runner与恢复测试",
         "reports/collector_integration_tests.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T23:40:00+08:00",
+          "summary": "新控制器采集通路接通并通过 21 项测试（plan 9 + exec 9 + legacy 3）。HiraCollector 以 G1 冻结包为唯一入口（构造即 load_bundle 四层校验），身份 11 字段显式落 meta；恢复语义集中在纯函数 plan_attempts，9 类伪造状态全部按预期裁决；真实仿真验证 warmup 对齐、10 Hz 配对（区间数+1=21 点）、50 Hz 状态、200 Hz 能量独立复算（rel 0.0）、推扰按表施加、逐 env 终止与恢复；中断补跑不覆盖旧目录、业务失败不自动重试；v2 命名与 v2 包一律被拒；v2 旧证据在语料机上按原方法独立复算 rel 2.7e-15。",
+          "actions": [
+            "新建 CaMRA/locomotion/adapters/hira_go2/collector.py：TrialSpec/sample_spec/plan_attempts/HiraCollector（execute_batch 多 env 一批，每 trial 一个 env 槽位，profile 逐 env 写入并读回报证，终止后恢复该 env 的旋钮与初态，原子写入 + DONE 散列封口）。",
+            "env_runner.py 增加 set_command_row 与 obs 噪声开关（采集器按 profile 启停）。",
+            "新建 tests/check_collector_integration.py 四阶段（plan/exec/legacy/merge），产出 reports/collector_integration_tests.json。",
+            "新建 recompute_v2_trial.py（在存有 v2 语料的 192.168.20.10 上运行）：按 v2 原方法（float32 乘法）独立复算 j_exec，与落盘 rel 2.7e-15；并验证 HiRA 采集器拒装 v2 trial_id；结果 JSON 拷回 reports/v2_trial_recompute.json。",
+            "恢复语义实测：伪造 DONE 过期/中断/业务失败/部分批/已存在输出，resume 写入新 attempt 目录且旧目录逐字节保留，完成后 plan 判 skip。",
+            "两个坑记入交接：pytest 须以 CaMRA/calibration 为 cwd；v2 npz 的 sim_dt 是 float32，复算须用 meta 的 0.005（否则 2.2e-8 假差异）。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/collector.py（新建）",
+            "CaMRA/locomotion/adapters/hira_go2/env_runner.py（set_command_row / 噪声开关）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_collector_integration.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/recompute_v2_trial.py（新建，语料机用）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/collector_integration_tests.json（新建，21/21）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/collector_{plan,exec,legacy}_tests.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/v2_trial_recompute.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§23）"
+          ],
+          "commands": [
+            "python tests/check_collector_integration.py --phase plan",
+            "python tests/check_collector_integration.py --headless --device cuda:0 --phase exec",
+            "python tests/check_collector_integration.py --phase legacy",
+            "python tests/check_collector_integration.py --phase merge",
+            "python recompute_v2_trial.py --trial-dir <v2 pilot trial> --out reports/v2_trial_recompute.json（在 .10）"
+          ],
+          "results": [
+            "C01–C09：入口校验、身份 11 字段、warmup 对齐（首配对点 t=1.000 s）、配对 21 点且命令逐元素一致、50 Hz 100 点、能量离线复算 rel 0.0/4.4e-16、推扰实测 Δv=(0.50000006,0)、DONE→skip、中断补跑旧目录逐字节保留、终止先记录后恢复且 env1 不受影响。",
+            "R01–R09：空 run/DONE 完整/DONE 过期/中断/业务失败/部分批/v2 命名/v2 包/不重复计数，全部按预期。",
+            "L01–L03：v2 src/tests 工作树干净；既有 CPU 测试全过；v2 trial 独立复算 rel 2.7e-15（f32 口径）且 HiRA 拒装 v2 命名。",
+            "身份抽查：meta.json 含 experiment_id/controller_id/bundle_id/policy_sha256/run_id/program_sha256/attempt_kind/profile_applied 读回/push_trace/terminations。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/collector_integration_tests.json（all_passed=true，21 项）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/v2_trial_recompute.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §23"
+          ],
+          "remaining_work": [
+            "HIRA-022 pilot 分批时按 profile 分组（同批 obs_noise/window/warmup 必须一致）。",
+            "正式 run 目录约定 /pub/data/caohy/logs/camra_hira/runs/<run_id>/；采集吞吐在 022 实测。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "G1通过后才允许本任务的采集链路测试。",
         "trial与attempt不能只靠文件目录名推断；中断补跑与业务失败重试规则不同。"
@@ -1970,7 +2016,7 @@
         "正常输入使用真实HiRA包，错误或v2资源被拒；主trial身份与全部attempt可追溯。",
         "故障恢复不覆盖数据、不使失败隐身，配对/计量/逐env终止测试及旧证据复算通过。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（21/21）。采集通路：HiraCollector 以 G1 冻结包（bundle_id 3c32fe31…）为唯一入口，身份 11 字段显式可审计；真实仿真验证 warmup 对齐/10 Hz 配对（区间数+1=21 点，命令逐元素一致）/50 Hz 状态/200 Hz 能量（离线复算 rel 0.0）/推扰按表/逐 env 终止与恢复。恢复：9 类伪造状态（缺文件、过时 DONE、中断、业务失败、部分批、输出已存在、v2 命名、v2 包、重复计数）全部按预期裁决；中断补跑写入新 attempt 目录且旧目录逐字节保留；业务失败只记录不自动重试。隔离：HiRA trial_id 强制 'hira-' 前缀，v2 包改名重封仍被拒；v2 旧证据按原方法独立复算 rel 2.7e-15，v2 校准源码工作树干净。"
     },
     {
       "id": "HIRA-022",

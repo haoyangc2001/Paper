@@ -1,0 +1,25 @@
+{
+ "checks": [
+  {
+   "id": "L01-src-snapshot",
+   "name": "v2 校准源码快照未被改动（git 工作树干净）",
+   "ok": true,
+   "detail": "src/tests 无未提交修改"
+  },
+  {
+   "id": "L02-core-tests",
+   "name": "既有 CPU 核心测试全过（旧锁口径）",
+   "ok": true,
+   "detail": "pytest: -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html"
+  },
+  {
+   "id": "L03-v2-recompute",
+   "name": "v2 trial 独立复算（旧代码路径）且被 HiRA 采集器拒绝混用",
+   "ok": true,
+   "detail": "V2-recompute-f32: 按 v2 记录方法（float32 乘法）复算 J=588.431751713 vs 落盘 588.431751713（rel 2.70e-15，判据 1e-9；V2-method-gap-f64: float64 乘法口径 J=588.431751561，与落盘差 rel 2.57e-10（判据 1e-6；这就是 HIRA-019 改成 float64 乘；V2-identity: trial 的 controller='camra_go2_velocity_it2999_v2'（预期 v2 的 'camra_go2_velocity_it；V2-reject-by-hira: 把 v2 trial_id 'pilot-alternating-clean-0000' 装进 HiRA 采集器：'pilot-alternating-clea"
+  }
+ ],
+ "report": "collector_legacy_tests",
+ "task": "HIRA-021",
+ "phase": "legacy"
+}

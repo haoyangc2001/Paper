@@ -1,0 +1,37 @@
+{
+ "report": "v2_trial_recompute",
+ "task": "HIRA-021",
+ "trial_dir": "/pub/data/caohy/logs/camra/trials/pilot/pilot-alternating-clean-0000",
+ "trial_id": "pilot-alternating-clean-0000",
+ "controller": "camra_go2_velocity_it2999_v2",
+ "checks": [
+  {
+   "id": "V2-recompute-f32",
+   "ok": true,
+   "detail": "按 v2 记录方法（float32 乘法）复算 J=588.431751713 vs 落盘 588.431751713（rel 2.70e-15，判据 1e-9）——数据可信；tau(6000, 12) dt=0.005",
+   "rel": 2.704843379832071e-15,
+   "j_recomputed": 588.4317517125311,
+   "j_recorded": 588.4317517125295
+  },
+  {
+   "id": "V2-method-gap-f64",
+   "ok": true,
+   "detail": "float64 乘法口径 J=588.431751561，与落盘差 rel 2.57e-10（判据 1e-6；这就是 HIRA-019 改成 float64 乘法的理由——v2 的能量有 ~2e-8 的系统偏差）",
+   "rel": 2.574241949267865e-10,
+   "j_f64": 588.4317515610529
+  },
+  {
+   "id": "V2-identity",
+   "ok": true,
+   "detail": "trial 的 controller='camra_go2_velocity_it2999_v2'（预期 v2 的 'camra_go2_velocity_it2999_v2'），protocol 1.0.1"
+  },
+  {
+   "id": "V2-reject-by-hira",
+   "ok": true,
+   "detail": "把 v2 trial_id 'pilot-alternating-clean-0000' 装进 HiRA 采集器：'pilot-alternating-clean-0000': HiRA trial_id 必须以 'hira-' 开头（v2 语料的命名没有该前缀，直接拒）"
+  }
+ ],
+ "verdict": {
+  "all_passed": true
+ }
+}

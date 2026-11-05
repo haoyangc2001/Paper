@@ -1,0 +1,64 @@
+{
+ "checks": [
+  {
+   "id": "C01-bundle-entry",
+   "name": "采集器以冻结包为唯一入口（散列+语义+URDF 自证+运行时参照）",
+   "ok": true,
+   "detail": "controller=hira_go2_18500，bundle_id=3c32fe31b2753a08…，experiment=hira_go2_18500"
+  },
+  {
+   "id": "C02-identity",
+   "name": "trial 身份完整可追溯（experiment/controller/bundle/run/split/trial/program/profile/seed/attempt）",
+   "ok": true,
+   "detail": "hira-pilot-clean-0000: attempt=1 kind=initial; hira-pilot-push-0000: attempt=1 kind=initial"
+  },
+  {
+   "id": "C03-pairing",
+   "name": "warmup 起点对齐 + 10 Hz 名义/执行配对",
+   "ok": true,
+   "detail": "hira-pilot-clean-0000: 21 点（期望 21），首点 t=1.000s（warmup 后），命令与写入一致=True；hira-pilot-push-0000: 21 点（期望 21），首点 t=1.000s（warmup 后），命令与写入一致=True"
+  },
+  {
+   "id": "C04-state50",
+   "name": "50 Hz 状态记录点数正确",
+   "ok": true,
+   "detail": "每条 100 点"
+  },
+  {
+   "id": "C05-energy",
+   "name": "200 Hz 能量落盘并可独立复算",
+   "ok": true,
+   "detail": "hira-pilot-clean-0000: J=52.559，离线复算 rel=0.0e+00；hira-pilot-push-0000: J=65.066，离线复算 rel=4.4e-16"
+  },
+  {
+   "id": "C06-push",
+   "name": "推扰按时刻表施加并记录实测 Δv",
+   "ok": true,
+   "detail": "t=0.4s dv=[0.5, 0.0] 实测=[0.5000000596046448, 0.0]"
+  },
+  {
+   "id": "C07-done-skip",
+   "name": "采集完成后 plan 判 skip（DONE 散列校验通过）",
+   "ok": true,
+   "detail": "['skip', 'skip']"
+  },
+  {
+   "id": "C08-resume",
+   "name": "中断补跑：新 attempt 目录、旧目录逐字节保留、完成后不覆盖",
+   "ok": true,
+   "detail": "旧 attempt 保留=True，plan→['run_resume2', 'run_resume2']→['skip', 'skip']"
+  },
+  {
+   "id": "C09-termination",
+   "name": "业务失败（摔倒）在终止前记录，其他 env 不受影响",
+   "ok": true,
+   "detail": "env0 终止记录 1 次（首次 t=0.60s）；env1 前段命令未受影响=True，env1 无终止=True"
+  }
+ ],
+ "report": "collector_exec_tests",
+ "task": "HIRA-021",
+ "phase": "exec",
+ "run_dir": "/pub/data/caohy/tmp/collector_exec_q_n4h28h/run_2s",
+ "window_s": 2.0,
+ "bundle_id": "3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975"
+}

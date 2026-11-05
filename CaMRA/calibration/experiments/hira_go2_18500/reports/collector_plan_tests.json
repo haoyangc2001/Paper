@@ -1,0 +1,61 @@
+{
+ "checks": [
+  {
+   "id": "R01-fresh",
+   "name": "空 run：全部 run_initial",
+   "ok": true,
+   "detail": "['run_initial', 'run_initial']"
+  },
+  {
+   "id": "R02-done-valid",
+   "name": "DONE 完整且散列一致 → skip",
+   "ok": true,
+   "detail": "trial0=skip，trial1=run_initial"
+  },
+  {
+   "id": "R03-done-stale",
+   "name": "DONE 在但输出被改 → run_resume（attempt+1）",
+   "ok": true,
+   "detail": "action=run_resume attempt=2"
+  },
+  {
+   "id": "R04-interrupted",
+   "name": "中断（running 无 DONE）→ run_resume attempt=3",
+   "ok": true,
+   "detail": "action=run_resume attempt=3"
+  },
+  {
+   "id": "R05-business-failure",
+   "name": "业务失败只记录、不自动重试",
+   "ok": true,
+   "detail": "action=blocked_business_failure（中断补跑与业务失败重试规则不同）"
+  },
+  {
+   "id": "R06-partial-batch",
+   "name": "部分批：缺的那条 run_initial，已有的不受影响",
+   "ok": true,
+   "detail": "['blocked_business_failure', 'run_resume', 'run_initial']"
+  },
+  {
+   "id": "R07-v2-name",
+   "name": "v2 命名的 trial_id 被拒（防语料混用）",
+   "ok": true,
+   "detail": "TrialSpec 拒绝"
+  },
+  {
+   "id": "R08-v2-bundle",
+   "name": "v2 控制器包被拒",
+   "ok": true,
+   "detail": "构造时在创建仿真前抛 CollectorError"
+  },
+  {
+   "id": "R09-no-double-count",
+   "name": "计划不重复计数（每 trial 恰一项）",
+   "ok": true,
+   "detail": "3 项，唯一 3"
+  }
+ ],
+ "report": "collector_plan_tests",
+ "task": "HIRA-021",
+ "phase": "plan"
+}

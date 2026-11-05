@@ -170,6 +170,8 @@ class HiraLabRunner:
         self.obs_adapter = ObservationAdapter(
             self.order, default_source, num_envs=num_envs, device=device, dtype=dtype
         )
+        # 采集器的 profile 开关：None = clean（不加噪）；给出幅度向量时按源规则加在 9:33
+        self.obs_noise_scale: torch.Tensor | None = None
         self.torque_adapter = ActionTorqueAdapter(
             self.order, default_source, effort_source, device=device, dtype=dtype
         )
@@ -238,6 +240,11 @@ class HiraLabRunner:
             raise ValueError(f"命令形状应为 ({self.num_envs}, 3)，实际 {tuple(command.shape)}")
         self.command = command.clone()
 
+    def set_command_row(self, env: int, command: list[float] | torch.Tensor) -> None:
+        """只改一个 env 的命令（其余 env 不受影响）——采集器按 trial 分配命令时用。"""
+        row = torch.as_tensor(command, device=self.device, dtype=self.dtype).reshape(3)
+        self.command[env] = row
+
     def observe(self) -> torch.Tensor:
         quat = self.robot.data.root_quat_w
         world_ang_vel = self.robot.data.root_ang_vel_w
@@ -249,6 +256,7 @@ class HiraLabRunner:
             self.command,
             self.robot.data.joint_pos,
             self.robot.data.joint_vel,
+            include_noise=self.obs_noise_scale is not None,
         )
         return built["obs"]
 

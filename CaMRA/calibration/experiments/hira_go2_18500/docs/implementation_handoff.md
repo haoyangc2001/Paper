@@ -1368,3 +1368,59 @@ R2/R6 是"散列全对的自洽伪造包"，分别被**运行时参照**和**包
 - T-11 中 v2 训练期原始日志（TASK-024/026/036）不在本机，已登记为对照基准限制；
 - 冻结目录不可变：改动需 `--refreeze` 显式声明，并产生新 controller 版本；
 - 采集器（HIRA-021 起）应以 `load_bundle()` 作为唯一入口，不得绕过校验直读文件。
+
+## §23 HIRA-021：采集通路与隔离恢复测试（21/21）
+
+### 23.1 结论
+
+`reports/collector_integration_tests.json`：**21 项全过**（plan 9 + exec 9 + legacy 3），
+`all_passed=true, missing=[]`。采集器 `hira_go2.collector.HiraCollector` 已与 G1 冻结包接通。
+
+### 23.2 采集通路（C01–C07，真实仿真）
+
+- **入口唯一**：`HiraCollector` 构造即 `load_bundle()`（散列+语义+包内 URDF 自证+运行时参照），
+  controller_id=bundle 目录名；本轮 prereg 与采集配置被散列写进每条 trial 的 meta
+  （C01：bundle_id `3c32fe31…`，experiment `hira_go2_18500`）。
+- **身份显式**（C02）：experiment/controller/bundle_id/policy_sha/run_id/split/trial_id/
+  program(program_sha256)/profile/seed/attempt/attempt_kind 全部落 meta，不靠目录名推断。
+- **时钟**（C03/C04）：warmup 200 步后窗口起点对齐（首配对点 t=1.000 s）；
+  配对点 = 区间数+1 = 21（端点共享），命令列与写入值逐元素一致；
+  50 Hz 状态 100 点。
+- **能量**（C05）：`physics_200hz.npz` 留档 applied_torque/qdot（源顺序），
+  离线 `integrate_series` 复算 rel = 0.0 / 4.4e-16。
+- **推扰**（C06）：按 trial 时刻表施加，实测 Δv=(0.50000006, 0.0)。
+- **逐 env 终止**（C09）：注入把 env0 压到地面 → 终止在 reset 前记录（t=0.60 s），
+  随后该 env 的 profile 旋钮与初态被恢复；env1 的命令序列与终止记录完全不受影响。
+
+### 23.3 恢复语义（R01–R09，纯函数直接测）
+
+`plan_attempts()` 是唯一裁决处，对伪造目录状态验证了 9 类情形：
+空 run / DONE 完整 → skip / **DONE 在但输出被篡改 → resume**（过时 DONE 不算数）/
+中断（running 无 DONE）→ resume 且 attempt+1 / 业务失败 → **blocked（不自动重试）**/
+部分批（缺的 run、有的不动）/ v2 命名被拒 / v2 控制器包被拒（改名重封也拦下）/
+计划不重复计数。
+中断补跑实测（C08）：两条 trial 的 attempt_01 伪造成 running 后 resume，
+**旧目录逐字节保留**，新结果进 attempt_02，完成后 plan 判 skip——覆盖、重复计数都不会发生。
+
+关键设计：所有写入先 `*.tmp` 再 `os.replace`；DONE 里登记逐文件 sha256；
+attempt 目录只增不改；中断补跑（resume）与业务失败重试（须显式指令）是两条线。
+
+### 23.4 新旧语料隔离
+
+- HiRA trial_id **必须以 `hira-` 开头**（前缀白名单），v2 的命名一律拒（R07）；
+  v2 控制器包即使改回 v2 id 并重封，也在构造时被拒（R08，散列全对的自洽伪造包）。
+- `recompute_v2_trial.py`（在存有 v2 语料的 .10 上运行）：
+  - **f32 口径复算** J=588.431751713 vs 落盘 588.431751713，**rel 2.7e-15** —— v2 数据可信；
+  - **f64 口径**（HIRA 的方法）差 rel 2.57e-10 —— 记录为方法差异；
+  - HiRA TrialSpec 拒装 v2 trial_id（无 `hira-` 前缀）。
+- v2 校准 src/tests 的 git 工作树干净（L01），既有 CPU 核心测试全过（L02）。
+  两个坑记录在案：pytest 必须以 `CaMRA/calibration` 为 cwd（`from sim.…` 依赖 conftest）；
+  v2 npz 里的 `sim_dt` 是 float32（0.004999999888…），复算必须用 meta 里的 0.005，
+  否则会得到 2.2e-8 的假差异。
+
+### 23.5 遗留
+
+- 同一批内 obs_noise / window_s / warmup_s 必须一致（obs 级开关无法逐 env）——
+  022 的 20 条 pilot 分批时按 profile 分组即可。
+- 采集吞吐未系统测量（022 的资源估算任务）。
+- 022 起正式采集的 run 目录约定：`/pub/data/caohy/logs/camra_hira/runs/<run_id>/`。
