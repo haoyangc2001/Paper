@@ -1,0 +1,1854 @@
+{
+  "document": {
+    "name": "HiRA预训练Go2底层策略接入Isaac Lab与CaMRA独立校准实施计划",
+    "version": "1.0.0",
+    "created_at": "2026-11-05",
+    "source_plan": "doc/plan/20261103_camra_calibration_implementation.json",
+    "output_path": "doc/plan/20261105_camra_hira_policy_calibration.json",
+    "mode": "create_only",
+    "source_snapshot": {
+      "main_commit": "3a3f822cd050b76661f86206cb0452ee7ebfb3b9",
+      "hira_commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+      "old_plan_recorded_complete": 32,
+      "old_plan_task_count": 32
+    },
+    "status_definition": {
+      "false": "尚未执行、部分完成、受阻或验收未通过",
+      "true": "依赖已完成，验收满足，且追加了工作记录及验证结果"
+    },
+    "update_rule": "只按依赖执行；工作记录仅追加。创建本计划不表示任何接入、仿真或采集任务已经完成。旧计划、旧协议和历史结论保持原样。",
+    "authoring_basis": "create-plan-worklog 与 engineering-design-writing；本次只编写并校验计划，不配置服务器、不导出模型、不运行实验、不提交或推送Git。",
+    "summary": "40项全新待执行任务；前20项完成来源、环境、适配与接入门禁，后20项重复完整校准、检验、审计与交付。"
+  },
+  "execution_focus": {
+    "current_request": "把HiRA当前高层训练实际引用的预训练Go2底层策略，作为新增独立候选接入Isaac Lab；严格验证接入后，再做一遍相同的能量与位置误差校准、独立检验及近障检查。",
+    "first_task": "HIRA-001",
+    "completion_at_creation": {
+      "completed": 0,
+      "total": 40
+    },
+    "order": "背景与设备 → 来源契约与验收预登记 → 模型/资产/观测/动作适配 → 数值与闭环验证 → 接入冻结门禁 → pilot → 独立功率模型 → 正式数据锁 → 校准 → 独立检验 → 近障 → 审计与交付",
+    "gates": [
+      "G1：HIRA-020 接入门禁通过前，不得开展pilot、基线或正式数据采集。此前只允许隔离的接入验证试验。",
+      "G2：HIRA-026 独立功率模型通过、HIRA-029 正式锁通过后，才能采集800条校准。",
+      "G3：HIRA-031 冻结α/δ后，才能打开400条独立检验及200条近障的结果。"
+    ],
+    "boundary": "新增HiRA候选实验，不直接替换当前v2，不默认训练底层，不实现上层导航，不修改任何论文稿。"
+  },
+  "background": {
+    "business_context": "CaMRA将导航与运动执行分开：高层输出机身速度，冻结底层执行；用确定性名义运动和实际仿真执行的配对轨迹，校准正关节机械功超支与位置偏差。",
+    "current_capability": "CaMRA/calibration 已有协议、命令生成、采集、功率建模、裕度计算、独立检验、近障和审计工具。旧CAL计划记录为32/32完成，但README/AGENTS前半部分仍有0/32等过时描述；以实际文件、版本和原始证据核查，不能把任务勾选当成全部科学验收通过。",
+    "problem_to_solve": "HiRA提供了预训练Go2底层策略，但其原运行环境是Isaac Gym。相同的45维输入/12维输出只说明形状相同，不能证明缩放、坐标系、关节顺序、默认角度、PD、力矩限幅和时序一致。",
+    "known_findings": [
+      "当前HiRA高层配置引用 logs/rough_go2/Sep08_11-57-26_/model_18500.pt；不是高层导航checkpoint，也不是任意同名policy_1.pt。",
+      "来源GO2Robot.compute_observations按顺序拼接角速度3、投影重力3、命令3、关节位置偏移12、关节速度12、上一动作12。",
+      "来源源码默认角度、kp=20、kd=0.5、action_scale=0.25；当前v2使用的执行契约不同，不能直接沿用其UnitreeActuator设置。",
+      "来源每个0.005 s物理子步重新计算并限幅PD力矩；策略每0.02 s运行一次，高层命令每0.1 s更新，与目标200/50/10 Hz相容。",
+      "现有采集器硬编码v2包路径，Protocol.load()和配置对象默认绑定旧协议，数据锁绑定代码树；必须先解开隐式绑定，防止用HiRA名称却运行v2。",
+      "旧v2的功率模型、α=0.19048和δ=2.6139 m只属于旧冻结执行系统，不能移植为HiRA的新结果。"
+    ],
+    "evidence_limits": "本计划依据仓库静态阅读及文件散列，不包含HiRA策略在当前Isaac Lab中的运行证明。本文档不承诺其更稳定、裕度更小或覆盖率更高。"
+  },
+  "goal": {
+    "primary": "交付身份可追溯、接入验证通过的HiRA来源Go2控制器，以及独立重做的功率模型、α/δ、检验与近障报告和复现包。",
+    "success_equation": "来源正确 + 同状态数值等价 + 执行器/时序与计量可验证 + 小批闭环通过 + 新数据隔离与锁定 + 独立复算一致 + 真实报告适用范围",
+    "deliverables": [
+      "背景/文件地图、设备与tmux记录、来源契约和预登记验收矩阵。",
+      "独立HiRA适配器、Isaac Lab环境配置、checkpoint到推理模型的等价证据。",
+      "G1接入审查报告与不可变控制器包，包含模型、资产、映射、执行器与散列。",
+      "20条pilot、400条独立clean功率基线、800条校准、400条独立检验、200条近障数据及全部失败记录。",
+      "HiRA专属名义功率模型、占地轮廓、数据锁、α/δ和能量步成本接口。",
+      "按总体、20格和低速等子组的覆盖报告、近障几何检查、与旧v2的有边界对照及独立审计。",
+      "可重载复现包、使用说明、后续导航交接和仅供用户参考的论文差异清单。"
+    ]
+  },
+  "scope": {
+    "included": [
+      "新上下文背景学习与按设备配置Isaac Lab运行环境。",
+      "复用指定checkpoint，在CaMRA新增适配与验证工具；复用校准算法，显式传入新实验配置。",
+      "按旧协议口径完成新控制器的全套独立数据采集、统计、审计及交接。",
+      "必要的CPU测试、GPU推理和仿真验证；执行机终端任务全部进入tmux。",
+      "只读分析旧v2数据与论文，更新本轮相关开发说明。"
+    ],
+    "excluded": [
+      "训练或微调HiRA/v2策略、筛选别的checkpoint以追求更好结果。",
+      "切换到Isaac Gym完成正式采集；真机SDK、sim2real、硬件试验。",
+      "上层导航训练、预算搜索实现和导航成功率结论。",
+      "改动HiRA/、RC-PPO/只读源码或子模块锁定版本。",
+      "覆写旧冻结包、协议、数据锁、模型、报告或任务记录。",
+      "改动manuscripts/**、*.tex、*.bib、投稿源/PDF、docs/paper*、submission*或重新编译论文。",
+      "未经用户明确要求的Git提交、push、付费服务或扩大实验配额。"
+    ]
+  },
+  "global_constraints": [
+    "任务仅创建时所有status=false、work_records=[]、verification_result为空；后续只有逐项验收后才置true。",
+    "本次用户授权新增HiRA独立候选，覆盖旧说明中不默认换策略的适用范围；不代表替换或废弃v2，也不撤销旧失败判定。",
+    "优先复用现有工具，但所有controller/protocol/model/footprint/margins/maps/manifest/lock/output都必须显式绑定同一experiment_id；任一不匹配即拒绝执行，不能回退到v2默认路径。",
+    "新增实现放在CaMRA，HiRA/和RC-PPO/保持只读且锁定。旧文件确需修改或旧产物需重生成时先按不确定决策策略确认；通常以新增版本和隔离目录解决。",
+    "新代码若使旧全树散列锁失效，保留旧提交的只读代码快照供历史审计；不重算旧锁来冒充原实验所用代码。",
+    "Isaac Lab为正式目标环境；来源Isaac Gym的权重接入需要控制语义验证，不能以能加载、维度相同或机器狗能站立代替验收。",
+    "固定1 s零指令warmup后测量30 s；名义侧仅在窗口起点与执行平面位姿对齐一次。clean是无附加扰动的物理执行，不是名义模型。",
+    "物理200 Hz、策略50 Hz、外部机身速度命令10 Hz；每0.02 s重新观测推理，每物理子步执行源PD。禁止保持一次关节动作0.1 s冒充两层控制。",
+    "成本为正关节机械功，单位J：逐关节max(tau*qdot,0)后求和积分；不是电池电能。新执行器的真实施加力矩与采样相位必须重新核验。",
+    "功率基线、pilot、校准、检验、近障按整条轨迹/命令簇互斥。新候选的功率模型、足迹、α/δ必须重建，禁止复制旧数值充当实测。",
+    "先冻结协议和选型规则，再建模；先冻结功率模型再用validate一次；先冻结α/δ再打开heldout结果。禁止用检验或近障反调模型、阈值、命令域或地图。",
+    "失败、停滞、non_computable、提前终止、基础设施中断及所有attempt保留；预登记一次主attempt统计，不取最高attempt或最好attempt美化结果。旧v2一次性补采特例不推广。",
+    "工程完整性通过与科学可用性通过分别记录。90%分位目标不要求检验恰好90%；两项边际90%不推出联合90%，不以增大裕度掩盖不执行命令。",
+    "任何定量接入或性能阈值在观察本候选对应验收数据前锁定；来源未确认的值标为待核实，不编造实测参数、区间或结论。",
+    "执行机终端、环境安装、评估、导出、采集和复算都在tmux中执行，保存完整命令/解释器/会话窗口/日志。新机最小tmux引导和Windows本地文档维护校验除外。",
+    "断线先核查tmux、进程、DONE与数据锁再恢复；不重复启动、不覆盖。输出目录存在则复用已验证清单断点续跑或新建run_id。",
+    "只处理本轮相关文件，保留已有工作；无用户明确指令不提交/推送，不写凭证或将服务器绝对路径当成所有机器均存在的路径。",
+    "出现会改变范围、数据、依赖、口径、输出、历史产物、远程状态或外部成本的不确定决策时暂停，记录证据并向用户确认。"
+  ],
+  "uncertainty_policy": {
+    "rule": "先用只读核对和隔离新增实现消除问题；仍有会改变任务语义或授权范围的不确定性时停止相关任务，status保持false，追加阻塞记录并询问用户。",
+    "must_pause_and_ask": [
+      "指定checkpoint不存在、散列改变、网络结构/归一化与所据源码不一致或存在无法判定的训练配置来源。",
+      "原资产到Isaac Lab的动力学/碰撞或PD语义差异无法说明，需要换资产、换仿真器、重新训练或调参。",
+      "闭环异常无法区分接入错误、基础设施问题与策略真实能力不足；不能擅自把业务失败改成无效数据。",
+      "预登记门槛失败，需要改变命令域、终止规则、功率模型候选、统计口径、配额或重试规则。",
+      "必须覆盖/删除/移动已有文件、改旧冻结物或子模块提交，或改变计划外核心依赖。",
+      "旧原始数据不可取得导致无法完成承诺的对照/审计，或需额外运行v2的大规模试验。",
+      "需要新增费用、外部API、远程写入/发布、Git提交或推送而用户尚未授权。"
+    ],
+    "not_a_new_decision": [
+      "按已冻结契约修复可由数值证据定位的映射/缩放/时序bug，保留失败版本并重新完成受影响门禁。",
+      "在已登记预算内配置本机路径、批量大小与恢复基础设施中断，前提是逐trial语义、随机实现和统计不变且有对照证据。"
+    ],
+    "question_format": "说明任务ID、已核实事实和证据路径、不确定点、可选方案及各自对数据/成本/已有工作的影响；等待明确选择，不以超时当同意。"
+  },
+  "paths": {
+    "existing": {
+      "root_readme": "README.md",
+      "agent_entry": "AGENTS.md",
+      "doc_index": "doc/README.md",
+      "old_plan": "doc/plan/20261103_camra_calibration_implementation.json",
+      "system": "CaMRA/README.md",
+      "calibration": "CaMRA/calibration/README.md",
+      "calibration_handoff": "CaMRA/calibration/docs/implementation_handoff.md",
+      "locomotion": "CaMRA/locomotion/README.md",
+      "reproduction": "CaMRA/locomotion/docs/reproduction.md",
+      "v2_manifest": "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+      "old_protocol": "CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+      "old_power_prereg": "CaMRA/calibration/config/power_model_prereg_v1.json",
+      "old_power": "CaMRA/calibration/config/power_model_v1.json",
+      "old_footprint": "CaMRA/calibration/config/footprint_v1.json",
+      "old_margins": "CaMRA/calibration/config/margins_v1.json",
+      "old_lock": "CaMRA/calibration/config/data_lock_v1.json",
+      "old_step_cost": "CaMRA/calibration/config/step_cost_schema_v1.json",
+      "old_maps": "CaMRA/calibration/config/near_obstacle_maps_v1.json",
+      "old_delivery": "CaMRA/calibration/delivery/bundle_manifest_v1.json",
+      "collector": "CaMRA/calibration/scripts/collect_trials.py",
+      "protocol_loader": "CaMRA/calibration/src/camra_calibration/protocol.py",
+      "machine_config": "CaMRA/calibration/src/camra_calibration/config.py",
+      "recorder": "CaMRA/calibration/sim/recorder.py",
+      "profiles": "CaMRA/calibration/sim/profiles_sim.py",
+      "reference": "HiRA/README.md",
+      "hira_config": "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_config.py",
+      "hira_observation": "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_env.py",
+      "hira_physics": "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot.py",
+      "hira_base_config": "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot_config.py",
+      "hira_hierarchy": "HiRA/legged_gym_go2/legged_gym/envs/go2/hierarchical_go2_env.py",
+      "hira_training": "HiRA/legged_gym_go2/legged_gym/scripts/train_reach_avoid.py",
+      "hira_actor": "HiRA/rsl_rl/rsl_rl/modules/actor_critic.py",
+      "hira_runner": "HiRA/rsl_rl/rsl_rl/runners/on_policy_runner.py",
+      "hira_checkpoint": "HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt",
+      "hira_urdf": "HiRA/legged_gym_go2/resources/robots/go2/urdf/go2.urdf",
+      "manuscript_read_only": "manuscripts/CCDC/latex/1029/main.tex"
+    },
+    "planned": {
+      "adapter_root": "CaMRA/locomotion/adapters/hira_go2/",
+      "experiment_root": "CaMRA/calibration/experiments/hira_go2_18500/",
+      "experiment_config": "CaMRA/calibration/experiments/hira_go2_18500/config/",
+      "reports": "CaMRA/calibration/experiments/hira_go2_18500/reports/",
+      "handoff": "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md",
+      "tests": "CaMRA/calibration/experiments/hira_go2_18500/tests/",
+      "controller_bundle": "由HIRA-006解析的CAMRA_HIRA_BUNDLE_ROOT/camra_hira_go2_18500_lab_v1/",
+      "raw_trials": "由HIRA-006解析的CAMRA_HIRA_DATA_ROOT/run_id/trials/",
+      "integration_logs": "由HIRA-006解析的CAMRA_HIRA_DATA_ROOT/run_id/integration/"
+    },
+    "path_rule": "planned为后续拟新增位置，创建计划时不建立这些目录。大权重、资产、原始轨迹按散列清单保存在执行设备；不将/pub历史路径直接硬编码入新源码。"
+  },
+  "source_controller_contract": {
+    "proposed_controller_id": "camra_hira_go2_18500_lab_v1",
+    "experiment_id": "hira_go2_18500",
+    "identity_authority": "锁定HiRA提交中GO2HighLevelCfgPPO.runner.low_level_model_path所指checkpoint；候选选择在观察本轮表现前固定。",
+    "checkpoint_sha256": "d30e52122125cf3db576408d4bf736703cdee6719944f55c423b4af3cb03d2e8",
+    "other_exports": [
+      {
+        "path": "HiRA/logs/rough_go2/exported/policies/policy_1.pt",
+        "sha256": "6d6f4d361fedad6b2ed76df3763651968ab76bccb3297d32b851d02ce3a60160"
+      },
+      {
+        "path": "HiRA/legged_gym_go2/deploy/pre_train/go2/policy_1.pt",
+        "sha256": "0069ce66a92d4cfa29e4f07aa27a6687728da47dff5c5aebed0e9163d267462f"
+      }
+    ],
+    "other_exports_rule": "这些文件的字节散列不同，不能仅凭名称互换；散列不同本身也不证明权重数值不同。主路线从指定checkpoint重新提取actor并验证，其他导出只作身份核对。",
+    "source_observation": [
+      {
+        "slice": "0:3",
+        "quantity": "机身角速度",
+        "source_scale": 0.25
+      },
+      {
+        "slice": "3:6",
+        "quantity": "机身坐标系投影重力",
+        "source_scale": 1
+      },
+      {
+        "slice": "6:9",
+        "quantity": "机身vx、vy、yaw_rate命令",
+        "source_scale": [
+          2,
+          2,
+          0.25
+        ]
+      },
+      {
+        "slice": "9:21",
+        "quantity": "源关节顺序的q-q_default",
+        "source_scale": 1
+      },
+      {
+        "slice": "21:33",
+        "quantity": "源关节顺序的qdot",
+        "source_scale": 0.05
+      },
+      {
+        "slice": "33:45",
+        "quantity": "上一控制步经源动作裁剪的12维动作",
+        "source_scale": 1
+      }
+    ],
+    "observation_cautions": [
+      "不包含机身线速度，不拼入额外历史。",
+      "源compute_observations与step外层裁剪调用顺序需追踪；分层路径重算观测后是否再裁剪必须按真实调用确定，不能照抄配置数值就声称一致。",
+      "Isaac Gym常见xyzw与Isaac Lab常见wxyz只作待验证线索，实际使用的API约定必须逐项确认。",
+      "源噪声mask、缩放、随机化开关与新五profile分别核对；测试clean关闭附加观测噪声。"
+    ],
+    "source_action": {
+      "size": 12,
+      "scale": 0.25,
+      "clip_actions_from_source": 100,
+      "rule": "q_target=q_default+0.25*clip(a,-100,100)，逐物理子步tau=clip(20*(q_target-q)-0.5*qdot, ±source_torque_limits)；实际限幅和源调用次序须由HIRA-008最终核实。",
+      "joint_order": "从源运行时DOF名/资产构造顺序确定，再按名称建立到Lab的双向排列；不按字典书写或四条腿的直觉顺序推断。"
+    },
+    "source_default_angles_by_name": {
+      "FL_hip_joint": 0.1,
+      "FL_thigh_joint": 0.8,
+      "FL_calf_joint": -1.5,
+      "FR_hip_joint": -0.1,
+      "FR_thigh_joint": 0.8,
+      "FR_calf_joint": -1.5,
+      "RL_hip_joint": 0.1,
+      "RL_thigh_joint": 1,
+      "RL_calf_joint": -1.5,
+      "RR_hip_joint": -0.1,
+      "RR_thigh_joint": 1,
+      "RR_calf_joint": -1.5
+    },
+    "timing": {
+      "sim_dt_s": 0.005,
+      "policy_dt_s": 0.02,
+      "command_dt_s": 0.1,
+      "decimation": 4,
+      "low_level_calls_per_external_command": 5
+    },
+    "architecture_expected_from_source": "MLP 45→512→256→128→12，ELU；由checkpoint张量形状和来源actor共同核实，不以该预期强行加载。",
+    "verification_state": "仅源码与散列已静态核对；训练当时配置、归一化、资产导入后参数及接入闭环尚未验收。",
+    "simulator_scope": "只能将结果称为HiRA来源策略在本次Isaac Lab执行系统中的结果；不承诺复现源Isaac Gym的逐帧动力学。"
+  },
+  "repeated_calibration_contract": {
+    "source": "旧协议v1.0.2与独立功率选型预登记；新实验复制其语义并生成新ID/新散列，旧文件不改。",
+    "window": {
+      "warmup_s": 1,
+      "measurement_s": 30,
+      "physics_steps": 6000,
+      "policy_steps": 1500,
+      "command_intervals": 300,
+      "pair_points": 301
+    },
+    "commands": {
+      "frame": "body",
+      "fields": [
+        "vx_mps",
+        "vy_mps",
+        "yaw_rate_radps"
+      ],
+      "limits": [
+        [
+          -1,
+          1
+        ],
+        [
+          -0.4,
+          0.4
+        ],
+        [
+          -1,
+          1
+        ]
+      ],
+      "hold_s": 0.1,
+      "families": [
+        "straight_shift",
+        "arc_combined",
+        "alternating",
+        "start_stop_turn"
+      ],
+      "low_speed_share_min_per_cell": 0.25,
+      "rule": "保留原始目标、外部applied和实际进入policy的命令；任何额外heading转换、死区或裁剪均须显式说明。"
+    },
+    "profiles": [
+      "clean",
+      "friction_only",
+      "mass_only",
+      "push_only",
+      "combined"
+    ],
+    "profile_source": "继承旧协议各profile的实际数值和五条件隔离规则；运行时读回实际摩擦/质量/推扰/噪声，不能只保存配置意图。",
+    "nominal": "确定性平面运动模型，依据同一实际施加速度命令积分；不使用clean物理rollout冒充名义轨迹。",
+    "energy": {
+      "unit": "J",
+      "exec": "sum_k sum_j max(tau_applied_j[k]*qdot_post_j[k],0)*0.005",
+      "nominal": "sum_i P_hat_nom(u_i, past_commands)*0.1",
+      "j_min_J": 1,
+      "near_zero_share_reopen": 0.2,
+      "epsilon_c": "(J_exec-J_nom)/J_nom，仅J_nom>=1.0 J",
+      "epsilon_d": "10 Hz公共网格上的最大平面欧氏位置偏差，另报50 Hz敏感性"
+    },
+    "trial_budget": {
+      "pilot": 20,
+      "baseline_fit": 240,
+      "baseline_dev": 80,
+      "baseline_validate": 80,
+      "calibration": 800,
+      "heldout": 400,
+      "near_obstacle": 200,
+      "total_quota_trials": 1820
+    },
+    "budget_notes": [
+      "1820条不包含接入数值/闭环诊断试验；接入试验是完成适配的必要验证，数量上限及资源在HIRA-009预登记。",
+      "功率基线400条全部clean，按4命令族每族fit60/dev20/validate20。",
+      "pilot为20格每格1条，calibration每格40条，heldout每格20条，near每格10条。",
+      "旧服务器的6–8小时和空间估算只是历史测量；新机按实际吞吐、GPU和磁盘测量重估，不承诺原时间。"
+    ],
+    "splits": "七分片内部seed与命令簇互斥。跨控制器可在同一对应split重放旧命令用于对照，但新controller_id/trial_id/run_id独立；禁止跨split重用模板或混入旧执行能量。",
+    "quantiles": {
+      "level": 0.9,
+      "method": "nearest-rank",
+      "alpha": "max(0,Q0.90(epsilon_c))",
+      "delta": "Q0.90(epsilon_d)",
+      "interval": "95% bootstrap，10000次，按预登记轨迹或命令簇重采样"
+    },
+    "denoms": "预登记全体业务试验为主，含失败与non_computable；另报completed、完整可计算和协议准入格等条件分母，每列给出n/N与纳入规则。",
+    "completion_min_per_cell": 0.9,
+    "retry": "业务失败计入主分母不以成功重试替换；仅基础设施无效可在预登记规则下恢复，保留所有attempt。HIRA-023明确计数优先级并测试。",
+    "near_obstacle": "在正式采集前锁定原始障碍几何、命令、种子和新增策略足迹，α/δ冻结后仅计算名义安全条件满足的子组；不能为迎合新δ更换好走地图。",
+    "outcome_rule": "检验/近障覆盖偏低可形成完整的负结果报告，不得反调裕度。源策略能力不足或接入门禁失败必须停止后续采集并按用户裁定处理。"
+  },
+  "integration_acceptance": {
+    "policy": "接入正确性不能被绝对保证；以来源、独立数值对照、物理闭环和计量证据构成可审计门禁。所有判据在测试对应数据之前登记。",
+    "preregistration_task": "HIRA-009",
+    "required_rows": [
+      "checkpoint身份与actor载入",
+      "资产/关节顺序/坐标系",
+      "45维观测与归一化",
+      "动作/默认姿态/PD/实际力矩",
+      "200/50/10 Hz时序",
+      "外部命令无暗中改写",
+      "reset与上一动作逐env清零",
+      "clean重复与批量隔离",
+      "五profile实际施加",
+      "200 Hz计量相位/非侵入性",
+      "v2旧证据可复算与新旧拒混"
+    ],
+    "numerical_rule": "对同一物理状态/命令/上一动作，独立来源oracle与适配器比较逐块观测、actor输出、q_target和裁剪后tau。HIRA-009按dtype/设备预登记atol/rtol与饱和边界用例；不要求两个物理引擎长期轨迹逐位一致。",
+    "behavioral_rule": "先定义零速、正反直行、左右侧移、正反转向、组合和低速的固定序列与重复数，再运行clean 30 s闭环；检查稳定性、方向、单位、跟踪及饱和。低速跟踪差作为性能边界报告，不能未经定位就断言为接入bug，也不能未经裁定就删除该命令。",
+    "pass_artifact": "reports/integration_gate.json中每项含判据、观测值、源文件/代码/模型/资产散列、日志和pass；阻塞项为零才可冻结G1。报告生成成功或进程退出0不等于门禁通过。",
+    "regression_rule": "故意破坏关节排列、缩放、模型hash、controller_id或时钟必须被拒绝；正常候选通过。v2历史复算使用旧锁绑定的只读代码快照，不修改旧data_lock。"
+  },
+  "tmux_execution_policy": {
+    "session": "camra-hira-calibration",
+    "windows": [
+      "onboarding",
+      "env",
+      "adapter",
+      "integration",
+      "pilot",
+      "baseline",
+      "calibration",
+      "heldout",
+      "near",
+      "audit"
+    ],
+    "command_record": "每次操作记录tmux会话/窗口、cwd、解释器绝对路径、Git提交/dirty patch摘要、完整非敏感命令、开始结束时间、stdout/stderr日志、输出目录和退出码。",
+    "disconnect": "先确认已有会话/进程，再核对run_id、锁与完成标记；确认没有同一trial的活动进程才恢复。",
+    "bootstrap_exception": "新机器检查/安装tmux及建立第一会话可在tmux外；之后所有执行终端任务进入tmux。本地只编写/校验本计划不需tmux。",
+    "environment_rule": "不激活/覆盖与本任务无关的环境；沿用兼容Isaac Lab 2.3.0 / Isaac Sim 5.1.0配置，依设备核实CUDA/驱动/Torch，不默认安装源Isaac Gym。"
+  },
+  "onboarding_contract": {
+    "audience": "后续在新机器、新模型上下文接手的执行者，不能假定读过当前聊天。",
+    "must_read": [
+      "AGENTS.md完整约束与末尾2026-11-05追加条款；README中的旧状态需回到JSON核实。",
+      "本计划全文、旧CAL计划任务和decision/work_records、校准README与handoff相关章节。",
+      "当前主稿的问题定义/方法（只读），CaMRA三模块说明和v2冻结契约。",
+      "HiRA完整底层加载、观测、PD、资产、控制时序和高层调用链；RC-PPO仅用于理解与校准的消费关系。"
+    ],
+    "expected_understanding": [
+      "此次只复用HiRA底层actor，不复用其高层导航网络，也不声称原HiRA实现了CaMRA预算双评价机制。",
+      "当前工作的终点是新增控制器的独立校准包，完成校准不等于完成导航算法或安全到达证明。",
+      "新的执行系统需要自己的功率模型和α/δ；论文示例与旧v2结果不能作为新数据。",
+      "确定性名义模型、clean物理执行和扰动物理执行是三个不同对象。"
+    ],
+    "evidence": "HIRA-005输出带实际文件路径、类/函数、张量和数据流的交接笔记，不只写已阅读；完成环境检查后再核对来源参数。",
+    "execution_precedence": "旧入口0/32和当前仅README等陈旧表述不决定任务状态；旧32项状态仍保留。本计划0/40从HIRA-001开始，不把本次静态阅读计为执行证据。"
+  },
+  "tasks": [
+    {
+      "id": "HIRA-001",
+      "phase": "接手与环境",
+      "goal": "建立仓库版本、历史证据与tmux执行基线",
+      "status": false,
+      "depends_on": [],
+      "source_paths": [
+        "AGENTS.md",
+        "README.md",
+        "doc/README.md",
+        "doc/plan/20261103_camra_calibration_implementation.json"
+      ],
+      "execution_steps": [
+        "检查主仓库与HiRA状态、锁定提交、未提交修改和现有tmux/运行进程。按设备建立本轮session和日志目录。",
+        "读取旧计划全部任务状态与追加记录，核对32/32与README陈旧说明的差异；保留旧判定不回改。",
+        "记录本轮源码快照、执行账号、设备、时区、Git状态与只读旧版本快照取得方式。"
+      ],
+      "evidence_outputs": [
+        "本轮handoff：版本、任务与tmux基线",
+        "reports/repository_baseline.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只读核查起步；不拉取HiRA最新提交，不覆盖已有本地工作。",
+        "已有任务仍在运行时先查归属，不能重复开采集。"
+      ],
+      "acceptance_criteria": [
+        "报告含主仓库和HiRA精确提交、工作树状态及旧任务实际计数。",
+        "会话/窗口、日志根、环境待检查清单可定位；没有启动实验或修改旧证据。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-002",
+      "phase": "接手与环境",
+      "goal": "理解论文方法及本轮重复校准的科学问题",
+      "status": false,
+      "depends_on": [
+        "HIRA-001"
+      ],
+      "source_paths": [
+        "CaMRA/README.md",
+        "manuscripts/CCDC/latex/1029/main.tex",
+        "CaMRA/calibration/docs/implementation_handoff.md",
+        "RC-PPO/README.md"
+      ],
+      "execution_steps": [
+        "只读学习问题定义、分层动机、名义/执行偏差、成本与几何裕度及其上层消费方式。",
+        "解释更换控制器为何必须重做功率基线与校准，以及为何clean rollout不能当确定性名义模型。",
+        "列出论文旧a.u.成本/5 Hz等与当前J成本/10 Hz实现的区别，仅记差异。"
+      ],
+      "evidence_outputs": [
+        "handoff：方法理解、三对象数据流与范围说明"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "论文只读，不同步字句、数字、公式或图片。",
+        "不把校准覆盖解释成导航成功概率或形式化随机安全保证。"
+      ],
+      "acceptance_criteria": [
+        "用明确输入/输出解释控制器、功率模型、α、δ、独立检验各自职责。",
+        "明确本轮只新增控制器校准实验，未扩展到导航训练、真机或稿件修改。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-003",
+      "phase": "接手与环境",
+      "goal": "追踪现有校准实现与历史失败处理",
+      "status": false,
+      "depends_on": [
+        "HIRA-002"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/README.md",
+        "CaMRA/calibration/docs/implementation_handoff.md",
+        "CaMRA/calibration/scripts/collect_trials.py",
+        "CaMRA/calibration/src/camra_calibration/config.py",
+        "CaMRA/calibration/src/camra_calibration/protocol.py",
+        "CaMRA/calibration/src/camra_calibration/lock.py"
+      ],
+      "execution_steps": [
+        "逐项学习命令/名义积分/五profile/记录器/采集器/选型/裕度/评估/审计的调用链和默认参数。",
+        "定位v2硬编码包路径、Protocol.load默认协议、默认margins/maps/锁、全代码树hash以及可覆盖旧数据的入口。",
+        "追溯整批连坐终止、early reset、hash失效、低速/停滞、近障几何重叠和最高attempt计数历史风险。"
+      ],
+      "evidence_outputs": [
+        "reports/existing_pipeline_map.json",
+        "handoff：可复用点、必须隔离点及既有风险"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按函数与实际字段阅读，不只复述README。",
+        "旧v2的一次性补采裁定不得当成新实验通用规则。"
+      ],
+      "acceptance_criteria": [
+        "给出从外部命令到原始数据、能量、误差、裕度、检验的实际文件/函数地图。",
+        "隐式v2绑定及重试/分母的风险均有位置和处理建议。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-004",
+      "phase": "接手与环境",
+      "goal": "追踪HiRA来源策略的完整执行语义",
+      "status": false,
+      "depends_on": [
+        "HIRA-003"
+      ],
+      "source_paths": [
+        "HiRA/README.md",
+        "HiRA/legged_gym_go2/legged_gym/scripts/train_reach_avoid.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/hierarchical_go2_env.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_env.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_config.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot_config.py",
+        "HiRA/rsl_rl/rsl_rl/modules/actor_critic.py",
+        "HiRA/rsl_rl/rsl_rl/runners/on_policy_runner.py"
+      ],
+      "execution_steps": [
+        "追踪指定checkpoint如何载入actor，推理使用均值还是采样，是否有观测归一化、循环状态或历史。",
+        "核对45维观测、源关节顺序、四元数/速度坐标、默认角度、动作/观测裁剪位置、上一动作和reset。",
+        "追踪每4物理步一次策略、每5策略步一次外部命令及heading/内部重采样是否改写命令；核对每子步PD与URDF力矩限幅。"
+      ],
+      "evidence_outputs": [
+        "reports/hira_source_trace.json",
+        "handoff：HiRA源码语义与证据行/符号"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "保持HiRA只读，不启动其高层训练。",
+        "当前源码配置只能作为来源线索，训练时配置仍需结合checkpoint和可取得记录核验。"
+      ],
+      "acceptance_criteria": [
+        "模型选择、观测拼接、PD与时钟都能追溯到实际调用链。",
+        "明确列出可由代码确认项、需运行时确认项和缺失历史配置项。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-005",
+      "phase": "接手与环境",
+      "goal": "完成新上下文接手理解核对和接入风险清单",
+      "status": false,
+      "depends_on": [
+        "HIRA-004"
+      ],
+      "source_paths": [
+        "本计划onboarding_contract",
+        "HIRA-001至HIRA-004的证据",
+        "CaMRA/locomotion/docs/reproduction.md"
+      ],
+      "execution_steps": [
+        "汇总来源/目标配置对照表和从速度命令到关节力矩再到校准结果的数据流。",
+        "列出环境、原模型、资产、旧原始数据和读权限的资源清单及取得路径。",
+        "把未知项按来源不明、可测映射、动力学差异、旧工具绑定四类落到后续任务，若涉及换模型/资产/范围则询问用户。"
+      ],
+      "evidence_outputs": [
+        "docs/onboarding_map.md",
+        "reports/readiness_gaps.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不能用已阅读一句话替代理解证据。",
+        "本轮还没有接入通过；缺环境不当成策略性能失败。"
+      ],
+      "acceptance_criteria": [
+        "新执行者仅凭文档能定位全部入口、输入输出和需配置的资源。",
+        "各关键差异有责任任务；不存在未记录的来源选择。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-006",
+      "phase": "接手与环境",
+      "goal": "配置执行设备上的匹配Isaac Lab环境与独立路径",
+      "status": false,
+      "depends_on": [
+        "HIRA-005"
+      ],
+      "source_paths": [
+        "CaMRA/locomotion/docs/reproduction.md",
+        "CaMRA/locomotion/config/repro.env",
+        "HIRA-005资源清单"
+      ],
+      "execution_steps": [
+        "在tmux中检查OS/GPU/驱动/CUDA/解释器/Torch/Isaac Sim/Isaac Lab、离屏启动、存储和配额。",
+        "复用兼容环境或在独立环境安装匹配版本；记录完整依赖清单与启动命令。",
+        "配置CAMRA_HIRA_DATA_ROOT、CAMRA_HIRA_BUNDLE_ROOT等本机路径并预检可写性、剩余空间；读旧v2包和数据使用只读位置。"
+      ],
+      "evidence_outputs": [
+        "reports/environment_preflight.json",
+        "本机路径配置样例与依赖清单",
+        "tmux/env日志"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不覆盖原环境，不默认安装Isaac Gym，不硬编码原服务器/pub路径。",
+        "更改计划外核心版本、费用或设备资源预算需按uncertainty_policy确认。"
+      ],
+      "acceptance_criteria": [
+        "指定绝对解释器可在GPU上导入并最小启动目标Isaac Lab。",
+        "版本、路径、空间、日志、tmux信息可复查；无未知依赖失败被记为控制器失败。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-007",
+      "phase": "接手与环境",
+      "goal": "获取并验证指定checkpoint、来源资产及旧证据",
+      "status": false,
+      "depends_on": [
+        "HIRA-006"
+      ],
+      "source_paths": [
+        "本计划source_controller_contract",
+        "HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt",
+        "HiRA/legged_gym_go2/resources/robots/go2/urdf/go2.urdf",
+        "CaMRA/calibration/delivery/bundle_manifest_v1.json"
+      ],
+      "execution_steps": [
+        "在执行设备取得指定checkpoint、URDF/mesh依赖和锁定来源代码，计算SHA256并与本计划核对。",
+        "取得旧校准bundle索引及必要原始清单/报告/锁/模型，逐项验证存在性与散列。",
+        "列出两个现有policy_1.pt的身份；只对指定checkpoint安排主路线，无法证实等价的导出不使用。"
+      ],
+      "evidence_outputs": [
+        "reports/source_artifact_manifest.json",
+        "reports/legacy_evidence_availability.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "权重和资产保持只读；资源不齐先记录阻塞，不从同名文件猜替代品。",
+        "按本计划指定来源解决多文件问题；指定hash变化时暂停。"
+      ],
+      "acceptance_criteria": [
+        "checkpoint字节hash匹配d30e5212…，来源提交匹配且资产依赖完整。",
+        "旧证据哪些可独立复算、哪些仅有报告明确列出，不能用历史摘要假装取得原始数据。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-008",
+      "phase": "来源契约与验收",
+      "goal": "冻结HiRA来源到Isaac Lab的接口契约",
+      "status": false,
+      "depends_on": [
+        "HIRA-007"
+      ],
+      "source_paths": [
+        "HIRA-004源码追踪",
+        "HIRA-007原产物",
+        "本计划source_controller_contract"
+      ],
+      "execution_steps": [
+        "检查checkpoint张量键/形状、actor结构、normalizer/隐藏态；以源代码和artifact共同确定推理语义。",
+        "按名字解析源URDF和目标资产关节顺序、轴向、默认角度、惯性/质量、碰撞、限位、力矩上限，列出双向映射。",
+        "锁定观测块/缩放/裁剪/噪声mask、动作处理/上一动作、PD每子步更新及reset/终止规则。",
+        "将源Gym与目标Lab不可等同的接触、求解器、资产导入选项列为显式差异，必要时请求裁定。"
+      ],
+      "evidence_outputs": [
+        "config/hira_source_contract_v1.json及hash",
+        "reports/source_target_contract_diff.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不把v2的deploy.yaml当HiRA契约。",
+        "无法证明的源配置写unknown，不悄悄套入当前v2值；关键unknown未解决不能通过。"
+      ],
+      "acceptance_criteria": [
+        "所有12关节、45维观测、12维动作、时钟与执行器字段有依据。",
+        "不存在默认为同维即相容、沿用v2增益/默认姿态或未记录的额外归一化。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-009",
+      "phase": "来源契约与验收",
+      "goal": "预登记接入测试矩阵、数值容差与资源预算",
+      "status": false,
+      "depends_on": [
+        "HIRA-008"
+      ],
+      "source_paths": [
+        "HIRA-008来源契约",
+        "本计划integration_acceptance",
+        "旧协议v1.0.2统计与容差"
+      ],
+      "execution_steps": [
+        "在运行本候选验收序列前冻结CPU同状态oracle、导出等价、坐标/映射边界、时钟/reset、clean闭环、五profile、计量和拒混测试清单。",
+        "数值建议：float64公式atol/rtol=1e-12；float32观测atol=1e-6/rtol=1e-5；CPU actor atol=1e-5/rtol=1e-4；GPU actor atol=1e-4/rtol=1e-4；q_target atol=1e-6/rtol=1e-5；tau atol=1e-4/rtol=1e-5。登记为工程验收阈值，不能表述为已测结果。",
+        "冻结30 s clean序列：零速、正反vx=0.5、正反vy=0.3、正反wz=0.5、弧线/启停/组合，以及0.1/0.2/0.3低速层；固定重复和seed，闭环总上限40条。其它fault/数值验证使用短试验并另记预算。",
+        "定义中速稳定/方向/不饱和异常的判定窗口、阈值和不可由来源解释的失败如何阻断；低速能力单列不擅自删域。依据旧协议确定允许继续校准的完整率口径。",
+        "基于设备估算诊断+1820条的GPU/存储/时间；首次超预算或需放宽阈值时暂停，不无限试错。"
+      ],
+      "evidence_outputs": [
+        "config/integration_acceptance_prereg_v1.json及hash",
+        "reports/resource_budget.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "任一建议容差因数值后端不适用，必须在观察对应结果前用独立数值证据说明并冻结；看到失败后放宽须询问用户并保留旧判定。",
+        "性能门槛不得事后随结果迁移，也不要求HiRA一定比v2好。"
+      ],
+      "acceptance_criteria": [
+        "每项测试有输入、重复数、比较基准、数值/物理判据、证据路径和失败动作。",
+        "接入测试及正式采集预算明确；关键行为阈值无待现场自由选择项。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-010",
+      "phase": "隔离实现",
+      "goal": "建立显式控制器与实验配置入口",
+      "status": false,
+      "depends_on": [
+        "HIRA-009"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/collect_trials.py",
+        "CaMRA/calibration/src/camra_calibration/config.py",
+        "CaMRA/calibration/src/camra_calibration/protocol.py",
+        "CaMRA/calibration/src/camra_calibration/lock.py",
+        "HIRA-008契约"
+      ],
+      "execution_steps": [
+        "在计划的adapter_root/experiment_root新增独立目录，设计显式controller_id、experiment_id、bundle/protocol/model/maps/lock输出路径入口。",
+        "优先新增版本化runner和包装层复用纯函数；必须修改共享代码时保持旧行为可复算，并保存旧锁对应代码快照，不改旧冻结文件。",
+        "消除HiRA路径中的v2绝对bundle、Protocol.load默认、默认margin与output fallback；使用错误或缺失参数必须在启动仿真前拒绝。",
+        "对拒混、路径隔离、同名旧文件误选、数据锁代码hash变化和命令打印做测试。"
+      ],
+      "evidence_outputs": [
+        "独立实验配置/runner框架",
+        "reports/config_isolation_tests.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "新增目录不复制整套第三方训练框架；旧实现不做无关重构。",
+        "不得给旧锁重算hash伪装旧代码未变。"
+      ],
+      "acceptance_criteria": [
+        "HiRA所有关键资源显式绑定；缺配置或传入v2资源时会明确失败。",
+        "旧产物hash未变，旧锁绑定的代码快照可定位并可用于历史复算。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-011",
+      "phase": "隔离实现",
+      "goal": "提取并导出来源checkpoint的确定性actor",
+      "status": false,
+      "depends_on": [
+        "HIRA-010"
+      ],
+      "source_paths": [
+        "HiRA/rsl_rl/rsl_rl/modules/actor_critic.py",
+        "HiRA/rsl_rl/rsl_rl/runners/on_policy_runner.py",
+        "HIRA-007 checkpoint",
+        "HIRA-008契约"
+      ],
+      "execution_steps": [
+        "严格检查state_dict缺失/多余键、形状、激活和normalizer；按源act_inference构造推理对象，关闭训练与随机采样。",
+        "冻结原权重，导出独立TorchScript推理产物；若确有部署需要再导出ONNX，不把新增后端当成本轮必要依赖。",
+        "用固定输入库逐点比较checkpoint actor与导出输出，包含零/边界/随机/裁剪前输入；测试batch=1与多env。"
+      ],
+      "evidence_outputs": [
+        "exported/policy.pt及来源manifest",
+        "reports/actor_export_parity.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不使用随机act()代替确定性act_inference，不加载高层导航网络。",
+        "不能用strict=False忽略shape或缺失权重；不改变权重以改善表现。"
+      ],
+      "acceptance_criteria": [
+        "45→12形状、eval/inference模式、权重与导出hash明确。",
+        "导出与源actor数值差在HIRA-009容差内，未知normalizer问题为零。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-012",
+      "phase": "隔离实现",
+      "goal": "构建HiRA专属Isaac Lab机器人和执行器配置",
+      "status": false,
+      "depends_on": [
+        "HIRA-011"
+      ],
+      "source_paths": [
+        "HiRA/legged_gym_go2/resources/robots/go2/urdf/go2.urdf",
+        "HIRA-008资产与控制契约",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/go2/velocity_env_cfg.py"
+      ],
+      "execution_steps": [
+        "为HiRA单独建立Lab资产配置。优先按来源URDF及mesh转换到独立USD，核对导入单位、关节轴、固定关节合并、质量惯性、碰撞、摩擦/自碰撞、关节限位与扭矩上限。",
+        "若拟复用v2资产，必须逐参数与源契约证明一致；存在无法解决的差异则暂停，不以外形像Go2作为依据。",
+        "采用显式PD/力矩方式复现源控制，关闭额外implicit PD、v2速度力矩曲线/摩擦补偿/延迟等非来源机制，核查是否重复限幅。",
+        "保存解析后的运行时参数和目标资产树hash；保留引擎差异清单。"
+      ],
+      "evidence_outputs": [
+        "HiRA专属Lab环境/资产配置",
+        "reports/asset_actuator_audit.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不能改v2的UNITREE_GO2_CFG或源URDF。",
+        "导入后的动力学等价需证据；数值/接触差异不能默认为零。"
+      ],
+      "acceptance_criteria": [
+        "所有12关节与碰撞体参数可读取并对应来源，单位/轴/增益/限幅无隐式覆盖。",
+        "PD只生效一次，资产和执行器配置不影响原v2任务。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-013",
+      "phase": "隔离实现",
+      "goal": "实现来源语义一致的45维观测适配器",
+      "status": false,
+      "depends_on": [
+        "HIRA-012"
+      ],
+      "source_paths": [
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_env.py",
+        "HIRA-008契约",
+        "HIRA-012运行时关节表"
+      ],
+      "execution_steps": [
+        "实现按名称的双向关节排列，显式转换机身角速度、投影重力与四元数约定。",
+        "按来源六块顺序拼接并缩放，q_default由HiRA名字表读取；上一动作按真实裁剪后的策略步语义保存。",
+        "复现源分层调用的观测裁剪位置与噪声mask；接口只接受实际进入策略的速度命令，不重复尺度变换。",
+        "实现逐env reset，仅清零对应上一动作/隐藏态；记录原始块、缩放块和最终观测以便对照。"
+      ],
+      "evidence_outputs": [
+        "观测适配器与映射测试",
+        "reports/observation_adapter_tests.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不用v2现成45维观测直接喂模型；不能多拼线速度或沿用v2默认姿态。",
+        "不把世界yaw_rate、heading误差或四元数不同排列混为一谈。"
+      ],
+      "acceptance_criteria": [
+        "六块尺寸与顺序正确，任意关节名称置换可逆且无重复/漏项。",
+        "已知姿态/角速度和非零上一动作的oracle对照通过；一env reset不污染其他env。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-014",
+      "phase": "隔离实现",
+      "goal": "实现源动作映射与每物理子步PD力矩控制",
+      "status": false,
+      "depends_on": [
+        "HIRA-013"
+      ],
+      "source_paths": [
+        "HiRA/legged_gym_go2/legged_gym/envs/base/legged_robot.py::_compute_torques",
+        "HIRA-008契约",
+        "HIRA-012执行器配置"
+      ],
+      "execution_steps": [
+        "将actor输出按源裁剪、比例和默认角度变为关节目标，再按名称映射到Lab。",
+        "在每0.005 s物理步用新鲜q/qdot计算PD并按源每关节限幅，策略目标保持0.02 s；缓存用于下一策略观测的动作必须语义一致。",
+        "明确记录raw action、clipped action、q_target、tau_PD、tau_clipped和真实写入的effort；核查无双重PD/隐藏限速。",
+        "测试正负饱和、零动作默认姿态、单关节扰动、PD符号和映射逆变换。"
+      ],
+      "evidence_outputs": [
+        "动作/PD适配器",
+        "reports/action_pd_tests.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "kp/kd等按HiRA契约，不沿用v2默认25或自行改为更平稳数值。",
+        "策略周期内q_target不变，但PD力矩必须根据子步状态重算。"
+      ],
+      "acceptance_criteria": [
+        "同状态下q_target与限幅tau匹配独立源公式，满足预登记容差。",
+        "施加通路与日志一致，发现重复限幅/PD会拒绝，不允许靠看起来能走验收。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-015",
+      "phase": "数值验证",
+      "goal": "完成独立来源oracle与适配器的同状态对照",
+      "status": false,
+      "depends_on": [
+        "HIRA-014"
+      ],
+      "source_paths": [
+        "HIRA-011至HIRA-014实现",
+        "HiRA来源观测/actor/PD代码",
+        "HIRA-009预登记矩阵"
+      ],
+      "execution_steps": [
+        "建立独立oracle，按来源公式/代码行为直接计算，不能调用适配器内部函数作为参考。",
+        "生成静止、倾斜、转向、非零关节速度、非零上一动作、裁剪边界和关节置换fixture；用相同物理状态同时送入两条实现。",
+        "逐块比观测、actor输出、关节目标、PD/实际限幅，报告最大绝对/相对误差及失败样本。",
+        "用故意错一个关节、缩放、四元数或默认角度的负测试证明检验能检出问题。"
+      ],
+      "evidence_outputs": [
+        "tests/reference_fixtures及hash",
+        "reports/source_adapter_parity.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "同状态数值等价与跨引擎长轨迹一致性分开，不要求后者逐帧相同。",
+        "只在原Gym环境已有且兼容时可附加只读来源回放；不为该项默认新装Gym或改变目标平台。"
+      ],
+      "acceptance_criteria": [
+        "所有必需fixture达到冻结容差，负测试检出预设错误。",
+        "CPU及实际使用GPU后端均有结果，来源oracle与目标实现没有共用待验证逻辑。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-016",
+      "phase": "数值验证",
+      "goal": "验证外部命令、三时钟和逐env终止重置",
+      "status": false,
+      "depends_on": [
+        "HIRA-015"
+      ],
+      "source_paths": [
+        "HIRA-009预登记",
+        "CaMRA/calibration/sim/batch_program.py",
+        "CaMRA/calibration/scripts/collect_trials.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/external_command.py"
+      ],
+      "execution_steps": [
+        "验证200/50/10 Hz与物理/策略/命令计数器边界，包含warmup结束、第一个命令和30 s窗口最后一个采样点。",
+        "每个命令区间恰有5次重新观测和推理，每次策略间有4个PD子步；关闭内部随机重采样/heading转换对外部指令的覆盖。",
+        "核对raw目标、外部applied和policy内命令，记录任何源预处理；不能未经说明把<0.2 m/s命令清零。",
+        "batch=1和多env执行短固定程序；一env终止时在reset前抓取终止状态，其他env继续且历史/命令不串扰。"
+      ],
+      "evidence_outputs": [
+        "reports/timing_command_reset.json",
+        "逐步事件trace"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "实际时钟由计数/时间戳验证，不仅检查配置值。",
+        "禁止沿用旧整批连坐或自动reset后状态当终止位置。"
+      ],
+      "acceptance_criteria": [
+        "完整窗口6000物理步/1500策略步/300命令区间/301配对点，warmup另记200物理步。",
+        "故意错误decimation、旧命令覆盖、跨env污染被检出。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-017",
+      "phase": "闭环接入验证",
+      "goal": "验证clean工况下的闭环稳定与运动响应",
+      "status": false,
+      "depends_on": [
+        "HIRA-016"
+      ],
+      "source_paths": [
+        "HIRA-009冻结clean测试",
+        "HIRA-015数值对照",
+        "HIRA-016时序证据"
+      ],
+      "execution_steps": [
+        "在tmux运行固定序列与重复，采集机身状态、命令、动作、力矩、接触和短视频/轨迹。",
+        "按预登记判据核对站立、正反直行、左右侧移、正反转向、组合/启停，报告跟踪RMSE、速度偏置、漂移、roll/pitch、饱和和终止。",
+        "单列0.1/0.2/0.3低速与纯单轴表现，区分来源固有边界、适配错误、引擎/资产差异；出现不明异常先定位数值与时序证据。",
+        "检查相同seed的短重复结果及多env与单env差异，保留未通过样本。"
+      ],
+      "evidence_outputs": [
+        "reports/clean_closed_loop.json",
+        "原始trace、轨迹/视频索引"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不据低速不佳擅自删命令、调PD、选别的checkpoint或宣称扩大δ可修复。",
+        "此为接入诊断数据，不能进入功率拟合、校准或heldout。"
+      ],
+      "acceptance_criteria": [
+        "必需闭环测试满足预登记工程准入且无未解释NaN、发散、方向错误、单位错误或执行链偏差。",
+        "能力限制和接入错误分别列证据；未解决的关键异常使本任务false并阻断后续。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-018",
+      "phase": "闭环接入验证",
+      "goal": "验证五profile真实生效且无隐藏随机化",
+      "status": false,
+      "depends_on": [
+        "HIRA-017"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/sim/profiles_sim.py",
+        "CaMRA/calibration/src/camra_calibration/profiles.py",
+        "旧协议profiles/profile_rules",
+        "HIRA-012新环境"
+      ],
+      "execution_steps": [
+        "把旧五profile施加工具接入新资产，读回各env实际质量、摩擦、推扰时刻/幅值及观测噪声。",
+        "clean关闭附加随机化；各单因素profile仅改变对应因素；combined同时施加规定因素。",
+        "核对观测噪声落在源适配后的正确块与尺度，不误用v2 noise配置；物理参数reset后不被环境event再次覆盖。",
+        "检查seed/实际trace是否与清单绑定，profile切换/不同bucket启动不串条件。"
+      ],
+      "evidence_outputs": [
+        "reports/profile_effectiveness.json",
+        "实际参数和扰动事件trace"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "推扰水平速度冲击不得写成牛顿外力；配置里有值不等于实际已施加。",
+        "不要求噪声实现与v2逐位相同，无法配对时后续比较不得叫成对因果对照。"
+      ],
+      "acceptance_criteria": [
+        "五条件均有运行时读回和施加证据，clean确定性误差与随机扰动分清。",
+        "不同profile开关、reset、环境组之间无额外因素污染。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-019",
+      "phase": "闭环接入验证",
+      "goal": "验证新执行器的200Hz真实力矩与能量计量",
+      "status": false,
+      "depends_on": [
+        "HIRA-018"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/sim/recorder.py",
+        "CaMRA/calibration/scripts/check_meter.py",
+        "CaMRA/calibration/scripts/verify_meter_runs.py",
+        "HIRA-014执行通路"
+      ],
+      "execution_steps": [
+        "针对新显式PD重新定位请求力矩、限幅力矩与真实施加effort，核验读取字段及PhysX对应值；不能沿用UnitreeActuator.applied_torque的旧结论。",
+        "明确tau属于当前物理子步、qdot在step后刷新，记录pre/post相位；用已知单关节功率/正负功和零输入验证符号、顺序与刷新。",
+        "在记录器开/关双跑中检查其只读性，避免robot.update造成缓存/观测时序副作用。",
+        "按逐关节正功在200 Hz累计，用独立float64从tau/qdot原始记录重算，测试提前终止、不整策略步结束和warmup排除。"
+      ],
+      "evidence_outputs": [
+        "reports/hira_energy_meter_validation.json",
+        "独立复算结果及采样相位图/事件表"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "仅记录未限幅PD请求力矩不能称为实际施加；字段无法确认则暂停。",
+        "外部推扰功不算进关节正功，不把机械功说成电池能耗。"
+      ],
+      "acceptance_criteria": [
+        "实际effort来源与子步相位有证据，能量公式、单位和零分母处理与契约一致。",
+        "离线相对误差≤1e-5、在线对离线≤1e-4；记录开/关差异满足预登记可解释容差，无动力学写操作。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-020",
+      "phase": "接入门禁G1",
+      "goal": "审查并冻结接入通过的HiRA控制器包",
+      "status": false,
+      "depends_on": [
+        "HIRA-019"
+      ],
+      "source_paths": [
+        "HIRA-007至HIRA-019全部证据",
+        "本计划integration_acceptance"
+      ],
+      "execution_steps": [
+        "生成逐项门禁矩阵，独立核对来源身份、数值对照、动作/执行器、时序、reset、clean、五profile和计量的实测结果及hash。",
+        "在独立目录冻结controller_id、policy、source/target joint_names、默认角度、增益/限幅、观测/动作契约、资产、时钟与环境依赖。",
+        "重载包运行最小确认，改变一个关键hash/映射/时钟应被拒绝；门禁报告写入冻结包hash。",
+        "明确来源Gym差异与已接受性能边界；如存在关键未决失败，不生成passed包，不进入pilot。"
+      ],
+      "evidence_outputs": [
+        "reports/integration_gate.json",
+        "不可变HiRA控制器包/manifest及验证日志"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "总体pass必须由全部必需行合取，不能仅看命令退出码。",
+        "此包以后改权重/资产/增益/观测/时钟需新controller版本并重过受影响门禁。"
+      ],
+      "acceptance_criteria": [
+        "所有必需行pass且未决阻塞=0，原始日志与hash可核查。",
+        "独立重载正确、拒混负测试通过，v2包与只读参考源码hash未改变。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-021",
+      "phase": "校准链路接入",
+      "goal": "完成新控制器采集通路与隔离恢复测试",
+      "status": false,
+      "depends_on": [
+        "HIRA-020"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/collect_trials.py",
+        "CaMRA/calibration/src/camra_calibration/store.py",
+        "CaMRA/calibration/src/camra_calibration/pairing.py",
+        "HIRA-010独立入口",
+        "HIRA-020冻结包"
+      ],
+      "execution_steps": [
+        "将验证过的HiRA适配器接入新runner，所有采集/分析脚本显式使用本轮协议、模型与资源。",
+        "实现可审计trial identity：experiment/controller/run/split/trial/program/profile/seed/attempt，记录真正applied命令、初态和扰动trace。",
+        "测试warmup起点对齐、10 Hz名义/执行配对、50 Hz状态与200 Hz能量；业务失败在终止前记录，其他env不受影响。",
+        "注入缺文件/错误hash/中断/重启、部分batch、旧DONE和输出已存在情形，验证原子写入、断点续跑、无覆盖与无重复计数。",
+        "保留旧源码快照，运行既有CPU核心测试与旧日志小样本复算，避免以新源码匹配旧锁。"
+      ],
+      "evidence_outputs": [
+        "独立runner与恢复测试",
+        "reports/collector_integration_tests.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "G1通过后才允许本任务的采集链路测试。",
+        "trial与attempt不能只靠文件目录名推断；中断补跑与业务失败重试规则不同。"
+      ],
+      "acceptance_criteria": [
+        "正常输入使用真实HiRA包，错误或v2资源被拒；主trial身份与全部attempt可追溯。",
+        "故障恢复不覆盖数据、不使失败隐身，配对/计量/逐env终止测试及旧证据复算通过。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-022",
+      "phase": "校准链路接入",
+      "goal": "完成20条五条件pilot并验证全链路",
+      "status": false,
+      "depends_on": [
+        "HIRA-021"
+      ],
+      "source_paths": [
+        "HIRA-021 runner",
+        "旧协议pilot分配",
+        "本计划repeated_calibration_contract"
+      ],
+      "execution_steps": [
+        "生成独立pilot清单，每个命令族×profile一条，共20条，使用与后续互斥的seed/模板。",
+        "完整运行1 s warmup+30 s测量，检查实际命令、五profile、时钟、能量、元数据、失败分类和恢复。",
+        "独立复算名义位置/执行能量/配对误差，验证低速、near_zero、提前终止等边界的报告行为。",
+        "按本机实测吞吐、内存、单条存储更新资源估算；若发现接入/计量问题，回到相应任务修复并版本化重过G1。"
+      ],
+      "evidence_outputs": [
+        "pilot清单、20条原始结果和失败记录",
+        "reports/pilot_end_to_end.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "pilot不拟合功率模型、不选择checkpoint、不参与α/δ统计。",
+        "修复代码后必须重验受影响环节，不能只把pilot重跑至好看。"
+      ],
+      "acceptance_criteria": [
+        "20格均有可审计记录，数据完整性及复算通过，业务失败被真实计数。",
+        "能证明正式runner运行的是G1冻结包；没有靠丢弃异常数据获得通过。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-023",
+      "phase": "校准协议",
+      "goal": "冻结HiRA专属校准协议与功率选型规则",
+      "status": false,
+      "depends_on": [
+        "HIRA-022"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+        "CaMRA/calibration/config/power_model_prereg_v1.json",
+        "HIRA-020控制器包",
+        "HIRA-022 pilot"
+      ],
+      "execution_steps": [
+        "新增独立protocol_id/controller_id/experiment_id文件，逐字段继承30 s、200/50/10 Hz、命令域、四族五条件、J正功、J_min=1 J及七分片1820条。",
+        "预登记功率候选和fit/dev/validate角色：只用命令及允许的过去命令、非负输出、C1线性K0/C2二次K0/C3二次K1/C4线性K2，沿用旧选型/简化规则及dev/validate q90≤10%准入。",
+        "冻结Q0.9 nearest-rank、95% bootstrap 10000次、分组、分母、每格完整率≥0.9、non_computable>0.20的暂停规则。",
+        "明确第一有效主attempt原则：业务失败不补成功替换；基础设施无效恢复须保留原attempt并有判据。保存原v2特例对对照的影响。",
+        "预先锁定近障原始地图构造/几何及名义δ满足子组定义；不根据新的δ或碰撞表现重设计地图。"
+      ],
+      "evidence_outputs": [
+        "config/calibration_protocol_hira_v1.json及hash",
+        "config/power_model_prereg_hira_v1.json及hash",
+        "reports/protocol_diff_from_v2.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不修改旧v1.0.2和power_model_prereg_v1.json。",
+        "任何与既有协议不同且改变统计/数据语义的项先取得用户裁定；不从pilot调小扰动/命令域。"
+      ],
+      "acceptance_criteria": [
+        "协议覆盖所有采集/终止/失败/重试/模型/分位/检验规则且无自由选择项。",
+        "相对v2差异逐项说明；全部来源绑定G1包，冻结时间早于基线拟合与正式结果查看。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-024",
+      "phase": "校准协议",
+      "goal": "生成并锁定七分片新清单与跨控制器匹配表",
+      "status": false,
+      "depends_on": [
+        "HIRA-023"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/build_trial_lists.py",
+        "CaMRA/calibration/src/camra_calibration/manifest.py",
+        "HIRA-007取得的v2旧清单",
+        "HIRA-023新协议"
+      ],
+      "execution_steps": [
+        "建立pilot20、baseline_fit240/dev80/validate80、calibration800、heldout400、near200清单，核对每格配额与低速占比。",
+        "可重放v2对应split的已冻结命令/初态/扰动计划以便比较，但使用新trial_id与controller_id，检查seed与命令簇在本候选七split内不相交。",
+        "逐条保存program_sha256、cluster_id和source_trial_id；无法取得旧清单时记录缺口并询问是否接受仅按同分布非配对对照。",
+        "生成可预先读取的定义/配额与不可提前消费的结果区；heldout/near结果在α/δ冻结前不采、不分析。"
+      ],
+      "evidence_outputs": [
+        "manifests七个JSONL及hash",
+        "reports/split_independence.json",
+        "cross_controller_match.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "重用命令不等于重用旧执行数据，也不保证同seed实现了相同扰动。",
+        "本候选每个split的命令簇互斥；fit/dev/validate也按整轨迹/模板分离。"
+      ],
+      "acceptance_criteria": [
+        "总配额1820、4族5条件分配和低速占比正确；split间seed/模板簇交集为零。",
+        "跨控制器匹配依据明确，可独立从清单重建命令；新旧数据路径和身份不冲突。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-025",
+      "phase": "独立功率基线",
+      "goal": "采集400条HiRA专属clean功率基线",
+      "status": false,
+      "depends_on": [
+        "HIRA-024"
+      ],
+      "source_paths": [
+        "HIRA-023协议",
+        "HIRA-024基线清单",
+        "HIRA-020冻结控制器",
+        "HIRA-021采集工具"
+      ],
+      "execution_steps": [
+        "运行400条clean：fit240、dev80、validate80；各族60/20/20，全部保存200 Hz原始tau/qdot与实际命令。",
+        "采集验证subset可同批完成但validate结果保持封存，模型冻结前不计算其拟合误差或用于选型。",
+        "逐条检查真实profile、终止、步数、轨迹簇和散列；不完整条目进入排除明细，业务失败不静默替换。",
+        "按预登记近零与完整率规则处理不足，数量或资格不足时暂停，不用旧v2能量补数。"
+      ],
+      "evidence_outputs": [
+        "400条基线原始数据与资格清单",
+        "reports/baseline_collection_integrity.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只限本HiRA冻结包的clean数据，不能用pilot或校准/heldout数据拟合。",
+        "validate采集状态可看，性能拟合结果不得提前看。"
+      ],
+      "acceptance_criteria": [
+        "三个subset的配额、hash、互斥与完整性可核对，所有失败/无效条目明确列出。",
+        "取得的数据足以按预登记规则拟合与检验；不足则不将任务置true。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-026",
+      "phase": "独立功率基线",
+      "goal": "拟合、冻结并独立验证HiRA名义功率模型",
+      "status": false,
+      "depends_on": [
+        "HIRA-025"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/fit_power_model.py",
+        "CaMRA/calibration/src/camra_calibration/power.py",
+        "HIRA-023预登记",
+        "HIRA-025基线数据"
+      ],
+      "execution_steps": [
+        "只用fit训练预登记非负候选，按dev q90误差与简化tie规则选定；模型特征只依赖当前/允许的过去命令。",
+        "先保存最终模型与hash，再对封存validate评估一次，报告总体/命令族/低速/过渡误差、截距占比、近零与排除明细。",
+        "验证前缀因果性、非负预测、不同入口一致、由模型+命令独立重算J_nom与拟合进程一致。",
+        "若K>0，冻结reset的zero_history与未来上层增广命令历史状态约定。"
+      ],
+      "evidence_outputs": [
+        "config/power_model_hira_v1.json及hash",
+        "reports/power_model_selection.json",
+        "reports/power_model_validate.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不得用validate反选模型，不能用执行能量/扰动标签作名义侧特征。",
+        "未达到dev/validate q90≤0.10或近零等规则时暂停；不能靠α吸收模型缺陷或自行引入未批依赖。"
+      ],
+      "acceptance_criteria": [
+        "选型仅使用fit/dev，validate一次性达到协议准入，非负/因果性/复算均通过。",
+        "模型绑定HiRA包且与旧power_model_v1.json完全隔离；输入、输出W与积分J清楚。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-027",
+      "phase": "几何与消费接口",
+      "goal": "重新验证HiRA执行系统的Go2占地轮廓",
+      "status": false,
+      "depends_on": [
+        "HIRA-026"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/extract_asset_geometry.py",
+        "CaMRA/calibration/scripts/build_footprint.py",
+        "CaMRA/calibration/scripts/check_footprint.py",
+        "HIRA-012新资产",
+        "HIRA-025独立基线"
+      ],
+      "execution_steps": [
+        "从本轮实际碰撞几何抽取轮廓，核对机身参考点、投影规则、腿部摆动和姿态变化的包络。",
+        "以独立基线/接入数据覆盖姿态包络并固定验证规则，不用heldout/near结果扩包络。",
+        "若与旧轮廓数值相同也重新记录资产与验证证据；几何只膨胀机器人一次，再叠加δ，避免footprint和障碍双计。"
+      ],
+      "evidence_outputs": [
+        "config/footprint_hira_v1.json及hash",
+        "reports/footprint_validation.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不可直接照抄旧0.889×0.585 m尺寸宣称本候选验证通过。",
+        "轮廓不足或新资产几何不明时先暂停，不以调δ替代真实几何。"
+      ],
+      "acceptance_criteria": [
+        "轮廓与目标资产hash绑定，覆盖检查和参考点定义可复算。",
+        "近障使用的物理碰撞边界和δ扩张关系明确，无双重膨胀。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-028",
+      "phase": "几何与消费接口",
+      "goal": "验证能量步成本与未来导航消费接口",
+      "status": false,
+      "depends_on": [
+        "HIRA-027"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/src/camra_calibration/step_cost.py",
+        "CaMRA/calibration/scripts/check_step_cost.py",
+        "HIRA-026功率模型",
+        "HIRA-027轮廓"
+      ],
+      "execution_steps": [
+        "为本候选新增接口schema，定义c_nom=P_hat(u[,history])*0.1 J和修正c=(1+α)*c_nom；α冻结前只用明确标记测试参数，不冒充估计值。",
+        "检查300个命令区间成本求和与30 s J_nom一致，预算spent/remaining/exhausted/z_ratio单位与更新顺序正确。",
+        "K>0时把历史命令作为上层状态组成并测试reset；零/负预算/提前终止/错误模型hash均有明确处理。",
+        "联合校验危险集先按本候选footprint再按δ扩张，与能量接口分别绑定同一控制器/协议。"
+      ],
+      "evidence_outputs": [
+        "config/step_cost_schema_hira_v1.json及hash",
+        "reports/step_cost_interface_tests.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只交付可消费接口，不启动或实现导航训练。",
+        "不把J预算与旧论文a.u.预算混用，不默认继承旧α。"
+      ],
+      "acceptance_criteria": [
+        "逐步与整轨迹成本一致，预算及历史状态语义通过独立测试。",
+        "新模型/轮廓/时钟/单位绑定，错误候选模型或旧schema被拒绝。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-029",
+      "phase": "正式数据门禁G2",
+      "goal": "冻结正式采集清单、地图和数据锁",
+      "status": false,
+      "depends_on": [
+        "HIRA-028"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/build_data_lock.py",
+        "CaMRA/calibration/scripts/check_data_lock.py",
+        "CaMRA/calibration/scripts/build_near_obstacle_maps.py",
+        "HIRA-020与HIRA-023至HIRA-028证据"
+      ],
+      "execution_steps": [
+        "绑定controller模型/资产、协议、功率模型、footprint、接口、七分片清单、原始近障地图、代码树、环境和G1报告形成新锁。",
+        "校准前锁内margins为未产出，预登记后续追加派生stage lock规则：HIRA-031生成带margin的新不可变检验锁，不回写原采集锁。",
+        "验证collector在启动前检查所有hash与experiment_id，缺锁、错模型、改代码、地图/清单变化一律拒绝。",
+        "复核本机磁盘、任务并发、运行中进程和1820配额剩余量，确认G1/功率/足迹/接口均通过再放行。"
+      ],
+      "evidence_outputs": [
+        "config/data_lock_hira_calibration_v1.json及hash",
+        "冻结近障地图/清单及hash",
+        "reports/formal_gate.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "锁定后代码改动须新版本新锁并评估已有数据归属，不能覆盖旧锁接着混跑。",
+        "近障可使用旧原始物理地图，但footprint与筛选定义必须绑定新实验且在看近障结果前固定。"
+      ],
+      "acceptance_criteria": [
+        "全部前置通过、artifact hash匹配，校准采集可放行。",
+        "错误hash/缺参数负测试全部拒绝，旧v2锁/地图/结果未改变。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-030",
+      "phase": "校准",
+      "goal": "采集800条HiRA正式校准并审查数据完整性",
+      "status": false,
+      "depends_on": [
+        "HIRA-029"
+      ],
+      "source_paths": [
+        "HIRA-024校准清单",
+        "HIRA-029正式锁",
+        "HIRA-021 collector"
+      ],
+      "execution_steps": [
+        "在tmux按四命令族×五profile每格40条采集800条，保存全部实际命令/扰动/初态、轨迹、tau/qdot与outcome。",
+        "逐批检查程序/控制器/协议hash、6000/1500/301计数、低速占比、有限数值及失败归因。",
+        "断线按原清单续跑，业务失败保留主attempt；基础设施恢复按冻结规则追加attempt，不以最高attempt覆盖已失败trial。",
+        "在不打开heldout/near结果的前提下审查20格完整率和non_computable，生成资格/排除表。"
+      ],
+      "evidence_outputs": [
+        "800条原始校准结果",
+        "reports/calibration_collection_integrity.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不能边看校准结果边修改控制器、功率模型、采样域或协议。",
+        "每格完整率<0.9或近零>0.20等协议问题先暂停裁定，不私自补到成功。"
+      ],
+      "acceptance_criteria": [
+        "800个预登记业务trial全数有记录且计数/配额/归属/散列正确。",
+        "完整率及数据资格满足形成裕度的门槛；失败仍在主分母，原始能量可重算。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-031",
+      "phase": "校准",
+      "goal": "独立计算并冻结HiRA的α和δ",
+      "status": false,
+      "depends_on": [
+        "HIRA-030"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/fit_margins.py",
+        "CaMRA/calibration/src/camra_calibration/margins.py",
+        "HIRA-030校准数据",
+        "HIRA-023统计协议"
+      ],
+      "execution_steps": [
+        "对完整且满足计算条件的校准记录，独立重建J_nom/J_exec和10 Hz最大位置偏差；J_nom<1 J不算成本比值，负超支保留。",
+        "计算α=max(0,Q0.90 ε_c)、δ=Q0.90 ε_d，nearest-rank无插值；按预登记轨迹/簇bootstrap报告95%区间及20格/低速诊断。",
+        "列出失败/non_computable/资格与分母，另报50 Hz位置峰值敏感性；不把缺失窗口外推为6000步。",
+        "冻结新margin文件，生成绑定margin hash的不可变检验stage lock；正式锁原件和代码树hash保持不变。"
+      ],
+      "evidence_outputs": [
+        "config/margins_hira_v1.json及hash",
+        "config/data_lock_hira_evaluation_v1.json及hash",
+        "reports/margin_calibration.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "α/δ从本候选校准数据产生，不将旧0.19048/2.6139作为目标或先验替换。",
+        "大δ或低覆盖可能是真实结果，若不可用于预定任务则记录并询问，不通过改分位缩小。"
+      ],
+      "acceptance_criteria": [
+        "margin与原始校准、模型和锁绑定，独立计算与主脚本在冻结容差内一致。",
+        "margin冻结时间早于heldout/near结果读取，阶段锁可核验且无校准资格缺口被隐藏。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-032",
+      "phase": "独立检验",
+      "goal": "采集400条冻结条件下的HiRA独立检验",
+      "status": false,
+      "depends_on": [
+        "HIRA-031"
+      ],
+      "source_paths": [
+        "HIRA-024 heldout清单",
+        "HIRA-031冻结margin与检验锁",
+        "HIRA-021 collector"
+      ],
+      "execution_steps": [
+        "每格20条采集400条heldout，程序及扰动与协议一致，模型/功率/footprint/α/δ全部只读。",
+        "验证与基线/pilot/校准的seed、模板簇无重叠，保留实际trace和失败attempt。",
+        "逐条完成采集完整性检查，不依据覆盖预览修改运行清单、profile或终止条件。"
+      ],
+      "evidence_outputs": [
+        "400条heldout原始结果",
+        "reports/heldout_collection_integrity.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "门禁之前不采heldout，采集期间不反向调参。",
+        "业务失败算在400条之内，不以重试成功替换。"
+      ],
+      "acceptance_criteria": [
+        "400个预登记业务trial全数留痕，20格配额、资源hash、采样时钟和trace完整。",
+        "用于统计的主attempt由预登记规则唯一确定。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-033",
+      "phase": "独立检验",
+      "goal": "报告独立覆盖率、区间及适用范围",
+      "status": false,
+      "depends_on": [
+        "HIRA-032"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/evaluate_heldout.py",
+        "CaMRA/calibration/src/camra_calibration/coverage.py",
+        "HIRA-032数据",
+        "HIRA-023统计协议"
+      ],
+      "execution_steps": [
+        "分别计算成本覆盖、位置覆盖及交集：失败/提前终止不覆盖完整30 s事件；完整但J_nom不足仅成本不可计算，位置按其自身可计算性单列。",
+        "同时给全体400条主分母和completed/完整可计算/准入格等条件分母，每项列n/N、原因计数，不能只展示最好一列。",
+        "按20格、五profile、命令族、方向、低速与簇报告95%bootstrap区间，报告簇/试验数；不得按200 Hz时间点伪增n。",
+        "写清覆盖目标与观测值、完整率门槛和不可用格；区分流程完整性与达到经验目标，不把成本与位置边际相乘当观测联合覆盖。"
+      ],
+      "evidence_outputs": [
+        "reports/heldout_coverage.json",
+        "reports/heldout_summary.md"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "独立检验低于90%也如实报告，不调margin或重新挑heldout。",
+        "全体覆盖与条件覆盖采用同一冻结事件定义，分母变更须新协议。"
+      ],
+      "acceptance_criteria": [
+        "每个n/N可从原记录复算，bootstrap单位与相关性处理符合预登记。",
+        "给出明确适用范围和未满足目标；无新α/δ选取或隐性样本剔除。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-034",
+      "phase": "近障检验",
+      "goal": "采集200条冻结地图上的近障检查",
+      "status": false,
+      "depends_on": [
+        "HIRA-033"
+      ],
+      "source_paths": [
+        "HIRA-024近障清单",
+        "HIRA-029冻结地图",
+        "HIRA-031评估stage lock",
+        "CaMRA/calibration/sim/obstacles_sim.py"
+      ],
+      "execution_steps": [
+        "按每格10条采集200条，启动前核对地图、障碍物尺寸、碰撞体/槽位、场地、初始位置、命令和新footprint的hash。",
+        "检查障碍实际注入且逐env位置正确，记录物理接触、轨迹、足迹朝向和实际近障几何。",
+        "在已有新δ下标记名义安全距离条件满足/不满足的原定案例，不为增加满足数量移动障碍。",
+        "保留碰撞、终止、越界和停滞；记录器不承担避障，外部指令依然按冻结序列执行。"
+      ],
+      "evidence_outputs": [
+        "200条近障原始结果",
+        "reports/near_obstacle_collection_integrity.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "这是执行误差与几何适用性检查，不是已实现上层导航避障成功率。",
+        "地图不因新δ过大而调宽，未建边界墙须明确使用几何越界而非物理碰撞判定。"
+      ],
+      "acceptance_criteria": [
+        "200个预登记trial完整留痕，实际障碍与冻结地图一致，各失败有分类。",
+        "可从轨迹、姿态、footprint与障碍几何复算距离/重叠；源配置与实际注入不混淆。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-035",
+      "phase": "近障检验",
+      "goal": "评估新裕度在近障场景的几何适用性",
+      "status": false,
+      "depends_on": [
+        "HIRA-034"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/evaluate_near_obstacle.py",
+        "CaMRA/calibration/src/camra_calibration/near_obstacle.py",
+        "HIRA-034数据",
+        "HIRA-027足迹",
+        "HIRA-031裕度"
+      ],
+      "execution_steps": [
+        "重算能量/位置/联合覆盖与条件分母，报告20格完整率、净距档位、碰撞/几何重叠、越界和最小净空。",
+        "按名义轨迹满足新footprint+δ安全条件的子组单列n/N；若0条满足则报告0及不可评估，不能换地图凑样本。",
+        "区分物理接触与几何重叠、名义碰撞边界与附加δ、轨迹误差覆盖与导航是否安全。",
+        "给出该控制器+当前扰动分布+地图范围的可用性结论，不把δ自动写成碰撞不会发生的保证。"
+      ],
+      "evidence_outputs": [
+        "reports/near_obstacle_evaluation.json",
+        "reports/near_obstacle_summary.md"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "禁止只保留满足裕度且成功的轨迹；所有预登记案例都进入主表。",
+        "新δ过大、碰撞多或越界均作为实测局限，不重新调图。"
+      ],
+      "acceptance_criteria": [
+        "每项几何与覆盖指标可复算，满足/不满足名义条件的样本数明确。",
+        "报告结论与边界证据一致，没有把无上层导航的固定命令回放当避障器验收。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-036",
+      "phase": "独立审计",
+      "goal": "完成七分片数据与数值的独立审计",
+      "status": false,
+      "depends_on": [
+        "HIRA-035"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/audit_all_splits.py",
+        "HIRA-024清单",
+        "HIRA-025至HIRA-035全部数据和产物"
+      ],
+      "execution_steps": [
+        "用独立NumPy/float64从原始200 Hz tau/qdot复算正功，不只读取采集器已算能量。",
+        "从命令和新功率模型独立复算名义轨迹、J_nom、误差、quantile、覆盖及近障几何，对照主工具输出。",
+        "核对1820条配额、各trial所有attempt、主attempt、seed/簇互斥、实际命令/扰动、版本hash、时间戳和失败分母。",
+        "检查源数据无覆盖/丢弃、旧v2无修改、heldout未参与模型/阈值；列出审计未覆盖资源和任何异常。"
+      ],
+      "evidence_outputs": [
+        "reports/full_independent_audit.json",
+        "reports/audit_discrepancies.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "独立复算不得调用待验证的同一能量/覆盖函数充当独立证据。",
+        "无法取得原始数据不判为通过；浮点/路径/换行差异须有可复查解释，不修改旧记录消差。"
+      ],
+      "acceptance_criteria": [
+        "结构/配额/身份/互斥/attempt/锁完整，独立数值在冻结容差内。",
+        "所有差异已解释或形成阻塞，不以exit=0代替audit.ok检查。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-037",
+      "phase": "结果比较",
+      "goal": "在统一口径下比较HiRA候选与旧v2",
+      "status": false,
+      "depends_on": [
+        "HIRA-036"
+      ],
+      "source_paths": [
+        "HIRA-007旧证据",
+        "HIRA-024匹配表",
+        "HIRA-033与HIRA-035新报告",
+        "HIRA-036审计"
+      ],
+      "execution_steps": [
+        "对比命令域、profile实际实现、资产、PD/限幅、时序、功率模型、轮廓、协议、重试和数据版本，先列可比/不可比项。",
+        "从旧原始日志在旧源码只读快照下复算共同口径；保留原旧报告，并在本轮新报告补列旧首次主attempt与历史最高attempt/补采口径差异。",
+        "共同命令/实现条件可确证时做成对差异与预登记簇级区间；仅seed相同或缺实际扰动trace时只报分组/非配对描述，不声称严格因果。",
+        "对比跟踪/低速边界、能量预测误差、α/δ、边际与联合覆盖、完整率和近障可用性，允许候选不如v2。",
+        "明确控制器包可能同时改变权重、默认姿态、执行器与资产，不能把差异全部归因于网络权重。"
+      ],
+      "evidence_outputs": [
+        "reports/hira_vs_v2_comparison.json",
+        "reports/hira_vs_v2_comparison.md"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "不为完成对照擅自重跑旧v2整套试验，不改旧文件。",
+        "原始旧证据缺失时本任务保持未完成并询问是否接受有边界的报告级比较，不伪装成已复算。"
+      ],
+      "acceptance_criteria": [
+        "比较表每列都有分母、版本、单位、证据与可比性注释。",
+        "不混淆新旧功率基线和α/δ，不隐去重试、资产或执行器差异；无预设改善结论。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-038",
+      "phase": "可复现交付",
+      "goal": "验证独立目录重载与完整复现包",
+      "status": false,
+      "depends_on": [
+        "HIRA-037"
+      ],
+      "source_paths": [
+        "CaMRA/calibration/scripts/build_delivery_bundle.py",
+        "CaMRA/calibration/scripts/verify_delivery_bundle.py",
+        "HIRA-020冻结控制器",
+        "HIRA-036审计",
+        "HIRA-037比较"
+      ],
+      "execution_steps": [
+        "构建新bundle索引：代码提交/补丁、依赖、模型/资产、source/target契约、预登记、协议、功率、轮廓、margin、stage locks、七清单与全部报告。",
+        "原始大数据按相对逻辑路径+SHA256+取用说明索引，明确哪些随Git、哪些需单独取得，不打包凭证或机器私密配置。",
+        "在独立新目录配置路径后校验散列，运行小样本控制器重载/采集/误差计算/覆盖报告，并做原始数据离线复算。",
+        "检查模型/地图/输出目录被误换时拒绝，未找到权重/资产明确报告环境缺失。"
+      ],
+      "evidence_outputs": [
+        "delivery/bundle_manifest_hira_v1.json",
+        "docs/reproduction.md",
+        "reports/delivery_reload_verification.json"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "独立重载不是原目录cache命中，不改旧bundle索引。",
+        "不能只验证README命令存在，必须核查实际产物与判定字段。"
+      ],
+      "acceptance_criteria": [
+        "新目录可按说明取得所需资源，加载的是对应HiRA系统；hash和小批链路均通过。",
+        "全部报告可定位，科学负结果与可复现性结果分别标明。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-039",
+      "phase": "文档与交接",
+      "goal": "同步开发入口并输出只读稿件差异清单",
+      "status": false,
+      "depends_on": [
+        "HIRA-038"
+      ],
+      "source_paths": [
+        "README.md",
+        "AGENTS.md",
+        "doc/README.md",
+        "CaMRA/README.md",
+        "CaMRA/calibration/README.md",
+        "CaMRA/locomotion/README.md",
+        "HIRA-038交付"
+      ],
+      "execution_steps": [
+        "按各README职责更新当前真实状态、HiRA与v2角色、环境/命令/产物入口、已知低速/覆盖/几何边界和后续导航消费方法。",
+        "AGENTS标明当前完成项和下一入口，明确旧v2计划状态不改；不要把本轮开始前0/40写成完成。",
+        "只读对照论文的旧成本、控制频率、功率模型、α/δ和实验表述，在本轮reports中出位置/旧值/新结果/建议改法清单。",
+        "保存本轮handoff：每任务证据、tmux/命令、依赖、路径、未解决风险与资源取得方式；不写密码/Token。"
+      ],
+      "evidence_outputs": [
+        "开发README/AGENTS/doc索引更新",
+        "docs/implementation_handoff.md",
+        "reports/manuscript_sync_differences.md"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "严禁写manuscripts/**、tex/bib/PDF或重新编译；差异清单不叫实际稿件同步完成。",
+        "无用户指令不提交或推送Git，也不自动切换上层导航任务。"
+      ],
+      "acceptance_criteria": [
+        "新上下文可以区分v2与HiRA、找到模型/数据/证据和准确运行入口。",
+        "文档与实际状态/锁/hash一致，稿件与参考子模块无修改。"
+      ],
+      "verification_result": ""
+    },
+    {
+      "id": "HIRA-040",
+      "phase": "最终验收",
+      "goal": "完成逐任务对账和最终结果交接",
+      "status": false,
+      "depends_on": [
+        "HIRA-039"
+      ],
+      "source_paths": [
+        "本计划全部tasks/work_records",
+        "HIRA-020/G1",
+        "HIRA-029/G2",
+        "HIRA-031/G3",
+        "HIRA-036与HIRA-038证据"
+      ],
+      "execution_steps": [
+        "复核每项验收及依赖，逐项保留成功/失败记录，确认未把静态检查、命令运行或报告生成当成通过。",
+        "运行计划update模式结构校验、交付manifest验证及工作树检查；确认论文禁止区域和旧冻结文件hash未变。",
+        "交接新增代码/文件、真实采集数量、工程门禁与科学结论、能力限制和后续最直接入口。",
+        "若任一必要门禁失败，保持对应任务false，报告阻塞与已完成范围；不得声明全部完成或擅自启动下一阶段。"
+      ],
+      "evidence_outputs": [
+        "reports/final_acceptance.json",
+        "更新后的JSON逐项工作记录",
+        "最终交接说明"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "工程接入通过不等于随机安全理论或导航性能证明。",
+        "最终Git提交/push由用户另行授权，验收不依赖自动远程写入。"
+      ],
+      "acceptance_criteria": [
+        "所有必需交付和门禁均有直接证据，40项状态与验收事实一致，结构校验无误。",
+        "无旧证据被覆写、无论文变更、无隐性重训；真实不足和下一步明确。"
+      ],
+      "verification_result": ""
+    }
+  ],
+  "final_acceptance": [
+    "40项任务按依赖逐项验收与追加记录；任何门禁失败任务保持false，说明阻塞和下一步，不能以写完报告冒充接入通过。",
+    "G1来源/数值/物理/时序/计量各项证据通过，模型和资产独立冻结，采集工具拒绝新旧混用。",
+    "七分片按1820条预登记quota留全业务失败与attempt；基线、检验、近障无泄漏或反向调参。",
+    "新功率模型通过独立验证，新足迹、α/δ和步成本接口经离线独立复算；所有输出与版本锁绑定。",
+    "覆盖及近障报告列清分母、区间、子组和不达标项；比较结论不归因于未经控制的单一变量。",
+    "旧v2与只读参考源、原协议/锁/报告/任务结论未被覆盖，任何论文稿或PDF未被改动。",
+    "复现包在独立目录重新载入、散列和小批链路通过；文档给出真实完成项、资源位置和剩余限制，不默认启动上层训练。"
+  ],
+  "phase_index": [
+    {
+      "tasks": "HIRA-001–005",
+      "description": "充分学习背景、现有校准和HiRA源码，形成可核查接手地图"
+    },
+    {
+      "tasks": "HIRA-006–009",
+      "description": "配置设备、核验权重与资产、冻结来源契约及验收判据"
+    },
+    {
+      "tasks": "HIRA-010–016",
+      "description": "隔离实验入口，适配actor/资产/观测/PD，验证数值与控制时序"
+    },
+    {
+      "tasks": "HIRA-017–020",
+      "description": "检查闭环、五条件和能量计量，通过G1后冻结控制器"
+    },
+    {
+      "tasks": "HIRA-021–024",
+      "description": "接入采集器，完成20条pilot，冻结新协议与七分片清单"
+    },
+    {
+      "tasks": "HIRA-025–029",
+      "description": "独立400条功率基线、足迹和步成本验证，建立正式数据锁"
+    },
+    {
+      "tasks": "HIRA-030–035",
+      "description": "800条校准并冻结α/δ，再做400条检验和200条近障"
+    },
+    {
+      "tasks": "HIRA-036–040",
+      "description": "独立审计、统一口径对比v2、复现包与最终交接"
+    }
+  ]
+}
