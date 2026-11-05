@@ -2351,7 +2351,45 @@
       "depends_on": [
         "CAL-027"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T10:30:00+08:00",
+          "summary": "实现近障障碍注入（kinematic 槽位 + 地图起点位姿 + meta 记录），锁重建到 1be2c601；但端到端冒烟在 GPU1/GPU2 均 >10 分钟未出批，任务保持未完成。",
+          "actions": [
+            "按 D-012 口径（几何重叠为主 + 真碰撞体）写 sim/obstacles_sim.py：每 env 7 个 kinematic 障碍槽位，按冻结地图位姿 + env 原点逐批次改写，未用槽位停到场地外。",
+            "collect_trials.py：near_obstacle 读 --maps、起点用地图 start_pose、meta 记录 clearance/gate/arena/start_pose_from_map。",
+            "修一处导入错误（本版本须 import isaaclab.sim as sim_utils）；数据锁重建（49 文件、树 a4052f27、锁 1be2c601），副本 verified n_bad=0。",
+            "2 条 2 envs 冒烟两次均卡住：进程 R 状态、CPU 打满 570 s、无 batch 输出、无落盘；排除导入错误与 CUDA bad state 告警（43 号成功日志同样有该告警）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/sim/obstacles_sim.py（新建）",
+            "CaMRA/calibration/scripts/collect_trials.py（近障分支）",
+            "CaMRA/calibration/config/data_lock_v1.json(+.sha256)（重建 1be2c601…）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§29）",
+            "/pub/data/caohy/logs/camra/env_setup/46_near_smoke.sh"
+          ],
+          "commands": [
+            "bash env_setup/46_near_smoke.sh（2 条/2 envs，GPU1 与 GPU2 各一次）"
+          ],
+          "results": [
+            "注入代码可导入、场景可创建（Generating terrains 之后无异常）",
+            "两次冒烟均超过 10 分钟未产出任何 trial，CPU 约 570 s 后仍无输出"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/46_near_smoke.log",
+            "handoff §29",
+            "git 9fc6f74"
+          ],
+          "remaining_work": [
+            "最小复现：num_envs=1、1 条、临时截短窗口，循环内每 100 控制步打印耗时，区分 set_slots 一次性开销与每步物理变慢",
+            "若确认是 kinematic 体拖慢接触管线，改静态碰撞体 + 每例重建场景（或每批重建）",
+            "注入跑通后再采 200 条（off/on 两趟）并做几何碰撞/越界检查"
+          ],
+          "blockers": [
+            "近障冒烟不产出 trial：CPU 打满但无进度，原因未定位"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "每格10条，简单通道/近障地图清单提前锁定，不需训练上层策略。",
         "沿用完全相同能量定义和功率模型，能量不加入旧靠障碍惩罚。",
