@@ -990,7 +990,7 @@
       "id": "HIRA-009",
       "phase": "来源契约与验收",
       "goal": "预登记接入测试矩阵、数值容差与资源预算",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-008"
       ],
@@ -1010,7 +1010,41 @@
         "config/integration_acceptance_prereg_v1.json及hash",
         "reports/resource_budget.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T16:58:00+08:00",
+          "summary": "在任何接入测试运行前冻结验收判据：6 类数值容差、15 项测试矩阵（每项含输入/重复/基准/判据/证据/失败动作）、11 工况×3 重复的 30 s clean 闭环序列（33 条，上限 40）、失败归因与阻断规则、资源预算；预登记散列 459b5960…。",
+          "actions": [
+            "写 config/integration_acceptance_prereg_v1.json：容差（float64 1e-12、观测 1e-6/1e-5、CPU actor 1e-5/1e-4、GPU actor 1e-4/1e-4、q_target 1e-6/1e-5、tau 1e-4/1e-5、限位 1e-3 rad、质量 1%）；T-01..T-15 测试矩阵；闭环序列与行为阈值；阻断规则；完整率门槛继承 0.9。",
+            "写 reports/resource_budget.json：诊断 35–60 min（33 条闭环 + 15 条短试验 + 8 次进程启动 ×60.7 s）；正式 1820 条中位 2.5 h（低负载 1–1.5 h、高负载 5–7.5 h）；存储约 70 GB；4 条暂停触发。",
+            "用内容散列规则（去 sha256 与 preregistered_at）冻结并写侧车。",
+            "修正一处 JSON 非法字面量（repeats 字段混入中文数字表达式）后再校验通过。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/integration_acceptance_prereg_v1.json(+.sha256)（新建，459b5960…）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/resource_budget.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§11）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-009 记录）"
+          ],
+          "commands": [
+            "python -m json.tool（两次，第一次发现非法字面量）",
+            "python /tmp/hashprereg.py（内容散列+侧车）"
+          ],
+          "results": [
+            "预登记散列 459b596017a4b7f7410116102e401541b94d71294314468a677b6004dba3a72a，侧车已写。",
+            "15 项测试全部有输入/重复数/基准/判据/证据路径/失败动作；证据统一指向 reports/integration_gate.json#T-xx。",
+            "闭环 33 条（≤40 上限），11 工况各 3 重复，固定 seed 且只跑一次；低速 C-09..C-11 单列为能力边界。",
+            "预算：诊断 35–60 min、正式 2.5 h 中位、存储 70 GB、费用 0；4 条暂停触发（吞吐、磁盘、超时、放宽阈值）。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/integration_acceptance_prereg_v1.json(+.sha256)",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/resource_budget.json",
+            "handoff §11"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "任一建议容差因数值后端不适用，必须在观察对应结果前用独立数值证据说明并冻结；看到失败后放宽须询问用户并保留旧判定。",
         "性能门槛不得事后随结果迁移，也不要求HiRA一定比v2好。"
@@ -1019,7 +1053,7 @@
         "每项测试有输入、重复数、比较基准、数值/物理判据、证据路径和失败动作。",
         "接入测试及正式采集预算明确；关键行为阈值无待现场自由选择项。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) 每项测试有输入、重复数、比较基准、数值/物理判据、证据路径和失败动作——T-01..T-15 共 15 项，逐项写入 input/repeats/baseline/criterion/evidence/failure_action；容差按数据类型分 6 类并声明为工程阈值而非已测结果；闭环序列给出 11 个工况、每工况 3 重复、摔倒/方向/跟踪/饱和的具体判据与固定 seed 规则；(2) 接入测试与正式采集预算明确，关键行为阈值无待现场自由选择项——resource_budget.json 给出诊断 35–60 min、正式 1820 条中位 2.5 h（分三档负载）、存储 70 GB、费用 0，并登记 4 条暂停触发；所有阈值在冻结文件中写定，明确规定『看到结果后不得放宽』，变更须保留旧判定或询问用户；失败动作区分阻断 G1 与策略能力不足两类，低速能力单列且禁止删域；完整率门槛继承旧协议 0.9 且沿用『业务失败不重试替换』。预登记内容散列 459b5960… 与侧车已生成，可复算；本任务未运行任何接入测试，判据先于结果冻结。"
     },
     {
       "id": "HIRA-010",

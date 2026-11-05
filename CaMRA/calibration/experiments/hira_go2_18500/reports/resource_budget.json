@@ -1,0 +1,55 @@
+{
+  "report": "resource_budget",
+  "task": "HIRA-009",
+  "generated_at": "2026-11-05T16:50:00+08:00",
+  "basis": {
+    "device": "tiger10, 3x A100-PCIE-40GB, driver 560.35.03",
+    "usable_gpu": "物理 GPU2（GPU0/1 被他人占用）",
+    "env": "env_isaaclab (torch 2.7.0+cu126, isaaclab 0.47.2)",
+    "app_start_measured": "60.7 s per process (HIRA-006)",
+    "v2_measured_throughput": "约 1.7 s/条（32 envs 批量，整机负载低时）；负载高时曾达 15 s/条",
+    "current_load_when_planned": 172,
+    "measurement_rule": "HIRA-022 的 20 条 pilot 后必须用实测值重估本文件；不得直接采用 v2 的历史数字"
+  },
+  "diagnostics_budget": {
+    "closed_loop_trials": {"count": 33, "window_s": 30, "note": "T-14，11 个工况 × 3 重复，上限 40"},
+    "short_numeric_trials": {"count": 15, "note": "T-01..T-13、T-15 中需要跑仿真的短试验（多数为单步或数步对照）"},
+    "process_starts": {"count": 8, "seconds_each": 60.7, "note": "每次新进程需重建 App；CPU actor 对照可在同一进程内完成"},
+    "wall_time_estimate_min": "35–60",
+    "wall_time_note": "按 3–10 s/条 + 8 次进程启动估算；负载 172 时取上限"
+  },
+  "formal_collection_budget": {
+    "trials": 1820,
+    "split_breakdown": {"pilot": 20, "baseline_fit": 240, "baseline_dev": 80, "baseline_validate": 80, "calibration": 800, "heldout": 400, "near_obstacle": 200},
+    "buckets": "每个 split 需 off/on 两趟（combined profile 的 cfg 级开关）",
+    "throughput_scenarios": [
+      {"scenario": "低负载（≤2 s/条）", "wall_hours": "1.0–1.5"},
+      {"scenario": "中负载（3–5 s/条）", "wall_hours": "1.5–2.5"},
+      {"scenario": "高负载（10–15 s/条，v2 曾出现）", "wall_hours": "5–7.5"}
+    ],
+    "process_starts": 14,
+    "additional_overhead": "每 split 结束跑 check_collection 与能量复算，约 5–10 min",
+    "planning_use": "按 2.5 h 中位估计排期；超过 6 h 视为异常并先查负载与 GPU 占用"
+  },
+  "storage_budget": {
+    "v2_reference": {"trials": "68 GB", "per_trial_mb": 37.4, "n": 1820},
+    "hira_formal_estimate_gb": 68,
+    "hira_diagnostics_estimate_gb": 1.8,
+    "headroom_available": "1.3 TB（/pub 剩）",
+    "shortfall_risk": "none：预计占用 <6% 剩余空间",
+    "note": "若新增 per-trial 诊断字段导致体积翻倍，仍需 <140 GB，仍可接受"
+  },
+  "gpu_and_memory": {
+    "gpu": "单卡即可（v2 期 32 envs 用 12.8 GB）",
+    "hira_expected": "≤14 GB（同规模 32 envs）",
+    "gpu_free_check": "每次运行前 nvidia-smi 查目标卡；util>0 或显存>1 GB 被他人占用则换卡或等待"
+  },
+  "pause_triggers": [
+    "任一 split 实测吞吐低于 1 条/10 s 且持续 10 分钟：暂停并诊断负载/GPU/NFS",
+    "剩余磁盘低于 500 GB：暂停并清理（禁止删 v2 证据，只能归档）",
+    "诊断试验的 wall time 超过 90 min：暂停并记录",
+    "需要放宽任何 HIRA-009 已登记阈值：必须询问用户并保留旧判定"
+  ],
+  "costs": {"money": 0, "external_api": 0, "note": "全部本地资源，无付费服务"},
+  "verdict": "预算已登记：诊断 35–60 min（33 条闭环 + 15 条短试验 + 8 次进程启动），正式采集 1820 条按中位 2.5 h 排期（高负载可能 5–7.5 h），存储约 70 GB（余量 1.3 TB）。以上为估算，pilot 后必须重估。"
+}

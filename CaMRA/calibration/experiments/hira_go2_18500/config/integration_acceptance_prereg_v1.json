@@ -1,0 +1,340 @@
+{
+  "version": "1.0.0",
+  "kind": "integration_acceptance_prereg",
+  "experiment_id": "hira_go2_18500",
+  "proposed_controller_id": "camra_hira_go2_18500_lab_v1",
+  "preregistered_at": "2026-11-05",
+  "contract": "config/hira_source_contract_v1.json (sha256 41f795630c23eff8...)",
+  "status": "frozen_before_any_integration_result",
+  "hash_rule": "sha256 over this document with 'sha256' and 'preregistered_at' removed, keys sorted, separators (',',':'), UTF-8",
+  "principle": "本文件在所有接入测试运行之前登记；任何阈值不得在看到结果后放宽。若某阈值经独立数值证据证明确实不适用于本后端，须在观测对应结果前修改并保留旧值，或询问用户并保留旧判定。",
+  "tolerances": {
+    "formula_float64": {
+      "atol": 1e-12,
+      "rtol": 1e-12,
+      "used_for": "CPU 侧纯公式对照（q_target、PD、能量累加）"
+    },
+    "observation_float32": {
+      "atol": 1e-06,
+      "rtol": 1e-05,
+      "used_for": "45 维观测逐块对照（源 oracle vs 适配器）"
+    },
+    "actor_cpu": {
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "used_for": "CPU 上 actor 输出对照（导出与权重）"
+    },
+    "actor_gpu": {
+      "atol": 0.0001,
+      "rtol": 0.0001,
+      "used_for": "GPU 上 actor 输出对照（含 fp32 非确定性）"
+    },
+    "q_target": {
+      "atol": 1e-06,
+      "rtol": 1e-05,
+      "used_for": "关节目标角对照"
+    },
+    "torque": {
+      "atol": 0.0001,
+      "rtol": 1e-05,
+      "used_for": "力矩对照（含 URDF effort 限幅）"
+    },
+    "joint_limit_consistency": {
+      "atol": 0.001,
+      "unit": "rad",
+      "used_for": "URDF 与 USD 限位一致性"
+    },
+    "mass_consistency": {
+      "rtol": 0.01,
+      "used_for": "URDF 与 USD 逐链接质量对照，超出需记录"
+    },
+    "note": "以上均为工程验收阈值，不得表述为已测结果"
+  },
+  "test_matrix": [
+    {
+      "id": "T-01",
+      "name": "checkpoint 身份与 actor 载入",
+      "input": "model_18500.pt (sha d30e5212)",
+      "repeats": 2,
+      "baseline": "计划登记散列 + 9 个张量形状",
+      "criterion": "散列逐位一致；state_dict 键与形状全部匹配；载入后参数范数非零",
+      "evidence": "reports/integration_gate.json#T-01",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-02",
+      "name": "资产/关节顺序/坐标系",
+      "input": "12 关节同姿态",
+      "repeats": 3,
+      "baseline": "契约 joints.records",
+      "criterion": "双向置换按名称建立且为双射；限位差 ≤1e-3 rad；质量差 ≤1%（超出记录）；默认角逐关节一致",
+      "evidence": "#T-02",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-03",
+      "name": "45 维观测与归一化",
+      "input": "同一物理状态（q, qdot, 角速度, 姿态, 命令, 上一动作）",
+      "repeats": 5,
+      "baseline": "源 oracle（按 go2_env.compute_observations 独立实现）",
+      "criterion": "6 块逐块 |Δ| ≤ atol 1e-6 且 rtol ≤1e-5；无额外归一化；裁剪 100 两侧一致",
+      "evidence": "#T-03",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-04",
+      "name": "动作/默认姿态/PD/实际力矩",
+      "input": "固定动作向量（含 ±100 饱和边界、±0.5 中间值）",
+      "repeats": 4,
+      "baseline": "契约 action/actuator 公式",
+      "criterion": "q_target ≤1e-6；τ ≤1e-4；限幅点等于 ±effort；解析 scale 断言为 0.25",
+      "evidence": "#T-04",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-05",
+      "name": "200/50/10 Hz 时序",
+      "input": "5 策略步/外部命令，30 s 窗口",
+      "repeats": 3,
+      "baseline": "契约 timing",
+      "criterion": "每个策略步恰好 4 个物理子步；每条外部命令恰好 5 个策略步；6000 子步/1500 控制步/301 配对点",
+      "evidence": "#T-05",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-06",
+      "name": "外部命令无暗中改写",
+      "input": "固定 [vx,vy,wz]，跨 ≥1 个重采样周期（10 s）与 30 s 全程",
+      "repeats": 6,
+      "baseline": "写入值",
+      "criterion": "5 个策略步内策略消费值 = 写入值（atol 1e-6）；30 s 内不得出现 heading 反算或 0.2 死区改写",
+      "evidence": "#T-06",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-07",
+      "name": "reset 与上一动作逐 env 清零",
+      "input": "同 seed 两次 + 逐 env 终止场景",
+      "repeats": 2,
+      "baseline": "固定初始姿态",
+      "criterion": "同 seed 首帧 q 与 root 位姿逐位一致；reset 后观测 33:45 全零；一个 env 终止不影响其他 env",
+      "evidence": "#T-07",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-08",
+      "name": "clean 重复与批量隔离",
+      "input": "同命令同 seed，num_envs=1 与 32 各一次",
+      "repeats": 2,
+      "baseline": "单 env 结果",
+      "criterion": "批量结果与单 env 一致（τ 轨迹 atol 1e-4）；env 之间无耦合",
+      "evidence": "#T-08",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-09",
+      "name": "五 profile 实际施加",
+      "input": "五个 profile 各 1 条",
+      "repeats": 5,
+      "baseline": "profile 定义",
+      "criterion": "运行时读回摩擦/质量/推力/噪声实际值并与配置一致；combined 单独进程生效",
+      "evidence": "#T-09",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-10",
+      "name": "200 Hz 计量相位与非侵入性",
+      "input": "同一 trial 开/关记录器各一次",
+      "repeats": 2,
+      "baseline": "关闭记录器的轨迹",
+      "criterion": "轨迹逐位一致（记录不改变动力学）；能量离线复算 rel ≤1e-9；时间戳与子步一一对应",
+      "evidence": "#T-10",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-11",
+      "name": "v2 旧证据可复算与新旧拒混",
+      "input": "v2 交付包 + 1 条 v2 trial",
+      "repeats": 1,
+      "baseline": "bundle_manifest (20 项)",
+      "criterion": "20 项散列全对；α/δ 重载一致；采集器拒绝把 v2 trial_id/run_id 混入 HiRA",
+      "evidence": "#T-11",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-12",
+      "name": "CPU 同状态 oracle（actor 等价）",
+      "input": "从 checkpoint 提取的 actor vs 独立加载的 actor_critic",
+      "repeats": 20,
+      "repeat_unit": "随机观测组",
+      "baseline": "独立实现",
+      "criterion": "CPU atol 1e-5/rtol 1e-4；GPU atol 1e-4/rtol 1e-4；输出维度 12",
+      "evidence": "#T-12",
+      "failure_action": "阻断 G1"
+    },
+    {
+      "id": "T-13",
+      "name": "坐标/映射破坏必须被拒",
+      "input": "故意打乱关节置换、改 scale、改四元数约定",
+      "repeats": 3,
+      "repeat_unit": "破坏类型",
+      "baseline": "正常候选",
+      "criterion": "三种破坏均被测试断言拒绝；正常候选通过",
+      "evidence": "#T-13",
+      "failure_action": "阻断 G1（说明检查无效）"
+    },
+    {
+      "id": "T-14",
+      "name": "clean 闭环行为",
+      "input": "见 closed_loop_sequence",
+      "repeats": "每工况 3 次，共 ≤40 条",
+      "baseline": "零速与直行的期望方向/量级",
+      "criterion": "30 s 内不摔倒；方向正确；中速工况速度跟踪误差与饱和率在登记阈值内；低速单列报告",
+      "evidence": "#T-14",
+      "failure_action": "可区分：接入错误 → 阻断；策略能力 → 记录并继续（不得删域）"
+    },
+    {
+      "id": "T-15",
+      "name": "回归：故意破坏必须拒绝",
+      "input": "改 controller_id / 模型 hash / 时钟",
+      "repeats": 3,
+      "baseline": "正常候选",
+      "criterion": "三类改动全部被门禁拒绝",
+      "evidence": "#T-15",
+      "failure_action": "阻断 G1"
+    }
+  ],
+  "closed_loop_sequence": {
+    "window_s": 30,
+    "policy_dt_s": 0.02,
+    "command_dt_s": 0.1,
+    "commands": [
+      {
+        "id": "C-01",
+        "cmd": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "label": "零速"
+      },
+      {
+        "id": "C-02",
+        "cmd": [
+          0.5,
+          0.0,
+          0.0
+        ],
+        "label": "正向直行"
+      },
+      {
+        "id": "C-03",
+        "cmd": [
+          -0.5,
+          0.0,
+          0.0
+        ],
+        "label": "反向直行"
+      },
+      {
+        "id": "C-04",
+        "cmd": [
+          0.0,
+          0.3,
+          0.0
+        ],
+        "label": "左移"
+      },
+      {
+        "id": "C-05",
+        "cmd": [
+          0.0,
+          -0.3,
+          0.0
+        ],
+        "label": "右移"
+      },
+      {
+        "id": "C-06",
+        "cmd": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "label": "正转"
+      },
+      {
+        "id": "C-07",
+        "cmd": [
+          0.0,
+          0.0,
+          -0.5
+        ],
+        "label": "反转"
+      },
+      {
+        "id": "C-08",
+        "cmd": [
+          0.4,
+          0.0,
+          0.3
+        ],
+        "label": "弧线"
+      },
+      {
+        "id": "C-09",
+        "cmd": [
+          0.1,
+          0.0,
+          0.0
+        ],
+        "label": "低速 0.1"
+      },
+      {
+        "id": "C-10",
+        "cmd": [
+          0.2,
+          0.0,
+          0.0
+        ],
+        "label": "低速 0.2"
+      },
+      {
+        "id": "C-11",
+        "cmd": [
+          0.3,
+          0.0,
+          0.0
+        ],
+        "label": "低速 0.3"
+      }
+    ],
+    "repeats_per_command": 3,
+    "total_trials": 33,
+    "cap": 40,
+    "seed_rule": "每工况固定 3 个 seed（登记在报告里），全套只跑一次；不因结果重跑",
+    "low_speed_policy": "C-09..C-11 单列为能力边界；跟踪差不得表述为接入 bug，也不得删除该命令域",
+    "behavioral_thresholds": {
+      "fall": "root 高度低于 0.15 m 或姿态超过 60° 记为摔倒",
+      "direction": "C-02..C-07 的平均机身速度符号必须与命令一致",
+      "tracking_mid_speed": "中速工况平均速度误差 ≤0.25 m/s（工程阈值，非性能承诺）",
+      "saturation_rate": "力矩饱和步占比 ≤30%",
+      "stability": "30 s 内无摔倒、无非有限值"
+    }
+  },
+  "blocking_rules": [
+    "T-01..T-13、T-15 任一失败 → G1 不通过，后续 pilot 与采集不得开始",
+    "T-14 失败时须先判定归因：接入错误（可定位到映射/缩放/时序）→ 阻断；策略能力不足 → 记录并继续，不得删域或改配额",
+    "任何阈值变更必须保留旧判定，并在结果已知后禁止放宽"
+  ],
+  "completeness_gate_inherited": {
+    "min_share_of_cell": 0.9,
+    "source": "旧协议 v1.0.2 / repeated_calibration_contract",
+    "rule": "任一 cell 完整率 <0.9 不得进入正式结论；业务失败留在主分母，不以成功重试替换"
+  },
+  "unresolved_by_design": [
+    "U-5 训练期覆盖不可恢复：本预登记只以源码值 + 权重身份为基准，不假装知道训练配置",
+    "USD effort 与 Lab DOF 顺序须在 HIRA-012/013 读出后才能填写实测列"
+  ],
+  "sha256": "459b596017a4b7f7410116102e401541b94d71294314468a677b6004dba3a72a"
+}
