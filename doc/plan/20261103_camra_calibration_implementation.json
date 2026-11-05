@@ -2355,7 +2355,7 @@
     {
       "id": "CAL-028",
       "goal": "采集200条近障适用性试验",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-027"
       ],
@@ -2427,6 +2427,42 @@
           "blockers": [
             "近障场景创建耗时爆炸，注入方案未跑通"
           ]
+        },
+        {
+          "timestamp": "2026-11-05T11:45:00+08:00",
+          "summary": "定位并修复障碍注入的性能陷阱（自定义材质导致逐材质着色器编译），200 条近障全部落地：196 completed + 4 terminated、VERDICT pass、档位各 50、20 格 × 10 对齐。",
+          "actions": [
+            "对照实验：slots=0 → gym.make 4.2 s；slots=7 → >600 s 不返回，确认瓶颈在场景创建。",
+            "排除停放距离假设（y=+1000 → y=30 无改善）。",
+            "真因：每个槽位的 PreviewSurfaceCfg 自定义材质各触发一次材质/着色器编译（本机约 85 s/个）；去掉后 gym.make 1.8 s、set_slots 3 ms、障碍物 +0.7 ms/控制步。",
+            "重建锁（树 b17b90db、锁 546231c3）后跑 2 条冒烟通过（completed、6000 步、meta 含净距档位）。",
+            "正式采集：--bucket off 160 条 + --bucket on 40 条，两趟各一次成功，无重采。",
+            "逐格对账：20 格 × 10 全对齐，档位 0.05/0.10/0.20/0.35 各 50，障碍数分布与地图一致，200 条 start_pose_from_map=true。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/sim/obstacles_sim.py（去自定义材质、停放位置注释更正）",
+            "CaMRA/calibration/config/data_lock_v1.json(+.sha256)（重建 546231c3…）",
+            "CaMRA/calibration/docs/implementation_handoff.md（§30）",
+            "/pub/data/caohy/logs/camra/env_setup/{46_near_smoke,47_diag_near,48_cal028_near}.sh|py"
+          ],
+          "commands": [
+            "bash env_setup/47_run_diag.sh --slots 0 / --slots 7（对照）",
+            "bash env_setup/46_near_smoke.sh（2 条）",
+            "bash env_setup/48_cal028_near.sh（200 条，off+on）"
+          ],
+          "results": [
+            "200/200：completed 196、terminated 4、truncated 0、interrupted 0；missing/duplicates/extra 全空。",
+            "能量离线复算 n=200，j_exec ∈ [135.80, 786.36] J，max_rel_err 7.995e-10。",
+            "性能：gym.make 1.8 s、set_slots 3 ms、每控制步 29.1 ms（1 env）/ 32 envs 批量约 50 s/批。",
+            "能量口径未变：D-ENERGY-001 原公式，无任何靠障碍惩罚项。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/logs/camra/env_setup/{47_diag_near,48_cal028_near}.log",
+            "/pub/data/caohy/logs/camra/trials/near_obstacle_check.json（VERDICT pass）",
+            "handoff §30；git bf3b06e"
+          ],
+          "remaining_work": [],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -2440,7 +2476,7 @@
         "采集锁表明v2、功率模型、成本、alpha/delta与独立检验一致。",
         "近障结果未参与前述任何拟合与选择，配额和分组可核对。"
       ],
-      "verification_result": ""
+      "verification_result": "验收通过：(1) 每格 10 条 × 20 格全部落地且清单提前锁定——expected=done=200、problems=[]、VERDICT pass，净距档位 0.05/0.10/0.20/0.35 各 50 条与冻结地图逐条一致，障碍数分布 4:4/5:12/6:26/7:158 与地图完全相同，200 条的 meta 均带 clearance_target_m/clearance_nominal_m/gate_width_m/arena 且 start_pose_from_map=true；(2) 不需训练上层策略——仍用冻结 v2 速度跟踪器与冻结命令程序，仅把障碍物作为 kinematic 碰撞体注入场景；(3) 能量口径与功率模型未变——沿用 D-ENERGY-001 原式（正功关节功率积分、J_min=1 J、单位 J），无任何靠障碍惩罚项，能量离线复算 max_rel_err 7.995e-10；锁 546231c3 绑定未改的模型/轮廓/接口。另记录一处真实性能缺陷与修复：每槽位自定义材质各触发一次着色器编译（约 85 s/个），已移除并把教训写进 §30.1。"
     },
     {
       "id": "CAL-029",
