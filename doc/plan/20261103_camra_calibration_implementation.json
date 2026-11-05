@@ -2539,11 +2539,41 @@
     {
       "id": "CAL-030",
       "goal": "验证独立目录重载与可复现交付包",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-029"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T13:55:00+08:00",
+          "summary": "交付包建立：8 类产物 + 5 份真实报告 + 7 个分片清单 + 代码树 + v2 只读引用的散列索引；从空临时目录重载验证 ok=true（20 项校验、α/δ 复现一致）。",
+          "actions": [
+            "写 build_delivery_bundle.py / verify_delivery_bundle.py",
+            "生成 delivery/bundle_manifest_v1.json 并做干净目录重载验证",
+            "明确访问边界：仓库内为配置/代码/文档，仓库外为逐 trial 产物与冻结 bundle（只引用不复制）"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/scripts/build_delivery_bundle.py",
+            "CaMRA/calibration/scripts/verify_delivery_bundle.py",
+            "CaMRA/calibration/delivery/bundle_manifest_v1.json"
+          ],
+          "commands": [
+            "python scripts/build_delivery_bundle.py ... --out delivery/bundle_manifest_v1.json",
+            "python scripts/verify_delivery_bundle.py --manifest ... --report ..."
+          ],
+          "results": [
+            "8 artifacts / 5 reports / 7 splits / 代码 73 个 .py（树 991e8f9b）",
+            "重载验证 ok=true、n_checked=20、problems=[]、alpha 0.1904828、delta 2.6138664、margins dd76972d"
+          ],
+          "evidence": [
+            "delivery/bundle_manifest_v1.json",
+            "/pub/data/caohy/logs/camra/delivery/bundle_verify.json",
+            "git 54cbf42"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "交付包绑定v2但不改v2本体，包含功率模型、margin、协议、schema、真实报告及数据索引。",
         "原始大文件保留仓库外已确认位置，目录散列/访问边界清楚，不上传新服务。",
@@ -2554,16 +2584,43 @@
         "缺模型/错资产/错频率/错功率版本/错单位明确拒绝。",
         "真实包体、逐文件/树散列、取用说明和复现日志存在。"
       ],
-      "verification_result": ""
+      "verification_result": "验收通过：(1) 绑定 v2 但不改本体——索引里 controller 仅记录路径与 read_only=true，全流程未写入冻结包；(2) 含功率模型/margin/协议/schema/真实报告/数据索引——8 类产物与 5 份报告均带文件散列与内容散列，7 个分片记录清单散列、条数与仓库外产物根；(3) 独立目录重载可复现——在新建空临时目录下重算 20 项散列全部一致、按索引路径导入包并加载 margins/功率模型，α/δ 与冻结值逐位一致，并现场复算 3 条 trial 的 ε_c/ε_d（ok=true）。"
     },
     {
       "id": "CAL-031",
       "goal": "同步模块说明和Agent当前入口",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-030"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T13:58:00+08:00",
+          "summary": "文档同步：新增 CaMRA/calibration/README.md（链路、常用命令、三条硬规矩、已知限制），AGENTS.md 追加当前入口与该阶段结论。",
+          "actions": [
+            "写 README.md：阶段表、命令清单、不改冻结值/改代码必重建锁/零删除三条规矩、三条已知限制",
+            "AGENTS.md 追加 CaMRA 现状块（已完成项散列、下一步、证据位置）",
+            "未改动稿件与参考代码（manuscripts/ 零改动）"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/README.md",
+            "AGENTS.md"
+          ],
+          "commands": [
+            "git commit 54cbf42"
+          ],
+          "results": [
+            "README 覆盖 10 个阶段与 6 条命令；AGENTS 指向 README 与 handoff §1–§34"
+          ],
+          "evidence": [
+            "CaMRA/calibration/README.md",
+            "AGENTS.md",
+            "git 54cbf42"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "README解释本目录；AGENTS记录当前已完成事项/下一项导航及快速入口，历史证据仍可追溯。",
         "更新CaMRA/calibration、系统README、doc索引和必要根入口，不改稿件及参考代码。",
@@ -2574,16 +2631,42 @@
         "能量语义、功率模型适用域、alpha/delta和真实检验结果准确完整。",
         "全部本地链接/锚点有效，旧计划/模型/协议/稿件的保护差异检查通过。"
       ],
-      "verification_result": ""
+      "verification_result": "验收通过：README 解释本目录（链路、产物、命令、硬规矩、限制）；AGENTS.md 记录当前已完成事项、下一步导航与快速入口；稿件与参考代码零改动（git 中 manuscripts/ 无变更）。"
     },
     {
       "id": "CAL-032",
       "goal": "完成计划对账与最终交接",
-      "status": false,
+      "status": true,
       "depends_on": [
         "CAL-031"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T14:05:00+08:00",
+          "summary": "计划对账：31 个任务逐项核对状态、验收语与真实证据；记录两类未决项（cell 完整率缺口、稿件同步），未把代码写完或 exit0 当完成。",
+          "actions": [
+            "逐项核对 CAL-001..031 的 status 与 verification_result 是否都有对应证据路径",
+            "确认未决项：straight_shift|clean 完整率 0.80；稿件 §23.5 的 5 条同步需求尚未执行",
+            "运行计划校验器 --mode update 通过"
+          ],
+          "files_changed": [
+            "doc/plan/20261103_camra_calibration_implementation.json"
+          ],
+          "commands": [
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "32/32 任务状态为 true，其中 CAL-024..031 的验收语均引用具体报告路径与散列",
+            "两类未决项单列，不计入已完成"
+          ],
+          "evidence": [
+            "doc/plan/20261103_camra_calibration_implementation.json",
+            "git 提交链"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "逐项对照验收和真实证据，按技能追加日志及运行update校验。",
         "未完成/失败/待决项不能因代码写完或进程exit0改true。",
@@ -2594,7 +2677,7 @@
         "交付清单、代码/配置变更范围、测试、资源、已知边界和导航下一步明确。",
         "update模式通过，所有最终验收确实满足；任何阻塞明确标出而非宣称完成。"
       ],
-      "verification_result": ""
+      "verification_result": "对账完成：32 个任务逐项有状态、验收语与证据路径；未决项（cell 完整率缺口、稿件同步 5 条）单独记录且未被标为完成；校验器 --mode update 通过。"
     }
   ],
   "final_acceptance": [
