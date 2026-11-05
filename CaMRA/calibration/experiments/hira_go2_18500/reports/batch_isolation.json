@@ -1,0 +1,269 @@
+{
+ "report": "batch_isolation",
+ "task": "HIRA-020",
+ "prereg_row": "T-08",
+ "runs": {
+  "single": {
+   "note": "1 env，默认求解器（与 HIRA-016/017 相同设置）",
+   "num_envs": 1,
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "command_others": null,
+   "origin_offset": null,
+   "enhanced_determinism": null,
+   "max_tau_abs": 24.0804500579834,
+   "array_file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation_single.npz"
+  },
+  "det_single": {
+   "note": "1 env，enhanced determinism 打开",
+   "num_envs": 1,
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "command_others": null,
+   "origin_offset": [
+    0.0,
+    0.0
+   ],
+   "enhanced_determinism": true,
+   "max_tau_abs": 24.0804500579834,
+   "array_file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation_det_single.npz"
+  },
+  "single_at_env0": {
+   "note": "1 env，先把出生点平移到 (6,-4)：与 32 env 批里 env0 的世界坐标相同",
+   "num_envs": 1,
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "command_others": null,
+   "origin_offset": [
+    6.0,
+    -4.0
+   ],
+   "enhanced_determinism": true,
+   "max_tau_abs": 24.23579978942871,
+   "array_file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation_single_at_env0.npz"
+  },
+  "single_shift": {
+   "note": "1 env，出生点平移到 (2,2)：物理等价、只是换了世界坐标",
+   "num_envs": 1,
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "command_others": null,
+   "origin_offset": [
+    2.0,
+    2.0
+   ],
+   "enhanced_determinism": true,
+   "max_tau_abs": 24.09041976928711,
+   "array_file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation_single_shift.npz"
+  },
+  "batch": {
+   "note": "32 env，默认求解器",
+   "num_envs": 32,
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "command_others": null,
+   "origin_offset": null,
+   "enhanced_determinism": null,
+   "max_tau_abs": 24.301755905151367,
+   "array_file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation_batch.npz"
+  },
+  "det_batch": {
+   "note": "32 env，enhanced determinism 打开",
+   "num_envs": 32,
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "command_others": null,
+   "origin_offset": [
+    0.0,
+    0.0
+   ],
+   "enhanced_determinism": true,
+   "max_tau_abs": 24.301755905151367,
+   "array_file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation_det_batch.npz"
+  },
+  "decoupled": {
+   "note": "32 env，env0 前进 [0.5,0,0]、其余 31 个 env 反向 [-0.5,0,0]",
+   "num_envs": 32,
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "command_others": [
+    -0.5,
+    0.0,
+    0.0
+   ],
+   "origin_offset": [
+    0.0,
+    0.0
+   ],
+   "enhanced_determinism": true,
+   "max_tau_abs": 24.150259017944336,
+   "array_file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation_decoupled.npz"
+  }
+ },
+ "checks": [
+  {
+   "id": "T08-decoupling",
+   "name": "env0 的轨迹不受其他 env 命令影响（解耦判定）",
+   "ok": true,
+   "detail": "32 env 里把其余 31 个 env 的命令由 +0.5 改成 −0.5：env0 的 τ 逐元素 max|Δ|=0.0（要求逐位不变），同一时刻 env1 的 τ 变化 max|Δ|=23.926（证明这次改动确实生效了，不是空操作）",
+   "max_abs_diff_env0": 0.0,
+   "max_abs_diff_env1": 23.92646551132202
+  },
+  {
+   "id": "T08-trajectory-prereg",
+   "name": "预登记原判据：1 env 与 32 env 的 τ 轨迹一致（atol 1e-4）",
+   "ok": false,
+   "detail": "max|Δ|=7.954 N·m（判据 0.0001）；首步已差 4.53e-06，第 4 个策略步越过 1e-4，之后指数放大",
+   "curve": {
+    "step0": 4.5299530029296875e-06,
+    "step1": 8.58306884765625e-06,
+    "step3": 9.584426879882812e-05,
+    "step10": 0.0005321502685546875,
+    "max": 7.9536519050598145,
+    "first_step_over_1e-4": 4,
+    "series_head": [
+     4.5299530029296875e-06,
+     8.58306884765625e-06,
+     5.364418029785156e-06,
+     9.584426879882812e-05,
+     0.0010113716125488281,
+     0.000492095947265625,
+     0.0006818771362304688,
+     0.000614166259765625,
+     0.000415802001953125,
+     0.0005555152893066406,
+     0.0005321502685546875,
+     0.0004367828369140625
+    ]
+   }
+  },
+  {
+   "id": "T08-trajectory-matched-origin",
+   "name": "把单 env 放到与 env0 相同的世界坐标后仍不一致",
+   "ok": false,
+   "detail": "1 env@(6,-4) vs 32 env 的 env0：max|Δ|=12.784；首步 1.43e-06。说明差异不是「位置没对齐」造成的，而是求解器对 1 个 vs 32 个刚体并行求解的舍入差异",
+   "curve": {
+    "step0": 1.430511474609375e-06,
+    "step1": 4.649162292480469e-06,
+    "step3": 0.00013113021850585938,
+    "step10": 0.00142669677734375,
+    "max": 12.78419542312622,
+    "first_step_over_1e-4": 3,
+    "series_head": [
+     1.430511474609375e-06,
+     4.649162292480469e-06,
+     3.0994415283203125e-06,
+     0.00013113021850585938,
+     0.000621795654296875,
+     0.0007066726684570312,
+     0.0006823539733886719,
+     0.00045680999755859375,
+     0.00083160400390625,
+     0.002145528793334961,
+     0.00142669677734375,
+     0.0011386871337890625
+    ]
+   }
+  },
+  {
+   "id": "T08-control-translation",
+   "name": "对照实验：只有一个 env、只把出生点平移 2 m，轨迹同样发散",
+   "ok": true,
+   "is_criterion": false,
+   "detail": "物理完全等价，仅世界坐标 (0,0)→(2,2)：max|Δ|=12.446 N·m，首步 4.29e-06、越过 1e-4 于第 4 个策略步——与第 2 项同一量级，说明「批内/跨批差异」来自坐标相关舍入 + 接触混沌放大，不是 env 间耦合",
+   "curve": {
+    "step0": 4.291534423828125e-06,
+    "step1": 8.58306884765625e-06,
+    "step3": 2.372264862060547e-05,
+    "step10": 0.0012683868408203125,
+    "max": 12.44609260559082,
+    "first_step_over_1e-4": 4,
+    "series_head": [
+     4.291534423828125e-06,
+     8.58306884765625e-06,
+     5.0067901611328125e-06,
+     2.372264862060547e-05,
+     0.0004925727844238281,
+     0.0001621246337890625,
+     0.00011777877807617188,
+     0.000125885009765625,
+     0.0005245208740234375,
+     0.0015549659729003906,
+     0.0012683868408203125,
+     0.0005817413330078125
+    ]
+   }
+  },
+  {
+   "id": "T08-behavioral-equivalence",
+   "name": "单 env 与批量的行为统计一致（落在批内散布之内）",
+   "ok": true,
+   "detail": "末段 40 步：单 env vx=0.4459，32 env 0.4506±0.0044；高度 0.3229 vs 0.3232±0.0003；平均|τ| 3.800 vs 3.795±0.004；最大偏离 1.10σ（判据 3σ）",
+   "z_scores": {
+    "vx": -1.0595531445387099,
+    "height": -1.1000300848344096,
+    "tau_mean": 1.0535827433771106
+   }
+  },
+  {
+   "id": "T08-solver-mode",
+   "name": "诊断：enhanced determinism 对同一批大小是否改变结果",
+   "ok": true,
+   "is_criterion": false,
+   "detail": "1 env 默认 vs 1 env 增强确定性：max|Δ|=0.0（逐位相同）→ 该开关在本场景是空操作，不足以把 1 env 与 32 env 对齐",
+   "curve": {
+    "step0": 0.0,
+    "step1": 0.0,
+    "step3": 0.0,
+    "step10": 0.0,
+    "max": 0.0,
+    "first_step_over_1e-4": null,
+    "series_head": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  }
+ ],
+ "verdict": {
+  "criteria_passed": false,
+  "failed": [
+   "T08-trajectory-prereg",
+   "T08-trajectory-matched-origin"
+  ],
+  "decoupling_exact": true,
+  "trajectory_bitwise_attainable": false,
+  "diagnosis": "1 env 与 32 env 的差异是求解器舍入 + 接触混沌放大，不是 env 间耦合；单 env 只平移出生点即可复现同量级发散（T08-control-translation）。预登记 T-08 的「τ 轨迹 atol 1e-4」在 GPU PhysX 上不可达，需协议裁定。"
+ }
+}

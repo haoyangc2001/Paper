@@ -1854,7 +1854,7 @@
       "id": "HIRA-020",
       "phase": "接入门禁G1",
       "goal": "审查并冻结接入通过的HiRA控制器包",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-019"
       ],
@@ -1872,7 +1872,59 @@
         "reports/integration_gate.json",
         "不可变HiRA控制器包/manifest及验证日志"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T23:05:00+08:00",
+          "summary": "G1 门禁通过：T-01..T-15 + B-01 共 16 行全部 pass（g1_passed=true），冻结控制器包 hira_go2_18500（bundle_id 3c32fe31b2753a08…），含 policy.pt、来源 URDF、controller.json 与 manifest。其中 T-08 的预登记判据经实测证明在本工程不可达（测的是坐标舍入+接触混沌，不是耦合），按用户裁定拆为「解耦判定（逐位 0.0）+ 行为等价（1.10σ ≤ 3σ）」两条，原判据失败实测与对照实验原样保留，未删改任何历史记录。",
+          "actions": [
+            "补测 T-08 批量隔离：新建 tests/check_batch_isolation.py，7 个 run（单/批 × 默认/增强确定性 × 解耦 × 平移对照），两阶段合并出 reports/batch_isolation.json。",
+            "发现并记录：批内/跨批轨迹差异来自世界坐标相关舍入 + 接触混沌放大（单 env 仅平移出生点 2 m 即复现 12.45 N·m 发散，首步 4.3e-6）；enhanced_determinism 对同一批大小是空操作（逐位相同），016–019 结果无需重跑。",
+            "生成判据修正案 config/integration_acceptance_amendment_t08_v1.json（sha 037d209d4efb…，引用用户裁定；预登记文件未改动）。",
+            "新建 CaMRA/locomotion/adapters/hira_go2/bundle.py：freeze/load + 三层防伪（逐文件散列与 bundle_id、语义自洽校验、包内 URDF 来源自证 + 运行时外部参照）。",
+            "新建 tests/check_integration_gate.py：matrix（T-01..T-14 独立复核 + 冻结 + T-15 拒混 6/6）/reload（最小重载运行确认）/ merge 三阶段，产出 reports/integration_gate.json。",
+            "T-15 六类破坏全部被拒，其中 R2/R6 是「散列全对的自洽伪造包」——分别被运行时参照与包内 URDF 拦下（只核散列的实现会漏掉这两类）。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/bundle.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_batch_isolation.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_integration_gate.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/integration_acceptance_amendment_t08_v1.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation.json 与 7 组 batch_isolation_*.npz/json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/integration_gate.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/bundle_reload.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/（冻结包，不可变）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§22）"
+          ],
+          "commands": [
+            "python tests/check_batch_isolation.py --headless --device cuda:0 --phase {single,batch} [--tag … --origin-offset … --command-others …]",
+            "python tests/check_batch_isolation.py --phase merge",
+            "python tests/check_integration_gate.py --phase matrix --refreeze",
+            "python tests/check_integration_gate.py --headless --device cuda:0 --phase reload",
+            "python tests/check_integration_gate.py --phase merge"
+          ],
+          "results": [
+            "T-08a 解耦判定：其余 31 env 反向时 env0 的 τ 逐元素 max|Δ|=0.0（逐位不变），env1 变化 23.93 N·m 证明改动生效。",
+            "T-08b 行为等价：单 env vx/高度/平均|τ| 相对批量散布最大偏离 1.10σ（判据 3σ）。",
+            "原判据实测：1 env vs 32 env max|Δτ|=7.95 N·m（首步 4.53e-6，第 4 策略步越 1e-4）；同坐标对照 12.78；单 env 平移 2 m 对照 12.45 —— 与耦合无关。",
+            "门禁 16 行全过：T-01 现场重算 checkpoint 散列一致；T-05 算术复核；T-14 摩擦=1.0、最大速度误差 0.090（阈值 0.25）；T-15 6/6 拒混。",
+            "B-01 重载确认：包内描述与代码逐项一致，包内 policy/URDF 驱动 10 策略步正常站立。",
+            "bundle_id=3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/integration_gate.json（g1_passed=true，16 行）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/batch_isolation.json（含原判据失败实测与对照）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/integration_acceptance_amendment_t08_v1.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/bundle_reload.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/manifest.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §22"
+          ],
+          "remaining_work": [
+            "HIRA-021 的采集器必须以 load_bundle() 为唯一入口（散列+语义+URDF 自证+运行时参照），不得绕过。",
+            "采集器不得假设批内逐位一致（本工程不提供该保证，见修正案）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "总体pass必须由全部必需行合取，不能仅看命令退出码。",
         "此包以后改权重/资产/增益/观测/时钟需新controller版本并重过受影响门禁。"
@@ -1881,7 +1933,7 @@
         "所有必需行pass且未决阻塞=0，原始日志与hash可核查。",
         "独立重载正确、拒混负测试通过，v2包与只读参考源码hash未改变。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（16/16）。门禁矩阵 T-01..T-15 全过（T-08 按修正案执行，原判据失败实测保留），B-01 冻结包最小重载运行确认通过。冻结包 hira_go2_18500 bundle_id=3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975，含 policy.pt（sha 与张量摘要双登记）、来源 URDF（自证关节顺序与限幅）、controller.json（身份/双射/增益/观测契约/时钟/资产/能量口径/环境依赖）与 manifest。拒混 6/6：位翻转、换映射并重封、改时钟并重封、改 controller_id 并重封、摩擦写回 0.5 并重封、只改 source_order 并重封——后五类是散列全对的自洽伪造包，分别被运行时参照与包内 URDF 拦下。"
     },
     {
       "id": "HIRA-021",

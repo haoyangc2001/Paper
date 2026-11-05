@@ -1,0 +1,236 @@
+{
+ "acceptance": {
+  "amendment": "integration_acceptance_amendment_t08_v1.json",
+  "amendment_sha256": "24f0d80072374ad7fadd134e6f15ac2e493e64428caca17ae4eb83dace310393",
+  "gate_report": "reports/integration_gate.json",
+  "prereg": "integration_acceptance_prereg_v1.json",
+  "prereg_sha256": "4ce7735952f3053464601514e333af600919fc15348edf58eb2afa0167f9b9fe"
+ },
+ "asset": {
+  "actuator": "IdealPD（stiffness=damping=0, effort_limit=URDF）→ 纯力矩透传",
+  "collapse_fixed_joints": true,
+  "contact_offset": 0.01,
+  "effort_only": true,
+  "friction": 1.0,
+  "friction_as_imported": 0.5,
+  "friction_note": "导入后的 USD 默认摩擦 0.5 ≠ 源 1.0；clean 必须显式写成 1.0（HIRA-017 实测）",
+  "init_base_pos": [
+   0.0,
+   0.0,
+   0.42
+  ],
+  "replace_cylinders_with_capsules": true,
+  "self_collisions": false,
+  "source_friction": 1.0,
+  "total_mass_kg": 15.01900016865693,
+  "urdf": "/home/caohy/repositories/Paper/HiRA/legged_gym_go2/resources/robots/go2/urdf/go2.urdf",
+  "urdf_in_bundle": "urdf_go2.urdf",
+  "urdf_sha256": "5fea735381cd99059703a544b163be698f7cb8a6382fa9921349539a12ea546e",
+  "usd_cache": "/pub/data/caohy/logs/camra_hira/assets/usd_cache",
+  "usd_note": "由 URDF 现场转换（不复用 v2 的 USD）；缓存目录不随包分发"
+ },
+ "control": {
+  "action_dim": 12,
+  "action_scale": 0.25,
+  "clip_actions": 100.0,
+  "damping": 0.5,
+  "decimation": 4,
+  "deterministic": true,
+  "n_joints": 12,
+  "stiffness": 20.0,
+  "torque_rule": "tau = clip(kp*(q_def + scale*a - q) - kd*qdot, ±effort)，每个物理子步用新鲜 q/qdot"
+ },
+ "controller_id": "hira_go2_18500",
+ "created_at": "2026-11-05T22:59:21+0800",
+ "energy": {
+  "clip": "逐关节截断后求和",
+  "dt_s": 0.005,
+  "formula": "J = Σ_k Σ_j max(τ_j[k]·q̇_j[k], 0) · dt",
+  "metric_id": "D-ENERGY-001",
+  "note": "关节机械正功，不是电池能耗；外部推扰功不计入",
+  "qdot_phase": "post_substep",
+  "tau_source": "robot.data.applied_torque",
+  "unit": "J"
+ },
+ "environment": {
+  "enhanced_determinism": false,
+  "isaaclab_source": "/pub/data/caohy/IsaacLab（0.47.2 editable）",
+  "note": "PhysX GPU 不保证批内逐位一致；跨批差异属求解器舍入 + 接触混沌（见 T-08 修正案）",
+  "physics_backend": "PhysX 5.1（GPU）",
+  "python": "3.11.18",
+  "termination": {
+   "fall_height_m": 0.15,
+   "fall_tilt_deg": 60.0
+  },
+  "torch": "2.7.0+cu126"
+ },
+ "joints": {
+  "default_angles_source": {
+   "FL_calf_joint": -1.5,
+   "FL_hip_joint": 0.1,
+   "FL_thigh_joint": 0.8,
+   "FR_calf_joint": -1.5,
+   "FR_hip_joint": -0.1,
+   "FR_thigh_joint": 0.8,
+   "RL_calf_joint": -1.5,
+   "RL_hip_joint": 0.1,
+   "RL_thigh_joint": 1.0,
+   "RR_calf_joint": -1.5,
+   "RR_hip_joint": -0.1,
+   "RR_thigh_joint": 1.0
+  },
+  "effort_limits_source": {
+   "FL_calf_joint": 35.55,
+   "FL_hip_joint": 23.7,
+   "FL_thigh_joint": 23.7,
+   "FR_calf_joint": 35.55,
+   "FR_hip_joint": 23.7,
+   "FR_thigh_joint": 23.7,
+   "RL_calf_joint": 35.55,
+   "RL_hip_joint": 23.7,
+   "RL_thigh_joint": 23.7,
+   "RR_calf_joint": 35.55,
+   "RR_hip_joint": 23.7,
+   "RR_thigh_joint": 23.7
+  },
+  "permutation_source_to_target": [
+   0,
+   3,
+   6,
+   9,
+   1,
+   4,
+   7,
+   10,
+   2,
+   5,
+   8,
+   11
+  ],
+  "source_order": [
+   "FL_hip_joint",
+   "FL_thigh_joint",
+   "FL_calf_joint",
+   "FR_hip_joint",
+   "FR_thigh_joint",
+   "FR_calf_joint",
+   "RL_hip_joint",
+   "RL_thigh_joint",
+   "RL_calf_joint",
+   "RR_hip_joint",
+   "RR_thigh_joint",
+   "RR_calf_joint"
+  ],
+  "source_order_basis": "URDF 声明顺序（逐腿）；已由 HIRA-017 的顺序对照实验确认",
+  "target_order": [
+   "FL_hip_joint",
+   "FR_hip_joint",
+   "RL_hip_joint",
+   "RR_hip_joint",
+   "FL_thigh_joint",
+   "FR_thigh_joint",
+   "RL_thigh_joint",
+   "RR_thigh_joint",
+   "FL_calf_joint",
+   "FR_calf_joint",
+   "RL_calf_joint",
+   "RR_calf_joint"
+  ]
+ },
+ "notes": [
+  "本包只用于 HIRA 校准链路；改权重/资产/增益/观测/时钟需新 controller 版本并重过受影响门禁。",
+  "source_order 依据 URDF 声明顺序；Lab 侧按名字做双射，不按位置对齐。"
+ ],
+ "observation": {
+  "blocks": [
+   {
+    "end": 3,
+    "name": "ang_vel",
+    "start": 0
+   },
+   {
+    "end": 6,
+    "name": "projected_gravity",
+    "start": 3
+   },
+   {
+    "end": 9,
+    "name": "command",
+    "start": 6
+   },
+   {
+    "end": 21,
+    "name": "dof_pos",
+    "start": 9
+   },
+   {
+    "end": 33,
+    "name": "dof_vel",
+    "start": 21
+   },
+   {
+    "end": 45,
+    "name": "prev_action",
+    "start": 33
+   }
+  ],
+  "clip": 100.0,
+  "dim": 45,
+  "n_joints": 12,
+  "noise_blocks": [
+   "dof_pos",
+   "dof_vel"
+  ],
+  "noise_note": "训练期噪声只加在 dof_pos/dof_vel（9:33），33:45 永不加噪；clean 运行完全关闭噪声。幅度不在源码可得范围（预登记 U-5），故不登记数值",
+  "scales": {
+   "ang_vel": 0.25,
+   "command": [
+    2.0,
+    2.0,
+    0.25
+   ],
+   "dof_pos": 1.0,
+   "dof_vel": 0.05,
+   "gravity": 1.0,
+   "prev_action": 1.0
+  }
+ },
+ "policy": {
+  "activation": "elu",
+  "bytes": 768018,
+  "file": "policy.pt",
+  "format": "torchscript",
+  "hidden_dims": [
+   512,
+   256,
+   128
+  ],
+  "input_dim": 45,
+  "normalizer": false,
+  "output_dim": 12,
+  "sha256": "721a891a22da99f26ce243d538334ba24d3c0e5f04bdf20f837b9960babbfe9e"
+ },
+ "schema": "hira-controller-bundle-v1",
+ "source": {
+  "actor_tensor_digest": "99236fbc4c23346dd35711c1376edc8aab9e9801b3ffb1bf7cc3ad01a7a8a7bb",
+  "checkpoint": "/home/caohy/repositories/Paper/HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt",
+  "checkpoint_sha256": "d30e52122125cf3db576408d4bf736703cdee6719944f55c423b4af3cb03d2e8",
+  "filename_iter": 18500,
+  "internal_iter": 16000,
+  "note": "文件名 18500 与文件内部 iter 16000 不一致；身份只认 sha256 与张量摘要",
+  "repository": "HiRA/legged_gym_go2"
+ },
+ "timing": {
+  "command_dt": 0.1,
+  "command_intervals": 300,
+  "command_policy_steps": 5,
+  "decimation": 4,
+  "paired_points": 301,
+  "physics_steps": 6000,
+  "policy_dt": 0.02,
+  "policy_steps": 1500,
+  "sim_dt": 0.005,
+  "window_s": 30.0
+ },
+ "version": "v1"
+}

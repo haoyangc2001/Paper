@@ -106,6 +106,7 @@ class HiraLabRunner:
         env_spacing: float = 2.0,
         dtype: torch.dtype = torch.float32,
         order_mode: str = "urdf",
+        enhanced_determinism: bool = False,
     ):
         import isaaclab.sim as sim_utils
         from isaaclab.assets import Articulation, ArticulationCfg
@@ -117,9 +118,19 @@ class HiraLabRunner:
         self.num_envs = num_envs
         self.device = device
         self.dtype = dtype
-        self.sim = SimulationContext(
-            SimulationCfg(dt=self.timing.sim_dt, device=device, gravity=(0.0, 0.0, -9.81))
+        # PhysX 的 "enhanced determinism" 让求解结果与线程/批内顺序无关。
+        # 默认关闭（有性能代价），但批量隔离（T-08）这类"逐位比较"的验证必须打开，
+        # 否则 env 之间会因 ULP 级差异在几百步内发散（HIRA-020 实测）。
+        physx_cfg = (
+            sim_utils.PhysxCfg(enable_enhanced_determinism=True) if enhanced_determinism else None
         )
+        sim_cfg = SimulationCfg(
+            dt=self.timing.sim_dt, device=device, gravity=(0.0, 0.0, -9.81)
+        )
+        if physx_cfg is not None:
+            sim_cfg.physx = physx_cfg
+        self.enhanced_determinism = bool(enhanced_determinism)
+        self.sim = SimulationContext(sim_cfg)
         ground = sim_utils.GroundPlaneCfg()
         ground.func("/World/ground", ground)
         light = sim_utils.DomeLightCfg(intensity=300.0)

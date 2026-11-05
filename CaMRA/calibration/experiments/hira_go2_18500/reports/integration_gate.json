@@ -1,0 +1,461 @@
+{
+ "report": "integration_gate",
+ "task": "HIRA-020",
+ "generated_at": "2026-11-05T22:59:17+0800",
+ "prereg": {
+  "file": "integration_acceptance_prereg_v1.json",
+  "sha256": "4ce7735952f3053464601514e333af600919fc15348edf58eb2afa0167f9b9fe"
+ },
+ "amendment": {
+  "file": "integration_acceptance_amendment_t08_v1.json",
+  "sha256": "24f0d80072374ad7fadd134e6f15ac2e493e64428caca17ae4eb83dace310393"
+ },
+ "rows": [
+  {
+   "id": "T-01",
+   "name": "checkpoint 身份与 actor 载入",
+   "required": true,
+   "ok": true,
+   "detail": "checkpoint sha256 现场重算 d30e52122125cf3d… 与登记 d30e52122125cf3d… 一致；结构 45→[512, 256, 128]→12；导出/对照 29 例 passed=True",
+   "evidence": [
+    "reports/actor_export_parity.json",
+    "checkpoint 现场散列 /home/caohy/repositories/Paper/HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt"
+   ],
+   "measured": {
+    "checkpoint_sha256_actual": "d30e52122125cf3db576408d4bf736703cdee6719944f55c423b4af3cb03d2e8",
+    "checkpoint_sha256_recorded": "d30e52122125cf3db576408d4bf736703cdee6719944f55c423b4af3cb03d2e8",
+    "actor_tensor_digest": "99236fbc4c23346dd35711c1376edc8aab9e9801b3ffb1bf7cc3ad01a7a8a7bb",
+    "architecture": {
+     "obs_dim": 45,
+     "act_dim": 12,
+     "hidden_dims": [
+      512,
+      256,
+      128
+     ],
+     "n_linear_layers": 4,
+     "layer_shapes": [
+      [
+       512,
+       45
+      ],
+      [
+       256,
+       512
+      ],
+      [
+       128,
+       256
+      ],
+      [
+       12,
+       128
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "id": "T-02",
+   "name": "资产/关节顺序/坐标系",
+   "required": true,
+   "ok": true,
+   "detail": "USD DOF 顺序与 URDF 不同（置换 {'equal_to_urdf': False, 'bijection': True, 'permutation_urdf_index_of_usd_order': [0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11], 'note': '未假定顺序相同；HIRA-013 用本置换按名字建立双向映射'}），限位差 ≤1e-3 rad；总质量 15.0190 vs URDF 15.019 kg（相对差 1.1e-08）；运行时检查 8/8",
+   "evidence": [
+    "reports/asset_actuator_audit.json"
+   ],
+   "measured": {
+    "permutation_source_to_target": {
+     "equal_to_urdf": false,
+     "bijection": true,
+     "permutation_urdf_index_of_usd_order": [
+      0,
+      3,
+      6,
+      9,
+      1,
+      4,
+      7,
+      10,
+      2,
+      5,
+      8,
+      11
+     ],
+     "note": "未假定顺序相同；HIRA-013 用本置换按名字建立双向映射"
+    },
+    "joint_names_usd": [
+     "FL_hip_joint",
+     "FR_hip_joint",
+     "RL_hip_joint",
+     "RR_hip_joint",
+     "FL_thigh_joint",
+     "FR_thigh_joint",
+     "RL_thigh_joint",
+     "RR_thigh_joint",
+     "FL_calf_joint",
+     "FR_calf_joint",
+     "RL_calf_joint",
+     "RR_calf_joint"
+    ],
+    "mass_relative_diff": 1.1229571223085277e-08,
+    "failed_checks": []
+   }
+  },
+  {
+   "id": "T-03",
+   "name": "45 维观测与归一化",
+   "required": true,
+   "ok": true,
+   "detail": "适配器自测 13 项全过；独立 oracle 四组（cpu/cuda × f32/f64）六块逐块通过，最大的块偏差 1.79e-07（判据 atol 1e-6/rtol 1e-5）",
+   "evidence": [
+    "reports/observation_adapter_tests.json",
+    "reports/source_adapter_parity.json"
+   ],
+   "measured": {
+    "max_block_diff": 1.7881393432617188e-07
+   }
+  },
+  {
+   "id": "T-04",
+   "name": "动作/默认姿态/PD/实际力矩",
+   "required": true,
+   "ok": true,
+   "detail": "q_target 最大偏差 7.63e-07 rad（≤1e-6）；τ 最大偏差 1.91e-06 N·m（≤1e-4）；action_scale=0.25、clip=100.0、kp=20.0、kd=0.5；自测 10 项",
+   "evidence": [
+    "reports/action_pd_tests.json",
+    "reports/source_adapter_parity.json"
+   ],
+   "measured": {
+    "q_target_max": 7.629394538355427e-07,
+    "tau_max": 1.9073486328125e-06,
+    "constants": {
+     "stiffness": 20.0,
+     "damping": 0.5,
+     "action_scale": 0.25,
+     "clip_actions": 100.0,
+     "decimation": 4
+    }
+   }
+  },
+  {
+   "id": "T-05",
+   "name": "200/50/10 Hz 时序",
+   "required": true,
+   "ok": true,
+   "detail": "实测 6000 物理步 / 1500 策略步 / 300 命令区间 / 301 配对点；每策略步恰 4 子步、每命令恰 5 策略步（11 项检查全过）",
+   "evidence": [
+    "reports/timing_command_reset.json"
+   ],
+   "measured": {
+    "warmup_physics_steps": 200,
+    "window_physics_steps": 6000,
+    "policy_steps": 1500,
+    "command_intervals": 300,
+    "paired_points": 301,
+    "terminations_in_window": 0
+   }
+  },
+  {
+   "id": "T-06",
+   "name": "外部命令无暗中改写",
+   "required": true,
+   "ok": true,
+   "detail": "命令块与写入值偏差 0.0；0.1 m/s 未被 0.2 死区吃掉；纯 vy / 纯 wz 未被吞；相关检查 ['C5-command-fidelity', 'N2-command-override'] 全过",
+   "evidence": [
+    "reports/timing_command_reset.json",
+    "reports/timing_command_trace.jsonl"
+   ],
+   "measured": {
+    "command_checks": [
+     "C5-command-fidelity",
+     "N2-command-override"
+    ]
+   }
+  },
+  {
+   "id": "T-07",
+   "name": "reset 与上一动作逐 env 清零",
+   "required": true,
+   "ok": true,
+   "detail": "终止状态在重置前抓取、重置后回到初始高度、其他 env 的上一动作与命令逐位不变；相关检查 ['C7-termination-capture', 'C8-per-env-reset', 'N3-cross-env']",
+   "evidence": [
+    "reports/timing_command_reset.json"
+   ],
+   "measured": {
+    "reset_checks": [
+     "C7-termination-capture",
+     "C8-per-env-reset",
+     "N3-cross-env"
+    ]
+   }
+  },
+  {
+   "id": "T-08",
+   "name": "批量隔离（按修正判据 T-08a/T-08b）",
+   "required": true,
+   "ok": true,
+   "detail": "T-08a 解耦：其余 31 个 env 反向时 env0 的 τ 逐位不变（max|Δ|=0.0），同时 env1 变化 23.93 N·m 证明改动生效；T-08b 行为等价：单 env 落在批量散布的 1.10σ（判据 3σ）。原判据（τ 轨迹 atol 1e-4）实测 max|Δ|=7.95，已按修正案 037d209d4efb… 保留为失败记录",
+   "evidence": [
+    "reports/batch_isolation.json",
+    "config/integration_acceptance_amendment_t08_v1.json"
+   ],
+   "measured": {
+    "amendment_sha256": "037d209d4efb136f6605e911f8a87a3ee77269dafad43a50f888fa07f1f2d0d4",
+    "decoupling_max_abs_diff": 0.0,
+    "behavioral_max_abs_z": 1.1000300848344096,
+    "original_criterion_max_abs_diff": 7.9536519050598145,
+    "original_criterion_passed": false
+   }
+  },
+  {
+   "id": "T-09",
+   "name": "五 profile 实际施加",
+   "required": true,
+   "ok": true,
+   "detail": "9 项全过：摩擦逐 shape 读回、质量 +3.000 kg、推扰 Δv=(0.5,0)、噪声只落 9:33、只改 env0 时 env1 零污染（摩擦读回 None）",
+   "evidence": [
+    "reports/profile_effectiveness.json"
+   ],
+   "measured": {
+    "checks": 9
+   }
+  },
+  {
+   "id": "T-10",
+   "name": "200 Hz 计量相位与非侵入性",
+   "required": true,
+   "ok": true,
+   "detail": "17 项检查全过；在线与两套离线实现 rel=0.0（判据 1e-9）；记录器开/关 250 帧轨迹逐位一致（max|Δ|=0.0）；τ 取 applied_torque、q̇ 取子步结束时刻",
+   "evidence": [
+    "reports/hira_energy_meter_validation.json"
+   ],
+   "measured": {
+    "rel_online_vs_numpy": 0.0,
+    "readonly_max_abs_diff": 0.0,
+    "phase_pre_vs_post": 0.06641370246187694
+   }
+  },
+  {
+   "id": "T-11",
+   "name": "v2 旧证据可复算与新旧拒混",
+   "required": true,
+   "ok": true,
+   "detail": "v2 交付包重算 全部 项散列全对；配置隔离自测 10/10（含把 HIRA_* 指向 v2 产物时必须拒绝）；v2 训练期原始日志不在本机（已登记，仅作对照基准）",
+   "evidence": [
+    "reports/legacy_evidence_availability.json",
+    "reports/config_isolation_tests.json"
+   ],
+   "measured": {
+    "isolation": "10/10"
+   }
+  },
+  {
+   "id": "T-12",
+   "name": "CPU 同状态 oracle（actor 等价）",
+   "required": true,
+   "ok": true,
+   "detail": "29 例：CPU 最大偏差 0.00e+00（判据 1e-5）；GPU 最大偏差 0.00146484375；推导输入与库内随机各 9 组",
+   "evidence": [
+    "reports/actor_export_parity.json"
+   ],
+   "measured": {
+    "cpu_max": 0.0,
+    "gpu_max": 0.00146484375
+   }
+  },
+  {
+   "id": "T-13",
+   "name": "坐标/映射破坏必须被拒",
+   "required": true,
+   "ok": true,
+   "detail": "5 类破坏全部被检出：N1-joint-order；N2-command-scale；N3-quat-order；N4-default-angle；N5-stiffness",
+   "evidence": [
+    "reports/source_adapter_parity.json"
+   ],
+   "measured": {
+    "n_negative": 5,
+    "n_detected": 5
+   }
+  },
+  {
+   "id": "T-14",
+   "name": "clean 闭环行为",
+   "required": true,
+   "ok": true,
+   "detail": "11/11 命令通过（摩擦 1.0）；最大速度误差 0.087 m/s（阈值 0.25）；阻断项 无；低速工况单列报告",
+   "evidence": [
+    "reports/clean_closed_loop.json"
+   ],
+   "measured": {
+    "max_error": 0.08675741618915908,
+    "friction": 1.0
+   }
+  },
+  {
+   "id": "T-15",
+   "name": "回归：故意破坏必须拒绝",
+   "required": true,
+   "ok": true,
+   "detail": "6/6 类破坏被拒绝：R1-policy-bitflip（policy.pt 散列不符（清单 721a891a22da vs 实际 d769f）；R2-joint-swap（target_order 与运行时审计的参照不一致（映射被改））；R3-clock-shift（policy_dt ≠ sim_dt × decimation）；R4-controller-id（controller_id 'hira_go2_18500_forged' ≠ 期望）；R5-friction-half（asset.friction 与 source_friction 不一致——clea）；R6-source-order-swap（source_order 与包内 URDF 的关节声明顺序不一致（来源被改））",
+   "evidence": [
+    "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/manifest.json"
+   ],
+   "measured": {
+    "cases": [
+     {
+      "id": "R1-policy-bitflip",
+      "name": "策略文件被改一个字节（不重封）",
+      "rejected": true,
+      "error": "policy.pt 散列不符（清单 721a891a22da vs 实际 d769fa8fd051）"
+     },
+     {
+      "id": "R2-joint-swap",
+      "name": "交换两个关节名并重封（映射被改）",
+      "rejected": true,
+      "error": "target_order 与运行时审计的参照不一致（映射被改）"
+     },
+     {
+      "id": "R3-clock-shift",
+      "name": "把 sim_dt 改成 0.004 并重封（时钟被改）",
+      "rejected": true,
+      "error": "policy_dt ≠ sim_dt × decimation"
+     },
+     {
+      "id": "R4-controller-id",
+      "name": "改 controller_id 并重封（身份被改）",
+      "rejected": true,
+      "error": "controller_id 'hira_go2_18500_forged' ≠ 期望 'hira_go2_18500'"
+     },
+     {
+      "id": "R5-friction-half",
+      "name": "把摩擦写成 0.5（回到导入默认）并重封",
+      "rejected": true,
+      "error": "asset.friction 与 source_friction 不一致——clean 条件必须用源值"
+     },
+     {
+      "id": "R6-source-order-swap",
+      "name": "只改 source_order 与置换并重封（映射被改）",
+      "rejected": true,
+      "error": "source_order 与包内 URDF 的关节声明顺序不一致（来源被改）"
+     }
+    ]
+   }
+  },
+  {
+   "id": "B-01",
+   "name": "冻结包最小重载运行确认",
+   "required": true,
+   "ok": true,
+   "detail": "重载 hira_go2_18500 跑 10 个策略步：τ 有限、max|τ|=17.82 N·m、未越限（-1.8e+01）、高度 0.419→0.358 m；描述与代码逐项一致",
+   "evidence": [
+    "reports/bundle_reload.json"
+   ],
+   "measured": {
+    "policy_steps": 10,
+    "command": [
+     0.5,
+     0.0,
+     0.0
+    ],
+    "tau_finite": true,
+    "max_abs_tau": 17.81537437438965,
+    "max_over_effort": -17.699526500701904,
+    "height_start": 0.41874465346336365,
+    "height_end": 0.358328253030777,
+    "height_min": 0.358328253030777,
+    "tau_fingerprint": "3dfd39382533772c7d3bf68c604e0f3c7394c07f556414f39e07dd1ebe466a75"
+   }
+  }
+ ],
+ "evidence_hashes": {
+  "action_pd_tests.json": "d3cdee630cc2bc95d99383f42749ef6f363c6f7b13e3ffd2c154bad199e48ed3",
+  "actor_export_parity.json": "5aa48a74e6ed55f331b32dc43f20d2648489ac83ce9a896955ee52fd0c4d9163",
+  "asset_actuator_audit.json": "2c22dc8bd7ac8156f97169497f16c7cf426dd96df97d2d648b9ef7a0e82566e3",
+  "batch_isolation.json": "581241d552833e564abd84c67e2527c13f2a99c1c6e4c2dccd61c57a679a2cef",
+  "clean_closed_loop.json": "baba3c7e5ee2207af524f6414297369c254b817760d6af28a92c96fde60daf01",
+  "config_isolation_tests.json": "43e3c8f08273889e0f65c2bb1f0ca49a7824e07186103150a7dc73c760a1b477",
+  "hira_energy_meter_validation.json": "9d9d76b233408818d84addaf6db328bbdd1c6976d6ce4c47e16926ed0cbaf834",
+  "legacy_evidence_availability.json": "3484da0e90abbcb4728318e1e6074c1e3f24d09fb503f0a4637f3f3060fb45cd",
+  "observation_adapter_tests.json": "fc35b98d279e691cb0f68aa470714a022364d927c0fa5721f328449a266e1888",
+  "profile_effectiveness.json": "67c5a0d0a4336ac1279e22d27c625a787458e89b31039567766ffae1bd37a750",
+  "source_adapter_parity.json": "deff5c80d74a6e8e600e82af6c53c8dc02fba64494df79f3d335a3e387e314a9",
+  "timing_command_reset.json": "50d2ffff18f8485862023e8e164ffed394b9738fd4b234b6afbc3c32f674dbb3"
+ },
+ "bundle": {
+  "dir": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500",
+  "controller_id": "hira_go2_18500",
+  "version": "v1",
+  "bundle_id": "3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975",
+  "policy_sha256": "721a891a22da99f26ce243d538334ba24d3c0e5f04bdf20f837b9960babbfe9e",
+  "files": [
+   {
+    "path": "README.md",
+    "sha256": "edf8bfe43ed3f7d608187965abd6c9a15c582bb409c5945db196b4b6d5292828",
+    "bytes": 457
+   },
+   {
+    "path": "controller.json",
+    "sha256": "fe2f392a647cbd2ef6c014ac60e20f496c189e8a7e4fe740336639e247ca6c0e",
+    "bytes": 6105
+   },
+   {
+    "path": "policy.pt",
+    "sha256": "721a891a22da99f26ce243d538334ba24d3c0e5f04bdf20f837b9960babbfe9e",
+    "bytes": 768018
+   },
+   {
+    "path": "urdf_go2.urdf",
+    "sha256": "5fea735381cd99059703a544b163be698f7cb8a6382fa9921349539a12ea546e",
+    "bytes": 25386
+   }
+  ],
+  "manifest_sha256": "8f967332b6ab7193fb7d857b36a59d6cb6cb15f6dd9ae211f53b312bf5fee5cb",
+  "controller_sha256": "fe2f392a647cbd2ef6c014ac60e20f496c189e8a7e4fe740336639e247ca6c0e"
+ },
+ "verdict": {
+  "g1_passed": true,
+  "failed_rows": [],
+  "n_rows": 16,
+  "note": "T-01..T-15 全部通过；最小重载运行确认见 reports/bundle_reload.json（--phase reload）。"
+ },
+ "bundle_reload": {
+  "report": "bundle_reload",
+  "task": "HIRA-020",
+  "generated_at": "2026-11-05T23:00:04+0800",
+  "bundle": {
+   "dir": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500",
+   "controller_id": "hira_go2_18500",
+   "bundle_id": "3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975",
+   "policy_sha256": "721a891a22da99f26ce243d538334ba24d3c0e5f04bdf20f837b9960babbfe9e"
+  },
+  "descriptor_matches_code": {
+   "action_scale": true,
+   "clip_actions": true,
+   "stiffness": true,
+   "damping": true,
+   "decimation": true,
+   "source_order": true,
+   "default_angles": true
+  },
+  "run": {
+   "policy_steps": 10,
+   "command": [
+    0.5,
+    0.0,
+    0.0
+   ],
+   "tau_finite": true,
+   "max_abs_tau": 17.81537437438965,
+   "max_over_effort": -17.699526500701904,
+   "height_start": 0.41874465346336365,
+   "height_end": 0.358328253030777,
+   "height_min": 0.358328253030777,
+   "tau_fingerprint": "3dfd39382533772c7d3bf68c604e0f3c7394c07f556414f39e07dd1ebe466a75"
+  },
+  "verdict": {
+   "passed": true,
+   "failed": []
+  }
+ }
+}

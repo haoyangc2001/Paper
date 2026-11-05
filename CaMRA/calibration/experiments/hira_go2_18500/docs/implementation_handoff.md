@@ -1290,3 +1290,81 @@ python tests/check_energy_meter.py --headless --device cuda:0 --phase readonly -
 python tests/check_energy_meter.py --headless --device cuda:0 --phase readonly --recorder off
 python tests/check_energy_meter.py --phase merge      # 需要带 numpy 的解释器
 ```
+
+## §22 HIRA-020：G1 接入门禁与控制器包冻结（16/16）
+
+### 22.1 结论
+
+`reports/integration_gate.json`：T-01..T-15 + B-01 共 **16 行全部通过**，`g1_passed=true`。
+冻结包：
+
+```
+CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/
+├── controller.json   # 身份/关节双射/增益/观测契约/时钟/资产/能量口径/环境依赖
+├── policy.pt         # TorchScript（sha256 与张量摘要双登记）
+├── urdf_go2.urdf     # 来源 URDF 随包分发（自证关节顺序与限幅）
+├── manifest.json     # 逐文件 sha256 + bundle_id
+└── README.md
+bundle_id = 3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975
+```
+
+### 22.2 T-08：预登记判据在本工程不可达，按用户裁定拆分
+
+预登记 T-08 写的是「1 env 与 32 env 的 τ 轨迹一致（atol 1e-4）；env 之间无耦合」。实测：
+
+| 对照 | max\|Δτ\| | 含义 |
+|---|---|---|
+| 解耦判定：其余 31 个 env 反向，env0 | **0.0（逐位）** | env 之间确实无耦合 |
+| 1 env vs 32 env（env0） | 7.95 N·m | 预登记原判据失败 |
+| 1 env 放到与 env0 相同世界坐标 vs 32 env | 12.78 N·m | 不是"位置没对齐" |
+| **只有一个 env，只把出生点平移 2 m** | **12.45 N·m** | 物理等价也发散 → 差异与耦合无关 |
+
+首步就有 ~4.5e-6 的差（float32 ULP 量级），第 4 个策略步越过 1e-4 后指数放大；
+行为统计上单 env 落在批量散布的 **1.10σ** 内（vx 0.4459 vs 0.4506±0.0044）。
+
+**结论**：原判据测的是"世界坐标相关舍入 + 接触混沌放大"，不是耦合；在 GPU PhysX 上
+逐位 batch==single 不可达。已按用户裁定写入修正案
+`config/integration_acceptance_amendment_t08_v1.json`（sha `037d209d4efb…`）：
+T-08 拆成 **T-08a 解耦判定（逐位 0.0）** 与 **T-08b 行为等价（≤3σ）**，
+原判据的失败实测与对照实验**原样保留**在 `reports/batch_isolation.json`。
+
+附带两条诊断：`enhanced_determinism` 对同一批大小是**空操作**（1 env 默认 vs 1 env 增强：逐位相同），
+因此 016–019 的结果不受影响、也无需重跑；批内逐位一致本工程不提供，采集器不得假设。
+
+### 22.3 门禁矩阵的实现方式
+
+`tests/check_integration_gate.py` 不是"读 verdict 抄一遍"：
+
+- **独立复核**：T-01 现场重算 checkpoint 散列比对登记值；T-05 重算 6000/1500/300/301 的算术；
+- **指名到检查项**：T-06 用 `C5-command-fidelity + N2-command-override`，T-07 用
+  `C7-termination-capture + C8-per-env-reset + N3-cross-env`，不靠整体 verdict；
+- **证据文件散列**：12 份报告的 sha256 全部写进门禁报告，改任何一份都会被发现；
+- **T-08 行**引用修正案散列，并保留原判据的失败数字（`original_criterion_passed=false`）。
+
+### 22.4 控制器包的三层防伪
+
+只核散列挡不住"改完内容重算 manifest"的伪造包，所以 `load_bundle()` 有三层：
+
+1. **散列**：逐文件 sha256 + `bundle_id`（覆盖描述内容与文件清单）；
+2. **语义**：关节双射性、时钟算术自洽、观测块无缝覆盖 0:45、
+   `friction == source_friction`（防 0.5/1.0 那类静默回退）、能量口径必须显式；
+3. **来源自证**：源 URDF **随包分发**，加载时重解析——`source_order` 必须等于 URDF
+   声明顺序、effort 限幅必须等于 URDF 值；另支持外部参照（运行时审计的 DOF 顺序）。
+
+拒混测试 6/6（R1 位翻转 / R2 换 target 顺序并重封 / R3 改时钟并重封 /
+R4 改 controller_id 并重封 / R5 摩擦写回 0.5 并重封 / R6 只改 source_order 并重封）。
+R2/R6 是"散列全对的自洽伪造包"，分别被**运行时参照**和**包内 URDF** 拦下——
+这正是只核散列的实现会漏掉的两类。
+
+### 22.5 最小重载确认（B-01）
+
+从冻结目录加载（散列+语义+URDF 自证+外部参照全过）→ 校验包内描述与将运行的代码逐项一致
+（action_scale/clip/kp/kd/decimation/关节顺序/默认角）→ 用**包内** policy.pt 与 URDF 跑
+10 个策略步：τ 有限、max|τ| 未越限幅、高度 0.42→正常站立、指纹已记录（`bundle_reload.json`）。
+
+### 22.6 边界与遗留
+
+- `usd_cache` 目录不随包分发（现场由 URDF 转换，缓存路径记录在 controller.json）；
+- T-11 中 v2 训练期原始日志（TASK-024/026/036）不在本机，已登记为对照基准限制；
+- 冻结目录不可变：改动需 `--refreeze` 显式声明，并产生新 controller 版本；
+- 采集器（HIRA-021 起）应以 `load_bundle()` 作为唯一入口，不得绕过校验直读文件。

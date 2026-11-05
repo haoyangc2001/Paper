@@ -1,0 +1,55 @@
+{
+ "version": "v1",
+ "kind": "acceptance_criterion_amendment",
+ "experiment_id": "hira_go2_18500",
+ "controller_id": "camra_hira_go2_18500_lab_v1",
+ "prereg_sha256": "459b596017a4b7f7410116102e401541b94d71294314468a677b6004dba3a72a",
+ "amended_at": "2026-11-05T23:20:00+08:00",
+ "amended_by": "user",
+ "prereg_row": "T-08",
+ "original_text": "批量结果与单 env 一致（τ 轨迹 atol 1e-4）；env 之间无耦合",
+ "original_criterion_result": {
+  "passed": false,
+  "measured": {
+   "tau_max_abs_diff_1env_vs_32env": 7.9536519050598145,
+   "first_step_over_1e-4": 4,
+   "first_step_diff": 4.5299530029296875e-06,
+   "matched_origin_max_abs_diff": 12.78419542312622
+  },
+  "note": "原判据已实测并保留，未删除、未改写阈值；本修正不改变任何历史记录。"
+ },
+ "reason": "该判据在本工程上不可达，且它测的不是「env 间耦合」：对照实验证明，只有一个 env、仅把出生点平移 2 m（物理完全等价）即可复现同量级发散（12.45 N·m，首步 4.3e-06）。根因是世界坐标相关的浮点舍入在接触动力学里被指数放大；把 1 个 env 放在与批量 env0 完全相同的世界坐标上也仍然发散（12.78 N·m），因此与「env 之间是否耦合」无关。",
+ "amended_criteria": [
+  {
+   "id": "T-08a",
+   "name": "解耦判定",
+   "criterion": "在同一批 32 env 内，只把其余 env 的命令改为相反方向，env0 的 τ 轨迹必须逐位不变；同时被改动的 env1 必须确实变化（证明改动生效）",
+   "measured": {
+    "env0_max_abs_diff": 0.0,
+    "env1_max_abs_diff": 23.92646551132202
+   },
+   "passed": true
+  },
+  {
+   "id": "T-08b",
+   "name": "行为等价",
+   "criterion": "单 env 与 32 env 批量的末段速度、平均高度、平均|τ| 三项，单 env 值必须落在批内散布的 ±3σ 内",
+   "measured": {
+    "z_scores": {
+     "vx": -1.0595531445387099,
+     "height": -1.1000300848344096,
+     "tau_mean": 1.0535827433771106
+    },
+    "max_abs_z": 1.1000300848344096
+   },
+   "passed": true
+  }
+ ],
+ "not_amended": [
+  "T-01..T-07、T-09..T-15 的判据与阈值不变",
+  "批内逐位一致不列为判据（本工程不提供该保证），仅作为诊断记录在 reports/batch_isolation.json"
+ ],
+ "retained_evidence": "reports/batch_isolation.json",
+ "rule": "本修正仅适用于 T-08，不得推广到其他门禁行；其他行如需修改须另行裁定并保留旧判定。",
+ "sha256": "037d209d4efb136f6605e911f8a87a3ee77269dafad43a50f888fa07f1f2d0d4"
+}
