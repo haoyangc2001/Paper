@@ -1424,3 +1424,60 @@ attempt 目录只增不改；中断补跑（resume）与业务失败重试（须
   022 的 20 条 pilot 分批时按 profile 分组即可。
 - 采集吞吐未系统测量（022 的资源估算任务）。
 - 022 起正式采集的 run 目录约定：`/pub/data/caohy/logs/camra_hira/runs/<run_id>/`。
+
+## §24 HIRA-022：20 条五条件 pilot（10/10）与资源实测
+
+### 24.1 结论
+
+run 目录 `/pub/data/caohy/logs/camra_hira/runs/pilot_20261105T223428`：
+4 命令族 × 5 profile = **20 条全部完成采集与验证**（`reports/pilot_validation.json`，
+P01–P10 全过，`all_passed=true`）。
+
+### 24.2 清单与可复现性
+
+- 4 族（straight_shift / arc_combined / alternating / start_stop_turn，与 v2 同一个
+  `camra_calibration.commands.build_program` 生成器——命令表可逐元素复现）×
+  5 profile（clean / friction_only / mass_only / push_only / combined）；
+- seed 6110..6129 为 **pilot 专属区间**，已写进 collect_config 并注明后续 split 必须避开
+  （HIRA-024 登记互斥表时引用）；
+- 每条 trial 的命令表显式存进 meta（program_sha256），验证时重新生成比对：P03 逐元素一致。
+
+### 24.3 验证结果
+
+| 项 | 实测 |
+|---|---|
+| DONE / 身份 | 20/20 DONE 完整；meta 的 bundle_id 全部等于 G1 冻结包 `3c32fe31…`（P02 = "正式 runner 跑的是冻结包"的证据） |
+| 时钟/配对 | 301 配对点（Δt=0.1）、1500 状态点、6000 物理步，20 条全一致 |
+| 能量 | 离线复算最大 rel **4.3e-15**；J 范围 444–41015 J |
+| profile 旋钮 | 无条件绝对式写入（幂等）：readback == spec 值，20 条全对 |
+| 推扰 | 28 次，实测 Δv 与指令差 < 0.05 m/s |
+| 名义/执行配对误差 | **报告口径非判据**：全体中位 1.041 m；分组中位 clean 0.381 / friction 0.298 / mass 1.990 / push 1.490 / combined 1.509 m —— 开环跟踪（无航向闭环）的固有漂移，扰动组显著更高，符合预期 |
+| 业务结果 | 完成 16 条，**提前终止 4 条**（全部是 combined/噪声组）——如实计数，不隐身、不丢弃 |
+| 低速 | 程序低速段占比 40%–73%（协议下限 25%），10/20 条含 near_zero 段 |
+
+### 24.4 本轮抓到的真 bug：跨批旋钮污染
+
+首轮 20 条跑完后，独立验证发现 **mass_only 批继承了 friction_only 批的采样摩擦、
+push_only 批带着上一批的 +3 kg 跑**：`_apply_mass` 是增量式、且非相关 profile
+不复位旋钮。修复：构造时快照基准质量/惯量，`_apply_mass` 改为**绝对式**
+（base+Δ，幂等），`_apply_spec_env` **无条件**写全部旋钮。被污染的首轮 run
+目录已删除，修复后重跑（本 § 的数字全部来自修复后的 run）。
+这类错误在 v2 里靠"每 env 独立写旋钮+读回"防住了；HiRA 版第一版漏了"跨批复位"，
+被验证脚本抓到——验证独立于采集器再次证明必要。
+
+### 24.5 资源实测（更新 025/030/032/034 的估算）
+
+- **吞吐：4.6 s/条**（30 s 窗口，4 env 一批，含批间开销；总 91.9 s 采完 20 条）；
+- **存储：1.15 MB/条**（压缩 npz；20 条共 23 MB）；
+- 峰值 RSS 4.2 GB；
+- 外推：baseline 400 ≈ **31 min**、calibration 800 ≈ **61 min**、heldout 400 ≈ **31 min**、
+  near_obstacle 200 ≈ **15 min**，总存储 ≈ **2.0 GB**（v2 同规模为 68 GB——
+  v2 逐 trial 存了全量 root/接触调试数据，HiRA 只存能量计量与配对所需字段；
+  若 036 审计需要更多字段，需在此之前扩记录器并重新过受影响门禁）。
+
+### 24.6 遗留
+
+- combined 组 4 条摔倒：噪声条件下策略跟踪失败是**业务结果**，已记录；
+  024 生成正式清单时噪声格的配额仍按协议，不因 pilot 表现调格；
+- P08 的配对误差只是漂移分布；真正的"跟踪质量"统计（含名义偏差分位数）
+  在 028 的消费接口里按协议口径计算。

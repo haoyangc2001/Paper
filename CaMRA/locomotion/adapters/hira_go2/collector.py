@@ -264,6 +264,11 @@ class HiraCollector:
         )
         # clean 摩擦按源值显式写入（导入默认 0.5 ≠ 源 1.0，HIRA-017 实测）
         self.base_friction = float(controller["asset"]["friction"])
+        # 基准质量/惯量快照：profile 的质量旋钮必须**绝对式**设置（base+Δ），
+        # 否则跨批会累积上一批的增量（pilot 首轮实测：mass_only 批继承了
+        # friction_only 批的采样摩擦、push_only 批带着 +3 kg 跑——这是验证抓到的真 bug）
+        self._base_masses = self.runner.robot.root_physx_view.get_masses().clone()
+        self._base_inertias = self.runner.robot.root_physx_view.get_inertias().clone()
         self._set_friction(list(range(self.num_envs)), self.base_friction)
         self.timing = timing
 
@@ -282,20 +287,26 @@ class HiraCollector:
         return {"before": before, "set": friction, "readback": readback}
 
     def _apply_mass(self, env_ids: list[int], delta_kg: float) -> dict:
+        """把 base 质量设为 **base + delta**（绝对式，可跨批重复调用而不累积）。"""
         view = self.runner.robot.root_physx_view
-        masses = view.get_masses().clone()
-        inertias = view.get_inertias().clone()
+        masses = self._base_masses.clone()
+        inertias = self._base_inertias.clone()
         base_index = 0  # base 是 body 0（HIRA-012 审计确认）
-        before = float(masses[env_ids[0], base_index])
+        before = float(view.get_masses()[env_ids[0], base_index])
         for env in env_ids:
-            ratio = (masses[env, base_index] + delta_kg) / masses[env, base_index]
-            masses[env, base_index] += delta_kg
+            new_mass = masses[env, base_index] + delta_kg
+            ratio = new_mass / masses[env, base_index]
+            masses[env, base_index] = new_mass
             inertias[env, base_index, :] *= ratio
         ids = torch.tensor(env_ids, dtype=torch.int64)
         view.set_masses(masses, ids)
         view.set_inertias(inertias, ids)
-        return {"before": before, "set": before + delta_kg,
-                "readback": float(view.get_masses()[env_ids[0], base_index])}
+        return {
+            "before": before,
+            "set": float(self._base_masses[env_ids[0], base_index]) + delta_kg,
+            "readback": float(view.get_masses()[env_ids[0], base_index]),
+            "base_mass_kg": float(self._base_masses[env_ids[0], base_index]),
+        }
 
     def _write_initial_pose(self, env_ids: list[int], pose: dict | None) -> None:
         runner = self.runner
@@ -315,15 +326,16 @@ class HiraCollector:
         runner.robot.update(runner.timing.sim_dt)
 
     def _apply_spec_env(self, env_ids: list[int], spec: TrialSpec) -> dict:
-        """把一条 trial 的物理旋钮写进指定 env，返回读回证据。"""
-        evidence: dict = {"friction": None, "mass": None}
-        if spec.profile in ("friction_only", "combined"):
-            evidence["friction"] = self._set_friction(list(env_ids), spec.friction)
-        if spec.profile in ("mass_only", "combined"):
-            evidence["mass"] = self._apply_mass(list(env_ids), spec.added_mass_kg)
-        if spec.profile in ("clean", "push_only"):
-            # clean/push_only 也要把可能残留的旋钮拉回基准（串批/重试时尤其重要）
-            evidence["friction"] = self._set_friction(list(env_ids), self.base_friction)
+        """把一条 trial 的全部物理旋钮写进指定 env，返回读回证据。
+
+        **无条件**写摩擦与质量（clean/mass_only 的 spec 携带 friction=1.0 / mass=0）：
+        旋钮必须绝对式、幂等——曾实测"只写相关旋钮"会让 mass_only 批继承
+        friction_only 批的采样摩擦、push_only 批带着上一批的 +3 kg 跑。
+        """
+        evidence: dict = {
+            "friction": self._set_friction(list(env_ids), spec.friction),
+            "mass": self._apply_mass(list(env_ids), spec.added_mass_kg),
+        }
         return evidence
 
     def _set_noise(self, spec: TrialSpec) -> None:
@@ -440,17 +452,20 @@ class HiraCollector:
         }
 
     def _record_pairing(self, state: dict, specs: list[TrialSpec]) -> None:
-        """10 Hz 配对点：每个命令区间起点的（时间、命令、平面位姿）。"""
+        """10 Hz 配对点：每个命令区间起点的（时间、命令、平面位姿）。
+
+        位置是**相对 env origin** 的（名义轨迹也在同一坐标系里，初值 = initial_pose），
+        GPU 上 clone、落盘时一次性搬回——逐点 .tolist() 会把 1500 步变成纯 CPU 同步（v2 的教训）。
+        """
         runner = self.runner
         t = runner.physics_step * runner.timing.sim_dt
         for k, spec in enumerate(specs):
-            pos = runner.robot.data.root_pos_w[k]
-            yaw = _yaw_from_quat_wxyz(runner.robot.data.root_quat_w[k])
+            pos = runner.robot.data.root_pos_w[k] - runner.env_origins[k]
             state["pairing"][spec.trial_id].append(
-                {"t_s": round(float(t), 6),
-                 "command": [float(v) for v in runner.command[k]],
-                 "pos_xy": [float(pos[0]), float(pos[1])],
-                 "yaw": float(yaw)}
+                {"t_s": t,
+                 "command": runner.command[k].detach().clone(),
+                 "pos_xy": pos[0:2].detach().clone(),
+                 "yaw": _yaw_from_quat_wxyz(runner.robot.data.root_quat_w[k])}
             )
 
     def _record_state50(self, state: dict, specs: list[TrialSpec]) -> None:
@@ -459,15 +474,15 @@ class HiraCollector:
         for k, spec in enumerate(specs):
             data = runner.robot.data
             state["state50"][spec.trial_id].append(
-                {"t_s": round(float(t), 6),
-                 "command": [float(v) for v in runner.command[k]],
-                 "action": runner._last_action_source[k].detach().cpu().tolist(),
-                 "root_pos": data.root_pos_w[k].detach().cpu().tolist(),
-                 "root_quat": data.root_quat_w[k].detach().cpu().tolist(),
-                 "root_lin_b": data.root_lin_vel_b[k].detach().cpu().tolist(),
-                 "root_ang_b": data.root_ang_vel_b[k].detach().cpu().tolist(),
-                 "joint_pos": runner.order.target_to_source(data.joint_pos)[k].detach().cpu().tolist(),
-                 "joint_vel": runner.order.target_to_source(data.joint_vel)[k].detach().cpu().tolist()}
+                {"t_s": t,
+                 "command": runner.command[k].detach().clone(),
+                 "action": runner._last_action_source[k].detach().clone(),
+                 "root_pos": (data.root_pos_w[k] - runner.env_origins[k]).detach().clone(),
+                 "root_quat": data.root_quat_w[k].detach().clone(),
+                 "root_lin_b": data.root_lin_vel_b[k].detach().clone(),
+                 "root_ang_b": data.root_ang_vel_b[k].detach().clone(),
+                 "joint_pos": runner.order.target_to_source(data.joint_pos)[k].detach().clone(),
+                 "joint_vel": runner.order.target_to_source(data.joint_vel)[k].detach().clone()}
             )
 
     def _maybe_push(self, specs: list[TrialSpec], state: dict,
@@ -505,6 +520,13 @@ class HiraCollector:
                        warmup_steps: int, window_start_step: int) -> None:
         import numpy as np
 
+        def stack(rows, key, dtype=None):
+            """把 GPU clone 的记录一次性搬回 CPU（避免逐点同步）。"""
+            tensor = torch.stack([row[key] for row in rows]).detach().cpu()
+            if dtype:
+                tensor = tensor.to(dtype)
+            return tensor.numpy()
+
         for index, (spec, attempt, attempt_dir) in enumerate(attempt_dirs):
             env = index
             state_rows = state["state50"][spec.trial_id]
@@ -512,20 +534,20 @@ class HiraCollector:
             np.savez_compressed(
                 attempt_dir / "state_50hz.npz",
                 t_s=np.array([row["t_s"] for row in state_rows], dtype=np.float64),
-                command=np.array([row["command"] for row in state_rows], dtype=np.float32),
-                action_source=np.array([row["action"] for row in state_rows], dtype=np.float32),
-                root_pos_w=np.array([row["root_pos"] for row in state_rows], dtype=np.float32),
-                root_quat_w=np.array([row["root_quat"] for row in state_rows], dtype=np.float32),
-                root_lin_vel_b=np.array([row["root_lin_b"] for row in state_rows], dtype=np.float32),
-                root_ang_vel_b=np.array([row["root_ang_b"] for row in state_rows], dtype=np.float32),
-                joint_pos_source=np.array([row["joint_pos"] for row in state_rows], dtype=np.float32),
-                joint_vel_source=np.array([row["joint_vel"] for row in state_rows], dtype=np.float32),
+                command=stack(state_rows, "command", torch.float32),
+                action_source=stack(state_rows, "action", torch.float32),
+                root_pos_w=stack(state_rows, "root_pos", torch.float32),
+                root_quat_w=stack(state_rows, "root_quat", torch.float32),
+                root_lin_vel_b=stack(state_rows, "root_lin_b", torch.float32),
+                root_ang_vel_b=stack(state_rows, "root_ang_b", torch.float32),
+                joint_pos_source=stack(state_rows, "joint_pos", torch.float32),
+                joint_vel_source=stack(state_rows, "joint_vel", torch.float32),
             )
             np.savez_compressed(
                 attempt_dir / "pairing_10hz.npz",
                 t_s=np.array([row["t_s"] for row in pairing], dtype=np.float64),
-                command=np.array([row["command"] for row in pairing], dtype=np.float32),
-                pos_xy=np.array([row["pos_xy"] for row in pairing], dtype=np.float32),
+                command=stack(pairing, "command", torch.float32),
+                pos_xy=stack(pairing, "pos_xy", torch.float32),
                 yaw=np.array([row["yaw"] for row in pairing], dtype=np.float64),
             )
             np.savez_compressed(
@@ -575,6 +597,8 @@ class HiraCollector:
                     "state50_points": len(state_rows),
                     "window_start_physics_step": window_start_step,
                 },
+                "env_origin": [float(v) for v in self.runner.env_origins[index]],
+                "note_positions": "state50/pairing 的位置都是相对 env_origin 的；名义轨迹同坐标系",
                 "profile_applied": {
                     "profile_id": spec.profile,
                     **(profile_readback[spec.trial_id] or {}),

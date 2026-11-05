@@ -1,0 +1,161 @@
+{
+ "report": "pilot_validation",
+ "task": "HIRA-022",
+ "run_id": "pilot_20261105T223428",
+ "run_dir": "/pub/data/caohy/logs/camra_hira/runs/pilot_20261105T223428",
+ "bundle_id": "3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975",
+ "seed_range": [
+  6110,
+  6129
+ ],
+ "checks": [
+  {
+   "id": "P01-done",
+   "name": "20/20 DONE 完整且散列一致",
+   "ok": true,
+   "detail": "20/20 skip；其余 []"
+  },
+  {
+   "id": "P02-identity",
+   "name": "身份与 G1 冻结包一致（正式 runner 跑的就是冻结包）",
+   "ok": true,
+   "detail": "20 条 meta 的 bundle_id 均为 3c32fe31b2753a08…，controller/experiment/seed 区间一致"
+  },
+  {
+   "id": "P03-pairing",
+   "name": "配对 301 点、0.1 s 间距、命令与程序生成器逐元素一致",
+   "ok": true,
+   "detail": "20 条全部 301 点 / Δt=0.1 / 命令一致"
+  },
+  {
+   "id": "P04-state-steps",
+   "name": "50 Hz 1500 点、6000 物理步",
+   "ok": true,
+   "detail": "20 条全部一致"
+  },
+  {
+   "id": "P05-energy",
+   "name": "执行能量离线复算",
+   "ok": true,
+   "detail": "20 条复算最大 rel=4.29e-15（判据 1e-9）；J 范围 444.3–41015.4 J",
+   "worst_rel": 4.291365317564144e-15,
+   "j_range": [
+    444.3364561512058,
+    41015.35650230988
+   ]
+  },
+  {
+   "id": "P06-profile-readback",
+   "name": "profile 旋钮读回与 spec 一致（绝对式、幂等，无跨批污染）",
+   "ok": true,
+   "detail": "hira-pilot-straight_shift-clean-0000: friction 1.0（spec 1.0），base 6.921+0.0 → 6.921；hira-pilot-straight_shift-friction_only-0000: friction 1.1734999418258667（spec 1.1735），base 6.921+0.0 → 6.921；hira-pilot-straight_shift-mass_only-0000: friction 1.0（spec 1.0），base 6.921+1.5446 → 8.466；base 刚体质量集合 [6.921] kg"
+  },
+  {
+   "id": "P07-push",
+   "name": "推扰实测 Δv 与指令一致",
+   "ok": true,
+   "detail": "共 28 次推扰"
+  },
+  {
+   "id": "P08-pairing-error",
+   "name": "名义/执行配对误差分布（开环跟踪漂移，报告口径非判据）",
+   "ok": true,
+   "detail": "6000 个配对点：全体中位 1.041 m，最大 10.125 m；分组中位 {'clean': {'median_m': 0.381, 'max_m': 1.453}, 'friction_only': {'median_m': 0.298, 'max_m': 1.683}, 'mass_only': {'median_m': 1.99, 'max_m': 5.786}, 'push_only': {'median_m': 1.49, 'max_m': 7.251}, 'combined': {'median_m': 1.509, 'max_m': 10.125}}",
+   "is_criterion": false,
+   "per_group": {
+    "clean": {
+     "median_m": 0.381,
+     "max_m": 1.453
+    },
+    "friction_only": {
+     "median_m": 0.298,
+     "max_m": 1.683
+    },
+    "mass_only": {
+     "median_m": 1.99,
+     "max_m": 5.786
+    },
+    "push_only": {
+     "median_m": 1.49,
+     "max_m": 7.251
+    },
+    "combined": {
+     "median_m": 1.509,
+     "max_m": 10.125
+    }
+   },
+   "median_m": 1.041435265133129,
+   "max_m": 10.124586079019634
+  },
+  {
+   "id": "P09-outcomes",
+   "name": "业务结果真实计数（摔倒不隐身、低速与 near_zero 在报告中可见）",
+   "ok": true,
+   "detail": "完成 16 条，提前终止 4 条（['hira-pilot-straight_shift-combined-0000', 'hira-pilot-arc_combined-combined-0000', 'hira-pilot-alternating-combined-0000', 'hira-pilot-start_stop_turn-combined-0000']）；程序低速段占比 40%–73%（协议下限 25%），10/20 条含 near_zero 段",
+   "fell": [
+    "hira-pilot-straight_shift-combined-0000",
+    "hira-pilot-arc_combined-combined-0000",
+    "hira-pilot-alternating-combined-0000",
+    "hira-pilot-start_stop_turn-combined-0000"
+   ],
+   "n_completed": 16,
+   "low_speed_share": [
+    0.4,
+    0.73
+   ]
+  },
+  {
+   "id": "P10-resources",
+   "name": "本机实测吞吐与存储 → 更新资源估算",
+   "ok": true,
+   "detail": "实测 4.6 s/条、1.15 MB/条、峰值 RSS 4177 MB；外推 400/800/400/200 条 ≈ 30.6/61.3/30.6/15.3 分钟，总存储 2.0 GB",
+   "measured": {
+    "wall_per_trial_s": 4.6,
+    "dir_mb_per_trial": 1.15,
+    "rss_max_mb": 4177.1,
+    "total_run_min": 1.5
+   },
+   "extrapolated": {
+    "pilot20_done": true,
+    "baseline400_min": 30.6,
+    "calibration800_min": 61.3,
+    "heldout400_min": 30.6,
+    "near_obstacle200_min": 15.3,
+    "storage_all_GB": 2.0
+   },
+   "note": "外推按单 trial 均摊（含批次开销）；推扰/摩擦/噪声批与 clean 同批大小，批间启动已摊入"
+  }
+ ],
+ "resources": {
+  "measured": {
+   "wall_per_trial_s": 4.6,
+   "dir_mb_per_trial": 1.15,
+   "rss_max_mb": 4177.1,
+   "total_run_min": 1.5
+  },
+  "extrapolated": {
+   "pilot20_done": true,
+   "baseline400_min": 30.6,
+   "calibration800_min": 61.3,
+   "heldout400_min": 30.6,
+   "near_obstacle200_min": 15.3,
+   "storage_all_GB": 2.0
+  },
+  "note": "外推按单 trial 均摊（含批次开销）；推扰/摩擦/噪声批与 clean 同批大小，批间启动已摊入"
+ },
+ "outcomes": {
+  "completed": 16,
+  "terminated_early": 4,
+  "fell_ids": [
+   "hira-pilot-straight_shift-combined-0000",
+   "hira-pilot-arc_combined-combined-0000",
+   "hira-pilot-alternating-combined-0000",
+   "hira-pilot-start_stop_turn-combined-0000"
+  ]
+ },
+ "verdict": {
+  "n_checks": 10,
+  "failed": [],
+  "all_passed": true
+ }
+}

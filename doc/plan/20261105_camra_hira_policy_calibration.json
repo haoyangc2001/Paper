@@ -2022,7 +2022,7 @@
       "id": "HIRA-022",
       "phase": "校准链路接入",
       "goal": "完成20条五条件pilot并验证全链路",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-021"
       ],
@@ -2041,7 +2041,52 @@
         "pilot清单、20条原始结果和失败记录",
         "reports/pilot_end_to_end.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T06:35:00+08:00",
+          "summary": "20 条五条件 pilot（4 命令族 × 5 profile）全部采集并独立验证通过（10/10）。seed 6110..6129 为 pilot 专属区间；命令表用与 v2 同一个 build_program 生成器，验证时逐元素复现比对。独立验证抓到并修复一个真 bug（profile 旋钮跨批污染），被污染的首轮 run 已删除并重跑。资源实测：4.6 s/条、1.15 MB/条，外推正式采集（400+800+400+200）约 138 分钟、2.0 GB 存储。",
+          "actions": [
+            "新建 tests/run_pilot.py：单进程 5 批（按 profile 分组，同批 obs_noise 一致），支持断点续跑（plan_attempts skip），记 run_stats（wall/RSS/目录大小）。",
+            "采集器性能改造：50 Hz/10 Hz 记录改为 GPU clone + 落盘时一次性 stack 回传，30 s×4 env 一批从 v2 的 ~490 s/条 降到 ~5 s/条。",
+            "新建 tests/check_pilot_results.py：独立重建 spec 并逐条核验 DONE/身份/时钟/能量/profile 读回/推扰/名义配对误差/业务结果/低速与 near_zero 计数/资源外推。",
+            "修复真 bug：_apply_mass 改为绝对式（构造时快照基准质量/惯量），_apply_spec_env 无条件写全部旋钮——首轮 pilot 验证发现 mass_only 批继承 friction_only 批的采样摩擦、push_only 批带着上一批 +3 kg 跑（跨批污染）；被污染的 run 目录删除后重跑，本记录的数字全部来自修复后的 run。",
+            "配对/状态位置统一改为相对 env origin，meta 记录 env_origin（与名义轨迹同坐标系）。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/collector.py（绝对式旋钮 + GPU clone 记录 + env_origin）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/run_pilot.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_pilot_results.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/pilot_validation.json（新建，10/10）",
+            "/pub/data/caohy/logs/camra_hira/runs/pilot_20261105T223428/（20 条 trial 数据，run_stats/collect_config）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§24）"
+          ],
+          "commands": [
+            "python tests/run_pilot.py --headless --device cuda:0",
+            "python tests/check_pilot_results.py --phase merge"
+          ],
+          "results": [
+            "P01/P02：20/20 DONE 完整；meta bundle_id 全部 = G1 冻结包 3c32fe31…（正式 runner 跑的是冻结包的直接证据）。",
+            "P03/P04：301 配对点（Δt=0.1，命令与程序生成器逐元素一致）、1500 状态点、6000 物理步，20 条全对。",
+            "P05：能量离线复算最大 rel 4.3e-15；J 范围 444–41015 J（上界来自 combined/噪声组的挣扎段）。",
+            "P06：profile 旋钮读回全部等于 spec 携带值（绝对式、幂等，无跨批污染）。",
+            "P07：28 次推扰实测 Δv 与指令差 <0.05 m/s。",
+            "P08（报告口径非判据）：名义/执行配对误差全体中位 1.041 m；分组中位 clean 0.381 / friction 0.298 / mass 1.990 / push 1.490 / combined 1.509 m——开环跟踪固有漂移，扰动组显著更高。",
+            "P09：完成 16 条、提前终止 4 条（全部 combined/噪声组）——如实计数，未丢弃、未隐藏；低速段占比 40%–73%（协议下限 25%），10/20 条含 near_zero 段。",
+            "P10：4.6 s/条、1.15 MB/条、RSS 4.2 GB；外推 400/800/400/200 条 ≈ 31/61/31/15 分钟、总存储 2.0 GB。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/pilot_validation.json（all_passed=true，10 项）",
+            "/pub/data/caohy/logs/camra_hira/runs/pilot_20261105T223428/run_stats.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §24"
+          ],
+          "remaining_work": [
+            "HIRA-024 生成正式清单时登记 seed 互斥表（pilot 已占 [6110,6129]），combined/噪声格配额按协议不调整。",
+            "若 036 审计需要更多原始字段，须在 025 之前扩记录器并重过受影响门禁（当前 1.15 MB/条只存计量与配对所需）。",
+            "028 的跟踪质量统计按协议口径计算（P08 只是漂移分布）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "pilot不拟合功率模型、不选择checkpoint、不参与α/δ统计。",
         "修复代码后必须重验受影响环节，不能只把pilot重跑至好看。"
@@ -2050,7 +2095,7 @@
         "20格均有可审计记录，数据完整性及复算通过，业务失败被真实计数。",
         "能证明正式runner运行的是G1冻结包；没有靠丢弃异常数据获得通过。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（10/10）。20 条 pilot 全部完成：身份与 G1 冻结包逐条一致（bundle_id 3c32fe31…），301 配对点/1500 状态点/6000 步全对，能量离线复算 rel ≤4.3e-15，profile 旋钮读回全部等于 spec 值（绝对式、幂等，跨批污染已修复并重跑），28 次推扰实测一致，业务结果如实计数（16 完成 + 4 提前终止，全部为噪声组），低速段占比 40%–73%、10/20 条含 near_zero 段。资源实测 4.6 s/条、1.15 MB/条，外推正式采集 ≈138 分钟/2.0 GB。"
     },
     {
       "id": "HIRA-023",
