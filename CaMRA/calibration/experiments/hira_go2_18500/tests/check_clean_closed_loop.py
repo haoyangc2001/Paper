@@ -46,6 +46,8 @@ parser.add_argument("--prereg", default=str(EXP / "config/integration_acceptance
 parser.add_argument("--out-dir", default=str(EXP / "reports"))
 parser.add_argument("--window", type=float, default=30.0)
 parser.add_argument("--warmup-steps", type=int, default=0)
+# 导入后的 USD 默认摩擦是 0.5，而源（isaacgym/URDF）默认 1.0；clean 必须按源取 1.0
+parser.add_argument("--friction", type=float, default=1.0)
 
 _PRE = parser.parse_known_args()[0]
 if _PRE.phase == "merge":
@@ -209,6 +211,14 @@ def main() -> int:
         args_cli.urdf, args_cli.usd_dir, num_envs=1, device=args_cli.device,
         policy_path=args_cli.policy, timing=timing,
     )
+    # clean 的摩擦按源（URDF/isaacgym）默认 1.0 显式写入；导入的 USD 默认只有 0.5。
+    view = runner.robot.root_physx_view
+    material = view.get_material_properties().clone()
+    friction_as_imported = float(material[0, 0, 0])
+    material[:, :, 0] = args_cli.friction
+    material[:, :, 1] = args_cli.friction
+    view.set_material_properties(material, torch.tensor([0], dtype=torch.int64))
+    log(f"friction {friction_as_imported:.2f} → {float(view.get_material_properties()[0, 0, 0]):.2f}")
     log("runner ready")
 
     def body_velocity() -> tuple[float, float, float]:
@@ -242,6 +252,8 @@ def main() -> int:
         "device": args_cli.device,
         "window_s": args_cli.window,
         "warmup_steps": args_cli.warmup_steps,
+        "friction": args_cli.friction,
+        "friction_as_imported": friction_as_imported,
         "seeds": list(SEEDS),
         "thresholds": thresholds,
         "trials": results,
@@ -257,7 +269,8 @@ def merge(outp: Path, args) -> int:
     """合并分片、按预登记判据判定，并检查重复 trial 是否逐位一致。"""
     prereg = json.loads(Path(args.prereg).read_text(encoding="utf-8"))
     commands = {item["id"]: item for item in prereg["closed_loop_sequence"]["commands"]}
-    shards = sorted(outp.glob("clean_closed_loop.shard*.json"))
+    # 只取本次的分片：归档的 *_fric050.json 不能被卷进来（否则同一命令会混两种摩擦）
+    shards = sorted(outp.glob("clean_closed_loop.shard[0-9].json"))
     if not shards:
         raise SystemExit("没有分片结果")
     trials = []
@@ -315,6 +328,11 @@ def merge(outp: Path, args) -> int:
     report = {
         "report": "clean_closed_loop",
         "task": "HIRA-017",
+        "shard_config": {
+            "warmup_steps": json.loads(shards[0].read_text(encoding="utf-8")).get("warmup_steps"),
+            "friction": json.loads(shards[0].read_text(encoding="utf-8")).get("friction"),
+            "friction_as_imported": json.loads(shards[0].read_text(encoding="utf-8")).get("friction_as_imported"),
+        },
         "window_s": prereg["closed_loop_sequence"]["window_s"],
         "seeds": list(SEEDS),
         "n_trials": len(trials),

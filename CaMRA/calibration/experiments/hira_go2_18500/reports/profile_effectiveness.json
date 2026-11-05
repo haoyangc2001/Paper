@@ -1,0 +1,425 @@
+{
+  "report": "profile_effectiveness",
+  "task": "HIRA-018",
+  "device": "cuda:0",
+  "seconds_per_condition": 4.0,
+  "profile_plan": {
+    "clean": {
+      "friction": 1.0,
+      "added_mass_kg": 0.0,
+      "push": null,
+      "obs_noise": false
+    },
+    "friction_only": {
+      "friction": 0.3,
+      "added_mass_kg": 0.0,
+      "push": null,
+      "obs_noise": false
+    },
+    "mass_only": {
+      "friction": 1.0,
+      "added_mass_kg": 3.0,
+      "push": null,
+      "obs_noise": false
+    },
+    "push_only": {
+      "friction": 1.0,
+      "added_mass_kg": 0.0,
+      "push": {
+        "time_s": 1.0,
+        "dv_xy": [
+          0.5,
+          0.0
+        ]
+      },
+      "obs_noise": false
+    },
+    "combined": {
+      "friction": 0.3,
+      "added_mass_kg": 3.0,
+      "push": {
+        "time_s": 1.0,
+        "dv_xy": [
+          0.5,
+          -0.25
+        ]
+      },
+      "obs_noise": true
+    }
+  },
+  "protocol_profiles": {
+    "clean": {
+      "id": "clean",
+      "friction": 1.0,
+      "added_mass_kg": 0.0,
+      "push": "disabled",
+      "obs_noise": "disabled",
+      "note": "无附加扰动的物理执行；仍属执行系统，不称为名义模型"
+    },
+    "friction_only": {
+      "id": "friction_only",
+      "friction_range": [
+        0.3,
+        1.25
+      ],
+      "added_mass_kg": 0.0,
+      "push": "disabled",
+      "obs_noise": "disabled"
+    },
+    "mass_only": {
+      "id": "mass_only",
+      "friction": 1.0,
+      "added_mass_kg_range": [
+        -1.0,
+        3.0
+      ],
+      "push": "disabled",
+      "obs_noise": "disabled"
+    },
+    "push_only": {
+      "id": "push_only",
+      "friction": 1.0,
+      "added_mass_kg": 0.0,
+      "push_velocity_xy_mps_range": [
+        -0.5,
+        0.5
+      ],
+      "push_interval_s_range": [
+        5.0,
+        10.0
+      ],
+      "obs_noise": "disabled",
+      "note": "推扰是水平速度冲击，不换算为牛顿外力"
+    },
+    "combined": {
+      "id": "combined",
+      "friction_range": [
+        0.3,
+        1.25
+      ],
+      "added_mass_kg_range": [
+        -1.0,
+        3.0
+      ],
+      "push_velocity_xy_mps_range": [
+        -0.5,
+        0.5
+      ],
+      "push_interval_s_range": [
+        5.0,
+        10.0
+      ],
+      "obs_noise": "训练配置现有值"
+    }
+  },
+  "baseline": {
+    "total_mass": 30.038002014160156,
+    "friction": 0.5
+  },
+  "readback": {
+    "friction": {
+      "assigned": 0.3,
+      "n_shapes": 27,
+      "readback_static": [
+        [
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3
+        ],
+        [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      ],
+      "readback_dynamic": [
+        [
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3
+        ],
+        [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      ],
+      "max_abs_diff": 0.0
+    },
+    "mass": {
+      "delta_kg": 3.0,
+      "link_index": 0,
+      "link_name": "base",
+      "base_before": [
+        6.921,
+        6.921
+      ],
+      "base_after": [
+        9.921,
+        6.921
+      ],
+      "total_before": [
+        15.018999,
+        15.018999
+      ],
+      "total_after": [
+        18.018999,
+        15.018999
+      ],
+      "max_abs_diff": 0.0
+    }
+  },
+  "trajectories": {
+    "clean": {
+      "n_policy_steps": 200,
+      "mean_height": 0.3201298277080059,
+      "mean_speed": 0.08959409654140472,
+      "final_speed": 0.06754472851753235,
+      "push": null,
+      "fingerprint": [
+        0.306378,
+        0.304782,
+        0.303365,
+        0.302227,
+        0.301469,
+        0.098453,
+        0.101347,
+        0.097601,
+        0.086483,
+        0.067545
+      ]
+    },
+    "friction_only": {
+      "n_policy_steps": 200,
+      "mean_height": 0.2703911938518286,
+      "mean_speed": 0.07406066187657416,
+      "final_speed": 0.05329040437936783,
+      "push": null,
+      "fingerprint": [
+        0.239266,
+        0.239924,
+        0.240374,
+        0.240619,
+        0.24064,
+        0.092108,
+        0.056361,
+        0.028551,
+        0.031184,
+        0.05329
+      ]
+    },
+    "mass_only": {
+      "n_policy_steps": 200,
+      "mean_height": 0.2775555881857872,
+      "mean_speed": 0.16303478166926652,
+      "final_speed": 0.18491260707378387,
+      "push": null,
+      "fingerprint": [
+        0.274493,
+        0.271676,
+        0.268504,
+        0.265007,
+        0.261176,
+        0.171991,
+        0.175314,
+        0.177335,
+        0.182078,
+        0.184913
+      ]
+    },
+    "push_only": {
+      "n_policy_steps": 200,
+      "mean_height": 0.32798248186707496,
+      "mean_speed": 0.10660211875103415,
+      "final_speed": 0.04460487514734268,
+      "push": {
+        "time_s": 1.0,
+        "dv_xy": [
+          0.5,
+          0.0
+        ],
+        "measured_dv_xy": [
+          0.5,
+          0.0
+        ],
+        "measured_dv_yaw": 0.0,
+        "mechanism": "write_root_velocity_to_sim（水平速度冲击，未换算为牛顿外力）"
+      },
+      "fingerprint": [
+        0.329078,
+        0.327838,
+        0.326433,
+        0.32489,
+        0.323238,
+        0.061695,
+        0.056522,
+        0.05171,
+        0.047453,
+        0.044605
+      ]
+    }
+  },
+  "obs_noise_blocks": {
+    "0:9": 0.0,
+    "9:21": 0.009543037042021751,
+    "21:33": 1.490607738494873,
+    "33:45": 0.0
+  },
+  "checks": [
+    {
+      "id": "P0-profiles",
+      "name": "五个条件与协议定义同名",
+      "ok": true,
+      "detail": "clean/friction_only/mass_only/push_only/combined 全部存在"
+    },
+    {
+      "id": "P5-clean-determinism",
+      "name": "clean 两次运行的末段轨迹一致（同进程 reset 容差 1e-3；逐位一致需新进程）",
+      "ok": true,
+      "detail": "末 5 步高度/速度指纹最大差=0.000e+00（逐位一致=True；跨进程逐位一致已由 HIRA-017 的 33 条 trial 证明）"
+    },
+    {
+      "id": "P1-friction",
+      "name": "摩擦写入 0.3（仅 env0）读回一致，env1 保持基准",
+      "ok": true,
+      "detail": "27 个 shape；env0 全 0.3，env1 全 1.00"
+    },
+    {
+      "id": "P2-mass",
+      "name": "base 加 3 kg（仅 env0）读回一致、总质量 +3 kg，env1 不变",
+      "ok": true,
+      "detail": "base: 6.921→9.921 kg，总质量 15.019→18.019（Δ=3.0000）；env1 Δ=0.00e+00"
+    },
+    {
+      "id": "P7-restore",
+      "name": "恢复 clean 后质量、惯量与材质读回基准值（reset 不吃旧 profile 残留）",
+      "ok": true,
+      "detail": "质量 30.0380（基准 30.0380），摩擦 0.500（基准 0.500），恢复残差 mass=0.00e+00 material=0.00e+00"
+    },
+    {
+      "id": "P6-perturbation-applied",
+      "name": "摩擦/质量/推扰三个条件的轨迹都与 clean 不同（证明真的施加了）",
+      "ok": true,
+      "detail": "friction_only: Δ=6.527e-02；mass_only: Δ=1.160e-01；push_only: Δ=2.486e-02"
+    },
+    {
+      "id": "P3-push-velocity",
+      "name": "推扰写入后一步内水平速度增量等于设定 Δv，yaw 不受影响",
+      "ok": true,
+      "detail": "Δv 实测=[0.5, 0.0]（设定 [0.5, 0.0]），Δyaw=0.00e+00"
+    },
+    {
+      "id": "P4-obs-noise",
+      "name": "噪声只落 9:21/21:33，幅度不超过源 noise_scale；其余块为 0",
+      "ok": true,
+      "detail": "逐块最大变化 {'0:9': 0.0, '9:21': 0.009543037042021751, '21:33': 1.490607738494873, '33:45': 0.0}（上限 dof_pos 0.01、dof_vel 1.5）"
+    },
+    {
+      "id": "P8-cross-env",
+      "name": "2 env 场景下只改 env0，env1 的质量与摩擦保持基准（无跨 env 污染）",
+      "ok": true,
+      "detail": "env1 摩擦与质量均未变（质量 Δ=0.00e+00）"
+    }
+  ],
+  "verdict": {
+    "all_passed": true,
+    "failed": [],
+    "n_checks": 9
+  }
+}

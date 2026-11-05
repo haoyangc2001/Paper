@@ -1573,7 +1573,7 @@
       "id": "HIRA-017",
       "phase": "闭环接入验证",
       "goal": "验证clean工况下的闭环稳定与运动响应",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-016"
       ],
@@ -1643,6 +1643,46 @@
               "detail": "C-08 速度误差 0.288 > 0.25；证据指向策略步态切换（能力），但需用户确认判定口径后方可继续 HIRA-018"
             }
           ]
+        },
+        {
+          "timestamp": "2026-11-05T22:05:00+08:00",
+          "summary": "发现并修正协议错误：导入后的材质摩擦是 0.5 而源 URDF 是 1.0，之前 33 条 closed-loop 是在半摩擦下跑的。在 friction=1.0 下重跑 33 条：11/11 通过，C-08 误差由 0.288 降到 0.087，零速漂移由 0.135 降到 0.003 m/s。原'能力边界'裁定未被用于放宽阈值（阈值与命令域均未改动），失败实为条件不符。",
+          "actions": [
+            "新增 tests/diag_clean_friction.py：在同一进程内把材质摩擦从导入默认 0.5 写到源值 1.0，重测 C-02 与 C-08 作对照。",
+            "check_clean_closed_loop.py 增加 --friction（默认 1.0）并在启动时按源值写入、把导入默认值与使用值记入报告；merge 只匹配本次分片（避免把归档的 fric050 结果混入）。",
+            "归档旧结果为 clean_closed_loop_fric050.json 与对应分片，保留可对照。",
+            "在 friction=1.0 下重跑 33 条（两分片；其中一片因所在卡被他人占满而迁移到空闲卡重跑）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_clean_closed_loop.py（新增 --friction 与 shard_config）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/diag_clean_friction.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/clean_closed_loop.json（重跑，friction=1.0）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/clean_closed_loop_fric050.json（归档旧结果）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/clean_friction_check.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§20）"
+          ],
+          "commands": [
+            "python tests/diag_clean_friction.py --headless --device cuda:0（0.5 vs 1.0 对照）",
+            "python tests/check_clean_closed_loop.py --phase run --shard {0,1} --num-shards 2 --friction 1.0",
+            "python tests/check_clean_closed_loop.py --phase merge"
+          ],
+          "results": [
+            "11/11 命令通过：速度误差 0.009–0.090（阈值 0.25），方向全对，无摔倒、无 NaN、饱和率 0%。",
+            "C-08 由 0.660/err 0.288（friction 0.5）变为 0.326/err 0.087（friction 1.0）。",
+            "C-01 零速漂移由 0.135 m/s 降到 0.003 m/s，说明之前的'静止却在走'同样是脚底打滑。",
+            "33 条三个 seed 仍逐位一致（clean 无隐藏随机化）。",
+            "摩擦对照：C-02 0.469→0.445、C-08 0.660→0.326（同一代码、仅改摩擦）。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/clean_closed_loop.json（verdict: all_nominal_passed=true，blocking_failures=[]）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/clean_friction_check.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/clean_closed_loop_fric050.json（旧条件，保留对照）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §20"
+          ],
+          "remaining_work": [
+            "HIRA-020 冻结控制器包时必须把材质摩擦（源 1.0）写入 bundle 资产配置，并登记'导入默认 0.5'这一已修复缺口。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -1653,13 +1693,13 @@
         "必需闭环测试满足预登记工程准入且无未解释NaN、发散、方向错误、单位错误或执行链偏差。",
         "能力限制和接入错误分别列证据；未解决的关键异常使本任务false并阻断后续。"
       ],
-      "verification_result": "未通过（status 保持 false）。11 条命令 × 3 seed × 30 s 全部执行完毕：10 条满足预登记工程准入，C-08 的速度误差 0.288 超过 0.25 m/s 阈值。稳定性与方向两项均满足：33 条全部无摔倒、无非有限值，C-02..C-07 平均机身速度符号全部与命令一致；饱和率全为 0%（阈值 30%）。归因证据：关节顺序假设已用对照排除（改成 Lab BFS 顺序会导致高度 0.108 m、跟踪误差 22.9 rad、力矩饱和）；wz 扫描显示同一 vx=0.4 指令下，wz 由 0 增至 0.15 会使前向速度从 0.364 跳到 0.625，而 [0.2,0,0.3] 仅 0.013，属策略在带转向组合命令下的步态切换，不是缩放/映射/时序错误（后三者已由 HIRA-015/016 独立验证为精确）。同时如实记录两点：初版因 200 步 warmup 让机器人先塌陷，把 C-02 误差从 0.032 放大到 0.187，协议已改为 warmup=0；33 条重复逐位一致，说明 clean 无隐藏随机化，但每命令只有 1 个独立样本、不能按 33 个独立点做统计。按预登记 blocking_rules 的 T-14 与 uncertainty_policy，改造判定口径须先征得用户同意，故暂停于此，未推进 HIRA-018。"
+      "verification_result": "通过（协议修正后）。修正内容：导入后的材质摩擦是 0.5，而源 URDF/isaacgym 默认 1.0，此前 33 条是在半摩擦条件下跑的；按预登记 clean 的含义（与源一致的物理条件）在 friction=1.0 下重跑 33 条，结果为 11/11 通过：速度误差 0.009–0.090 m/s（阈值 0.25），C-02..C-07 平均机身速度符号全部与命令一致，33 条无摔倒、无非有限值、力矩饱和率 0%（阈值 30%）；此前失败的 C-08 误差由 0.288 降到 0.087，零速漂移由 0.135 降到 0.003 m/s。阈值与命令域均未改动，用户先前的'按能力边界处理'裁定因此未被实际使用（不需要放宽任何口径）；旧条件结果归档为 clean_closed_loop_fric050.json 可对照。残留事项：材质摩擦必须在 HIRA-020 冻结包时显式写入资产配置，后续采集不得依赖导入默认值。"
     },
     {
       "id": "HIRA-018",
       "phase": "闭环接入验证",
       "goal": "验证五profile真实生效且无隐藏随机化",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-017"
       ],
@@ -1679,7 +1719,40 @@
         "reports/profile_effectiveness.json",
         "实际参数和扰动事件trace"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T22:10:00+08:00",
+          "summary": "五个物理执行条件在 HiRA 资产上逐项生效并读回：摩擦、质量、推扰（水平速度冲击）、观测噪声、以及跨 env 隔离；9 项检查全过，clean 两次运行逐位一致。首次运行即发现导入后摩擦只有 0.5（源为 1.0），直接导致 017 的 C-08 误判。",
+          "actions": [
+            "新增 tests/check_profile_effectiveness.py：直接写 PhysX 材质/质量/惯量并读回，推扰用 write_root_velocity_to_sim 施加水平速度冲击，观测噪声用适配器的 build_noise_vector；2 env 场景下 env1 作为未污染见证。",
+            "P1/P2 只改 env0 并断言 env1 不变；P7 用基准快照精确恢复并核对残差；P5 在**任何 profile 写入之前**做两次 clean 运行比对。",
+            "P4 用同一物理状态二次取观测，验证噪声只落 9:21/21:33 且幅度不超过源 noise_scale（0.01/1.5）。",
+            "修正两处实现：reset 后必须 robot.update(dt) 刷新 data 缓冲；同进程内写回质量/材质不能完全恢复求解器缓存，故确定性检查前置。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_profile_effectiveness.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/profile_effectiveness.json（新建）",
+            "CaMRA/locomotion/adapters/hira_go2/env_runner.py（reset 后刷新 data 缓冲）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§20）"
+          ],
+          "commands": [
+            "python tests/check_profile_effectiveness.py --headless --device cuda:0"
+          ],
+          "results": [
+            "P0 五条件与协议同名；P1 摩擦 0.3 写入 27 个 shape 读回一致、env1 保持 1.00；P2 质量 6.921→9.921 kg、总质量 +3.000 kg、env1 Δ=0。",
+            "P3 推扰实测 Δv=(0.500, 0.000) m/s、Δyaw=0.0，机制为速度冲击而非牛顿外力。",
+            "P4 噪声块：0:9 与 33:45 变化 0.0，9:21 ≤0.0095（上限 0.01），21:33 ≤1.49（上限 1.5）。",
+            "P5 clean 两次末段指纹逐位一致（Δ=0）；P6 三种扰动的轨迹均与 clean 不同（Δ 6.5e-2 / 1.16e-1 / 2.5e-2）；P7 恢复残差 0.0；P8 env1 完全不受影响。",
+            "发现：导入材质摩擦 0.5 ≠ 源 1.0；该缺口已在本轮修正（clean 显式写 1.0）并转交 HIRA-020 固化到 bundle。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/profile_effectiveness.json（9/9）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §20"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "推扰水平速度冲击不得写成牛顿外力；配置里有值不等于实际已施加。",
         "不要求噪声实现与v2逐位相同，无法配对时后续比较不得叫成对因果对照。"
@@ -1688,7 +1761,7 @@
         "五条件均有运行时读回和施加证据，clean确定性误差与随机扰动分清。",
         "不同profile开关、reset、环境组之间无额外因素污染。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足。(1) 五条件均有运行时读回与施加证据、clean 确定性与随机扰动分清：P1 摩擦 0.3 写入 27 个 shape 后逐 shape 读回一致且 env1 保持 1.00；P2 base 质量 6.921→9.921 kg、总质量 +3.000 kg；P3 推扰写入后一步内实测 Δv=(0.500,0.000) m/s、Δyaw=0，明确是水平速度冲击；P4 噪声只落 9:21/21:33 且不超过源尺度；P5 在无任何 profile 写入时两次 clean 运行末段指纹逐位一致，而 P6 显示三种扰动轨迹均与 clean 不同（证明施加确实生效）。(2) 不同 profile、reset 与环境组之间无额外污染：P7 用基准快照恢复后质量/惯量/材质残差为 0；P8 只改 env0 时 env1 的质量与摩擦完全不变。另登记一条重要缺口：导入后的材质摩擦默认为 0.5，源为 1.0（本轮已在 clean 中显式写 1.0，需在 HIRA-020 固化进 bundle）；该差异正是 HIRA-017 首轮 C-08 误判的原因。"
     },
     {
       "id": "HIRA-019",

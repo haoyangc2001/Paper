@@ -206,6 +206,12 @@ class HiraLabRunner:
         self.robot.write_root_velocity_to_sim(root_vel, env_ids=env_ids)
         joint_pos = self.default_lab.reshape(1, 12).repeat(n, 1)
         self.robot.write_joint_state_to_sim(joint_pos, torch.zeros_like(joint_pos), env_ids=env_ids)
+        # 写完必须刷新 data 缓冲：否则下一步的观测/PD 用的还是**上一轮 trial 结束时的**状态，
+        # 会让"同 seed 两次运行"出现微小但确定的差异（profiles 的 P5 就是这么发现的）。
+        try:
+            self.robot.update(self.timing.sim_dt)
+        except Exception:  # noqa: BLE001 - 初始化阶段还没有可更新的物理状态
+            pass
         self.obs_adapter.reset(env_ids.tolist() if isinstance(env_ids, torch.Tensor) else env_ids)
         self.torque_adapter.reset()
 
