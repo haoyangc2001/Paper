@@ -919,7 +919,7 @@
       "id": "HIRA-008",
       "phase": "来源契约与验收",
       "goal": "冻结HiRA来源到Isaac Lab的接口契约",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-007"
       ],
@@ -938,7 +938,44 @@
         "config/hira_source_contract_v1.json及hash",
         "reports/source_target_contract_diff.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-05T16:40:00+08:00",
+          "summary": "冻结 HiRA 来源→Isaac Lab 接口契约：12 关节（限位/轴向/effort/默认角）、45 维观测六块、12 维动作与 0.25 缩放、每子步 PD、三时钟全部有依据；列出 5 项 unknown 与 4 项必须覆盖的源行为；契约内容散列 41f79563…。",
+          "actions": [
+            "解析 URDF（XML）取 12 个 revolute 关节的轴、限位、effort、速度上限与 21 个 link 的质量；与 go2_asset_geometry_v1.json 的 USD 关节数据交叉核对。",
+            "确认前后腿 thigh 限位不同（FL/FR −1.5708..3.4907；RL/RR −0.5236..4.5379），两侧一致（≤1e-3 rad）。",
+            "写 config/hira_source_contract_v1.json：source 身份、actor 结构、关节表与双向映射规则、观测六块与噪声 mask、动作与裁剪位置、执行器公式与 effort、时钟、命令覆盖要求、reset 规则、known_unknowns、differences_not_assumed_equal、prohibitions。",
+            "写 reports/source_target_contract_diff.json：16 行对照（match 6 / must_override 4 / unknown 5 / 设计上不等 3），每行带 owner task。",
+            "用内容散列规则（去掉 sha256 与 frozen_at、sort_keys、紧凑分隔符）计算并写入 sha256 与侧车。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/hira_source_contract_v1.json(+.sha256)（新建，41f79563…）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/source_target_contract_diff.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§10）",
+            "doc/plan/20261105_camra_hira_policy_calibration.json（HIRA-008 记录）"
+          ],
+          "commands": [
+            "python /tmp/urdf.py（解析 URDF 关节与质量）",
+            "python -c 读 go2_asset_geometry_v1.json 的 joints（USD 侧核）",
+            "python /tmp/hashcontract.py（内容散列 + 侧车）"
+          ],
+          "results": [
+            "12 关节全部有源数据：hip ±1.0472/effort 23.7；FL/FR thigh −1.5708..3.4907；RL/RR thigh −0.5236..4.5379；calf −2.7227..−0.83776/effort 35.55；默认角按名称 12 个值齐备。",
+            "URDF 总质量 15.017 kg（base 6.921 + 4×2.024）；USD 质量待 HIRA-012 读取对照。",
+            "契约散列 41f795630c23eff8e5ae221f92b3bd303dba01368c2bb5ede7634e6213fb0144，侧车已写。",
+            "5 项 unknown 全部指向具体任务（U-1 HIRA-012，U-2/3/4 HIRA-013，U-5 不可解除）；未用 v2 值填充。",
+            "4 项必须覆盖：heading_command→False、0.2 m/s 死区→关闭或记录、初始姿态随机化→固定、动作缩放必须 0.25。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/hira_source_contract_v1.json(+.sha256)",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/source_target_contract_diff.json",
+            "handoff §10"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不把v2的deploy.yaml当HiRA契约。",
         "无法证明的源配置写unknown，不悄悄套入当前v2值；关键unknown未解决不能通过。"
@@ -947,7 +984,7 @@
         "所有12关节、45维观测、12维动作、时钟与执行器字段有依据。",
         "不存在默认为同维即相容、沿用v2增益/默认姿态或未记录的额外归一化。"
       ],
-      "verification_result": ""
+      "verification_result": "两条验收均满足：(1) 所有 12 关节、45 维观测、12 维动作、时钟与执行器字段均有依据——12 个关节的轴/限位/effort/速度上限来自 URDF 解析并与 USD 侧交叉核对（≤1e-3 rad），默认角来自 go2_config.init_state 的 12 个具名值；观测六块的切片与缩放来自 go2_env.compute_observations 与 normalization 配置；动作维度/裁剪值/缩放 0.25 来自 go2_config 与 legged_robot 调用链；时钟来自 decimation=4、resampling_time、episode_length_s；执行器公式 kp20/kd0.5/逐子步来自 _compute_torques 与 step 循环；(2) 不存在默认为同维即相容、沿用 v2 增益/默认姿态或未记录归一化——契约显式写入 prohibitions（不得用 v2 deploy.yaml、不得沿用 v2 增益/默认姿态/观测缩放、不得因维度相同认为相容、不得引入未记录归一化）；记录观测归一化 none 与无循环状态；5 项 unknown 明确标注且不填 v2 值；另发现并记录一处易错点：前后腿 thigh 限位不同（−1.5708..3.4907 vs −0.5236..4.5379），两侧一致，对称假设不成立。契约内容散列 41f79563… 与侧车已生成，可复算。"
     },
     {
       "id": "HIRA-009",

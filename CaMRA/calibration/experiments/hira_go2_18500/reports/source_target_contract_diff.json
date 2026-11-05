@@ -1,0 +1,136 @@
+{
+  "report": "source_target_contract_diff",
+  "task": "HIRA-008",
+  "generated_at": "2026-11-05T16:34:00+08:00",
+  "contract": "config/hira_source_contract_v1.json",
+  "summary": {
+    "items_checked": 16,
+    "match": 6,
+    "must_override_on_target": 3,
+    "unknown_pending": 5,
+    "not_equal_by_design": 2
+  },
+  "rows": [
+    {
+      "id": "D-01", "item": "12 个驱动关节的限位",
+      "source": "URDF：hip ±1.0472；FL/FR thigh -1.5708..3.4907；RL/RR thigh -0.5236..4.5379；calf -2.7227..-0.83776",
+      "target": "USD（go2_asset_geometry_v1.json）：hip ±1.047；FL/FR thigh -1.571..3.491；RL/RR thigh -0.524..4.538；calf -2.723..-0.838",
+      "status": "match", "tolerance": "≤1e-3 rad", "owner": "HIRA-012",
+      "note": "前后腿 thigh 限位不同，两侧一致；任何对称假设都是错的"
+    },
+    {
+      "id": "D-02", "item": "关节轴向",
+      "source": "hip = [1,0,0]；thigh / calf = [0,1,0]",
+      "target": "USD joints 记录 axis=Y（thigh/calf）、X（hip）",
+      "status": "match", "owner": "HIRA-012", "note": "轴一致，但符号约定需在 HIRA-013 用同姿态力矩对照再确认"
+    },
+    {
+      "id": "D-03", "item": "力矩限幅 per joint",
+      "source": "URDF effort：hip 23.7 / thigh 23.7 / calf 35.55 N·m",
+      "target": "USD 静态几何未记录 effort/maxForce",
+      "status": "unknown_pending", "owner": "HIRA-012",
+      "action": "从导入后的 articulation 读 drive maxForce，逐关节比对；不得默认沿用 URDF 值"
+    },
+    {
+      "id": "D-04", "item": "默认关节角",
+      "source": "go2_config init_state：FL/RL hip 0.1、FR/RR hip -0.1、FL/FR thigh 0.8、RL/RR thigh 1.0、全部 calf -1.5",
+      "target": "USD 静止姿态（FK(q≡0) 已能复现资产静止位姿）",
+      "status": "must_override_on_target", "owner": "HIRA-012",
+      "action": "适配器按名称写入这 12 个值；不得沿用 v2 的默认姿态"
+    },
+    {
+      "id": "D-05", "item": "关节顺序",
+      "source": "URDF 声明顺序（FL_hip, FL_thigh, FL_calf, FR_…, RL_…, RR_…）",
+      "target": "Lab articulation DOF 顺序（未读）",
+      "status": "unknown_pending", "owner": "HIRA-013",
+      "action": "运行时读 dof_names 建双向置换并在测试中断言；不按装配顺序猜"
+    },
+    {
+      "id": "D-06", "item": "45 维观测拼接与缩放",
+      "source": "六段，缩放 0.25 / 1 / [2,2,0.25] / 1 / 0.05 / 1，末端为上一动作",
+      "target": "需在适配器实现",
+      "status": "must_override_on_target", "owner": "HIRA-013",
+      "action": "逐块实现并用同状态 oracle 对照（容差见 HIRA-009）"
+    },
+    {
+      "id": "D-07", "item": "观测裁剪",
+      "source": "clip_observations = 100（在 get_observations 侧）",
+      "target": "Lab 侧是否启用未知",
+      "status": "unknown_pending", "owner": "HIRA-013",
+      "action": "构造越界观测验证是否被截；两侧必须一致"
+    },
+    {
+      "id": "D-08", "item": "四元数约定",
+      "source": "quat_apply / projected_gravity 用源约定（常见 xyzw）",
+      "target": "Lab 常见 wxyz",
+      "status": "unknown_pending", "owner": "HIRA-013",
+      "action": "同姿态投影重力逐分量对照"
+    },
+    {
+      "id": "D-09", "item": "动作缩放",
+      "source": "0.25（Go2 覆盖基类 0.5）",
+      "target": "Lab 侧若继承默认会得到 1.0 或 0.5",
+      "status": "must_override_on_target", "owner": "HIRA-014",
+      "action": "显式设为 0.25，并在适配器与测试中双重断言"
+    },
+    {
+      "id": "D-10", "item": "动作裁剪位置",
+      "source": "step 入口裁剪一次（±100）；分层路径不二次裁剪",
+      "target": "需保证只裁一次",
+      "status": "match", "owner": "HIRA-014", "note": "按真实调用链确认后，目标侧同样只在入口裁剪"
+    },
+    {
+      "id": "D-11", "item": "PD 更新频率",
+      "source": "每个物理子步重算（decimation 4）",
+      "target": "Lab actuator 可能每策略步一次",
+      "status": "match", "owner": "HIRA-014",
+      "action": "必须逐子步重算；否则 200 Hz 能量积分不等价"
+    },
+    {
+      "id": "D-12", "item": "PD 增益",
+      "source": "kp 20 / kd 0.5（joint 组）",
+      "target": "需显式设置",
+      "status": "match", "owner": "HIRA-014", "note": "不得沿用 v2 的 kp25/kd0.5"
+    },
+    {
+      "id": "D-13", "item": "时钟（sim / policy / command）",
+      "source": "0.005 / 0.02 / 0.1，decimation 4，每外部命令 5 策略步",
+      "target": "同",
+      "status": "match", "owner": "HIRA-016"
+    },
+    {
+      "id": "D-14", "item": "heading_command",
+      "source": "True，且每个策略步把 commands[:,2] 覆盖为 clip(0.5*heading_err, -1, 1)",
+      "target": "必须 False",
+      "status": "must_override_on_target", "owner": "HIRA-016",
+      "action": "关闭该分支；否则外部 yaw 命令根本到不了策略"
+    },
+    {
+      "id": "D-15", "item": "0.2 m/s 速度死区",
+      "source": "resample 时 commands[:, :2] *= (norm > 0.2)",
+      "target": "必须关闭，或显式记录为受控条件",
+      "status": "must_override_on_target", "owner": "HIRA-016",
+      "action": "CaMRA 需要 0.1–0.3 低速层，静默清零会改变命令域"
+    },
+    {
+      "id": "D-16", "item": "初始姿态随机化",
+      "source": "q_default × rand(0.5,1.5)，z=1 m 落下",
+      "target": "固定姿态、固定高度",
+      "status": "must_override_on_target", "owner": "HIRA-012/016",
+      "action": "替换为固定姿态；随机化若保留必须记为受控变量并写入 meta"
+    }
+  ],
+  "not_equal_by_design": [
+    {"item": "执行器模型", "source": "手动 set torque", "target": "Isaac Lab actuator", "handling": "对齐增益与限幅后量化残差，不声明等价"},
+    {"item": "接触与求解器", "source": "Isaac Gym PhysX", "target": "Isaac Sim PhysX 5", "handling": "只做行为层对照，不要求逐帧一致"},
+    {"item": "资产质量", "source": "URDF 合计 15.017 kg（base 6.921 + 4×2.024）", "target": "USD 质量未读（HIRA-012）", "handling": "逐链接对照，差异>1% 需记录"}
+  ],
+  "blocking_unknowns": [
+    {"id": "U-1", "item": "USD 侧逐关节 effort", "unblocks": "HIRA-012", "blocking_for": "G1 力矩限幅判据"},
+    {"id": "U-2", "item": "Lab DOF 顺序", "unblocks": "HIRA-013", "blocking_for": "观测/动作置换正确性"},
+    {"id": "U-3", "item": "四元数约定", "unblocks": "HIRA-013", "blocking_for": "投影重力正确性"},
+    {"id": "U-4", "item": "观测裁剪是否启用", "unblocks": "HIRA-013", "blocking_for": "观测等价性"},
+    {"id": "U-5", "item": "训练期覆盖（课程/随机化/种子）", "unblocks": "不可解除", "blocking_for": "无法验证训练配置，只能以源码值 + 权重身份为准"}
+  ],
+  "verdict": "契约已冻结（12 关节、45 维观测、12 维动作、执行器与时钟字段均有依据）；5 项 unknown 已明确指向 HIRA-012/013，未用 v2 值填充。契约本身不构成接入通过。"
+}

@@ -420,3 +420,50 @@ heldout 与近障覆盖率、近障几何重叠。
 
 URDF（源，Isaac Gym 用）与 USD（Isaac Lab 用，`/pub/data/caohy/unitree_model/Go2/usd`）
 **不是同一份资产**。质量、惯量、碰撞体可能不同，HIRA-012 必须逐项对照并记录差异。
+
+---
+
+## 10. 接口契约已冻结（HIRA-008）
+
+- 契约：`config/hira_source_contract_v1.json`（内容散列 **`41f795630c23eff8…`**，侧车 `.sha256`）
+- 差异报告：`reports/source_target_contract_diff.json`（16 项，match 6 / 必须覆盖 4 / unknown 5 / 设计上不等 3）
+
+### 10.1 12 个驱动关节（源 URDF，已与 USD 交叉核对）
+
+| 组 | 轴向 | 限位 (rad) | effort (N·m) | 默认角 |
+|---|---|---|---|---|
+| hip（四个） | [1,0,0] | ±1.0472 | 23.7 | FL/RL +0.1，FR/RR −0.1 |
+| thigh FL/FR | [0,1,0] | −1.5708 … 3.4907 | 23.7 | 0.8 |
+| thigh RL/RR | [0,1,0] | **−0.5236 … 4.5379** | 23.7 | 1.0 |
+| calf（四个） | [0,1,0] | −2.7227 … −0.83776 | 35.55 | −1.5 |
+
+**前后腿 thigh 限位不同**，URDF 与 USD 两侧一致（≤1e-3 rad）。任何"四条腿对称"的假设都是错的。
+URDF 总质量 15.017 kg（base 6.921 + 4×2.024）。
+
+### 10.2 三条必须在目标侧覆盖（源的行为不能照搬）
+
+| 项 | 源行为 | 目标要求 | 原因 |
+|---|---|---|---|
+| `heading_command` | True，每策略步改写 `commands[:,2]` | **False** | 否则外部 yaw 命令到不了策略 |
+| 0.2 m/s 死区 | 平面速度模长 ≤0.2 清零 | 关闭，或显式记为受控条件 | CaMRA 需要 0.1–0.3 低速层 |
+| 初始姿态随机化 | `q_default × rand(0.5,1.5)`，1 m 落下 | 固定姿态与高度 | 采集要求同 seed 可复现 |
+
+### 10.3 五项 unknown（不填 v2 值，指向具体任务）
+
+| # | 未知 | 解除任务 |
+|---|---|---|
+| U-1 | USD 侧逐关节 effort（静态几何未记录） | HIRA-012 |
+| U-2 | Lab articulation 的 DOF 顺序 | HIRA-013 |
+| U-3 | 四元数约定（xyzw vs wxyz） | HIRA-013 |
+| U-4 | Lab 侧是否启用 `clip_observations=100` | HIRA-013 |
+| U-5 | 训练期覆盖（课程/随机化/种子） | **不可解除**（`infos=None`），只能以源码值 + 权重身份为准 |
+
+### 10.4 设计上不等、只能量化的三项
+
+执行器模型（手动 set torque vs Lab actuator）、接触与求解器（Gym PhysX vs Sim PhysX 5）、
+资产（URDF vs USD）。这三项**不声明等价**，在 HIRA-012/014/017 里逐项量化残差。
+
+### 10.5 禁止事项（写进契约的 prohibitions）
+
+不得把 v2 的 `deploy.yaml` 当 HiRA 契约；不得沿用 v2 的增益/默认姿态/观测缩放；
+不得因维度相同就认为相容；不得引入未记录的归一化；unknown 不得用 v2 值静默填充。

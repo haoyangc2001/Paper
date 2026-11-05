@@ -1,0 +1,350 @@
+{
+  "version": "1.0.0",
+  "kind": "hira_source_to_lab_interface_contract",
+  "frozen_at": "2026-11-05",
+  "experiment_id": "hira_go2_18500",
+  "proposed_controller_id": "camra_hira_go2_18500_lab_v1",
+  "status": "frozen_by_HIRA-008; controller package itself is frozen only at HIRA-020",
+  "hash_rule": "sha256 over this document with 'sha256' and 'frozen_at' removed, keys sorted, separators (',',':'), UTF-8",
+  "source": {
+    "submodule_commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+    "submodule_tree": "fded2ec9b4939148c01692f4cea051b5a1986993",
+    "checkpoint": "HiRA/logs/rough_go2/Sep08_11-57-26_/model_18500.pt",
+    "checkpoint_sha256": "d30e52122125cf3db576408d4bf736703cdee6719944f55c423b4af3cb03d2e8",
+    "urdf": "HiRA/legged_gym_go2/resources/robots/go2/urdf/go2.urdf",
+    "urdf_sha256_prefix": "5fea735381cd9905",
+    "actor": {
+      "input_dim": 45,
+      "layers": [
+        512,
+        256,
+        128
+      ],
+      "output_dim": 12,
+      "activation": "elu",
+      "final_activation": "none",
+      "inference": "deterministic mean (actor_critic.act_inference)",
+      "observation_normalization": "none",
+      "recurrent_state": "none"
+    }
+  },
+  "joints": {
+    "count_actuated": 12,
+    "order_source_basis": "URDF declaration order (FL_hip, FL_thigh, FL_calf, FR_hip, FR_thigh, FR_calf, RL_hip, RL_thigh, RL_calf, RR_hip, RR_thigh, RR_calf); must be re-confirmed against the runtime DOF names at HIRA-013",
+    "order_source": [
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint"
+    ],
+    "order_target_basis": "Isaac Lab articulation DOF order; NOT assumed equal to source; resolved by name at HIRA-013",
+    "mapping_rule": "bijection by joint name; position/velocity/action permutation derived once and asserted in tests; never infer by assembly order",
+    "records": {
+      "FL_hip_joint": {
+        "axis": [
+          1,
+          0,
+          0
+        ],
+        "lower": -1.0472,
+        "upper": 1.0472,
+        "effort": 23.7,
+        "velocity_limit": 30.1,
+        "default_angle": 0.1
+      },
+      "FL_thigh_joint": {
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "lower": -1.5708,
+        "upper": 3.4907,
+        "effort": 23.7,
+        "velocity_limit": 30.1,
+        "default_angle": 0.8
+      },
+      "FL_calf_joint": {
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "lower": -2.7227,
+        "upper": -0.83776,
+        "effort": 35.55,
+        "velocity_limit": 20.07,
+        "default_angle": -1.5
+      },
+      "FR_hip_joint": {
+        "axis": [
+          1,
+          0,
+          0
+        ],
+        "lower": -1.0472,
+        "upper": 1.0472,
+        "effort": 23.7,
+        "velocity_limit": 30.1,
+        "default_angle": -0.1
+      },
+      "FR_thigh_joint": {
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "lower": -1.5708,
+        "upper": 3.4907,
+        "effort": 23.7,
+        "velocity_limit": 30.1,
+        "default_angle": 0.8
+      },
+      "FR_calf_joint": {
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "lower": -2.7227,
+        "upper": -0.83776,
+        "effort": 35.55,
+        "velocity_limit": 20.07,
+        "default_angle": -1.5
+      },
+      "RL_hip_joint": {
+        "axis": [
+          1,
+          0,
+          0
+        ],
+        "lower": -1.0472,
+        "upper": 1.0472,
+        "effort": 23.7,
+        "velocity_limit": 30.1,
+        "default_angle": 0.1
+      },
+      "RL_thigh_joint": {
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "lower": -0.5236,
+        "upper": 4.5379,
+        "effort": 23.7,
+        "velocity_limit": 30.1,
+        "default_angle": 1.0
+      },
+      "RL_calf_joint": {
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "lower": -2.7227,
+        "upper": -0.83776,
+        "effort": 35.55,
+        "velocity_limit": 20.07,
+        "default_angle": -1.5
+      },
+      "RR_hip_joint": {
+        "axis": [
+          1,
+          0,
+          0
+        ],
+        "lower": -1.0472,
+        "upper": 1.0472,
+        "effort": 23.7,
+        "velocity_limit": 30.1,
+        "default_angle": -0.1
+      },
+      "RR_thigh_joint": {
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "lower": -0.5236,
+        "upper": 4.5379,
+        "effort": 23.7,
+        "velocity_limit": 30.1,
+        "default_angle": 1.0
+      },
+      "RR_calf_joint": {
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "lower": -2.7227,
+        "upper": -0.83776,
+        "effort": 35.55,
+        "velocity_limit": 20.07,
+        "default_angle": -1.5
+      }
+    },
+    "evidence": {
+      "urdf_joint_limits_effort_velocity": "parsed from go2.urdf <limit lower upper effort velocity>",
+      "default_angles": "HiRA/legged_gym_go2/legged_gym/envs/go2/go2_config.py init_state.default_joint_angle (GO2RoughCfg.init_state)",
+      "usd_limits_crosscheck": "CaMRA/calibration/config/go2_asset_geometry_v1.json joints: FL/FR thigh -1.571..3.491, RL/RR thigh -0.524..4.538, hip +-1.047, calf -2.723..-0.838 — matches URDF",
+      "usd_effort": "unknown_from_static_asset: the extracted geometry JSON does not record effort/maxForce; must be read from the imported articulation at HIRA-012"
+    },
+    "notable": "front and rear thigh limits differ (FL/FR -1.5708..3.4907 vs RL/RR -0.5236..4.5379); both URDF and USD agree, but any adapter that assumes symmetric limits is wrong"
+  },
+  "observation": {
+    "dim": 45,
+    "clip": {
+      "clip_observations": 100.0,
+      "applied_at": "source get_observations; must be asserted on the Lab side at HIRA-013"
+    },
+    "blocks": [
+      {
+        "slice": "0:3",
+        "quantity": "base_ang_vel",
+        "scale": 0.25,
+        "frame": "body"
+      },
+      {
+        "slice": "3:6",
+        "quantity": "projected_gravity",
+        "scale": 1.0,
+        "frame": "body"
+      },
+      {
+        "slice": "6:9",
+        "quantity": "command [vx, vy, wz]",
+        "scale": [
+          2.0,
+          2.0,
+          0.25
+        ],
+        "frame": "body"
+      },
+      {
+        "slice": "9:21",
+        "quantity": "q - q_default",
+        "scale": 1.0,
+        "order": "source"
+      },
+      {
+        "slice": "21:33",
+        "quantity": "qdot",
+        "scale": 0.05,
+        "order": "source"
+      },
+      {
+        "slice": "33:45",
+        "quantity": "previous clipped action",
+        "scale": 1.0,
+        "order": "source"
+      }
+    ],
+    "noise_mask": {
+      "indices": [
+        "9:21",
+        "21:33"
+      ],
+      "rule": "33:45 is never noised; clean runs must disable noise entirely"
+    },
+    "history": "none beyond the previous action",
+    "no_base_linear_velocity": true
+  },
+  "action": {
+    "dim": 12,
+    "clip_actions": 100.0,
+    "clip_location": "once at the policy-step entry; must not be applied twice on the hierarchical path",
+    "scale": 0.25,
+    "scale_source": "GO2RoughCfg.control.action_scale overrides the base 0.5",
+    "q_target_rule": "q_target = q_default + 0.25 * clip(a, -100, 100)",
+    "order": "source joint order (see joints.order_source)"
+  },
+  "actuator": {
+    "control_type": "P",
+    "stiffness_kp": 20.0,
+    "damping_kd": 0.5,
+    "torque_rule": "tau = clip(kp * (q_target - q) - kd * qdot, -effort, +effort)",
+    "update_rate": "every physics substep (decimation 4), not once per policy step",
+    "effort_source": "per joint from URDF <limit effort>: hip 23.7, thigh 23.7, calf 35.55 N·m"
+  },
+  "timing": {
+    "sim_dt_s": 0.005,
+    "policy_dt_s": 0.02,
+    "external_command_dt_s": 0.1,
+    "decimation": 4,
+    "policy_steps_per_external_command": 5,
+    "source_episode_length_s": 20,
+    "measurement_window_s": 30,
+    "note": "source episode is 20 s; the calibration window is 30 s and must be documented as a deliberate extension, not a source property"
+  },
+  "command_policy_overrides": {
+    "heading_command": {
+      "source_value": true,
+      "required_target_value": false,
+      "why": "source rewrites commands[:,2] every policy step from the heading error; leaving it on means external yaw commands never reach the policy"
+    },
+    "low_speed_deadband": {
+      "source_rule": "commands[:, :2] *= (norm > 0.2)",
+      "required_target": "disabled, or explicitly recorded as a controlled condition",
+      "why": "CaMRA needs a low-speed stratum; silently zeroing it would change the command domain"
+    },
+    "external_command_contract": "the value written by the runner at 10 Hz must equal the value consumed by the policy; verified in HIRA-016"
+  },
+  "reset_and_termination": {
+    "source_joint_randomization": "q_default * rand(0.5, 1.5)",
+    "source_init_height_m": 1.0,
+    "required_target": "fixed initial pose and height, seeded and reproducible; source randomization must be replaced, and the replacement recorded",
+    "previous_action_on_reset": "zeroed per env",
+    "termination": "source uses episode timeout 20 s plus attitude/contact criteria; the calibration harness must record its own termination reason per env"
+  },
+  "known_unknowns": [
+    "training-time overrides (command curriculum, domain randomization, noise, seed) are unrecoverable: checkpoint infos = null",
+    "checkpoint file name says 18500 but iter = 16000; training step count cannot be confirmed",
+    "USD imported effort/maxForce per joint not yet read (HIRA-012)",
+    "Lab articulation DOF order not yet read (HIRA-013)",
+    "quaternion convention on the Lab side not yet asserted (HIRA-013)"
+  ],
+  "differences_not_assumed_equal": [
+    {
+      "item": "actuator model",
+      "source": "manual torque set per substep",
+      "target": "Isaac Lab actuator/implicit PD",
+      "handling": "align gains and clamp, quantify residual at HIRA-014, do not assume equivalence"
+    },
+    {
+      "item": "contact and solver",
+      "source": "Isaac Gym PhysX",
+      "target": "Isaac Sim/PhysX 5",
+      "handling": "behavioural comparison only; no frame-wise dynamics equality claimed"
+    },
+    {
+      "item": "asset",
+      "source": "URDF + dae meshes",
+      "target": "USD (unitree_model)",
+      "handling": "compare mass and inertia at HIRA-012; URDF total mass 15.017 kg from base 6.921 + 4 x (hip 0.678 + thigh 1.152 + calf 0.154 + foot 0.040)"
+    },
+    {
+      "item": "joint limit tolerance",
+      "source": "URDF values above",
+      "target": "USD values agree to 3 decimals",
+      "handling": "assert both sides within 1e-3 rad at HIRA-012"
+    }
+  ],
+  "prohibitions": [
+    "must not use v2 deploy.yaml as the HiRA contract",
+    "must not inherit v2 gains, default pose, or observation scaling",
+    "must not treat equal dimension as compatibility",
+    "must not introduce unrecorded normalization",
+    "unknown values stay 'unknown'; they are not silently filled with v2 values"
+  ],
+  "sha256": "41f795630c23eff8e5ae221f92b3bd303dba01368c2bb5ede7634e6213fb0144"
+}
