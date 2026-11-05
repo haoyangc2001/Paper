@@ -152,8 +152,13 @@ def main() -> int:
         if (state["action"].shape[0] * 4) != steps:
             problems.append(f"{tid}: 50 Hz×4={state['action'].shape[0] * 4} ≠ 200 Hz {steps}")
         if meta.get("outcome") != "completed":
-            # 非完整 trial 不检查 1500/301，但必须记录未外推
-            if "未外推" not in str(meta.get("notes", "")):
+            # 非完整 trial 不检查 1500/301，但必须注明"窗口未跑满、未外推"。
+            # 两种等价表述：旧语义的"未外推"，或 §26 逐 env 终止语义的
+            # "于 X/Y 控制步终止（逐 env 终止…）"——后者同样明确了未跑满。
+            notes = str(meta.get("notes", ""))
+            annotated = ("未外推" in notes
+                         or ("控制步终止" in notes and "逐 env 终止" in notes))
+            if not annotated:
                 problems.append(f"{tid}: 非完整 trial 未注明未外推")
         energy = json.loads((d / "energy.json").read_text(encoding="utf-8"))
         if energy.get("unit") != "J":

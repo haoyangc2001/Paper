@@ -1749,3 +1749,55 @@ batch 3  outcomes {completed: 31, terminated: 1}  steps_max 1500  wall 55.1 s
 
 `trials/calibration`（155 interrupted + 5 terminated，全部来自旧语义）整体改名为
 `trials/calibration_superseded_batchabort`，**零删除**；正式目录从空开始重新采集。
+
+## 27. CAL-025：α / δ 冻结（2026-11-05 晨）
+
+### 27.1 输入与口径
+
+* 数据：calibration split 全部 800 条（790 completed + 10 terminated 业务失败），
+  manifest `trial_lists_v1.0.2/calibration.jsonl`（seed 6000–6799）；
+* J_nom 一律用冻结功率模型（内容散列 bfe3b159…）从命令重算，不接受产物里可能过期的字段；
+* ε_c/ε_d 复算用 `pairing.compute_trial_errors`（时间网格、位置、50 Hz 敏感性全套检查）；
+* 分位一律 nearest-rank（升序第 ceil(q·n) 个，不插值）；区间 bootstrap 10000 次、95%、
+  整条轨迹为最小单位，另按 cell 整簇重采样一份（种子 20261104）。
+
+### 27.2 结果
+
+```text
+alpha = max(0, Q90(ε_c)) = 0.19048   （原始分位即 0.19048，非负截断未触发）
+        95% CI [0.0935, 0.2319]（trial 级与 cell 簇级一致）
+delta = Q90(ε_d)         = 2.6139 m
+        95% CI [1.7013, 3.2423]
+margins_v1.json sha256 = dd76972dd49fc8d0…（内容散列，重跑逐位一致）
+verdict = admitted（20/20 格完整率 1.00 ≥ 0.9；non_computable 占比 0）
+```
+
+ε_c 分布（n=790）：median +0.0095、min −0.1303、max +0.5364、负超支 355 条（44.9%
+的轨迹实际比名义更省）——α≈0.19 恰与旧稿的 0.18 同量级，但这次是可复算的。
+ε_d 分布：median 1.113 m、q90 2.614 m、max 6.484 m；50 Hz 敏感性 q90 2.6122 m
+（与 10 Hz 配对几乎相同，说明配对网格不是误差来源）。
+
+### 27.3 分组
+
+* profile：clean 0.0449 / friction_only 0.0336 / push_only 0.0419 / mass_only 0.2292 /
+  **combined 0.3111**（观测噪声+全扰动是最难的执行条件）；
+* family（ε_d q90）：arc_combined **4.22 m** ≫ straight_shift 1.96 / alternating 1.42 /
+  start_stop_turn 1.09——弧线命令族的开环漂移天然最大；
+* 低速层 ε_c q90 0.2151 vs 高速 0.1808（低速更难），低速层 ε_d q90 1.09 m（短路径反而小）；
+* 最难 cell：start_stop_turn|combined 0.3513。
+
+### 27.4 语义提醒（重要）
+
+δ=2.61 m 是"30 s 开环执行 vs 名义积分"的**全部**漂移分位，不是安全距离：
+它的用途是给近障危险集做一次性几何扩张（obstacle ⊕ footprint ⊕ disc(δ)），
+配合 CAL-028 检验"加了 δ 之后覆盖是否达标"。0.12 m 的旧值来自无依据的假设，
+被本次校准正式替代。
+
+### 27.5 产物与锁
+
+* `config/margins_v1.json(+.sha256)`（内容散列 dd76972d…，只含 α/δ/区间/适用域，
+  时间戳与统计冗余不进散列——与功率模型同一做法）；
+* 数据锁第三次重建：代码 46 个文件、树 8a96de5b…、锁 **a38211d9…**，并新增
+  `margins` 绑定（文件散列 + 内容散列）；/pub 运行副本 verify_artifacts **n_bad=0**；
+* tests/test_margins.py 15 项（nearest-rank 口径、负超支、bootstrap 可复现与整簇
+  语义、α 截断、冻结散列与篡改检测、cell 完整率门槛）；全量 pytest EXIT=0。

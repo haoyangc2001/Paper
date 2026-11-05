@@ -6,7 +6,7 @@
         --out config/data_lock_v1.json
 
 锁里绑定的东西（缺一不可）：
-  protocol(v1.0.2) / power_model / footprint / step_cost_schema / 资产几何与 USD /
+  protocol(v1.0.2) / power_model / footprint / step_cost_schema / margins / 资产几何与 USD /
   七个 split 的清单散列、条数与 seed 块 / 近障地图 / 代码文件散列 /
   配额与统计准入（从协议抄录，不改写）/ 资源预算 / 采集顺序与门禁。
 """
@@ -77,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     fp_p = Path(args.footprint) if args.footprint else cal / "config" / "footprint_v1.json"
     sc_p = (Path(args.step_cost_schema) if args.step_cost_schema
             else cal / "config" / "step_cost_schema_v1.json")
+    mg_p = cal / "config" / "margins_v1.json"
     asset_p = Path(args.asset) if args.asset else cal / "config" / "go2_asset_geometry_v1.json"
     asset = json.loads(asset_p.read_text(encoding="utf-8"))
     maps_p = Path(args.near_maps) if args.near_maps else cal / "config" / "near_obstacle_maps_v1.json"
@@ -116,6 +117,8 @@ def main(argv: list[str] | None = None) -> int:
         "power_model": entry(model_p),
         "footprint": entry(fp_p),
         "step_cost_schema": entry(sc_p),
+        "margins": (entry(mg_p, content_sha256=json.loads(mg_p.read_text(encoding="utf-8"))["sha256"])
+                    if mg_p.is_file() else None),
         "asset": {
             "geometry": entry(asset_p),
             "usd": {"path": asset["source"]["usd"], "sha256": asset["source"]["usd_sha256"]},

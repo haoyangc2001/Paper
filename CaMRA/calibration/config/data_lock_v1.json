@@ -16,11 +16,11 @@
   "cal_task": "CAL-023",
   "code": {
     "files": {
-      "scripts/build_data_lock.py": "17be1c5ec003306377147a60592e371149a20dc46a1d633247331c55088a8991",
+      "scripts/build_data_lock.py": "46d6a1329cbb9f45d15e7f8d371a98ab565ab1844cc9801170f5e7523ea47ad2",
       "scripts/build_footprint.py": "e1c29914bdc9f4920bf095374db574619a63ac9c1cf21d521cc5c314757283ef",
       "scripts/build_near_obstacle_maps.py": "fe4f3cb76119241e1648cbbb9b245f9386bf81c0731445de3d15256e4d2fec8a",
       "scripts/build_trial_lists.py": "bf800ab1b8b12bfa4f6c4e756ab922eebaeb275c4cd4bb4f73168943e2b76491",
-      "scripts/check_collection.py": "7d7869e4040315acbf6658834a22d00c9353fd9d0e5532414669eb3ba45eef91",
+      "scripts/check_collection.py": "7d3cbbcab2b0f9b3306e89825d4d0396696ce25e6f65a89b483565f0832e10ab",
       "scripts/check_data_lock.py": "a930dfb191738dab426be8ecc0ecfd125cbfb52a9345fb65fb629ecf74e9902b",
       "scripts/check_footprint.py": "83719636410dd2dab6113083abddf4ac803a7682c80d1e5c104604255f37dcd1",
       "scripts/check_meter.py": "89684c21dad5943a78f7f56d62ab26d0b140b282414578afd5322cb1fd73e895",
@@ -30,6 +30,7 @@
       "scripts/demo_nominal.py": "b2eee9b27e0d1f95ea3f3fcd41f3c5437533b365ecd4af91a0e225411d731028",
       "scripts/extract_asset_geometry.py": "f83fa8c32d9c16c6ff3497ba840636564779724b6039a89badd4457a3176f3b7",
       "scripts/fault_injection_check.py": "2be1b3724a67ebab4d3ed69eb60a8d9bf52a4e0ab399ab1cbcd61db7ccf3eec3",
+      "scripts/fit_margins.py": "0b5af2298b152fdeea9e5bd17e60d021079cc5c02db273c03bd90157fc84c49b",
       "scripts/fit_power_model.py": "f7dfed4e3040f252f9a0903b706ac937594775fd8d2d2e03b8c4e1791ff1578a",
       "scripts/merge_profile_checks.py": "6e540ddbf4cbd2b88f9ab33d0c36e5b95f1218b838c1da753c61b57e109ab29b",
       "scripts/recompute_errors.py": "951fe837ced8c76aaed6744b1cf3ec10bee0a21ed1dddd2f5acc8a8778664ee3",
@@ -50,6 +51,7 @@
       "src/camra_calibration/inspect.py": "66b8da0b4b3bdfca3382b55107207c90644d2b01282c3987622f3a0eead0033d",
       "src/camra_calibration/lock.py": "2517b8bf769d05b8140e40a0ed93b397f0395f12c9f2dd559455cd392729290a",
       "src/camra_calibration/manifest.py": "73296120c16eabc076397f0814a3f18bbb78f47870b126b2983c1af1180e6d5c",
+      "src/camra_calibration/margins.py": "9b2183e37e0f97cff18cd528254dbdf09d4467099e4a2bb672382a83057fcb1b",
       "src/camra_calibration/nominal.py": "a620a49ae8673fbc28fbddfe2ec6108a60880772f1894bd34640336f464cb6e4",
       "src/camra_calibration/obstacles.py": "e9b979e2bbd76bfaadf35b60e603299075b1a0547131d503089ca1b8d88cbe11",
       "src/camra_calibration/pairing.py": "f536fa494db036d8d134321e0d099f5d7a1c589fd7678c24d5f71cabdc969321",
@@ -61,7 +63,7 @@
       "src/camra_calibration/timeline.py": "624a208f49186e82d15be37803b03cf51838b08a27fda653096cbe50869a17f7",
       "src/camra_calibration/trials.py": "42630b24794ceec0f68ad39618afa3cd6d3590bdbdaa7712a4ae2aa2288c56ee"
     },
-    "tree_sha256": "9e84a2d15c7a70db4d00fe351cd005197eccf105c92ed8a5df679f45f308bae8"
+    "tree_sha256": "8a96de5bb4014a74ae5c6d2f153170f930271431e49ba420bfe3142c6e302a7c"
   },
   "collection_rules": {
     "formal_splits": [
@@ -85,11 +87,16 @@
     "retry_policy": "数据损坏/中断只允许改名为 DONE.interrupted_* 后以新 attempt 重采，保留全部 attempt 与旧产物",
     "tuning_ban": "heldout / near_obstacle 在 margin 冻结前不得采集；不得用其结果选模型、改协议或改 margin"
   },
-  "created_at": "2026-11-05T00:10:39+00:00",
+  "created_at": "2026-11-05T00:56:50+00:00",
   "footprint": {
     "content_sha256": "a11a3572d61be81a8eac9fe10fe203069f2b61d5555510335e6853aff42199ab",
     "path": "/home/caohy/repositories/Paper/CaMRA/calibration/config/footprint_v1.json",
     "sha256": "edff8978ff89467b6b532ce9f695603f4aea038df1b57a5393791436d7067726"
+  },
+  "margins": {
+    "content_sha256": "dd76972dd49fc8d078982c73c5bcb6c6e3eaa5fe1dc89281866b3801d538b5ec",
+    "path": "/home/caohy/repositories/Paper/CaMRA/calibration/config/margins_v1.json",
+    "sha256": "2be77607b31c2fa5577d861ca4c6842caf6ed1fb7704abd284d65e01855e1704"
   },
   "near_obstacle_maps": {
     "clearance_tiers": [
