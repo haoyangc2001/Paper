@@ -1,0 +1,126 @@
+{
+ "report": "step_cost_interface_tests",
+ "task": "HIRA-028",
+ "model": {
+  "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/config/power_model_hira_v1.json",
+  "sha256": "27bc5fe1423256ce3f3fd4965124e45699f36e0b4e52d5d95131f848a02afbd4",
+  "base": "quadratic",
+  "history_k": 0,
+  "step_cost_dt": 0.1
+ },
+ "schema": {
+  "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/config/step_cost_schema_hira_v1.json",
+  "sha256": "a52563f95818f6591a257e9c449a01229c8ee291b2584cd05b2f25cc6d4a7810",
+  "file_sha256": "1c6b50403cb8cb5d972dd154c715fc0a4884d76574f0257c042b7d8c62fb0481",
+  "sidecar_sha256": "713a52a50c6ef8c92cdfc7cd62fec78df00e6559d4b847cceb1370b31a2fff47",
+  "recomputed_sha256": "a52563f95818f6591a257e9c449a01229c8ee291b2584cd05b2f25cc6d4a7810"
+ },
+ "alpha_policy": {
+  "frozen_alpha": null,
+  "alpha_is_test_value": true,
+  "alpha_used_in_tests": 0.25,
+  "note": "α 在 HIRA-031 冻结；本报告的 α 只用于验证接口的放大与预算语义，不是估计值，不得被下游当作标定结果引用"
+ },
+ "unit_policy": {
+  "unit": "J",
+  "kind": "mechanical_J",
+  "reject_a_u": true,
+  "note": "旧论文的 a.u. 预算不得与本预算混用；BudgetState 对 unit/kind 强校验"
+ },
+ "checks": [
+  {
+   "id": "S01-step-sum-equals-jnom",
+   "name": "300 个命令区间的逐步成本之和 = 整窗 J_nom（α=0）",
+   "ok": true,
+   "detail": "100 条轨迹，最差 rel 4.64e-15，不合格 0；步数恒为 300"
+  },
+  {
+   "id": "S02-alpha-scaling",
+   "name": "c_t = (1+α)·c_nom、Σ = (1+α)·J_nom（α=0.25 为测试参数，非估计值）",
+   "ok": true,
+   "detail": "J_nom=875.452199 J，Σc(α=0)=875.452199，Σc(α=0.25)=1094.315248（比值 1.250000）",
+   "alpha_is_test_value": true,
+   "alpha": 0.25
+  },
+  {
+   "id": "S03-budget-accounting",
+   "name": "spent/remaining/exhausted/z_ratio 单调且自洽（z_ratio 夹在 [0,1]）",
+   "ok": true,
+   "detail": "走 174 步后 spent=500.2356 J、remaining=-0.2356 J、exhausted=True、z_ratio=0.0000；剩余单调不增=True",
+   "budget": {
+    "unit": "J",
+    "kind": "mechanical_J",
+    "initial_J": 500.0,
+    "spent_J": 500.23561058975224,
+    "remaining_J": -0.23561058975224114,
+    "exhausted": true,
+    "z_ratio": 0.0
+   }
+  },
+  {
+   "id": "S04-budget-guards",
+   "name": "非正/非有限预算、旧 a.u. 单位、非 mechanical_J 口径全部被拒",
+   "ok": true,
+   "detail": "拒绝情况 {'zero': True, 'negative': True, 'nan': True, 'unit_au': True, 'kind_other': True}"
+  },
+  {
+   "id": "S05-early-termination",
+   "name": "提前终止时成本只累计实际执行步数（不外推、不补齐）",
+   "ok": true,
+   "detail": "137 步累计 385.5963 J < 整窗 875.4522 J；预算记录与逐步和一致"
+  },
+  {
+   "id": "S06-model-hash-guard",
+   "name": "权重被改 1e-6 后 load(verify_hash) 拒绝；正品可载",
+   "ok": true,
+   "detail": "篡改文件被拒=True，正品可载=True"
+  },
+  {
+   "id": "S07-dt-guard",
+   "name": "dt_s 与模型 step_cost_dt 不一致时构造即拒绝（防止错位能量）",
+   "ok": true,
+   "detail": "dt=0.05 被拒=True（模型 0.1）"
+  },
+  {
+   "id": "S08-history-state",
+   "name": "K=1 时历史命令并入状态：step 与 feature_matrix 一致；zero_history 首条命令即自身历史；require_explicit 缺历史报错、给历史可用",
+   "ok": true,
+   "detail": "K=1 step 一致=True（0.034000 vs 0.034000），zero_history 首步一致=True，require_explicit 缺历史被拒=True、给历史可用=True；K=0 交付模型 needs_history=False",
+   "test_model_only": true
+  },
+  {
+   "id": "S09-augmented-state-k0",
+   "name": "交付模型 history_k=0 → 上层的状态不需要增广（命令即完整 Markov 输入）",
+   "ok": true,
+   "detail": "history_k=0, augmented_state='none: command is the full Markov input', reset_rule=zero_history, model_sha=27bc5fe1423256ce"
+  },
+  {
+   "id": "S10-schema-window",
+   "name": "schema: dt=0.1 s、300 步 = 30 s、单位 J、绑定模型散列",
+   "ok": true,
+   "detail": "dt=0.1, 300·dt=30.0, unit=J, model_sha 绑定=True"
+  },
+  {
+   "id": "S11-nonneg-cost",
+   "name": "所有区间的 P̂ / c_nom / c 非负（α>0 也不会翻转符号）",
+   "ok": true,
+   "detail": "20 条轨迹 × 300 步中负值 0 个"
+  },
+  {
+   "id": "S12-binding",
+   "name": "步成本 schema 与足迹轮廓各自绑定同一控制器/资产，互不代偿",
+   "ok": true,
+   "detail": "model_sha=27bc5fe1423256ce，footprint_sha=ed23b46e46af23d2，geometry_sha=efcc590ff228fc92，二者引用不同对象（能量 vs 几何），δ 只在几何侧施加一次"
+  },
+  {
+   "id": "S13-energy-ratio",
+   "name": "ε_c=(J_exec−J_nom)/J_nom；J_nom<J_min 记 non_computable",
+   "ok": true,
+   "detail": "10 条人工 1.2× 比值均为 0.2=True；J_nom=0.5<J_min 返回 non_computable"
+  }
+ ],
+ "verdict": {
+  "all_passed": true,
+  "failed": []
+ }
+}

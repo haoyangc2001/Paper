@@ -1616,3 +1616,172 @@ M03 用同一函数重跑并逐条比对 trial_id/seed/两个散列——六个�
   若 037 需要更大配对样本，只能按"同分布非配对"处理并如实说明配对率。
 - 清单本身不含 profile 采样值（摩擦/质量/推扰），那些由 `sample_spec(seed)` 在采集时
   确定性生成并落 meta；037 若要做配对比较，须从两边 meta 读取实际 profile 读回值。
+
+---
+
+## §27 HIRA-025：400 条 clean 功率基线（fit/dev/validate）
+
+**目标**：按已锁定的 manifest 采集 HiRA 专属 clean 基线，逐条资格核对，不完整条目进排除明细。
+
+**入口**：`tests/run_split.py`（通用 split 采集器）——manifest 是唯一 trial 来源，命令表用
+`camra_calibration.commands.build_program` 重建后与清单的 `program_sha256`/`template_sha256` **双散列对账**，
+任何一条对不上就拒绝开跑（不静默）。按 profile 分批（同批 obs_noise/window/warmup 必须一致），
+断点续跑（DONE 完整则 skip，不足一批用 scratch 占位填满 env 槽位、跑完即删）。
+
+**结果**（run 目录 `/pub/data/caohy/logs/camra_hira/runs/baseline_20261106_{fit,dev,validate}`）：
+
+| subset | 条数 | 完成 | business_failure | 墙钟 | 目录 |
+|---|---|---|---|---|---|
+| baseline_fit | 240 | 239 | 1（straight_shift-0005，5336 步） | 10.6 min | 272 MB |
+| baseline_dev | 80 | 79 | 1（alternating-0007，5276 步） | 4.0 min | 91 MB |
+| baseline_validate | 80 | 80 | 0 | 3.8 min | 91 MB |
+
+* 单条 2.05–2.30 s（`--num-envs 8`），**1.135 MB/条**，400 条共 454 MB。
+* 完整性核对 `tests/check_baseline.py` **10/10 全过**、400 条有效、**0 条排除**：bundle_id/controller/seed/
+  program_sha256 逐条与清单及冻结包一致；clean 旋钮读回 friction=1.0、mass 增量 0；energy 离线复算
+  **最差 rel = 0.0**（400 条）；每格完整率 0.95–1.00（下限 0.9）；簇与 trial 一一对应、簇前缀=族、族簇数=配额；
+  seed 与 pilot 区间无交集；每个 split 有独立 run 目录且 `collect_config` 的 split/manifest/散列/bundle 自洽。
+* **validate 保持封存**：核对阶段只登记 outcome/步数/点数/能量复算残差，`j_exec` 字段显式置空，
+  不计算任何拟合误差（拟合误差在 §28 冻结模型之后才第一次算出）。
+
+**修掉的两个真问题**
+
+1. **终止 trial 的配对点没有按时间截断**。`state50` 按控制步（4 物理步/点）、`pairing` 按命令区间
+   （20 物理步/点）采样，早先两者都用 `n_stop//4+1` 切，切片长度超过实际点数而不生效，终止 trial 会留下
+   **终止之后（reset 后挣扎段）** 的配对点。首轮被 B04 抓出（5336 步却报 301 个配对点）。
+   修正为 `n_stop // steps_per_interval + 1`，重跑后 B04 通过。
+2. **三个 split 共用一个 run 目录**会让 `collect_config.json` 只记录第一个 split（fit），后两个 subset 的
+   meta 都指向错误的配置。改为每个 split 独立 run_id（`baseline_20261106_{fit,dev,validate}`），
+   并新增 B09 判据专门抓这一类"目录被多 split 复用"。
+
+**环境事故（本轮耗时主因）**：`/home`（autofs → NFS）在 11:07 整体挂死（两台机器同时，`ls` 超时），
+采集进程会卡在 AppLauncher 之后——它在读 NFS 上的 frozen bundle，不是代码问题。处置：把 adapters /
+calibration src / 实验目录逐文件复制到本地盘 `/pub/data/caohy/work/hira`，从副本运行；守护脚本
+`hira_autoprep2.sh` 负责"NFS 恢复→复制→校验 13 个关键文件→自动开跑"。
+另外：本地 Bash 工具的 stdin 不可用，`ssh "cat > f" < local` 只会得到 **0 字节**文件；
+`scp` 在 NFS 卡住时也会挂半途。可靠传输方式是把内容 base64 后作为 ssh 参数传。
+
+---
+
+## §28 HIRA-026：拟合、冻结并独立验证 HiRA 名义功率模型
+
+**口径**：`config/power_model_prereg_hira_v1.json`（sha `d7a56d273d6524c1…`，state=frozen，早于任何采集冻结）。
+特征只用命令的 `|vx|,|vy|,|wz|` 及其平方/乘积（恒非负），拟合为 relative-weighted NNLS（权重 1/J_exec，
+`scipy.optimize.nnls` + 列 L2 归一化回代），目标 `J_nom = Σ_{i=0..299} P̂(u_i..u_{i−K})·0.1`。
+
+**数据**：fit 239 条（1 条 business_failure 按 `outcome_not_completed` 排除）、dev 79 条（同）、
+validate 80 条（0 排除）。每条都通过 10 类排除规则检查（目录/DONE/outcome/步数/program 散列/命令表逐点
+≤1e-5/J_exec 反算 ≤1e-9/前缀/bundle 绑定/pairing 形状）。
+
+**候选与选型**（只用 fit 训练、dev 选型）：
+
+| 候选 | 特征 | n_params | fit q90 | dev q90 | 截距份额 |
+|---|---|---|---|---|---|
+| C1_lin_k0 | 1,\|vx\|,\|vy\|,\|wz\| | 4 | 6.43% | 5.64% | 0.452 |
+| **C2_quad_k0** | +vx²,vy²,wz²,\|vx\|\|wz\|,\|vy\|\|wz\|,\|vx\|\|vy\| | **10** | **4.41%** | **4.35%** | **0.470** |
+| C3_quad_k1 | C2 + 1 条历史命令块 | 20 | 4.41% | 4.35% | 0.470 |
+| C4_lin_k2 | C1 + 2 条历史命令块 | 12 | 6.53% | 5.65% | 0.453 |
+
+C3 与 C2 的 dev q90 在 1e-4 内相同（历史块与当期块高度共线，NNLS 只是把权重挪到 lag 列：
+lag1 的 `abs_vy`=2.336、`wz2`=6.776 非零），按预登记 tie 规则（±0.005 内取参数少者）**选 C2_quad_k0**。
+
+**冻结**：`config/power_model_hira_v1.json`，模型 sha **`27bc5fe1423256ce…`**（散列只覆盖 content_dict，
+不含时间戳；重跑一次得到同一 sha，证明拟合可复现）。权重：
+`[10.4148, 4.6562, 2.2988, 0.0, 39.7912, 47.0641, 6.7762, 0.0, 3.4692, 5.5223]`
+（`|wz|` 与 `|vx||wz|` 被压到 0：本策略的转向功率主要体现在 `wz²` 与 `|vy||wz|`）。
+
+**validate 一次性结果**（模型落盘之后才算）：q90 **5.88%**、中位 1.95%、最大 13.24%；
+带符号偏差 q90 +4.88%、中位 +0.61%（轻微高估）；0 条 non-computable、0 条越出输入域。分组：
+`start_stop_turn` 7.27% > `straight_shift` 4.73% > `arc_combined` 4.22% > `alternating` 3.23%；
+低速组 7.14% vs 高速 4.45%；平稳段 7.27% vs 过渡段 4.40%。准入 4/4（dev ≤0.10、validate ≤0.10、
+构造性非负、non-computable 份额 ≤0.2）。
+
+**12→13 项自证**：前缀因果性（把命令 `[151:]` 换成随机值，`[0:150]` 的 P̂ **逐位不变** = 0.0，
+而后缀确实变了 78.66 W，证明篡改生效）；非负（三 split 全部区间 `min P̂ ≥ 0`、截断份额 0）；
+**由落盘文件重算**：从 JSON `load(verify_hash=True)` 得到的模型与**拟合进程内存模型**算的 J_nom
+**逐位相等**（30 条），另一条求和路径（Φ·w 聚合）差 2.3e-15 相对（ULP 级，仅作诊断）。
+
+**第一次判定为 FAIL 的原因**：我最初把"另一种求和顺序"当成"独立复算"，用绝对 1e-12 判，2e-15 相对
+（约 2e-12 J）就超了。已改为"同一实现下文件模型 vs 内存模型逐位相等"作主判据，另一路径按相对 1e-12 判。
+第一次的报告保留为 `reports/power_model_validate_run1.json`（同一模型 sha、同一 validate q90，未改选型）。
+
+**K>0 约定**：选中模型 `history_k=0`，故"reset 后 zero_history / 上层增广命令历史"约定**不适用**；
+C3/C4 的 lag 语义（越界钳到首点 `u_0`，等价 zero-order hold 而非零命令）已在 `feature_matrix` 中固定，
+若将来改用 K>0 模型必须沿用该约定，否则第一个区间的 P̂ 会变。
+
+**与旧模型的隔离**：新模型只依赖命令，不引用任何执行侧量；文件为 `config/power_model_hira_v1.json`，
+与 v2 的 `power_model_v1.json` 无交集（后者未被读取、未被修改）。
+
+---
+
+## §29 HIRA-027：重验 HiRA 执行系统的 Go2 占地轮廓
+
+**问题**：v2 的轮廓（0.889 × 0.585 m）是从另一份 USD 资产算的，不能直接沿用；必须从本候选
+自己的碰撞几何重算，并且只用已采到的独立数据定姿态包络。
+
+**资产几何**（`config/go2_asset_geometry_hira_v1.json`，sha `efcc590ff228fc92…`）：
+由 `tests/extract_geometry_hira.py` 直接从包内的 `urdf_go2.urdf` 解析 —— 29 links / 28 joints /
+27 colliders（`cube` / `cylinder` / `sphere`，无 mesh）。schema 与 v2 的 `camra-go2-asset-geometry-v1`
+一致，因此可直接被 `AssetGeometry.load(verify_hash=True)` 读取。两处转换约定：
+URDF 的 `origin` 就是 child 相对 parent 的零位姿（`pos1=0`、`rot1=identity`）；
+URDF 的长方体三边不等，而采样器只支持立方体，故用单位立方体 + `matrix_link_from_shape` 的对角缩放。
+`rest_consistency`：FK(全关节=0) 与资产作者的链接静止平移最大差 **2.2e-13 m**。
+
+**姿态包络**：623,757 帧 / 420 条 trial（fit 359,834 + dev 119,819 + validate 120,000 + pilot 24,104），
+全部来自 clean baseline 与 pilot 的 50 Hz 关节记录；**没有**用 heldout / near_obstacle（被 results_guard 封锁）。
+
+**结果**：轮廓 52 个顶点、面积 **0.6769 m²**、包围盒 **1.0164 × 0.7810 m**（对 v2 的 1.143 × 1.335 倍）。
+覆盖检查把同一批 623,757 帧的**全部碰撞体投影点**逐点判内：`max_outside = -0.0`、越界点 **0**。
+轮廓冻结为 `config/footprint_hira_v1.json`（sha `ed23b46e46af23d2…`，含 sha256 侧车）。8/8 检查通过。
+
+**一个必须写下来的否定结论**：我原本假设"关节限位角点组合"（每腿 3 关节取 8 角点、腿间独立 → 4096 帧）
+会给出实测包络的**保守超集**。实测相反：它在 x/y 方向更长（1.067× 与 1.114×），但**面积只有实测的 0.8786 倍**
+——因为角点组合缺少"单腿前伸/后蹬"这类**不对称**姿态。所以它只能当量级参照，不是兜底轮廓；
+若将来实测姿态超出包络，必须重新采集数据并重算轮廓，**不得**用角点轮廓顶替，也不得靠放大 δ 掩盖。
+
+**性能教训**：`coverage` 对 62 万帧逐点算多边形距离要 **~17 分钟**（outline 3 分钟）。
+脚本加了 `--reuse`：多边形从已冻结的 footprint 文件读、coverage/limit 从旧报告读，只重做判定（秒级）。
+判据写错时不必重算 22 分钟。
+
+---
+
+## §30 HIRA-028：能量步成本与未来导航消费接口
+
+**交付**：`config/step_cost_schema_hira_v1.json`（schema 散列 `a52563f95818f659…`，文件散列
+`1c6b50403cb8cb5d…`，+ `.sha256` 侧车）与 `reports/step_cost_interface_tests.json`（13/13）。
+接口直接复用 v2 的 `step_cost.py`（`c_nom = P̂·0.1 s`、`c = (1+α)·c_nom`、`BudgetState`、
+`StepCost.step`、`trajectory_cost`、`energy_ratio`），只把模型换成 HiRA 的冻结模型。
+
+**α 的处理**：α 要到 HIRA-031 才冻结，所以测试里用的 α=0.25 在报告中逐处标注
+`alpha_is_test_value=true`，并写明"不得被下游当作标定结果引用"。
+
+**13 项结果**
+
+| id | 结论 |
+|---|---|
+| S01 | 100 条轨迹（validate 80 + fit 20）的 300 个区间成本之和 = 整窗 J_nom，最差 rel **4.64e-15** |
+| S02 | 每步 `c = (1+α)·c_nom`；Σ 比值 **1.250000**（α=0.25） |
+| S03 | 预算 spent/remaining/exhausted/z_ratio 自洽且剩余单调不增 |
+| S04 | 零/负/NaN 预算、旧 `a.u.` 单位、非 `mechanical_J` 口径全部被拒 |
+| S05 | 提前终止只累计实际执行 137 步（385.60 J < 整窗 875.45 J），不外推不补齐 |
+| S06 | 权重改 1e-6 后 `load(verify_hash)` 拒绝；正品可载 |
+| S07 | `dt_s=0.05` 与模型 `step_cost_dt=0.1` 不一致时构造即拒 |
+| S08 | K=1 时 `step` 与 `feature_matrix` 逐位一致（0.034000）、zero_history 首步一致、require_explicit 缺历史报错 |
+| S09 | 交付模型 K=0 → 上层状态无需增广（`none: command is the full Markov input`） |
+| S10 | schema 自洽：dt=0.1、300×dt=30 s、单位 J、绑定模型散列 |
+| S11 | 20×300 步中负功率/负成本 0 个 |
+| S12 | 步成本绑模型散列、足迹绑几何散列，两者引用不同对象；δ 只在几何侧施加一次 |
+| S13 | ε_c=(J_exec−J_nom)/J_nom；J_nom<J_min 记 `non_computable` |
+
+**两处接口语义（下游必须知道）**
+
+1. **`remaining_J` 允许为负**：S03 里 174 步把 500 J 预算用到 spent=500.2356、remaining=**−0.2356**。
+   `z_ratio` 会夹到 [0,1]（实测 0.0），但 `remaining_J` 保留负值以表示**超支量**。
+   下游若用 remaining 做阈值判断，需自行 `max(0, ·)` 或直接用 `z_ratio`。
+2. **`zero_history` 会覆盖 reset 传入的历史**：episode 第一条命令被当作它自己的历史（与
+   `feature_matrix` 的"越界钳到首点"一致）。要验证"外部历史参与预测"必须 `reset_rule="require_explicit"`
+   并显式 `reset(history=...)` —— 我第一版 S08 就是因为没注意到这点而误判为失败（0.032 vs 0.034，
+   差的正是"历史块用了 u 还是 h"）。
+
+**边界**：本任务只交付可消费接口，没有启动任何导航训练；不把 J 预算与旧论文的 a.u. 预算混用，
+也不默认继承旧 α。

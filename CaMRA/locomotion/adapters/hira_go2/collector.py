@@ -542,9 +542,15 @@ class HiraCollector:
             pairing = state["pairing"][spec.trial_id]
             # 按 v1.0.2 的 energy_partial_rule 截断：终止的 trial 只保留实际执行段
             n_stop = int(stop_substep[spec.trial_id])
+            # 三种采样必须各自按自己的频率截断：
+            #   state50 每控制步 1 点（decimation=4）→ n_stop//4
+            #   pairing 每**命令区间** 1 点（command_dt/sim_dt=20 物理步）→ n_stop//20 + 1（含共享端点）
+            # 早先把 pairing 也按 n_ctrl 切，切片长度超过实际点数而不生效，终止 trial 会留下
+            # 终止之后（reset 后挣扎段）的配对点——HIRA-025 首轮 2 条 business_failure 就是这样被查出的。
             n_ctrl = n_stop // self.timing.decimation
+            steps_per_interval = int(round(self.timing.command_dt / self.timing.sim_dt))
             state_rows = state_rows[:n_ctrl]
-            pairing = pairing[:n_ctrl + 1]
+            pairing = pairing[: n_stop // steps_per_interval + 1]
             np.savez_compressed(
                 attempt_dir / "state_50hz.npz",
                 t_s=np.array([row["t_s"] for row in state_rows], dtype=np.float64),

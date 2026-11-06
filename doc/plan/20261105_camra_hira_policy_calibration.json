@@ -2267,7 +2267,7 @@
       "id": "HIRA-025",
       "phase": "独立功率基线",
       "goal": "采集400条HiRA专属clean功率基线",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-024"
       ],
@@ -2287,7 +2287,47 @@
         "400条基线原始数据与资格清单",
         "reports/baseline_collection_integrity.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T13:16:00+08:00",
+          "summary": "按 HIRA-024 锁定的 manifest 采集 400 条 clean 基线（fit 240 / dev 80 / validate 80），逐条资格核对 10/10 全过、0 条排除；validate 保持封存（只核采集状态，j_exec 显式置空）。修掉两个真问题：终止 trial 的配对点未按命令区间频率截断、三个 split 共用 run 目录导致 collect_config 绑定错 split。",
+          "actions": [
+            "新建 tests/run_split.py（通用 split 采集入口）：trial 只来自 manifests/<split>.jsonl；命令表用 build_program 重建并与清单的 program_sha256 + template_sha256 双散列对账，任一不符即拒绝开跑；按 profile 分批（同批 obs_noise/window/warmup 必须一致）；断点续跑（DONE 完整则 skip，不足一批用 scratch 占位填满 env 槽位、跑完即删）。",
+            "修正 collector 的截断口径：state50 按控制步（n_stop//4）、pairing 必须按命令区间（n_stop//20+1）。早先两者都用 n_stop//4+1，切片超长而不生效，终止 trial 会保留reset 后挣扎段的配对点——首轮被 B04 判据（5336 步却 301 个配对点）抓出。",
+            "改为每个 split 独立 run 目录（baseline_20261106_{fit,dev,validate}），并新增 B09 判据专门抓\"run 目录被多 split 复用\"（collect_config 的 split/manifest/散列/bundle 必须与该 run 一致）。",
+            "全流程从 /pub 本地副本运行：/home（autofs→NFS）在 11:07 整体挂死，采集会卡在读 frozen bundle；用 hira_autoprep2.sh 守护（探测恢复→逐文件复制 adapters/src/实验目录→校验 13 个关键文件→自动开跑）。",
+            "新建 tests/check_baseline.py：十项独立核对（配额/身份与散列/clean 旋钮/结构截断/能量复算/格完成率/簇与 seed 互斥/run 配置绑定/validate 封存）。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/collector.py（pairing 截断修正）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/run_split.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_baseline.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/baseline_collection_integrity.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§27）"
+          ],
+          "commands": [
+            "python tests/run_split.py --headless --device cuda:0 --split baseline_fit --run-id baseline_20261106_fit --num-envs 8",
+            "python tests/check_baseline.py --run baseline_fit=baseline_20261106_fit --run baseline_dev=baseline_20261106_dev --run baseline_validate=baseline_20261106_validate"
+          ],
+          "results": [
+            "配额达成：fit 240（239 完成 + 1 business_failure）、dev 80（79+1）、validate 80（80+0）；总计 400 条有效、0 条排除。",
+            "运行成本：fit 10.6 min / dev 4.0 min / validate 3.8 min；单条 2.05–2.30 s（num_envs=8）；1.135 MB/条，总 454 MB（fit 272 MB + dev 91 MB + validate 91 MB）。",
+            "能量离线复算 400 条最差 rel = 0.0；每格完整率 0.95–1.00（下限 0.9）。",
+            "两条 business_failure 的截断自洽：5336 步 → 1334 个 state 点、268 个配对点；5276 步 → 1319/264。",
+            "十项检查全过（B00–B09），包括 bundle_id 逐条等于冻结包 3c32fe31…、seed 与 pilot 区间零交集。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/baseline_collection_integrity.json（10/10）",
+            "runs/baseline_20261106_fit|dev|validate/<trial_id>/attempt_01/{meta,energy,status}.json + *.npz",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §27"
+          ],
+          "remaining_work": [
+            "HIRA-027 起用这 400 条做名义侧 J_nom 复算与 α/δ 标定；heldout/near 仍由 results_guard 封锁。",
+            "2 条 business_failure 不补采（预登记：业务失败不静默替换），它们只影响功率拟合的分母（已排除）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只限本HiRA冻结包的clean数据，不能用pilot或校准/heldout数据拟合。",
         "validate采集状态可看，性能拟合结果不得提前看。"
@@ -2296,13 +2336,13 @@
         "三个subset的配额、hash、互斥与完整性可核对，所有失败/无效条目明确列出。",
         "取得的数据足以按预登记规则拟合与检验；不足则不将任务置true。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（10/10）。400 条 clean 基线（240/80/80）全部按 manifest 采集，0 条排除；bundle/seed/program 散列逐条绑定一致，能量离线复算最差 rel 0.0，每格完成率 0.95–1.00。validate 保持封存（j_exec 显式置空、未算任何拟合误差）。修掉配对点截断与 run 目录复用两个真问题。"
     },
     {
       "id": "HIRA-026",
       "phase": "独立功率基线",
       "goal": "拟合、冻结并独立验证HiRA名义功率模型",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-025"
       ],
@@ -2323,7 +2363,51 @@
         "reports/power_model_selection.json",
         "reports/power_model_validate.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T13:20:00+08:00",
+          "summary": "只用 fit 训练四个预登记候选、用 dev 按 q90 + tie 规则选型，冻结 power_model_hira_v1（sha 27bc5fe1…），再对封存 validate 评估一次：q90 5.88%（准入 ≤10%）。选中 C2_quad_k0（10 参数，截距份额 0.470）；13 项自证全过（因果性/非负/由文件重算逐位一致）。",
+          "actions": [
+            "新建 tests/fit_power_hira.py：按 power_model_prereg_hira_v1.json 装配数据——10 类排除规则（目录/DONE/outcome/步数/program 散列/命令表逐点 ≤1e-5/J_exec 由 200 Hz tau·qdot 反算 ≤1e-9/hira- 前缀/bundle 绑定/pairing 形状），任一不合规都计入 exclusions 明细。",
+            "四个候选（C1_lin_k0 / C2_quad_k0 / C3_quad_k1 / C4_lin_k2）都用 camra_calibration.power 的非负特征块 + relative-weighted NNLS（w=1/J_exec，列 L2 归一化后回代）；只用 fit 训练，读 dev 的 q90 做选型，tie 容差 0.005 按 n_params→history_k→名称取更简单者。",
+            "选型后先 save（PowerModel.save 写 JSON + .sha256 侧车）再 load(verify_hash=True)，然后才第一次评估 validate——选型过程从未读写 validate。",
+            "13 项自证：文件模型 vs 内存模型同一实现逐位相等、另一求和路径相对 ≤1e-12、前缀因果性（改 u_{>150} 时 P̂_{≤150} 逐位不变）、非负（三 split 全区间 min P̂ ≥ 0、截断份额 0）、权重全非负、dev/validate q90≤0.10、admission 4/4。",
+            "首轮 FAIL 的修正：原把\"另一种求和顺序\"当独立复算、用绝对 1e-12 判，2e-15 相对就超；改为\"文件模型 vs 内存模型同实现逐位相等\"作主判据，另一路径改按相对 1e-12 判为诊断。首轮报告保留为 power_model_validate_run1.json（同 sha、同 q90，未改选型）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/power_model_hira_v1.json（新建，冻结模型）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/power_model_hira_v1.json.sha256（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/fit_power_hira.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/power_model_selection.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/power_model_validate.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/power_model_{selection,validate}_run1.json（首轮留档）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§28）"
+          ],
+          "commands": [
+            "python tests/fit_power_hira.py --fit-run baseline_20261106_fit --dev-run baseline_20261106_dev --validate-run baseline_20261106_validate"
+          ],
+          "results": [
+            "候选 dev q90：C1 5.64%、C2 4.35%、C3 4.35%、C4 5.65%；C3 与 C2 在 1e-4 内相同（历史块与当期块共线，lag1 的 abs_vy=2.336、wz2=6.776 非零），按 tie 规则选参数少的 C2。",
+            "冻结模型 sha 27bc5fe1423256ce…；权重 [10.4148, 4.6562, 2.2988, 0.0, 39.7912, 47.0641, 6.7762, 0.0, 3.4692, 5.5223]；截距份额 0.470（<0.5，未以截距吸收误差）。",
+            "validate（冻结后一次性）：q90 5.88%、中位 1.95%、最大 13.24%、带符号偏差 q90 +4.88%/中位 +0.61%；0 条 non-computable、0 条越域。",
+            "分组：start_stop_turn 7.27% > straight_shift 4.73% > arc_combined 4.22% > alternating 3.23%；低速组 7.14% vs 高速 4.45%；平稳段 7.27% vs 过渡段 4.40%。",
+            "因果性：前缀最大差 0.0（逐位不变），后缀最小变化 78.66 W（篡改确实生效）；非负：三 split 全区间 min P̂ ≥ 0、截断份额 0；复算：文件模型与内存模型逐位相等。",
+            "admission 4/4 通过；13 项 checks 全过。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/power_model_hira_v1.json（+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/power_model_selection.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/power_model_validate.json（13/13）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §28"
+          ],
+          "remaining_work": [
+            "HIRA-028：把冻结模型接成逐步成本接口（c_nom=P̂·0.1 s），并在接口层复算 J_nom 对账。",
+            "选中模型 history_k=0 → 预登记的 zero_history/上层增广命令历史约定不适用；若要改用 K>0 模型必须沿用 feature_matrix 的\"lag 越界钳到首点\"语义。",
+            "截距份额 0.470 需在后续与 J_min 占比一并报告，避免被误读为\"以截距吸收误差\"。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不得用validate反选模型，不能用执行能量/扰动标签作名义侧特征。",
         "未达到dev/validate q90≤0.10或近零等规则时暂停；不能靠α吸收模型缺陷或自行引入未批依赖。"
@@ -2332,13 +2416,13 @@
         "选型仅使用fit/dev，validate一次性达到协议准入，非负/因果性/复算均通过。",
         "模型绑定HiRA包且与旧power_model_v1.json完全隔离；输入、输出W与积分J清楚。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（13/13）。选型只用 fit/dev：C2_quad_k0 以 dev q90 4.35% 胜出（C3 与其并列，按参数少弃用）。模型冻结 sha 27bc5fe1… 后 validate 一次性 q90 5.88%（准入 ≤10%），截距份额 0.470、非负与因果性构造性成立、由落盘文件重算与拟合内存数值逐位相等，admission 4/4。"
     },
     {
       "id": "HIRA-027",
       "phase": "几何与消费接口",
       "goal": "重新验证HiRA执行系统的Go2占地轮廓",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-026"
       ],
@@ -2358,7 +2442,49 @@
         "config/footprint_hira_v1.json及hash",
         "reports/footprint_validation.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T15:05:00+08:00",
+          "summary": "从 HiRA 自己的 URDF 重抽碰撞几何（29 links / 28 joints / 27 colliders）并重算占地轮廓：52 顶点、0.6769 m²、包围盒 1.0164×0.7810 m，与 v2 的 0.889×0.585 m 相差 1.143×/1.335×，不可照抄。用 420 条 trial 的 623,757 帧关节记录定包络，逐点覆盖检查 0 越界。断掉一个错误假设：关节限位角点组合不是实测包络的超集（面积只有 0.8786 倍）。",
+          "actions": [
+            "新建 tests/extract_geometry_hira.py：直接解析包内 urdf_go2.urdf，生成与 v2 同 schema（camra-go2-asset-geometry-v1）的 go2_asset_geometry_hira_v1.json（含 .sha256 侧车）。两处约定：URDF origin 即 child 相对 parent 零位姿（pos1=0/rot1=identity）；URDF 长方体三边不等 → 单位立方体 + matrix 的对角缩放。",
+            "新建 tests/verify_footprint_hira.py：AssetGeometry.load(verify_hash) → rest_consistency（FK(全 0) 复现链接静止平移）→ 用 clean baseline（fit/dev/validate）+ pilot 的 50 Hz 关节记录（按名字从源顺序重排到 POLICY_JOINT_ORDER）→ outline_from_q 取凸包 → coverage 逐点判内。",
+            "另算\"关节限位角点\"轮廓作对照（每腿 3 关节 8 角点、腿间独立 8⁴=4096 帧）；结论与预期相反，见 results。",
+            "冻结 config/footprint_hira_v1.json（Footprint.save 写 JSON + .sha256 侧车），并断言 reload 后 sha 一致；轮廓内不含任何安全裕度，δ 由 Footprint.obstacle_dilation 单独施加一次。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/extract_geometry_hira.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/verify_footprint_hira.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/go2_asset_geometry_hira_v1.json（+ .sha256，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/footprint_hira_v1.json（+ .sha256，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/footprint_validation.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§29）"
+          ],
+          "commands": [
+            "python tests/extract_geometry_hira.py --urdf frozen/hira_go2_18500/urdf_go2.urdf",
+            "python tests/verify_footprint_hira.py            # 全量：outline 175 s + coverage 1000 s",
+            "python tests/verify_footprint_hira.py --reuse     # 只重做判定（秒级）"
+          ],
+          "results": [
+            "资产几何：29 links / 28 joints / 27 colliders（cube+cylinder+sphere，无 mesh），sha efcc590ff228fc92；rest_consistency max_abs_err 2.232e-13 m。",
+            "包络数据：623,757 帧 / 420 trial（fit 359,834 + dev 119,819 + validate 120,000 + pilot 24,104），全部来自 clean baseline 与 pilot；未使用 heldout/near。",
+            "轮廓：52 顶点、面积 0.6769 m²、包围盒 1.0164 × 0.7810 m（对 v2 为 1.143× / 1.335×）；coverage 623,757 帧全部点 max_outside = -0.0、越界 0；footprint sha ed23b46e46af23d2。",
+            "否定结论：限位角点轮廓在 x/y 更长（1.067×/1.114×）但面积只有 0.8786 倍，**不是**实测包络的超集（缺不对称姿态）→ 只能作参照，姿态超包络须重采重算，禁止用 δ 掩盖。",
+            "8/8 检查通过（几何散列、rest 一致、碰撞体数量、覆盖无越界、reload 一致、URDF 绑定、无内置裕度、全部转动关节都有实测范围）。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/go2_asset_geometry_hira_v1.json（+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/footprint_hira_v1.json（+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/footprint_validation.json（8/8）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §29"
+          ],
+          "remaining_work": [
+            "HIRA-031 冻结 δ 时，危险集扩张只能用 Footprint.obstacle_dilation(obstacle, δ) 一次；不许在轮廓里预置裕度。",
+            "近障采集（HIRA-035 之后）若出现实测姿态超出本次包络，必须重采重算轮廓并出新版本号。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不可直接照抄旧0.889×0.585 m尺寸宣称本候选验证通过。",
         "轮廓不足或新资产几何不明时先暂停，不以调δ替代真实几何。"
@@ -2367,13 +2493,13 @@
         "轮廓与目标资产hash绑定，覆盖检查和参考点定义可复算。",
         "近障使用的物理碰撞边界和δ扩张关系明确，无双重膨胀。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（8/8）。几何从本候选 URDF 重抽（29 links / 28 joints / 27 colliders，rest 一致 2.2e-13），轮廓 52 顶点、0.6769 m²、1.0164×0.7810 m（对 v2 为 1.143×/1.335×，未照抄），623,757 帧逐点覆盖 0 越界；轮廓不含裕度、δ 单独施加一次。并否证了\"限位角点轮廓是超集\"的假设（面积仅 0.8786 倍）。"
     },
     {
       "id": "HIRA-028",
       "phase": "几何与消费接口",
       "goal": "验证能量步成本与未来导航消费接口",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-027"
       ],
@@ -2393,7 +2519,47 @@
         "config/step_cost_schema_hira_v1.json及hash",
         "reports/step_cost_interface_tests.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T15:20:00+08:00",
+          "summary": "交付能量步成本 schema（c_nom=P̂·0.1 s、c=(1+α)·c_nom）与 13 项接口测试：300 区间求和 = J_nom（最差 rel 4.6e-15）、α 逐项放大、预算/提前终止/错误模型散列/dt 不一致全部按预期处理，K>0 的历史状态与 reset 语义单测通过。α 未冻结，测试值 0.25 已明确标注。",
+          "actions": [
+            "新建 tests/verify_step_cost_hira.py：加载冻结模型（verify_hash）→ write_schema 写config/step_cost_schema_hira_v1.json（+ .sha256）→ 13 项独立测试。",
+            "复用 v2 的 camra_calibration.step_cost（BudgetState/StepCost/trajectory_cost/energy_ratio），只把模型换成 HiRA 冻结模型；α 用 0.25 并在报告逐处标注 alpha_is_test_value=True。",
+            "K>0 语义用临时测试模型（linear+history_k=1、权重恒 0.01，报告标注 test_model_only）验证：step 与 feature_matrix 逐位一致、zero_history 首步用自身历史、require_explicit 缺历史报错。",
+            "错误模型散列：复制模型 JSON 改权重 1e-6 → load(verify_hash) 必须拒绝；正品可载。",
+            "与几何侧交叉绑定：step-cost schema 绑模型散列、footprint 绑几何散列，δ 只在几何侧施加一次。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/verify_step_cost_hira.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/step_cost_schema_hira_v1.json（+ .sha256，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/step_cost_interface_tests.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§30）"
+          ],
+          "commands": [
+            "python tests/verify_step_cost_hira.py"
+          ],
+          "results": [
+            "schema 散列 a52563f95818f659、文件散列 1c6b50403cb8cb5d；dt=0.1 s、300 步=30 s、单位 J、绑定模型 sha 27bc5fe1423256ce。",
+            "S01：100 条轨迹（validate 80 + fit 20）300 步成本之和 = J_nom，最差 rel 4.64e-15。",
+            "S02：α=0.25 时每步 c=(1+α)c_nom，Σ 比值 1.250000（J_nom 875.452 J → Σc 1094.315 J）。",
+            "S03：174 步把 500 J 预算用到 spent 500.2356 / remaining −0.2356 / z_ratio 0.0；**remaining_J 允许为负**（表示超支量），下游阈值判断应使用 z_ratio 或自行 max(0,·)。",
+            "S05：137 步终止累计 385.60 J < 整窗 875.45 J，不外推不补齐；S06/S07 篡改与 dt 不一致均被拒。",
+            "S08：K=1 step 与 feature_matrix 逐位一致（0.034000）；zero_history 首步用自身历史；require_explicit 缺历史报错、给历史可用。S09：交付模型 K=0 → 状态无需增广。",
+            "S11/S13：非负成本 0 个负值；ε_c 口径与 non_computable 规则正确。13/13 全过。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/step_cost_schema_hira_v1.json（+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/step_cost_interface_tests.json（13/13）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §30"
+          ],
+          "remaining_work": [
+            "HIRA-031 冻结 α 后，下游 schema 需重新以真实 α 生成一份（当前 alpha_default=0.0）。",
+            "预算超支语义（remaining 可为负）需在导航侧接口文档中写明。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只交付可消费接口，不启动或实现导航训练。",
         "不把J预算与旧论文a.u.预算混用，不默认继承旧α。"
@@ -2402,7 +2568,7 @@
         "逐步与整轨迹成本一致，预算及历史状态语义通过独立测试。",
         "新模型/轮廓/时钟/单位绑定，错误候选模型或旧schema被拒绝。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（13/13）。步成本 schema 已冻结（a52563f9…），300 区间求和=J_nom（rel 4.6e-15）、α 放大 1.25、预算/提前终止/错误散列/dt 不一致均按契约处理，K>0 历史状态与 reset 语义通过单测，α 测试值已标注为非估计值。"
     },
     {
       "id": "HIRA-029",
