@@ -131,10 +131,11 @@ def main() -> int:
     add("P02-identity", "身份与 G1 冻结包一致（正式 runner 跑的就是冻结包）", identity_ok,
         f"20 条 meta 的 bundle_id 均为 {bundle_id[:16]}…，controller/experiment/seed 区间一致")
 
-    # ---- P3 配对点与命令复现 ----
+    # ---- P3 配对点与命令复现（completed=301；business_failure=截断长度）----
     p3_ok, p3_detail = True, []
     for row in rows:
         z = row["pairing"]
+        meta = row["meta"]
         points = len(z["t_s"])
         dt = float(np.diff(z["t_s"]).min())
         expected = np.array(
@@ -142,16 +143,27 @@ def main() -> int:
             dtype=np.float32,
         )
         cmd_ok = bool(np.allclose(z["command"], expected, atol=1e-6))
-        p3_ok = p3_ok and points == 301 and abs(dt - 0.1) < 1e-9 and cmd_ok
-    add("P03-pairing", "配对 301 点、0.1 s 间距、命令与程序生成器逐元素一致", p3_ok,
-        "20 条全部 301 点 / Δt=0.1 / 命令一致" if p3_ok else "存在不一致")
+        if meta["outcome"] == "completed":
+            len_ok = points == 301
+        else:
+            # 截断：n_ctrl + 1 个点，且必须真的短于全窗口
+            len_ok = 1 < points < 301 and points == meta["timing"]["steps_executed"] // 4 + 1
+        p3_ok = p3_ok and abs(dt - 0.1) < 1e-9 and cmd_ok and len_ok
+    add("P03-pairing", "配对点数（completed=301，终止=截断长度）、0.1 s 间距、命令与程序生成器逐元素一致",
+        p3_ok, "全部一致" if p3_ok else "存在不一致")
 
     # ---- P4 状态与步数 ----
-    p4_ok = all(
-        len(row["state"]["t_s"]) == 1500 and row["meta"]["timing"]["steps_executed"] == 6000
-        for row in rows
-    )
-    add("P04-state-steps", "50 Hz 1500 点、6000 物理步", p4_ok, "20 条全部一致")
+    p4_ok = True
+    for row in rows:
+        meta = row["meta"]
+        n_state = len(row["state"]["t_s"])
+        n_steps = meta["timing"]["steps_executed"]
+        if meta["outcome"] == "completed":
+            p4_ok = p4_ok and n_state == 1500 and n_steps == 6000
+        else:
+            p4_ok = p4_ok and 0 < n_steps < 6000 and n_state == n_steps // 4
+    add("P04-state-steps", "50 Hz 状态与物理步数（completed 6000，终止=实际执行步数）", p4_ok,
+        "全部一致" if p4_ok else "存在不一致")
 
     # ---- P5 能量复算 ----
     worst = 0.0
@@ -243,8 +255,8 @@ def main() -> int:
         is_criterion=False, per_group=group_summary,
         median_m=float(np.median(all_err)), max_m=float(all_err.max()))
 
-    # ---- P9 摔倒与低速/near_zero 计数 ----
-    fell = [row["spec"].trial_id for row in rows if row["meta"]["outcome"] == "terminated_early"]
+    # ---- P9 摔倒与低速/near_zero 计数（outcome 口径对齐 v1.0.2：终止=business_failure）----
+    fell = [row["spec"].trial_id for row in rows if row["meta"]["outcome"] == "business_failure"]
     completed = [row["spec"].trial_id for row in rows if row["meta"]["outcome"] == "completed"]
     low_share = []
     has_near_zero = 0

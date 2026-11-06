@@ -403,6 +403,10 @@ class HiraCollector:
         hook = getattr(self, "policy_hook", None)
 
         state = self._new_state(specs)
+        # 继承 v1.0.2 的 energy_partial_rule：env 触发终止即该 trial 结束，
+        # 之后的数据不再属于这条 trial（不外推、不累计 reset 后的段）。
+        # stop_substep[trial_id] = 终止时的窗口内子步数；无终止 = capacity。
+        stop_substep = {spec.trial_id: capacity for spec in specs}
         terminations: list[dict] = []
         push_trace: list[dict] = []
         n_intervals = int(round(specs[0].window_s / self.timing.command_dt))
@@ -421,7 +425,10 @@ class HiraCollector:
                 for env in done_ids.tolist():
                     spec = specs[env]
                     # 终止已由 runner 在 reset 前抓取；这里恢复该 env 的
-                    # profile 旋钮与初态——否则 reset 会把摩擦/质量拉回默认
+                    # profile 旋钮与初态——否则 reset 会把摩擦/质量拉回默认。
+                    # 仿真继续跑（别的 env 还在窗口里），但该 trial 的记录到此为止。
+                    if stop_substep[spec.trial_id] >= capacity:
+                        stop_substep[spec.trial_id] = self.runner.physics_step - window_start_step
                     self._apply_spec_env([env], spec)
                     self._write_initial_pose([env], spec.initial_pose)
                     terminations.append(
@@ -437,7 +444,7 @@ class HiraCollector:
         energy_result = recorder.finish()
         self._write_outputs(attempt_dirs, specs, attempts, attempt_kinds, energy_result,
                             profile_readback, terminations, push_trace, state, warmup_steps,
-                            window_start_step)
+                            window_start_step, stop_substep)
         return [
             {"trial_id": spec.trial_id, "attempt": attempt, "dir": str(attempt_dir)}
             for spec, attempt, attempt_dir in attempt_dirs
@@ -517,8 +524,10 @@ class HiraCollector:
     # ------------------------------------------------------------------ #
     def _write_outputs(self, attempt_dirs, specs, attempts, attempt_kinds, energy_result,
                        profile_readback, terminations, push_trace, state,
-                       warmup_steps: int, window_start_step: int) -> None:
+                       warmup_steps: int, window_start_step: int,
+                       stop_substep: dict[str, int]) -> None:
         import numpy as np
+        from camra_calibration.energy import integrate_series
 
         def stack(rows, key, dtype=None):
             """把 GPU clone 的记录一次性搬回 CPU（避免逐点同步）。"""
@@ -531,6 +540,11 @@ class HiraCollector:
             env = index
             state_rows = state["state50"][spec.trial_id]
             pairing = state["pairing"][spec.trial_id]
+            # 按 v1.0.2 的 energy_partial_rule 截断：终止的 trial 只保留实际执行段
+            n_stop = int(stop_substep[spec.trial_id])
+            n_ctrl = n_stop // self.timing.decimation
+            state_rows = state_rows[:n_ctrl]
+            pairing = pairing[:n_ctrl + 1]
             np.savez_compressed(
                 attempt_dir / "state_50hz.npz",
                 t_s=np.array([row["t_s"] for row in state_rows], dtype=np.float64),
@@ -550,23 +564,36 @@ class HiraCollector:
                 pos_xy=stack(pairing, "pos_xy", torch.float32),
                 yaw=np.array([row["yaw"] for row in pairing], dtype=np.float64),
             )
+            tau_env = energy_result["tau_applied_source"][:n_stop, env, :]
+            qdot_env = energy_result["qdot_post_source"][:n_stop, env, :]
             np.savez_compressed(
                 attempt_dir / "physics_200hz.npz",
-                tau_applied_source=energy_result["tau_applied_source"][:, env, :],
-                qdot_post_source=energy_result["qdot_post_source"][:, env, :],
-                joint_acc_source=energy_result["joint_acc_source"][:, env, :],
-                root_pos_w=energy_result["root_pos_w"][:, env, :],
+                tau_applied_source=tau_env,
+                qdot_post_source=qdot_env,
+                joint_acc_source=energy_result["joint_acc_source"][:n_stop, env, :],
+                root_pos_w=energy_result["root_pos_w"][:n_stop, env, :],
             )
-            total_j = float(energy_result["total_j"][env])
+            # J 只覆盖实际执行段（在线累计是全窗口的，这里按截断段用 float64 独立复算，
+            # 与 HIRA-019 的双实现口径一致）
+            total_j = float(integrate_series(tau_env.astype("float64"), qdot_env.astype("float64"), self.timing.sim_dt))
             atomic_write_json(
                 attempt_dir / "energy.json",
                 {
                     "unit": "J", "metric_id": "D-ENERGY-001",
                     "j_exec": total_j,
-                    "per_joint_j": [float(v) for v in energy_result["per_joint_j"][env]],
-                    "steps_executed": int(energy_result["steps"]),
+                    "per_joint_j": [
+                        float(v)
+                        for v in (
+                            np.maximum(
+                                tau_env.astype("float64") * qdot_env.astype("float64"), 0.0
+                            ).sum(axis=0)
+                            * self.timing.sim_dt
+                        )
+                    ],
+                    "steps_executed": int(n_stop),
                     "tau_source": "robot.data.applied_torque",
                     "qdot_phase": "post_substep",
+                    "partial_rule": "v1.0.2 energy_partial_rule：终止的 trial 只覆盖实际执行步数，不外推",
                 },
             )
             terminated_env = [t for t in terminations if t["env"] == env]
@@ -591,7 +618,7 @@ class HiraCollector:
                     "command_dt": self.timing.command_dt, "decimation": self.timing.decimation,
                     "warmup_physics_steps": warmup_steps,
                     "steps_expected": int(round(spec.window_s / self.timing.sim_dt)),
-                    "steps_executed": int(energy_result["steps"]),
+                    "steps_executed": int(n_stop),
                     "window_s": spec.window_s,
                     "pairing_points": len(pairing),
                     "state50_points": len(state_rows),
@@ -607,7 +634,9 @@ class HiraCollector:
                 },
                 "push_trace": [p for p in push_trace if p["trial_id"] == spec.trial_id],
                 "terminations": terminated_env,
-                "outcome": "completed" if not terminated_env else "terminated_early",
+                # outcome 口径对齐 v1.0.2：终止 = business_failure（reason=terminated）
+                "outcome": "completed" if not terminated_env else "business_failure",
+                "failure_reason": None if not terminated_env else "terminated",
                 "energy": {"j_exec": total_j, "unit": "J", "metric_id": "D-ENERGY-001"},
                 "notes": "同 v2 布局；energy 由 applied_torque × 子步结束速度逐关节截断累计",
             }
@@ -623,7 +652,8 @@ class HiraCollector:
             )
             atomic_write_json(
                 attempt_dir / "status.json",
-                {"outcome": meta["outcome"], "trial_id": spec.trial_id, "attempt": attempt,
+                {"outcome": meta["outcome"], "failure_reason": meta["failure_reason"],
+                 "trial_id": spec.trial_id, "attempt": attempt,
                  "attempt_kind": attempt_kinds[index], "bundle_id": self.bundle_id,
                  "finished_at": _now()},
             )

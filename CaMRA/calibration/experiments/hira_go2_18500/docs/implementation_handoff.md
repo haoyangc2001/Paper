@@ -1481,3 +1481,58 @@ push_only 批带着上一批的 +3 kg 跑**：`_apply_mass` 是增量式、且�
   024 生成正式清单时噪声格的配额仍按协议，不因 pilot 表现调格；
 - P08 的配对误差只是漂移分布；真正的"跟踪质量"统计（含名义偏差分位数）
   在 028 的消费接口里按协议口径计算。
+
+## §25 HIRA-023：HiRA 专属校准协议与功率选型冻结
+
+### 25.1 产出与散列
+
+| 文件 | sha256（前 16） |
+|---|---|
+| `config/calibration_protocol_hira_v1.json` | `b5069a3721ea1054` |
+| `config/power_model_prereg_hira_v1.json` | `41a3cc2ea5791e9f` |
+| `reports/protocol_diff_from_v2.json` | 逐项差异报告（9 项，`user_rulings_required=[]`） |
+
+**继承校验**：`calibration_protocol_v1.0.2.json` 与 `power_model_prereg_v1.json`
+的散列在生成前后逐一比对，**未被改动**。
+
+### 25.2 继承与覆盖
+
+逐字段继承 v1.0.2：时钟（30 s / 200/50/10 Hz / 301 配对点）、命令域（±1.0/±0.4/±1.0）、
+四族五条件、J 正功契约与 J_min=1 J、七分片 1820（20/400[240/80/80]/800/400/200）、
+Q0.9 nearest-rank、bootstrap 10000×95%、簇与分母规则、每格完整率 ≥0.9、
+non_computable>0.20 暂停、三类无效规则、近障地图构造规则与"不得按新 δ 重设计"。
+
+覆盖项（全部为身份/簿记，无统计语义变更，`user_rulings_required` 为空）：
+
+1. **身份绑定**：applies_to → G1 冻结包（bundle_id `3c32fe31…`、manifest/controller/policy/urdf 散列）。
+2. **种子块**：baseline_fit/dev/validate、heldout、near_obstacle 与 v2 **同块**
+   （同 seed + 同生成器 = 同命令程序，供 HIRA-024 跨控制器匹配）；calibration 改为
+   6130–6929 以避开 HiRA pilot 已占的 6110–6129；七块互斥、reserved 排除保持。
+3. **trial_id**：强制 `hira-` 前缀（采集器白名单）。
+4. **能量测量实现登记**：τ=applied_torque、子步结束相位、**float64 乘法**
+   （v2 为 float32 乘法，系统差 ~2.6e-10 相对，已实测；跨控制器 J 比较须注明口径）。
+5. **attempt_policy 显式化**：第一有效主 attempt；业务失败不补成功替换；
+   基础设施重试保留原 attempt；v2 的 D-007（baseline_validate +31）/D-013（near +2）
+   两次整批重采登记为对照口径差异（按最大 attempt 去重后 v2 有效数不变）。
+6. **近障归属**：CAL-021/CAL-023 → HIRA-027/HIRA-029；冻结时点 = HIRA-029 数据锁。
+
+### 25.3 一处向继承语义的对齐（不是新决策）
+
+v1.0.2 的 `energy_partial_rule`：env 终止即该 trial 结束，**J 只覆盖实际执行步数，
+不得外推**。HiRA 采集器首轮实现为全窗口累计（含 reset 后的挣扎段）——违背继承语义。
+已修正：`stop_substep` 逐 env 记录、输出按截断段切片、`energy.json` 按截断段
+float64 复算、outcome 对齐 v2 口径（终止 = `business_failure`/reason=terminated）。
+
+效果在 pilot 重跑中直接可见：J 上界从 41015 J（挣扎段累积的病态值）回落到
+**1223 J**；combined 组配对误差中位从 1.509 m 降到 0.426 m（漂移尾巴随截断消失）。
+
+### 25.4 协议口径下的 pilot 重跑（pilot_20261106_protocolv1）
+
+P01–P10 全过；20/20 DONE；J 范围 365.9–1223.3 J；16 完成 + 4 终止（全为噪声组，
+如实计数）；4.2 s/条、0.94 MB/条；外推 400/800/400/200 ≈ 28/56/28/14 分钟、1.6 GB。
+首轮 run（全窗口口径）保留在 `pilot_20261105T223428` 作对照。
+
+### 25.5 冻结时序
+
+协议冻结时间戳早于任何 baseline_fit 采集与拟合、早于一切正式结果查看；
+pilot 的角色是链路验证（`may_tune=false`），其产物不进入拟合或正式统计。

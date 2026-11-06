@@ -1,0 +1,585 @@
+{
+ "applies_to": {
+  "bundle_id": "3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975",
+  "bundle_manifest_sha256": "8f967332b6ab7193fb7d857b36a59d6cb6cb15f6dd9ae211f53b312bf5fee5cb",
+  "controller_id": "hira_go2_18500",
+  "controller_sha256": "fe2f392a647cbd2ef6c014ac60e20f496c189e8a7e4fe740336639e247ca6c0e",
+  "decision": "HIRA-020（G1 门禁）",
+  "experiment_id": "hira_go2_18500",
+  "gate_report": "reports/integration_gate.json（G1，16/16）",
+  "isaaclab": "0.47.2",
+  "isaacsim": "5.1.0.0",
+  "plan": "doc/plan/20261105_camra_hira_policy_calibration.json",
+  "policy_sha256": "721a891a22da99f26ce243d538334ba24d3c0e5f04bdf20f837b9960babbfe9e",
+  "urdf_sha256": "5fea735381cd99059703a544b163be698f7cb8a6382fa9921349539a12ea546e"
+ },
+ "attempt_policy": {
+  "attempt_kind": "initial / resume（中断补跑）；业务失败重试（如有）必须显式登记并单独计数",
+  "business_failure": "业务失败（终止/停滞/不执行）保留原记录，计入配额与覆盖分母；**不得补采成功替换**，重试是人的显式决定并计入新的 attempt_kind",
+  "infra_failure": "基础设施无效（OOM/崩溃/文件系统）重试时**必须保留原 attempt 目录**，新数据写入递增的 attempt；主 attempt 判据 = DONE 散列完整的最早 attempt",
+  "principle": "第一有效主 attempt：一条 trial 的主记录 = 第一个数据完整的 attempt",
+  "rule": "按最大 attempt 去重后 v2 的有效 trial 数不变（240/80/80/20/800/400/200）；对照时必须同时报告两种口径",
+  "v2_special_cases": [
+   {
+    "cause": "D-007 批级截断缺陷（infra 级，采集器逐 env 终止修复 D-010 之前）",
+    "comparison_note": "与 v2 对照时，其 baseline_validate 分母含这 31 个历史重试 attempt 目录",
+    "extra_attempts": 31,
+    "split": "baseline_validate"
+   },
+   {
+    "cause": "D-013 一次性补采（同上，infra 级）",
+    "comparison_note": "near_obstacle 分母含 2 个历史重试 attempt 目录",
+    "extra_attempts": 2,
+    "split": "near_obstacle"
+   }
+  ]
+ },
+ "clocks": {
+  "command_dt_s": 0.1,
+  "command_hz": 10.0,
+  "decimation": 4,
+  "energy_integration_hz": 200.0,
+  "integrity_rule": "measured_steps 必须等于 measured_window_s / sim_dt_s，且 pairing 点数 = measured_window_s / pairing_dt_s + 1",
+  "measured_steps": 6000,
+  "measured_window_s": 30.0,
+  "pairing_dt_s": 0.1,
+  "pairing_hz": 10.0,
+  "pairing_points_including_endpoints": 301,
+  "policy_dt_s": 0.02,
+  "policy_hz": 50.0,
+  "sim_dt_s": 0.005,
+  "sim_hz": 200.0,
+  "state_sample_hz": 50.0,
+  "warmup_s": 1.0
+ },
+ "command_domain": {
+  "clip_rule": "目标命令先按域裁剪，再记录为 applied；原始目标与 applied 同时保存",
+  "vx_mps": [
+   -1.0,
+   1.0
+  ],
+  "vy_mps": [
+   -0.4,
+   0.4
+  ],
+  "yaw_rate_radps": [
+   -1.0,
+   1.0
+  ],
+  "zero_order_hold_s": 0.1
+ },
+ "command_program": {
+  "families": [
+   {
+    "description": "沿机身 x 轴做速度阶跃与斜坡，叠加 ±vy 侧移；覆盖 0、低速 0.1/0.2/0.3、中速 0.5、高速 0.8/1.0 与反向 -0.5/-0.3",
+    "id": "straight_shift",
+    "name": "直行变速与侧移"
+   },
+   {
+    "description": "同时给定 vx 与 yaw_rate 形成圆弧，含正/负曲率与强弱曲率组合，并加入小幅 vy",
+    "id": "arc_combined",
+    "name": "弧线与组合运动"
+   },
+   {
+    "description": "相邻保持段之间符号翻转（vx、vy 或 yaw_rate 之一），检验换向过渡的能量代价",
+    "id": "alternating",
+    "name": "交替变向"
+   },
+   {
+    "description": "从静止到给定速度再回到静止的完整循环，以及纯 yaw_rate 的原地转向（vx=vy=0）",
+    "id": "start_stop_turn",
+    "name": "启停与原地转向"
+   }
+  ],
+  "low_speed_strata": {
+   "enforcement": "命令生成器强制 segment 0 与每 3 段中的第 3 段为低速段；实测格级占比 ≥ 0.282",
+   "min_share_of_cell": 0.25,
+   "rule": "每个 profile 与每个命令族都必须包含低速度层，低速度层定义为 |vx| ≤ 0.3 m/s 且 |yaw_rate| ≤ 0.3 rad/s",
+   "share_scope": "cell-level mean over the cell's trials（逐条最小只作观测，不作判据）"
+  },
+  "recording_rule": "每个 trial 同时保存原始目标命令序列与实际 applied 命令序列；两者不一致时必须能由裁剪规则解释",
+  "target_change_period_s": 1.0,
+  "transition_ramp_s": 0.2
+ },
+ "created_at": "2026-11-06",
+ "derived_from": {
+  "file": "CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+  "rule": "逐字段继承；仅覆盖本文件列出的项（见 reports/protocol_diff_from_v2.json）",
+  "sha256": "da76c72e8d0bcda1373a750b7e95778fea11290a9023c63acc7a1a68e97c711e"
+ },
+ "energy": {
+  "epsilon": {
+   "epsilon_c": "(J_exec - J_nom) / J_nom，仅当 J_nom >= 1.0 J",
+   "epsilon_d": "max_t || p_exec(t) - p_nom(t) ||_2，10 Hz 公共网格",
+   "epsilon_d_sensitivity": "另报 50 Hz 原始最大值，禁止用采样最大值替换正式定义"
+  },
+  "exec_formula": "J_exec = sum_{k=1..6000} sum_{j=1..12} max(tau_j[k] * qdot_j[k], 0) * 0.005",
+  "family": "positive_joint_mechanical_work",
+  "friction_rule": "applied_effort 已扣除摩擦，不重复扣减",
+  "measurement_implementation": {
+   "clip": "逐关节截断后求和",
+   "multiply_precision": "float64（v2 记录器为 float32 乘法，系统性偏差 ~2.6e-10 相对；跨控制器 J 比较时必须注明；v2 数字可按其原方法复算，见 reports/v2_trial_recompute.json）",
+   "qdot_phase": "子步结束时刻（robot.update 之后），与 v2 记录器顺序一致",
+   "tau_source": "robot.data.applied_torque（= actuator.applied_effort = 交给 PhysX 的值）",
+   "validated_by": "HIRA-019（17/17，reports/hira_energy_meter_validation.json）"
+  },
+  "metric_id": "D-ENERGY-001",
+  "near_zero": {
+   "below_rule": "记为 non_computable：计入全体业务试验覆盖分母，但不参与 alpha 的分位数计算",
+   "forbidden": "禁止对分母加任意 epsilon 或把 non_computable 静默丢弃",
+   "j_min_J": 1.0,
+   "reopen_trigger": "若 non_computable 占比超过 0.20，必须回到 CAL-008 重新裁定，不得在实现中调整阈值",
+   "rule": "absolute_threshold_single_column"
+  },
+  "negative_work_rule": "逐关节 max(·,0) 截断后再求和；禁止先对关节求和再截断",
+  "nominal_formula": "J_nom = sum_{k=1..6000} P_hat_nom(command[, history]) * 0.005",
+  "push_work_rule": "外部推扰对机器人做功不计入 J_exec；只作为条件标签记录",
+  "qdot_source": "robot.data.joint_vel，必须在每个物理子步 sim.step 之后调用 robot.update(sim_dt) 才刷新；等价写法 root_physx_view.get_dof_velocities()",
+  "qdot_timing": "post",
+  "standing_rule": "站立与近零运动使 J 接近 0，按 near_zero 规则处理，不人为抬高",
+  "tau_source": "robot.data.applied_torque（= UnitreeActuator.applied_effort，PD + 力矩-转速限幅 - 摩擦）",
+  "tau_timing": "post",
+  "unit": "J",
+  "unit_rule": "只允许焦耳；不得写作 Wh/kWh，不得标称为电池耗电或电功率"
+ },
+ "frozen_at": "2026-11-06T08:00:51+0800",
+ "initial_state": {
+  "joint_state_rule": "执行侧关节位姿、关节速度、机身姿态由环境 reset 采样并按 domain randomisation 决定；必须在每条 trial 中记录实际初态，名义模型只使用其平面部分",
+  "plane_pose_per_pair": "同一 pair 的名义侧与执行侧共享平面起点 (px, py) 与初始航向 yaw",
+  "plane_pose_sampling": {
+   "px_m": [
+    -1.0,
+    1.0
+   ],
+   "py_m": [
+    -1.0,
+    1.0
+   ],
+   "yaw_rad": [
+    -3.141592653589793,
+    3.141592653589793
+   ]
+  },
+  "resample_rule": "每对 trial 重新采样一次平面起点与航向，采样分布见 plane_pose_sampling",
+  "warmup_rule": "先给 1.0 s 全零命令使状态稳定，然后重置测量时钟，并把名义初态与实际平面位姿对齐一次；不重置机器人动力学，不在窗口内重新对齐"
+ },
+ "invalid_rules": {
+  "boundary": "三类必须分别计数与报告；无法区分时暂停并记录，不得猜测归类",
+  "business_failure": {
+   "examples": [
+    "terminated 摔倒",
+    "提前结束",
+    "停滞",
+    "低速不执行指令"
+   ],
+   "treatment": "保留原记录，计入配额与覆盖分母，作为未覆盖样本统计；不得按误差大小过滤"
+  },
+  "data_invalid": {
+   "examples": [
+    "NaN/Inf",
+    "缺失分片",
+    "时间戳非单调",
+    "配对点缺失",
+    "字段长度不符"
+   ],
+   "treatment": "判为该 trial 无效，按同一 trial_id 重采并递增 attempt；不得计入有效样本"
+  },
+  "infra_retry": {
+   "examples": [
+    "GPU OOM",
+    "进程崩溃",
+    "USD 加载失败",
+    "文件系统错误"
+   ],
+   "treatment": "按基础设施问题重试，不计入业务失败率，也不得据此评判控制器"
+  }
+ },
+ "mutation_rule": "本文件冻结后不得就地修改。任何时钟、命令、扰动、配额、种子、统计口径或容差的变更都必须生成新版本号，并把旧版本标记为 superseded。",
+ "near_obstacle": {
+  "command_rule": "与 calibration 相同的命令族与 profile 组合，但起点与朝向偏向通道轴线",
+  "frozen_at": "HIRA-029 数据锁（早于任何 near_obstacle 采集）",
+  "maps": "每例自适应场地：场地尺寸 = 名义路径包围盒 + 2×(轮廓法向半宽 + 目标净距 + 1.0 m 安全边)，向上取到 0.5 m，且不小于 8×8 m；边界墙计入地图。原因：30 s 窗口下 arc_combined/straight_shift 的名义路径最长 11.8/10.1 m，固定 8×8 m 装不下。具体地图在 HIRA-029 锁文件前冻结并散列。",
+  "may_not": "不得参与任何拟合、模型选择或 margin 调整",
+  "no_redisign_rule": "不得根据新的 δ 或碰撞表现重设计地图；地图只在锁文件前冻结一次",
+  "robot_footprint": "由 HIRA-027 生成并冻结；delta 膨胀只应用一次"
+ },
+ "owner_task": "HIRA-023",
+ "profile_rules": {
+  "disabled_randomisation": "显式关闭隐藏训练随机化、reset 平面速度/位姿随机化与自动随机命令，只保留 initial_state 中声明的平面位姿采样",
+  "per_trial_recording": "每条 trial 必须记录实际生效的摩擦、质量、push 时刻与幅度、噪声尺度；只有指定旋钮可变",
+  "sampling_unit": "摩擦与质量按 trial 采样一次并在整条轨迹内保持不变；push 事件在窗口内按 interval 范围触发",
+  "unlisted_knobs": "profiles 中未列出的旋钮一律固定为 clean 值"
+ },
+ "profiles": [
+  {
+   "added_mass_kg": 0.0,
+   "friction": 1.0,
+   "id": "clean",
+   "note": "无附加扰动的物理执行；仍属执行系统，不称为名义模型",
+   "obs_noise": "disabled",
+   "push": "disabled"
+  },
+  {
+   "added_mass_kg": 0.0,
+   "friction_range": [
+    0.3,
+    1.25
+   ],
+   "id": "friction_only",
+   "obs_noise": "disabled",
+   "push": "disabled"
+  },
+  {
+   "added_mass_kg_range": [
+    -1.0,
+    3.0
+   ],
+   "friction": 1.0,
+   "id": "mass_only",
+   "obs_noise": "disabled",
+   "push": "disabled"
+  },
+  {
+   "added_mass_kg": 0.0,
+   "friction": 1.0,
+   "id": "push_only",
+   "note": "推扰是水平速度冲击，不换算为牛顿外力",
+   "obs_noise": "disabled",
+   "push_interval_s_range": [
+    5.0,
+    10.0
+   ],
+   "push_velocity_xy_mps_range": [
+    -0.5,
+    0.5
+   ]
+  },
+  {
+   "added_mass_kg_range": [
+    -1.0,
+    3.0
+   ],
+   "friction_range": [
+    0.3,
+    1.25
+   ],
+   "id": "combined",
+   "obs_noise": "训练配置现有值",
+   "push_interval_s_range": [
+    5.0,
+    10.0
+   ],
+   "push_velocity_xy_mps_range": [
+    -0.5,
+    0.5
+   ]
+  }
+ ],
+ "protocol_id": "camra-calibration-protocol-hira",
+ "resource_budget": {
+  "estimate_rule": "按每次运行 32 条、单次 30 s 窗口估算，含约 90 s 启动开销",
+  "estimates": {
+   "baseline_400": "约 1.3-1.7 h",
+   "calibration_800": "约 2.7-3.4 h",
+   "heldout_400": "约 1.3-1.7 h",
+   "near_obstacle_200": "约 0.7-0.9 h",
+   "pilot_20": "约 0.1-0.2 h（20 条，五条件）",
+   "total_1820": "约 6-8 h"
+  },
+  "measured_at": "2026-11-04",
+  "measured_on": "tiger10, 1 x A100-40GB, num_envs=32",
+  "measurement": {
+   "gpu_memory_mib": 12779,
+   "gpu_utilization_pct": 96,
+   "per_trial_steady_state_s_estimated": 12.3,
+   "physics_substeps_recorded": 6000,
+   "trials": 32,
+   "wall_seconds_including_startup": 484,
+   "window_s": 30.0
+  },
+  "parallelism": "32 envs 已验证可跑并完成 6000 物理步；提高并行度可缩短墙钟时间，未测更高档位前不得写入预算",
+  "storage": {
+   "note": "npz 压缩后约 40-50%；/pub 剩余约 1.9 TB",
+   "per_trial_mb_uncompressed": 2.9,
+   "total_1820_mb_uncompressed": 5278
+  }
+ },
+ "schema_version": "1.0.0",
+ "seeds": {
+  "blocks": {
+   "baseline_dev": {
+    "count": 80,
+    "start": 4240
+   },
+   "baseline_fit": {
+    "count": 240,
+    "start": 4000
+   },
+   "baseline_validate": {
+    "count": 80,
+    "start": 4320
+   },
+   "calibration": {
+    "count": 800,
+    "start": 6130
+   },
+   "heldout": {
+    "count": 400,
+    "start": 7000
+   },
+   "near_obstacle": {
+    "count": 200,
+    "start": 8000
+   },
+   "pilot": {
+    "count": 20,
+    "start": 6110
+   }
+  },
+  "cross_controller_note": "v2 的块：baseline 4000-4399 / pilot 5100-5119 / calibration 6000-6799 / heldout 7000-7399 / near 8000-8199",
+  "disjointness_rule": "blocks 之间不得重叠，且不得与 reserved_excluded 相交；与 v2 的块部分重合是**有意为之**（同 seed + 同生成器 = 同命令程序，供 HIRA-024 的跨控制器匹配表使用），不构成语料混用——执行数据仍按 controller 隔离",
+  "reserved_excluded": [
+   0,
+   100,
+   101,
+   102,
+   103,
+   104,
+   105,
+   106,
+   107,
+   108,
+   109,
+   200,
+   201,
+   202,
+   203,
+   204,
+   205,
+   206,
+   207,
+   208,
+   209,
+   300,
+   301,
+   302,
+   303,
+   304,
+   305,
+   306,
+   307,
+   308,
+   309,
+   5000,
+   5001,
+   5002,
+   5003,
+   5004,
+   5005,
+   5006,
+   5007,
+   5008,
+   5009,
+   5010,
+   5011,
+   5012,
+   5013,
+   5014,
+   5015,
+   5016,
+   5017,
+   5018,
+   5019,
+   6110,
+   6111,
+   6112,
+   6113,
+   6114,
+   6115,
+   6116,
+   6117,
+   6118,
+   6119,
+   6120,
+   6121,
+   6122,
+   6123,
+   6124,
+   6125,
+   6126,
+   6127,
+   6128,
+   6129
+  ],
+  "reserved_reason": "0 为 v2 训练 seed；100-109 开发选模；200-209 旧 final_test；300-309 TASK-036 复测；5000-5019 v1.0.0 pilot；6110-6129 为 HiRA pilot（已采集，HIRA-022，不得复用）",
+  "rule": "每个 trial 使用唯一 seed；seed 决定平面位姿、profile 采样与 push 事件序列。全体 seed 在此冻结并散列。"
+ },
+ "sha256": "b5069a3721ea105466a624ff4ea18ca39959d3844b4fa576ead6992915c3eafe",
+ "split": {
+  "baseline": {
+   "cells": 4,
+   "cells_rule": "baseline 只用 clean profile，因此格 = 4 个命令族（不是 4×5=20）",
+   "consumed_by": [
+    "CAL-019",
+    "CAL-020"
+   ],
+   "per_cell": 100,
+   "profile": "clean only",
+   "subset_rule": "按整条轨迹或命令簇分离；fit/dev/validate 各自保留命令族与方向覆盖",
+   "subsets": {
+    "dev": 80,
+    "fit": 240,
+    "validate": 80
+   },
+   "subsets_per_cell": {
+    "dev": 20,
+    "fit": 60,
+    "validate": 20
+   },
+   "total": 400
+  },
+  "calibration": {
+   "consumed_by": [
+    "CAL-024",
+    "CAL-025"
+   ],
+   "may_tune": true,
+   "per_cell": 40,
+   "total": 800
+  },
+  "cell_definition": "4 个命令族 × 5 个 profile",
+  "cells": 20,
+  "counting": "以 pair/trial_id 为基本样本；失败计入配额与覆盖分母，完整样本与失败样本分别计数",
+  "heldout": {
+   "consumed_by": [
+    "CAL-026",
+    "CAL-027"
+   ],
+   "may_tune": false,
+   "per_cell": 20,
+   "rule": "检验集；不得用于选模型、改协议或改 margin",
+   "total": 400
+  },
+  "mixture_weights": "四个命令族 × 五个 profile 等权；任何子层权重必须在正式采集前固定，检验阶段不得隐式改权",
+  "mutual_exclusion": "baseline / pilot / calibration / heldout / near_obstacle 五个域之间的 seed、trial_id 与轨迹文件必须完全互斥",
+  "near_obstacle": {
+   "consumed_by": [
+    "CAL-028",
+    "CAL-029"
+   ],
+   "may_tune": false,
+   "per_cell": 10,
+   "total": 200
+  },
+  "pilot": {
+   "cells": 20,
+   "consumed_at": "2026-11-06",
+   "consumed_by": [
+    "HIRA-022"
+   ],
+   "consumed_run": "/pub/data/caohy/logs/camra_hira/runs/pilot_20261105T223428",
+   "may_tune": false,
+   "per_cell": 1,
+   "profile": "all five profiles (4 families x 5 profiles, one trial per cell)",
+   "rule": "仅用于打通采集链路、五条件与复算；产物不得进入基线拟合或正式统计",
+   "seeds_used": [
+    6110,
+    6129
+   ],
+   "total": 20
+  }
+ },
+ "state": "frozen",
+ "statistical_acceptance": {
+  "calibration": {
+   "fail_action": "记录并暂停，不得改阈值或重复试验凑通过",
+   "require": [
+    "alpha 与 delta 由校准集冻结",
+    "报告 90% 分位与 95% 区间",
+    "报告 non_computable 占比"
+   ]
+  },
+  "heldout": {
+   "may_not": "不得据此反向调整 alpha/delta 或功率模型",
+   "require": [
+    "总体与 20 个 cell 的覆盖",
+    "低速度层与方向子组覆盖",
+    "95% 区间",
+    "联合覆盖单独报告"
+   ]
+  },
+  "min_complete_share_per_cell": 0.9,
+  "min_complete_share_rule": "任一 cell 的完整记录占比低于该值时，该 cell 不得进入正式结论，需回到采集或协议裁定",
+  "near_obstacle": {
+   "fail_action": "如实报告，不更换地图重试凑通过",
+   "require": [
+    "200 条全部保留",
+    "满足名义 delta 边界的子组独立列数与统计",
+    "地图与轮廓在正式采集前锁定"
+   ]
+  }
+ },
+ "statistics": {
+  "alpha": "max(0, Q_0.90(epsilon_c))",
+  "cluster_handling": {
+   "definition": "同一命令族内共用同一命令模板（同一目标序列骨架）的 trial 构成一个簇；簇在 trial 清单生成时确定并随清单散列",
+   "independence": "不同 split（baseline / calibration / heldout / near_obstacle）不得共用同一簇的模板参数",
+   "reporting": "除总体统计外，必须报告簇数与每簇 trial 数；同一簇内不得把单条最好结果作为 cell 结论",
+   "resampling_unit": "bootstrap 一律以整条轨迹为最小单位；若需按簇重采样，簇内 trial 一起抽入或一起抽出",
+   "why": "同模板的 trial 只改变初始位姿与 profile 采样，误差存在相关性，按时间点计数会伪增独立样本"
+  },
+  "coverage_denominator": {
+   "conditional": "仅在完整且 J_nom >= 1.0 J 的记录上另报",
+   "overall": "预登记的全部业务试验数（含失败与 non_computable）",
+   "rule": "两套分母必须同时报告，不得只报条件覆盖"
+  },
+  "delta": "Q_0.90(epsilon_d)，非负",
+  "grouping": [
+   "20 个 cell",
+   "低速度层",
+   "各方向",
+   "五个 profile"
+  ],
+  "intervals": {
+   "level": 0.95,
+   "method": "bootstrap，按整条独立轨迹或预登记命令簇重采样",
+   "replicates": 10000,
+   "rule": "不得按时间点伪增样本"
+  },
+  "joint_coverage": "成本覆盖与位置覆盖分别报告；两项边际 90% 不推出联合 90%",
+  "negative_overrun": "负超支保留原值参与分位，只在形成安全裕度时取 max(0,·)",
+  "quantile_level": 0.9,
+  "quantile_method": "nearest-rank：对完整有效样本排序后取第 ceil(0.9 * n) 个值，无插值；等于阈值视为覆盖",
+  "target_interpretation": "90% 是校准分位目标，不硬造检验恰好 90%"
+ },
+ "supersede_reason": null,
+ "supersedes": null,
+ "termination": {
+  "denominator_rule": "terminated / truncated 一律计入覆盖分母的未覆盖侧，不得从统计中剔除",
+  "energy_partial_rule": "终止或 truncated 的 trial，J_exec 只覆盖实际执行步数，记录必须写明 steps_executed；不得外推到 6000 步",
+  "env_terminations": "沿用 CaMRA-Go2-Velocity 环境的终止项（机身高度阈值、姿态超限等，以实际环境配置为准），不新增也不放宽",
+  "no_resume": "已终止的 trial 不得续跑补齐，重采必须新建 attempt 并保留原记录",
+  "trial_termination": "任一 env 在本 trial 内触发 termination，即记该 trial 的 outcome=business_failure，reason=terminated",
+  "truncation": "恰好 30 s 结束记为 completed；早于窗口结束的 time_out 记为 truncated 并单列"
+ },
+ "tolerances": {
+  "action_dim_expected": 12,
+  "energy_recompute_rel": 1e-05,
+  "float_dtype": "float64 复算，float32 在线记录",
+  "joint_count": 12,
+  "obs_dim_expected": 45,
+  "online_vs_offline_rel": 0.0001,
+  "position_pairing_abs_m": 1e-06,
+  "rule": "正式复算必须落在容差内；超出即判为数据无效并按 invalid_rules 处理",
+  "time_sync_abs_s": 1e-06
+ },
+ "trial_id": {
+  "attempt_rule": "重采必须保留原 attempt 与失败原因，不得删除历史记录",
+  "example": "hira-calibration-straight_shift-clean-0007",
+  "format": "hira-<split>-<family>-<profile>-<index:04d>",
+  "prefix_rule": "必须以 'hira-' 开头（采集器 TrialSpec 白名单；v2 命名无前缀，直接拒）",
+  "uniqueness": "全库唯一；重采沿用同一 trial_id 并在 attempt 字段递增"
+ },
+ "unresolved": [],
+ "version": "1.0.0"
+}

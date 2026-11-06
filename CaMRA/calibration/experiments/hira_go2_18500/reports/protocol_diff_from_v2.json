@@ -1,0 +1,92 @@
+{
+ "report": "protocol_diff_from_v2",
+ "task": "HIRA-023",
+ "generated_at": "2026-11-06T08:00:51+0800",
+ "sources": {
+  "v2_protocol": {
+   "file": "/home/caohy/repositories/Paper/CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+   "sha256": "da76c72e8d0bcda1373a750b7e95778fea11290a9023c63acc7a1a68e97c711e"
+  },
+  "v2_power_prereg": {
+   "file": "/home/caohy/repositories/Paper/CaMRA/calibration/config/power_model_prereg_v1.json",
+   "sha256": "fb00b3666cadb863756586e0beb7ca08c7b95006bb31ca489465a4615a5016ef"
+  },
+  "hira_protocol": {
+   "file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/config/calibration_protocol_hira_v1.json",
+   "sha256": "b5069a3721ea105466a624ff4ea18ca39959d3844b4fa576ead6992915c3eafe"
+  },
+  "hira_power_prereg": {
+   "file": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/config/power_model_prereg_hira_v1.json",
+   "sha256": "41a3cc2ea5791e9f2a78e3e9c2c87cc55faedbad95d7e12f068d51d5ffe20172"
+  }
+ },
+ "rule": "任何与既有协议不同且改变统计/数据语义的项须先取得用户裁定",
+ "items": [
+  {
+   "id": "D1-identity",
+   "field": "protocol_id/version/owner_task/applies_to",
+   "change": "camra-calibration-protocol-hira v1.0.0，owner HIRA-023，applies_to 绑定 G1 冻结包（bundle_id 3c32fe31…）与 experiment hira_go2_18500",
+   "semantic": "无——纯身份绑定",
+   "user_ruling_needed": false
+  },
+  {
+   "id": "D2-seed-blocks",
+   "field": "seeds.blocks",
+   "change": "calibration 由 v2 的 6000-6799 改为 6130-6929（避开 HiRA pilot 已占用的 6110-6129）；baseline_fit/dev/validate、heldout、near_obstacle 与 v2 同块",
+   "semantic": "无——块内互斥与 reserved 排除保持；与 v2 同块是有意的跨控制器匹配设计（同 seed 同程序）",
+   "user_ruling_needed": false
+  },
+  {
+   "id": "D3-trial-prefix",
+   "field": "trial_id.format",
+   "change": "加 'hira-' 前缀（采集器白名单强制）",
+   "semantic": "无——隔离手段",
+   "user_ruling_needed": false
+  },
+  {
+   "id": "D4-energy-implementation",
+   "field": "energy.measurement_implementation",
+   "change": "τ 来源/applied_torque、子步结束相位、float64 乘法（v2 记录器为 float32 乘法，系统偏差 ~2.6e-10 相对，已实测并登记）",
+   "semantic": "测量实现差异，方向更精确；契约（公式/dt/逐关节截断/J_min）不变；跨控制器 J 比较必须注明口径；v2 数字可按原方法复算（rel 2.7e-15）",
+   "user_ruling_needed": false,
+   "note": "已在 HIRA-019 冻结并验证（17/17），此处只是登记进协议"
+  },
+  {
+   "id": "D5-partial-rule-alignment",
+   "field": "collector 实现 vs energy_partial_rule",
+   "change": "HiRA 采集器首轮实现为全窗口累计（含 reset 后段），违背继承的 energy_partial_rule；已改回：env 终止即该 trial 记录截断，J 只覆盖实际执行步数",
+   "semantic": "无——这是**向继承语义对齐**，不是新决策；pilot 已按修正后语义重采",
+   "user_ruling_needed": false
+  },
+  {
+   "id": "D6-attempt-policy",
+   "field": "attempt_policy（新增章节）",
+   "change": "把 v2 隐含的'第一有效主 attempt'惯例显式化：业务失败不补成功替换；基础设施重试保留原 attempt；v2 的 D-007/D-013 两次整批重采登记为对照口径差异",
+   "semantic": "无——显式化既有惯例，统计口径（失败计入分母）不变",
+   "user_ruling_needed": false
+  },
+  {
+   "id": "D7-near-obstacle-ownership",
+   "field": "near_obstacle.maps/robot_footprint",
+   "change": "任务归属 CAL-021/CAL-023 → HIRA-027/HIRA-029；地图构造规则原文继承",
+   "semantic": "无",
+   "user_ruling_needed": false
+  },
+  {
+   "id": "D8-power-prereg",
+   "field": "power_model_prereg_hira_v1",
+   "change": "候选 C1-C4、fit/selection/acceptance（q90≤10%、tie 0.5pp、前缀不变性、J_min 份额 0.2 暂停）逐字继承；exclusions 增加 trial_id_prefix/bundle_mismatch 两类理由；cal_task → HIRA-026",
+   "semantic": "无",
+   "user_ruling_needed": false
+  },
+  {
+   "id": "D9-inherited-unchanged",
+   "field": "clocks/command_domain/command_program/initial_state/termination/profiles/profile_rules/split 配额/statistics/statistical_acceptance/invalid_rules/tolerances",
+   "change": "逐字段继承，未改动",
+   "semantic": "无",
+   "user_ruling_needed": false
+  }
+ ],
+ "user_rulings_required": [],
+ "conclusion": "没有任何一项改变统计/数据语义；全部差异为身份绑定、种子块重排（保持互斥）、测量实现登记、以及向继承语义对齐。协议冻结时间早于任何基线拟合与正式结果查看。"
+}

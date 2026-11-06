@@ -1,8 +1,8 @@
 {
  "report": "pilot_validation",
  "task": "HIRA-022",
- "run_id": "pilot_20261105T223428",
- "run_dir": "/pub/data/caohy/logs/camra_hira/runs/pilot_20261105T223428",
+ "run_id": "pilot_20261106_protocolv1",
+ "run_dir": "/pub/data/caohy/logs/camra_hira/runs/pilot_20261106_protocolv1",
  "bundle_id": "3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975",
  "seed_range": [
   6110,
@@ -23,25 +23,25 @@
   },
   {
    "id": "P03-pairing",
-   "name": "配对 301 点、0.1 s 间距、命令与程序生成器逐元素一致",
+   "name": "配对点数（completed=301，终止=截断长度）、0.1 s 间距、命令与程序生成器逐元素一致",
    "ok": true,
-   "detail": "20 条全部 301 点 / Δt=0.1 / 命令一致"
+   "detail": "全部一致"
   },
   {
    "id": "P04-state-steps",
-   "name": "50 Hz 1500 点、6000 物理步",
+   "name": "50 Hz 状态与物理步数（completed 6000，终止=实际执行步数）",
    "ok": true,
-   "detail": "20 条全部一致"
+   "detail": "全部一致"
   },
   {
    "id": "P05-energy",
    "name": "执行能量离线复算",
    "ok": true,
-   "detail": "20 条复算最大 rel=4.29e-15（判据 1e-9）；J 范围 444.3–41015.4 J",
-   "worst_rel": 4.291365317564144e-15,
+   "detail": "20 条复算最大 rel=3.34e-16（判据 1e-9）；J 范围 365.9–1223.3 J",
+   "worst_rel": 3.336669371291748e-16,
    "j_range": [
-    444.3364561512058,
-    41015.35650230988
+    365.87002630868784,
+    1223.2976209323217
    ]
   },
   {
@@ -60,7 +60,7 @@
    "id": "P08-pairing-error",
    "name": "名义/执行配对误差分布（开环跟踪漂移，报告口径非判据）",
    "ok": true,
-   "detail": "6000 个配对点：全体中位 1.041 m，最大 10.125 m；分组中位 {'clean': {'median_m': 0.381, 'max_m': 1.453}, 'friction_only': {'median_m': 0.298, 'max_m': 1.683}, 'mass_only': {'median_m': 1.99, 'max_m': 5.786}, 'push_only': {'median_m': 1.49, 'max_m': 7.251}, 'combined': {'median_m': 1.509, 'max_m': 10.125}}",
+   "detail": "4908 个配对点：全体中位 0.752 m，最大 7.251 m；分组中位 {'clean': {'median_m': 0.381, 'max_m': 1.453}, 'friction_only': {'median_m': 0.298, 'max_m': 1.683}, 'mass_only': {'median_m': 1.99, 'max_m': 5.786}, 'push_only': {'median_m': 1.49, 'max_m': 7.251}, 'combined': {'median_m': 0.426, 'max_m': 0.969}}",
    "is_criterion": false,
    "per_group": {
     "clean": {
@@ -80,12 +80,12 @@
      "max_m": 7.251
     },
     "combined": {
-     "median_m": 1.509,
-     "max_m": 10.125
+     "median_m": 0.426,
+     "max_m": 0.969
     }
    },
-   "median_m": 1.041435265133129,
-   "max_m": 10.124586079019634
+   "median_m": 0.7522788292707391,
+   "max_m": 7.250548535945166
   },
   {
    "id": "P09-outcomes",
@@ -108,38 +108,38 @@
    "id": "P10-resources",
    "name": "本机实测吞吐与存储 → 更新资源估算",
    "ok": true,
-   "detail": "实测 4.6 s/条、1.15 MB/条、峰值 RSS 4177 MB；外推 400/800/400/200 条 ≈ 30.6/61.3/30.6/15.3 分钟，总存储 2.0 GB",
+   "detail": "实测 4.2 s/条、0.94 MB/条、峰值 RSS 4168 MB；外推 400/800/400/200 条 ≈ 28.0/55.9/28.0/14.0 分钟，总存储 1.6 GB",
    "measured": {
-    "wall_per_trial_s": 4.6,
-    "dir_mb_per_trial": 1.15,
-    "rss_max_mb": 4177.1,
-    "total_run_min": 1.5
+    "wall_per_trial_s": 4.2,
+    "dir_mb_per_trial": 0.94,
+    "rss_max_mb": 4168.0,
+    "total_run_min": 1.4
    },
    "extrapolated": {
     "pilot20_done": true,
-    "baseline400_min": 30.6,
-    "calibration800_min": 61.3,
-    "heldout400_min": 30.6,
-    "near_obstacle200_min": 15.3,
-    "storage_all_GB": 2.0
+    "baseline400_min": 28.0,
+    "calibration800_min": 55.9,
+    "heldout400_min": 28.0,
+    "near_obstacle200_min": 14.0,
+    "storage_all_GB": 1.6
    },
    "note": "外推按单 trial 均摊（含批次开销）；推扰/摩擦/噪声批与 clean 同批大小，批间启动已摊入"
   }
  ],
  "resources": {
   "measured": {
-   "wall_per_trial_s": 4.6,
-   "dir_mb_per_trial": 1.15,
-   "rss_max_mb": 4177.1,
-   "total_run_min": 1.5
+   "wall_per_trial_s": 4.2,
+   "dir_mb_per_trial": 0.94,
+   "rss_max_mb": 4168.0,
+   "total_run_min": 1.4
   },
   "extrapolated": {
    "pilot20_done": true,
-   "baseline400_min": 30.6,
-   "calibration800_min": 61.3,
-   "heldout400_min": 30.6,
-   "near_obstacle200_min": 15.3,
-   "storage_all_GB": 2.0
+   "baseline400_min": 28.0,
+   "calibration800_min": 55.9,
+   "heldout400_min": 28.0,
+   "near_obstacle200_min": 14.0,
+   "storage_all_GB": 1.6
   },
   "note": "外推按单 trial 均摊（含批次开销）；推扰/摩擦/噪声批与 clean 同批大小，批间启动已摊入"
  },

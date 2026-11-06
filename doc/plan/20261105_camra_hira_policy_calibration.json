@@ -2101,7 +2101,7 @@
       "id": "HIRA-023",
       "phase": "校准协议",
       "goal": "冻结HiRA专属校准协议与功率选型规则",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-022"
       ],
@@ -2123,7 +2123,54 @@
         "config/power_model_prereg_hira_v1.json及hash",
         "reports/protocol_diff_from_v2.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T08:05:00+08:00",
+          "summary": "冻结 HiRA 专属校准协议（calibration_protocol_hira_v1.json，sha b5069a3721ea1054…）与功率选型预登记（power_model_prereg_hira_v1.json，sha 41a3cc2ea5791e9f…），逐字段继承 v1.0.2 与 power_model_prereg_v1（统计/数据语义零改动），差异报告 9 项全部为身份绑定/种子块重排/测量实现登记/向继承语义对齐，user_rulings_required 为空。v2 两个源文件散列前后比对未改动。协议冻结后按其 energy_partial_rule 修正采集器终止语义并重跑 pilot（10/10）。",
+          "actions": [
+            "新建 make_protocol_hira.py：深拷贝 v1.0.2 与 power_model_prereg_v1 逐字段继承，仅覆盖身份/种子块/trial 前缀/能量测量实现/attempt_policy/近障任务归属；生成前后校验 v2 源文件散列未变。",
+            "种子块：baseline_fit/dev/validate、heldout、near_obstacle 与 v2 同块（同 seed 同程序，供 HIRA-024 跨控制器匹配）；calibration 改 6130–6929 避开 HiRA pilot 已占的 6110–6129；七块互斥 + reserved 排除（并入 6110–6129）。",
+            "energy.measurement_implementation 登记 τ=applied_torque、子步结束相位、float64 乘法（v2 为 float32 乘法，系统差 ~2.6e-10 相对，跨控制器 J 比较须注明）。",
+            "attempt_policy 显式化：第一有效主 attempt；业务失败不补成功替换；基础设施重试保留原 attempt；v2 的 D-007（+31）/D-013（+2）登记为对照口径差异。",
+            "发现采集器首轮实现违背继承的 energy_partial_rule（全窗口累计含 reset 后段）——向继承语义对齐：stop_substep 逐 env 截断输出、J 按截断段 float64 复算、outcome 对齐 v2（终止=business_failure/terminated）。",
+            "按冻结协议重跑 pilot（pilot_20261106_protocolv1，10/10）：J 上界由 41015 J（病态累积）回落 1223 J，combined 配对误差中位 1.509→0.426 m；4.2 s/条、0.94 MB/条。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/calibration_protocol_hira_v1.json（新建，冻结）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/power_model_prereg_hira_v1.json（新建，冻结）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/protocol_diff_from_v2.json（新建）",
+            "CaMRA/locomotion/adapters/hira_go2/collector.py（终止截断语义）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_pilot_results.py（接受截断长度与 v2 outcome 口径）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/pilot_validation.json（协议口径重跑，10/10）",
+            "/pub/data/caohy/logs/camra_hira/runs/pilot_20261106_protocolv1/（协议口径 pilot 数据）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§25）"
+          ],
+          "commands": [
+            "python3 make_protocol_hira.py",
+            "python tests/run_pilot.py --headless --device cuda:0 --run-id pilot_20261106_protocolv1",
+            "python tests/check_pilot_results.py --phase merge --run-id pilot_20261106_protocolv1"
+          ],
+          "results": [
+            "协议 sha b5069a3721ea1054…；功率预登记 sha 41a3cc2ea5791e9f…；两者均含自校验散列。",
+            "差异报告 9 项（D1 身份 / D2 种子块 / D3 前缀 / D4 能量实现 / D5 partial 对齐 / D6 attempt 政策 / D7 近障归属 / D8 功率预登记 / D9 继承不变），user_rulings_required=[]。",
+            "v1.0.2 与 power_model_prereg_v1.json 散列前后一致（未被改动）。",
+            "协议口径 pilot：20/20 DONE，J 365.9–1223.3 J，复算 rel 3.3e-16，16 完成 + 4 business_failure（终止截断），4.2 s/条、0.94 MB/条，外推 400/800/400/200 ≈ 28/56/28/14 分钟、1.6 GB。",
+            "冻结时序：早于任何 baseline_fit 采集/拟合与正式结果查看；pilot may_tune=false。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/calibration_protocol_hira_v1.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/power_model_prereg_hira_v1.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/protocol_diff_from_v2.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/pilot_validation.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §25"
+          ],
+          "remaining_work": [
+            "HIRA-024 生成七分片清单时引用本协议的种子块与 'hira-' 前缀规则，登记 seed 互斥表。",
+            "跨控制器匹配须注明能量口径差异（D4）与 v2 的两次整批重采（D6）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不修改旧v1.0.2和power_model_prereg_v1.json。",
         "任何与既有协议不同且改变统计/数据语义的项先取得用户裁定；不从pilot调小扰动/命令域。"
@@ -2132,7 +2179,7 @@
         "协议覆盖所有采集/终止/失败/重试/模型/分位/检验规则且无自由选择项。",
         "相对v2差异逐项说明；全部来源绑定G1包，冻结时间早于基线拟合与正式结果查看。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。协议与功率预登记逐字段继承 v1.0.2/power_model_prereg_v1（统计与数据语义零改动），差异 9 项全部为身份/簿记/测量实现登记/向继承语义对齐，无一项需要用户裁定；v2 源文件散列未变。冻结散列：协议 b5069a3721ea1054…、功率 41a3cc2ea5791e9f…，冻结时间早于任何基线采集与拟合。协议口径 pilot 重跑 10/10（J 上界由病态 41015 J 回落 1223 J，终止语义对齐 v1.0.2 的 energy_partial_rule）。"
     },
     {
       "id": "HIRA-024",
