@@ -1,0 +1,106 @@
+{
+ "report": "cross_controller_match",
+ "task": "HIRA-024",
+ "generated_at": "2026-11-06T09:53:39+0800",
+ "v2_source": {
+  "root": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/v2_lists",
+  "protocol_version": "1.0.2",
+  "splits": {
+   "baseline_dev": 80,
+   "baseline_fit": 240,
+   "baseline_validate": 80,
+   "calibration": 800,
+   "heldout": 400,
+   "near_obstacle": 200,
+   "pilot": 20
+  },
+  "n_unique_programs": 1820
+ },
+ "hira_source": {
+  "protocol_sha256": "79f983f852e9ef1cd262a5da4e6262c5d36fed8adb542b0d45740fe36181d4c0",
+  "bundle_controller": "hira_go2_18500"
+ },
+ "criterion": "template_sha256 逐字相等（= camra_calibration.commands.Program.sha256()，含 family/seed/参数/命令表；v2 清单里的 program_sha256 是同一口径）；不做近似匹配",
+ "per_split": {
+  "pilot": {
+   "n": 20,
+   "matched": 5,
+   "unmatched": 15,
+   "rate": 0.25
+  },
+  "baseline_fit": {
+   "n": 240,
+   "matched": 240,
+   "unmatched": 0,
+   "rate": 1.0
+  },
+  "baseline_dev": {
+   "n": 80,
+   "matched": 80,
+   "unmatched": 0,
+   "rate": 1.0
+  },
+  "baseline_validate": {
+   "n": 80,
+   "matched": 80,
+   "unmatched": 0,
+   "rate": 1.0
+  },
+  "calibration": {
+   "n": 800,
+   "matched": 280,
+   "unmatched": 520,
+   "rate": 0.35
+  },
+  "heldout": {
+   "n": 400,
+   "matched": 400,
+   "unmatched": 0,
+   "rate": 1.0
+  },
+  "near_obstacle": {
+   "n": 200,
+   "matched": 200,
+   "unmatched": 0,
+   "rate": 1.0
+  }
+ },
+ "unmatched_breakdown": {
+  "pilot": {
+   "seed_absent_in_v2": 0,
+   "seed_exists_other_family": 15
+  },
+  "baseline_fit": {
+   "seed_absent_in_v2": 0,
+   "seed_exists_other_family": 0
+  },
+  "baseline_dev": {
+   "seed_absent_in_v2": 0,
+   "seed_exists_other_family": 0
+  },
+  "baseline_validate": {
+   "seed_absent_in_v2": 0,
+   "seed_exists_other_family": 0
+  },
+  "calibration": {
+   "seed_absent_in_v2": 130,
+   "seed_exists_other_family": 390
+  },
+  "heldout": {
+   "seed_absent_in_v2": 0,
+   "seed_exists_other_family": 0
+  },
+  "near_obstacle": {
+   "seed_absent_in_v2": 0,
+   "seed_exists_other_family": 0
+  }
+ },
+ "path_separation": "匹配只共享**命令程序**；执行数据按 controller 分离（HiRA 在 /pub/data/caohy/logs/camra_hira/runs，v2 在 /pub/data/caohy/logs/camra/trials）",
+ "hash_semantics": {
+  "hira_manifest.program_sha256": "命令表散列（= 采集器 meta 的 program_sha256，供绑定校验）",
+  "hira_manifest.template_sha256": "Program.sha256()（跨控制器匹配键）",
+  "v2_manifest.program_sha256": "Program.sha256()（与 HiRA 的 template_sha256 同口径）"
+ },
+ "warning": "重用命令 ≠ 重用数据；也不保证同 seed 在两种控制器上实现了相同扰动（profile 采样按 seed 与 profile 决定，公式同源但执行侧物理不同）",
+ "unmatched_explanation": "seed_absent_in_v2：该 seed 不在 v2 的对应块内（例如 HiRA calibration 6130–6929 与 v2 6000–6799 的差集 6800–6929）。seed_exists_other_family：seed 相同但 v2 把它分配给了另一个命令族——因为 HiRA 的块起点与 v2 相差 130，而每格 40 个 seed、按 4 族×5 条件展开，130 mod 40 = 10 使格边界错位。baseline/heldout/near 的块起点与 v2 相同，故 100% 配对。"
+}

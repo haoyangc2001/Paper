@@ -2185,7 +2185,7 @@
       "id": "HIRA-024",
       "phase": "校准协议",
       "goal": "生成并锁定七分片新清单与跨控制器匹配表",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-023"
       ],
@@ -2206,7 +2206,53 @@
         "reports/split_independence.json",
         "cross_controller_match.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T09:55:00+08:00",
+          "summary": "生成并锁定七分片清单（1820 条）与跨控制器匹配表，独立验证 8 项全过。清单是 (协议, 生成器) 的纯函数——直接复用 v2 的 build_all，只加 hira- 前缀，重跑逐字节复现。baseline/heldout/near 与 v2 按 template_sha256 100% 配对；calibration 35%（130 条 seed 不在 v2 块内 + 390 条同 seed 异族，格边界错位）。结果区守卫 results_guard.py 强制 heldout/near 在 α/δ 冻结前不采不分析。",
+          "actions": [
+            "新建 make_manifests.py：Protocol.load(hira 协议，含 .sha256 sidecar) → camra_calibration.trials.build_all → 加 hira- 前缀 → 写七个 JSONL + lock.json；pilot 清单从已采集 run（pilot_20261106_protocolv1）的 meta 反填并用生成器重建校验。",
+            "双散列口径：program_sha256 = 命令表散列（与采集器 meta 同口径，供绑定校验）；template_sha256 = Program.sha256()（与 v2 清单同口径，作为跨控制器匹配键）；cluster_id = family:template_sha256[:16]。首版只记 Program.sha256() 导致与 pilot meta 对不上（20/20 失败），据此补齐双散列。",
+            "跨控制器匹配：按 template_sha256 逐字相等查 v2 的 v1.0.2 清单（1820 个 program），逐条写 source_trial_id/source_split/source_match，并分解未匹配原因（seed 缺失 vs 同 seed 异族）。",
+            "新建 results_guard.py：受保护 split（heldout/near_obstacle）的 collect/analyze/publish 必须 assert_allowed 通过，解锁条件为 config/margins_hira_v1.json 且 state=frozen 且含 alpha/delta。",
+            "新建 check_manifests.py：八项独立验证（M01 锁散列 / M02 生成器自检 / M03 可重建 / M04 配额与格 / M05 低速 / M06 七 split 交集为零 / M07 守卫 / M08 pilot 绑定）。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/manifests/*.jsonl（七个清单，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/manifests/lock.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/calibration_protocol_hira_v1.json.sha256（新建，Protocol.load 用）",
+            "CaMRA/calibration/experiments/hira_go2_18500/make_manifests.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/check_manifests.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/results_guard.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/v2_lists/*.jsonl|json（v2 清单副本，供匹配）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/{split_independence,cross_controller_match,manifest_validation}.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§26）"
+          ],
+          "commands": [
+            "python make_manifests.py --v2-lists v2_lists",
+            "python check_manifests.py"
+          ],
+          "results": [
+            "配额 1820 = 20 + 240 + 80 + 80 + 800 + 400 + 200；baseline 4 格、其余 20 格，格内等量。",
+            "格级低速占比最小 0.444（协议下限 0.25）；七 split 之间 seed/模板/簇/trial_id 两两交集全为 0（21 组）。",
+            "跨控制器匹配：baseline 240/240、dev 80/80、validate 80/80、heldout 400/400、near 200/200（100%）；calibration 280/800（未匹配 520 = 130 seed 不在 v2 块内 + 390 同 seed 异族，块起点差 130 致格边界错位）；pilot 5/20。",
+            "M01–M08 全过：锁散列一致、生成器自检无问题、六 split 可逐字节重建、守卫按预期拒绝 heldout/放行 calibration。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/manifests/lock.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/split_independence.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/cross_controller_match.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/manifest_validation.json（8/8）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §26"
+          ],
+          "remaining_work": [
+            "HIRA-025 采集 baseline 400 条时按 manifest 的 program_sha256 校验绑定（清单↔meta）。",
+            "heldout/near 采集前须先跑 HIRA-031 生成 margins_hira_v1.json，否则 results_guard 拒绝。",
+            "037 若需更大配对样本：calibration 的 390 条同 seed 异族无法修复，按同分布非配对处理并注明配对率。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "重用命令不等于重用旧执行数据，也不保证同seed实现了相同扰动。",
         "本候选每个split的命令簇互斥；fit/dev/validate也按整轨迹/模板分离。"
@@ -2215,7 +2261,7 @@
         "总配额1820、4族5条件分配和低速占比正确；split间seed/模板簇交集为零。",
         "跨控制器匹配依据明确，可独立从清单重建命令；新旧数据路径和身份不冲突。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（8/8）。七分片清单 1820 条（20/240/80/80/800/400/200），配额与格分配正确、格级低速最小 0.444、七 split 两两交集全为 0；清单可由 (协议, 生成器) 重跑逐字节复现；pilot 清单与已采集 run 的 meta 逐条一致（program_sha256 双散列口径已补齐）。跨控制器匹配按 template_sha256 逐字相等：baseline/heldout/near 100%，calibration 35%（未匹配原因已分解），pilot 5/20。结果区守卫实测拒绝 heldout、放行 calibration。"
     },
     {
       "id": "HIRA-025",

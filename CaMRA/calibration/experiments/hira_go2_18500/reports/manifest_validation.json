@@ -1,0 +1,66 @@
+{
+ "report": "manifest_validation",
+ "task": "HIRA-024",
+ "manifests": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/manifests",
+ "lock_sha256": "0a76ae09adda1d25481bc22cc2257b9fac3a263cf44300417ac7363823611641",
+ "protocol": {
+  "file": "calibration_protocol_hira_v1.json",
+  "sha256": "79f983f852e9ef1cd262a5da4e6262c5d36fed8adb542b0d45740fe36181d4c0",
+  "version": "1.0.0"
+ },
+ "checks": [
+  {
+   "id": "M01-lock-hashes",
+   "name": "lock.json 的逐文件散列与磁盘一致",
+   "ok": true,
+   "detail": "7 个 JSONL 全部一致"
+  },
+  {
+   "id": "M02-generator-selfcheck",
+   "name": "生成器自检（配额/格覆盖/seed 归属/跨 split 泄漏）",
+   "ok": true,
+   "detail": "无问题"
+  },
+  {
+   "id": "M03-rebuild",
+   "name": "清单可由 (协议, 生成器) 逐字节重建（除 pilot）",
+   "ok": true,
+   "detail": "六个生成 split 全部复现"
+  },
+  {
+   "id": "M04-quota-cells",
+   "name": "总配额 1820 与格分配（baseline 4 格、其余 20 格，格内等量）",
+   "ok": true,
+   "detail": "total=1820；格分配正确"
+  },
+  {
+   "id": "M05-low-speed",
+   "name": "格级低速占比 ≥0.25（协议下限）",
+   "ok": true,
+   "detail": "最小格均值 0.444"
+  },
+  {
+   "id": "M06-split-independence",
+   "name": "七 split 之间 seed / 模板 / 簇 / trial_id 交集为零",
+   "ok": true,
+   "detail": "21 组两两配对全部为 0"
+  },
+  {
+   "id": "M07-results-guard",
+   "name": "结果区守卫：heldout/near 在 α/δ 冻结前被拒，calibration 放行",
+   "ok": true,
+   "detail": "冻结状态=缺少 config/margins_hira_v1.json（HIRA-031 尚未冻结 α/δ）；heldout 被拒=True；calibration 放行=True"
+  },
+  {
+   "id": "M08-pilot-binding",
+   "name": "pilot 清单与已采集 run 的 meta 逐条一致",
+   "ok": true,
+   "detail": "20 条与 pilot_20261106_protocolv1 对应"
+  }
+ ],
+ "verdict": {
+  "n_checks": 8,
+  "failed": [],
+  "all_passed": true
+ }
+}

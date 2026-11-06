@@ -1536,3 +1536,83 @@ P01–P10 全过；20/20 DONE；J 范围 365.9–1223.3 J；16 完成 + 4 终止
 
 协议冻结时间戳早于任何 baseline_fit 采集与拟合、早于一切正式结果查看；
 pilot 的角色是链路验证（`may_tune=false`），其产物不进入拟合或正式统计。
+
+## §26 HIRA-024：七分片清单与跨控制器匹配表
+
+### 26.1 产出
+
+| 文件 | 说明 |
+|---|---|
+| `manifests/{pilot,baseline_fit,baseline_dev,baseline_validate,calibration,heldout,near_obstacle}.jsonl` | 七个分片清单，1820 条 |
+| `manifests/lock.json` | 逐 split 条数 + 文件散列 + 协议/生成器绑定 + 消费策略 |
+| `reports/split_independence.json` | 21 组两两交集、格级低速、pilot 绑定 |
+| `reports/cross_controller_match.json` | 逐条 `source_trial_id` 与未匹配原因分解 |
+| `reports/manifest_validation.json` | 独立验证 8 项（M01–M08，全过） |
+
+清单是 **(协议, 生成器)** 的纯函数：直接复用 v2 的
+`camra_calibration.trials.build_all(hi ra_protocol)`，写出时只加 `hira-` 前缀。
+M03 用同一函数重跑并逐条比对 trial_id/seed/两个散列——六个生成 split 全部复现。
+
+> 注意两个"协议 sha"：文件散列 `79f983f8…`（`Protocol.load` 用，配套 `.sha256` sidecar）
+> 与内容自散列 `b5069a37…`（文件内 `sha256` 字段）。两者不是同一个东西，引用时要写清。
+
+### 26.2 配额与结构
+
+| split | 条数 | 格数 | 匹配 v2 |
+|---|---|---|---|
+| pilot | 20 | 20 | 5 |
+| baseline_fit | 240 | 4（clean only） | **240** |
+| baseline_dev | 80 | 4 | **80** |
+| baseline_validate | 80 | 4 | **80** |
+| calibration | 800 | 20 | 280 |
+| heldout | 400 | 20 | **400** |
+| near_obstacle | 200 | 20 | **200** |
+| 合计 | **1820** | — | 1305 |
+
+格级低速占比最小 0.444（协议下限 0.25）；七 split 的 seed / 模板 / 簇 / trial_id
+两两交集**全部为 0**（21 组）。
+
+### 26.3 两个散列，各司其职
+
+| 字段 | 口径 | 用途 |
+|---|---|---|
+| `program_sha256` | 只哈希命令表（与采集器 `TrialSpec.program_sha256` **完全同口径**） | 清单 ↔ `meta.json` 绑定校验 |
+| `template_sha256` | `Program.sha256()`（含 family/seed/参数/命令表） | 跨控制器匹配键（v2 清单的 `program_sha256` 是同一口径） |
+| `cluster_id` | `family:template_sha256[:16]` | 簇标识 |
+
+这条是踩出来的：首版清单只记 `Program.sha256()`，与 pilot 的 meta 对不上（采集器只哈希
+命令表）。补齐双散列后 pilot 20 条的 `program_sha256` 全部可由 (family, seed) 重建。
+
+**簇的语义**：生成器为每个 (family, seed) 采样独立目标骨架，所以一条 trial 自成一簇
+（簇数 = trial 数）。这与协议"bootstrap 以整条轨迹为最小单位"一致；报告里不再另设簇内样本。
+
+### 26.4 跨控制器匹配
+
+按 `template_sha256` 逐字相等匹配（同 seed + 同生成器 = 同命令程序），**不做近似匹配**：
+
+- baseline（240/80/80）、heldout（400）、near_obstacle（200）**100% 配对** —— 块起点与 v2 相同；
+- calibration 280/800（35%），未匹配 520 条分解为：
+  **130 条** seed 不在 v2 块内（6800–6929），**390 条** seed 相同但 v2 分给了别的族
+  （块起点差 130，130 mod 40 = 10 → 格边界错位）；
+- pilot 5/20（pilot 是既成事实，不做匹配优化）。
+
+未匹配的 520 条不是缺陷：HIRA-037 的比较口径是"同分布非配对对照"，
+配对只是额外便利（baseline/heldout/near 已 100% 可用）。
+
+清单逐条保存 `source_trial_id`、`source_split`、`source_match`，可独立重建匹配关系。
+
+### 26.5 结果区隔离
+
+`manifests/lock.json` 的 `consumption_policy` + 可执行的 `results_guard.py`：
+
+- 受保护 split：`heldout`、`near_obstacle`；解锁条件 = `config/margins_hira_v1.json`
+  存在且 `state=frozen` 且含 `alpha`/`delta`（HIRA-031 产出）；
+- 采集/分析/publish 前必须 `assert_allowed(split, stage, EXP)`；不接受环境变量绕过；
+- M07 实测：当前 heldout 被拒（"缺少 margins_hira_v1.json"）、calibration 放行。
+
+### 26.6 遗留
+
+- calibration 的 390 条"同 seed 异族"未匹配无法通过改清单修复（种子块已在协议里冻结）；
+  若 037 需要更大配对样本，只能按"同分布非配对"处理并如实说明配对率。
+- 清单本身不含 profile 采样值（摩擦/质量/推扰），那些由 `sample_spec(seed)` 在采集时
+  确定性生成并落 meta；037 若要做配对比较，须从两边 meta 读取实际 profile 读回值。
