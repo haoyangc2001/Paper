@@ -2073,3 +2073,103 @@ heldout 有 3 格且最低到 0.650，说明该缺口在独立数据上被复现
 4. **区间只反映抽样不确定性**：单一固定控制器、单一冻结裕度，不声称训练随机种子方差；
    重采样单位是整条轨迹 / 整簇，绝不按 50 Hz 时间点伪增 n。
 5. 未覆盖 69 条（成本或位置任一不达标），明细在 `heldout_coverage.json#uncovered.rows`（前 50 条）。
+
+
+## §36 HIRA-034：200 条近障检查与障碍注入补实现（188/200，两格资格缺口已裁定）
+
+**这一节解决什么**：在冻结的 200 张近障地图上采 200 条，检查"障碍是否真的进了场景、位置是否对"，
+为 §37（HIRA-035）的几何适用性提供可用数据。**本节不评估覆盖率与碰撞率**，那是 §37。
+
+### 36.1 开跑前发现的一个硬缺口（文档 §9 是错的）
+
+交接文档 §9 写「HIRA-034 现在可以直接用的东西：`run_split.py --split near_obstacle --maps ...`」，
+只缺「先跑 check_margin_lock_binding.py」。**实际是缺了整个障碍注入实现**：
+
+- `run_split.py` 的 `--maps` 只喂给 `enforce_collection` 做散列校验（第 140 行），之后没有任何消费者；
+- `HiraCollector.__init__` 没有 maps 参数；
+- `collector.py` / `env_runner.py` 里 `obstacle / maps / kinematic / slot` 关键字 **0 命中**；
+- 场景（`env_runner.py` 的 `_SceneCfg`）里只有一个机器人。
+
+照原样跑会得到 200 条"空地无障碍跑 30 秒"，而 §34 的验收第一条就是"检查障碍实际注入且逐 env 位置正确"。
+发现后停下报告，用户裁定「补上障碍注入再采」。
+
+### 36.2 补了什么
+
+| 文件 | 改动 |
+|---|---|
+| `adapters/hira_go2/obstacles.py`（新增 104 行） | 7 个 kinematic 槽位、场地系→世界系位姿、逐 env 批量位姿与读回 |
+| `adapters/hira_go2/env_runner.py` | `with_obstacles` 开关（**默认 False**）、有障碍时 `_SceneCfg` 显式声明 `obs_0..obs_6`、`set_obstacles` / `read_obstacles` |
+| `adapters/hira_go2/collector.py` | `maps_path` 参数、按 trial_id 匹配地图 case、逐 env 写各自 `start_pose`、warmup 前设障碍、warmup 后读回、meta 落 `obstacles` 证据段 |
+| `tests/run_split.py` | `--maps` 传给 collector、用地图 `start_pose` 覆盖 `sample_spec` 的随机初态、地图散列写进 `collect_config` |
+
+三条设计约束（都写进代码注释）：
+
+1. **障碍默认不进场景**。kinematic 刚体会改变 broadphase 与求解器状态，已采的 800 条校准 + 400 条检验
+   必须在"无额外几何"下可复现，所以 `with_obstacles` 缺省 False，只有 near_obstacle 打开。
+2. **每例起点不同**（地图 `start_pose`）。原先 `execute_batch` 是"全批共用 `specs[0].initial_pose`"，
+   近障必须逐 env 写；`clean/mass_only/...` 仍走原路径，不给历史数据引入差异。
+3. **绝不给障碍加自定义材质**（v2 CAL-028 的教训）：每个 `PreviewSurfaceCfg` 触发一次着色器编译，
+   本机 ~85 s/槽位，会把场景创建从 4 s 拖到 >10 min。
+
+### 36.3 检验锁 v1 → v2（红线 5 的直接后果）
+
+`collector.py`、`env_runner.py`、`run_split.py` 三个都在 37 个 `code.files` 里，改一个字节旧锁即失效。
+按「锁只能新增」新建 `data_lock_hira_evaluation_v2.json`（sha **`db156f4d`**）：
+
+- 只重算 `code`（37 → 38，`changed = [run_split.py, collector.py, env_runner.py, obstacles.py]`）；
+- controller / protocol / power_model / footprint / step_cost / asset / trial_lists / maps / margins / gates **逐字沿用 v1**；
+- `stage` 仍写 `evaluation`（多个脚本硬校验该字符串），版本靠文件名 + 新增的 `amendment` 段区分；
+- **heldout 400 条的归属仍留 v1**（`289e4137`），v1 与采集锁 v2 都未编辑、未覆盖。
+
+门禁：补偿闸门 **10/10**、数据锁负测试 **13/13**（L12 确认地图仍是 v2 原件 `78c0145f`）。
+
+### 36.4 B09 为什么必须改（控制变量，不是放宽）
+
+`check_margin_lock_binding.py` 的 B09 原本直接拿采集锁测「margins 未校验」这个缺口。
+但本轮改了代码，采集锁 v2 会**先在 code 层被拒**——缺口不是消失，是被更强的原因掩盖，
+这个诊断项也就测不到它本来要测的东西。
+
+改法：**只隔离 code 一个变量**——复制采集锁，把 `code` 段对齐当前代码树，其余（`margins=not_yet_produced` 等）
+逐字不动，再用它测 margins 层。修后 B09 复现成功，detail 里同时记录「直测原始采集锁会被 code 层拒」。
+这不是放宽判据：判据仍是"能否放行"，只是把不可比的干扰变量拿掉了。
+
+### 36.5 采集结果
+
+run `near_obstacle_20261107`：25 批、wall **442.9 s**、**225.2 MB**、`SPLIT_NEAR_OBSTACLE_RUN_OK` + `rc=0`，
+200 个 trial 全部 `attempt_01`、零重采、单条 2.16–2.25 s（GPU0 空卡）。
+
+| 项 | 结果 |
+|---|---|
+| 配额 | 200 条 / 20 格 / 每格 10 ✅ |
+| **N03 障碍注入** | **200/200 非空；`n_obstacles` 与地图逐条一致（7/6/5）；累计 1338 个；位姿读回最大偏差 4.76e-07 m；起点逐条等于 `start_pose`** |
+| 能量 | 200 条离线复算最差 rel **0.00e+00** |
+| 计数 | completed **188** / business_failure **12** / missing 0 / excluded 0 / non_computable 0 |
+| 结构 / 旋钮 / 身份 / 地图 / margin 绑定 | 全部通过 |
+
+### 36.6 N07 两格缺口与裁定
+
+| 格 | 完成/配额 | 完整率 |
+|---|---|---|
+| `arc_combined/combined` | 6/10 | **0.600** |
+| `start_stop_turn/mass_only` | 6/10 | **0.600** |
+| `arc_combined/mass_only` / `start_stop_turn/combined` / `straight_shift/combined` / `straight_shift/mass_only` | 9/10 | 0.900（贴线，零余量） |
+| 其余 14 格 | 10/10 | 1.000 |
+
+12 条失败**全部**在 combined(6) 与 mass_only(6)，clean 与 push_only 零失败。与 §32（0.825/0.875）、
+§34（0.650/0.750/0.850）同型：**同一个"负重 + 扰动"弱项，场景越难越放大**。
+
+**裁定**（用户 2026-11-07，第三次沿用同一先例）：不补采、不改 10 条/格配额、不删失败；
+两格保留在主分母但不进格级正式结论。§37 必须并列全体 200 与剔除这两格的 180 两套分母。
+
+### 36.7 边界（下游必须知道）
+
+1. **`near_smoke_0919` 是冒烟 run（40 条），不计入 1820 配额**，保留作障碍注入的首轮验证证据。
+   正式数据只有 `near_obstacle_20261107`。
+2. **N04 首版误报 2 条推扰次数少 1 次**：期望时刻在 29.996/29.998 s，而推扰按 0.02 s 策略步调度，
+   最后一个策略步是 29.98 s——物理上调度不到。已把判据改为「可调度时刻逐一对齐 + 终止 trial 取前缀」，
+   首版报告留档为 `near_obstacle_collection_integrity_run1.json`。**这不是采集缺陷**。
+3. **场地边界墙没有建模**（与 v2 一致，协议要求）：越界一律用冻结足迹做几何检查，不是物理碰撞。
+4. **障碍是 kinematic 刚体**：它能拦住机器人，但不受力、不会移动；碰撞是"机器人撞静止柱"，
+   不包含柱子被推倒的情形。
+5. 本节**不评估**覆盖率、碰撞率与 δ 适用性；δ = 9.03 m 的几何预判（自由面积中位 0.0%）已在
+   `reports/delta_feasibility.json`，§37 才会用这批数据给出实测结论。

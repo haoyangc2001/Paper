@@ -44,6 +44,24 @@ def add(cid: str, name: str, ok: bool, detail: str) -> None:
     print(f"[{'ok  ' if ok else 'FAIL'}] {cid} {name}\n        {detail}", flush=True)
 
 
+CODE_GLOBS = (
+    (REPO / "CaMRA" / "locomotion" / "adapters" / "hira_go2", "*.py"),
+    (REPO / "CaMRA" / "calibration" / "src" / "camra_calibration", "*.py"),
+    (EXP / "tests", "run_split.py"),
+)
+
+
+def code_tree() -> dict:
+    """当前代码树的散列（与 make_data_lock_hira.py 的 CODE_GLOBS 同口径）。"""
+    files = {}
+    for base, pattern in CODE_GLOBS:
+        for path in sorted(base.glob(pattern)):
+            if "__pycache__" in path.parts:
+                continue
+            files[str(path)] = sha256_file(path)
+    return {"files": files, "n_files": len(files)}
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -93,17 +111,50 @@ def main() -> int:
     add("B08-collect-lock-state", "采集锁的 margins 必须是 not_yet_produced",
         recorded_c.get("state") == "not_yet_produced", f"state={recorded_c.get('state')!r}")
 
-    # 已知缺口：enforce_collection 目前只看 margins 文件存在，不校验锁内绑定
+    # 已知缺口：enforce_collection 目前只看 margins 文件存在，不校验锁内绑定。
+    #
+    # 控制变量（HIRA-034 起必须这么做）：本轮给近障补了障碍注入，改了 adapter 代码，
+    # 采集锁 v2 的 code 散列已与当前代码树不符。若直接拿它测，"采集锁 + margin 文件"
+    # 会**先在 code 层被拒**——那不是缺口消失，而是被更强的原因掩盖，这个诊断项也就
+    # 测不到它本来要测的东西（margins 绑定）。所以这里只隔离 code 一个变量：
+    # 复制采集锁，把 code 段换成当前代码树散列，其余（margins=not_yet_produced 等）逐字不动。
+    import copy
+    import tempfile
+
+    direct_rejected = None
     try:
         enforce_collection(collect_lock, "heldout", REPO, manifest_dir=Path(args_cli.manifests),
                            margins_path=margins_path)
-        gap_reproduced = True
-    except LockError:
-        gap_reproduced = False
-    add("B09-known-gap", "复现已知缺口：采集锁 + 存在的 margin 文件仍会被放行（未修复，下一版协议）",
+        direct_rejected = False
+    except LockError as exc:
+        direct_rejected = str(exc)
+
+    probe_payload = copy.deepcopy(collect_lock.payload)
+    probe_payload["code"] = code_tree()
+    probe_payload["probe"] = {
+        "purpose": "B09 控制变量：仅把 code 段对齐当前代码树，用于测 margins 绑定缺口",
+        "original_code_sha_mismatch": direct_rejected,
+    }
+    probe_dir = Path(tempfile.mkdtemp(prefix="lockprobe_"))
+    probe_path = probe_dir / "collect_probe.json"
+    probe_path.write_text(json.dumps(probe_payload, ensure_ascii=False, indent=1) + "\n",
+                          encoding="utf-8")
+    probe_path.with_suffix(probe_path.suffix + ".sha256").write_text(
+        f"{sha256_file(probe_path)}  {probe_path.name}\n", encoding="utf-8")
+    try:
+        probe_lock = DataLock.load(probe_path, verify_hash=True)
+        enforce_collection(probe_lock, "heldout", REPO, manifest_dir=Path(args_cli.manifests),
+                           margins_path=margins_path)
+        gap_reproduced, why = True, "code 对齐后仍放行 → lock.py 尚未校验锁内 margins 绑定"
+    except LockError as exc:
+        gap_reproduced, why = False, f"code 对齐后仍被拒（{exc}）→ 缺口可能已被修复"
+    except Exception as exc:  # noqa: BLE001
+        gap_reproduced, why = False, f"探针锁不可用：{exc}"
+    add("B09-known-gap",
+        "复现已知缺口：code 对齐后，采集锁 + 存在的 margin 文件仍会被放行（R-07，未修复）",
         gap_reproduced,
-        "gap_reproduced=True 表示 lock.py 尚未校验锁内 margins 绑定；本脚本即补偿闸门，"
-        "heldout 只准用检验锁")
+        f"{why}；直测原始采集锁的结果={direct_rejected!r}（code 散列已因 HIRA-034 变更失效，"
+        "故必须用 code 对齐的探针锁才能测到 margins 层）")
 
     report = {
         "report": "margin_lock_binding",

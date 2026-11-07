@@ -107,6 +107,7 @@ class HiraLabRunner:
         dtype: torch.dtype = torch.float32,
         order_mode: str = "urdf",
         enhanced_determinism: bool = False,
+        with_obstacles: bool = False,
     ):
         import isaaclab.sim as sim_utils
         from isaaclab.assets import Articulation, ArticulationCfg
@@ -138,10 +139,33 @@ class HiraLabRunner:
 
         robot_cfg = build_hira_go2_cfg(urdf_path, usd_dir=usd_dir).replace(prim_path="{ENV_REGEX_NS}/Robot")
 
-        @configclass
-        class _SceneCfg(InteractiveSceneCfg):
-            # 场景里只有机器人：地形、障碍、传感器属于后续任务，混进来会让时钟验证失真
-            robot: ArticulationCfg = robot_cfg
+        # 障碍默认**不进**场景：kinematic 刚体会改变 broadphase 与求解器状态，
+        # 已采的 800 条校准 + 400 条检验必须在"无额外几何"下可复现。
+        # 只有 near_obstacle 打开（HIRA-034）。
+        self.with_obstacles = bool(with_obstacles)
+        self.obstacle_names: list[str] = []
+        if self.with_obstacles:
+            from isaaclab.assets import RigidObjectCfg
+            from hira_go2.obstacles import N_SLOTS, obstacle_slot_cfg
+
+            @configclass
+            class _SceneCfg(InteractiveSceneCfg):
+                # 近障场景：机器人在 x 轴，7 个 kinematic 障碍槽位（不用的停在场外）
+                robot: ArticulationCfg = robot_cfg
+                obs_0: RigidObjectCfg = obstacle_slot_cfg(0)
+                obs_1: RigidObjectCfg = obstacle_slot_cfg(1)
+                obs_2: RigidObjectCfg = obstacle_slot_cfg(2)
+                obs_3: RigidObjectCfg = obstacle_slot_cfg(3)
+                obs_4: RigidObjectCfg = obstacle_slot_cfg(4)
+                obs_5: RigidObjectCfg = obstacle_slot_cfg(5)
+                obs_6: RigidObjectCfg = obstacle_slot_cfg(6)
+
+            self.obstacle_names = [f"obs_{i}" for i in range(N_SLOTS)]
+        else:
+            @configclass
+            class _SceneCfg(InteractiveSceneCfg):
+                # 场景里只有机器人：地形、障碍、传感器属于后续任务，混进来会让时钟验证失真
+                robot: ArticulationCfg = robot_cfg
 
         self.scene = InteractiveScene(_SceneCfg(num_envs=num_envs, env_spacing=env_spacing))
         self.sim.reset()
@@ -187,6 +211,7 @@ class HiraLabRunner:
         self.trace = RunnerTrace()
         # HIRA-019：可选的 200 Hz 计量记录器（只读；None 时路径完全不变）
         self.recorder = None
+        self._obstacle_poses_written = None
         self._last_action_source = torch.zeros((num_envs, 12), device=device, dtype=dtype)
         self.reset_all()
 
@@ -203,6 +228,34 @@ class HiraLabRunner:
             if effort:
                 limits[name] = float(effort.group(1))
         return limits
+
+    # ------------------------------------------------------------------ #
+    # 近障（HIRA-034）：只有 with_obstacles=True 时才有槽位
+    def set_obstacles(self, cases: list[dict | None]) -> None:
+        """按冻结地图的 case 逐 env 设障碍位姿。
+
+        ``cases[k]`` 是第 k 个 env 的地图条目（``None`` = 本批该槽位不用障碍，
+        例如补位 scratch）。地图坐标是场地系，这里加 env 原点偏移写成世界位姿。
+        """
+        from hira_go2.obstacles import build_batch_poses, set_slots
+
+        if not self.with_obstacles:
+            raise RuntimeError("runner 未启用障碍槽位（构造时 with_obstacles=False）")
+        poses = build_batch_poses(cases, self.env_origins, self.num_envs,
+                                  n_slots=len(self.obstacle_names))
+        set_slots(self.scene, self.obstacle_names, poses)
+        self._obstacle_poses_written = poses.clone()
+
+    def read_obstacles(self) -> torch.Tensor:
+        """读回槽位位姿（``(n_env, n_slots, 7)``），作为"障碍确实注入"的逐 env 证据。
+
+        必须在推进过物理（warmup 或 sim.step）之后调用，否则 data 缓冲还是旧值。
+        """
+        from hira_go2.obstacles import read_back_slots
+
+        if not self.with_obstacles:
+            raise RuntimeError("runner 未启用障碍槽位")
+        return read_back_slots(self.scene, self.obstacle_names)
 
     def reset_all(self) -> None:
         self._reset_envs(torch.arange(self.num_envs, device=self.device))

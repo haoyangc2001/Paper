@@ -3026,7 +3026,7 @@
       "id": "HIRA-034",
       "phase": "近障检验",
       "goal": "采集200条冻结地图上的近障检查",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-033"
       ],
@@ -3046,7 +3046,66 @@
         "200条近障原始结果",
         "reports/near_obstacle_collection_integrity.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T10:05:00+08:00",
+          "summary": "先发现 HiRA 侧根本没有障碍注入实现（交接文档 §9 说「可直接用」是错的），补完后才采。补了 obstacles.py 并改 env_runner/collector/run_split 三个锁内文件，按红线新建检验锁 v2（db156f4d，38 个代码文件，margins 与父锁逐字不动）；门禁 10/10 + 13/13 通过后冒烟、再采满 200 条。完整性 11 项中 10 项通过，唯一未过的是 N07 每格完整率（arc_combined/combined 与 start_stop_turn/mass_only 各 6/10 = 0.600），按用户裁定沿用 030/032 先例。关键证据：200 条全部注入障碍、累计 1338 个、位姿读回最大偏差 4.76e-07 m、起点逐条等于地图 start_pose。",
+          "actions": [
+            "开跑前核对发现 collector.py / env_runner.py 对 obstacle/maps/kinematic/slot 关键字 0 命中，run_split 的 --maps 只喂给 enforce_collection 做散列校验——照原样跑会产出 200 条无障碍的假数据，遂停下报告并获用户授权补实现",
+            "新增 CaMRA/locomotion/adapters/hira_go2/obstacles.py：7 个 kinematic 槽位（不用的停 P A R K_XY）、场地系→世界系位姿换算、逐 env 批量位姿与读回；沿用 v2 的「绝不给障碍加自定义材质」教训（每个 PreviewSurface 会触发一次着色器编译，本机 ~85 s）",
+            "改 env_runner.py：新增 with_obstacles 开关（默认 False，保证已采 800+400 条在无额外几何下可复现），_SceneCfg 在有障碍时显式声明 obs_0..obs_6，新增 set_obstacles / read_obstacles",
+            "改 collector.py：新增 maps_path 参数、按 trial_id 去 hira- 前缀匹配地图 case 并校验 family/profile/seed、近障时逐 env 写各自 start_pose、warmup 前设障碍、warmup 后读回并在 meta 落 obstacles 证据段",
+            "改 run_split.py：把 --maps 传给 collector、用地图 start_pose 覆盖 sample_spec 的随机初态、把地图散列写进 collect_config",
+            "新建 tests/make_eval_lock_v2.py 派生检验锁 v2：只重算 code 散列（37→38），controller/protocol/power/footprint/step_cost/asset/trial_lists/maps/margins/gates 逐字沿用 v1，stage 仍写 evaluation（多个脚本硬校验该字符串），heldout 400 条归属仍留 v1",
+            "修正 check_margin_lock_binding.py 的 B09：原实现直接拿采集锁测「margins 未校验」缺口，但代码变更后采集锁会先在 code 层被拒，诊断项失效。改为只隔离 code 一个变量（复制采集锁、把 code 段对齐当前代码树、其余逐字不动），并把直测结果一并写进 detail",
+            "新建 tests/check_near_obstacle.py：11 项只读审查，核心是 N03 障碍注入逐条核对",
+            "冒烟 1 轮（run near_smoke_0919，40 条）确认 200 条里前 40 条的 obstacles 字段、数量、位姿偏差与起点全部正确，再正式采 200 条"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/obstacles.py（新增）",
+            "CaMRA/locomotion/adapters/hira_go2/env_runner.py（with_obstacles 开关 + 障碍槽位 + 读写方法）",
+            "CaMRA/locomotion/adapters/hira_go2/collector.py（maps_path + 逐 env 起点 + 注入与证据）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/run_split.py（传地图 + 覆盖起点）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/make_eval_lock_v2.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_near_obstacle.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_margin_lock_binding.py（B09 控制变量）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v2.json（+ .sha256，新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/near_obstacle_collection_integrity.json（+ _run1 首版）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_lock_binding_v2_near_0916.json / _0918.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate_evaluation_v2_near_0918.json"
+          ],
+          "commands": [
+            "python tests/make_eval_lock_v2.py  # db156f4d, code 37 -> 38",
+            "python tests/check_margin_lock_binding.py --lock config/data_lock_hira_evaluation_v2.json --out reports/margin_lock_binding_v2_near_0918.json  # 10/10",
+            "python tests/check_data_lock_hira.py --lock config/data_lock_hira_evaluation_v2.json --out reports/formal_gate_evaluation_v2_near_0918.json  # 13/13",
+            "python tests/run_split.py --split near_obstacle --run-id near_obstacle_20261107 --lock config/data_lock_hira_evaluation_v2.json --maps config/near_obstacle_maps_v1.json --num-envs 8  # tmux hira-near, 442.9 s",
+            "python tests/check_near_obstacle.py --run-id near_obstacle_20261107  # 10/11, 仅 N07 未过"
+          ],
+          "results": [
+            "采集：200/200 条、25 批、wall 442.9 s、225.2 MB、日志 SPLIT_NEAR_OBSTACLE_RUN_OK + rc=0，全部 attempt_01 无重采；单条 2.16–2.25 s（GPU0 空卡）。",
+            "计数：completed 188 / business_failure 12 / missing 0 / excluded 0 / non_computable 0；能量离线复算 200 条最差 rel 0.00e+00。",
+            "N03 障碍注入：200 条全部非空、n_obstacles 与冻结地图逐条一致（7/6/5 三种）、累计 1338 个障碍、位姿读回最大偏差 4.76e-07 m（阈值 1e-3）、start_pose 与地图逐位相同。",
+            "N07 未达标 2 格：arc_combined/combined 6/10 = 0.600、start_stop_turn/mass_only 6/10 = 0.600；另 arc_combined/mass_only、start_stop_turn/combined、straight_shift/combined、straight_shift/mass_only 各 9/10 = 0.900（贴线零余量）；其余 14 格 1.000。",
+            "12 条业务失败全部落在 combined 6 / mass_only 6，clean 与 push_only 零失败；与 calibration（0.825/0.875）、heldout（0.650/0.750/0.850）同型，是「负重+扰动」弱项在更难的近障场景继续放大。",
+            "N04 首轮报了 2 条推扰次数不符（3 vs 期望 4），追查为期望时刻落在 29.996/29.998 s、而推扰按 0.02 s 策略步调度，窗口末最后一步是 29.98 s——物理上调度不到。修正判据为「可调度时刻逐一对齐 + 终止 trial 取前缀」，重跑后 0 异常；首版报告保存为 near_obstacle_collection_integrity_run1.json。",
+            "门禁：v2 锁下补偿闸门 10/10（B09 用 code 对齐的探针锁复现 R-07 缺口，并把直测被 code 层拒的结果一并记录）、数据锁负测试 13/13（L12 确认地图仍是 v2 原件 78c0145f）。",
+            "锁演进：检验锁 v1（289e4137）→ v2（db156f4d，新增 amendment 段，记录因 HIRA-034 变更的 3 个文件与新增 obstacles.py，margins 与 parent 不变）；检验锁 v1 与采集锁 v2 均未编辑、未覆盖。",
+            "冒烟 run near_smoke_0919（40 条）为非正式数据，不计入 1820 配额，保留作障碍注入的首轮验证证据。"
+          ],
+          "evidence": [
+            "reports/near_obstacle_collection_integrity.json（N01–N11 + verdict.failed=['N07-cell-full-rate']；_run1 为首版）",
+            "/pub/data/caohy/logs/camra_hira/runs/near_obstacle_20261107（200 个 trial 目录，meta.obstacles 齐备）",
+            "/pub/data/caohy/logs/camra_hira/near_run.log（SPLIT_NEAR_OBSTACLE_RUN_OK、rc=0、442.9 s、25 批）",
+            "config/data_lock_hira_evaluation_v2.json + .sha256（db156f4d，amendment 记录变更）",
+            "reports/margin_lock_binding_v2_near_0918.json（10/10）、reports/formal_gate_evaluation_v2_near_0918.json（13/13）"
+          ],
+          "remaining_work": [
+            "N07 两格（0.600）按用户裁定不入格级正式结论；HIRA-035 必须并列全体 200 与剔除这两格的 180 两套分母。",
+            "HIRA-035 需评估：δ=9.03 下 200 条里有几条名义安全距离条件成立（delta_feasibility 预判为 0）、碰撞/几何重叠/越界/最小净空，并区分物理接触与几何重叠。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "这是执行误差与几何适用性检查，不是已实现上层导航避障成功率。",
         "地图不因新δ过大而调宽，未建边界墙须明确使用几何越界而非物理碰撞判定。"
@@ -3055,7 +3114,7 @@
         "200个预登记trial完整留痕，实际障碍与冻结地图一致，各失败有分类。",
         "可从轨迹、姿态、footprint与障碍几何复算距离/重叠；源配置与实际注入不混淆。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（完整性 10/11 + N07 两格缺口已裁定）。200 条全数留痕、0 缺失、0 数据排除，completed 188 / business_failure 12；能量离线复算 200 条最差 rel 0.00e+00；障碍注入逐条验证：累计 1338 个障碍、位姿读回偏差 4.76e-07 m、起点等于地图 start_pose；地图与检验锁 v2（db156f4d）绑定、margins 仍为冻结值 α 0.351568 / δ 9.032231。N07 有 2 格完整率 0.600（arc_combined/combined、start_stop_turn/mass_only），按用户裁定沿用 030/032 先例——不补采、不改配额、不删失败，两格保留在主分母但不进格级正式结论。本轮先补了缺失的障碍注入实现（obstacles.py + 3 个锁内文件），并按红线新建检验锁 v2。"
     },
     {
       "id": "HIRA-035",

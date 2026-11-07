@@ -91,9 +91,14 @@ def load_manifest(split: str) -> list[dict]:
     return rows
 
 
-def build_specs(rows: list[dict]) -> tuple[list[TrialSpec], list[dict]]:
-    """按 manifest 重建 spec，并逐条对账命令表散列。"""
+def build_specs(rows: list[dict], maps: dict | None = None) -> tuple[list[TrialSpec], list[dict]]:
+    """按 manifest 重建 spec，并逐条对账命令表散列。
+
+    给了 ``maps``（仅 near_obstacle）时，用冻结地图的 ``start_pose`` **覆盖** sample_spec
+    随机采到的初始位姿——近障的起点由地图决定，不能沿用"随机平面位姿"。
+    """
     specs, audit = [], []
+    case_by_trial = {str(c["trial_id"]): c for c in (maps or {}).get("cases", [])}
     for row in rows:
         program = build_program(
             row["family"], row["seed"], duration_s=row["duration_s"], command_dt=row["command_dt"]
@@ -107,6 +112,17 @@ def build_specs(rows: list[dict]) -> tuple[list[TrialSpec], list[dict]]:
             profile=row["profile"], seed=row["seed"], commands=commands,
             window_s=args_cli.window,
         )
+        if maps is not None:
+            key = row["trial_id"][5:] if row["trial_id"].startswith("hira-") else row["trial_id"]
+            case = case_by_trial.get(key)
+            if case is None:
+                raise SystemExit(f"{row['trial_id']}: 冻结地图里没有对应 case（key={key!r}）")
+            sp = case.get("start_pose") or {}
+            spec.initial_pose = {
+                "px_m": float(sp.get("px", 0.0)),
+                "py_m": float(sp.get("py", 0.0)),
+                "yaw_rad": float(sp.get("yaw", 0.0)),
+            }
         audit.append(
             {
                 "trial_id": row["trial_id"],
@@ -150,7 +166,13 @@ def main() -> int:
     manifest_path = Path(args_cli.manifests) / f"{split}.jsonl"
     log(f"{len(rows)} 条 {split} manifest 载入（sha {sha256_file(manifest_path)[:16]}）")
 
-    specs, audit = build_specs(rows)
+    maps = None
+    if split == "near_obstacle":
+        # 地图在 HIRA-029 前冻结；这里只读，不改、不重生成
+        maps = json.loads(Path(args_cli.maps).read_text(encoding="utf-8"))
+        log(f"maps loaded: {Path(args_cli.maps).name} "
+            f"sha={sha256_file(Path(args_cli.maps))[:16]} cases={len(maps.get('cases', []))}")
+    specs, audit = build_specs(rows, maps)
     bad = [item["trial_id"] for item in audit if not item["matches"]]
     if bad:
         raise SystemExit(f"命令表重建对账失败 {len(bad)} 条：{bad[:5]}")
@@ -173,6 +195,11 @@ def main() -> int:
                                   "stage": lock.payload.get("stage")},
                     "controller_id": bundle["controller"]["controller_id"],
                     "num_trials": len(specs),
+                    "maps": (None if split != "near_obstacle" else {
+                        "file": Path(args_cli.maps).name,
+                        "sha256": sha256_file(Path(args_cli.maps)),
+                        "n_cases": len((maps or {}).get("cases", [])),
+                    }),
                     "program_rebuild": "camra_calibration.commands.build_program（逐条按 program_sha256 对账）",
                     "batch_rule": "同批 obs_noise / window_s / warmup_s 必须一致 → 按 profile 分批",
                 },
@@ -187,6 +214,7 @@ def main() -> int:
         args_cli.bundle, run_dir, args_cli.prereg, config_path,
         num_envs=args_cli.num_envs, device=args_cli.device,
         expected_joints={"target_order": bundle["controller"]["joints"]["target_order"]},
+        maps_path=args_cli.maps if split == "near_obstacle" else None,
     )
     log(f"collector ready: controller={collector.controller_id} bundle={collector.bundle_id[:16]}")
 

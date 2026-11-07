@@ -226,6 +226,7 @@ class HiraCollector:
         num_envs: int = 1,
         device: str = "cuda:0",
         expected_joints: dict | None = None,
+        maps_path: str | Path | None = None,
     ):
         from camra_calibration.energy import DEFAULT_DT  # noqa: F401  契约常量的来源
         from hira_go2.bundle import load_bundle
@@ -248,6 +249,17 @@ class HiraCollector:
         self.collect_config = json.loads(self.collect_config_path.read_text(encoding="utf-8"))
 
         self.run_dir = Path(run_dir)
+        # 近障地图（HIRA-034）：给定即启用障碍槽位；不给则场景里只有机器人，
+        # 与已采完的 800 条校准 + 400 条检验完全一致。
+        # 地图 case 按 trial_id 对齐（HiRA 的 trial_id 带 hira- 前缀，地图是 v2 命名）。
+        self.maps = None
+        self.maps_sha256 = None
+        self._case_by_trial: dict[str, dict] = {}
+        if maps_path is not None:
+            self.maps_path = Path(maps_path)
+            self.maps = json.loads(self.maps_path.read_text(encoding="utf-8"))
+            self.maps_sha256 = sha256_file(self.maps_path)
+            self._case_by_trial = {str(c["trial_id"]): c for c in self.maps.get("cases", [])}
         self.num_envs = int(num_envs)
         self.device = device
         timing = TimingConfig(
@@ -261,6 +273,7 @@ class HiraCollector:
             device=device,
             policy_path=str(Path(bundle_dir) / controller["policy"]["file"]),
             timing=timing,
+            with_obstacles=self.maps is not None,
         )
         # clean 摩擦按源值显式写入（导入默认 0.5 ≠ 源 1.0，HIRA-017 实测）
         self.base_friction = float(controller["asset"]["friction"])
@@ -350,6 +363,52 @@ class HiraCollector:
             self.runner.obs_noise_scale = None
 
     # ------------------------------------------------------------------ #
+    # ------------------------------------------------------------------ #
+    # 近障（HIRA-034）
+    def _case_for(self, spec: TrialSpec) -> dict:
+        """把 trial 映射到冻结地图的 case，并校验 family/profile/seed 一致。"""
+        if self.maps is None:
+            raise CollectorError("未配置地图，不能取 case")
+        key = spec.trial_id[5:] if spec.trial_id.startswith("hira-") else spec.trial_id
+        case = self._case_by_trial.get(key)
+        if case is None:
+            raise CollectorError(f"{spec.trial_id}: 冻结地图里没有对应 case（key={key!r}）")
+        if (str(case.get("family")), str(case.get("profile")), int(case.get("seed", -1))) != (
+                spec.program, spec.profile, int(spec.seed)):
+            raise CollectorError(
+                f"{spec.trial_id}: 地图 case 的 family/profile/seed 与 spec 不一致："
+                f"{case.get('family')}/{case.get('profile')}/{case.get('seed')}")
+        return case
+
+    def _obstacle_evidence(self, specs: list[TrialSpec], cases: list[dict]) -> dict:
+        """逐 env 读回障碍位姿并与期望比对——"障碍确实注入且位置正确"的直接证据。"""
+        import numpy as np
+
+        readback = self.runner.read_obstacles().detach().cpu().numpy()
+        per_trial: dict[str, dict] = {}
+        max_dev = 0.0
+        for env, (spec, case) in enumerate(zip(specs, cases)):
+            origin = self.runner.env_origins[env].detach().cpu().numpy()
+            expected = [[float(origin[0]) + float(o["x"]), float(origin[1]) + float(o["y"])]
+                        for o in case.get("obstacles", [])]
+            got = readback[env, : len(expected), :2]
+            dev = float(np.abs(got - np.array(expected)).max()) if expected else 0.0
+            max_dev = max(max_dev, dev)
+            per_trial[spec.trial_id] = {
+                "case_trial_id": case.get("trial_id"),
+                "cell": case.get("cell"),
+                "n_obstacles": len(expected),
+                "start_pose": case.get("start_pose"),
+                "arena": case.get("arena"),
+                "clearance_target_m": case.get("clearance_target_m"),
+                "clearance_achieved_m": case.get("clearance_achieved_m"),
+                "gate_width_m": case.get("gate_width_m"),
+                "max_pos_dev_m": dev,
+            }
+        return {"maps": str(self.maps_path), "maps_sha256": self.maps_sha256,
+                "n_slots": int(readback.shape[1]), "max_pos_dev_m": max_dev,
+                "per_trial": per_trial}
+
     def execute_batch(self, specs: list[TrialSpec], attempts: list[int],
                       attempt_kinds: list[str] | None = None) -> list[dict]:
         """同批执行 len(specs) 条 trial（第 k 条占 env k），逐条落盘。
@@ -383,10 +442,25 @@ class HiraCollector:
             for index, (spec, _a, _d) in enumerate(attempt_dirs)
         }
         self._set_noise(specs[0])
-        self._write_initial_pose(list(range(self.num_envs)), specs[0].initial_pose)
+        # 近障每例起点不同（地图 start_pose），必须逐 env 写；
+        # 其余 split 全批同一初态，走原路径，不给已采数据的可复现性引入差异。
+        poses = [spec.initial_pose for spec in specs]
+        if self.maps is not None or any(p != poses[0] for p in poses):
+            for env, spec in enumerate(specs):
+                self._write_initial_pose([env], spec.initial_pose)
+        else:
+            self._write_initial_pose(list(range(self.num_envs)), specs[0].initial_pose)
+
+        obstacle_evidence = None
+        cases: list[dict] = []
+        if self.maps is not None:
+            cases = [self._case_for(spec) for spec in specs]
+            self.runner.set_obstacles(cases)
 
         warmup_steps = int(round(specs[0].warmup_s / self.timing.sim_dt))
         self.runner.warmup(warmup_steps)
+        if self.maps is not None:
+            obstacle_evidence = self._obstacle_evidence(specs, cases)
 
         capacity = int(round(specs[0].window_s / self.timing.sim_dt))
         from hira_go2.energy_recorder import HiRAEnergyRecorder
@@ -444,7 +518,7 @@ class HiraCollector:
         energy_result = recorder.finish()
         self._write_outputs(attempt_dirs, specs, attempts, attempt_kinds, energy_result,
                             profile_readback, terminations, push_trace, state, warmup_steps,
-                            window_start_step, stop_substep)
+                            window_start_step, stop_substep, obstacle_evidence)
         return [
             {"trial_id": spec.trial_id, "attempt": attempt, "dir": str(attempt_dir)}
             for spec, attempt, attempt_dir in attempt_dirs
@@ -525,7 +599,8 @@ class HiraCollector:
     def _write_outputs(self, attempt_dirs, specs, attempts, attempt_kinds, energy_result,
                        profile_readback, terminations, push_trace, state,
                        warmup_steps: int, window_start_step: int,
-                       stop_substep: dict[str, int]) -> None:
+                       stop_substep: dict[str, int],
+                       obstacle_evidence: dict | None = None) -> None:
         import numpy as np
         from camra_calibration.energy import integrate_series
 
@@ -638,6 +713,14 @@ class HiraCollector:
                     "obs_noise": spec.obs_noise,
                     "initial_pose": spec.initial_pose,
                 },
+                "obstacles": (
+                    None if obstacle_evidence is None else {
+                        "maps": obstacle_evidence["maps"],
+                        "maps_sha256": obstacle_evidence["maps_sha256"],
+                        "n_slots": obstacle_evidence["n_slots"],
+                        **obstacle_evidence["per_trial"].get(spec.trial_id, {}),
+                    }
+                ),
                 "push_trace": [p for p in push_trace if p["trial_id"] == spec.trial_id],
                 "terminations": terminated_env,
                 # outcome 口径对齐 v1.0.2：终止 = business_failure（reason=terminated）
