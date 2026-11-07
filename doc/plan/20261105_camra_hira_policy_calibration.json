@@ -3120,7 +3120,7 @@
       "id": "HIRA-035",
       "phase": "近障检验",
       "goal": "评估新裕度在近障场景的几何适用性",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-034"
       ],
@@ -3141,7 +3141,46 @@
         "reports/near_obstacle_evaluation.json",
         "reports/near_obstacle_summary.md"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T10:22:00+08:00",
+          "summary": "新写 tests/evaluate_near_obstacle.py，用 200 条真实注入了障碍的数据做几何适用性评估。δ 条件 **0/200 满足**（两种判据口径都是 0：足迹到障碍 ≥ δ 为 0/200；换成最宽松的中心线到障碍 ≥ δ 也是 0/200，因为地图自带的中心线净距最大只有 0.370 m，比 δ 小 8.66 m）。实测几何重叠 151/200（75.5%）、越界 15 条、最小净空 0.0 m。覆盖：成本 0.9362、位置 0.9840、联合 0.9202。结论：该 δ 与地图量级不匹配，近障任务几何上不可评估；且位置覆盖 98.4% 与几何重叠 75.5% 并存，直接证明「δ 大 ≠ 安全」。",
+          "actions": [
+            "复用 src/camra_calibration/{coverage,near_obstacle,obstacles}.py 的现成几何与统计：trial_geometry 做执行轨迹的足迹-障碍净空与越界、nominal_path + min_path_clearance 做名义净空、coverage.py 做覆盖与区间",
+            "ε_c / ε_d 与 HIRA-031/033 同口径（build_program 重建命令 + planar integrate + 10 Hz 配对网格最大欧氏距离），未另立标准",
+            "δ 条件判据做了两种口径并各报一次：①保守口径「足迹到障碍的最小净距 ≥ δ」→ 0/200；②最宽松口径「中心线到障碍 ≥ δ」，直接用冻结地图自带的 clearance_achieved_m → 0/200。两种都 0 才下结论，避免结论依赖判据选择",
+            "两套分母并列：全体 200 与剔除两个已裁定资格缺口格的 180；格级完整率不达标的格用 --adjudicated-gap-cell 硬门禁校验，声明与实际不一致即 REFUSED",
+            "区分三层证据：实测几何（执行轨迹）/ 名义几何（计划路线）/ δ 条件（危险集膨胀后是否仍安全），并在报告里明确「物理接触未记录接触力，用几何重叠作下界证据」"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/evaluate_near_obstacle.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/near_obstacle_evaluation.json（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/near_obstacle_summary.md（新增）"
+          ],
+          "commands": [
+            "cd /pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500 && set -a; . config/hira.env; set +a; $CAMRA_HIRA_PYTHON tests/evaluate_near_obstacle.py --run-id near_obstacle_20261107 --adjudicated-gap-cell arc_combined/combined --adjudicated-gap-cell start_stop_turn/mass_only"
+          ],
+          "results": [
+            "δ 条件（足迹口径）：0/200 满足；名义最小净空中位 0.053 m、最小 0.000 m、最大 0.565 m。",
+            "δ 条件（中心线口径，最宽松）：0/200 满足；地图自带 clearance_achieved 中位约 0.10 m、最大 0.370 m，比 δ=9.032 小 8.66 m。",
+            "实测几何：几何重叠 151/200 = 75.5%，越界 15 条，最小净空 0.0000 m。按净距档位：0.05 m 档 43/50 重叠、0.10 档 46/50、0.20 档 35/50、0.35 档 27/50（档位越宽重叠越少，方向正确）；越界数 7/3/3/2。",
+            "覆盖（全体 200，条件分母 188）：成本 0.9362 (176/188)、位置 0.9840 (185/188)、联合 0.9202 (173/188)；剔除两格（180，条件分母 176）：0.9489 / 0.9886 / 0.9375。",
+            "按 profile（联合）：clean 1.0000、push_only 0.9750、friction_only 0.9000、combined 0.8529、mass_only 0.8529。",
+            "关键矛盾：位置覆盖 98.40% 却几何重叠 75.5% —— ε_d ≤ 9.03 m 几乎总成立，但机器人照样撞柱；原因是 δ 描述的是跟踪误差上界，不是碰撞裕度，而地图本身是贴着名义路径设计的（名义净空中位 0.053 m）。这条直接否掉「δ 大所以安全」的读法。",
+            "与 v2 对照（口径不同，只作量级参考）：v2 CAL-029 为 138/197 = 70.1% 重叠、13 越界；HiRA 为 75.5%、15 越界，同一量级。"
+          ],
+          "evidence": [
+            "reports/near_obstacle_evaluation.json（geometry.executed / geometry.nominal / geometry.delta_condition.robustness_centerline / full_sample / gap_cells_removed）",
+            "reports/near_obstacle_summary.md（人读版：δ 条件、实测几何分档、两套分母覆盖、按 profile、适用范围、口径说明）",
+            "tests/evaluate_near_obstacle.py（可复核；--adjudicated-gap-cell 少列即 REFUSED）"
+          ],
+          "remaining_work": [
+            "HIRA-036 七分片审计时要独立复算本节的名义净空与重叠，不能只读本报告；old v2 的 138/197 也只能作量级参照（分母含 2 个 __a2 补采）。",
+            "「δ 与地图量级不匹配」进 HIRA-038 交付说明与 HIRA-039 对账，不得据此调整 δ 或重设计地图。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "禁止只保留满足裕度且成功的轨迹；所有预登记案例都进入主表。",
         "新δ过大、碰撞多或越界均作为实测局限，不重新调图。"
@@ -3150,7 +3189,7 @@
         "每项几何与覆盖指标可复算，满足/不满足名义条件的样本数明确。",
         "报告结论与边界证据一致，没有把无上层导航的固定命令回放当避障器验收。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。δ 条件 0/200 满足（足迹口径与最宽松的中心线口径都是 0，后者因地图自带中心线净距最大仅 0.370 m、比 δ 小 8.66 m）；实测几何重叠 151/200 = 75.5%、越界 15 条、最小净空 0.0 m；条件分母 188 条上成本覆盖 0.9362、位置覆盖 0.9840、联合覆盖 0.9202（剔除两格的 180 条为 0.9489 / 0.9886 / 0.9375）。位置覆盖 98.4% 与几何重叠 75.5% 并存，证明 δ 描述的是跟踪误差上界而非碰撞裕度。结论：该 δ 与近障地图量级不匹配，近障任务几何上不可评估；未改 δ、未重设计地图、未删任何样本。"
     },
     {
       "id": "HIRA-036",
