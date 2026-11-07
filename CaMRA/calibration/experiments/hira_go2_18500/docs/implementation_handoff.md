@@ -2503,3 +2503,85 @@ v2 的 CAL-027（heldout）实为 **0.8690 / 0.9144 / 0.7935（n=397）**。本�
 1. **输出目录守卫在交付层**（`tests/run_delivery.py`），原生 `run_split.py` 仍不校验既有 `collect_config`；
    下沉需新版锁 v3，属待裁定（§40.1）。
 2. **近障 δ 条件 0/200 是负结果**，不是待修缺陷：δ=9.03 m 与 8×10 m 场地差一个量级，协议禁止改分位或重设计地图。
+
+
+## §42 HIRA-040：逐任务对账与最终交接（40/40，六类必需检查全过）
+
+**这一节是交付的收口**：把"验收"写成可重复执行的脚本 `tests/final_acceptance_hira.py`，
+六类检查各自输出布尔值与明细，任一类不符即返回码 1。产物 `reports/final_acceptance.json`。
+
+### 42.1 对账结果
+
+| 检查 | 判据 | 结果 |
+|---|---|---|
+| 计划结构 | 40 项、id 唯一有序、依赖指向更早任务、完成项必须有 verification_result + work_record + evidence_outputs | 0 问题 |
+| 逐项证据 | `evidence_outputs` 里声明的路径逐条存在（多目录回退） | 缺失 **0** |
+| 门禁机读判定 | 取报告里的判定字段，不是"文件存在" | **19/19** |
+| 采集台账 | 官方七分片 1820/1820、每 trial 恰一个 attempt | **1820/1820，多 attempt 0** |
+| 无覆写 / 无隐性重训 | 稿件、v2 四件冻结物、v2 计划、HiRA 子模块 | 全部未变 |
+| 交付索引重算 | `build_delivery_manifest.py --verify` 重算 221 文件 + 1880 trial | **bad=0** |
+
+`verdict.all_required_passed = true`，`failed = []`。
+
+**门禁明细（19 项）**：观测 13、动作/PD 10、三时钟 11、能量计量 17、G1 16、采集链路 21、
+pilot 10、基线 400 条、功率模型、足迹、步成本、α/δ 冻结（10+10）、独立审计 12、交付重载 20
+——判定字段全为 true。三处**已裁定例外**按其预期值核对，而不是网开一面：
+
+- HIRA-030：`verdict.failed = ["C06-cell-full-rate"]`（校准 0.825 / 0.875）；
+- HIRA-032：`verdict.failed = ["C06-cell-full-rate"]`（heldout 0.650 / 0.750 / 0.850）；
+- HIRA-034：`verdict.failed = ["N07-cell-full-rate"]`（近障两格 0.600）；
+- HIRA-033：`full_sample.verdict.status = "insufficient_cells"`。
+
+### 42.2 交付了什么
+
+**新增代码**（本轮全部，均在仓库内）：适配层 13 个模块（含 `obstacles.py`）、校准库 24 个、
+实验脚本 46 个（其中本轮新增 8 个：`coverage_heldout` / `evaluate_near_obstacle` /
+`full_independent_audit` / `compare_hira_v2` / `build_delivery_manifest` / `delivery_relock` /
+`run_delivery` / `verify_delivery_reload` / `final_acceptance_hira`）。
+
+**真实采集数量**：官方 1820 条（20 pilot / 400 功率基线 / 800 校准 / 400 检验 / 200 近障），
+全部单 attempt、零重采、失败样本零删除。非配额另有两批：`pilot_20261105T223428`（20）、
+`near_smoke_0919`（40），以及交付验证 run `delivery_reload_20261107`（40，在独立工作根）。
+
+**工程门禁**：G1 16/16；数值 parity 1.79e-7（f32 obs）/ 1.9e-6（τ）；三时钟 6000/1500/300/301；
+能量 17/17；采集链路 21/21；数据锁 v1→v2 各 13/13；补偿闸门 10/10。
+
+**科学结论**（唯一权威副本 `config/margins_hira_v1.json`）：α = **0.35156762163783695**、
+δ = **9.032231244495946 m**（n=771，nearest-rank + 簇 bootstrap）。独立检验条件分母 377 条：
+成本 **0.9098**、位置 **0.8966**、联合 **0.8170**；联合/(成本×位置) = 1.0016（两项独立，
+联合缺口是边际的必然）。近障：δ 条件 **0/200**、几何重叠 **151/200**、越界 15。
+
+### 42.3 能力限制（写进交付说明，不许淡化）
+
+1. **工程接入通过 ≠ 随机安全理论证明，也不构成导航性能证明**。本轮没有任何导航训练/评估。
+2. **位置覆盖 0.8966 低于 90% 参照 0.34 pp**；联合 0.8170 低于 90%。均为实测，未回填 α/δ。
+3. **δ 与近障地图量级不匹配**：δ=9.03 m 对 8×10 m 场地，自由面积中位 0.0%、起点终点 0/40 自由。
+   结论是"该场地尺度下近障不可评估"，不是"避障成功率 0"。
+4. **与 v2 只能报告级对比**（v2 逐 trial 数据已不在本机，`recomputed=false`）。控制器包同时换了
+   权重、默认姿态、kp（25→20）与资产，任何单指标差异不能归因于网络权重一项。
+5. **格级结论只有 17/20（heldout）与 18/20（近障）**；三格/两格完整率不足者保留在主分母但不入格级结论。
+6. **warmup 有 1 s 零动作前置**（与 800 条校准同口径），本版不修。
+
+### 42.4 后续最直接入口
+
+| 目的 | 入口 |
+|---|---|
+| 上层导航消费 | α 扣预算、δ 膨胀危险集（`config/margins_hira_v1.json`）；近障任务在该场地不可评估 |
+| 复现/换机 | `docs/reproduction.md` + `delivery/bundle_manifest_hira_v1.json`（221 文件 / 1880 trial 索引） |
+| 重新验收 | `python tests/final_acceptance_hira.py`（六类检查，返回码 0/1） |
+| 采集新数据 | `python tests/run_delivery.py --split … --lock …`（带输出目录绑定守卫） |
+| 稿件修改 | `reports/manuscript_sync_differences.md`（6 条数值 + 3 条口径 + 2 条新增结论 + 3 件待判断） |
+
+### 42.5 两处登记瑕疵（未改历史记录）
+
+1. **计划的 evidence_outputs 有两处文件名与实际不符**：HIRA-022 写 `pilot_end_to_end.json`
+   （实为 `pilot_validation.json`）、HIRA-024 少写 `reports/` 前缀。按"历史记录只追加"未改计划，
+   在对账脚本里显式登记别名并在报告 `task_evidence.rows[].aliased` 列出。
+2. **`check_heldout.py` 汇总行分母硬编码 `/800`、前缀写作 `CAL_INTEGRITY`**（从校准脚本抄来）。
+   JSON 数据正确，脚本不在任何锁内，按"已出报告不重跑"保留。
+
+### 42.6 唯一未决的工程选择
+
+**输出目录守卫是否下沉到 `run_split.py`**：目前守卫在交付入口 `tests/run_delivery.py`，
+因为 `run_split.py` 在锁的 `code.files` 内，下沉必须出新版锁 v3。三种处置（保持现状 / 出 v3 锁 /
+交 040 后另行裁定）已报用户，未自行决定。

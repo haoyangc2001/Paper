@@ -3539,7 +3539,7 @@
       "id": "HIRA-040",
       "phase": "最终验收",
       "goal": "完成逐任务对账和最终结果交接",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-039"
       ],
@@ -3561,7 +3561,54 @@
         "更新后的JSON逐项工作记录",
         "最终交接说明"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T12:05:00+08:00",
+          "summary": "新写 tests/final_acceptance_hira.py 做逐任务对账：6 类必需检查（计划结构、逐项证据路径、19 个门禁的机读判定、采集台账、无覆写/无隐性重训、交付索引重算）全部通过，verdict.all_required_passed=true、failed=[]。结构：40 项、id 有序、依赖合法，39 个已完成项均有 verification_result + work_record + evidence。台账：官方七分片 1820/1820 条、每 trial 恰一个 attempt（零重采），另有 60 条非配额目录（pilot 20 + near 冒烟 40）与独立工作根里的交付验证 run 40 条，均不计入配额。无覆写：稿件自 2026-10-31 起未动、v2 四个冻结物侧车与锁→margins 链一致、v2 计划未改、HiRA 子模块仍 6a05af55 且工作区干净（无隐性重训）。交付索引：221 文件 / 1880 trial / bad=0，指向 3516fb2 且 dirty=false。发现并登记两处「声明的证据文件名与实际不符」：HIRA-022 写 pilot_end_to_end.json（实为 pilot_validation.json）、HIRA-024 少写 reports/ 前缀；按「历史记录只追加」未改计划，以别名方式登记并在报告中如实列出。",
+          "actions": [
+            "把「验收」做成可重复执行的脚本而不是一次性检查：六类检查各自输出布尔值与明细，任一类不符即返回码 1，不把任务标成通过",
+            "计划结构：40 项、id 唯一有序、依赖存在且指向更早任务、完成项必须同时具备 verification_result、work_record 与 evidence_outputs",
+            "逐项证据：从 evidence_outputs 抽路径（json/md/py/jsonl/npz），在 EXP、REPO、reports/、config/、docs/ 与绝对路径多处解析；缺失逐条列出",
+            "门禁机读判定：不看「报告是否存在」，而是取报告里的判定字段并给出预期值——19 项中 16 项要求 true，3 项（HIRA-030/032/034）预期为已裁定的失败列表，HIRA-033 预期 status=insufficient_cells，HIRA-035 预期 reporting_complete=true",
+            "采集台账：逐 run 统计 trial 数与 attempt 数，要求 1820/1820 且每 trial 恰一个 attempt；非配额目录单独列出，避免被读进配额",
+            "无覆写：稿件 git status/diff 为空且取最后改动提交时间；v2 四个冻结物用「文件散列或内容散列」双口径核侧车 + 锁→margins 链；v2 计划 git status 干净；HiRA 子模块比对 6a05af55 且 git status 为空（无隐性重训/改源码）",
+            "交付索引：调用 tests/build_delivery_manifest.py --verify 重算 221 个文件散列与 1880 个 trial 树散列（不读构建时缓存）",
+            "结论一律从报告/冻结物里读出来（α、δ、三项覆盖、近障 δ 条件、重叠数、v2 对比证据等级），不在脚本里手抄数字",
+            "首版把子模块判定写成 startswith(' ' + commit)，而 git() 帮我们 strip 了前导空格 → 误判失败；已改为不带空格的 startswith",
+            "证据路径首版漏了 reports/ 前缀回退，把 HIRA-024 的 cross_controller_match.json 误报缺失；已补多目录回退，并对 HIRA-022 的过期文件名显式登记别名"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/final_acceptance_hira.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/final_acceptance.json（新增，+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§42）"
+          ],
+          "commands": [
+            "python tests/final_acceptance_hira.py            # 含交付索引重算，约 3 分钟",
+            "python tests/final_acceptance_hira.py --skip-manifest-verify   # 快速复核"
+          ],
+          "results": [
+            "verdict：all_required_passed=true，failed=[]；required_gates 六项全 true（plan_structure / task_evidence / gates / collection / no_overwrite / manifest）。",
+            "计划结构：40 项、id 唯一有序、依赖均指向更早任务、0 问题；39 个完成项的证据链完整。",
+            "门禁 19/19：观测 13、动作/PD 10、三时钟 11、能量 17、G1 16、采集链路 21、pilot 10、基线 400 条、功率模型、足迹、步成本、α/δ 冻结、独立审计 12、交付重载 20 全部为 true；HIRA-030/032/034 的失败列表与裁定一致；HIRA-033 为 insufficient_cells。",
+            "采集台账：官方 1820/1820（20/240/80/80/800/400/200），多 attempt = 0；非配额 60 条（pilot_20261105T223428 20 + near_smoke_0919 40）；交付验证 run 40 条在独立工作根 /pub/data/caohy/work/hira/delivery_check_20261107_final/runs。",
+            "无覆写：manuscripts git status/diff 为空，最后一次改动 ed9fcb1（2026-10-31）；v2 data_lock_v1/margins_v1/power_model_v1/footprint_v1 侧车一致且锁→margins 链一致；v2 计划文件未改；HiRA 子模块 6a05af55、工作区干净。",
+            "交付索引：221 文件 / 1880 trial / bad=0，selfcheck 221/0，git_commit 3516fb2、dirty=false。",
+            "结论快照（从报告读出）：α 0.35156762163783695、δ 9.032231244495946 m（n=771）；heldout 成本 0.9098 / 位置 0.8966 / 联合 0.8170，其中位置与联合低于 0.90 目标（如实）；近障 δ 条件 0/200、几何重叠 151/200；与 v2 对比 recomputed=false、report_level_only。",
+            "两处声明文件名与实际不符已登记（未改历史记录）：HIRA-022 pilot_end_to_end.json→pilot_validation.json；HIRA-024 缺 reports/ 前缀。"
+          ],
+          "evidence": [
+            "reports/final_acceptance.json（required_gates / verdict / gate_checks 19 项 / collection / no_overwrite / delivery_manifest / conclusions / adjudicated_exceptions / limits / next_entry）",
+            "reports/final_acceptance.json.sha256",
+            "tests/final_acceptance_hira.py（可复跑；任一门禁不符返回码 1）"
+          ],
+          "remaining_work": [
+            "输出目录守卫是否下沉到 run_split.py 需新版锁 v3，仍待用户裁定（当前由 tests/run_delivery.py 前置拦截）。",
+            "稿件差异清单 F 组三问（held-out 报哪一版分母、δ 消融网格是否重做、50/5 vs 50/10 Hz）由作者本人决定并执行修改。",
+            "已知显示瑕疵未修（不影响数据）：check_heldout.py 汇总行分母硬编码 /800 且前缀写作 CAL_INTEGRITY。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "工程接入通过不等于随机安全理论或导航性能证明。",
         "最终Git提交/push由用户另行授权，验收不依赖自动远程写入。"
@@ -3570,7 +3617,7 @@
         "所有必需交付和门禁均有直接证据，40项状态与验收事实一致，结构校验无误。",
         "无旧证据被覆写、无论文变更、无隐性重训；真实不足和下一步明确。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。tests/final_acceptance_hira.py 六类必需检查全过（verdict.all_required_passed=true、failed=[]）：计划结构 40 项 0 问题；逐项证据路径无缺失；19 个门禁机读判定与预期一致（含 030/032/034 三处已裁定例外）；官方采集 1820/1820 且每 trial 恰一个 attempt（零重采）；无覆写——稿件自 2026-10-31 未改、v2 四个冻结物侧车与锁→margins 链一致、v2 计划未改、HiRA 子模块 6a05af55 且工作区干净；交付索引重算 221 文件 / 1880 trial / bad=0。结论：α 0.35156762163783695、δ 9.032231244495946 m（n=771）；heldout 覆盖 0.9098/0.8966/0.8170（位置与联合低于 0.90，如实上报）；近障 δ 条件 0/200、几何重叠 151/200；与 v2 仅报告级对比。遗留：输出目录守卫下沉需 v3 锁（待裁定）、稿件 F 组三问待作者决定。"
     }
   ],
   "final_acceptance": [

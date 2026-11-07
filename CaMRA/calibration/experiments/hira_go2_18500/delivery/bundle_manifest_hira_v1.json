@@ -2,16 +2,21 @@
  "schema": "camra-hira-delivery-manifest-v1",
  "kind": "hira_policy_calibration_delivery_bundle",
  "stage": "delivery",
- "created_at": "2026-11-07T11:11:23+08:00",
+ "created_at": "2026-11-07T11:16:17+08:00",
  "git": {
-  "commit": "3516fb26be09543fcc2f8af45866eb8d609dbd86",
-  "commit_date": "2026-11-07T11:11:12+08:00",
-  "commit_subject": "docs(hira): sync the developer entry points and list manuscript differences",
+  "commit": "5f8f48b489f002c2ccb743277ba2fd7bacfae0cf",
+  "commit_date": "2026-11-07T11:11:34+08:00",
+  "commit_subject": "chore(hira): refresh the delivery manifest after the doc sync",
   "branch": "main",
-  "dirty_files": [],
-  "dirty": false,
-  "diff_sha256": null,
-  "diff_bytes": 0,
+  "dirty_files": [
+   "aMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md",
+   "CaMRA/calibration/experiments/hira_go2_18500/tests/build_delivery_manifest.py",
+   "doc/plan/20261105_camra_hira_policy_calibration.json",
+   "CaMRA/calibration/experiments/hira_go2_18500/tests/final_acceptance_hira.py"
+  ],
+  "dirty": true,
+  "diff_sha256": "11a565baa3c2481393abfd7ce38adb6d48fe4a207c0edf8e25a2b9e413f6bc7c",
+  "diff_bytes": 17562,
   "note": "随包走的是 HEAD 提交；若 dirty=true，diff_sha256 覆盖工作区未提交改动"
  },
  "environment": {
@@ -423,8 +428,8 @@
     "role": "code_tests",
     "bundled": true,
     "exists": true,
-    "sha256": "0ee1d60822ddcf43eb1d3891bc76a7daffc145182d74377ef42acb6d3feadc7e",
-    "bytes": 21665,
+    "sha256": "5be890bc4430e480fee3d358e1afab93e631e9befbe2a0ca364dd6dcd39a867b",
+    "bytes": 22186,
     "note": "只 run_split.py 在锁内；其余为检查/评估脚本"
    },
    {
@@ -704,6 +709,15 @@
     "exists": true,
     "sha256": "ddfe33e2b572931ac9c1ae13509356222c4307ced97febcb4f8e32b91bcc0b28",
     "bytes": 11315,
+    "note": "只 run_split.py 在锁内；其余为检查/评估脚本"
+   },
+   {
+    "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/tests/final_acceptance_hira.py",
+    "role": "code_tests",
+    "bundled": true,
+    "exists": true,
+    "sha256": "bba0901087c6a384dd98b613b81483a698ddd30667ce8baafb4470ca8b64b697",
+    "bytes": 20969,
     "note": "只 run_split.py 在锁内；其余为检查/评估脚本"
    },
    {
@@ -2071,8 +2085,8 @@
     "role": "docs",
     "bundled": true,
     "exists": true,
-    "sha256": "01eeaf6ed6fda5ba898a1fda9f4d3fe590bff98a2a04ba6162abc7f188f64ad5",
-    "bytes": 150534,
+    "sha256": "7d84bcfb8371b267845dc507a84edfec647872166f02ccc07b5ef9b2b754f496",
+    "bytes": 156265,
     "note": "交接与复现说明"
    },
    {
@@ -2088,8 +2102,8 @@
  },
  "counts": {
   "groups": 17,
-  "files": 221,
-  "bytes": 8014930,
+  "files": 222,
+  "bytes": 8042151,
   "missing": 0
  },
  "big_data": {
@@ -11729,12 +11743,15 @@
  ],
  "verification": {
   "hash_rule": "文件：sha256(bytes)；目录：sha256（排序后的 '相对路径\\0文件散列\\n'）",
-  "entries_checked": 221,
+  "entries_checked": 222,
   "entries_bad": 0,
   "raw_hashed": true,
   "reload_report": "reports/delivery_reload_verification.json",
   "reproduce_doc": "docs/reproduction.md",
   "note": "entries_checked 为构建时逐项回读重算的结果（不是复用刚写入的值）；reload 报告由验证流程在独立目录生成，其散列已收录在本索引内"
+ },
+ "excluded_from_index": {
+  "reports/final_acceptance.json": "该报告记录本索引的 sha256；收录会形成散列自指，故排除（文件本身仍在仓库内）"
  },
  "missing_artifacts": []
 }

@@ -36,6 +36,13 @@ ADAPTER = REPO / "CaMRA" / "locomotion" / "adapters" / "hira_go2"
 SRC = REPO / "CaMRA" / "calibration" / "src" / "camra_calibration"
 SCHEMA = "camra-hira-delivery-manifest-v1"
 
+# 验收报告会记录本索引的散列；若再把它收进索引，就成了散列自指（改谁都要改另一个）。
+# 因此明确排除，并在 manifest 里登记原因。
+INDEX_EXCLUDED = {
+    "reports/final_acceptance.json":
+        "该报告记录本索引的 sha256；收录会形成散列自指，故排除（文件本身仍在仓库内）",
+}
+
 
 # --------------------------------------------------------------------------- #
 # 散列
@@ -292,8 +299,11 @@ def build(args) -> dict:
                                        note="七个 split 的预登记清单 + 清单锁")
 
     # 5. 全部报告（科学结论的唯一出处）
-    artifacts["reports"] = dir_items(rep, "*", role="reports",
-                                     note="本任务全部判决性产物；均可在报告内定位判据与分母")
+    artifacts["reports"] = [
+        it for it in dir_items(rep, "*", role="reports",
+                               note="本任务全部判决性产物；均可在报告内定位判据与分母")
+        if f"reports/{Path(it['logical_path']).name}" not in INDEX_EXCLUDED
+    ]
 
     # 6. 文档
     docs = []
@@ -398,6 +408,7 @@ def build(args) -> dict:
             "note": ("entries_checked 为构建时逐项回读重算的结果（不是复用刚写入的值）；"
                      "reload 报告由验证流程在独立目录生成，其散列已收录在本索引内"),
         },
+        "excluded_from_index": INDEX_EXCLUDED,
         "missing_artifacts": missing,
     }
     return manifest
