@@ -1,0 +1,20 @@
+{
+ "report": "audit_discrepancies",
+ "task": "HIRA-036",
+ "n": 2,
+ "items": [
+  {
+   "id": "A09",
+   "kind": "expected_method_difference",
+   "detail": "独立 148 vs 报告 151（差 -3）：独立实现按 10 Hz 抽样、用「足迹顶点在矩形内 或 矩形中心在足迹内」判据，主报告用 50 Hz 全帧多边形距离；独立侧为保守下界，方向正确（少报不少不少报多）",
+   "independent": 148,
+   "reported": 151
+  },
+  {
+   "id": "A12",
+   "kind": "schema_difference",
+   "detail": "v2 的侧车口径不统一：data_lock_v1.json 记文件字节散列，margins_v1 / power_model_v1 记内容自散列（等于文件内 sha256 字段）。首版判据只认字节散列，把未改动的文件误判成篡改；已改为两者任一成立即通过。核对结果：三者内容均未变，锁→margins 链一致。"
+  }
+ ],
+ "policy": "超容差差异必须解释或形成阻塞；不修改旧记录消差"
+}

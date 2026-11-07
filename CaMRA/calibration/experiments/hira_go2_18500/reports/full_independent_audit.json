@@ -1,0 +1,655 @@
+{
+ "report": "full_independent_audit",
+ "task": "HIRA-036",
+ "independence": "本脚本不 import camra_calibration / hira_go2；名义积分、功率特征、能量正功、nearest-rank、覆盖判定、矩形-足迹相交均为独立实现",
+ "runs_root": "/pub/data/caohy/logs/camra_hira/runs",
+ "alpha_frozen": 0.35156762163783695,
+ "delta_frozen": 9.032231244495946,
+ "alpha_independent": 0.35156762163783695,
+ "delta_independent": 9.032231244495946,
+ "per_split": {
+  "pilot": {
+   "run_id": "pilot_20261106_protocolv1",
+   "quota": 20,
+   "manifest": 20,
+   "completed": 16,
+   "business_failure": 4,
+   "missing": 0
+  },
+  "baseline_fit": {
+   "run_id": "baseline_20261106_fit",
+   "quota": 240,
+   "manifest": 240,
+   "completed": 239,
+   "business_failure": 1,
+   "missing": 0
+  },
+  "baseline_dev": {
+   "run_id": "baseline_20261106_dev",
+   "quota": 80,
+   "manifest": 80,
+   "completed": 79,
+   "business_failure": 1,
+   "missing": 0
+  },
+  "baseline_validate": {
+   "run_id": "baseline_20261106_validate",
+   "quota": 80,
+   "manifest": 80,
+   "completed": 80,
+   "business_failure": 0,
+   "missing": 0
+  },
+  "calibration": {
+   "run_id": "calibration_20261106",
+   "quota": 800,
+   "manifest": 800,
+   "completed": 771,
+   "business_failure": 29,
+   "missing": 0
+  },
+  "heldout": {
+   "run_id": "heldout_20261106",
+   "quota": 400,
+   "manifest": 400,
+   "completed": 377,
+   "business_failure": 23,
+   "missing": 0
+  },
+  "near_obstacle": {
+   "run_id": "near_obstacle_20261107",
+   "quota": 200,
+   "manifest": 200,
+   "completed": 188,
+   "business_failure": 12,
+   "missing": 0
+  }
+ },
+ "failures": [
+  {
+   "split": "pilot",
+   "trial_id": "hira-pilot-straight_shift-combined-0000",
+   "outcome": "business_failure",
+   "steps": 112
+  },
+  {
+   "split": "pilot",
+   "trial_id": "hira-pilot-arc_combined-combined-0000",
+   "outcome": "business_failure",
+   "steps": 148
+  },
+  {
+   "split": "pilot",
+   "trial_id": "hira-pilot-alternating-combined-0000",
+   "outcome": "business_failure",
+   "steps": 104
+  },
+  {
+   "split": "pilot",
+   "trial_id": "hira-pilot-start_stop_turn-combined-0000",
+   "outcome": "business_failure",
+   "steps": 52
+  },
+  {
+   "split": "baseline_fit",
+   "trial_id": "hira-baseline_fit-straight_shift-clean-0005",
+   "outcome": "business_failure",
+   "steps": 5336
+  },
+  {
+   "split": "baseline_dev",
+   "trial_id": "hira-baseline_dev-alternating-clean-0007",
+   "outcome": "business_failure",
+   "steps": 5276
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-friction_only-0000",
+   "outcome": "business_failure",
+   "steps": 4
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-friction_only-0002",
+   "outcome": "business_failure",
+   "steps": 88
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-friction_only-0003",
+   "outcome": "business_failure",
+   "steps": 3900
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-friction_only-0006",
+   "outcome": "business_failure",
+   "steps": 4
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-friction_only-0007",
+   "outcome": "business_failure",
+   "steps": 20
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-mass_only-0012",
+   "outcome": "business_failure",
+   "steps": 400
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-mass_only-0025",
+   "outcome": "business_failure",
+   "steps": 508
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-mass_only-0026",
+   "outcome": "business_failure",
+   "steps": 1612
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-mass_only-0030",
+   "outcome": "business_failure",
+   "steps": 2936
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-combined-0015",
+   "outcome": "business_failure",
+   "steps": 2728
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-combined-0018",
+   "outcome": "business_failure",
+   "steps": 3296
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-straight_shift-combined-0022",
+   "outcome": "business_failure",
+   "steps": 3140
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-mass_only-0009",
+   "outcome": "business_failure",
+   "steps": 2884
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-mass_only-0010",
+   "outcome": "business_failure",
+   "steps": 420
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-mass_only-0014",
+   "outcome": "business_failure",
+   "steps": 2852
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-mass_only-0021",
+   "outcome": "business_failure",
+   "steps": 3552
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-mass_only-0028",
+   "outcome": "business_failure",
+   "steps": 3116
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-mass_only-0032",
+   "outcome": "business_failure",
+   "steps": 728
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-mass_only-0035",
+   "outcome": "business_failure",
+   "steps": 1084
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-combined-0001",
+   "outcome": "business_failure",
+   "steps": 5840
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-combined-0012",
+   "outcome": "business_failure",
+   "steps": 2680
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-arc_combined-combined-0028",
+   "outcome": "business_failure",
+   "steps": 1236
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-alternating-combined-0033",
+   "outcome": "business_failure",
+   "steps": 4120
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-start_stop_turn-mass_only-0015",
+   "outcome": "business_failure",
+   "steps": 3116
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-start_stop_turn-mass_only-0020",
+   "outcome": "business_failure",
+   "steps": 5376
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-start_stop_turn-mass_only-0022",
+   "outcome": "business_failure",
+   "steps": 2664
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-start_stop_turn-mass_only-0031",
+   "outcome": "business_failure",
+   "steps": 2084
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-start_stop_turn-combined-0004",
+   "outcome": "business_failure",
+   "steps": 4360
+  },
+  {
+   "split": "calibration",
+   "trial_id": "hira-calibration-start_stop_turn-combined-0023",
+   "outcome": "business_failure",
+   "steps": 2968
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-straight_shift-mass_only-0013",
+   "outcome": "business_failure",
+   "steps": 3528
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-straight_shift-combined-0000",
+   "outcome": "business_failure",
+   "steps": 364
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-straight_shift-combined-0007",
+   "outcome": "business_failure",
+   "steps": 3240
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-friction_only-0009",
+   "outcome": "business_failure",
+   "steps": 3348
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-friction_only-0011",
+   "outcome": "business_failure",
+   "steps": 2300
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-mass_only-0005",
+   "outcome": "business_failure",
+   "steps": 1360
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-mass_only-0007",
+   "outcome": "business_failure",
+   "steps": 1736
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-mass_only-0012",
+   "outcome": "business_failure",
+   "steps": 592
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-mass_only-0015",
+   "outcome": "business_failure",
+   "steps": 1972
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-mass_only-0017",
+   "outcome": "business_failure",
+   "steps": 1664
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-combined-0001",
+   "outcome": "business_failure",
+   "steps": 4596
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-combined-0004",
+   "outcome": "business_failure",
+   "steps": 728
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-combined-0006",
+   "outcome": "business_failure",
+   "steps": 2252
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-combined-0008",
+   "outcome": "business_failure",
+   "steps": 2796
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-combined-0009",
+   "outcome": "business_failure",
+   "steps": 3772
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-combined-0015",
+   "outcome": "business_failure",
+   "steps": 5104
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-arc_combined-combined-0019",
+   "outcome": "business_failure",
+   "steps": 2548
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-alternating-clean-0000",
+   "outcome": "business_failure",
+   "steps": 1608
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-alternating-mass_only-0012",
+   "outcome": "business_failure",
+   "steps": 4704
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-alternating-combined-0007",
+   "outcome": "business_failure",
+   "steps": 412
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-start_stop_turn-mass_only-0001",
+   "outcome": "business_failure",
+   "steps": 3008
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-start_stop_turn-mass_only-0016",
+   "outcome": "business_failure",
+   "steps": 2140
+  },
+  {
+   "split": "heldout",
+   "trial_id": "hira-heldout-start_stop_turn-mass_only-0018",
+   "outcome": "business_failure",
+   "steps": 5380
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-straight_shift-mass_only-0004",
+   "outcome": "business_failure",
+   "steps": 3524
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-straight_shift-combined-0006",
+   "outcome": "business_failure",
+   "steps": 4112
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-arc_combined-mass_only-0000",
+   "outcome": "business_failure",
+   "steps": 5656
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-arc_combined-combined-0005",
+   "outcome": "business_failure",
+   "steps": 2040
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-arc_combined-combined-0007",
+   "outcome": "business_failure",
+   "steps": 4156
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-arc_combined-combined-0008",
+   "outcome": "business_failure",
+   "steps": 2504
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-arc_combined-combined-0009",
+   "outcome": "business_failure",
+   "steps": 616
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-start_stop_turn-mass_only-0000",
+   "outcome": "business_failure",
+   "steps": 5324
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-start_stop_turn-mass_only-0001",
+   "outcome": "business_failure",
+   "steps": 912
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-start_stop_turn-mass_only-0002",
+   "outcome": "business_failure",
+   "steps": 2284
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-start_stop_turn-mass_only-0009",
+   "outcome": "business_failure",
+   "steps": 5424
+  },
+  {
+   "split": "near_obstacle",
+   "trial_id": "hira-near_obstacle-start_stop_turn-combined-0000",
+   "outcome": "business_failure",
+   "steps": 2728
+  }
+ ],
+ "n_energy_replayed": 1820,
+ "worst_energy_rel": 4.96750145714262e-16,
+ "worst_energy_trial": "hira-calibration-straight_shift-combined-0030",
+ "coverage_independent": {
+  "heldout": {
+   "n": 377,
+   "cost": 0.9098143236074271,
+   "position": 0.896551724137931,
+   "joint": 0.8169761273209549
+  },
+  "near_obstacle": {
+   "n": 188,
+   "cost": 0.9361702127659575,
+   "position": 0.9840425531914894,
+   "joint": 0.9202127659574468
+  }
+ },
+ "geometry_independent": {
+  "n_overlap": 148,
+  "n_trials": 200,
+  "reported_overlap": 151
+ },
+ "checks": [
+  {
+   "id": "A01-quota",
+   "name": "七分片合计 1820 条且各片等于预登记配额",
+   "ok": true,
+   "detail": "pilot=20 / baseline_fit=240 / baseline_dev=80 / baseline_validate=80 / calibration=800 / heldout=400 / near_obstacle=200",
+   "per_split": {
+    "pilot": {
+     "run_id": "pilot_20261106_protocolv1",
+     "quota": 20,
+     "manifest": 20,
+     "completed": 16,
+     "business_failure": 4,
+     "missing": 0
+    },
+    "baseline_fit": {
+     "run_id": "baseline_20261106_fit",
+     "quota": 240,
+     "manifest": 240,
+     "completed": 239,
+     "business_failure": 1,
+     "missing": 0
+    },
+    "baseline_dev": {
+     "run_id": "baseline_20261106_dev",
+     "quota": 80,
+     "manifest": 80,
+     "completed": 79,
+     "business_failure": 1,
+     "missing": 0
+    },
+    "baseline_validate": {
+     "run_id": "baseline_20261106_validate",
+     "quota": 80,
+     "manifest": 80,
+     "completed": 80,
+     "business_failure": 0,
+     "missing": 0
+    },
+    "calibration": {
+     "run_id": "calibration_20261106",
+     "quota": 800,
+     "manifest": 800,
+     "completed": 771,
+     "business_failure": 29,
+     "missing": 0
+    },
+    "heldout": {
+     "run_id": "heldout_20261106",
+     "quota": 400,
+     "manifest": 400,
+     "completed": 377,
+     "business_failure": 23,
+     "missing": 0
+    },
+    "near_obstacle": {
+     "run_id": "near_obstacle_20261107",
+     "quota": 200,
+     "manifest": 200,
+     "completed": 188,
+     "business_failure": 12,
+     "missing": 0
+    }
+   }
+  },
+  {
+   "id": "A02-unique-ids",
+   "name": "trial_id 全局唯一（跨片不重复）",
+   "ok": true,
+   "detail": "1820 条，去重后 1820 条"
+  },
+  {
+   "id": "A03-attempts",
+   "name": "每个 trial 都有有效 attempt（DONE 完整），主 attempt 唯一可判",
+   "ok": true,
+   "detail": "缺失 0 条；attempt 数分布 {1: 1820}（全部为单 attempt）"
+  },
+  {
+   "id": "A04-seed-disjoint",
+   "name": "七个 seed 块两两不相交",
+   "ok": true,
+   "detail": "全部成对为空；区间 baseline_dev=4240-4319, baseline_fit=4000-4239, baseline_validate=4320-4399, calibration=6130-6929, heldout=7000-7399, near_obstacle=8000-8199, pilot=6110-6129"
+  },
+  {
+   "id": "A05-version-bindings",
+   "name": "bundle / margins / power model 与检验锁、margins 记录逐项一致",
+   "ok": true,
+   "detail": "bundle=3c32fe31b2753a08 margins_file=57d05222ae4a6067 model=27bc5fe1423256ce"
+  },
+  {
+   "id": "A06-energy-replay",
+   "name": "能量从原始 200 Hz 独立重积分，rel ≤ 1e-09",
+   "ok": true,
+   "detail": "复算 1820 条，最差 rel 4.97e-16（hira-calibration-straight_shift-combined-0030）"
+  },
+  {
+   "id": "A07-margins-recompute",
+   "name": "α/δ 从 800 条校准独立复算，与冻结值一致（1e-12）",
+   "ok": true,
+   "detail": "n=771；α 0.351567622 vs 0.351567622（Δ=0.00e+00）；δ 9.032231244 vs 9.032231244（Δ=0.00e+00）"
+  },
+  {
+   "id": "A08-coverage-recompute",
+   "name": "heldout 与 near 的成本/位置/联合覆盖独立复算，与主报告一致（1e-9）",
+   "ok": true,
+   "detail": "heldout.cost 0.9098 vs 0.9098；heldout.position 0.8966 vs 0.8966；heldout.joint 0.8170 vs 0.8170；near.cost 0.9362 vs 0.9362；near.position 0.9840 vs 0.9840；near.joint 0.9202 vs 0.9202（最大偏差 0.00e+00）"
+  },
+  {
+   "id": "A09-geometry-recompute",
+   "name": "近障几何重叠独立复算（10 Hz 抽样 + 旋转矩形判定）与主报告同量级",
+   "ok": true,
+   "detail": "独立 148/200，主报告 151/200（差 -3；独立实现按 10 Hz 抽样且用顶点/中心判据，属保守下界）"
+  },
+  {
+   "id": "A10-no-leakage",
+   "name": "α/δ 只由 calibration 计算，未引用 heldout/near",
+   "ok": true,
+   "detail": "margins.data.split='calibration' run='calibration_20261106' n=771"
+  },
+  {
+   "id": "A11-failure-denominators",
+   "name": "失败样本留在主分母（各片 completed + business_failure = manifest）",
+   "ok": true,
+   "detail": "pilot 16+4+0=20；baseline_fit 239+1+0=240；baseline_dev 79+1+0=80；baseline_validate 80+0+0=80；calibration 771+29+0=800；heldout 377+23+0=400；near_obstacle 188+12+0=200"
+  },
+  {
+   "id": "A12-v2-untouched",
+   "name": "旧 v2 冻结物仍在位、侧车自校验通过（文件散列或内容散列）、锁→margins 链完整",
+   "ok": true,
+   "detail": "data_lock_v1.json=侧车(文件散列)一致；margins_v1.json=侧车(内容散列)一致；power_model_v1.json=侧车(内容散列)一致；锁→margins 链=一致"
+  }
+ ],
+ "verdict": {
+  "audit_ok": true,
+  "failed": [],
+  "n_checks": 12,
+  "n_discrepancies": 2
+ },
+ "limits": [
+  "几何独立实现按 10 Hz 抽样且用「顶点在矩形内 / 中心在足迹内」判据，是重叠的保守下界，与主报告的 50 Hz 全帧多边形距离不逐条相等，只核对量级与单调性",
+  "v2 冻结物位于 git 仓库的 CaMRA/calibration/config（/pub 工作副本不含），本轮用「侧车自校验 + 锁→margins 链」证明未被改动；其训练期原始日志不在本机，无法复算 TASK-024/026/036",
+  "本轮未复算 J_nom 的残差分布（那需要重跑拟合），只核对冻结模型产出的逐条 J_nom 与 ε_c"
+ ]
+}
