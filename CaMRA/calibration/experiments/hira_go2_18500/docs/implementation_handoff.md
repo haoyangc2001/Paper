@@ -2379,3 +2379,81 @@ v2 的 CAL-027（heldout）实为 **0.8690 / 0.9144 / 0.7935（n=397）**。本�
 2. 控制器包同时换了权重、默认姿态、kp（25→20）与机器人资产——**任何指标差异都不能归因于网络权重一项**。
 3. v2 的旧文件（交接笔记、计划、锁、报告）**一字未动**，本节只读引用。
 4. 若日后找回 v2 的 trials，可升级为复算 + 配对；当前版本不得被引作"已复算"。
+
+
+## §40 HIRA-038：可复现交付包与独立目录重载（20/20 实跑通过）
+
+**这一节解决什么**：前面 37 节都在**当前目录**里验证。本节把三棵树搬到**全新根目录**，
+只重定位锁内路径，然后在那里把"加载 → parity → 采集 → 误差 → 覆盖 → 离线复算"整条链重跑一遍。
+证明的是"这个包离开当前机器布局还能用"，不是"再跑一遍得到同样数字"（后者由 §38 的独立审计负责）。
+
+### 40.1 两个拦路问题（都不是配置问题）
+
+**① 锁里全是 `/pub` 绝对路径**。`code.files` 的键、`controller.*`、`protocol`、`margins`、
+`trial_lists`、`gates`、`near_obstacle_maps` 共 **57 处**是绝对路径，而 `lock._resolve()`
+对绝对路径原样返回——换个目录，`verify_artifacts()` 查的还是**原位置**，
+"独立重载"就变成了自己骗自己。
+
+处置：新增 `tests/delivery_relock.py`，把这些前缀改写成相对路径（`CaMRA/...`），
+**所有 sha256 逐字保留**，原锁一字不动（红线：锁只增不改），派生文件另加 `delivery_rebase` 段说明来路。
+生成后立刻 `DataLock.load(verify_hash=True)` + `verify_artifacts(new_root)` 自证：**0 项不符**。
+
+**② 输出目录没有绑定校验**。`run_split.py` 只在**首次**写 `collect_config.json`，启动时
+**不校验**既有 run 目录绑的是哪个 split / 哪把锁 / 哪个 bundle。实测（`plan_attempts` 探针）：
+把一个 `collect_config` 写着 `split=heldout` 的目录当 `--runs-root` 用，它照样给出 `run_initial`，
+会把 near 的数据写进去，一声不响。
+
+处置：`run_split.py` 与 `collector.py` 都在锁内，**没有擅自改**。在交付层新增
+`tests/run_delivery.py` 作为唯一正式入口：先核验 split / 锁散列 / bundle_id / 清单散列，
+不符即 **exit 2 拒绝**；一致才 exec `run_split.py`。`--preflight-only` 可只核验。
+**残留**：这道守卫在交付层，不在 `run_split` 里面；要下沉需新版锁（v3），列为待裁定项。
+
+### 40.2 新增的四个脚本
+
+| 脚本 | 职责 |
+|---|---|
+| `tests/build_delivery_manifest.py` | 按 17 个角色分区索引 220 个随包文件 + 9 个 run / 1880 个 trial 的大数据索引；`--verify` 可独立复核 |
+| `tests/delivery_relock.py` | 锁内 57 处绝对路径改写成相对路径，生成派生锁（sha256 不动） |
+| `tests/run_delivery.py` | 交付层采集入口：输出目录绑定守卫 + 原样 exec `run_split.py` |
+| `tests/verify_delivery_reload.py` | 独立根下 D01–D20 二十项实跑验证 |
+
+### 40.3 二十项验证（`reports/delivery_reload_verification.json`，20/20）
+
+| 编号 | 查什么 | 结果 |
+|---|---|---|
+| D01/D02 | 工作根不在源仓库内、无指向源目录的软链 | 通过 |
+| D03 | 三棵树逐文件散列与源一致 | 232 文件 / 9.3 MB，不一致 **0** |
+| D04 | 副本脚本 `__file__` 自定位到副本 | 通过 |
+| D05/D06 | 派生锁生成；新根下 `verify_artifacts` | 57 处重写，**0 项不符** |
+| D07 | 源仓库检验锁 v2 未被改 | `db156f4d` 侧车一致 |
+| D08 | **模型被换**（policy.pt 改一字节） | 拒绝：`721a891a` vs `d769fa8f` |
+| D09 | **权重缺失** | 明确报「文件清单与目录不一致」 |
+| D10 | **地图被换**（字节改动） | 门禁拒绝：`--maps` 散列与锁不符 |
+| D11 | **资产缺失** | preflight 列出 `asset.geometry` 不存在 |
+| D12 | **输出目录误换** | 交付入口 rc=**2** 拒绝；新目录 rc=0 放行 |
+| D13 | bundle 重载 | `3c32fe31…`、policy `721a891a…`、arch `[512,256,128]` |
+| D14 | obs/动作 parity（9 fixture + 5 类负测试） | `all_passed=true`，fixtures 散列与源报告一致 |
+| D15 | 小批采集（走交付入口 + 派生锁） | 40 条、**104.1 s**、45.7 MB、`rc=0` |
+| D16 | 官方 runs 目录 | **零新增、零 mtime 变动** |
+| D17 | 障碍注入 | **40/40** 条 `meta.obstacles` 非空 |
+| D18 | ε_c/ε_d 与覆盖判定（小批） | n=40，成本 38、位置 40 |
+| D20 | 16 份核心报告可定位 | 缺失 0、散列不符 0 |
+| D19 | 官方数据离线能量复算 | 12 条，最差 rel **2.704e-16** |
+
+### 40.4 包索引（`delivery/bundle_manifest_hira_v1.json`）
+
+- 17 个角色分区、**220 个文件**、8.0 MB、`missing=0`；构建时回读自校验 **220 / bad 0**；
+  独立 `--verify` 复核 **files ok=220、raw_trials ok=1880、bad=0**。
+- 大数据**不打包**：9 个 run / **1880 个 trial** / **2.13 GB**，按"逻辑相对路径 + trial 级树散列"
+  索引，附取用说明（挂载路径或改 `--runs-root`）；USD 缓存 18.8 MB 只记摘要（可由 URDF 重建）。
+- 明确**不打包**：稿件（红线）、凭证与 fakehome、已不在本机的 v2 逐 trial 数据。
+
+### 40.5 边界（下游必须知道）
+
+1. **D18 的覆盖率不是结论**：40 条小批只为证明链路能跑，正式口径仍以
+   `reports/heldout_coverage.json`（377 条）与 `reports/near_obstacle_evaluation.json`（188 条）为准。
+2. **`delivery_reload_20261107` 是验证 run，不计入 1820 配额**，与 `near_smoke_0919` 同性质。
+3. **派生锁只能在新根用**：`data_lock_hira_evaluation_delivery.json` 的路径是相对的，
+   拿回原布局会解析错。原锁 `db156f4d` 仍是 heldout 400 条的归属凭证。
+4. **包索引不自我引用**：`delivery/` 本身不进 `artifacts`（否则散列自指）。
+5. 本节的 20 项**只证明"包可用"**，不重复 §38 的数值独立复算，也不改变任何冻结值。

@@ -1,0 +1,793 @@
+{
+ "task": "HIRA-038",
+ "kind": "delivery_reload_verification",
+ "created_at": "2026-11-07T11:00:51+08:00",
+ "work_root": "/pub/data/caohy/work/hira/delivery_check_20261107_final",
+ "source_root": "/home/caohy/repositories/Paper",
+ "official_runs_root": "/pub/data/caohy/logs/camra_hira/runs",
+ "wall_s": 161.2,
+ "checks": [
+  {
+   "id": "D01-independent-root",
+   "title": "工作根不在源仓库内、且是新建目录",
+   "passed": true,
+   "detail": "work=/pub/data/caohy/work/hira/delivery_check_20261107_final source=/home/caohy/repositories/Paper inside=False"
+  },
+  {
+   "id": "D02-no-symlink-into-source",
+   "title": "工作根内无软链（避免偷偷引用源目录）",
+   "passed": true,
+   "detail": "symlinks=0"
+  },
+  {
+   "id": "D03-copy-identical",
+   "title": "三棵树逐文件散列与源目录一致",
+   "passed": true,
+   "detail": "232 文件 9.3 MB，不一致 0"
+  },
+  {
+   "id": "D04-source-self-locating",
+   "title": "副本脚本用 __file__ 自定位（EXP 指向副本）",
+   "passed": true,
+   "detail": "EXP=/pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/calibration/experiments/hira_go2_18500"
+  },
+  {
+   "id": "D05-relock-writes",
+   "title": "派生锁生成（只改路径前缀，sha256 逐字保留）",
+   "passed": true,
+   "detail": "n_paths_rewritten=57"
+  },
+  {
+   "id": "D06-relock-verifies",
+   "title": "派生锁在新根下 verify_artifacts 全过",
+   "passed": true,
+   "detail": "0 项不符"
+  },
+  {
+   "id": "D07-original-lock-untouched",
+   "title": "源仓库的检验锁 v2 与侧车未被修改",
+   "passed": true,
+   "detail": "sha=db156f4d4171b193"
+  },
+  {
+   "id": "D08-model-swap-rejected",
+   "title": "模型被换（policy.pt 改字节）时拒绝加载",
+   "passed": true,
+   "detail": "policy.pt 散列不符（清单 721a891a22da vs 实际 d769fa8fd051）"
+  },
+  {
+   "id": "D09-missing-weights-reports",
+   "title": "权重缺失时明确报告（不是崩溃/静默）",
+   "passed": true,
+   "detail": "文件清单与目录不一致：清单 ['README.md', 'controller.json', 'policy.pt', 'urdf_go2.urdf'] vs 实际 ['README.md', 'controller.json', 'urdf_go2.urdf']"
+  },
+  {
+   "id": "D10-map-swap-rejected",
+   "title": "地图被换（字节改动）时门禁拒绝",
+   "passed": true,
+   "detail": "--maps 的散列与锁记录不一致"
+  },
+  {
+   "id": "D11-missing-asset-reports",
+   "title": "资产缺失时 preflight 明确列出缺失项（不是静默启动）",
+   "passed": true,
+   "detail": "asset.geometry: 文件不存在 /pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/_missing_asset/geometry.json"
+  },
+  {
+   "id": "D12-output-dir-swap-rejected",
+   "title": "输出目录已绑定别的 split/锁时，交付入口拒绝启动",
+   "passed": true,
+   "detail": "误换目录 rc=2（应 2），新目录 rc=0（应 0）"
+  },
+  {
+   "id": "D13-bundle-reload",
+   "title": "独立目录加载的是同一个 HiRA 系统（bundle_id / policy 散列一致）",
+   "passed": true,
+   "detail": "bundle_id=3c32fe31b2753a08 policy_sha=721a891a22da arch=[512, 256, 128]"
+  },
+  {
+   "id": "D14-obs-action-parity",
+   "title": "副本内复现 obs/动作适配 parity（9 fixture + 负测试全检出）",
+   "passed": true,
+   "detail": "all_passed=True fixtures_sha_match=True rc=0"
+  },
+  {
+   "id": "D15-small-collection",
+   "title": "副本代码在新目录跑通小批采集（锁/地图/障碍全链路）",
+   "passed": true,
+   "detail": "rc=0 trials=40 wall=159s；[split]   104.1s --max-batches=1 达到，提前停止\n[split]   104.1s 完成：104.1s，5 批，目录 45.7 MB\nSPLIT_NEAR_OBSTACLE_RUN_OK\n[split]   104.1s hard exit (skip simulation_app.close)"
+  },
+  {
+   "id": "D16-official-untouched",
+   "title": "官方 run 目录未被写入或改动（输出被隔离）",
+   "passed": true,
+   "detail": "新增=[] 变动=[]"
+  },
+  {
+   "id": "D17-obstacles-injected",
+   "title": "小批数据的障碍注入证据完整",
+   "passed": true,
+   "detail": "40/40 条带 n_obstacles"
+  },
+  {
+   "id": "D18-error-and-coverage",
+   "title": "副本内可算出 ε_c/ε_d 与覆盖判定（小批，非正式）",
+   "passed": true,
+   "detail": "n=40，成本覆盖 38、位置覆盖 40（α=0.3516、δ=9.0322）"
+  },
+  {
+   "id": "D20-reports-locatable",
+   "title": "全部判决性报告在新目录可定位且与源同散列",
+   "passed": true,
+   "detail": "16 份核心报告，缺失 0、散列不符 0"
+  },
+  {
+   "id": "D19-offline-energy-recompute",
+   "title": "官方原始数据可离线复算能量（不依赖 Isaac）",
+   "passed": true,
+   "detail": "12 条，最差 rel=2.704e-16"
+  }
+ ],
+ "verdict": {
+  "reload_ok": true,
+  "failed": [],
+  "n_checks": 20,
+  "n_passed": 20
+ },
+ "steps": {
+  "dir": {
+   "work_root": "/pub/data/caohy/work/hira/delivery_check_20261107_final",
+   "source_root": "/home/caohy/repositories/Paper"
+  },
+  "copy": {
+   "trees": {
+    "code_adapter": {
+     "src": "/home/caohy/repositories/Paper/CaMRA/locomotion/adapters/hira_go2",
+     "dst": "/pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/locomotion/adapters/hira_go2",
+     "n_files": 13,
+     "bytes": 177980
+    },
+    "code_src": {
+     "src": "/home/caohy/repositories/Paper/CaMRA/calibration/src/camra_calibration",
+     "dst": "/pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/calibration/src/camra_calibration",
+     "n_files": 24,
+     "bytes": 216766
+    },
+    "experiment": {
+     "src": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500",
+     "dst": "/pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/calibration/experiments/hira_go2_18500",
+     "n_files": 195,
+     "bytes": 8936115
+    }
+   },
+   "files": 232,
+   "bytes": 9330861,
+   "mismatch": []
+  },
+  "relock": {
+   "lock": "/pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_delivery.json",
+   "relock": {
+    "source_lock": "/pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v2.json",
+    "source_lock_sha256": "db156f4d4171b19333a71645f3492da4d8270c94f3b35dad0a7109c037cc6846",
+    "out_lock": "/pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_delivery.json",
+    "out_lock_sha256": "92c0925edaed50cb2d0948b4f6bd970ebc1c94bd6cafe579640d40374786c523",
+    "new_root": "/pub/data/caohy/work/hira/delivery_check_20261107_final",
+    "n_paths_rewritten": 57,
+    "rewrite_sample": [
+     "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/manifest.json -> CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/manifest.json",
+     "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/controller.json -> CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/controller.json",
+     "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/policy.pt -> CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/policy.pt"
+    ],
+    "verify_ok": true,
+    "verify_bad": [],
+    "stage": "evaluation",
+    "margins_state": "frozen",
+    "n_code_files": 38
+   }
+  },
+  "negatives": {
+   "model_swap": {
+    "rejected": true,
+    "reason": "policy.pt 散列不符（清单 721a891a22da vs 实际 d769fa8fd051）"
+   },
+   "missing_weights": {
+    "reported": true,
+    "reason": "文件清单与目录不一致：清单 ['README.md', 'controller.json', 'policy.pt', 'urdf_go2.urdf'] vs 实际 ['README.md', 'controller.json', 'urdf_go2.urdf']"
+   },
+   "map_swap": {
+    "rejected": true,
+    "reason": "--maps 的散列与锁记录不一致"
+   },
+   "missing_asset": {
+    "reported": true,
+    "bad": [
+     "asset.geometry: 文件不存在 /pub/data/caohy/work/hira/delivery_check_20261107_final/CaMRA/_missing_asset/geometry.json"
+    ]
+   },
+   "output_dir_swap": {
+    "rejected_by_delivery_entry": true,
+    "mismatched_rc": 2,
+    "mismatched_msg": [
+     "[delivery] 拒绝启动：输出目录与本次调用不符（防止把数据写进别的 run）",
+     "  - split: 目录绑定 'heldout' ≠ 本次 'near_obstacle'"
+    ],
+    "fresh_dir_accepted": true,
+    "fresh_rc": 0
+   },
+   "output_dir_gap": {
+    "raw_run_split_guards_existing_config": false,
+    "note": "run_split.py 只在首次写 collect_config，启动时不校验既有 run 目录的 split/锁/bundle；该文件在 stage lock 的 code.files 内，未擅自修改，改由交付入口 run_delivery.py 前置拦截。若要下沉到 run_split 本身，需新版锁（HIRA-038 已登记为待裁定项）。"
+   }
+  },
+  "parity": {
+   "bundle_id": "3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975",
+   "policy_sha256": "721a891a22da99f26ce243d538334ba24d3c0e5f04bdf20f837b9960babbfe9e",
+   "parity": {
+    "all_passed": true,
+    "baseline_fixture_passes": true,
+    "negative_tests_all_detected": true,
+    "fixtures_sha256": "eefc3718eadc58e7d4d081b51cb9711ec2404d3efcf508c7d90526740fc59b57",
+    "devices": [
+     "cpu",
+     "cuda:0"
+    ]
+   },
+   "parity_report": "/pub/data/caohy/work/hira/delivery_check_20261107_final/reports_delivery_parity.json",
+   "parity_stderr_tail": ""
+  },
+  "collect": {
+   "run_id": "delivery_reload_20261107",
+   "run_dir": "/pub/data/caohy/work/hira/delivery_check_20261107_final/runs/delivery_reload_20261107",
+   "rc": 0,
+   "wall_s": 158.7,
+   "n_trials": 40,
+   "n_with_obstacles": 40,
+   "log": "/pub/data/caohy/work/hira/delivery_check_20261107_final/collect_small.log"
+  },
+  "errors": {
+   "note": "小批 40 条，仅为链路验证，不构成覆盖率结论（正式口径见 reports/heldout_coverage.json 等）",
+   "n": 40,
+   "alpha": 0.35156762163783695,
+   "delta": 9.032231244495946,
+   "cost_covered": 38,
+   "position_covered": 40,
+   "rows": [
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-clean-0000",
+     "outcome": "completed",
+     "j_nom": 867.2073129713103,
+     "j_exec": 776.1148106036567,
+     "eps_c": -0.10504120641642611,
+     "eps_d": 3.9517657013070635,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-clean-0001",
+     "outcome": "completed",
+     "j_nom": 742.1921681814351,
+     "j_exec": 747.6884139160771,
+     "eps_c": 0.007405421358876963,
+     "eps_d": 0.5879502508442859,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-clean-0002",
+     "outcome": "completed",
+     "j_nom": 841.7879177692653,
+     "j_exec": 777.7660088297953,
+     "eps_c": -0.07605467789217955,
+     "eps_d": 1.4439648786672945,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-clean-0003",
+     "outcome": "completed",
+     "j_nom": 795.4609789931205,
+     "j_exec": 793.7090254742523,
+     "eps_c": -0.0022024380392434415,
+     "eps_d": 1.17929284230987,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-clean-0004",
+     "outcome": "completed",
+     "j_nom": 783.4422944989474,
+     "j_exec": 750.0594602906233,
+     "eps_c": -0.04261045700841842,
+     "eps_d": 1.8457278610802157,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-clean-0005",
+     "outcome": "completed",
+     "j_nom": 678.9564544602176,
+     "j_exec": 663.2968294882323,
+     "eps_c": -0.02306425525394699,
+     "eps_d": 1.0361793426826345,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-clean-0006",
+     "outcome": "completed",
+     "j_nom": 827.6799468975378,
+     "j_exec": 705.090428100142,
+     "eps_c": -0.14811222533167356,
+     "eps_d": 2.866188260822123,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-clean-0007",
+     "outcome": "completed",
+     "j_nom": 811.2695820162162,
+     "j_exec": 810.5704547337399,
+     "eps_c": -0.0008617693772503881,
+     "eps_d": 1.2559674084088719,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-combined-0000",
+     "outcome": "completed",
+     "j_nom": 803.8821169635607,
+     "j_exec": 925.2460666937758,
+     "eps_c": 0.15097232189793364,
+     "eps_d": 1.7246095777537869,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-combined-0001",
+     "outcome": "completed",
+     "j_nom": 813.3713444264584,
+     "j_exec": 1023.2363898493196,
+     "eps_c": 0.2580187350598706,
+     "eps_d": 2.9050572141455735,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-combined-0002",
+     "outcome": "completed",
+     "j_nom": 800.5244911731343,
+     "j_exec": 906.931751059711,
+     "eps_c": 0.13292192938487302,
+     "eps_d": 4.8108305949527415,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-combined-0003",
+     "outcome": "completed",
+     "j_nom": 726.6299707549833,
+     "j_exec": 750.0611563598113,
+     "eps_c": 0.03224637924098081,
+     "eps_d": 1.4151129042324744,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-combined-0004",
+     "outcome": "completed",
+     "j_nom": 750.1574767994131,
+     "j_exec": 894.4041182073948,
+     "eps_c": 0.19228848057799514,
+     "eps_d": 5.130304640076563,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-combined-0005",
+     "outcome": "completed",
+     "j_nom": 833.568871497017,
+     "j_exec": 1077.85716719663,
+     "eps_c": 0.29306312178007854,
+     "eps_d": 4.460674803380716,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-combined-0006",
+     "outcome": "business_failure",
+     "j_nom": 369.50710733965974,
+     "j_exec": 325.74357155057373,
+     "eps_c": -0.11843760219977995,
+     "eps_d": 3.020569316688366,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-combined-0007",
+     "outcome": "completed",
+     "j_nom": 682.0999296418875,
+     "j_exec": 811.3482872851241,
+     "eps_c": 0.1894859565681145,
+     "eps_d": 1.911056038398294,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-friction_only-0000",
+     "outcome": "completed",
+     "j_nom": 882.1484075751749,
+     "j_exec": 991.5772488605621,
+     "eps_c": 0.12404810839729583,
+     "eps_d": 4.21910188750133,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-friction_only-0001",
+     "outcome": "completed",
+     "j_nom": 826.837427890077,
+     "j_exec": 895.0741387598191,
+     "eps_c": 0.08252736096365212,
+     "eps_d": 2.179894627926059,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-friction_only-0002",
+     "outcome": "completed",
+     "j_nom": 780.0660944698853,
+     "j_exec": 1050.0895988858986,
+     "eps_c": 0.346154648087243,
+     "eps_d": 2.605805926316708,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-friction_only-0003",
+     "outcome": "completed",
+     "j_nom": 793.6442208132187,
+     "j_exec": 844.1751636021249,
+     "eps_c": 0.06366951521064315,
+     "eps_d": 4.046441282428921,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-friction_only-0004",
+     "outcome": "completed",
+     "j_nom": 762.8029811686292,
+     "j_exec": 770.0166426319887,
+     "eps_c": 0.009456781949525157,
+     "eps_d": 0.8816084748469684,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-friction_only-0005",
+     "outcome": "completed",
+     "j_nom": 888.2223479793104,
+     "j_exec": 856.476967506191,
+     "eps_c": -0.03574035324076172,
+     "eps_d": 3.712670231087716,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-friction_only-0006",
+     "outcome": "completed",
+     "j_nom": 667.2908356045403,
+     "j_exec": 662.4776092185591,
+     "eps_c": -0.0072130863023476665,
+     "eps_d": 2.43219192966299,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-friction_only-0007",
+     "outcome": "completed",
+     "j_nom": 709.8524390941437,
+     "j_exec": 743.9444554951799,
+     "eps_c": 0.04802690604901161,
+     "eps_d": 0.9905413580845251,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-mass_only-0000",
+     "outcome": "completed",
+     "j_nom": 772.2644047240792,
+     "j_exec": 1096.7760434973602,
+     "eps_c": 0.4202079453464194,
+     "eps_d": 0.9741753168504406,
+     "cost_covered": false,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-mass_only-0001",
+     "outcome": "completed",
+     "j_nom": 835.4938318997565,
+     "j_exec": 897.6886642019358,
+     "eps_c": 0.07444080366309813,
+     "eps_d": 3.252683312984239,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-mass_only-0002",
+     "outcome": "completed",
+     "j_nom": 705.5067173809075,
+     "j_exec": 735.8776051098757,
+     "eps_c": 0.043048332469059675,
+     "eps_d": 2.795015162318428,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-mass_only-0003",
+     "outcome": "completed",
+     "j_nom": 769.7422254368663,
+     "j_exec": 629.3591923727726,
+     "eps_c": -0.1823766819917142,
+     "eps_d": 1.9038433768793375,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-mass_only-0004",
+     "outcome": "completed",
+     "j_nom": 780.5733516156624,
+     "j_exec": 1074.115546016855,
+     "eps_c": 0.37605971789019826,
+     "eps_d": 3.9850913657482536,
+     "cost_covered": false,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-mass_only-0005",
+     "outcome": "completed",
+     "j_nom": 794.6751244172985,
+     "j_exec": 733.5297407293763,
+     "eps_c": -0.07694387531352209,
+     "eps_d": 0.9684470086619952,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-mass_only-0006",
+     "outcome": "completed",
+     "j_nom": 874.1367703978988,
+     "j_exec": 897.3154794349247,
+     "eps_c": 0.02651611260612589,
+     "eps_d": 1.0534010750188187,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-mass_only-0007",
+     "outcome": "completed",
+     "j_nom": 744.7505806730878,
+     "j_exec": 921.277228526972,
+     "eps_c": 0.2370278754188329,
+     "eps_d": 2.8927992242705773,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-push_only-0000",
+     "outcome": "completed",
+     "j_nom": 754.4825074075624,
+     "j_exec": 761.9868387736846,
+     "eps_c": 0.009946329162630193,
+     "eps_d": 1.2506845249021137,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-push_only-0001",
+     "outcome": "completed",
+     "j_nom": 900.944659272441,
+     "j_exec": 801.9435796346129,
+     "eps_c": -0.10988586104475775,
+     "eps_d": 6.328053210907459,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-push_only-0002",
+     "outcome": "completed",
+     "j_nom": 772.1541310467264,
+     "j_exec": 799.7935049896944,
+     "eps_c": 0.03579515129382293,
+     "eps_d": 0.8028881889135183,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-push_only-0003",
+     "outcome": "completed",
+     "j_nom": 839.3252638887203,
+     "j_exec": 822.401883346641,
+     "eps_c": -0.020163077736598565,
+     "eps_d": 2.163533343483173,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-push_only-0004",
+     "outcome": "completed",
+     "j_nom": 837.349410691867,
+     "j_exec": 860.350160351468,
+     "eps_c": 0.0274685207464307,
+     "eps_d": 1.2707624537758233,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-push_only-0005",
+     "outcome": "completed",
+     "j_nom": 746.9716229289642,
+     "j_exec": 711.1818952649116,
+     "eps_c": -0.047913102138628455,
+     "eps_d": 1.5836526156373019,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-push_only-0006",
+     "outcome": "completed",
+     "j_nom": 718.8946057227336,
+     "j_exec": 559.5163255420962,
+     "eps_c": -0.22169909039783098,
+     "eps_d": 1.8244197796724997,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    },
+    {
+     "trial_id": "hira-near_obstacle-straight_shift-push_only-0007",
+     "outcome": "completed",
+     "j_nom": 765.4368572972588,
+     "j_exec": 795.711139975217,
+     "eps_c": 0.03955163954980685,
+     "eps_d": 1.670682690122143,
+     "cost_covered": true,
+     "position_covered": true,
+     "nominal_program_ok": true
+    }
+   ]
+  },
+  "reports": {
+   "n_core_reports": 16,
+   "missing": [],
+   "mismatch": []
+  },
+  "offline": {
+   "n": 12,
+   "worst_rel": 2.7035641280626245e-16,
+   "rows": [
+    {
+     "trial": "hira-calibration-alternating-clean-0000",
+     "j_recomputed": 747.791680317466,
+     "j_recorded": 747.7916803174661,
+     "rel": 1.520300916872352e-16
+    },
+    {
+     "trial": "hira-calibration-arc_combined-clean-0000",
+     "j_recomputed": 923.4885380019299,
+     "j_recorded": 923.4885380019297,
+     "rel": 2.4621169195578794e-16
+    },
+    {
+     "trial": "hira-calibration-start_stop_turn-clean-0000",
+     "j_recomputed": 425.3892466564268,
+     "j_recorded": 425.3892466564267,
+     "rel": 2.672536708795492e-16
+    },
+    {
+     "trial": "hira-calibration-straight_shift-clean-0000",
+     "j_recomputed": 803.2093395359922,
+     "j_recorded": 803.2093395359922,
+     "rel": 0.0
+    },
+    {
+     "trial": "hira-heldout-alternating-clean-0000",
+     "j_recomputed": 430.5957018735712,
+     "j_recorded": 430.59570187357133,
+     "rel": 2.6402223066080673e-16
+    },
+    {
+     "trial": "hira-heldout-arc_combined-clean-0000",
+     "j_recomputed": 841.464034749549,
+     "j_recorded": 841.4640347495489,
+     "rel": 1.3510599743630574e-16
+    },
+    {
+     "trial": "hira-heldout-start_stop_turn-clean-0000",
+     "j_recomputed": 431.8147134006089,
+     "j_recorded": 431.8147134006089,
+     "rel": 0.0
+    },
+    {
+     "trial": "hira-heldout-straight_shift-clean-0000",
+     "j_recomputed": 841.0145447748939,
+     "j_recorded": 841.0145447748937,
+     "rel": 2.7035641280626245e-16
+    },
+    {
+     "trial": "hira-near_obstacle-alternating-clean-0000",
+     "j_recomputed": 837.0585460079966,
+     "j_recorded": 837.0585460079965,
+     "rel": 1.3581706830877988e-16
+    },
+    {
+     "trial": "hira-near_obstacle-arc_combined-clean-0000",
+     "j_recomputed": 818.8942122421591,
+     "j_recorded": 818.8942122421591,
+     "rel": 0.0
+    },
+    {
+     "trial": "hira-near_obstacle-start_stop_turn-clean-0000",
+     "j_recomputed": 507.5837180598084,
+     "j_recorded": 507.5837180598083,
+     "rel": 2.2397652579592863e-16
+    },
+    {
+     "trial": "hira-near_obstacle-straight_shift-clean-0000",
+     "j_recomputed": 776.1148106036567,
+     "j_recorded": 776.1148106036567,
+     "rel": 0.0
+    }
+   ]
+  }
+ },
+ "scientific_negative_results": [
+  "δ=9.0322 m 与 8×10 m 场地量级不匹配：近障 δ 条件 0/200（reports/near_obstacle_summary.md）",
+  "位置覆盖 98.40% 下仍有 75.5% 几何重叠：δ 是跟踪误差上界，不是碰撞裕度",
+  "heldout 位置覆盖 89.66%，比 90% 参照低 0.34 pp（reports/heldout_summary.md）"
+ ],
+ "reproducibility_results": [
+  "三棵树逐文件散列与源一致，副本脚本自定位到副本",
+  "派生锁只改路径前缀、sha256 逐字保留，新根下 verify_artifacts 全过",
+  "9 个 fixture 的 actor 输出在副本内复现",
+  "小批采集（40 条）在新目录跑通且障碍注入证据完整",
+  "官方原始数据可离线复算能量，最差相对误差见 steps.offline"
+ ]
+}

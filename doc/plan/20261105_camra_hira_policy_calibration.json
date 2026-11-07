@@ -3354,7 +3354,7 @@
       "id": "HIRA-038",
       "phase": "可复现交付",
       "goal": "验证独立目录重载与完整复现包",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-037"
       ],
@@ -3376,7 +3376,65 @@
         "docs/reproduction.md",
         "reports/delivery_reload_verification.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T11:30:00+08:00",
+          "summary": "建成可复现交付包并在**全新目录**里实跑 20 项验证，全部通过（20/20）。包索引 delivery/bundle_manifest_hira_v1.json：220 个随包文件（8.0 MB，17 个角色分区）+ 9 个 run / 1880 个 trial 的大数据索引（2.13 GB，逐 trial 树散列），missing=0，自校验 220/bad=0，独立 --verify 复核 files ok=220 / raw_trials ok=1880 / bad=0。独立重载：三棵树 232 文件逐文件散列一致；stage lock 的 57 处绝对路径用 delivery_relock.py 重定位为相对路径（sha256 逐字保留，原锁未动），新根下 verify_artifacts 全过；副本内跑通 9 fixture obs/动作 parity、40 条小批近障采集（104.1 s、45.7 MB、rc=0、障碍 40/40 注入）、ε_c/ε_d 与覆盖判定、以及 12 条官方原始数据的离线能量复算（最差 rel 2.7e-16）。负测试：模型被换拒绝、地图被换拒绝、权重缺失明确报告、资产缺失 preflight 列缺失、输出目录误换由交付入口拒绝。**发现并登记一个缺口**：原生 run_split.py 启动时不校验既有 collect_config（已绑别的 split/锁仍会写入），该文件在锁内未擅自改，改由新增的交付入口 tests/run_delivery.py 前置拦截；若要下沉需新版锁，留待裁定。",
+          "actions": [
+            "先确认可复现性的实际障碍：所有脚本用 __file__ 自定位（EXP=tests/..、REPO 上四级），但 stage lock 里 code.files 的键与 controller/protocol/margins/trial_lists/gates/maps 全是 /pub 绝对路径，换目录后 verify_artifacts 查的还是原位置——独立重载会变成假重载",
+            "新写 tests/delivery_relock.py：递归改写锁内所有 path 值与 code.files 键的前缀，sha256 一字不动，另写 delivery_rebase 说明，生成侧车后立刻用 DataLock.load + verify_artifacts 自证（57 处重写，0 项不符）",
+            "新写 tests/build_delivery_manifest.py：按角色分区索引 17 组 220 个文件（代码/契约/协议/预登记/功率/几何/裕度/地图/锁/包/清单/报告/文档），大数据按「逻辑相对路径 + trial 级树散列」索引并给取用说明；不含稿件与凭证；--verify 逐项复核",
+            "新写 tests/run_delivery.py：交付层唯一采集入口，启动前核验目标 run 目录绑定的 split / 锁散列 / bundle_id / 清单散列，不符即 exit 2 拒绝；--preflight-only 供演练",
+            "新写 tests/verify_delivery_reload.py：把三棵树复制到全新根目录后，按 D01–D20 实跑（独立根/无软链/逐文件一致/自定位/派生锁/原锁未改/模型换/权重缺/地图换/资产缺/输出目录换/bundle 重载/parity/小批采集/官方目录零改动/障碍注入/误差与覆盖/报告可定位/离线复算）",
+            "在 /pub/data/caohy/work/hira/delivery_check_20261107_final 实跑（非仓库内、非 /pub 工作副本），采集走 run_delivery.py + 派生锁",
+            "首版 D14 用「fixture 的 raw_action 当期望输出」判 parity，Δ=4e3 明显不对；查 make_reference_fixtures.py 确认 raw_action 是**输入**（源序动作），改为直接跑副本里的 check_source_adapter_parity.py（9 fixture + 5 类负测试），all_passed=True",
+            "首版 D12 用 plan_attempts 探针证明 run_split 不校验输出目录——这是真缺口；补 run_delivery.py 前置守卫后，D12 改为「误换目录 rc=2、新目录 rc=0」",
+            "写 docs/reproduction.md：证据等级、包结构、换机步骤、口径速查、期望值清单、结论定位表、7 条边界、失败排查",
+            "构建索引后跑独立 --verify 复核（不依赖构建时缓存值）"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/build_delivery_manifest.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/delivery_relock.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/run_delivery.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/verify_delivery_reload.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/delivery/bundle_manifest_hira_v1.json（新增，+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/reproduction.md（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/delivery_reload_verification.json（新增，+ .sha256）"
+          ],
+          "commands": [
+            "python tests/verify_delivery_reload.py --work-root /pub/data/caohy/work/hira/delivery_check_20261107_final --run-id delivery_reload_20261107",
+            "python tests/delivery_relock.py --lock config/data_lock_hira_evaluation_v2.json --out .../data_lock_hira_evaluation_delivery.json --new-root <新根> --old-prefix /pub/data/caohy/work/hira/",
+            "python tests/run_delivery.py --split near_obstacle --run-id delivery_reload_20261107 --lock <派生锁> --maps config/near_obstacle_maps_v1.json --num-envs 8 --max-batches 1",
+            "python tests/build_delivery_manifest.py  # 220 files / 9 runs / 1880 trials / 2.13 GB",
+            "python tests/build_delivery_manifest.py --verify delivery/bundle_manifest_hira_v1.json  # files ok=220 raw ok=1880 bad=0"
+          ],
+          "results": [
+            "独立重载 20/20 通过（reports/delivery_reload_verification.json，verdict.reload_ok=true，failed=[]）。",
+            "目录独立性：工作根 /pub/data/caohy/work/hira/delivery_check_20261107_final，不在源仓库内、无任何软链；三棵树 232 个文件逐文件散列与源一致；副本 EXP 自定位到副本。",
+            "锁重定位：57 处绝对路径改为相对，派生锁在新根 verify_artifacts 报 0 项不符；源仓库的检验锁 v2 仍为 db156f4d（侧车一致，未被改）。",
+            "模型/地图被换均被拒（policy.pt 散列 721a891a vs d769fa8f；--maps 散列与锁不符）；权重缺失报「文件清单与目录不一致」；资产缺失 preflight 明确列出 asset.geometry 不存在。",
+            "输出目录误换：原生 run_split 无此守卫（实测 plan_attempts 给出 run_initial，会写进别的 split 的目录）；新增的 run_delivery.py 前置守卫返回 rc=2 拒绝，新目录 rc=0 放行。",
+            "bundle 重载：bundle_id 3c32fe31…、policy_sha 721a891a…、arch [512,256,128]；obs/动作 parity 在副本内 all_passed=True 且 fixtures 散列与源报告一致。",
+            "小批采集：40 条、104.1 s、45.7 MB、rc=0、SPLIT_NEAR_OBSTACLE_RUN_OK；40/40 条 meta.obstacles 非空；官方 runs 目录零新增零 mtime 变动。",
+            "误差与覆盖（小批 40 条，仅链路验证）：成本覆盖 38、位置覆盖 40（α 0.3516、δ 9.0322）。",
+            "离线复算：12 条官方 trial 的能量重积分最差相对误差 2.704e-16（门槛 1e-9）。",
+            "包索引：17 组 220 文件 8.0 MB，missing=0，构建时自校验 220/bad=0；9 个 run 1880 个 trial 2.13 GB；USD 缓存 7 文件 18.8 MB 只记摘要不打包。",
+            "独立 --verify：files ok=220、raw_trials ok=1880、bad=0。",
+            "科学负结果与可复现结论在报告里分列（scientific_negative_results / reproducibility_results），未混为一段。"
+          ],
+          "evidence": [
+            "delivery/bundle_manifest_hira_v1.json（17 组 220 文件散列 + 9 run/1880 trial 索引 + 外部依赖 + 不打包清单）",
+            "docs/reproduction.md（证据等级、换机步骤、口径速查、期望值、结论定位、7 条边界、排查表）",
+            "reports/delivery_reload_verification.json（D01–D20 + verdict + 分列两类结果 + output_dir_gap 说明）",
+            "/pub/data/caohy/work/hira/delivery_check_20261107_final（独立工作根：副本三树、派生锁、runs/delivery_reload_20261107、collect_small.log）"
+          ],
+          "remaining_work": [
+            "输出目录守卫目前只在交付入口（run_delivery.py）；若要下沉到 run_split.py 本身需新版锁（v3），属待裁定项，未擅自改动。",
+            "HIRA-039 需把 docs/reproduction.md 与 delivery/ 一并写进文档同步清单，并产出稿件差异清单（仅清单，不改稿件）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "独立重载不是原目录cache命中，不改旧bundle索引。",
         "不能只验证README命令存在，必须核查实际产物与判定字段。"
@@ -3385,7 +3443,7 @@
         "新目录可按说明取得所需资源，加载的是对应HiRA系统；hash和小批链路均通过。",
         "全部报告可定位，科学负结果与可复现性结果分别标明。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（20/20）。独立工作根（不在源仓库内、无软链）复制三棵树 232 文件逐文件散列一致；57 处锁内绝对路径用 delivery_relock.py 重定位，派生锁在新根 verify_artifacts 0 项不符，原锁 db156f4d 未动；模型被换/地图被换被拒，权重缺失与资产缺失均明确报告，输出目录误换由交付入口 run_delivery.py 拒绝（rc=2）；副本内 bundle 重载 + 9 fixture parity + 40 条小批采集（104.1 s、障碍 40/40）+ ε_c/ε_d 与覆盖判定均跑通，官方 runs 目录零改动；12 条官方数据离线能量复算最差 rel 2.7e-16。包索引 220 文件 8.0 MB、9 run/1880 trial 2.13 GB，missing=0，独立 --verify files ok=220 raw ok=1880 bad=0。遗留：原生 run_split 无输出目录绑定校验（在锁内，未擅自改），已由交付层补偿并登记待裁定。"
     },
     {
       "id": "HIRA-039",
