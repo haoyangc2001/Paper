@@ -2951,7 +2951,7 @@
       "id": "HIRA-033",
       "phase": "独立检验",
       "goal": "报告独立覆盖率、区间及适用范围",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-032"
       ],
@@ -2971,7 +2971,47 @@
         "reports/heldout_coverage.json",
         "reports/heldout_summary.md"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T09:18:00+08:00",
+          "summary": "新写 tests/coverage_heldout.py 并在 400 条 heldout 上跑出覆盖率、区间与适用范围（两套分母并列）。条件分母 377 条上：成本覆盖 0.9098、位置覆盖 0.8966、联合覆盖 0.8170；联合/(成本×位置)=1.0016，说明两项误差独立、联合缺口是边际缺口的必然结果。剔除 3 个资格缺口格（332 条）后为 0.9217 / 0.9157 / 0.8464。位置覆盖比 90% 目标低 0.34pp，按协议如实报告、未据此调整 α/δ 或模型；格级正式结论只覆盖 17/20 格。",
+          "actions": [
+            "复用 src/camra_calibration/coverage.py 的全部统计零件（cost_covered / position_covered / direction_of / rate / bootstrap_rate / rate_with_ci / HeldoutRow / denominators / per_cell / subgroup / coverage_verdict），只写 HiRA 侧的 run→HeldoutRow 适配层",
+            "eps_d 与 HIRA-031 同口径：由 (family, seed) 用 build_program 重建命令，planar integrate 生成名义轨迹，取 10 Hz 配对网格上执行与名义的最大平面欧氏距离；eps_c=(J_exec-J_nom)/J_nom，J_nom<1J 记 non_computable",
+            "把 C06 三格做成 --adjudicated-gap-cell 显式门禁：脚本自己重算实际不达标格，与声明不一致即 REFUSED（少列或多列都失败），避免静默通过或静默剔除",
+            "并列两套分母：全体 400 条与剔除三格的 340 条（完整且可算分别为 377 与 332），各自给 20 格、profile、族、低速层、方向子组与 95% 区间",
+            "同时输出机器可读 JSON 与人类可读 heldout_summary.md"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/coverage_heldout.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/heldout_coverage.json（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/heldout_summary.md（新增）"
+          ],
+          "commands": [
+            "cd /pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500 && set -a; . config/hira.env; set +a; $CAMRA_HIRA_PYTHON tests/coverage_heldout.py --run-id heldout_20261106 --adjudicated-gap-cell arc_combined/combined --adjudicated-gap-cell arc_combined/mass_only --adjudicated-gap-cell start_stop_turn/mass_only"
+          ],
+          "results": [
+            "分母：清单 400 / 装配 400 / 数据排除 0 / 缺失 0 / 完整且可算 377 / 业务失败 23；剔除三格后 340 条、完整且可算 332。",
+            "全样本总体：成本 0.9098 (343/377) 簇区间 [0.846, 0.962]；位置 0.8966 (338/377) [0.821, 0.959]；联合 0.8170 (308/377) [0.725, 0.897]。",
+            "剔除三格（340 条）：成本 0.9217 (306/332) [0.852, 0.976]；位置 0.9157 (304/332) [0.843, 0.976]；联合 0.8464 (281/332) [0.755, 0.929]。",
+            "独立性诊断：联合 / (成本×位置) = 1.0016（阈值 0.02 内），即两项误差近似独立，联合低于 90% 是边际覆盖率的必然结果，不是新的结构性缺陷。",
+            "未达标项：成本 90.98% 达标；位置 89.66% 比 90% 目标低 0.34pp；联合 81.70% 低于 90% 但被独立性解释。verdict.status=insufficient_cells（因 3 格完整率不足），按协议只作如实上报、提请处置。",
+            "格级分布：17 格可用；clean 档全部 1.0000；最弱的三格为 arc_combined/combined 联合 0.3077、arc_combined/mass_only 0.7333、start_stop_turn/mass_only 0.7059。另有 arc_combined/push_only 位置覆盖仅 0.5000、start_stop_turn/combined 成本覆盖仅 0.5500，虽完整率达标但值很低，已随报告入档。",
+            "未覆盖（成本或位置任一不达标）共 69 条，明细前 50 条在 JSON 的 uncovered.rows。",
+            "脚本对新文件不改变任何锁：data_lock 的 code.files 仍为原 37 个，coverage_heldout.py 不入锁，因此三把锁的散列均未失效。"
+          ],
+          "evidence": [
+            "reports/heldout_coverage.json（full_sample / gap_cells_removed / per_cell / groups / uncovered / verdict）",
+            "reports/heldout_summary.md（人读版：两套分母、总体、20 格、四组、独立性、适用范围）",
+            "tests/coverage_heldout.py（可用 --adjudicated-gap-cell 复核；少列一格即 REFUSED）"
+          ],
+          "remaining_work": [
+            "HIRA-037 与 v2 对比时须同时引用本报告两套分母，并与 v2 的 CAL-027（cost 0.8883 / position 0.9340 / joint 0.8274，n=197）注明分母与口径差异（v2 为补采后口径）。",
+            "位置覆盖 89.66% 与联合 81.70% 属如实记录的未达标项，写入 HIRA-038/039 的交付说明与对账，不得反向调整 α/δ。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "独立检验低于90%也如实报告，不调margin或重新挑heldout。",
         "全体覆盖与条件覆盖采用同一冻结事件定义，分母变更须新协议。"
@@ -2980,7 +3020,7 @@
         "每个n/N可从原记录复算，bootstrap单位与相关性处理符合预登记。",
         "给出明确适用范围和未满足目标；无新α/δ选取或隐性样本剔除。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。条件分母 377/400 上成本覆盖 0.9098、位置覆盖 0.8966、联合覆盖 0.8170（cell 整簇 95% 区间 [0.725, 0.897]）；联合/(成本×位置)=1.0016，说明两项误差独立、联合缺口是边际缺口的必然结果。剔除三个资格缺口格（332 条）后为 0.9217 / 0.9157 / 0.8464。位置覆盖比 90% 目标低 0.34pp、联合低于 90%，均如实报告且未据此调整 α/δ 或功率模型；格级正式结论只覆盖 17/20 格；两套分母并列，无隐性样本剔除。"
     },
     {
       "id": "HIRA-034",
