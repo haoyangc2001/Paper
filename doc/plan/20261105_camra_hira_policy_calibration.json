@@ -3274,7 +3274,7 @@
       "id": "HIRA-037",
       "phase": "结果比较",
       "goal": "在统一口径下比较HiRA候选与旧v2",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-036"
       ],
@@ -3295,7 +3295,51 @@
         "reports/hira_vs_v2_comparison.json",
         "reports/hira_vs_v2_comparison.md"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T10:48:00+08:00",
+          "summary": "先核实 v2 原始数据是否可用：/pub/data/caohy/logs/camra 仅 3.1 GB（TASK 日志，无 trials/）、camra_run 不存在、NFS 家目录 logs 仅 233 MB、Paper/.local 备份不存在——**v2 逐 trial 数据确已不在本机**。按 constraints_and_notes 停下询问，用户选择「接受有边界的报告级对比」。据此新写 tests/compare_hira_v2.py，产出 10 项配置可比性 + 14 项指标对比，每行带来源、分母、单位、可比性，顶层标注 recomputed=false。核心结论：α 1.85×、δ 3.46×；heldout 成本 +4.08 pp 但位置 −1.78 pp（方向不一致，不能概括好坏）；near 覆盖率被更大的 δ 抬高，不代表性能改善；near 几何重叠 70.1%→75.5%、越界 13→15 同量级；格级缺口差异源于重试政策而非能力。顺带更正 HIRA-033 记录里把 v2 near 数字误标成 CAL-027 的错误。",
+          "actions": [
+            "四处核实 v2 原始数据：/pub/data/caohy/logs/camra（3.1 GB，仅 TASK-*）、/pub/data/caohy/camra_run（不存在）、/home/caohy/logs（233 MB）、Paper/.local（不存在），确认无法复算",
+            "按计划 constraints_and_notes「原始旧证据缺失时保持未完成并询问」停下，给用户三个选项；用户选「接受报告级对比」",
+            "读 v2 三个冻结产物（margins_v1 / power_model_v1 / footprint_v1）作为权威值，并从 v2 交接笔记逐条抄汇总数字并标注小节与行号",
+            "建 10 项配置可比性矩阵：命令域/生成器/profile/资产/PD/限幅/时序/能量口径/协议版本/重试口径，逐项判 same / same_with_note / different",
+            "建 14 项指标对比：α、δ、heldout 三项覆盖、near 三项覆盖、near 几何重叠与越界、功率 validate q90、足迹面积与基宽、校准完整率、格级完整率缺口",
+            "每项标注 recomputed=false 与来源；顶层写明 why_not_recomputed 与四处核实结果",
+            "发现并更正 HIRA-033 记录中的引用错误：0.8883/0.9340/0.8274 属 v2 近障（§32.4, n=197），v2 heldout（CAL-027, n=397）实为 0.8690/0.9144/0.7935",
+            "报告里明确三条不能比的理由：分母不同（397/197 vs 377/188）、v2 含两次整批重采、控制器包同时改了权重/kp/资产"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/compare_hira_v2.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/hira_vs_v2_comparison.json（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/hira_vs_v2_comparison.md（新增）"
+          ],
+          "commands": [
+            "cd /pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500 && set -a; . config/hira.env; set +a; $CAMRA_HIRA_PYTHON tests/compare_hira_v2.py"
+          ],
+          "results": [
+            "α：v2 0.1905（790 completed）→ HiRA 0.3516（771），1.85×。δ：v2 2.6139 → HiRA 9.0322 m，3.46×。两者 CI 区间不重叠。",
+            "heldout（v2 345/397 vs HiRA 343/377）：成本 0.8690 → 0.9098（+4.08 pp），位置 0.9144 → 0.8966（−1.78 pp），联合 0.7935 → 0.8170（+2.35 pp）。成本变好、位置变差，方向不一致。",
+            "near（v2 175/197 vs HiRA 176/188）：成本 0.8883 → 0.9362，位置 0.9340 → 0.9840，联合 0.8274 → 0.9202。但 δ 差 3.46 倍，覆盖率被更大的 δ 抬高，不构成性能改善证据。",
+            "near 几何：重叠 138/197 = 70.1% → 151/200 = 75.5%；越界 13 → 15。同一量级，两边都支持「δ 是必要条件而非充分条件」。",
+            "功率模型 validate q90：v2 0.0554（n=79）→ HiRA 0.0588（n=80）。两套模型各自独立拟合，不可混用。",
+            "足迹：v2 43 顶点 / 0.4580 m² / min_width 0.5768 → HiRA 52 顶点 / 0.6769 m² / 0.7596，面积 1.48×。资产不同，轮廓不可互用。",
+            "校准完整率：790/800 → 771/800。格级缺口：v2 20/20（靠 D-013 一次性补采）→ HiRA 17/20（不补采）。归因为重试政策差异，不是能力差异。",
+            "10 项配置中 4 项判为不可比（资产、PD、限幅、重试口径），2 项须注明（能量 float32/float64、协议继承），4 项可比（命令域、生成器、五 profile、时序）。",
+            "全部 v2 数字标注来源：冻结产物给文件路径，汇总数字给「交接笔记 §小节 + 行号」，可逐条复核。"
+          ],
+          "evidence": [
+            "reports/hira_vs_v2_comparison.json（config_comparability 10 项 + metrics 14 项 + summary + caveats + correction + recomputed=false）",
+            "reports/hira_vs_v2_comparison.md（人读版：配置矩阵、指标表、逐项出处、结论、边界、更正）",
+            "tests/compare_hira_v2.py（可复跑；v2 冻结物按仓库绝对路径读）"
+          ],
+          "remaining_work": [
+            "若日后找回 v2 的 68 GB trials（原始 runner 输出），可把本报告升级为复算 + 配对口径（清单层面 baseline/heldout/near 已有 100% 模板匹配，§26）。",
+            "『格级缺口是重试政策差异』这条须写进 HIRA-038 交付说明与 HIRA-039 文档，防止被读成能力结论。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不为完成对照擅自重跑旧v2整套试验，不改旧文件。",
         "原始旧证据缺失时本任务保持未完成并询问是否接受有边界的报告级比较，不伪装成已复算。"
@@ -3304,7 +3348,7 @@
         "比较表每列都有分母、版本、单位、证据与可比性注释。",
         "不混淆新旧功率基线和α/δ，不隐去重试、资产或执行器差异；无预设改善结论。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（报告级对比，recomputed=false）。v2 逐 trial 数据经四处核实确已不在本机，经用户同意采用有边界的报告级对比：10 项配置可比性 + 14 项指标，每行带来源/分母/单位/可比性。核心：α 0.1905→0.3516（1.85×）、δ 2.6139→9.0322 m（3.46×）；heldout 成本 +4.08 pp 而位置 −1.78 pp（方向不一致，不概括好坏）；near 覆盖率被更大 δ 抬高，不算性能改善；near 几何重叠 70.1%→75.5%、越界 13→15 同量级；格级缺口源于重试政策而非能力。已更正 HIRA-033 中把 v2 near 数字误标为 CAL-027 的引用。未复算 v2、未重跑 v2、未改动任何 v2 旧文件，无预设改善结论。"
     },
     {
       "id": "HIRA-038",
