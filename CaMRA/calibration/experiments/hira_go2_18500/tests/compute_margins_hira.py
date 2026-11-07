@@ -8,12 +8,17 @@
 * `ε_d` = 10 Hz 配对网格上执行与名义位置的**最大平面欧氏距离**（米）；另报 50 Hz 敏感性；
 * bootstrap 10000×95%，以整条轨迹为最小重采样单位（不按时间点伪增样本），
   另按命令族骨架簇（family）做一次整簇重采样作保守诊断；
-* 分母两套都报：预登记 800 条（含失败与 non_computable）与"完整且可算"的条件集。
+* 分母两套都报：预登记 800 条（含失败与 non_computable）与"完整且可算"的条件集；
+* 两格完整率未达 0.9（HIRA-030 的 C06）按裁定不补采：`--adjudicated-gap-cell` 必须**显式**列出这些格，
+  列齐才过、少列一格即失败（不静默通过），并另算"剔除这些格"的敏感性 α/δ 并列报告。
 
 冻结产物：`config/margins_hira_v1.json`（+ .sha256）与派生 stage lock
 `config/data_lock_hira_evaluation_v1.json`（+ .sha256，**不回写**采集锁）。
 
-    python tests/compute_margins_hira.py --run-id calibration_20261106
+    python tests/compute_margins_hira.py --run-id calibration_20261106 \\
+        --lock config/data_lock_hira_calibration_v2.json \\
+        --adjudicated-gap-cell arc_combined/mass_only \\
+        --adjudicated-gap-cell straight_shift/friction_only
 """
 
 from __future__ import annotations
@@ -62,6 +67,9 @@ parser.add_argument("--out-lock", default=str(EXP / "config/data_lock_hira_evalu
 parser.add_argument("--out-report", default=str(EXP / "reports/margin_calibration.json"))
 parser.add_argument("--replicates", type=int, default=BOOTSTRAP_REPLICATES)
 parser.add_argument("--seed", type=int, default=BOOTSTRAP_SEED)
+parser.add_argument("--adjudicated-gap-cell", action="append", default=[],
+                    help="完整率低于 0.9、已被显式裁定的格（family/profile），可重复；未列全则门禁失败")
+parser.add_argument("--out-sensitivity", default=str(EXP / "reports/margin_sensitivity_gap_cells.json"))
 args_cli = parser.parse_args()
 
 
@@ -113,12 +121,38 @@ def main() -> int:
             problems.append("pairing 点数不足")
         if not np.isfinite(exec_xy).all():
             problems.append("位置含非有限值")
+        if problems:
+            if outcome == "business_failure" and problems == ["pairing 点数不足"]:
+                # 开局就倒的业务失败只有 1 个配对点，无法积分名义轨迹。
+                # 它仍是业务失败、必须留在主分母与 prefix_only 里，不能算作"数据排除"。
+                rows.append({
+                    "trial_id": trial_id, "family": row["family"], "profile": row["profile"],
+                    "cell": f"{row['family']}/{row['profile']}",
+                    "outcome": outcome, "complete": False,
+                    "j_exec": float(energy["j_exec"]), "j_nom": None,
+                    "eps_c": None, "eps_c_reason": "pairing_points_lt_2",
+                    "eps_d": None, "eps_d_50hz": None,
+                    "low_speed_share": low_speed_share(commands),
+                    "n_points": int(t_pair.size), "dt_min": None,
+                    "cluster_family": row["family"], "cluster_template": row.get("cluster_id"),
+                })
+            else:
+                excluded.append({"trial_id": trial_id, "reason": "；".join(problems)})
+            continue
         # 名义轨迹：同一 (family, seed) 由 build_program 重建，零阶保持积分
         program = build_program(row["family"], row["seed"], duration_s=row["duration_s"],
                                 command_dt=row["command_dt"])
         expected_cmd = np.asarray([list(map(float, c)) for c in program.commands], dtype=np.float64)
         if expected_cmd.shape != commands.shape:
-            problems.append(f"cmd 形状 {commands.shape} vs 重建 {expected_cmd.shape}")
+            n_got = commands.shape[0]
+            if (outcome == "business_failure" and 2 <= n_got < expected_cmd.shape[0]
+                    and expected_cmd.shape[1:] == commands.shape[1:]
+                    and float(np.abs(expected_cmd[:n_got] - commands).max()) <= 1e-5):
+                # 业务失败时采集器把配对网格截到实际走完的窗口：与重建命令的**前缀**逐点对齐
+                # 即为合法前缀，不能因为"比整窗短"就把这条失败判成数据排除。
+                pass
+            else:
+                problems.append(f"cmd 形状 {commands.shape} vs 重建 {expected_cmd.shape}")
         elif float(np.abs(expected_cmd - commands).max()) > 1e-5:
             problems.append("cmd 与重建不一致")
         pose = (meta.get("profile_applied") or {}).get("initial_pose") or {}
@@ -184,7 +218,8 @@ def main() -> int:
               "n_prefix_only": len(prefix_only),
               "manifest_sha256": sha256_file(manifest_path),
               "model_sha256": model.sha256(),
-              "data_lock_sha256": sha256_file(Path(args_cli.lock))},
+              "data_lock_sha256": sha256_file(Path(args_cli.lock)),
+              "adjudicated_gap_cells": sorted(args_cli.adjudicated_gap_cell)},
         applicability={"command_domain": "u=[vx,vy,wz] 协议命令域",
                        "window_s": 30.0, "pair_dt_s": PAIR_DT,
                        "profiles": ["clean", "friction_only", "mass_only", "push_only", "combined"],
@@ -193,10 +228,51 @@ def main() -> int:
         replicates=args_cli.replicates, seed=args_cli.seed,
         clusters_c=clusters_family, clusters_d=clusters_family,
         notes=("由 HIRA-030 的 800 条校准数据计算；固定 bootstrap 种子可复算",
-               "负超支保留原值参与分位，仅在形成裕度时取 max(0,·)"),
+               "负超支保留原值参与分位，仅在形成裕度时取 max(0,·)",
+               "资格缺口：完整率低于 0.9 的格为 " + ", ".join(sorted(args_cli.adjudicated_gap_cell))
+               + "（HIRA-030 C06），按协议裁定不补采、不进入格级正式结论；"
+                 "剔除这些格的敏感性 α/δ 见 reports/margin_sensitivity_gap_cells.json"),
     )
     print(f"[margin] alpha={margins.alpha:.6f} delta={margins.delta:.6f} "
           f"(n_c={len(eps_c_all)}, n_d={len(eps_d_all)})", flush=True)
+
+    # ---- 敏感性：剔除被显式裁定的资格缺口格（HIRA-030 的 C06）----
+    gap_cells = sorted(args_cli.adjudicated_gap_cell)
+    sens_official = [r for r in official if r["cell"] not in gap_cells]
+    sens_c = [r["eps_c"] for r in sens_official]
+    sens_d = [r["eps_d"] for r in sens_official]
+    sens_ci_c = bootstrap_quantile(np.asarray(sens_c, dtype=np.float64), q=QUANTILE_LEVEL,
+                                   replicates=args_cli.replicates, seed=args_cli.seed)
+    sens_ci_d = bootstrap_quantile(np.asarray(sens_d, dtype=np.float64), q=QUANTILE_LEVEL,
+                                   replicates=args_cli.replicates, seed=args_cli.seed)
+    sens_alpha = max(0.0, sens_ci_c["point"])
+    sens_delta = max(0.0, sens_ci_d["point"])
+    sensitivity = {
+        "kind": "exclude_adjudicated_gap_cells",
+        "excluded_cells": gap_cells,
+        "n_official": len(sens_official),
+        "n_official_full": len(official),
+        "n_dropped": len(official) - len(sens_official),
+        "n_completed_not_official": len(prefix_only),
+        "alpha": sens_alpha,
+        "alpha_raw_q90": sens_ci_c["point"],
+        "alpha_interval": [sens_ci_c["lo"], sens_ci_c["hi"]],
+        "delta": sens_delta,
+        "delta_interval": [sens_ci_d["lo"], sens_ci_d["hi"]],
+        "delta_abs_change": sens_delta - margins.delta,
+        "alpha_abs_change": sens_alpha - margins.alpha,
+        "per_cell_n": {cell: sum(1 for r in rows if r["cell"] == cell) for cell in gap_cells},
+        "note": ("全样本（含两格）与剔除两格两套 α/δ 必须并列报告；冻结值取全样本，"
+                 "敏感性只作诊断，不用于替换冻结值"),
+    }
+    Path(args_cli.out_sensitivity).write_text(
+        json.dumps({"report": "margin_sensitivity_gap_cells", "task": "HIRA-031",
+                    "run_id": args_cli.run_id, "sensitivity": sensitivity,
+                    "frozen": {"alpha": margins.alpha, "delta": margins.delta}},
+                   ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"[margin] 敏感性（剔除 {len(gap_cells)} 格，n={len(sens_official)}）："
+          f"alpha={sens_alpha:.6f} delta={sens_delta:.6f} "
+          f"(Δα={sensitivity['alpha_abs_change']:+.6f}, Δδ={sensitivity['delta_abs_change']:+.6f})", flush=True)
 
     # ---- 独立复算：不经过 build_margins，直接按协议公式算一遍 ----
     q_c = nearest_rank(eps_c_all, QUANTILE_LEVEL)
@@ -219,12 +295,19 @@ def main() -> int:
                 "median": float(np.median(arr)), "min": float(arr.min()), "max": float(arr.max())}
 
     per_cell = defaultdict(lambda: {"eps_c": [], "eps_d": [], "n_official": 0, "n_total": 0})
+    # 每格的完整率分母必须取**清单**的 40 条，而不是"读到了几条"：
+    # 用后者会把被排除的 trial 从分母里抹掉，反而把缺口藏起来。
+    cell_manifest = defaultdict(int)
+    for row in manifest.values():
+        cell_manifest[f"{row['family']}/{row['profile']}"] += 1
     for r in rows:
-        per_cell[r["cell"]]["n_total"] += 1
+        per_cell[r["cell"]]["n_total"] = cell_manifest[r["cell"]]
         if r["complete"] and r["eps_c"] is not None:
             per_cell[r["cell"]]["n_official"] += 1
             per_cell[r["cell"]]["eps_c"].append(r["eps_c"])
             per_cell[r["cell"]]["eps_d"].append(r["eps_d"])
+    for cell, total in cell_manifest.items():
+        per_cell[cell]["n_total"] = total
     cell_report = {
         cell: {
             "n_total": value["n_total"], "n_official": value["n_official"],
@@ -260,15 +343,26 @@ def main() -> int:
         "note": "overall 以预登记 800 条为分母；条件覆盖只在完整且 J_nom≥1 J 的记录上另报",
     }
 
+    # C06 的事实与裁定分开记录：事实不门禁（它就是数据长这样），裁定必须显式对齐才门禁。
+    below_floor = sorted(cell for cell, v in cell_report.items() if v["full_rate"] < 0.9)
+    facts = {
+        "cells_below_full_rate_floor": below_floor,
+        "min_cell_full_rate": min((v["full_rate"] for v in cell_report.values()), default=None),
+        "gap_cells_adjudicated": gap_cells,
+        "gap_cells_match": set(below_floor) == set(gap_cells),
+    }
+
     checks = {
         "alpha_nonneg": margins.alpha >= 0.0,
         "delta_nonneg": margins.delta >= 0.0,
         "recompute_matches": recompute["matches_frozen"],
         "n_official_ge_720": len(official) >= int(0.9 * len(manifest)),
-        "all_cells_full_rate_ge_0p9": all(v["full_rate"] >= 0.9 for v in cell_report.values()),
+        "gap_cells_explicitly_adjudicated": set(below_floor) == set(gap_cells),
         "negative_overrun_reported": n_negative >= 0,   # 事实记录：负超差条数见 diagnostics
         "bootstrap_interval_ordered": margins.alpha_interval[0] <= margins.alpha <= margins.alpha_interval[1]
         and margins.delta_interval[0] <= margins.delta <= margins.delta_interval[1],
+        "sensitivity_reported": len(sens_official) == len(official) - sum(
+            1 for r in official if r["cell"] in gap_cells) and len(sens_official) > 0,
         "frozen_before_heldout": not any(
             (Path(args_cli.runs_root) / name).exists()
             for name in ("heldout_20261106", "near_obstacle_20261106")
@@ -316,6 +410,8 @@ def main() -> int:
             "path": str(Path(args_cli.out_report)),
             "passed": all(checks.values()),
             "failed": [k for k, v in checks.items() if not v],
+            "facts": facts,
+            "sensitivity_report": str(Path(args_cli.out_sensitivity)),
         }),
     }
     out_lock = Path(args_cli.out_lock)
@@ -348,6 +444,8 @@ def main() -> int:
             "prefix_only": [r["trial_id"] for r in prefix_only],
         },
         "checks": checks,
+        "facts": facts,
+        "sensitivity": sensitivity,
         "verdict": {"all_passed": all(checks.values()),
                     "failed": [k for k, v in checks.items() if not v]},
         "stage_lock": {"path": str(out_lock), "sha256": sha256_file(out_lock)},

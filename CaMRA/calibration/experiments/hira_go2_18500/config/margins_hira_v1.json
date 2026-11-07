@@ -1,0 +1,63 @@
+{
+  "version": "hira-1.0",
+  "alpha": 0.35156762163783695,
+  "delta": 9.032231244495946,
+  "unit_cost": "ratio",
+  "unit_distance": "m",
+  "alpha_interval": [
+    0.26131832187085313,
+    0.45864784790078683
+  ],
+  "delta_interval": [
+    5.88976577556904,
+    15.822817591498753
+  ],
+  "applicability": {
+    "command_domain": "u=[vx,vy,wz] 协议命令域",
+    "window_s": 30.0,
+    "pair_dt_s": 0.1,
+    "profiles": [
+      "clean",
+      "friction_only",
+      "mass_only",
+      "push_only",
+      "combined"
+    ],
+    "note": "α 只用于成本预算 (1+α)·J_nom；δ 只用于危险集扩张 obstacle⊕footprint⊕disc(δ)，各一次"
+  },
+  "q90_eps_c": 0.35156762163783695,
+  "q90_eps_d": 9.032231244495946,
+  "n_eps_c": 771,
+  "n_eps_d": 771,
+  "sha256": "e8e539c35ec6dfe39a8467343b94c6a1d4908ab08d98b2b9426d349ea562bbd8",
+  "data": {
+    "split": "calibration",
+    "run_id": "calibration_20261106",
+    "n_manifest": 800,
+    "n_usable": 800,
+    "n_official": 771,
+    "n_non_computable": 0,
+    "n_prefix_only": 29,
+    "manifest_sha256": "ec3ffe5236d70dbde22b308bcb06ef87fa817f9a4cd61fa50dc6d532acdfc3af",
+    "model_sha256": "27bc5fe1423256ce3f3fd4965124e45699f36e0b4e52d5d95131f848a02afbd4",
+    "data_lock_sha256": "c229c41787a2a5e175f38f564a1f9482365b3b98808ef8a7afa0ab6216ccfab8",
+    "adjudicated_gap_cells": [
+      "arc_combined/mass_only",
+      "straight_shift/friction_only"
+    ]
+  },
+  "stats": {
+    "quantile": 0.9,
+    "method": "nearest-rank",
+    "bootstrap": {
+      "replicates": 10000,
+      "seed": 20261104,
+      "level": 0.95
+    }
+  },
+  "notes": [
+    "由 HIRA-030 的 800 条校准数据计算；固定 bootstrap 种子可复算",
+    "负超支保留原值参与分位，仅在形成裕度时取 max(0,·)",
+    "资格缺口：完整率低于 0.9 的格为 arc_combined/mass_only, straight_shift/friction_only（HIRA-030 C06），按协议裁定不补采、不进入格级正式结论；剔除这些格的敏感性 α/δ 见 reports/margin_sensitivity_gap_cells.json"
+  ]
+}

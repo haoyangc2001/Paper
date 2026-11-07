@@ -2758,7 +2758,7 @@
       "id": "HIRA-031",
       "phase": "校准",
       "goal": "独立计算并冻结HiRA的α和δ",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-030"
       ],
@@ -2779,7 +2779,60 @@
         "config/data_lock_hira_evaluation_v1.json及hash",
         "reports/margin_calibration.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T08:40:00+08:00",
+          "summary": "从 771 条完整校准记录独立算出并冻结 HiRA 的 α=0.351568（95% 簇 bootstrap 0.2613–0.4586）与 δ=9.032231 m（5.8898–15.8228）。两套分母、20 格诊断、低速分组、50 Hz 敏感性、剔除两格敏感性与10 项自证全部落档；派生检验 stage lock 绑定 margin 散列但不回写采集锁；另加 10 项绑定核验，并把 enforce_collection 只查 margin 文件存在性的缺口显式记成 R-07。",
+          "actions": [
+            "补全 tests/compute_margins_hira.py：① 业务失败的配对网格是与整窗重命令的**前缀**对齐（原先按整窗比形状，把 27 条失败误判成数据排除）；② 开局就倒、只有 1 个配对点的失败仍留在主分母与 prefix_only，不再进 excluded；③ 每格完整率的分母取清单 40 条（不是“读到了几条”，否则被排除的 trial 会从分母里消失、把缺口藏起来）；④ 新增 --adjudicated-gap-cell 与剔除敏感性输出。",
+            "口径按协议 statistics 段实现：nearest-rank 不插值、α=max(0,Q0.90 ε_c)、δ=Q0.90 ε_d、负超支保留原值、bootstrap 10000×95% 以整条轨迹/整簇为最小重采样单位。",
+            "冻结 config/margins_hira_v1.json（文件散列 57d05222、内容散列 e8e539c3）并派生 config/data_lock_hira_evaluation_v1.json（sha 289e4137，parent=v2 采集锁，margins.state=frozen）。",
+            "新建 tests/check_margin_lock_binding.py（10 项）：stage、margins.state、文件散列、内容散列、α/δ 逐位、parent 链、heldout/near 正测放行、采集锁 margins 状态、以及已知缺口 R-07 的复现。",
+            "在检验锁下重跑 13 项采集门禁（reports/formal_gate_evaluation.json）确认锁本身仍 13/13。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/compute_margins_hira.py（前缀对齐、分母修正、敏感性、裁定格参数）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_margin_lock_binding.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/margins_hira_v1.json（+ .sha256，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v1.json（+ .sha256，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_calibration.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_sensitivity_gap_cells.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_lock_binding.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate_evaluation.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§33）"
+          ],
+          "commands": [
+            "python tests/compute_margins_hira.py --run-id calibration_20261106 --lock config/data_lock_hira_calibration_v2.json --adjudicated-gap-cell arc_combined/mass_only --adjudicated-gap-cell straight_shift/friction_only",
+            "python tests/check_data_lock_hira.py --lock config/data_lock_hira_evaluation_v1.json --out reports/formal_gate_evaluation.json",
+            "python tests/check_margin_lock_binding.py"
+          ],
+          "results": [
+            "α = 0.351568（Q0.90 ε_c；簇 bootstrap 95% 0.261318–0.458648），δ = 9.032231 m（Q0.90 ε_d；5.889766–15.822817）。冻结值取全样本 n=771。",
+            "分母：清单 800 / 可用 800 / 完整且可算 771 / prefix_only 29 / excluded 0 / 覆盖率 0.9637。注意两套分类口径：check_calibration 把 J_nom<1 J 记 non_computable=2（那 2 条本身是业务失败），本脚本对**完整记录**判 non_computable=0，两条业务失败统一进 prefix_only —— 同一批数据，两种分类，均已明写。",
+            "ε_c 有 283 条负超支（J_exec < J_nom），原值参与分位、只在形成裕度时取 max(0,·)；α 为正说明主体是超支的。",
+            "扰动主导：per-profile δ q90 为 clean 1.852 / friction_only 3.589 / mass_only 12.131 / push_only 12.394 / combined 12.499；族内最高 arc_combined/mass_only 22.23 m。低速占比 ≥0.3 组 δ q90 6.755（n=309），<0.3 组 12.131（n=462）—— 给高速命令时开环漂移更大。",
+            "50 Hz 敏感性：δ q90 与 10 Hz **完全相同**（9.032231），两者最大差 0.0059 m，说明这个量不是采样栅格造成的。",
+            "剔除两格敏感性（n=703）：α=0.365083（Δα=+0.013515）、δ=8.330097（Δδ=−0.702134，−7.8%）。剔除会让 δ 变小但 α 变大，方向不一致，故两套并列报告、冻结值仍取全样本。",
+            "自证 10/10：α/δ 非负、独立复算逐位一致（1e-12）、n_official≥720、缺口格与裁定表完全一致、区间有序、敏感性已出、冻结早于 heldout/near（runs 目录无这两个 split）、模型与清单绑定。",
+            "绑定核验 10/10：检验锁 stage=evaluation、margins.state=frozen、文件散列 57d05222、内容散列 e8e539c3、α/δ 逐位一致、parent=c229c417、heldout 与 near_obstacle 正测放行、采集锁仍是 not_yet_produced。",
+            "与 v2 对照：α 0.352 vs v2 0.19048（1.85×），δ 9.032 m vs v2 2.6139 m（3.46×）。HiRA 底层在 30 s 开环下对扰动敏感得多，这不是实现 bug（clean 档 δ 只有 1.85 m），是控制器本身的鲁棒性差异。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/margins_hira_v1.json（+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v1.json（+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_calibration.json（10/10）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_sensitivity_gap_cells.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_lock_binding.json（10/10）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §33"
+          ],
+          "remaining_work": [
+            "**R-07（新增）**：enforce_collection 对 margin-gated split 只校验 margins 文件存在，不校验锁内 margins.state 与 sha256。未就地修，因为 lock.py 在 v2 采集锁与 eval v1 检验锁的 code 散列里，改它会让已采 800 条的归属锁验签失败；补偿闸门是 tests/check_margin_lock_binding.py（heldout/near 开跑前必跑），修法留到下一版协议。",
+            "**δ=9.03 m 的可用性要预先判断**：δ 只用于危险集扩张一次，9 m 的膨胀在现有近障地图尺度下可能把可行走廊全部吃掉（v2 的 δ 只有 2.61 m）。HIRA-035 采集前先做一次只读可行性核算（地图尺寸 / 走廊宽度 / 扩张后可行面积），若判定不可用则按协议“记录并询问”，不通过改分位缩小 δ。",
+            "锁内路径仍为 /pub 绝对路径，与 §31 的待处理项合并到交付阶段处理。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "α/δ从本候选校准数据产生，不将旧0.19048/2.6139作为目标或先验替换。",
         "大δ或低覆盖可能是真实结果，若不可用于预定任务则记录并询问，不通过改分位缩小。"
@@ -2788,7 +2841,7 @@
         "margin与原始校准、模型和锁绑定，独立计算与主脚本在冻结容差内一致。",
         "margin冻结时间早于heldout/near结果读取，阶段锁可核验且无校准资格缺口被隐藏。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（10/10 自证 + 10/10 绑定核验）。α=0.351568（0.2613–0.4586）、δ=9.032231 m（5.8898–15.8228），n=771 完整记录，excluded=0；冻结值早于任何 heldout/near 结果产生，margin 与模型/清单/采集锁逐项绑定，检验 stage lock 绑定 margin 散列且不回写采集锁，heldout 与 near_obstacle 在检验锁下正测放行、在采集锁下因 margins.state=not_yet_produced 被标记为不可作检验依据。剔除两格的敏感性（α +0.0135、δ −0.702）并列报告。已知缺口 R-07（锁未校验 margin 绑定）已复现并登记，补偿闸门已就位。"
     },
     {
       "id": "HIRA-032",

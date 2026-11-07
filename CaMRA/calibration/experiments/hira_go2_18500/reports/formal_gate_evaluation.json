@@ -1,0 +1,170 @@
+{
+ "report": "formal_gate",
+ "task": "HIRA-029",
+ "lock": {
+  "path": "config/data_lock_hira_evaluation_v1.json",
+  "sha256": "289e41379bd19cd41796a85bd6dfca8aa2acfcd85a2eaa2bf39b7fb3289531ac",
+  "stage": "evaluation",
+  "margins_state": "frozen"
+ },
+ "doors_checked": {
+  "controller_bundle": "3c32fe31b2753a08f83779d0ddb2b6fa433252873092d3adf484421d4a047975",
+  "protocol": "79f983f852e9ef1c",
+  "power_model": "4c3fc567bcbfc063",
+  "footprint": "51867346e4389fd4",
+  "step_cost_schema": "1c6b50403cb8cb5d",
+  "trial_lists_total": 1820,
+  "code_files": 37,
+  "near_obstacle_maps": "78c0145f0ecddc71"
+ },
+ "prerequisite_gates": {
+  "G1_integration": {
+   "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/reports/integration_gate.json",
+   "sha256": "8b2ad5dbbee112185faca5f0071f84326cbef83a1fca5cf79d3fbbcba2eb493a",
+   "passed": true,
+   "failed": []
+  },
+  "baseline_integrity": {
+   "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/reports/baseline_collection_integrity.json",
+   "sha256": "29de66f05842d867b0a3df4b625e0be1b6f1188157f89ad4e0d85421b2a035b7",
+   "passed": true,
+   "failed": []
+  },
+  "power_model": {
+   "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/reports/power_model_validate.json",
+   "sha256": "b7e5db3d3ff95d7aa3957ad2516af8545984522503a3586a593fbf67489dc8ed",
+   "passed": true,
+   "failed": []
+  },
+  "footprint": {
+   "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/reports/footprint_validation.json",
+   "sha256": "96218a8f4ea70fb73114b73b064693e18ebb499ef4c36fbfbe2dc9070f5f30c5",
+   "passed": true,
+   "failed": []
+  },
+  "step_cost": {
+   "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/reports/step_cost_interface_tests.json",
+   "sha256": "159fbed351941e7fe8dad3497fed009b36a99dd334bfa4f94b9a911e65cafa6b",
+   "passed": true,
+   "failed": []
+  },
+  "config_isolation": {
+   "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/reports/config_isolation_tests.json",
+   "sha256": "43e3c8f08273889e0f65c2bb1f0ca49a7824e07186103150a7dc73c760a1b477",
+   "passed": true,
+   "failed": null
+  },
+  "margins": {
+   "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/reports/margin_calibration.json",
+   "passed": true,
+   "failed": [],
+   "facts": {
+    "cells_below_full_rate_floor": [
+     "arc_combined/mass_only",
+     "straight_shift/friction_only"
+    ],
+    "min_cell_full_rate": 0.825,
+    "gap_cells_adjudicated": [
+     "arc_combined/mass_only",
+     "straight_shift/friction_only"
+    ],
+    "gap_cells_match": true
+   },
+   "sensitivity_report": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/reports/margin_sensitivity_gap_cells.json"
+  }
+ },
+ "prerequisite_gates_all_passed": true,
+ "negative_tests": [
+  {
+   "id": "L01-allow-calibration",
+   "name": "正品锁放行 calibration（仿真启动前的唯一入口）",
+   "ok": true,
+   "detail": "放行"
+  },
+  {
+   "id": "L02-lock-tamper",
+   "name": "锁内容被改而侧车未更新 → 拒绝加载",
+   "ok": true,
+   "detail": "被拒=True（侧车散列不符）"
+  },
+  {
+   "id": "L03-model-hash",
+   "name": "功率模型散列改错（侧车已同步重算）→ verify_artifacts 报错",
+   "ok": true,
+   "detail": "锁与现场不一致：   power_model: 散列不符 /pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/config/power_model_hira_v1.json"
+  },
+  {
+   "id": "L04-footprint-hash",
+   "name": "足迹轮廓散列改错（侧车已同步重算）→ verify_artifacts 报错",
+   "ok": true,
+   "detail": "锁与现场不一致：   footprint: 散列不符 /pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/config/footprint_hira_v1.json"
+  },
+  {
+   "id": "L05-manifest-hash",
+   "name": "清单散列改错（侧车已同步重算）→ verify_artifacts 报错",
+   "ok": true,
+   "detail": "锁与现场不一致：   trial_lists.calibration: 散列不符 /pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/manifests/calibration.jsonl"
+  },
+  {
+   "id": "L06-code-hash",
+   "name": "代码散列改错（侧车已同步重算）→ verify_artifacts 报错",
+   "ok": true,
+   "detail": "锁与现场不一致：   code: 散列不符 /pub/data/caohy/work/hira/CaMRA/locomotion/adapters/hira_go2/__init__.py"
+  },
+  {
+   "id": "L07-heldout-margin",
+   "name": "heldout 在 margin 未产出时必须被拒",
+   "ok": true,
+   "detail": "heldout 需要先冻结 margin（缺 /pub/data/caohy/tmp/lock_neg/no_such_margins.json）：CAL-025 完成前不得采集检验/近障数据"
+  },
+  {
+   "id": "L08-near-margin",
+   "name": "near_obstacle 在 margin 未产出时必须被拒",
+   "ok": true,
+   "detail": "near_obstacle 需要先冻结 margin（缺 /pub/data/caohy/tmp/lock_neg/no_such_margins.json）：CAL-025 完成前不得采集检验/近障数据"
+  },
+  {
+   "id": "L09-unknown-split",
+   "name": "拼错的 split 被拒",
+   "ok": true,
+   "detail": "split 'calibraton' 不在数据锁里（可用：['baseline_dev', 'baseline_fit', 'baseline_validate', 'calibration', 'heldout', 'near_obstacle', 'pilot']）"
+  },
+  {
+   "id": "L10-no-overwrite",
+   "name": "正式 split 不允许 allow_overwrite",
+   "ok": true,
+   "detail": "calibration 属正式数据，禁止 --allow-overwrite；重试请改名/删除 DONE 后以新 attempt 采集"
+  },
+  {
+   "id": "L11-missing-lock",
+   "name": "锁文件缺失即拒绝",
+   "ok": true,
+   "detail": "被拒=True"
+  },
+  {
+   "id": "L12-maps-unchanged",
+   "name": "近障地图是 v2 原始物理地图的只读副本（未改动）",
+   "ok": true,
+   "detail": "near_obstacle_maps_v1.json sha=78c0145f0ecddc71 （v2 原始 78c0145f0ecddc71）"
+  },
+  {
+   "id": "L13-resources",
+   "name": "配额/磁盘/并发复核：可放行 800 条校准",
+   "ok": true,
+   "detail": "总配额 1820（已采 baseline 400、calibration 待采 800）；磁盘余量 17164.5 GB（需 0.91 GB）；并发采集进程 0",
+   "resource": {
+    "quota_total": 1820,
+    "baseline_collected": 400,
+    "calibration_quota": 800,
+    "disk_free_gb": 17164.5,
+    "disk_required_gb_for_800": 0.91,
+    "concurrent_collectors": 0
+   }
+  }
+ ],
+ "verdict": {
+  "g2_passed": true,
+  "failed": [],
+  "note": "校准采集放行条件：6 项前置门禁全过 + 13 项锁门禁测试全过 + margin 未产出（检验/近障仍封锁）"
+ }
+}

@@ -1,0 +1,84 @@
+{
+ "report": "margin_lock_binding",
+ "task": "HIRA-031",
+ "lock": {
+  "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v1.json",
+  "sha256": "289e41379bd19cd41796a85bd6dfca8aa2acfcd85a2eaa2bf39b7fb3289531ac"
+ },
+ "margins": {
+  "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/config/margins_hira_v1.json",
+  "sha256": "57d05222ae4a6067e2129c6d8fd88c35a2f2f80fc9d33421c6080782f219ce5f"
+ },
+ "known_gap": {
+  "id": "R-07",
+  "what": "enforce_collection 对 margin-gated split 只校验 margins 文件存在，不校验锁内 margins.state/sha256",
+  "why_not_fixed_now": "lock.py 在 v2 采集锁与 eval v1 检验锁的 code 散列内，改它会让已采 800 条的归属锁验签失败",
+  "compensation": "本脚本作为 heldout/near_obstacle 开跑前的强制检查；下一版协议改 lock.py 后由 B09 转为负测"
+ },
+ "checks": [
+  {
+   "id": "B01-stage",
+   "name": "检验锁的 stage 必须是 evaluation",
+   "ok": true,
+   "detail": "stage='evaluation'"
+  },
+  {
+   "id": "B02-margins-frozen",
+   "name": "锁内 margins.state == frozen",
+   "ok": true,
+   "detail": "state='frozen'"
+  },
+  {
+   "id": "B03-margins-file-hash",
+   "name": "margin 文件散列 = 锁记录",
+   "ok": true,
+   "detail": "锁 57d05222ae4a6067 / 现场 57d05222ae4a6067"
+  },
+  {
+   "id": "B04-margins-content",
+   "name": "margin 内容散列 = 锁记录（防文件被替换但 sha 字段手改）",
+   "ok": true,
+   "detail": "锁 e8e539c35ec6dfe3 / 内容 e8e539c35ec6dfe3"
+  },
+  {
+   "id": "B05-alpha-delta",
+   "name": "锁内 α/δ 与 margin 文件逐位一致",
+   "ok": true,
+   "detail": "α 0.35156762163783695 vs 0.35156762163783695；δ 9.032231244495946 vs 9.032231244495946"
+  },
+  {
+   "id": "B06-parent",
+   "name": "检验锁的 parent 是采集锁 v2（数据归属链完整）",
+   "ok": true,
+   "detail": "parent=c229c41787a2a5e1"
+  },
+  {
+   "id": "B07-heldout",
+   "name": "检验锁放行 heldout",
+   "ok": true,
+   "detail": "放行"
+  },
+  {
+   "id": "B07-near_obstacle",
+   "name": "检验锁放行 near_obstacle",
+   "ok": true,
+   "detail": "放行"
+  },
+  {
+   "id": "B08-collect-lock-state",
+   "name": "采集锁的 margins 必须是 not_yet_produced",
+   "ok": true,
+   "detail": "state='not_yet_produced'"
+  },
+  {
+   "id": "B09-known-gap",
+   "name": "复现已知缺口：采集锁 + 存在的 margin 文件仍会被放行（未修复，下一版协议）",
+   "ok": true,
+   "detail": "gap_reproduced=True 表示 lock.py 尚未校验锁内 margins 绑定；本脚本即补偿闸门，heldout 只准用检验锁"
+  }
+ ],
+ "verdict": {
+  "all_passed": true,
+  "failed": []
+ }
+}
