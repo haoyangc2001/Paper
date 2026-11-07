@@ -4,16 +4,16 @@
 
 ## 当前进展与下一步
 
-当前任务是 [HiRA 策略接入与独立校准](doc/plan/20261105_camra_hira_policy_calibration.json)，共40项，当前0项完成，从 HIRA-001 开始。先学习方法、现有校准和 HiRA 源码，配置设备，核验模型与资产，再验证观测、关节映射、PD、时序、闭环及能量计量。接入门禁全部通过后，才允许正式开展新候选的数据采集。
+当前任务是 [HiRA 策略接入与独立校准](doc/plan/20261105_camra_hira_policy_calibration.json)，共40项，当前 **38 项完成**，剩 HIRA-039（文档同步 + 只读稿件差异清单）与 HIRA-040（逐项对账与交接）。接入门禁、1820 条采集、α/δ 冻结、400 条独立检验、200 条近障评估、独立审计、与 v2 的报告级对比、复现包均已完成并留有报告。
 
-本轮固定30秒测量窗口，成本采用正关节机械功（J）。计划独立完成20条pilot、400条功率基线、800条校准、400条独立检验和200条近障检查。HiRA 使用自己的功率模型、足迹、α/δ、数据锁和输出目录，不直接替换 v2。当前只已建立计划和说明，HiRA 适配与实验尚未实施；实际状态以计划 `tasks` 为准。
+本轮固定30秒测量窗口，成本采用正关节机械功（J）。计划独立完成20条pilot、400条功率基线、800条校准、400条独立检验和200条近障检查。HiRA 使用自己的功率模型、足迹、α/δ、数据锁和输出目录，不直接替换 v2。配额已按计划采完且业务失败零删除。HiRA 冻结值：α = 0.351568、δ = 9.032231 m；独立检验条件分母 377 条上成本 / 位置 / 联合覆盖为 0.9098 / 0.8966 / 0.8170。近障 δ 条件 **0/200**——δ 与 8×10 m 场地差一个量级，属如实上报的负结果。实际状态以计划 `tasks` 为准。
 
 原 [v2校准计划](doc/plan/20261103_camra_calibration_implementation.json) 的32项任务已记录完成，工具、结果及限制继续保留。v2 的低速局限与旧底层复测未通过结论不变，具体证据见 [底层说明](CaMRA/locomotion/README.md#当前状态与已知边界) 和 [校准交接笔记](CaMRA/calibration/docs/implementation_handoff.md)。新增 HiRA 实验不默认重训底层或改写旧结论。
 
 | 模块 | 当前状态 | 后续工作 |
 | --- | --- | --- |
-| [locomotion](CaMRA/locomotion/README.md) | v2 已冻结；HiRA 适配尚未实施 | 新增独立适配，验证来源模型与执行契约 |
-| [calibration](CaMRA/calibration/README.md) | v2 工具与校准结果已建立 | 验证接入后，为 HiRA 独立重复全套校准 |
+| [locomotion](CaMRA/locomotion/README.md) | v2 已冻结；HiRA 已接入并冻结（bundle `3c32fe31`） | 保留双套契约，不改旧模型与旧结论 |
+| [calibration](CaMRA/calibration/README.md) | v2 与 HiRA 双套校准均已建立；HiRA 完成检验、近障、审计与交付包 | 供上层导航消费；稿件差异清单待作者执行 |
 | [navigation](CaMRA/navigation/README.md) | 仅有用途说明，代码待实现 | 本轮不启动；后续消费匹配控制器的校准包 |
 
 本阶段仅做仿真，执行主机的终端任务使用 tmux。HiRA 原系统使用 Isaac Gym，本轮目标是 Isaac Lab，不能仅换权重就认定可用；运行前须配置匹配环境并核对模型与资产。Agent 接手先读 [AGENTS.md](AGENTS.md)。

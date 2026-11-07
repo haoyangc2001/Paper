@@ -6,12 +6,12 @@
 
 当前在 Isaac Lab 中逐步复现系统。`camra_go2_velocity_it2999_v2` 已冻结，校准工具及其历史结果已建立；当前新增 HiRA 预训练底层策略的接入验证与独立校准。继续训练或调参不作为默认任务，真机通信、sim2real 与实机实验留待后续。
 
-当前执行入口为 [40项 HiRA 计划](../doc/plan/20261105_camra_hira_policy_calibration.json)，0/40项完成，首项 HIRA-001。先学习背景、配置环境、核验来源并完成适配验证，通过接入门禁后才采集。计划中的 `locomotion/adapters/hira_go2/` 和 `calibration/experiments/hira_go2_18500/` 尚未建立；目前没有可直接运行的 HiRA 接入命令。
+当前执行入口为 [40项 HiRA 计划](../doc/plan/20261105_camra_hira_policy_calibration.json)，**38/40 项完成**，剩 HIRA-039（文档同步与只读稿件差异清单）与 HIRA-040（逐项对账与交接）。`locomotion/adapters/hira_go2/` 与 `calibration/experiments/hira_go2_18500/` 均已建立：前者 13 个模块，后者含配置、七清单、冻结包、报告与交付索引；运行入口与复现步骤见该实验 `docs/reproduction.md`。
 
 | 模块 | 责任 | 输入 → 产物 | 状态 |
 | --- | --- | --- | --- |
-| [locomotion](locomotion/README.md) | 速度跟踪与稳定运动 | 机身速度指令、本体状态 → 12 维关节位置偏移 | v2 已冻结；新增 HiRA 适配待实施 |
-| [calibration](calibration/README.md) | 能量与位置误差校准、独立检验 | 固定控制器、独立基线及配对轨迹 → 功率模型、α、δ与检验报告 | v2 工具与结果已有；HiRA 需要独立重复 |
+| [locomotion](locomotion/README.md) | 速度跟踪与稳定运动 | 机身速度指令、本体状态 → 12 维关节位置偏移 | v2 已冻结；HiRA 已接入并冻结（`3c32fe31`） |
+| [calibration](calibration/README.md) | 能量与位置误差校准、独立检验 | 固定控制器、独立基线及配对轨迹 → 功率模型、α、δ与检验报告 | v2 与 HiRA 双套已建立；HiRA 完成检验/近障/审计/复现包 |
 | [navigation](navigation/README.md) | 安全、到达与成本决策 | 地图/目标/状态、预算及裕度 → 三维速度指令 | 代码待实现；本轮不启动 |
 
 底层补充复测的历史结论仍为 `overall_pass=False`，低速扫描也发现起步死区。当前决定是在保留这些边界的前提下推进研究；详细数值和证据统一见 [底层说明](locomotion/README.md#当前状态与已知边界)。
@@ -31,7 +31,18 @@
 
 当前冻结契约为仿真 200 Hz、底层策略 50 Hz、外部命令 10 Hz。底层每 0.02 s 重新观测并推理，上层命令每 0.1 s 更新；不能将一次关节动作保持 0.1 s 代替底层闭环。
 
-v2 执行参数以其冻结包 `params/deploy.yaml`、`params/export_manifest.json` 和 [清单副本](locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json) 为依据。HiRA 的缩放、默认姿态、关节顺序和显式PD须独立核验，不能沿用v2字段。论文历史5 Hz设定与当前实现的差异只记录，稿件保持只读。执行主机终端任务使用tmux。
+v2 执行参数以其冻结包 `params/deploy.yaml`、`params/export_manifest.json` 和 [清单副本](locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json) 为依据。HiRA 的缩放、默认姿态、关节顺序和显式PD须独立核验，不能沿用v2字段。论文历史5 Hz设定与当前实现的差异只记录，稿件保持只读；本轮差异清单见 `calibration/experiments/hira_go2_18500/reports/manuscript_sync_differences.md`。执行主机终端任务使用tmux。
+
+两个控制器的契约不可互换（完整字段见各自 `controller.json`）：
+
+| 项 | v2 `camra_go2_velocity_it2999_v2` | HiRA `hira_go2_18500` |
+| --- | --- | --- |
+| 来源 | unitree_rl_lab 训练后导出 | Isaac Gym 预训练权重 `model_18500.pt` 导出 |
+| 观测缩放 | `base_ang_vel×0.2`、`joint_vel×0.05` | `ang_vel×0.25`、`command×[2,2,0.25]`、`dof_vel×0.05`，噪声只落 9:33 |
+| 关节顺序 | 按关节类型分组（hip→thigh→calf） | 源 URDF 逐腿；目标按类型，需置换 `[0,3,6,9,1,4,7,10,2,5,8,11]` |
+| 增益 | kp 25.0、kd 0.5 | kp 20.0、kd 0.5、`action_scale` 0.25 |
+| 力矩限幅 | 23.7 | 逐关节 23.7，**calf 35.55** |
+| 冻结裕度 | α 0.19048、δ 2.6139 m | α 0.351568、δ 9.032231 m |
 
 ## 使用与资料入口
 

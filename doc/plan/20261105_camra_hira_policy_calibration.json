@@ -3449,7 +3449,7 @@
       "id": "HIRA-039",
       "phase": "文档与交接",
       "goal": "同步开发入口并输出只读稿件差异清单",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-038"
       ],
@@ -3473,7 +3473,58 @@
         "docs/implementation_handoff.md",
         "reports/manuscript_sync_differences.md"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T11:45:00+08:00",
+          "summary": "同步 5 份开发入口文档（AGENTS.md、根 README、CaMRA/README、calibration/README、locomotion/README）共 19 处：进度 0/40 → 38/40、两处「尚未建立」改为已建立、补 v2 与 HiRA 契约对照表（观测缩放/关节顺序/增益/限幅/冻结裕度）、补 HiRA 独立产物表（11 阶段→文件→结论）、把采集入口改为 run_delivery.py 并注明不能沿用 v2 命令。产只读稿件差异清单 reports/manuscript_sync_differences.md：A 类 6 条数值差异（含 δ 0.12 m → v2 2.6139 m → HiRA 9.032231 m，差 20 倍以上；中位 0.09/0.06 m 与实测 0.0095/1.113 m 差一个量级）、B 类 3 条口径表述、C 类 2 条尚未包含的新结论、D 类 4 条已核对一致、F 类 3 件需作者判断。稿件与 HiRA 子模块均未修改（git status -- manuscripts/ 为空，main.tex 83fdb330、references.bib 1991c0af 未变）。",
+          "actions": [
+            "先读全 5 份文档与 main.tex（693 行）的关键段落，逐条定位旧值，不凭记忆改",
+            "19 处替换全部用「精确串 + 断言只命中一次」的方式执行，避免误改或漏改",
+            "AGENTS.md：进度与现状段、证据边界表两处路径状态、补指向差异清单；保留旧 v2 计划与旧结论不动",
+            "根 README：进度段与现状段改为实测结论（α/δ、三项覆盖、近障 0/200），模块状态表两行更新",
+            "CaMRA/README：新增 v2 与 HiRA 契约对照表（来源/观测缩放/关节顺序/增益/力矩限幅/冻结裕度），让新上下文一眼分清两个控制器",
+            "calibration/README：采集入口改为 run_delivery.py 或 run_split.py+stage lock，并新增 HiRA 独立产物表（协议/清单/采集/功率/足迹/边际/锁/评估/审计/对照/交付/稿件）",
+            "locomotion/README：冻结包位置与 bundle/policy 散列，补 4 条 HiRA 与 v2 的契约差异",
+            "只读对照 main.tex，按 A/B/C/D/E/F 六组出清单：每条给行号、旧值、新结果、建议改法；D 组列出已核对一致项，避免只列差异制造错觉",
+            "查 v2 交接笔记 §27.2/§27.4 为 0.18/0.12 找到来历（旧稿无依据假设，已被实测替代），写进清单的「依据」",
+            "核验稿件未被改动：git status --short -- manuscripts/ 为空、git diff --stat -- manuscripts/ 为空、main.tex 与 references.bib 散列与开始时一致"
+          ],
+          "files_changed": [
+            "AGENTS.md",
+            "README.md",
+            "CaMRA/README.md",
+            "CaMRA/calibration/README.md",
+            "CaMRA/locomotion/README.md",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/manuscript_sync_differences.md（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§41）"
+          ],
+          "commands": [
+            "git status --short -- manuscripts/            # 期望空",
+            "git diff --stat -- manuscripts/               # 期望空",
+            "sha256sum manuscripts/CCDC/latex/1029/main.tex manuscripts/CCDC/latex/1029/references.bib"
+          ],
+          "results": [
+            "文档一致性：5 份文档现在都写 38/40（剩 HIRA-039/040），不再出现「0/40」或「适配尚未实施」。",
+            "可区分性：CaMRA/README 的对照表给出 v2 与 HiRA 在观测缩放（0.2/0.25、command 缩放、dof_vel 0.05）、关节顺序（按类型 vs 逐腿+置换）、kp（25/20）、限幅（23.7 vs calf 35.55）、冻结裕度（0.19048/2.6139 vs 0.351568/9.032231）上的差异。",
+            "可定位性：calibration/README 的 HiRA 产物表把 11 个阶段映射到具体文件；文档均指向 docs/reproduction.md 与 delivery/bundle_manifest_hira_v1.json。",
+            "稿件差异清单：A 类 6 条（α/δ、中位、三项覆盖、Fig.5 两处标注、消融网格）、B 类 3 条（成本单位、控制频率、60 s 与 30 s 窗口）、C 类 2 条（近障 0/200、98.40% 覆盖与 75.5% 重叠并存）、D 类 4 条一致项、F 类 3 件需作者判断。",
+            "最吃重的一条：稿件 δ=0.12 m 与 v2 自己的冻结值 2.6139 m 差 20 倍以上，v2 笔记 §27.4 已写明 0.12 m 是「无依据的假设」并被实测替代；清单明确建议改为 2.6139 m（报 v2）或另起段落报 9.032231 m（报 HiRA），不得混用。",
+            "稿件零改动：git status/diff 对 manuscripts/ 均为空；main.tex sha256 83fdb330…、references.bib 1991c0af… 与开始时一致；HiRA 子模块未触碰。",
+            "旧 v2 计划与旧结论未改：32/32、overall_pass=False、低速边界、§32 补采记录全部保留。"
+          ],
+          "evidence": [
+            "reports/manuscript_sync_differences.md（A/B/C/D/E/F 六组，逐条给 main.tex 行号）",
+            "AGENTS.md / README.md / CaMRA/README.md / CaMRA/calibration/README.md / CaMRA/locomotion/README.md（19 处更新）",
+            "docs/implementation_handoff.md §41（文档同步记录 + 差异清单摘要 + 两件遗留）"
+          ],
+          "remaining_work": [
+            "HIRA-040 逐项对账与最终交接：核对 40 项状态与验收事实、结构校验、无旧证据覆写、无论文变更、无隐性重训。",
+            "稿件修改由作者本人执行；三项待判断（held-out 分母、消融网格、控制频率）已在清单 F 组列出。",
+            "输出目录守卫是否下沉到 run_split（需 v3 锁）仍待裁定，已列入 §41.3。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "严禁写manuscripts/**、tex/bib/PDF或重新编译；差异清单不叫实际稿件同步完成。",
         "无用户指令不提交或推送Git，也不自动切换上层导航任务。"
@@ -3482,7 +3533,7 @@
         "新上下文可以区分v2与HiRA、找到模型/数据/证据和准确运行入口。",
         "文档与实际状态/锁/hash一致，稿件与参考子模块无修改。"
       ],
-      "verification_result": ""
+      "verification_result": "通过。5 份开发入口文档同步 19 处，全部改为与实际状态一致（38/40、适配已冻结、入口为 run_delivery.py）；新增 v2/HiRA 契约对照表与 HiRA 独立产物表，新上下文可区分两个控制器并定位模型/数据/证据/入口。产出只读稿件差异清单 reports/manuscript_sync_differences.md：6 条数值差异、3 条口径表述、2 条新增结论、4 条已核对一致、3 件需作者判断；核心是 δ 0.12 m 与 v2 冻结值 2.6139 m 差 20 倍以上（v2 笔记已注明旧值为无依据假设）。稿件与 HiRA 子模块零修改：git status/diff 对 manuscripts/ 均为空，main.tex 83fdb330、references.bib 1991c0af 未变。旧 v2 计划状态与旧结论一字未改。"
     },
     {
       "id": "HIRA-040",

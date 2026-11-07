@@ -5,11 +5,11 @@
 
 ## 当前任务：HiRA 来源策略的独立校准
 
-当前入口为 [40项 HiRA 接入与校准计划](../../doc/plan/20261105_camra_hira_policy_calibration.json)，0/40项完成，首项HIRA-001。先学习现有实现和HiRA源码，在Isaac Lab完成模型、观测、关节映射、PD、时序、闭环及能量计量验证；HIRA-020接入门禁通过前不开展pilot、功率基线或正式采集。
+当前入口为 [40项 HiRA 接入与校准计划](../../doc/plan/20261105_camra_hira_policy_calibration.json)，**38/40 项完成**（HIRA-001–038），剩 HIRA-039 与 HIRA-040。G1 接入门禁 16/16 已通过；pilot、400 条功率基线、800 条校准、400 条检验与 200 条近障均已采完并留有完整性报告；α/δ 已冻结，交付包已建并通过独立目录重载 20/20。
 
-现有v2校准工具及结果已经建立，原32项计划记录完成。HiRA是新增独立候选，尚未完成适配；现有采集器仍有v2模型路径和默认协议等绑定，不能只替换权重就按本页旧命令采集。计划中的 `experiments/hira_go2_18500/` 尚未建立，后续在该处保存新配置、报告和交接，适配实现位于相邻locomotion模块。
+现有v2校准工具及结果已经建立，原32项计划记录完成。HiRA 是新增独立候选，适配已完成并冻结（检验锁 `db156f4d`，heldout 400 条仍归属 v1 `289e4137`）；`experiments/hira_go2_18500/` 已建立，保存新配置、七清单、冻结包、报告与交付索引，适配实现位于相邻 locomotion 模块。HiRA 的采集入口是 `tests/run_delivery.py`（带输出目录绑定守卫）或 `tests/run_split.py` + 对应 stage lock，**不能沿用本页 v2 命令**。
 
-本轮保持30秒测量窗口和正关节机械功（J）定义，独立完成20条pilot、400条clean功率基线（240/80/80）、800条校准、400条检验及200条近障检查。先验证并冻结功率模型和正式数据锁，再校准α/δ，冻结裕度后才采集检验与近障结果。执行主机终端任务使用tmux。
+本轮保持30秒测量窗口和正关节机械功（J）定义，独立完成20条pilot、400条clean功率基线（240/80/80）、800条校准、400条检验及200条近障检查。先验证并冻结功率模型和正式数据锁，再校准α/δ，冻结裕度后才采集检验与近障结果——以上已按此顺序完成。执行主机终端任务使用tmux。
 
 新控制器、协议、功率模型、足迹、裕度、数据锁、trial ID及输出目录分别绑定同一实验身份。旧v2数值只作历史对照，不能作为HiRA结果；本轮论文资料始终只读。
 
@@ -33,6 +33,23 @@
 | 评估 | `scripts/evaluate_{heldout,near_obstacle}.py` | 成本/位置/联合覆盖、四套分母、按格与子组 |
 | 审计 | `scripts/audit_all_splits.py` | 独立 numpy 重算能量 + 配额/seed/散列 |
 | 交付 | `delivery/bundle_manifest_v1.json` | 路径 + 散列索引，仓库外大文件只引用 |
+
+HiRA 在同一链路下的独立产物（均在 `experiments/hira_go2_18500/` 内，**不与上表混用**）：
+
+| 阶段 | 关键产物 | 结论 |
+|---|---|---|
+| 协议 | `config/calibration_protocol_hira_v1.json` | 时钟、命令域、五 profile、配额、统计口径 |
+| 清单 | `manifests/*.jsonl` + `lock.json` | 七分片 1820 条，seed 块两两互斥 |
+| 采集 | `tests/run_delivery.py` → `run_split.py` | 1820 条全部单 attempt（零重采），失败样本零删除 |
+| 功率模型 | `config/power_model_hira_v1.json` | 十参数，validate q90 5.88%（n=80） |
+| 足迹 | `config/footprint_hira_v1.json` | 52 顶点、0.6769 m²、最小宽度 0.7596 m |
+| 边际 | `config/margins_hira_v1.json` | **α 0.351568、δ 9.032231 m**（n=771，nearest-rank + 簇 bootstrap） |
+| 数据锁 | `config/data_lock_hira_{calibration_v2,evaluation_v2}.json` | `c229c417` / `db156f4d`，margins 冻结、代码 38 文件 |
+| 评估 | `tests/coverage_heldout.py`、`tests/evaluate_near_obstacle.py` | heldout 0.9098/0.8966/0.8170；近障 0.9362/0.9840/0.9202、几何重叠 151/200、δ 条件 **0/200** |
+| 审计 | `tests/full_independent_audit.py` | 12/12，能量 1820 条最差 rel 4.97e-16，α/δ 逐位一致 |
+| 对照 | `tests/compare_hira_v2.py` | 与 v2 **报告级**对比（v2 逐 trial 数据已不在本机，recomputed=false） |
+| 交付 | `delivery/bundle_manifest_hira_v1.json` + `docs/reproduction.md` | 220 文件 / 1880 trial 索引；独立目录重载 20/20 |
+| 稿件 | `reports/manuscript_sync_differences.md` | 只读差异清单，未改稿件 |
 
 ## 现有 v2 工具命令
 

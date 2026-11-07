@@ -10,7 +10,7 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 
 旧补充复测未通过的结论保留，TASK-036/037 不改为通过。当前使用决定是在保留这些边界的前提下推进下一模块；包体完整性与可重载性仍需在实际执行设备上核验。
 
-当前入口是 [40项HiRA计划](../../doc/plan/20261105_camra_hira_policy_calibration.json)，0/40项完成，从HIRA-001开始。先学习来源和现有链路，再配置环境、核验资产与权重，完成适配及验收。计划中的 `adapters/hira_go2/` 尚未建立，当前没有已验证的HiRA运行入口。
+当前入口是 [40项HiRA计划](../../doc/plan/20261105_camra_hira_policy_calibration.json)，**38/40 项完成**（HIRA-001–038），剩 HIRA-039/040。`adapters/hira_go2/` 已建立（13 个模块，含 `obstacles.py`）；冻结包在 `calibration/experiments/hira_go2_18500/frozen/hira_go2_18500`（bundle `3c32fe31…`、policy `721a891a…`、45→512→256→128→12）；运行入口与复现步骤见该实验 `docs/reproduction.md`。
 
 来源为锁定HiRA子模块中 `logs/rough_go2/Sep08_11-57-26_/model_18500.pt`。HiRA原系统使用Isaac Gym，观测缩放、默认姿态、关节排列及显式PD与v2不同；不能直接使用下表的v2观测或执行器。适配代码放在CaMRA，HiRA保持只读；HIRA-020接入门禁通过后才冻结新控制器并放行采集。
 
@@ -18,7 +18,14 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 
 ## 当前状态与已知边界
 
-以下为截至2026-11-03的v2历史交付与测试记录。HiRA是新增待验证候选，尚未发布新的Isaac Lab控制器包。
+以下为截至2026-11-03的v2历史交付与测试记录。HiRA 已于 2026-11-07 完成 Isaac Lab 接入并冻结（G1 16/16、观测 13/13、动作/PD 10/10、时序 6000/1500/300/301 实测），其契约与 v2 不同、不可互相套用：
+
+- 观测缩放 `ang_vel×0.25`、`command×[2,2,0.25]`、`dof_vel×0.05`，噪声只落 9:33；
+- kp **20.0**（v2 为 25.0）、kd 0.5、`action_scale` 0.25；
+- 关节顺序：源 URDF 逐腿，目标按关节类型，置换 `[0,3,6,9,1,4,7,10,2,5,8,11]`；
+- 力矩限幅逐关节 23.7 N·m，**calf 35.55 N·m**。
+
+细节以 `calibration/experiments/hira_go2_18500/frozen/hira_go2_18500/controller.json` 为准。
 
 | 阶段 | 结论 | 证据位置 |
 | --- | --- | --- |
