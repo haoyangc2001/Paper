@@ -1958,3 +1958,68 @@ v2 下重跑门禁仍是 13/13（`reports/formal_gate_v2_lock.json`）。
 这个量级很可能把可行走廊整个吃掉，使近障任务在几何上不可做。按协议"大 δ 可能是真实结果，
 若不可用于预定任务则记录并询问，**不通过改分位缩小**"——所以 HIRA-035 采集前先做一次只读可行性核算
 （地图尺寸、走廊宽度、扩张后可行面积占比），结果拿到再决定，不先跑数据再解释。
+
+
+## §34 HIRA-032：400 条 heldout 独立检验（377/400，三格资格缺口已裁定）
+
+**这一节解决什么**：α/δ 在 §33 冻结之后，用从未参与拟合、选型与校准的 400 条数据，检查采集本身是否完整、
+身份与资格是否成立。**覆盖率统计不在本节**，在 §35（HIRA-033）；本节只做"数据能不能用"，不做"裕度管不管用"。
+
+**入口与口径**：唯一入口 `tests/run_split.py --split heldout --lock config/data_lock_hira_evaluation_v1.json`
+（检验 stage lock，`margins.state=frozen`，不回写采集锁）。run `heldout_20261106`，seed 7000–7399，
+20 格 × 20 条，1 s 零动作 warmup + 30 s 窗口，`num_envs=8`，GPU0。清单逐条按 `program_sha256` /
+`template_sha256` 双散列重建对账。
+
+**采集**：50 批、wall **2697.8 s**、**448.7 MB**、单条 6.5–6.9 s（GPU0 与另一用户共存；空卡约 2.1 s）。
+400 个 trial 全部 `attempt_01`、**0 次重采**，收尾 `SPLIT_HELDOUT_RUN_OK` + `rc=0`。
+
+**完整性 10 项**（`reports/heldout_collection_integrity.json`）
+
+| 编号 | 判据 | 结果 |
+|---|---|---|
+| C01 | 400 条 / 20 格 / 每格 20（分母取清单） | 通过 |
+| C02 | bundle/split/seed/program 散列逐条一致 | 0 不合格 |
+| C03 | 五种 profile 旋钮 = 按 seed 重建的期望 | 0 异常；推扰 559 次，Δv ∈ [0.016, 0.671] m/s |
+| C04 | completed=6000/1500/301、失败截断自洽 | 0 不合格 |
+| C05 | 能量离线复算 ≤ 1e-9 | 400 条最差 rel **0.00e+00** |
+| **C06** | 每格完整率 ≥ 0.9 | **未达标 3 格** |
+| C07 | non_computable ≤ 0.2 | 0/400 = 0.0000 |
+| C08 | 未打开 near_obstacle | 通过 |
+| C09 | seed/program 与 pilot/baseline/calibration 零重叠 | 五对交集全 0 |
+| C10 | 检验锁 margin 绑定 | state=frozen、α/δ 逐位、散列一致 |
+
+**分母**：清单 400 / 可用 400 / completed **377** / business_failure **23** / missing 0 / excluded **0**。
+
+**C06 三格缺口**
+
+| 格 | 完成/配额 | 完整率 |
+|---|---|---|
+| `arc_combined/combined` | 13/20 | **0.650** |
+| `arc_combined/mass_only` | 15/20 | **0.750** |
+| `start_stop_turn/mass_only` | 17/20 | **0.850** |
+| `arc_combined/friction_only` | 18/20 | 0.900（贴线） |
+| `straight_shift/combined` | 18/20 | 0.900（贴线） |
+
+23 条业务失败的分布：按 profile 为 `combined` 10（arc_combined 7 / straight_shift 2 / alternating 1）、
+`mass_only` 10（arc_combined 5 / start_stop_turn 3 / alternating 1 / straight_shift 1）、`friction_only` 2、
+`clean` 1、`push_only` **0**；按族为 `arc_combined` 14 / `start_stop_turn` 3 / `straight_shift` 3 / `alternating` 3。
+这与 §33 的 δ 构成（combined 12.50、mass_only 12.13 最高，push_only 12.39 但样本全过）方向一致：
+**大载荷叠加扰动是真实弱项，不是抽样偶然**。对照校准数据的 2 格缺口（0.825 / 0.875），
+heldout 有 3 格且最低到 0.650，说明该缺口在独立数据上被复现并放大。
+
+**裁定**（用户 2026-11-07，沿用 HIRA-030 先例）：不补采、不改 20 条/格配额、不删不替换失败记录；
+三格如实入档并**保留在主分母**，但不进入**格级**正式结论。HIRA-033 必须并列两套分母：
+全体 400 条与剔除这三格的 340 条，不得只报一套。
+
+**边界（下游必须知道）**
+
+1. **格级结论只覆盖 17/20 格**。总体覆盖率与 profile/族/方向子组仍可报，但任何"逐格 90%"的说法
+   必须标注这 3 格资格不足，且不得把它们剔除后再宣称"20 格全达标"。
+2. **warmup 瑕疵本批未复现**：最短截断 364 步（1.82 s，`straight_shift/combined-0000`），
+   23 条失败全部发生在窗口内，**0 条"开局即倒"**（对照校准 2/800 的 `non_computable`）。
+   因此 §32 的 warmup 顾虑在 heldout 上没有新增证据，但仍不作为"下一版不必修"的理由。
+3. **`check_heldout.py` 有一处显示瑕疵**：汇总行打印 `completed=377/800` 且前缀写作 `CAL_INTEGRITY`
+   （从 `check_calibration.py` 抄来的硬编码），JSON 内的 counts 与 cells 是正确的。该脚本不在任何锁的
+   `code.files` 内（锁里 `tests/` 只有 `run_split.py`），但按"已产出报告不重跑覆盖"的规矩本轮不改，
+   留到 §43（HIRA-038/039）的已知瑕疵清单。
+4. 本节**不打开 near_obstacle**，也不回写 α/δ 或功率模型（C08/C10 已机器化验证这一点）。

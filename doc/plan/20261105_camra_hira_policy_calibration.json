@@ -2847,7 +2847,7 @@
       "id": "HIRA-032",
       "phase": "独立检验",
       "goal": "采集400条冻结条件下的HiRA独立检验",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-031"
       ],
@@ -2865,7 +2865,78 @@
         "400条heldout原始结果",
         "reports/heldout_collection_integrity.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-07T09:05:00+08:00",
+          "summary": "采集 400 条 heldout 完成并通过完整性审查 9/10 项（C01/C02/C03/C04/C05/C07/C08/C09/C10 全过，C06 每格完整率有 3 格低于 0.9）。全部 400 条留痕、0 条数据排除、0 条缺失；completed 377 / business_failure 23；能量离线复算 400 条最差 rel 0.0；与 pilot/baseline/calibration 的 seed 与 program 散列交集全部为 0；检验锁 margins 绑定核验通过。C06 缺口按协议 min_complete_share_rule 需回到采集或协议裁定，按 uncertainty_policy 停止等待用户裁定，status 保持 false。",
+          "actions": [
+            "确认 tmux hira-heldout 正常收尾：日志出现 SPLIT_HELDOUT_RUN_OK、=== done rc=0、目录 400 个 trial、50 批、wall 2697.8 s、448.7 MB",
+            "在 /pub 工作副本上以只读方式运行 tests/check_heldout.py --run-id heldout_20261106，未重跑、未改任何数据",
+            "逐项复核 C01–C10：配额来自清单（400/20 格/每格 20）、旋钮期望值由 sample_spec 按 seed 独立重建、终止 trial 截断按 n_steps//20+1 校验、能量用 physics_200hz.npz 的 tau_applied_source 与 qdot_post_source 以 float64 复算",
+            "把报告回填到 git 仓库的 reports/heldout_collection_integrity.json（cp -p，未改内容）",
+            "确认 check_heldout.py 不在任何锁的 code.files 内（锁内 tests/ 只有 run_split.py），发现其汇总行打印分母硬编码为 /800 且前缀写作 CAL_INTEGRITY；按“不要顺手修”保留，登记为已知瑕疵"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/heldout_collection_integrity.json（新增）"
+          ],
+          "commands": [
+            "find /pub/data/caohy/logs/camra_hira/runs/heldout_20261106 -name 'DONE*' | wc -l  # 400",
+            "tail -4 /pub/data/caohy/logs/camra_hira/heldout_run.log  # 批50 / 完成 2697.8s / SPLIT_HELDOUT_RUN_OK",
+            "cd /pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500 && set -a; . config/hira.env; set +a; $CAMRA_HIRA_PYTHON tests/check_heldout.py --run-id heldout_20261106"
+          ],
+          "results": [
+            "counts：manifest 400 / evaluated 400 / completed 377 / business_failure 23 / missing 0 / non_computable 0 / excluded 0。",
+            "C01 配额：清单 400 条、20 格、每格 20 条。C02 身份：0 不合格。C03 旋钮：0 异常，推扰实测 |Δv| ∈ [0.016, 0.671] m/s 共 559 次。C04 结构：completed=6000/1500/301、business_failure 截断自洽，0 不合格。C05 能量：400 条最差 rel 0.00e+00。C07 non_computable 0/400 = 0.0000。C08 未打开 near_obstacle。C09 seed/program 与 pilot/baseline_fit/baseline_dev/baseline_validate/calibration 交集全部 0。C10 margins.state=frozen、α=0.35156762163783695、δ=9.032231244495946，文件散列与检验锁一致。",
+            "C06 未达标 3 格：arc_combined/combined 13/20 = 0.650、arc_combined/mass_only 15/20 = 0.750、start_stop_turn/mass_only 17/20 = 0.850（协议门槛 0.9）。另 arc_combined/friction_only 与 straight_shift/combined 各 18/20 = 0.900 恰在门槛上。",
+            "23 条业务失败的分布：按 profile 为 combined 10（arc_combined 7 / straight_shift 2 / alternating 1）、mass_only 10（arc_combined 5 / start_stop_turn 3 / alternating 1 / straight_shift 1）、friction_only 2、clean 1、push_only 0；按族为 arc_combined 14 / start_stop_turn 3 / straight_shift 3 / alternating 3。与 δ 的 profile 构成（combined 12.50、mass_only 12.13 最高）方向一致。",
+            "最短截断 364 步（1.82 s，straight_shift/combined-0000），全部 23 条失败都发生在窗口内而非窗口首帧；本批 0 条“开局即倒”样本，HIRA-030 的 warmup 瞬态瑕疵在本批未复现（对照校准 2/800）。",
+            "对比校准数据：校准有 2 格不达标（0.825 / 0.875），heldout 有 3 格不达标且最低到 0.650，说明该缺口是控制器在 combined/mass_only 档的真实弱项，不是 heldout 抽样偶然。"
+          ],
+          "evidence": [
+            "reports/heldout_collection_integrity.json（C01–C10 + verdict.all_passed=false / failed=['C06-cell-full-rate']）",
+            "/pub/data/caohy/logs/camra_hira/heldout_run.log（SPLIT_HELDOUT_RUN_OK、rc=0、2697.8 s、50 批）",
+            "/pub/data/caohy/logs/camra_hira/runs/heldout_20261106（400 个 trial 目录，全部 attempt_01，DONE 散列完整）",
+            "/pub/data/caohy/logs/camra_hira/check_heldout.log（本次审查原始输出）"
+          ],
+          "remaining_work": [
+            "C06 三格缺口（0.650 / 0.750 / 0.850）需用户按协议 min_complete_share_rule 裁定：维持“不补采 + 该 3 格不进入格级正式结论”的先例，或其他处理；裁定后才能填写 verification_result 并置 status=true。",
+            "裁定后需在 HIRA-033 的覆盖率报告中同时给出全体 400 条主分母与“排除这三格”的条件分母，两套并列，并写明格级结论的适用范围。",
+            "check_heldout.py 汇总行硬编码分母 /800 与前缀 CAL_INTEGRITY（应 /400、HELDOUT），仅为显示瑕疵，JSON 数据正确；按“不要顺手修”保留，登记到 HIRA-038/039 的已知瑕疵清单。",
+            "HIRA-032 的 docs/implementation_handoff.md §34 尚未写（待裁定后与本节一并落档）。"
+          ],
+          "blockers": [
+            "C06-cell-full-rate 未通过（3 格 < 0.9），按协议 min_complete_share_rule 与 uncertainty_policy 需用户裁定，未擅自补采、未改配额、未删失败记录。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-07T09:12:00+08:00",
+          "summary": "对 C06 三格未达标做协议裁定（用户决定）：沿用 HIRA-030 先例，不补采、不改 20 条/格配额、不删不替换失败记录；三格如实入档并保留在主分母，但不进入格级正式结论；HIRA-033 必须并列报「全体 400 条」与「剔除这三格」两套分母。裁定后 HIRA-032 收口。",
+          "actions": [
+            "向用户报告 C06 三格缺口（0.650 / 0.750 / 0.850）与 23 条失败的 profile/族分布，给出口径选项",
+            "按用户选择沿用 HIRA-030 先例：不补采、不改配额、不删失败样本、不改任何阈值或分位",
+            "以 user_ruling 形式登记裁定，并把 HIRA-032 置为完成",
+            "在 docs/implementation_handoff.md 追加 §34 记录本节结论与边界"
+          ],
+          "files_changed": [
+            "doc/plan/20261105_camra_hira_policy_calibration.json",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md"
+          ],
+          "commands": [],
+          "results": [
+            "裁定结论：arc_combined/combined 0.650、arc_combined/mass_only 0.750、start_stop_turn/mass_only 0.850 均为如实记录的独立检验资格缺口；不补采、不改配额、不删失败。",
+            "统计口径不变：全体覆盖率的共同分母取清单 400 条（含 23 条业务失败）；格级正式结论只覆盖 17/20 格，其余 3 格标注「资格不足，不作结论」。",
+            "HIRA-033 必须并列两套分母：全体 400 条 + 剔除这三格的 340 条，且不得只报其中一套。"
+          ],
+          "evidence": [
+            "reports/heldout_collection_integrity.json#cells（三格 full_rate 与 business_failure 计数）",
+            "用户在 2026-11-07 会话中的明确选择（沿用 HIRA-030 先例）"
+          ],
+          "remaining_work": [
+            "HIRA-033 覆盖率报告需按两套分母并列，并在格级表标注 3 格资格不足。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "门禁之前不采heldout，采集期间不反向调参。",
         "业务失败算在400条之内，不以重试成功替换。"
@@ -2874,7 +2945,7 @@
         "400个预登记业务trial全数留痕，20格配额、资源hash、采样时钟和trace完整。",
         "用于统计的主attempt由预登记规则唯一确定。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（完整性 9/10 项 + C06 三格缺口已裁定）。400 条全数留痕、0 条数据排除、0 条缺失，completed 377 / business_failure 23；能量离线复算 400 条最差 rel 0.00e+00；seed 与 program 散列对 pilot/baseline_fit/baseline_dev/baseline_validate/calibration 交集全部为 0；检验锁 margins.state=frozen（α 0.351568、δ 9.032231）绑定核验通过；本 run 未打开 near_obstacle。C06 每格完整率有 3 格未达 0.9：arc_combined/combined 0.650、arc_combined/mass_only 0.750、start_stop_turn/mass_only 0.850，按用户裁定沿用 HIRA-030 先例——不补采、不改配额、不删失败记录，三格保留在主分母但不进入格级正式结论；HIRA-033 须并列报全体 400 条与剔除这三格两套分母。"
     },
     {
       "id": "HIRA-033",
