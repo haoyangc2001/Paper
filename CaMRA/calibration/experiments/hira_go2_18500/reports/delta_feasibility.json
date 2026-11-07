@@ -1,0 +1,103 @@
+{
+ "report": "delta_feasibility",
+ "task": "HIRA-035-precheck",
+ "maps": {
+  "path": "/pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500/config/near_obstacle_maps_v1.json",
+  "n_cases": 200,
+  "n_sampled": 40,
+  "arena_m": [
+   8.0,
+   10.0
+  ],
+  "gate_width_m_range": [
+   0.7132,
+   1.6956
+  ],
+  "clearance_tiers_m": [
+   0.05,
+   0.1,
+   0.2,
+   0.35
+  ]
+ },
+ "footprint": {
+  "min_width_half_m": 0.37981,
+  "circumscribed_radius_m": 0.552997,
+  "note": "危险区按 δ + min_width/2 计；外接圆 0.553 m 的版本会再保守 0.17 m"
+ },
+ "rule": "危险区 = obstacle ⊕ footprint ⊕ disc(δ)，δ 只施加一次",
+ "criterion": "起点/终点仍在自由空间 且 中位自由面积占比 ≥ 0.10 视为几何可用",
+ "sweep": {
+  "0.0000": {
+   "delta_m": 0.0,
+   "median_free_area_share": 0.9173450000000001,
+   "min_free_area_share": 0.87705,
+   "max_free_area_share": 0.95642,
+   "start_free_share": 1.0,
+   "goal_free_share": 1.0,
+   "median_reachable_share": 0.9173450000000001
+  },
+  "0.5000": {
+   "delta_m": 0.5,
+   "median_free_area_share": 0.779925,
+   "min_free_area_share": 0.66557,
+   "max_free_area_share": 0.8986,
+   "start_free_share": 0.525,
+   "goal_free_share": 0.65,
+   "median_reachable_share": 0.68119
+  },
+  "1.0000": {
+   "delta_m": 1.0,
+   "median_free_area_share": 0.61036,
+   "min_free_area_share": 0.44816,
+   "max_free_area_share": 0.82368,
+   "start_free_share": 0.2,
+   "goal_free_share": 0.375,
+   "median_reachable_share": 0.0
+  },
+  "2.6139": {
+   "delta_m": 2.6139,
+   "median_free_area_share": 0.151295,
+   "min_free_area_share": 0.03329,
+   "max_free_area_share": 0.45393,
+   "start_free_share": 0.025,
+   "goal_free_share": 0.15,
+   "median_reachable_share": 0.0
+  },
+  "4.0000": {
+   "delta_m": 4.0,
+   "median_free_area_share": 0.00676,
+   "min_free_area_share": 0.0,
+   "max_free_area_share": 0.14805,
+   "start_free_share": 0.025,
+   "goal_free_share": 0.025,
+   "median_reachable_share": 0.0
+  },
+  "6.0000": {
+   "delta_m": 6.0,
+   "median_free_area_share": 0.0,
+   "min_free_area_share": 0.0,
+   "max_free_area_share": 0.0087,
+   "start_free_share": 0.0,
+   "goal_free_share": 0.0,
+   "median_reachable_share": 0.0
+  },
+  "9.0322": {
+   "delta_m": 9.032231244495946,
+   "median_free_area_share": 0.0,
+   "min_free_area_share": 0.0,
+   "max_free_area_share": 0.0,
+   "start_free_share": 0.0,
+   "goal_free_share": 0.0,
+   "median_reachable_share": 0.0
+  }
+ },
+ "verdict": {
+  "near_obstacle_geometrically_usable": false,
+  "frozen_delta_m": 9.032231244495946,
+  "reference_v2_delta_m": 2.6139,
+  "reason": "冻结 δ 下自由面积或起终点被危险集吃掉，近障任务几何不可做",
+  "protocol_action": "记录并询问；不得通过改分位缩小 δ 来凑可行性",
+  "first_attempt_note": "第一版按'名义路径到障碍最小距离'判据，连 v2 的 2.6139 也判不可行，说明该判据把地图设计间隙（0.05–0.35 m）误当 δ 上限，已弃用；本报告改用区域面积判据"
+ }
+}
