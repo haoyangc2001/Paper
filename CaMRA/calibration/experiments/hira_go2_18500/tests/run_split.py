@@ -43,6 +43,10 @@ parser.add_argument("--usd-dir", default="/pub/data/caohy/logs/camra_hira/assets
 parser.add_argument("--num-envs", type=int, default=8, help="批内 env 数；同一 run 内固定")
 parser.add_argument("--window", type=float, default=30.0)
 parser.add_argument("--max-batches", type=int, default=0, help=">0 时只跑前 N 批（冒烟用）")
+# HIRA-029：数据锁是采集的唯一入口，任何散列不符都在启动仿真之前拒绝
+parser.add_argument("--lock", default=str(EXP / "config/data_lock_hira_calibration_v1.json"))
+parser.add_argument("--margins", default=str(EXP / "config/margins_hira_v1.json"))
+parser.add_argument("--maps", default=str(EXP / "config/near_obstacle_maps_v1.json"))
 # --device 由 AppLauncher 提供
 
 _PRE = parser.parse_known_args()[0]
@@ -57,6 +61,7 @@ import torch  # noqa: E402
 
 from camra_calibration.commands import build_program  # noqa: E402
 from hira_go2.bundle import load_bundle  # noqa: E402
+from camra_calibration.lock import DataLock, LockError, enforce_collection  # noqa: E402
 from hira_go2.collector import HiraCollector, TrialSpec, plan_attempts, sample_spec  # noqa: E402
 
 T0 = time.time()
@@ -123,6 +128,22 @@ def main() -> int:
     run_dir = Path(args_cli.runs_root) / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    # ---- G2 前置：数据锁门禁（仿真启动前）----
+    lock_path = Path(args_cli.lock)
+    if not lock_path.is_file():
+        raise SystemExit(f"缺少数据锁 {lock_path}：正式采集必须由锁放行（HIRA-029）")
+    lock = DataLock.load(lock_path, verify_hash=True)
+    try:
+        enforce_collection(
+            lock, split, REPO,
+            manifest_dir=Path(args_cli.manifests),
+            maps_path=args_cli.maps if split == "near_obstacle" else None,
+            margins_path=args_cli.margins,
+        )
+    except LockError as exc:
+        raise SystemExit(f"数据锁拒绝 {split!r}：{exc}") from exc
+    log(f"lock ok: {lock_path.name} sha={lock.sha256[:16]} split={split}")
+
     bundle = load_bundle(Path(args_cli.bundle), expected_controller_id=Path(args_cli.bundle).name)
 
     rows = load_manifest(split)
@@ -148,6 +169,8 @@ def main() -> int:
                     "num_envs": args_cli.num_envs,
                     "usd_dir": args_cli.usd_dir,
                     "bundle_id": bundle["manifest"]["bundle_id"],
+                    "data_lock": {"file": lock_path.name, "sha256": lock.sha256,
+                                  "stage": lock.payload.get("stage")},
                     "controller_id": bundle["controller"]["controller_id"],
                     "num_trials": len(specs),
                     "program_rebuild": "camra_calibration.commands.build_program（逐条按 program_sha256 对账）",

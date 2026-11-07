@@ -224,15 +224,22 @@ class ObservationAdapter:
         return self._to_rows(tensor, name, width)
 
 
-def build_noise_vector(dof_pos_scale: float = 0.01, dof_vel_scale: float = 1.5, noise_level: float = 1.0) -> torch.Tensor:
+def build_noise_vector(dof_pos_scale: float = 0.01, dof_vel_scale: float = 1.5,
+                       noise_level: float = 1.0) -> torch.Tensor:
     """按源的 ``noise_scale_vec`` 生成噪声幅度；只覆盖 9:21 与 21:33。
 
-    源里 ``noise_scale_vec`` 对每个块用 ``noise_scales`` 乘 ``noise_level``，
-    其余块为 0。33:45（上一动作）永不加噪——这是源的既定行为，不是我们的选择。
+    源里 ``noise_vec`` 的每一块都是 ``noise_scales.x * noise_level * obs_scales.x``
+    （``legged_robot._get_noise_scale_vec``），而噪声加在**已缩放**的观测上，
+    所以必须把 ``DOF_POS_SCALE``(1.0) 与 ``DOF_VEL_SCALE``(0.05) 乘进去。
+    33:45（上一动作）永不加噪——这是源的既定行为，不是我们的选择。
+
+    ⚠️ HIRA-030 的教训：早先漏乘 ``DOF_VEL_SCALE``，dof_vel 噪声幅度成了 1.5
+    （应为 1.5×1.0×0.05 = 0.075，**20 倍过大**），使 combined（唯一开噪的 profile）
+    的 160 条校准全部摔倒。修好后必须重采该 profile。
     """
     vector = torch.zeros(OBS_DIM)
-    vector[9:21] = dof_pos_scale * noise_level
-    vector[21:33] = dof_vel_scale * noise_level
+    vector[9:21] = dof_pos_scale * noise_level * DOF_POS_SCALE
+    vector[21:33] = dof_vel_scale * noise_level * DOF_VEL_SCALE
     return vector
 
 

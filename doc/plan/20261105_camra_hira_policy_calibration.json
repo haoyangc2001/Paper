@@ -2574,7 +2574,7 @@
       "id": "HIRA-029",
       "phase": "正式数据门禁G2",
       "goal": "冻结正式采集清单、地图和数据锁",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-028"
       ],
@@ -2595,7 +2595,54 @@
         "冻结近障地图/清单及hash",
         "reports/formal_gate.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T14:55:00+08:00",
+          "summary": "冻结正式采集锁 v1（sha 85ea6539，37 个代码文件、1820 条七分片清单、6 项前置门禁全 True、margins 显式登记为 not_yet_produced），并用 13 项负测试证明缺锁/改锁/错模型/错足迹/错清单/错代码/heldout-near 无 margin/拼错 split/allow_overwrite/地图被改/资源不足全部在仿真启动前被拒。随后观测噪声缺陷（HIRA-030 根因）导致代码变更，按“代码改了就必须新版本新锁”重建 v2（c229c417），并在 v2 下重跑门禁 13/13。旧 v2 阶段（32 项计划）的锁、地图、结果零改动。",
+          "actions": [
+            "新建 tests/make_data_lock_hira.py：把控制器包（bundle 3c32fe31…）、协议（79f983f8）、功率模型（4c3fc567）、足迹（51867346）、步成本 schema（1c6b5040）、七分片清单+lock（1820 条）、近障原始地图（78c0145f）、37 个代码文件、运行环境（python 3.11.18 / torch 2.7.0+cu126 / PhysX 5.1 / driver 580.178.04）与 6 项前置门禁报告装配成 config/data_lock_hira_calibration_v1.json，写 .sha256 侧车。",
+            "新建 tests/check_data_lock_hira.py：13 项负测试 L01–L13，每项先把锁复制到 /pub/data/caohy/tmp/lock_neg 再篡改，验证 enforce_collection 在 AppLauncher 之前拒绝；正品锁必须放行。",
+            "锁内 margins 写成 {'state':'not_yet_produced'} 并把 heldout / near_obstacle 登记进 gated_splits：HIRA-031 只能追加新的不可变 stage lock（data_lock_hira_margins_v1.json），不回写本锁。",
+            "修 tests/run_split.py：--lock 改为必填，并在启动仿真前调用 enforce_collection（先起仿真再查锁等于没查）。",
+            "噪声缺陷暴露后重建 v2：仅 observation.py 一个代码散列变化（其余 36 个不变），amendment 写明 160 条 combined 的归属与重采原因，parent_lock 指回 v1（85ea6539）保证原子归属。"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/make_data_lock_hira.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_data_lock_hira.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/run_split.py（--lock 必填 + 启动前门禁）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_calibration_v1.json（+ .sha256，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_calibration_v2.json（+ .sha256，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/near_obstacle_maps_v1.json（只读副本，新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate_v2_lock.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§31）"
+          ],
+          "commands": [
+            "python tests/make_data_lock_hira.py --out config/data_lock_hira_calibration_v1.json",
+            "python tests/check_data_lock_hira.py                                         # 13/13，写 reports/formal_gate.json",
+            "python tests/make_data_lock_hira.py --out config/data_lock_hira_calibration_v2.json --stage calibration_collection_v2 --note '…' --parent-lock config/data_lock_hira_calibration_v1.json",
+            "python tests/check_data_lock_hira.py --lock config/data_lock_hira_calibration_v2.json --out reports/formal_gate_v2_lock.json"
+          ],
+          "results": [
+            "v1：sha 85ea653994bb1252…，stage calibration_collection；formal_gate.json 的 doors_checked 全匹配（controller/protocol/power/footprint/step_cost/maps/code 37/trial_lists 1820），prerequisite_gates 6/6 passed，negative_tests 13/13。",
+            "v2：sha c229c41787a2a5e1…，stage calibration_collection_v2；formal_gate_v2_lock.json 13/13，其中 L07/L08 证明 heldout 与 near_obstacle 在 margin 未产出时被拒，L12 证明近障地图仍是 v2 原始物理地图（78c0145f 对 78c0145f），L13 资源复核磁盘余量 17164.5 GB、并发采集 0。",
+            "负测试实际拦下的错误类型：锁内容被改而侧车未更新；侧车同步重算后模型/足迹/清单/代码散列不符；缺锁；拼错 split（'calibraton'）；对正式 split 用 allow_overwrite；地图被改。",
+            "口径冻结：错误一律在仿真启动前拒绝，不允许“先跑起来再看锁”。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_calibration_v1.json（+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_calibration_v2.json（+ .sha256）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate.json（13/13）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate_v2_lock.json（13/13）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §31"
+          ],
+          "remaining_work": [
+            "锁内所有路径是 /pub 工作副本的绝对路径（数据实际采集地）。换机复核要么按同一布局恢复，要么在交付阶段（HIRA-033/034）改成仓库相对路径的锁格式——已在 handoff 记为待处理项。",
+            "HIRA-031 只能追加 stage lock，不得回写 v2。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "锁定后代码改动须新版本新锁并评估已有数据归属，不能覆盖旧锁接着混跑。",
         "近障可使用旧原始物理地图，但footprint与筛选定义必须绑定新实验且在看近障结果前固定。"
@@ -2604,13 +2651,13 @@
         "全部前置通过、artifact hash匹配，校准采集可放行。",
         "错误hash/缺参数负测试全部拒绝，旧v2锁/地图/结果未改变。"
       ],
-      "verification_result": ""
+      "verification_result": "通过（13/13 ×2 把锁）。v1 锁 sha 85ea6539、v2 锁 sha c229c417，均为“代码定稿后生成”；formal_gate 的 doors_checked 全匹配、6 项前置门禁全 True、13 项负测试全部在仿真启动前拒绝；margins 显式登记 not_yet_produced 且 heldout/near_obstacle 被 gated，HIRA-031 只追加 stage lock 不回写。旧 v2 阶段的锁/地图/结果零改动。"
     },
     {
       "id": "HIRA-030",
       "phase": "校准",
       "goal": "采集800条HiRA正式校准并审查数据完整性",
-      "status": false,
+      "status": true,
       "depends_on": [
         "HIRA-029"
       ],
@@ -2629,7 +2676,74 @@
         "800条原始校准结果",
         "reports/calibration_collection_integrity.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-06T15:45:00+08:00",
+          "summary": "采满 800 条（4 族 × 5 profile × 40）。中途发现观测噪声缺陷：build_noise_vector 漏乘 DOF_VEL_SCALE，dof_vel 噪声是应有的 20 倍（1.5 vs 0.075），唯一开噪的 combined profile 160 条全部在起始数步内摔倒。160 条零删除移入 quarantine 并重建 v2 锁后原清单重采，最终 771 完成 / 29 业务失败 / 0 缺失 / 2 non_computable，800 条能量离线复算最差 rel 0.0。完整性 8 项中 7 项通过，C06 每格完整率有 2 格未达 0.9。",
+          "actions": [
+            "run_split.py 以 v2 锁为唯一入口采集，四族 × 五 profile 各 40 条，8 env 并发，单条 2.09–2.19 s，run 目录 886 MB。",
+            "定位根因：源噪声向量在 obs_scales.dof_vel(0.05) 之后再进观测，我漏乘 → dof_vel 噪声 1.5 而应 0.075（20 倍）；其余 640 条 obs_noise=False，噪声分支从未触发，数值不受影响。",
+            "160 条移入 /pub/data/caohy/logs/camra_hira/quarantine/calibration_v1_noise_bug（零删除），重建 v2 锁后在原清单上重采同一批 trial_id/seed（attempt 递增），351.5 s / 20 批 / 907.2 MB。",
+            "新增 tests/check_calibration.py（只读、不打开 heldout/near）：C01 配额、C02 身份散列、C03 profile 旋钮、C04 结构、C05 能量复算、C06 每格完整率、C07 non_computable、C08 受保护 split 未被打开。",
+            "对两格未达标做逐条归因（读 meta.json 的 profile 实际读数、terminations 的 sim_time、state_50hz 首帧位姿），不靠猜测分类。"
+          ],
+          "files_changed": [
+            "CaMRA/locomotion/adapters/hira_go2/observation.py（build_noise_vector 乘上 DOF_VEL_SCALE）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/check_calibration.py（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/calibration_collection_integrity.json（新建）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§32）"
+          ],
+          "commands": [
+            "python tests/run_split.py --split calibration --run-id calibration_20261106 --lock config/data_lock_hira_calibration_v2.json",
+            "python tests/check_calibration.py --run-id calibration_20261106 --lock config/data_lock_hira_calibration_v2.json"
+          ],
+          "results": [
+            "counts：manifest 800 / evaluated 800 / completed 771 / business_failure 29 / missing 0 / non_computable 2（0.25%）。",
+            "C05：800 条能量离线复算最差 rel 0.00e+00；C03：推扰实测 |Δv| ∈ [0.007, 0.694] m/s 共 1123 次，五种 profile 的摩擦/质量实际读数与按 seed 重建的期望值逐条一致。",
+            "C06 未达标 2 格：arc_combined/mass_only 33/40 = 0.825、straight_shift/friction_only 35/40 = 0.875（协议门槛 0.9）。其余 18 格 ≥0.9，最紧的是 start_stop_turn/mass_only 与 straight_shift/mass_only 各 0.90。",
+            "族级完成率：alternating 0.995、start_stop_turn 0.970、arc_combined 0.950、straight_shift 0.940；29 条失败按 profile 分布 mass_only 15 / combined 9 / friction_only 5，clean 与 push_only 全 0。",
+            "归因（逐条读记录，不猜）：arc_combined/mass_only 的 7 条全部发生在 2.10–17.76 s 的行走中段，且集中在较大附加质量（8.8–9.9 kg 一档占多数）→ 载荷 + 转弯下的稳态能力边界。straight_shift/friction_only 的 5 条里有 4 条在 ≤0.44 s：其中 0000 与 0006 的窗口首帧已经 z=0.097 / 0.145 m（低于 FALL_HEIGHT 0.15）且倾角 168°/139°，即 1 s 零动作 warmup 结束时人已经倒了，这正是全部 2 条 non_computable；只有 0003（μ=0.323，19.5 s）属稳态低摩擦失稳。失败与 μ 不单调（μ=0.309 那条反而跑满 30 s），所以“低摩擦能力边界”不是主因。",
+            "同一 2 种成因都不进入 α/δ 的统计：协议规定业务失败保留在主分母但作为未覆盖样本，ε 分位只用完整记录。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/calibration_collection_integrity.json（C01–C08）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_calibration_v2.json（本批数据归属锁）",
+            "原始数据：/pub/data/caohy/logs/camra_hira/runs/calibration_20261106（800 条）",
+            "隔离数据：/pub/data/caohy/logs/camra_hira/quarantine/calibration_v1_noise_bug（160 条，零删除）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md §32"
+          ],
+          "remaining_work": [
+            "HIRA-031 用 771 条完整记录算 α/δ，并额外给出去掉 arc_combined/mass_only 与 straight_shift/friction_only 两格（共 68 条完整记录）的敏感性对照，两套并列报告。",
+            "warmup 缺陷（1 s 零动作不足以保证所有 seed 站稳）是真实协议瑕疵，本版协议内不修（修了与校准数据不可比）；写入 HIRA-036/038 的开放项与下一版本协议建议。",
+            "两格的成因与不可用于格级正式结论，必须写进 HIRA-038 交付说明与 HIRA-039 对账，不能只留在计划里。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-07T08:05:00+08:00",
+          "summary": "对 C06 的两格未达标做协议裁定（用户决定）：不补采、不改 40 条/格配额、不删不替换失败记录；两格如实入档并标注成因，不进入格级正式结论；HIRA-031 的 α/δ 用全部 771 条完整记录计算，并另出剔除两格的敏感性对照。",
+          "actions": [
+            "把协议 statistical_acceptance.min_complete_share_rule（“任一 cell 完整率低于 0.9 时该 cell 不得进入正式结论，需回到采集或协议裁定”）按裁定路径执行：选择协议裁定而非回到采集。",
+            "拒绝“追加新种子凑门槛”的做法：那会改动 C01 每格 40 条的配额口径、需要 v3 锁，且本质仍是用追加样本凑通过。",
+            "把两格成因分开记录：载荷格是稳态能力边界，低摩擦格主因是 warmup 瞬态而非低摩擦能力。"
+          ],
+          "files_changed": [
+            "doc/plan/20261105_camra_hira_policy_calibration.json（本条记录）"
+          ],
+          "commands": [],
+          "results": [
+            "裁定结论：arc_combined/mass_only 0.825 与 straight_shift/friction_only 0.875 均为如实记录的校准资格缺口，不补采、不改配额。",
+            "α/δ 统计口径不变（完整记录 771 条），但必须并列报告剔除两格（703 条）的敏感性结果，不得只报一套。"
+          ],
+          "evidence": [
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/calibration_collection_integrity.json"
+          ],
+          "remaining_work": [
+            "HIRA-031 报告必须同时给全样本与剔除两格两套 α/δ。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "不能边看校准结果边修改控制器、功率模型、采样域或协议。",
         "每格完整率<0.9或近零>0.20等协议问题先暂停裁定，不私自补到成功。"
@@ -2638,7 +2752,7 @@
         "800个预登记业务trial全数有记录且计数/配额/归属/散列正确。",
         "完整率及数据资格满足形成裕度的门槛；失败仍在主分母，原始能量可重算。"
       ],
-      "verification_result": ""
+      "verification_result": "采集通过、资格缺口如实入档（7/8 项通过，C06 未达标 2 格已裁定）。800 条全数留痕、0 缺失、身份散列 0 不合格、profile 旋钮逐条一致、能量离线复算最差 rel 0.0、non_computable 0.25% ≤ 0.2、受保护 split 未被打开。arc_combined/mass_only 0.825（稳态载荷能力边界）与 straight_shift/friction_only 0.875（warmup 瞬态为主因）按协议裁定不补采、不入格级正式结论；α/δ 用 771 条完整记录计算并附剔除两格的敏感性对照。"
     },
     {
       "id": "HIRA-031",
