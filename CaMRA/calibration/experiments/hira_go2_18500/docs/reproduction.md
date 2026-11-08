@@ -84,8 +84,11 @@ cd <DELIVERY_ROOT>/CaMRA/calibration/experiments/hira_go2_18500
 python tests/build_delivery_manifest.py --verify delivery/bundle_manifest_hira_v1.json
 
 # ② 生成派生锁（只改路径前缀）；期望 verify_ok=true、n_paths_rewritten=57
+#    当前最新是检验锁 v3（d7d60cb9，含 run_split 的输出目录绑定守卫）；
+#    v1（289e4137）仍是 heldout 400 条的归属凭证、v2（db156f4d）仍是 near 200 条的，
+#    复核历史数据时请用对应版本，不要用 v3 覆盖它们。
 python tests/delivery_relock.py \
-  --lock config/data_lock_hira_evaluation_v2.json \
+  --lock config/data_lock_hira_evaluation_v3.json \
   --out  config/data_lock_hira_evaluation_delivery.json \
   --new-root <DELIVERY_ROOT> \
   --old-prefix /pub/data/caohy/work/hira/

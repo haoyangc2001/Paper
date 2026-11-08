@@ -3607,6 +3607,58 @@
             "已知显示瑕疵未修（不影响数据）：check_heldout.py 汇总行分母硬编码 /800 且前缀写作 CAL_INTEGRITY。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-08T19:05:00+08:00",
+          "summary": "验收后加固（用户 2026-11-08 授权）：把「输出目录绑定守卫」从交付入口下沉到采集脚本 run_split.py 本身，按红线派生检验锁 v3（d7d60cb9，代码 38→38，仅 run_split.py 变化，margins 仍 57d05222/frozen），并真跑门禁与正负冒烟：13/13、10/10、负冒烟 exit 2 且 0 条写入、正冒烟 40/40 条带障碍证据。只改 1 个文件，控制层（观测/PD/关节映射/策略加载）与冻结模型一字未动；v1/v2 锁与数据归属未变（heldout 400 条归 v1、near 200 条归 v2）。同时记下一个伪失败：L13 用 pgrep -f run_split 判并发，被我一条卡在 NFS 上的探查命令误伤，已 kill 具体 PID 后复跑通过。",
+          "actions": [
+            "在 run_split.py 写 collect_config.json 之前插入 _check_run_dir_binding()：读既有卡并比对 split / data_lock.sha256 / bundle_id / manifest_sha256，任一不符即打印拒绝原因并 exit 2；目录不存在或无旧卡照常放行",
+            "补丁用「精确串 + 断言只命中一次」的脚本执行，锚点不匹配即失败退出，避免误改；改后先 py_compile 再同步到 /pub 工作副本并核对两处散列一致",
+            "派生检验锁 v3：新建 tests/make_eval_lock_v3.py，只重算 code.files，其余段逐字沿用 v2，amendment 写明原因与数据归属；拒绝覆盖已存在的锁（锁只能新增）",
+            "用 v3 跑 13 项数据锁负测试与 10 项补偿闸门（分别产出 reports/formal_gate_evaluation_v3_1900.json 与 reports/margin_lock_binding_v3_1900.json）",
+            "负冒烟：把 heldout 的 collect_config.json 复制到沙箱目录，再用 near split + v3 锁指向它，验证守卫拒绝且不写任何 trial",
+            "正冒烟：全新 run-id 采 40 条 near（max-batches 1），验证守卫不误伤正常采集，并核对 collect_config 记录 v3 散列、40/40 条带障碍证据",
+            "排查 L13 伪失败：ps 显示「并发采集进程」其实是我自己一条卡在 NFS 的 bash -c（命令行含 run_split.py），kill 该 PID 后 13/13",
+            "文档同步：reproduction.md 派生锁改 v3 并写明 v1/v2 归属；calibration/README 数据锁行补 v3、采集入口说明改为「两者都带守卫」；AGENTS 现状段写明 v3"
+          ],
+          "files_changed": [
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/run_split.py（加守卫，唯一功能改动）",
+            "CaMRA/calibration/experiments/hira_go2_18500/tests/make_eval_lock_v3.py（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v3.json（+ .sha256，新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate_evaluation_v3_1900.json（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_lock_binding_v3_1900.json（新增）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§43）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/reproduction.md",
+            "CaMRA/calibration/README.md、AGENTS.md"
+          ],
+          "commands": [
+            "python tests/make_eval_lock_v3.py",
+            "python tests/check_data_lock_hira.py --lock config/data_lock_hira_evaluation_v3.json --out reports/formal_gate_evaluation_v3_1900.json",
+            "python tests/check_margin_lock_binding.py --lock config/data_lock_hira_evaluation_v3.json --out reports/margin_lock_binding_v3_1900.json",
+            "python tests/run_split.py --split near_obstacle --run-id heldout_binding --runs-root <沙箱> --lock config/data_lock_hira_evaluation_v3.json --maps config/near_obstacle_maps_v1.json  # 期望 exit 2",
+            "python tests/run_split.py --split near_obstacle --run-id guard_positive_1900 --runs-root <沙箱> --lock config/data_lock_hira_evaluation_v3.json --maps config/near_obstacle_maps_v1.json --max-batches 1  # 40 条"
+          ],
+          "results": [
+            "守卫生效：负冒烟输出 `[guard] 拒绝启动：输出目录已绑定另一批配置 —— split 目录='heldout' 本次='near_obstacle'；data_lock 目录=289e41379bd19cd4 本次=d7d60cb9d28f844e；manifest_sha256 目录记录与本次清单不符`，EXIT=2，目录内除原 collect_config.json 外无任何写入。",
+            "不误伤：正冒烟 40 条、121.4 s、44.7 MB、SPLIT_NEAR_OBSTACLE_RUN_OK；collect_config 记录 data_lock=data_lock_hira_evaluation_v3.json / d7d60cb9；40/40 条 meta.obstacles 非空。",
+            "门禁：数据锁负测试 13/13（L12 确认地图仍 78c0145f）、补偿闸门 10/10（B09 仍能复现 R-07 缺口并用 code 对齐的探针锁隔离）。",
+            "锁演进：v2 db156f4d → v3 d7d60cb9，代码 38→38，变化仅 run_split.py；margins 仍 57d05222 / frozen，α 0.35156762163783695、δ 9.032231244495946 未动。",
+            "归属不变：heldout 400 条仍归 v1 289e4137、near 200 条仍归 v2 db156f4d；v1/v2 文件一字未改。",
+            "控制层与模型未动：observation/action_pd/bundle/env_runner 散列不变，policy.pt 仍 721a891a。",
+            "伪失败已澄清：L13 的并发判据用 pgrep -f run_split，被我自己卡在 NFS 的探查命令（命令行含 run_split.py）误伤；kill 具体 PID 后 13/13。已写入 §43.4，提示该判据口径偏宽。"
+          ],
+          "evidence": [
+            "config/data_lock_hira_evaluation_v3.json（+ .sha256，d7d60cb9d28f844e，amendment 记录原因与归属）",
+            "reports/formal_gate_evaluation_v3_1900.json（13/13）",
+            "reports/margin_lock_binding_v3_1900.json（10/10）",
+            "docs/implementation_handoff.md §43（含负冒烟原始输出与 L13 伪失败说明）",
+            "/pub/data/caohy/work/hira/guard_check/（负冒烟 heldout_binding 与正冒烟 guard_positive_1900）"
+          ],
+          "remaining_work": [
+            "稿件 F 组三问仍待作者决定（held-out 报哪一版分母、δ 消融网格、50/5 vs 50/10 Hz），本轮不涉及稿件。",
+            "可选优化：把守卫提到 AppLauncher 之前，使误换目录时连仿真都不启动（当前 0.9 s 退出，未写数据）。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -3617,7 +3669,7 @@
         "所有必需交付和门禁均有直接证据，40项状态与验收事实一致，结构校验无误。",
         "无旧证据被覆写、无论文变更、无隐性重训；真实不足和下一步明确。"
       ],
-      "verification_result": "通过。tests/final_acceptance_hira.py 六类必需检查全过（verdict.all_required_passed=true、failed=[]）：计划结构 40 项 0 问题；逐项证据路径无缺失；19 个门禁机读判定与预期一致（含 030/032/034 三处已裁定例外）；官方采集 1820/1820 且每 trial 恰一个 attempt（零重采）；无覆写——稿件自 2026-10-31 未改、v2 四个冻结物侧车与锁→margins 链一致、v2 计划未改、HiRA 子模块 6a05af55 且工作区干净；交付索引重算 221 文件 / 1880 trial / bad=0。结论：α 0.35156762163783695、δ 9.032231244495946 m（n=771）；heldout 覆盖 0.9098/0.8966/0.8170（位置与联合低于 0.90，如实上报）；近障 δ 条件 0/200、几何重叠 151/200；与 v2 仅报告级对比。遗留：输出目录守卫下沉需 v3 锁（待裁定）、稿件 F 组三问待作者决定。"
+      "verification_result": "通过（2026-11-08 追加加固后复核）。原验收六类检查全过；本轮把输出目录守卫下沉到 run_split.py 并派生检验锁 v3（d7d60cb9）：数据锁负测试 13/13、补偿闸门 10/10；负冒烟（指向已绑 heldout 的目录）exit 2 且 0 条写入；正冒烟 40/40 条带障碍证据，collect_config 记录 v3 散列。只改 run_split.py 一个文件，控制层与冻结模型未动；α 0.35156762163783695 / δ 9.032231244495946 未变；v1（heldout 400 条）与 v2（near 200 条）归属不变且文件未改。"
     }
   ],
   "final_acceptance": [

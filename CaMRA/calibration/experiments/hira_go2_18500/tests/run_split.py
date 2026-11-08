@@ -138,6 +138,39 @@ def build_specs(rows: list[dict], maps: dict | None = None) -> tuple[list[TrialS
     return specs, audit
 
 
+def _check_run_dir_binding(run_dir: Path, *, split: str, lock_sha: str,
+                           bundle_id: str, manifest_sha: str) -> None:
+    """输出目录绑定守卫：同一个 run 目录只能承载同一批配置。
+
+    `collect_config.json` 只在**首次**写入，之后启动时从不校验；把 ``--runs-root``
+    或 ``--run-id`` 指错，新数据会静默写进别的 split 的目录。正式数据失败零删除，
+    一旦混写就再也分不清归属，所以在写盘前拦住。
+    """
+    cfg_path = Path(run_dir) / "collect_config.json"
+    if not cfg_path.is_file():
+        return                      # 全新目录：首次采集，放行
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        log(f"[guard] 拒绝启动：{cfg_path} 无法解析（{exc}），请人工确认该目录")
+        raise SystemExit(2) from exc
+    bad = []
+    if cfg.get("split") != split:
+        bad.append(f"split 目录={cfg.get('split')!r} 本次={split!r}")
+    old_lock = (cfg.get("data_lock") or {}).get("sha256")
+    if old_lock != lock_sha:
+        bad.append(f"data_lock 目录={str(old_lock)[:16]} 本次={lock_sha[:16]}")
+    if cfg.get("bundle_id") and bundle_id and cfg["bundle_id"] != bundle_id:
+        bad.append(f"bundle_id 目录={cfg['bundle_id'][:16]} 本次={bundle_id[:16]}")
+    if cfg.get("manifest_sha256") and manifest_sha and cfg["manifest_sha256"] != manifest_sha:
+        bad.append("manifest_sha256 目录记录与本次清单不符")
+    if bad:
+        log("[guard] 拒绝启动：输出目录已绑定另一批配置 —— " + "；".join(bad))
+        log("[guard] 请换 --run-id 或 --runs-root；正式数据禁止覆盖，也不允许混写")
+        raise SystemExit(2)
+    log(f"[guard] run 目录绑定一致（split={split} lock={lock_sha[:16]}）")
+
+
 def main() -> int:
     split = args_cli.split
     run_id = args_cli.run_id or f"{split}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}"
@@ -176,6 +209,13 @@ def main() -> int:
     bad = [item["trial_id"] for item in audit if not item["matches"]]
     if bad:
         raise SystemExit(f"命令表重建对账失败 {len(bad)} 条：{bad[:5]}")
+
+    # 写 collect_config 之前先核验：这个目录是不是已经登记了别的配置
+    _check_run_dir_binding(
+        run_dir, split=split, lock_sha=lock.sha256,
+        bundle_id=bundle["manifest"]["bundle_id"],
+        manifest_sha=sha256_file(manifest_path),
+    )
 
     config_path = run_dir / "collect_config.json"
     if not config_path.is_file():

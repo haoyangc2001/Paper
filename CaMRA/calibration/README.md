@@ -7,7 +7,7 @@
 
 当前入口为 [40项 HiRA 接入与校准计划](../../doc/plan/20261105_camra_hira_policy_calibration.json)，**38/40 项完成**（HIRA-001–038），剩 HIRA-039 与 HIRA-040。G1 接入门禁 16/16 已通过；pilot、400 条功率基线、800 条校准、400 条检验与 200 条近障均已采完并留有完整性报告；α/δ 已冻结，交付包已建并通过独立目录重载 20/20。
 
-现有v2校准工具及结果已经建立，原32项计划记录完成。HiRA 是新增独立候选，适配已完成并冻结（检验锁 `db156f4d`，heldout 400 条仍归属 v1 `289e4137`）；`experiments/hira_go2_18500/` 已建立，保存新配置、七清单、冻结包、报告与交付索引，适配实现位于相邻 locomotion 模块。HiRA 的采集入口是 `tests/run_delivery.py`（带输出目录绑定守卫）或 `tests/run_split.py` + 对应 stage lock，**不能沿用本页 v2 命令**。
+现有v2校准工具及结果已经建立，原32项计划记录完成。HiRA 是新增独立候选，适配已完成并冻结（检验锁 `db156f4d`，heldout 400 条仍归属 v1 `289e4137`）；`experiments/hira_go2_18500/` 已建立，保存新配置、七清单、冻结包、报告与交付索引，适配实现位于相邻 locomotion 模块。HiRA 的采集入口是 `tests/run_delivery.py` 或 `tests/run_split.py` + 对应 stage lock（**两者都带输出目录绑定守卫**：目标 run 目录已绑别的 split/锁/包/清单时 exit 2 拒绝），**不能沿用本页 v2 命令**。
 
 本轮保持30秒测量窗口和正关节机械功（J）定义，独立完成20条pilot、400条clean功率基线（240/80/80）、800条校准、400条检验及200条近障检查。先验证并冻结功率模型和正式数据锁，再校准α/δ，冻结裕度后才采集检验与近障结果——以上已按此顺序完成。执行主机终端任务使用tmux。
 
@@ -44,7 +44,7 @@ HiRA 在同一链路下的独立产物（均在 `experiments/hira_go2_18500/` �
 | 功率模型 | `config/power_model_hira_v1.json` | 十参数，validate q90 5.88%（n=80） |
 | 足迹 | `config/footprint_hira_v1.json` | 52 顶点、0.6769 m²、最小宽度 0.7596 m |
 | 边际 | `config/margins_hira_v1.json` | **α 0.351568、δ 9.032231 m**（n=771，nearest-rank + 簇 bootstrap） |
-| 数据锁 | `config/data_lock_hira_{calibration_v2,evaluation_v2}.json` | `c229c417` / `db156f4d`，margins 冻结、代码 38 文件 |
+| 数据锁 | `config/data_lock_hira_{calibration_v2,evaluation_v2,evaluation_v3}.json` | 采集 `c229c417`；检验 v2 `db156f4d`（near 200 条归属）、v3 `d7d60cb9`（当前，含 run_split 守卫）；heldout 400 条仍归 v1 `289e4137`；margins 全部指向同一个冻结文件 |
 | 评估 | `tests/coverage_heldout.py`、`tests/evaluate_near_obstacle.py` | heldout 0.9098/0.8966/0.8170；近障 0.9362/0.9840/0.9202、几何重叠 151/200、δ 条件 **0/200** |
 | 审计 | `tests/full_independent_audit.py` | 12/12，能量 1820 条最差 rel 4.97e-16，α/δ 逐位一致 |
 | 对照 | `tests/compare_hira_v2.py` | 与 v2 **报告级**对比（v2 逐 trial 数据已不在本机，recomputed=false） |

@@ -267,8 +267,6 @@ def build(args) -> dict:
     shape = ["footprint_hira_v1.json", "step_cost_schema_hira_v1.json"]
     margins = ["margins_hira_v1.json"]
     maps = ["near_obstacle_maps_v1.json"]
-    locks = ["data_lock_hira_calibration_v1.json", "data_lock_hira_calibration_v2.json",
-             "data_lock_hira_evaluation_v1.json", "data_lock_hira_evaluation_v2.json"]
 
     def pick(names: list[str], role: str, note: str) -> list[dict]:
         items = []
@@ -285,8 +283,9 @@ def build(args) -> dict:
     artifacts["geometry_schema"] = pick(shape, "geometry_schema", "足迹与步成本接口")
     artifacts["margins"] = pick(margins, "margins", "α/δ 冻结值（唯一权威副本）")
     artifacts["near_obstacle_maps"] = pick(maps, "near_obstacle_maps", "200 例冻结近障地图")
-    artifacts["stage_locks"] = pick(locks, "stage_locks",
-                                    "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改")
+    # 锁按通配收录，新增版本不会漏（v1/v2/v3 各自对应不同的数据归属）
+    artifacts["stage_locks"] = dir_items(cfg, "data_lock_hira_*.json*", role="stage_locks",
+                                         note="全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3")
     artifacts["env_sample"] = [entry(cfg / "hira.env", role="env_sample",
                                      note="本机路径样例；换机只改此文件里的根路径")]
 

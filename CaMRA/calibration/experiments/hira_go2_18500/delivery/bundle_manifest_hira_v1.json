@@ -2,16 +2,31 @@
  "schema": "camra-hira-delivery-manifest-v1",
  "kind": "hira_policy_calibration_delivery_bundle",
  "stage": "delivery",
- "created_at": "2026-11-07T11:16:47+08:00",
+ "created_at": "2026-11-08T19:01:35+08:00",
  "git": {
-  "commit": "5e0e0875d97b90a244b33984a4df2cb50ee60769",
-  "commit_date": "2026-11-07T11:16:37+08:00",
-  "commit_subject": "feat(hira): reconcile all forty tasks and close the delivery",
+  "commit": "19c9e3d258049afdf459a09a0e59c1b409638132",
+  "commit_date": "2026-11-07T11:17:19+08:00",
+  "commit_subject": "chore(hira): record the final acceptance report",
   "branch": "main",
-  "dirty_files": [],
-  "dirty": false,
-  "diff_sha256": null,
-  "diff_bytes": 0,
+  "dirty_files": [
+   "GENTS.md",
+   "CaMRA/calibration/README.md",
+   "CaMRA/calibration/experiments/hira_go2_18500/delivery/bundle_manifest_hira_v1.json",
+   "CaMRA/calibration/experiments/hira_go2_18500/delivery/bundle_manifest_hira_v1.json.sha256",
+   "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md",
+   "CaMRA/calibration/experiments/hira_go2_18500/docs/reproduction.md",
+   "CaMRA/calibration/experiments/hira_go2_18500/tests/build_delivery_manifest.py",
+   "CaMRA/calibration/experiments/hira_go2_18500/tests/run_split.py",
+   "doc/plan/20261105_camra_hira_policy_calibration.json",
+   "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v3.json",
+   "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v3.json.sha256",
+   "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate_evaluation_v3_1900.json",
+   "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_lock_binding_v3_1900.json",
+   "CaMRA/calibration/experiments/hira_go2_18500/tests/make_eval_lock_v3.py"
+  ],
+  "dirty": true,
+  "diff_sha256": "1e86a24f04bf9cf04d775cc1d43ab07b4794ec335197791bc97aa3b6c1530b7b",
+  "diff_bytes": 32721,
   "note": "随包走的是 HEAD 提交；若 dirty=true，diff_sha256 覆盖工作区未提交改动"
  },
  "environment": {
@@ -423,8 +438,8 @@
     "role": "code_tests",
     "bundled": true,
     "exists": true,
-    "sha256": "5be890bc4430e480fee3d358e1afab93e631e9befbe2a0ca364dd6dcd39a867b",
-    "bytes": 22186,
+    "sha256": "df267f195b4139cbd1f643adb97abd9b9d6d1ec7124b752a6fb1fdb5f3cbb563",
+    "bytes": 22189,
     "note": "只 run_split.py 在锁内；其余为检查/评估脚本"
    },
    {
@@ -752,6 +767,15 @@
     "note": "只 run_split.py 在锁内；其余为检查/评估脚本"
    },
    {
+    "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/tests/make_eval_lock_v3.py",
+    "role": "code_tests",
+    "bundled": true,
+    "exists": true,
+    "sha256": "c327c29b10fff0b51fba0a1b1e041f64ce0d9993d2a666f42629dc446abd2475",
+    "bytes": 4998,
+    "note": "只 run_split.py 在锁内；其余为检查/评估脚本"
+   },
+   {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/tests/make_reference_fixtures.py",
     "role": "code_tests",
     "bundled": true,
@@ -783,8 +807,8 @@
     "role": "code_tests",
     "bundled": true,
     "exists": true,
-    "sha256": "636021386eb190e897c0eb34ce569eb16976d12951b310a4efdc0bd78a07652e",
-    "bytes": 14219,
+    "sha256": "a71d3b4f7e2a903943ea6d1ecb479fce0ea9112d70e1a595adc519fa908de68f",
+    "bytes": 16379,
     "note": "只 run_split.py 在锁内；其余为检查/评估脚本"
    },
    {
@@ -1037,7 +1061,7 @@
     "exists": true,
     "sha256": "85ea653994bb1252d7c528d12fd96555fc17e144271ed509c862ceafb959522f",
     "bytes": 14623,
-    "note": "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改"
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
    },
    {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_calibration_v1.json.sha256",
@@ -1046,7 +1070,7 @@
     "exists": true,
     "sha256": "f17ed661290c39676e5d133c75e9164e50c5c9a689fe0918dd4ec013324226e1",
     "bytes": 101,
-    "note": "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改"
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
    },
    {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_calibration_v2.json",
@@ -1055,7 +1079,7 @@
     "exists": true,
     "sha256": "c229c41787a2a5e175f38f564a1f9482365b3b98808ef8a7afa0ab6216ccfab8",
     "bytes": 15290,
-    "note": "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改"
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
    },
    {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_calibration_v2.json.sha256",
@@ -1064,7 +1088,7 @@
     "exists": true,
     "sha256": "5dab93644bd8d445585de5766c13e8f860b9955e0396bc700ccd7fd351d75c04",
     "bytes": 101,
-    "note": "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改"
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
    },
    {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v1.json",
@@ -1073,7 +1097,7 @@
     "exists": true,
     "sha256": "289e41379bd19cd41796a85bd6dfca8aa2acfcd85a2eaa2bf39b7fb3289531ac",
     "bytes": 14692,
-    "note": "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改"
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
    },
    {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v1.json.sha256",
@@ -1082,7 +1106,7 @@
     "exists": true,
     "sha256": "45ca102a05b69739e4de8493ff31379fafeb3d3c9cdcab535b3e3336d07f297c",
     "bytes": 100,
-    "note": "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改"
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
    },
    {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v2.json",
@@ -1091,7 +1115,7 @@
     "exists": true,
     "sha256": "db156f4d4171b19333a71645f3492da4d8270c94f3b35dad0a7109c037cc6846",
     "bytes": 15559,
-    "note": "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改"
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
    },
    {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v2.json.sha256",
@@ -1100,7 +1124,25 @@
     "exists": true,
     "sha256": "13f84004e01a9705a6a8279452e7a10e0c0da27846793a3f0e0436c47c94cca8",
     "bytes": 100,
-    "note": "采集锁 v1/v2 与检验锁 v1/v2；锁只增不改"
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
+   },
+   {
+    "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v3.json",
+    "role": "stage_locks",
+    "bundled": true,
+    "exists": true,
+    "sha256": "d7d60cb9d28f844ea3430e8c5e5891acc14c437424efea4780e94b826e43cb55",
+    "bytes": 15691,
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
+   },
+   {
+    "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/config/data_lock_hira_evaluation_v3.json.sha256",
+    "role": "stage_locks",
+    "bundled": true,
+    "exists": true,
+    "sha256": "4a5ff8a367163ed7893e2db7c23d8614711658b98eaec067a48210ef3479bc60",
+    "bytes": 100,
+    "note": "全部采集锁与检验锁：锁只增不改；heldout 归 v1、near 归 v2、当前为 v3"
    }
   ],
   "env_sample": [
@@ -1651,6 +1693,15 @@
     "note": "本任务全部判决性产物；均可在报告内定位判据与分母"
    },
    {
+    "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/reports/final_acceptance.json.sha256",
+    "role": "reports",
+    "bundled": true,
+    "exists": true,
+    "sha256": "91ccd38792562a5f11465009e7e3510bf434b52006513bfe71a51890973aaa7b",
+    "bytes": 88,
+    "note": "本任务全部判决性产物；均可在报告内定位判据与分母"
+   },
+   {
     "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/reports/footprint_validation.json",
     "role": "reports",
     "bundled": true,
@@ -1683,6 +1734,15 @@
     "bundled": true,
     "exists": true,
     "sha256": "65e2b97b540371054a9bec0fe0770b9c22784934d0929db3f7604903990181bb",
+    "bytes": 6494,
+    "note": "本任务全部判决性产物；均可在报告内定位判据与分母"
+   },
+   {
+    "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/reports/formal_gate_evaluation_v3_1900.json",
+    "role": "reports",
+    "bundled": true,
+    "exists": true,
+    "sha256": "293806f3fae2c179ea6ff3ae443605b14a776dcff3956e264f019e45fe106301",
     "bytes": 6494,
     "note": "本任务全部判决性产物；均可在报告内定位判据与分母"
    },
@@ -1836,6 +1896,15 @@
     "bundled": true,
     "exists": true,
     "sha256": "c6030dbcd4ff37f6bfea99b66d56f00ca055d637210d21d975bf5f94538d3b94",
+    "bytes": 3066,
+    "note": "本任务全部判决性产物；均可在报告内定位判据与分母"
+   },
+   {
+    "logical_path": "CaMRA/calibration/experiments/hira_go2_18500/reports/margin_lock_binding_v3_1900.json",
+    "role": "reports",
+    "bundled": true,
+    "exists": true,
+    "sha256": "b4e1cd04103ca2867c23bedcc2fe9a98402c8afb0a4d7d54d1a8676a21068611",
     "bytes": 3066,
     "note": "本任务全部判决性产物；均可在报告内定位判据与分母"
    },
@@ -2080,8 +2149,8 @@
     "role": "docs",
     "bundled": true,
     "exists": true,
-    "sha256": "7d84bcfb8371b267845dc507a84edfec647872166f02ccc07b5ef9b2b754f496",
-    "bytes": 156265,
+    "sha256": "82995691da2a650d816c696407bde034d6cba8143e9c796d07e6346df92e7940",
+    "bytes": 160739,
     "note": "交接与复现说明"
    },
    {
@@ -2089,16 +2158,16 @@
     "role": "docs",
     "bundled": true,
     "exists": true,
-    "sha256": "68994273d3e019f94449fec9c0bfde16fd96cb902955f25c06a9565660483e74",
-    "bytes": 11559,
+    "sha256": "56d84e5e656bd3b4a84252b7ed1eab734b74d068a84343fff666578d23ec14a9",
+    "bytes": 11832,
     "note": "交接与复现说明"
    }
   ]
  },
  "counts": {
   "groups": 17,
-  "files": 222,
-  "bytes": 8042151,
+  "files": 228,
+  "bytes": 8079498,
   "missing": 0
  },
  "big_data": {
@@ -11738,7 +11807,7 @@
  ],
  "verification": {
   "hash_rule": "文件：sha256(bytes)；目录：sha256（排序后的 '相对路径\\0文件散列\\n'）",
-  "entries_checked": 222,
+  "entries_checked": 228,
   "entries_bad": 0,
   "raw_hashed": true,
   "reload_report": "reports/delivery_reload_verification.json",

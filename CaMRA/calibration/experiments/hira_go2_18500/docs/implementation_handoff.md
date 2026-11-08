@@ -2585,3 +2585,80 @@ pilot 10、基线 400 条、功率模型、足迹、步成本、α/δ 冻结（1
 **输出目录守卫是否下沉到 `run_split.py`**：目前守卫在交付入口 `tests/run_delivery.py`，
 因为 `run_split.py` 在锁的 `code.files` 内，下沉必须出新版锁 v3。三种处置（保持现状 / 出 v3 锁 /
 交 040 后另行裁定）已报用户，未自行决定。
+
+
+## §43 HIRA-040 后加固：把输出目录守卫下沉到 run_split（检验锁 v3）
+
+**这一节解决什么**：§40.1 登记的那个缺口——`run_split.py` 启动时不校验既有 `collect_config`，
+误换 `--runs-root` / `--run-id` 会把新数据静默写进别的 split 的目录——已按用户 2026-11-08 授权
+**下沉到采集脚本本身**，不再是"只靠交付入口拦"。
+
+### 43.1 改了什么（只改一个文件，不碰控制层与模型）
+
+| 层 | 是否改动 | 说明 |
+|---|---|---|
+| 控制层（观测 / PD / 关节映射 / 策略加载） | **未改** | `observation.py`、`action_pd.py`、`bundle.py`、`env_runner.py` 一字未动 |
+| 冻结模型（`policy.pt` + `controller.json`） | **未改** | 散列仍是 `721a891a…` / bundle `3c32fe31…` |
+| 采集入口 `tests/run_split.py` | **改了** | 新增 `_check_run_dir_binding()`，写 `collect_config.json` 前比对四项 |
+
+四项判据：目标 run 目录里已有 `collect_config.json` 时，比对
+
+1. `split` 是否一致；
+2. `data_lock.sha256` 是否一致；
+3. `bundle_id` 是否一致；
+4. `manifest_sha256` 是否一致。
+
+任一不符即打印 `[guard] 拒绝启动：输出目录已绑定另一批配置 —— …` 并 **exit 2**，**一个字节都不写**。
+目录不存在或没有旧卡（首次采集）照常放行。
+
+### 43.2 检验锁 v2 → v3（红线 5 的直接后果）
+
+`run_split.py` 在 v2 的 `code.files` 里，改一个字节 v2 即失效。按"锁只能新增"派生
+`config/data_lock_hira_evaluation_v3.json`（sha **`d7d60cb9d28f844e`**）：
+
+- 代码 38 → 38 个文件，**变化仅 `run_split.py`**；
+- controller / protocol / power_model / footprint / step_cost / asset / trial_lists /
+  near_obstacle_maps / margins / gates **逐字沿用 v2**；
+- margins 仍是 `57d05222…`、`state=frozen`，α/δ 未动。
+
+**归属不变**：heldout 400 条仍归 v1（`289e4137`）、near 200 条仍归 v2（`db156f4d`）。
+v1/v2 一字未改，v3 只用于此后的新采集。
+
+### 43.3 门禁与两次冒烟（都真跑）
+
+| 项 | 命令 | 结果 |
+|---|---|---|
+| 数据锁负测试 | `check_data_lock_hira.py --lock …v3.json` | **13/13**（`reports/formal_gate_evaluation_v3_1900.json`） |
+| 补偿闸门 | `check_margin_lock_binding.py --lock …v3.json` | **10/10**（`reports/margin_lock_binding_v3_1900.json`） |
+| 负冒烟 | 指向一个已绑 heldout 的沙箱目录 | **exit 2 拒绝**，目录内只留原来那张卡，**0 条 trial 写入** |
+| 正冒烟 | 全新目录采 40 条 near | `SPLIT_NEAR_OBSTACLE_RUN_OK`、121.4 s、44.7 MB、**40/40 条带障碍证据** |
+
+负冒烟的实际输出（这就是这道守卫的直接证据）：
+
+```text
+[split] 0.9s [guard] 拒绝启动：输出目录已绑定另一批配置 ——
+        split 目录='heldout' 本次='near_obstacle'；
+        data_lock 目录=289e41379bd19cd4 本次=d7d60cb9d28f844e；
+        manifest_sha256 目录记录与本次清单不符
+EXIT=2
+```
+
+### 43.4 一个必须记下的伪失败
+
+首次跑 13 项负测试时 **L13-resources 失败**（"并发采集进程 1"）。追查发现不是真有采集在跑：
+`check_data_lock_hira.py` 用 `pgrep -f "run_[s]plit"` 判并发，而我有一条**卡在 NFS 上的探查命令**
+（`git status` 挂住），它的命令行里正好包含 `run_split.py` 这个字符串，被算成了采集进程。
+
+处置：kill 掉自己那条残留 PID（**只 kill 具体 PID，不用 pkill -f**），重跑即 13/13。
+**这不是代码缺陷，是检查器的匹配口径偏宽**——任何命令行里出现 `run_split` 字样都会被算进去；
+记在这里，避免下次误判成"有人偷偷在采"。
+
+### 43.5 边界
+
+1. 守卫在 **AppLauncher 已创建之后**才触发（实测 0.9 s 退出，未进入仿真主循环、未写数据）；
+   要更早失败得把校验提到 launcher 之前，属可选优化，本轮未做。
+2. 守卫只防"写错目录"，**不防"用错锁"**——锁与现场的散列校验仍由 `enforce_collection` 负责，两者互补。
+3. `run_delivery.py` 保留：它在 exec `run_split.py` 之前还会校验一次，且是文档化的正式入口；
+   现在等于**双层拦截**（入口一层、采集器一层）。
+4. 交付验证报告 `reports/delivery_reload_verification.json` 里的 D12 仍以交付入口为准，
+   其结论"误换目录被拒"在两层都成立；本次新增的负冒烟是**采集器层**的直接证据。

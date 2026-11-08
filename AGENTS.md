@@ -6,7 +6,7 @@
 
 - 执行入口：[40项 HiRA 接入与校准计划](doc/plan/20261105_camra_hira_policy_calibration.json)。当前 **38/40 项完成**（HIRA-001–038）；下一步 **HIRA-039**（文档同步与只读稿件差异清单）、随后 **HIRA-040**（逐项对账与最终交接）。开始执行前重新读取计划全文及实际任务状态，按依赖选择任务。
 - 目标：将 HiRA 高层训练实际引用的 Go2 预训练底层策略接入 Isaac Lab，先验证接入正确，再独立重复能量与位置误差校准、独立检验及近障检查。
-- 适配已实施并冻结：`CaMRA/locomotion/adapters/hira_go2/` 13 个模块（含 `obstacles.py`）、检验锁 v2 `db156f4d`、G1 接入门禁 16/16；1820 条配额已采完（20 pilot / 400 功率基线 / 800 校准 / 400 检验 / 200 近障，业务失败零删除）；α/δ 已冻结（0.351568 / 9.032231 m）；交付包 `calibration/experiments/hira_go2_18500/delivery/bundle_manifest_hira_v1.json` 已建并通过独立目录重载 20/20。结论与边界见该实验 `docs/implementation_handoff.md` §34–§40，复现步骤见同目录 `docs/reproduction.md`。
+- 适配已实施并冻结：`CaMRA/locomotion/adapters/hira_go2/` 13 个模块（含 `obstacles.py`）、G1 接入门禁 16/16；当前检验锁 **v3 `d7d60cb9`**（含 run_split 的输出目录绑定守卫），v1 `289e4137` 仍是 heldout 400 条归属、v2 `db156f4d` 仍是 near 200 条归属；1820 条配额已采完（20 pilot / 400 功率基线 / 800 校准 / 400 检验 / 200 近障，业务失败零删除）；α/δ 已冻结（0.351568 / 9.032231 m）；交付包 `calibration/experiments/hira_go2_18500/delivery/bundle_manifest_hira_v1.json` 已建并通过独立目录重载 20/20。结论与边界见该实验 `docs/implementation_handoff.md` §34–§40，复现步骤见同目录 `docs/reproduction.md`。
 - 这是新增独立候选实验。现有 `camra_go2_velocity_it2999_v2`、其冻结包和历史校准继续保留；不直接替换 v2，不默认重新训练、筛选其他 checkpoint 或切换仿真器。
 - 本阶段仅做仿真；真机、sim2real 和上层导航训练不在本轮范围。论文稿件保持只读。
 
