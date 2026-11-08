@@ -71,6 +71,8 @@
 
 ### 3.1 前置
 
+- **执行主机**：按 `AGENTS.md` 的现行要求为 `192.168.20.10`（tiger10）。历史数据产生于 `tiger12`，
+  两台机器的 `/pub` 是各自本地盘；在 `.10` 上复现前先确认 `/pub/data/caohy/{work,logs}` 已就位，详见交接笔记 §44。
 - Python 3.11 + numpy + torch（重载与离线复算够用）
 - 采集另需 Isaac Lab 环境（本机 `/pub/data/caohy/miniconda/envs/env_isaaclab`）
 - 参考 `config/hira.env`：换机器**只改这一个文件**里的根路径

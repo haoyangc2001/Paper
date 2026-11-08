@@ -3659,6 +3659,44 @@
             "可选优化：把守卫提到 AppLauncher 之前，使误换目录时连仿真都不启动（当前 0.9 s 退出，未写数据）。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-08T20:20:00+08:00",
+          "summary": "按用户要求补记执行主机事实并落实迁移指令：本任务 40 项全部执行在 tiger12（192.168.20.12），证据为 hostname、9 个 run 目录与工作副本在 /pub 本地盘、Python 3.11.18；tiger11 仅作只读检查/跳板、无 HiRA 数据；tiger10 本次未使用。用户 2026-11-08 指令「后续任务必须在 192.168.20.10 执行」已写入 AGENTS.md 新增的「执行主机」一节（含三项开工前置检查与禁止双机同时采集），并在交接笔记 §44 记录迁移前置条件与 2026-11-08 登录故障的定位结论（sshd MaxStartups 槽位打满，非宕机）。",
+          "actions": [
+            "核对执行主机事实：hostname=tiger12；/pub/data/caohy/logs/camra_hira/runs 下 9 个 run 目录；/pub/data/caohy/work/hira/CaMRA 在工作副本在；env_isaaclab=3.11.18（与 .11 的 3.11.15 可区分）",
+            "验证 /pub 是节点本地盘：.11 的 /pub/data/caohy 只有 IsaacLab 与 miniconda，没有 work/ 与 logs/，因此 1820 条只能产生于 .12",
+            "定位 2026-11-08 登录故障：从 .12 反探 .10:22 得到明文 Exceeded MaxStartups；.12 的 sshd_config 未显式配置 MaxStartups（默认 10:30:100），与当日「TCP 可连但无 banner」的现象一致",
+            "在 AGENTS.md 新增「执行主机（2026-11-08 用户指令）」一节：后续任务必须在 .10 执行；开工前检查登录可用、数据在位、路径与锁一致；任一不满足停下报告，不得擅自换回 .12；并写明禁止双机同时采集同一 split",
+            "在交接笔记新增 §44：执行主机证据表、三台机器角色、故障定位与运维建议（MaxStartups 30:60:200）、迁移到 .10 的三项前置条件与散列核对要求",
+            "在 docs/reproduction.md 的「前置」补执行主机一条，指向 AGENTS 与 §44"
+          ],
+          "files_changed": [
+            "AGENTS.md（新增执行主机一节）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§44）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/reproduction.md（前置补主机）"
+          ],
+          "commands": [
+            "ssh 192.168.20.12 'hostname; ls /pub/data/caohy/logs/camra_hira/runs | wc -l'",
+            "ssh 192.168.20.12 \"timeout 6 bash -c 'exec 3<>/dev/tcp/192.168.20.10/22; head -c 40 <&3'\"  # Exceeded MaxStartups",
+            "ssh 192.168.20.11 'ls /pub/data/caohy'  # 只有 IsaacLab / miniconda"
+          ],
+          "results": [
+            "执行主机记录：HIRA-001–040 全部在 tiger12（.12）；.11 仅只读检查/跳板；.10 本次未使用。",
+            "故障定位：.10 的 22 端口返回 Exceeded MaxStartups；.12 当时同现象（TCP 可连、无 banner），恢复后 19 个 sshd 进程、config 无显式 MaxStartups。",
+            "迁移要求已写入 AGENTS：必须 .10 执行 + 三项前置检查 + 禁止双机并行采集；并把「能打开共享 NFS 上的仓库 ≠ 任务跑在那台机器」写成显式澄清。",
+            "迁移前置未满足：.10 当前登录仍被 MaxStartups 拒绝，且 /pub 是否有同套数据尚未核验；因此本轮不擅自在 .10 上执行任何采集或门禁。"
+          ],
+          "evidence": [
+            "AGENTS.md（执行主机一节）",
+            "docs/implementation_handoff.md §44（证据表 + 故障定位 + 迁移前置）",
+            "docs/reproduction.md（前置：执行主机）"
+          ],
+          "remaining_work": [
+            ".10 恢复登录后，先核验 /pub/data/caohy/{work,logs} 是否在位；缺失则显式复制并按 delivery/bundle_manifest_hira_v1.json 逐 trial 核对散列，再在该机执行后续任务。",
+            "若 .10 上路径布局与 .12 不同，用 tests/delivery_relock.py 生成派生锁（只改前缀、散列不动），不得改写原锁。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
