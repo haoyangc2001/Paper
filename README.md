@@ -57,7 +57,7 @@ paper/
 ## 获取完整工作区
 
 ```bash
-git clone --recurse-submodules https://github.com/haoyangc2001/HD_MCRA_Paper.git
+git clone --recurse-submodules https://github.com/haoyangc2001/Paper.git
 ```
 
 已有检出目录在保存自身修改并更新主仓库后，初始化 HiRA：
