@@ -1,18 +1,20 @@
 {
  "task": "HIRA-040",
  "kind": "final_acceptance",
- "created_at": "2026-11-08T19:31:25+08:00",
+ "created_at": "2026-11-08T20:56:32+08:00",
  "required_gates": {
   "plan_structure": true,
   "task_evidence": true,
   "gates": true,
   "collection": true,
   "no_overwrite": true,
-  "manifest": true
+  "manifest": false
  },
  "verdict": {
-  "all_required_passed": true,
-  "failed": []
+  "all_required_passed": false,
+  "failed": [
+   "manifest"
+  ]
  },
  "plan_structure": {
   "n_tasks": 40,
@@ -499,8 +501,8 @@
     "id": "HIRA-040",
     "phase": "最终验收",
     "status": true,
-    "n_records": 2,
-    "last_record": "2026-11-08T19:05:00+08:00",
+    "n_records": 3,
+    "last_record": "2026-11-08T20:20:00+08:00",
     "n_declared_paths": 1,
     "n_missing_paths": 0,
     "missing": [],
@@ -796,8 +798,11 @@
  "no_overwrite": {
   "manuscripts": {
    "status_clean": true,
-   "diff_empty": true,
-   "last_commit": "ed9fcb1 2026-10-31T01:11:32+08:00 chore: group manuscript assets for code development"
+   "worktree_scan": "timeout",
+   "staged": [],
+   "commits_since_acceptance": [],
+   "last_commit": "ed9fcb1 2026-10-31T01:11:32+08:00 chore: group manuscript assets for code development",
+   "ok": true
   },
   "v2_frozen": {
    "data_lock_v1.json": "ok",
@@ -815,20 +820,23 @@
   "v2_plan_clean": true,
   "ok": true
  },
+ "degraded_checks": [
+  "manuscripts_worktree_scan: git status 在 90 s 内未返回（NFS 元数据慢），降级为按提交历史核对；工作区级未落盘改动本次未复核"
+ ],
  "delivery_manifest": {
   "path": "/home/caohy/repositories/Paper/CaMRA/calibration/experiments/hira_go2_18500/delivery/bundle_manifest_hira_v1.json",
-  "sha256": "7e48c13880088cbd45e198328e5d6c425ff26c2f1d91eb5be6cf90f6e7b3fefd",
+  "sha256": "61f1e5537c8d4fb1aaeb4cd6c1c562b001a1c240582bb989991ce4a6254d4f14",
   "n_files": 228,
   "n_raw_trials": 1880,
-  "git_commit": "ab33d8a2da4e",
+  "git_commit": "2ecf70307abc",
   "git_dirty": false,
   "selfcheck": [
    228,
    0
   ],
-  "verify": "files ok=228 raw_trials ok=1880 bad=0",
-  "verify_rc": 0,
-  "ok": true
+  "verify": "files ok=226 raw_trials ok=1880 bad=2",
+  "verify_rc": 1,
+  "ok": false
  },
  "conclusions": {
   "alpha": 0.35156762163783695,

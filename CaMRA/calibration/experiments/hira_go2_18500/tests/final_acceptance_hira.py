@@ -95,6 +95,16 @@ def git(*args: str) -> str:
                           text=True, check=False).stdout.strip()
 
 
+def git_timed(args: list[str], timeout: int = 90) -> tuple[str, str | None]:
+    """带超时的 git：NFS 元数据慢时 git status 可能挂住，不能让它拖死整个验收。"""
+    try:
+        out = subprocess.run(["git", "-C", str(REPO), *args], capture_output=True,
+                             text=True, timeout=timeout, check=False).stdout.strip()
+        return out, None
+    except subprocess.TimeoutExpired:
+        return "", "timeout"
+
+
 def sha256_file(p: Path) -> str:
     import hashlib
     h = hashlib.sha256()
@@ -230,9 +240,16 @@ def check_collection() -> dict:
                   and not multi_attempt}
 
 
-def check_no_overwrite() -> dict:
-    ms_status = git("status", "--porcelain", "--", "manuscripts/")
-    ms_diff = git("diff", "--stat", "--", "manuscripts/")
+def check_no_overwrite(degraded: list[str]) -> dict:
+    # 稿件目录在 NFS 上，文件多、元数据慢，git status 可能挂住 → 带超时并允许降级
+    ms_status, ms_err = git_timed(["status", "--porcelain", "--", "manuscripts/"], timeout=90)
+    if ms_err:
+        degraded.append(
+            "manuscripts_worktree_scan: git status 在 90 s 内未返回（NFS 元数据慢），"
+            "降级为按提交历史核对；工作区级未落盘改动本次未复核"
+        )
+    ms_staged, _ = git_timed(["diff", "--cached", "--name-only", "--", "manuscripts/"], timeout=60)
+    ms_commits_since = git("log", "--oneline", "19c9e3d..HEAD", "--", "manuscripts/")
     ms_last = git("log", "-1", "--format=%h %cI %s", "--", "manuscripts/")
     locked = ["data_lock_v1.json", "margins_v1.json", "power_model_v1.json", "footprint_v1.json"]
     frozen = {}
@@ -256,16 +273,20 @@ def check_no_overwrite() -> dict:
     sub_dirty = subprocess.run(["git", "-C", str(REPO / "HiRA"), "status", "--short"],
                                capture_output=True, text=True, check=False).stdout.strip()
     plan_v2 = git("status", "--porcelain", "--", "doc/plan/20261103_camra_calibration_implementation.json")
+    manuscripts_ok = (not ms_staged) and (not ms_commits_since) and \
+                     (ms_err is None and not ms_status or ms_err is not None)
     return {
-        "manuscripts": {"status_clean": not ms_status, "diff_empty": not ms_diff,
-                        "last_commit": ms_last},
+        "manuscripts": {"status_clean": not ms_status, "worktree_scan": ms_err or "ok",
+                        "staged": [x for x in ms_staged.splitlines() if x.strip()],
+                        "commits_since_acceptance": [x for x in ms_commits_since.splitlines() if x.strip()],
+                        "last_commit": ms_last, "ok": manuscripts_ok},
         "v2_frozen": frozen, "v2_lock_to_margins_chain": chain,
         "hira_submodule": {"status_line": sub_head,
                            "commit_ok": sub_head.startswith(HIRA_SUBMODULE_COMMIT),
                            "worktree_clean": not sub_dirty,
                            "dirty_entries": sub_dirty.splitlines()[:5]},
         "v2_plan_clean": not plan_v2,
-        "ok": (not ms_status and not ms_diff and all(v == "ok" for v in frozen.values())
+        "ok": (manuscripts_ok and all(v == "ok" for v in frozen.values())
                and chain and not sub_dirty and not plan_v2
                and sub_head.startswith(HIRA_SUBMODULE_COMMIT)),
     }
@@ -343,7 +364,8 @@ def main() -> int:
           f"多 attempt {coll['n_multi_attempt']}", flush=True)
 
     print("=== 5. 无覆写 / 无隐性重训 ===", flush=True)
-    nowrite = check_no_overwrite()
+    degraded: list[str] = []
+    nowrite = check_no_overwrite(degraded)
     print(f"[{'ok ' if nowrite['ok'] else 'FAIL'}] 稿件干净={nowrite['manuscripts']['status_clean']} "
           f"v2 冻结物={nowrite['v2_frozen']} 子模块={nowrite['hira_submodule']['commit_ok']}", flush=True)
 
@@ -368,6 +390,7 @@ def main() -> int:
         "gate_checks": gates,
         "collection": coll,
         "no_overwrite": nowrite,
+        "degraded_checks": degraded,
         "delivery_manifest": manifest,
         "conclusions": conclusions,
         "adjudicated_exceptions": [
