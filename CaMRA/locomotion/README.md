@@ -2,19 +2,21 @@
 
 CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree_rl_lab](https://github.com/unitreerobotics/unitree_rl_lab) 框架完成训练、评估、导出与冻结。
 
-底层控制器接收机身坐标系下的目标速度 `[vx, vy, yaw_rate]`，结合本体状态输出 12 个关节的位置调整量，由关节控制器执行。**本阶段已交付一个冻结控制器**，供相邻的 `calibration/` 执行误差校准模块和 `navigation/` 上层导航模块使用。
+底层控制器接收机身坐标系下的目标速度 `[vx, vy, yaw_rate]`，结合本体状态输出 12 个关节的位置调整量，由关节控制器执行。后续开发固定使用 **`camra_go2_velocity_it2999_v2`**（用户2026-11-09确认的硬性约束），供相邻的 `calibration/` 和后续 `navigation/` 使用。HiRA 独立冻结包保留为历史参考/对照，两套执行契约不可互换。
 
 ## 当前工作范围
 
-当前任务是在Isaac Lab中新增HiRA来源预训练Go2策略的适配验证，随后为该候选独立重复校准。v2及其历史校准保留，不直接替换，不默认继续训练、调参或改用其他checkpoint。真机接口和sim2real不在本轮范围。
+当前工作是按[60项上层导航计划](../../doc/plan/20261109_camra_navigation_implementation.json)接入冻结 v2，版本 **1.2.0**，**0/60项完成**，从 **NAV-001** 开始。底层提供既有速度接口、冻结包及校验工具；当前不默认继续训练、调参或更换 checkpoint。执行节点为 tiger11（192.168.20.11），服务器任务使用 tmux；真机接口和sim2real不在本轮范围。
 
 旧补充复测未通过的结论保留，TASK-036/037 不改为通过。当前使用决定是在保留这些边界的前提下推进下一模块；包体完整性与可重载性仍需在实际执行设备上核验。
 
-当前入口是 [40项HiRA计划](../../doc/plan/20261105_camra_hira_policy_calibration.json)，**38/40 项完成**（HIRA-001–038），剩 HIRA-039/040。`adapters/hira_go2/` 已建立（13 个模块，含 `obstacles.py`）；冻结包在 `calibration/experiments/hira_go2_18500/frozen/hira_go2_18500`（bundle `3c32fe31…`、policy `721a891a…`、45→512→256→128→12）；运行入口与复现步骤见该实验 `docs/reproduction.md`。
+历史 [40项HiRA计划](../../doc/plan/20261105_camra_hira_policy_calibration.json)已记录 **40/40 项完成**。`adapters/hira_go2/` 已建立（13 个模块，含 `obstacles.py`）；冻结包在 `CaMRA/calibration/experiments/hira_go2_18500/frozen/hira_go2_18500`（bundle `3c32fe31…`、policy `721a891a…`、45→512→256→128→12）；运行入口与复现步骤见该实验 `docs/reproduction.md`。
 
-来源为锁定HiRA子模块中 `logs/rough_go2/Sep08_11-57-26_/model_18500.pt`。HiRA原系统使用Isaac Gym，观测缩放、默认姿态、关节排列及显式PD与v2不同；不能直接使用下表的v2观测或执行器。适配代码放在CaMRA，HiRA保持只读；HIRA-020接入门禁通过后才冻结新控制器并放行采集。
+[控制器选择与复核记录](../calibration/docs/controller_comparison_status_20261109.md)保留 HiRA 批间初态和测量起点对齐等待核验问题。v2 已由用户选定，不再待选；未经用户明确授权，不得切换控制器、改用其他 checkpoint、重新训练或覆盖冻结 v2。运行前按其冻结清单核验包体、资产和依赖，资源缺失不能改用 HiRA；完整约束见[根 AGENTS](../../AGENTS.md)。
 
-上层需要的是机身坐标系速度 `[vx, vy, yaw_rate]`。本项目已有三维外部命令桥接和冻结策略闭环重载入口；运行须使用匹配的观测、动作、频率、增益与机器人资产。模型包目前位于执行服务器，普通克隆仅取得清单，不能直接得到模型权重。宇树官方现成方案的核查记录见 [controller_options.md](docs/controller_options.md)。
+历史 HiRA 控制器来源为锁定子模块中 `logs/rough_go2/Sep08_11-57-26_/model_18500.pt`。原系统使用Isaac Gym，观测缩放、默认姿态、关节排列及显式PD与v2不同；不能直接使用下表的v2观测或执行器。该候选已完成接入门禁、冻结和独立校准；适配代码及报告保留在CaMRA，HiRA子模块继续只读。
+
+上层需要的是机身坐标系速度 `[vx, vy, yaw_rate]`。本项目已有三维外部命令桥接和冻结策略闭环重载入口；运行须使用匹配的观测、动作、频率、增益与机器人资产。v2 模型包位于仓库外，普通克隆仅取得其清单；HiRA 独立冻结包随实验目录提供，指定来源 checkpoint 位于子模块，运行依赖与原始日志仍需另行取得并验证。宇树官方现成方案的核查记录见 [controller_options.md](docs/controller_options.md)。
 
 ## 当前状态与已知边界
 
@@ -41,7 +43,7 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 
 **已知低速边界**：交接笔记 §39–47 记录了低速诊断及采样/奖励对照。在已测单轴工况下，约 ≤0.2 m/s 的命令出现起步死区，0.3 m/s 附近也存在稳态不足。减少停车样本改善低速却损害刹车；提高跟踪奖励权重的首轮验证也未解决问题。这些观测不扩大为所有方向、组合和环境的普遍边界。
 
-**v2的历史使用决定**：接受已测局限后完成了 [原校准链路](../calibration/README.md)。本轮新增HiRA实验，保留v2冻结包、旧阈值和历史记录。新候选的低速、停滞及失败需独立验证，不能默认更好，也不能假定裕度能消除不执行指令的问题。
+**v2的使用决定**：接受已测局限后完成了 [原校准链路](../calibration/README.md)，用户于2026-11-09确认后续继续固定使用 v2。旧阈值和历史记录保留；NAV-059检查已知低速局限对导航的实际影响，NAV-060检查闭环裕度适用性，不假定裕度能消除不执行指令的问题。
 
 **接手请先读 [实施交接笔记 §30「阶段一交付与接手须知」](docs/implementation_handoff.md)**：交付物与校验入口、逐条真跑过的命令、后续校准必须保持一致的五件事、明确没做的事、以及踩过的坑。
 
@@ -97,10 +99,10 @@ CaMRA 的 Go2 底层强化学习速度跟踪模块。基于宇树官方 [unitree
 
 ## 环境与常用命令
 
-实测环境：Python 3.11.18、torch 2.7.0（CUDA 12.6）、isaaclab 0.47.2、isaacsim 5.1.0.0、rsl-rl 3.0.1、onnxruntime 1.31.1。
-上游 README 写的 Isaac Lab 2.3.0 / Isaac Sim 5.1.0 保留在 [README.upstream.md](README.upstream.md)，以实测版本为准。
+历史 v2 实测环境：Python 3.11.18、torch 2.7.0（CUDA 12.6）、isaaclab 0.47.2、isaacsim 5.1.0.0、rsl-rl 3.0.1、onnxruntime 1.31.1。当前 tiger11 环境由 NAV-008 重新核验，不能将历史版本当成该节点的现状。
+上游 README 写的 Isaac Lab 2.3.0 / Isaac Sim 5.1.0 保留在 [README.upstream.md](README.upstream.md)，历史复现以相应冻结环境为准。
 
-执行主机上的终端、环境配置、仿真、评估和导出命令在tmux中运行，保留会话、命令和日志。本地静态文档检查不需要仿真环境。下列入口用于v2历史复现；HiRA按当前计划完成独立适配，不能将v2核验脚本直接视为HiRA接入证明，也不需要先重新训练v2。
+执行主机上的终端、环境配置、仿真、评估和导出命令在tmux中运行，保留会话、命令和日志。本地静态文档检查不需要仿真环境。下列入口用于v2历史复现，不是当前导航的启动步骤；HiRA使用独立历史契约，不能将v2核验脚本直接视为HiRA接入证明。
 
 **所有机器相关路径都在 [`config/repro.env`](config/repro.env) 里**（解释器、日志根、资产根、包根、设备）。换机器只改这一个文件，或直接导出同名环境变量（环境变量优先）：
 
@@ -110,7 +112,7 @@ export CAMRA_LOG_ROOT=/mnt/logs/camra
 python scripts/check_repro_readiness.py --level eval-now   # 先预检，别用失败的运行去评价控制器
 ```
 
-以下保留训练与完整复现入口，按实际任务选择执行；并非当前校准工作的前置步骤。
+以下保留训练与完整复现入口，并非当前导航工作的前置步骤；未经用户明确授权不重训、替换或覆盖冻结 v2。
 
 ```bash
 cd CaMRA/locomotion
@@ -151,4 +153,4 @@ cd /tmp && python <仓库>/CaMRA/locomotion/scripts/verify_export_consistency.py
 观测顺序、动作缩放、关节顺序、控制频率、增益和命令域写进 `params/deploy.yaml` 与
 `params/export_manifest.json`，两者是v2的权威来源。HiRA使用本轮核验并冻结的独立契约，不能跨控制器取值。
 
-本轮在仿真中验证外部速度接口和新候选执行链路，记录实际命令与轨迹；上层导航实现另行安排。v2已知未覆盖的0–40 ms指令延迟、状态估计噪声和执行器时延与已测试扰动分开记录，不自动推广为HiRA结论。真机 `joint_ids_map` 重映射与sim2real标定留待后续。
+当前 NAV 计划将在仿真中接通 v2，验证新鲜观测、控制时序、复位与能量计量，再实现上层训练和闭环评估；尚未开始执行。v2已知未覆盖的0–40 ms指令延迟、状态估计噪声和执行器时延与已测试扰动分开记录，不自动推广适用性。真机 `joint_ids_map` 重映射与sim2real标定留待后续。

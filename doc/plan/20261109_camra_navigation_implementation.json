@@ -1,0 +1,2612 @@
+{
+  "document": {
+    "name": "CaMRA 固定 v2 上层最小成本到达避障实施计划",
+    "version": "1.2.0",
+    "created_at": "2026-11-09",
+    "mode": "create",
+    "source_plan": "本轮用户确认的六阶段实施顺序及逐阶段源码参考；前置过程见 doc/plan/20261103_camra_calibration_implementation.json 和 doc/plan/20261105_camra_hira_policy_calibration.json。",
+    "source_snapshot": {
+      "main_head_at_creation": "35a7b4ab04881405bbbe4211f89eacf237ad6f78",
+      "hira_pinned_commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+      "working_tree_has_preexisting_documentation_changes": true,
+      "server_contacted_during_plan_creation": false
+    },
+    "status_definition": {
+      "false": "尚未开始、部分完成、受阻或未通过全部验收",
+      "true": "依赖完成、全部验收满足，且已追加真实工作记录和验证证据"
+    },
+    "update_rule": "执行前完整读取本计划、AGENTS.md 及技能 execution-rules.md，运行 update 校验，按数组顺序选择首个依赖全为 true 的未完成任务。逐项验收、追加记录再改状态；保留历史字段、任务、失败和记录。创建计划及同步入口不计为执行任何 NAV 任务。 本次修订保留NAV-001–054及其相对顺序；新增NAV-055–060插入依赖位置。执行顺序以tasks数组为准，不按ID数值重排；计划修订记录不计为实现工作记录。 后续发现前置问题时遵守upstream_correction_policy，在发现问题的当前任务下追加回修与重验记录；不改写历史，不带着失效验收推进。",
+    "work_record_fields": [
+      "timestamp",
+      "summary",
+      "actions",
+      "files_changed",
+      "commands",
+      "results",
+      "evidence",
+      "remaining_work",
+      "blockers"
+    ],
+    "updated_at": "2026-11-09",
+    "revisions": [
+      {
+        "version": "1.1.0",
+        "date": "2026-11-09",
+        "kind": "用户授权的计划内容修订，非任务执行",
+        "summary": "将八类实现对齐问题落实为六项新增前置任务，并补强已有任务、阶段门禁与说明入口。",
+        "added_task_ids": [
+          "NAV-055",
+          "NAV-056",
+          "NAV-057",
+          "NAV-058",
+          "NAV-059",
+          "NAV-060"
+        ],
+        "preserved_task_ids": "NAV-001–054，全部原状态、工作记录和验证结果保持不变",
+        "tasks_executed": 0,
+        "server_contacted": false
+      },
+      {
+        "version": "1.2.0",
+        "date": "2026-11-09",
+        "kind": "用户授权的全程回修规则补充，非任务执行",
+        "summary": "允许在既定范围内回修前置实现，将问题、历史依据、修正、复验和下游影响追加到发现问题的当前任务；保留旧工作记录和产物，失效验收重验后才能继续。",
+        "added_task_ids": [],
+        "preserved_task_ids": "全部60项任务的编号、顺序、依赖、状态、work_records及verification_result保持不变，仅补充全局规则和NAV-001/052/054的执行与验收要求",
+        "tasks_executed": 0,
+        "server_contacted": false
+      }
+    ]
+  },
+  "background": {
+    "business_context": "在 Isaac Lab 中实现 Go2 分层最小成本到达避障：固定低层速度跟踪器，上层在确定性名义运动模型中学习到达、安全和成本决策，再进入 clean 与扰动物理仿真检验。",
+    "current_capability": "冻结 v2 及配套功率模型、足迹、成本/几何裕度和校准工具已建立。HiRA 接入计划记录 40/40 完成，后续仅作参考。CaMRA/navigation 当前只有 README，尚无本项目导航环境、网络、预算搜索或导航训练结果。",
+    "problem_to_solve": "把现有运动/成本/执行工具连接成可验证的导航系统，保留 RC-PPO 的最小化语义，并验证固定裕度对真实物理执行的作用；避免把接口能运行、校准覆盖或下降的损失当成导航成功和收敛证明。",
+    "confirmed_user_decisions": [
+      "后续整套固定使用 camra_go2_velocity_it2999_v2，不重新训练或更换低层。",
+      "先实现名义环境，提前接通低层做小测试，再在确定性名义环境训练上层，完成预算选择和 clean 闭环，最后固定策略做扰动检验。",
+      "障碍物间距适当加宽，必须在加入 v2 几何裕度之后仍有通路。",
+      "所有执行实验使用 tiger11（192.168.20.11）及 tmux；论文只读。",
+      "随机物理环境中的上层再训练不属于首轮必做工作。"
+    ],
+    "known_boundaries": [
+      "v2 历史低速/停滞局限及旧 TASK-036/037 状态保持；不能筛除失败来证明底层已全面达标。",
+      "参考报告 α 约 0.190483、δ 约 2.613866 m，仅用于理解尺度；实现加载匹配冻结文件的精确值和散列。",
+      "现有经验裕度来自固定30秒命令配对；闭环指令分布、提前终止和更长任务不能自动继承覆盖结论。",
+      "HiRA 独立复核事项不自动阻塞 v2；涉及共享代码时核查实际影响，保留旧校准结论和原字节。",
+      "论文中历史代理成本、示例指标和5 Hz配置不作为当前运行契约或验收证据。",
+      "本地审查发现margins_v1.applicability写|vx|≤2、|vy|≤1、|wz|≤2，而protocol_v1.0.2与功率模型记录约1、0.4、1；由NAV-055核对原始applied命令及锁后裁定，现不改旧文件。",
+      "冻结功率模型对匀速直线自由到达时间的单位距离能量最小值对应速度约0.30986m/s，仅为解析预测；v2约0.3m/s跟踪不足需NAV-059实际核验，不能当作已测最优速度。"
+    ]
+  },
+  "goal": {
+    "primary": "交付固定 v2、确定性名义训练、预算选择及物理闭环检验的可复现上层导航实现。",
+    "success_equation": "源码与接口可追溯 AND 数值/几何/时序门禁通过 AND 名义学习达到预登记可用性条件 AND 预算搜索正确处理可行与不可行 AND clean/扰动评估可由原始轨迹复算 AND 不改冻结系统与论文。",
+    "deliverables": [
+      "背景学习与源码映射",
+      "服务器环境和资源清单",
+      "任务/状态/成本/安全契约",
+      "宽通道地图与通路证据",
+      "确定性名义环境",
+      "v2在线执行适配器",
+      "策略与双评价网络训练器",
+      "确定性部署策略与预算搜索",
+      "clean及扰动对照轨迹/报告",
+      "数据锁、复现包、交接说明"
+    ]
+  },
+  "scope": {
+    "included": [
+      "新上下文完整学习方法、RC-PPO、HiRA、v2及校准实现，并形成理解证据。",
+      "在 tiger11 按实际设备配置隔离环境；实现并验证名义环境及固定v2的物理调用。",
+      "首轮使用仿真真值平面状态与地图几何，建立双方一致的观测；不引入感知系统。",
+      "无校准基线（α=0、δ=0，仍包含机器人足迹）与完整方法的名义训练、预算选择、clean和扰动检验。",
+      "训练、开发、预算选择、最终评估分离；真实日志、全体分母、失败与复算证据完整交付。",
+      "正式训练前完成命令域冲突裁定、价值与终止语义、姿态几何、预算公平性及限额内低速/闭环裕度pilot；这些诊断不更新原校准数值。"
+    ],
+    "excluded": [
+      "重新训练、切换或覆盖低层策略；新增HiRA候选实验或修改HiRA/RC-PPO参考源码。",
+      "默认重做原校准、反调现有α/δ、修改冻结功率模型/足迹或覆盖旧数据锁。",
+      "随机环境上层再训练、额外外部基线或单裕度大规模消融；如需开展另行授权和登记。",
+      "真机、SDK、sim2real、相机、SLAM、语义理解及动态障碍预测。",
+      "改写或编译论文、图表、tex/bib、投稿PDF，或把示例结果用作真实实验依据。",
+      "本次创建计划时启动服务器任务、安装依赖、执行NAV任务、提交或推送Git。"
+    ]
+  },
+  "execution_focus": {
+    "task_count": 60,
+    "completed_at_creation": 0,
+    "first_task": "NAV-001",
+    "creation_only": true,
+    "next_executor_instruction": "获得执行授权后从 NAV-001 开始；当前文件、目录、命令和产物的拟定名称不代表已经实现或可运行。不得从中途训练任务开始。 NAV-055–060为插入的前置核查，任务ID用于稳定引用；严禁按编号排序后跳过它们。",
+    "stages": [
+      {
+        "name": "背景学习与源码追踪",
+        "tasks": "NAV-001–006",
+        "task_ids": [
+          "NAV-001",
+          "NAV-002",
+          "NAV-003",
+          "NAV-004",
+          "NAV-005",
+          "NAV-006"
+        ]
+      },
+      {
+        "name": "tiger11环境、v2资源与实施边界",
+        "tasks": "NAV-007–011，含插在NAV-010后的NAV-055",
+        "task_ids": [
+          "NAV-007",
+          "NAV-008",
+          "NAV-009",
+          "NAV-010",
+          "NAV-055",
+          "NAV-011"
+        ]
+      },
+      {
+        "name": "统一契约与确定性名义环境",
+        "tasks": "NAV-012–023，含NAV-056、057、058",
+        "task_ids": [
+          "NAV-012",
+          "NAV-013",
+          "NAV-056",
+          "NAV-014",
+          "NAV-057",
+          "NAV-015",
+          "NAV-016",
+          "NAV-017",
+          "NAV-018",
+          "NAV-019",
+          "NAV-020",
+          "NAV-058",
+          "NAV-021",
+          "NAV-022",
+          "NAV-023"
+        ]
+      },
+      {
+        "name": "提前接通v2并验证计量与时序",
+        "tasks": "NAV-024–028，含NAV-059、060；完成G2及训练前适用性G2A",
+        "task_ids": [
+          "NAV-024",
+          "NAV-025",
+          "NAV-026",
+          "NAV-027",
+          "NAV-059",
+          "NAV-028",
+          "NAV-060"
+        ]
+      },
+      {
+        "name": "RC-PPO目标迁移与小批学习验证",
+        "tasks": "NAV-029–035",
+        "task_ids": [
+          "NAV-029",
+          "NAV-030",
+          "NAV-031",
+          "NAV-032",
+          "NAV-033",
+          "NAV-034",
+          "NAV-035"
+        ]
+      },
+      {
+        "name": "确定性名义训练与部署策略冻结",
+        "tasks": "NAV-036–039",
+        "task_ids": [
+          "NAV-036",
+          "NAV-037",
+          "NAV-038",
+          "NAV-039"
+        ]
+      },
+      {
+        "name": "预算选择与clean物理闭环",
+        "tasks": "NAV-040–045",
+        "task_ids": [
+          "NAV-040",
+          "NAV-041",
+          "NAV-042",
+          "NAV-043",
+          "NAV-044",
+          "NAV-045"
+        ]
+      },
+      {
+        "name": "固定策略扰动检验与独立统计",
+        "tasks": "NAV-046–050",
+        "task_ids": [
+          "NAV-046",
+          "NAV-047",
+          "NAV-048",
+          "NAV-049",
+          "NAV-050"
+        ]
+      },
+      {
+        "name": "复现、审计与交接",
+        "tasks": "NAV-051–054",
+        "task_ids": [
+          "NAV-051",
+          "NAV-052",
+          "NAV-053",
+          "NAV-054"
+        ]
+      }
+    ],
+    "completed_at_revision": 0
+  },
+  "alignment_review": {
+    "date": "2026-11-09",
+    "revision": "1.1.0",
+    "purpose": "把审查问题落实到前置任务和门禁；此表仅索引，具体约束及验收见各任务。",
+    "issues": [
+      {
+        "id": "ALIGN-01",
+        "topic": "速度范围冲突",
+        "primary_task": "NAV-055",
+        "before": "G0及观测/导航环境实现",
+        "evidence": "协议/锁/真实applied命令/模型域的来源裁定"
+      },
+      {
+        "id": "ALIGN-02",
+        "topic": "省能低速实际可执行性",
+        "primary_task": "NAV-059",
+        "before": "G2及任何上层学习",
+        "evidence": "解析预测与v2实测分列的速度—位移—时间—机械功报告"
+      },
+      {
+        "id": "ALIGN-03",
+        "topic": "旧裕度对闭环和提前终止的适用性",
+        "primary_task": "NAV-060",
+        "followup_tasks": [
+          "NAV-034",
+          "NAV-043",
+          "NAV-048"
+        ],
+        "before": "G2A先于上层学习；实际actor复查先于正式训练/物理评估",
+        "evidence": "限额pilot、前缀/完整窗口分母、指令分布与阶段复查"
+      },
+      {
+        "id": "ALIGN-04",
+        "topic": "地图几何、姿态及30秒可行性",
+        "primary_task": "NAV-057",
+        "followup_tasks": [
+          "NAV-016",
+          "NAV-017",
+          "NAV-059",
+          "NAV-028"
+        ],
+        "before": "几何实现及G1；物理执行先于学习",
+        "evidence": "保守足迹处理、连续路径、用时能量及代表路线物理核验"
+      },
+      {
+        "id": "ALIGN-05",
+        "topic": "J预算、价值尺度、折扣与共同停止",
+        "primary_task": "NAV-056",
+        "followup_tasks": [
+          "NAV-014",
+          "NAV-030",
+          "NAV-031"
+        ],
+        "before": "成本/环境实现及G1/G3",
+        "evidence": "value契约、符号/尺度/折扣与共同终点反例"
+      },
+      {
+        "id": "ALIGN-06",
+        "topic": "成功失败与停止计费",
+        "primary_task": "NAV-012",
+        "followup_tasks": [
+          "NAV-019",
+          "NAV-027"
+        ],
+        "before": "环境实现及G1",
+        "evidence": "数值判据、事件真值表、子步/最后区间成本规则"
+      },
+      {
+        "id": "ALIGN-07",
+        "topic": "同预算与自选预算公平性",
+        "primary_task": "NAV-058",
+        "followup_tasks": [
+          "NAV-021",
+          "NAV-041",
+          "NAV-045",
+          "NAV-047",
+          "NAV-049"
+        ],
+        "before": "预登记及正式训练",
+        "evidence": "预算模式/配额/选择规则及分列复算"
+      },
+      {
+        "id": "ALIGN-08",
+        "topic": "框架、观测编码与算力配额",
+        "primary_task": "NAV-008",
+        "followup_tasks": [
+          "NAV-011",
+          "NAV-013",
+          "NAV-021"
+        ],
+        "before": "G0/G1及任何学习",
+        "evidence": "环境版本、观测字段维度、有限资源和具体阈值"
+      }
+    ]
+  },
+  "global_constraints": [
+    "执行主机固定为 tiger11 / 192.168.20.11；禁止使用192.168.20.10，不能因登录失败、资源短缺或依赖缺失而自动切换192.168.20.12或其他节点。",
+    "服务器终端、依赖安装、环境探测、导出、测试、仿真、训练、采集、评估和复算在tmux中运行，记录会话/窗口、hostname、GPU、cwd、绝对解释器、非敏感完整命令、日志和产物；首次hostname确认和最小tmux引导、本地文档/静态检查为例外。",
+    "控制器固定camra_go2_velocity_it2999_v2；权重、资产、观测/动作映射、PD、频率、功率模型、足迹、α/δ及锁必须整套匹配。缺资源先核验恢复，不替换HiRA。",
+    "保持物理200 Hz、低层50 Hz、上层10 Hz；每个上层周期含5次低层重新观测推理和20个物理子步，不能把一次关节输出保持0.1秒。",
+    "上层输出机身系[vx,vy,yaw_rate]；域按匹配冻结协议核验，当前参考为[-1,1]m/s、[-0.4,0.4]m/s、[-1,1]rad/s。应用限幅后同一实际命令用于运动、成本、低层观测与日志。",
+    "成本为逐关节正机械功，单位J；名义每0.1秒用冻结功率模型，预算按(1+α)c_nom扣减，实际执行功单独记录；不能混用旧a.u.、墙钟时间或电池能量。",
+    "危险集合计入物理占地足迹，再额外膨胀δ且只膨胀一次；物理碰撞体保留原始几何，名义安全约束与真实碰撞指标分开记录。",
+    "宽通道必须有膨胀后可达路径及运动/时限可行证据；7–8m只是初始净宽设计，不是全地图或全部执行的安全证明。地图边界、转弯和起终点同样检查。",
+    "RC-PPO/和HiRA/只读；新代码写CaMRA/navigation。共享校准/底层优先导入只读模块或新增隔离适配器，不改旧锁内源码；确需修改须保留原快照并询问用户。",
+    "manuscripts/**、所有*.tex/*.bib、投稿源文件与PDF、docs/paper*、submission*禁止写入，不编译。允许只读对照；差异清单仅写导航模块docs并交作者处理。",
+    "先通过环境、物理接口和算法数值门禁，再扩大训练；固定部署策略及评价网络后才预算选择；冻结全部选择后才查看最终clean/扰动结果。",
+    "确定性指名义状态转移；可以随机采样训练地图、初态、预算和策略动作。clean物理仿真仍有模型执行偏差，不等于名义模型。",
+    "首轮扰动阶段固定上层策略、评价网络、预算规则和α/δ，只评估；若要随机环境再训练、延长校准窗口或新增校准必须询问用户。",
+    "所有run/attempt/trial保留；不自动覆盖、挑最好attempt、删除业务失败或把崩溃当成成功。基础设施故障和业务失败分开登记，未完成事件保留分母状态。",
+    "训练/开发/预算选择/最终评估按地图与种子族隔离；不得用最终指标选checkpoint、调裕度、调预算阈值或改地图后继续冒充原测试。",
+    "每次启动前检查主仓库/子模块和既有tmux、进程、输出锁、run_id、恢复标记；中断后先恢复原任务，不重复并发写同一split。大型产物在tiger11登记的独立目录，不能混入旧校准目录。",
+    "任何会改变来源、范围、数据、核心依赖、评分口径、资源预算、已有产物、远程Git状态或外部费用的不确定决策必须暂停并询问用户；已确认约束不重复征询，计划内正常实现和输出不逐文件索要许可。",
+    "本地既有文档修改属于现有工作，保留并记录；Git提交/推送按当次明确授权。绝不写入凭证、环境秘密或账户密码。",
+    "不能把PPO损失下降、进程退出0、模型能加载或校准覆盖率当成收敛、导航成功或形式化随机安全证明；验收看实际字段及独立证据。",
+    "NAV-055先解决协议/裕度元数据/功率模型/真实applied命令的速度域冲突；旧文件只读，以独立导航契约记录来源裁定，未核实不能采用更大范围。",
+    "NAV-056冻结成本价值尺度、折扣与共同停止时刻；NAV-057冻结位置/航向误差下的几何处理。任何目标、评分或核心假设变化先询问用户，不以实现方便替代方法对齐。",
+    "NAV-059、060及G2A在任何上层学习前通过；NAV-034对短训练所得指令复查，NAV-043在正式物理评估前复查实际候选。早期规则控制pilot不能证明未来学习策略与原校准同分布。",
+    "NAV-058与NAV-021在正式训练前冻结共同物理J预算和各方法独立选择预算两种比较口径及配额；只保留两种已授权方法，不默认新增单裕度训练或大规模消融。",
+    "后续任务发现前置实现有问题时，按upstream_correction_policy回修；工作记录主体追加到发现问题的当前任务，保留原记录及原始证据。受影响验收失效时先停止推进、登记影响并重验；既定范围内且依据明确的导航代码修复可继续，受保护系统或未授权范围仍须先询问用户。"
+  ],
+  "uncertainty_policy": {
+    "rule": "只锁定用户已确认的设计。运行来源不唯一、结果异常或需扩展授权时暂停，任务保持false并追加blocker；不为了完成任务自行改变事实。",
+    "must_pause_and_ask": [
+      "tiger11无法登录、hostname不符、GPU资源不可用或需换服务器/新增费用。",
+      "v2权重、资产或匹配校准配置缺失/散列不符，多个候选不能由权威清单唯一确定；换行差异不能直接更新旧散列。",
+      "需要选择或修改未登记的核心框架/依赖版本、升级共享Isaac环境，或资源预算无法由已授权约束确定。",
+      "需要收窄/滤波指令域、修改控制频率、任务时限、能量定义、终止优先级、比较分母或安全判据。",
+      "膨胀后无路、30秒内无法完成，或闭环指令超出原校准条件；不能减δ、拉长窗口或丢弃困难地图来过验收。",
+      "共享代码问题可能影响v2冻结结果、数值oracle不一致或无法区分业务与基础设施失败。",
+      "需要覆盖/删除/移动已有成果、重采校准、随机训练、改变正式试验次数、增加外部基线、写入论文或未经授权提交推送。",
+      "速度域元数据与锁定协议/原始命令不能唯一解释，或需要更改折扣目标、停止时刻、姿态安全近似和任务评分；不能静默修改旧冻结配置。",
+      "NAV-059/060或候选指令复查显示显著停滞、快速切换或提前终止使旧裕度缺乏适用性；报告继续作探索性检验、新版校准或调整任务的选项与代价，等待用户裁定，不自动重校准。"
+    ],
+    "planned_decisions": [
+      {
+        "topic": "上层实现框架与依赖",
+        "task": "NAV-008",
+        "state": "待依据tiger11环境核验；PyTorch便于接入但未在本计划中假定已获准替换原JAX实现",
+        "rule": "列兼容方案及对数值对照/成本的影响，冻结前解决会改变核心依赖的选择。"
+      },
+      {
+        "topic": "任务事件、观测与预算归一化",
+        "task": "NAV-012–015",
+        "state": "需形成正式契约；保留确认的物理单位、频率、时限边界",
+        "rule": "凡改变评分/终止语义的未决点在正式实现和训练前询问，不依据结果倒选规则。"
+      },
+      {
+        "topic": "正式种子、试验次数、迭代数和GPU小时",
+        "task": "NAV-011及NAV-021",
+        "state": "设备和算力未知，不在计划中虚构已确定配额",
+        "rule": "冻结前展示具体资源表并取得必要授权；未冻结只能做已登记短测试，不能无限加跑。"
+      },
+      {
+        "topic": "速度域冲突与导航有效域",
+        "task": "NAV-055",
+        "state": "待核验原始applied命令；较大范围元数据不构成授权",
+        "rule": "形成来源裁定与独立导航契约；来源无法唯一确定时暂停询问。"
+      },
+      {
+        "topic": "累计机械功、价值尺度与停止目标",
+        "task": "NAV-056及NAV-012",
+        "state": "未折扣J目标已定；具体critic归一化、折扣配置与事件表尚待推导",
+        "rule": "先以手算短轨迹确定语义；改变目标或评分须询问。"
+      },
+      {
+        "topic": "位置裕度与姿态足迹",
+        "task": "NAV-057",
+        "state": "外接圆是候选保守近似，不是已确认设计或实测航向界",
+        "rule": "明确保守性与碰撞/净空指标边界后冻结；需改变假设时询问。"
+      },
+      {
+        "topic": "同预算及各自预算的公平对照",
+        "task": "NAV-058和NAV-021",
+        "state": "比较口径、预算网格、配额与最小预算可行标准待登记",
+        "rule": "冻结后才正式训练；不以最终结果选择预算或改变分母。"
+      },
+      {
+        "topic": "低速与闭环裕度提前放行",
+        "task": "NAV-059、060及NAV-034/043",
+        "state": "待限额内真实pilot，不能由解析省能速度或旧覆盖率代替",
+        "rule": "区分来源/工程正确性与经验适用性；不达标保持false并报告，不自动改v2/裕度。"
+      }
+    ],
+    "question_format": "给出NAV任务ID、证据、具体不确定点、2–3个方案及其对范围/数据/依赖/费用的影响，等待用户明确选择。",
+    "record_policy": "blocker也必须追加timestamp/actions/files_changed/commands/results/evidence/remaining_work/blockers，不覆盖旧记录，不把未知写成已完成。前置回修记录的主体放在发现问题的当前任务下，依upstream_correction_policy关联旧任务及下游影响。"
+  },
+  "upstream_correction_policy": {
+    "applies_to": "全部60项NAV任务；这是全程执行规则，不新增任务，不改变本次任务顺序、依赖或状态。",
+    "user_authorization": "用户同意：后面的工作发现前面的工作有问题时，可以同步纠正；原工作记录必须保留，修正过程在当前任务下记录。",
+    "scope_rule": "依据明确、目标不变且在既定代码范围和已登记资源内的实现缺陷，可以在当前任务中回修，无需为普通修复重复申请。此授权不允许更改来源、科学目标、评分、依赖、资源配额或受保护成果；相关不确定决策仍按uncertainty_policy暂停询问。",
+    "history_rule": "原work_records、失败、旧判定、原始日志、冻结文件与数据锁不删除、不改写。修正前登记版本/路径/hash并保留可恢复源码或快照；新报告、锁和重跑产物使用独立版本及run/attempt身份，不覆盖旧产物，不以更新旧hash掩盖变更。",
+    "record_owner_rule": "问题发现、影响分析、修复动作、用户决定、验证和解除阻塞的主体记录，全部追加在发现问题的当前任务work_records内。保持九个标准记录字段，并以correction子对象关联前置任务；必要时只在相关旧任务追加交叉引用，不搬走或改写当前任务中的主体记录。",
+    "workflow": [
+      "发现问题后保持当前任务status=false，先追加事实、复现证据和受影响前置任务；暂停依赖该错误结果的后续动作，不以已有true状态或旧门禁继续放行。",
+      "定位根因和影响范围，登记原代码/配置/结果的版本与hash，列出受影响任务、门禁、训练模型、数据锁和评估产物；不受影响的历史结论保留。",
+      "核对授权边界。在新导航实现内修复确定的错误；若涉及v2冻结系统、旧校准、参考仓库或需改变既定契约/资源，先记录blocker并询问用户。论文禁止写入规则始终有效。",
+      "在可恢复的代码版本中修复，追加说明具体改动和新旧差异；不能回填旧日志，把原错误运行改写成修复后的结果。",
+      "针对根因及下游影响完成必要重验。优先复用未受影响的有效证据；需要重训、重采或重跑正式试验时先核对授权与预算，不自行无限加跑或覆盖正式数据。",
+      "把命令、文件、修正后版本、验证证据、状态变化及下游处理结论追加到当前任务，明确哪些旧结论仅作历史记录、哪些证据仍然适用。",
+      "先按依赖恢复受影响的验收与门禁，再继续当前任务本身；只有当前任务全部验收也满足后才能标记true。每轮状态更新后运行update校验。"
+    ],
+    "correction_record_required_fields": [
+      "correction_id：当前任务下唯一的回修编号",
+      "discovered_in_task：发现问题的当前任务ID",
+      "upstream_task_ids：问题涉及的前置任务ID",
+      "problem_and_evidence：问题、根因与可复现证据",
+      "original_artifact_references：原版本、文件/hash和历史验收引用",
+      "affected_task_ids：受影响的当前及下游任务",
+      "affected_gate_ids：需重验的门禁，无则为空数组",
+      "authorization_basis：既有授权依据或新增用户决定",
+      "changes_and_versions：修复文件、改动及新版本/产物身份",
+      "revalidation_evidence：复验命令、结果和证据路径",
+      "status_changes：前后status/verification_result及变化依据，无变化则为空数组",
+      "downstream_disposition：继续、失效待重验或仍受阻的结论及理由",
+      "closure_state：open、blocked或validated"
+    ],
+    "task_and_gate_state_rules": [
+      "发现问题的当前任务在回修和相关重验结束前保持false；不得单凭修复代码已写完就算当前任务完成。",
+      "若证据表明前置验收实际失效，先在当前任务记录原status、verification_result及证据引用，再将失效任务和受影响的已完成依赖任务同步退回false；原work_records和历史验收报告保持不变，避免true依赖false的无效状态。",
+      "回修是为恢复已承诺前置条件的受控操作，不是越过依赖推进后续目标。受影响任务按依赖完成重验；恢复true时追加指向当前任务回修证据的记录，并填写新的verification_result，旧判定已在追加记录中保留。",
+      "旧门禁报告保留为原版本证据；新版本只有在相应重验通过并产出新门禁记录后才能放行。失效的模型、数据锁和结果明确标记用途，不能直接用于新版本最终结论。"
+    ],
+    "protected_boundaries": [
+      "v2控制器及其权重、资产、PD、功率模型、足迹、α/δ和旧数据锁维持冻结；不因回修自动替换、重训或重校准。",
+      "RC-PPO/、HiRA/继续只读；旧校准源码确需改动仍先保留原快照并询问用户。",
+      "manuscripts/**、tex/bib、投稿源文件与PDF等禁止写入，回修不得突破论文保护规则。",
+      "执行主机、tmux、数据隔离、全部失败保留、资源上限及Git提交/推送授权规则继续适用。"
+    ],
+    "closure_rule": "所有回修均有完整历史引用、修复及重验依据；受影响任务/门禁已恢复有效，或明确保持受阻。未解除的问题留在当前任务remaining_work/blockers内，不作无条件最终交付。"
+  },
+  "runtime_contract": {
+    "required_host": {
+      "ssh_target": "192.168.20.11",
+      "hostname": "tiger11",
+      "forbidden_nodes": [
+        "192.168.20.10",
+        "192.168.20.12"
+      ],
+      "login_precheck": "ssh 192.168.20.11 hostname"
+    },
+    "tmux": {
+      "session_name_prefix": "camra-nav-v2-",
+      "naming_rule": "执行时以新run_id组成唯一会话名；先列已有会话与活动任务，日志文件和PID可对应到会话窗口。",
+      "connection_loss_rule": "查看原会话、进程、锁及完成标记后续跑，禁止重复启动同一run。"
+    },
+    "resource_resolution": {
+      "repository_hint": "/home/caohy/repositories/Paper",
+      "python_hint": "/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python",
+      "v2_bundle_hint": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+      "asset_root_hint": "/pub/data/caohy/unitree_model",
+      "proposed_navigation_work_root": "/pub/data/caohy/work/camra_navigation",
+      "proposed_navigation_output_root": "/pub/data/caohy/logs/camra_navigation",
+      "path_status": "这些为已记录线索或新建候选目录，不代表tiger11当前可用；NAV-007–010逐项检查并写runtime_paths.json，已有目标不得覆盖。",
+      "isolation_rule": "新导航环境和输出独立命名，旧v2/HiRA包体、原始数据、锁和共享运行目录不作写入目标。",
+      "shared_filesystem_rule": "/home共享NFS，文件可见不证明执行节点正确；每个run保存hostname和GPU身份。",
+      "dependency_rule": "优先复用经核验的兼容依赖；不静默升级共享环境、切仿真器或复制另一个节点的解释器路径。"
+    },
+    "launch_manifest_required_fields": [
+      "run_id",
+      "attempt_id",
+      "host",
+      "hostname",
+      "tmux_session",
+      "tmux_window",
+      "pid",
+      "cwd",
+      "python_absolute_path",
+      "gpu_identity",
+      "git_head",
+      "dirty_diff_identity",
+      "controller_id",
+      "controller_manifest_hash",
+      "asset_hashes",
+      "calibration_hashes",
+      "contract_hash",
+      "map_split_hash",
+      "prereg_hash",
+      "full_non_sensitive_command",
+      "started_at",
+      "log_paths",
+      "resume_state"
+    ]
+  },
+  "method_contract": {
+    "controller_id": "camra_go2_velocity_it2999_v2",
+    "frozen_inputs": [
+      "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+      "CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+      "CaMRA/calibration/config/power_model_v1.json",
+      "CaMRA/calibration/config/footprint_v1.json",
+      "CaMRA/calibration/config/margins_v1.json",
+      "CaMRA/calibration/config/data_lock_v1.json",
+      "CaMRA/calibration/config/step_cost_schema_v1.json"
+    ],
+    "control_timing": {
+      "physics_dt_s": 0.005,
+      "low_level_dt_s": 0.02,
+      "navigation_dt_s": 0.1,
+      "warmup_s_reference": 1,
+      "calibration_window_s": 30
+    },
+    "nominal_motion": "按同一实际施加命令做平面精确圆弧积分；训练转移不叠加物理扰动，随机采样与确定性动力学分开。",
+    "observation_requirements": [
+      "平面位姿/朝向、目标及足以定义本轮静态任务的地图几何",
+      "不可逆安全历史y、带符号剩余预算z、有限时域剩余时间",
+      "若命令限速或模型依赖历史则补齐所需状态；当前冻结功率模型history_k=0",
+      "首轮使用仿真真值，名义和物理两端同坐标/缩放/排列/掩码；不擅自改为部分可观测感知任务"
+    ],
+    "budget_semantics": [
+      "c_nom=P_nom(applied_command)*0.1s；c_model=(1+α)*c_nom；z_next=z-c_model，支出为正。",
+      "执行能量J_exec独立按200Hz积分sum_j max(tau_j*qdot_j,0)，不从执行能量反向重置内部预算。",
+      "BudgetState.z_ratio当前分母是本回合initial_J且下限截为0，不能直接当固定z_ref的z/z_ref；新的导航适配器保留负预算及固定归一化，并作逆变换测试。",
+      "RC-PPO.root_finding的[-1,1]为归一化区间，不是J区间；不能沿用旧a.u.或把搜索无括根的中点作为可行预算。",
+      "到达后的成本停止点、子步事件/部分区间、预算耗尽与时间截断bootstrap先写契约；不得悄悄修改冻结步成本单位或0.1s接口。",
+      "NAV-056先定义z_J、z_ref_J、归一化成本critic和V_h的尺度与正负号；组合残差、损失目标、停止分段及搜索阈值使用同一版本。"
+    ],
+    "safety_semantics": [
+      "危险历史不可逆，退出危险区不能恢复安全；明确本项目y与原avoid=±1的映射及符号。",
+      "占地足迹与δ只各计一次；名义约束膨胀不改变物理碰撞体或各方法共用的真实成功判据。",
+      "核查跨边但无顶点包含的多边形交叠、旋转、边界接触和区间穿越；不能仅凭旧函数注释认定几何正确。",
+      "闭环执行期间累计子步到达/碰撞/跌倒/越界事件，不能只检查0.1秒终点或把自动复位后的新回合拼接进旧回合。",
+      "δ来自平面位置偏差，不直接包含航向差；NAV-057在实现几何前明确足迹外接圆或有依据的姿态处理。物理CR/MC仍按所有方法共同的冻结足迹与原始障碍定义。"
+    ],
+    "training_semantics": [
+      "根据RC-PPO当前实际调用链实现max(V_h,V_cost-z)及最小化PPO；训练目标停止分段与环境终止独立命名。",
+      "保留动作变换、log_prob、优势符号、熵符号、归一化和critic目标之间的一致性，用独立小例子核验。",
+      "先无裕度小批验证，再分别训练无校准/完整方法；不能把HiRA单价值ReachAvoidPPO直接称为CaMRA算法。",
+      "部署若从随机采样改为确定性均值动作，评价网络需在固定部署策略下重新核验/拟合；预算搜索使用对应版本。",
+      "累计机械功目标为未折扣J。NAV-056逐项核查GAMMA_ENERGY/REACH、GAE和bootstrap；不能把<1的成本折扣直接当未折扣总能量，也不能让双critic分别选择不同停止时刻。",
+      "在连续动作任务中，α统一乘正系数不自动改变同一可行集合内的路径成本排序；其预算缓冲作用与δ改变可行路径的作用分别解释，整体两方法比较不证明单项贡献。"
+    ],
+    "calibration_applicability": [
+      "沿用同一冻结v2及其校准值，不把覆盖率直接当导航成功率或严格随机安全保证。",
+      "在线策略比较与同命令配对不同：诊断误差重放真实施加指令、同初态同时间基准，只在warmup后窗口起点对齐一次，不能每步重新贴合实际位姿。",
+      "原30秒误差分位数对不同终止时刻、指令分布及额外延迟只作适用性诊断；如需新校准先询问，不反调旧裕度。",
+      "原命令程序每1s换目标、参考0.2s过渡，导航每0.1s可换命令；幅值落域不代表切换/转向/联合分布一致。NAV-060在G2后先诊断，NAV-034和043对实际学习候选复查。",
+      "完整30s的累计能量覆盖不蕴含任意提前到达前缀的能量覆盖；位置最大偏差的前缀关系仅限同一条已观测轨迹，不能推出新闭环策略覆盖。保存多时刻前缀与失败，旧α/δ不反调。"
+    ],
+    "command_domain_resolution": {
+      "task": "NAV-055",
+      "known_conflict": "margins applicability:2/1/2；protocol与power domain:约1/0.4/1，顺序为|vx|/|vy|/|wz|。",
+      "authority_rule": "以绑定版本的协议、生成器、真实applied命令及功率模型支持域交叉核实；未唯一确定时询问用户，不取各字段最大值。",
+      "output": "config/navigation_contract_v1.json中的validated_command_domain及reports/command_domain_resolution.json；旧文件不改。"
+    }
+  },
+  "map_contract": {
+    "gap_definition": "原始物理障碍物表面之间的净距，不是中心距；墙边距与起终点安全余量同样计入。",
+    "initial_gap_design_m": [
+      7,
+      8
+    ],
+    "geometry_reference": {
+      "footprint_circumscribed_radius_m_approx": 0.505501388,
+      "delta_m_approx": 2.613866,
+      "conservative_straight_gap_formula": "W > 2*(r_footprint+delta)，参考约6.24m；实际加载精确冻结值，并加数值/离散检查余量。"
+    },
+    "required_checks": [
+      "膨胀后的起点、目标安全",
+      "含边界墙的自由空间连通",
+      "候选路线转弯及连续碰撞检查",
+      "速度域与30秒边界下的运动可达性",
+      "同一原始地图支持所有比较方法",
+      "多路径任务确有绕障和成本选择，不能因场地过宽全部退化为直线",
+      "NAV-057的姿态几何处理有明确保守性依据；相同中心不同航向、边界转角和扫掠反例通过。"
+    ],
+    "energy_rule": "用冻结功率模型计算候选路线成本，最短距离不直接等于最低机械功；规划器可用于通路/受限参考验证，不替代要训练的上层策略。 NAV-017保存含启停/转向的名义用时和能量，NAV-059用v2核验代表路线；7–8m净宽与约0.31m/s省能预测均不等于30秒内实际可达。",
+    "historical_map_rule": "旧近障地图的0.05–0.35m目标净距与固定命令回放目的不同，只参考生成思路，不改写或直接沿用为本次正式导航地图。",
+    "physical_consistency_rule": "统一地图源生成名义几何与真实物理障碍；旧obstacles_sim.py固定0.3m、7槽、无实体边界墙的假设须显式处理；并行env间距/碰撞隔离随场地扩大验证。"
+  },
+  "evaluation_contract": {
+    "primary_variants": [
+      {
+        "id": "uncalibrated",
+        "alpha": 0,
+        "delta_m": 0,
+        "footprint_required": true
+      },
+      {
+        "id": "camra_full",
+        "margin_source": "匹配v2的冻结margins_v1.json精确值",
+        "footprint_required": true
+      }
+    ],
+    "evaluation_modes": [
+      "确定性名义开发验证",
+      "冻结后的clean物理执行",
+      "冻结后的预登记扰动物理执行"
+    ],
+    "data_splits": [
+      "train",
+      "development",
+      "budget_selection",
+      "final_nominal",
+      "final_clean",
+      "final_perturbed",
+      "integration_pilot"
+    ],
+    "metrics": {
+      "SR": "所有方法共用：时限内到达且未发生物理碰撞、跌倒等预登记失败；方法内部膨胀约束违反另列。",
+      "Cost": "物理评估为终止规则内实测正关节机械功J；名义预测、含裕度预算支出另列，成功条件均值与全体摘要均注明分母。",
+      "CR": "全体业务试验中的真实碰撞比例，接触与几何判据及冲突处理在正式评估前冻结。",
+      "BVR": "实测累计机械功超过本回合所选初始J预算的比例；无可行预算、未完成和不可计算试验单独列且不消失。",
+      "MC": "机器人足迹到原始障碍及边界的最小几何净空，明确采样与区间检查方法；碰撞和失败保留。",
+      "additional": [
+        "预算可行/不可行率及搜索诊断",
+        "内部安全约束违反",
+        "到达时间、跌倒、停滞与超时",
+        "名义预测与实际能量/位置偏差",
+        "全部attempt、缺失、基础设施错误及各子组样本量"
+      ]
+    },
+    "statistical_rule": "正式训练前登记种子、地图族、试验数、主attempt、资源上限、checkpoint选择、置信水平/区间方法及训练种子/地图相关性处理；不能假设全部轨迹独立。配对比较使用同地图/初态及预登记扰动描述，不声称同seed必有完全相同接触扰动。",
+    "result_rule": "工程完整性和科学表现分别验收。负结果如实报告；未达已冻结可用性门禁时保留任务false并请求方向，不改标准或无限加跑。",
+    "budget_comparison_modes": [
+      {
+        "id": "common_budget",
+        "rule": "同地图/初态使用同一物理J初始预算或预登记共同网格，比较SR/实际Cost/CR/BVR/MC。完整方法仍按自身校准成本扣内部预算；共同比较预算不得按最终方法表现倒选。"
+      },
+      {
+        "id": "method_selected_budget",
+        "rule": "各方法在独立选择集按相同可行性要求和搜索资源选择预算，再冻结评估。并列报告所选J预算、可行/无解比例、实际能量和安全指标；不把更大预算下较低BVR解释为独立算法优势。"
+      }
+    ],
+    "attribution_rule": "首轮仅无校准与完整方法。α/δ的代数或受限小例子只作机制核验，不替代独立消融证据；共同预算与自选预算的标签、分母和样本配额分别登记，必要复用同预算同策略轨迹时需身份一致且不重复计算独立样本量。"
+  },
+  "reference_map": [
+    {
+      "id": "R01",
+      "paths": [
+        "AGENTS.md",
+        "README.md",
+        "CaMRA/README.md",
+        "CaMRA/navigation/README.md"
+      ],
+      "use": "当前授权、硬约束、模块边界与状态"
+    },
+    {
+      "id": "R02",
+      "paths": [
+        "manuscripts/CCDC/latex/1029/main.tex",
+        "RC-PPO/README.md"
+      ],
+      "use": "只读学习方法定义、原算法思想及论文与实现差异"
+    },
+    {
+      "id": "R03",
+      "paths": [
+        "RC-PPO/rl/EC-EFPPO.py",
+        "RC-PPO/rl/EFPPO_utils.py",
+        "RC-PPO/rl/gae.py",
+        "RC-PPO/model/actorcritic.py",
+        "RC-PPO/env/reach_avoid/wind_field.py",
+        "RC-PPO/env/env_list.py"
+      ],
+      "use": "实际训练调用链、双评价目标、停止分段、最小化符号和状态缩放；原副本缺失导入不能冒充可运行发行版"
+    },
+    {
+      "id": "R04",
+      "paths": [
+        "RC-PPO/rl/root_finding.py"
+      ],
+      "use": "预算搜索参考，补端点/单调性/无解检查与J单位转换"
+    },
+    {
+      "id": "R05",
+      "paths": [
+        "HiRA/legged_gym_go2/legged_gym/scripts/train_reach_avoid.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/hierarchical_go2_env.py",
+        "HiRA/legged_gym_go2/legged_gym/envs/go2/high_level_navigation_env.py",
+        "HiRA/rsl_rl/rsl_rl/algorithms/reach_avoid_ppo.py",
+        "HiRA/legged_gym_go2/legged_gym/scripts/test_reach_avoid.py"
+      ],
+      "use": "分层封装、状态组织、速度下发和轨迹评估结构；不是可直接替换的CaMRA算法或v2契约"
+    },
+    {
+      "id": "R06",
+      "paths": [
+        "CaMRA/locomotion/README.md",
+        "CaMRA/locomotion/docs/reproduction.md",
+        "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+        "CaMRA/locomotion/config/repro.env",
+        "CaMRA/locomotion/scripts/verify_frozen_bundle.py"
+      ],
+      "use": "v2身份、恢复、历史局限与完整性检查"
+    },
+    {
+      "id": "R07",
+      "paths": [
+        "CaMRA/locomotion/scripts/rollout_exported_policy.py",
+        "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/external_command.py"
+      ],
+      "use": "build_policy、ExternalCommandBridge.set_command_batch、观测更新和导出策略运行；不要导入带脚本顶层参数解析的模块造成副作用"
+    },
+    {
+      "id": "R08",
+      "paths": [
+        "CaMRA/calibration/README.md",
+        "CaMRA/calibration/docs/implementation_handoff.md",
+        "CaMRA/calibration/docs/controller_comparison_status_20261109.md",
+        "doc/plan/20261103_camra_calibration_implementation.json",
+        "doc/plan/20261105_camra_hira_policy_calibration.json",
+        "CaMRA/calibration/delivery/bundle_manifest_v1.json"
+      ],
+      "use": "旧校准协议、例外、真实数据位置、来源界限和历史复核事项"
+    },
+    {
+      "id": "R09",
+      "paths": [
+        "CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+        "CaMRA/calibration/config/power_model_v1.json",
+        "CaMRA/calibration/config/footprint_v1.json",
+        "CaMRA/calibration/config/margins_v1.json",
+        "CaMRA/calibration/config/data_lock_v1.json",
+        "CaMRA/calibration/config/step_cost_schema_v1.json"
+      ],
+      "use": "固定v2消费契约与精确值/散列"
+    },
+    {
+      "id": "R10",
+      "paths": [
+        "CaMRA/calibration/src/camra_calibration/nominal.py",
+        "CaMRA/calibration/src/camra_calibration/power.py",
+        "CaMRA/calibration/src/camra_calibration/step_cost.py"
+      ],
+      "use": "step_exact、PowerModel、StepCost与BudgetState；适配归一化和有符号预算"
+    },
+    {
+      "id": "R11",
+      "paths": [
+        "CaMRA/calibration/src/camra_calibration/geometry.py",
+        "CaMRA/calibration/src/camra_calibration/obstacles.py",
+        "CaMRA/calibration/src/camra_calibration/near_obstacle.py",
+        "CaMRA/calibration/sim/obstacles_sim.py"
+      ],
+      "use": "膨胀、足迹/距离、地图与物理障碍生成参考，独立核对交叠/扫掠/尺寸假设"
+    },
+    {
+      "id": "R12",
+      "paths": [
+        "CaMRA/calibration/src/camra_calibration/profiles.py",
+        "CaMRA/calibration/sim/profiles_sim.py",
+        "CaMRA/calibration/sim/recorder.py",
+        "CaMRA/calibration/src/camra_calibration/energy.py",
+        "CaMRA/calibration/scripts/collect_trials.py",
+        "CaMRA/calibration/sim/batch_program.py"
+      ],
+      "use": "扰动采样/注入、复位、物理步计量和既有命令表采集；闭环需新在线适配，固定30秒记录器不能直接覆盖任意终止语义"
+    },
+    {
+      "id": "R13",
+      "paths": [
+        "CaMRA/calibration/src/camra_calibration/commands.py",
+        "CaMRA/calibration/src/camra_calibration/protocol.py"
+      ],
+      "use": "命令真实生成/限幅/变化节奏与协议加载，对照原始applied命令裁定速度域和闭环适用性。"
+    }
+  ],
+  "paths": {
+    "plan": "doc/plan/20261109_camra_navigation_implementation.json",
+    "existing_navigation_root": "CaMRA/navigation",
+    "existing_calibration_root": "CaMRA/calibration",
+    "existing_locomotion_root": "CaMRA/locomotion",
+    "readonly_references": [
+      "RC-PPO",
+      "HiRA"
+    ],
+    "protected_manuscript_root": "manuscripts",
+    "proposed_navigation_package": "CaMRA/navigation/src/camra_navigation",
+    "proposed_config_directory": "CaMRA/navigation/config",
+    "proposed_test_directory": "CaMRA/navigation/tests",
+    "proposed_script_directory": "CaMRA/navigation/scripts",
+    "proposed_document_directory": "CaMRA/navigation/docs",
+    "proposed_report_directory": "CaMRA/navigation/reports",
+    "proposed_handoff": "CaMRA/navigation/docs/implementation_handoff.md",
+    "path_rule": "proposed_*均为实施时拟新增路径；执行前先核验实际状态，不覆盖已存在成果；服务器路径经NAV-007–010登记后使用。"
+  },
+  "gates": [
+    {
+      "id": "G0",
+      "task": "NAV-011",
+      "condition": "背景理解、tiger11环境、v2身份与隔离资源方案明确；NAV-055速度域冲突已裁定"
+    },
+    {
+      "id": "G1",
+      "task": "NAV-023",
+      "condition": "契约冻结、地图通路与名义环境数值/语义测试通过；NAV-056/057/058目标尺度、姿态几何及预算对照规则已冻结"
+    },
+    {
+      "id": "G2",
+      "task": "NAV-028",
+      "condition": "v2观测/命令/时序/复位/计量与小闭环通过；含NAV-059低速实际可执行性"
+    },
+    {
+      "id": "G2A",
+      "task": "NAV-060",
+      "condition": "训练前闭环命令/前缀能量/旧裕度pilot完成且经验适用性按预登记规则放行；不替代后续实际学习策略复查"
+    },
+    {
+      "id": "G3",
+      "task": "NAV-035",
+      "condition": "原目标迁移的独立数值对照、梯度方向及小批学习通过；含短训练实际actor适用性复查"
+    },
+    {
+      "id": "G4",
+      "task": "NAV-039",
+      "condition": "两种方法正式名义训练及部署策略/评价网络冻结完成"
+    },
+    {
+      "id": "G5",
+      "task": "NAV-044",
+      "condition": "预算规则、clean小闭环、最终数据锁和评估清单冻结；共同/自选预算分列及部署actor适用性已复查"
+    },
+    {
+      "id": "G6",
+      "task": "NAV-050",
+      "condition": "固定策略clean/扰动结果独立复算，可用性按预登记标准判定"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "NAV-001",
+      "phase": "背景学习",
+      "goal": "建立新上下文的仓库与授权基线",
+      "status": false,
+      "depends_on": [],
+      "work_records": [],
+      "constraints_and_notes": [
+        "完整读取AGENTS、根/各模块README、本计划全文和技能执行规则；检查主仓库与HiRA子模块及已有修改，不执行git pull/reset/clean。",
+        "区分历史任务完成、科学表现和本计划未实施状态；本机静态工作不作为服务器运行证据。",
+        "学习upstream_correction_policy：后续可在既定范围回修前置问题，但主体记录追加到发现问题的当前任务，旧记录保留，失效验收重验后才能继续。"
+      ],
+      "acceptance_criteria": [
+        "背景笔记记录实际HEAD/子模块、dirty文件归属、用户硬约束及阅读清单。",
+        "列明当前导航仅README、哪些旧资源已存在和哪些需在tiger11核验；无未知修改被清除。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R01",
+        "R06",
+        "R08"
+      ],
+      "planned_outputs": [
+        "docs/onboarding.md：仓库与授权基线"
+      ]
+    },
+    {
+      "id": "NAV-002",
+      "phase": "背景学习",
+      "goal": "理解方法定义及本轮科学问题",
+      "status": false,
+      "depends_on": [
+        "NAV-001"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只读论文问题定义/方法/实验口径，结合RC-PPO说明理解名义动力学、安全历史、预算、分层与双裕度。",
+        "不把论文示例/a.u.指标迁入当前J成本，不宣称随机安全或PPO必然收敛。"
+      ],
+      "acceptance_criteria": [
+        "写出一回合从状态→速度→名义步成本→预算→物理执行的因果链。",
+        "列出确定性名义、clean物理和扰动物理的区别，以及原校准30秒与导航提前终止的适用性缺口。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R02",
+        "R09",
+        "R10"
+      ],
+      "planned_outputs": [
+        "docs/onboarding.md：方法理解及边界"
+      ]
+    },
+    {
+      "id": "NAV-003",
+      "phase": "背景学习",
+      "goal": "追踪RC-PPO当前实际算法调用链",
+      "status": false,
+      "depends_on": [
+        "NAV-002"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "从EC-EFPPO.train追到_env_step、calculate_indexs3、calculate_gae2、calculate_gae_reach4和_ecefppo_update；识别原副本缺失导入/绝对路径。",
+        "只读参考源码，不改写成普通奖励最大化PPO；原代码可疑处用独立推导区分原意和实现行为。"
+      ],
+      "acceptance_criteria": [
+        "列调用图、张量形状、价值单位/符号、停止分段与真实done的区别。",
+        "记录max(V_h,V_cost-z)、策略裁剪最小化、动作变换/log_prob及预算归一化的迁移检查表。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R04"
+      ],
+      "planned_outputs": [
+        "docs/source_reference_map.md：原算法追踪"
+      ]
+    },
+    {
+      "id": "NAV-004",
+      "phase": "背景学习",
+      "goal": "核对v2及匹配校准的来源和局限",
+      "status": false,
+      "depends_on": [
+        "NAV-003"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "完整读取v2冻结说明、校准协议、交接关键修正和来源台账；区分精确文件值、报告近似值、内容hash和原始字节hash。",
+        "保留低速局限、旧失败验收、数据缺口与全部历史记录；不默认重新训练或重校准。"
+      ],
+      "acceptance_criteria": [
+        "列出权重/资产/PD/观测/动作/时序与配套功率/足迹/裕度/锁的绑定清单。",
+        "列服务器资源线索、旧起点/复位问题对共享代码的核查点，以及本轮禁止动作。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R06",
+        "R08",
+        "R09"
+      ],
+      "planned_outputs": [
+        "docs/onboarding.md：v2来源契约"
+      ]
+    },
+    {
+      "id": "NAV-005",
+      "phase": "背景学习",
+      "goal": "追踪HiRA可借鉴的分层工程结构",
+      "status": false,
+      "depends_on": [
+        "NAV-004"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "沿train_reach_avoid→HierarchicalGO2Env→HighLevelNavigationEnv追踪真实入口，核对观测、缩放、低层重复调用和终止记录。",
+        "不加载HiRA控制器替代v2，不直接复用IsaacGym运行环境或单价值ReachAvoidPPO作为CaMRA算法。"
+      ],
+      "acceptance_criteria": [
+        "逐文件说明可参考的接口/观测/训练日志结构及需要改写的IsaacLab部分。",
+        "明确新指令写入后重算低层观测、内部子步事件累计和自动复位隔离的实现位置。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R05",
+        "R07"
+      ],
+      "planned_outputs": [
+        "docs/source_reference_map.md：HiRA工程映射"
+      ]
+    },
+    {
+      "id": "NAV-006",
+      "phase": "背景学习",
+      "goal": "形成六阶段实施理解与代码复用矩阵",
+      "status": false,
+      "depends_on": [
+        "NAV-005"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "综合前五项，由执行模型自己阅读和整理，不用聊天摘要代替源码证据。",
+        "有会改变范围或来源的冲突先记录并询问；纯历史HiRA独立问题不自动追加为前置实验。"
+      ],
+      "acceptance_criteria": [
+        "矩阵覆盖六阶段：现成可复用函数、只参考结构、必须新写模块、拟验收证据。",
+        "列出实际未决点及解除条件，后续环境任务不带着未识别来源继续。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R01",
+        "R03",
+        "R05",
+        "R07",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "planned_outputs": [
+        "docs/source_reference_map.md",
+        "docs/onboarding.md：学习结论"
+      ]
+    },
+    {
+      "id": "NAV-007",
+      "phase": "服务器与资源",
+      "goal": "确认tiger11并建立可恢复tmux执行会话",
+      "status": false,
+      "depends_on": [
+        "NAV-006"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "先只读确认192.168.20.11的hostname为tiger11；失败时停止，不去.10/.12。最小tmux引导后所有服务器命令在tmux。",
+        "先查已有会话、GPU占用和本任务锁，建立独立run命名与日志，不干扰他人任务。"
+      ],
+      "acceptance_criteria": [
+        "记录登录目标/hostname、tmux会话窗口、cwd、时间和GPU占用证据。",
+        "断线可重新接入同一会话并定位日志/PID；无仿真或训练提前启动。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R01",
+        "R06"
+      ],
+      "planned_outputs": [
+        "docs/runtime_environment.json：主机与会话"
+      ]
+    },
+    {
+      "id": "NAV-008",
+      "phase": "服务器与资源",
+      "goal": "核验设备依赖并确定隔离实现框架",
+      "status": false,
+      "depends_on": [
+        "NAV-007"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "在tmux核对CPU/GPU/驱动/CUDA、绝对Python、IsaacLab/Sim、torch和原算法对照所需依赖，按设备配置。",
+        "是否使用PyTorch迁移/JAX对照依实际兼容性说明；新增核心版本/升级共享环境等决策须先询问，不混用其他节点解释器。",
+        "明确上层实现框架、CPU/GPU张量流和原算法局部数值对照依赖；列版本兼容与隔离恢复方案，不能把框架选型留到网络实现。"
+      ],
+      "acceptance_criteria": [
+        "保存可复查环境导出、导入检查和设备报告，标明已有/新增依赖。",
+        "核心框架与数值对照方案有明确版本及依据；未解决依赖不能算性能失败。",
+        "runtime_environment包含确切版本、框架决定依据、必要用户决定记录、冻结环境身份及后续观测/算法契约的消费者。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R05",
+        "R06"
+      ],
+      "planned_outputs": [
+        "docs/runtime_environment.json：依赖与框架",
+        "config/runtime_paths.json（拟建）"
+      ]
+    },
+    {
+      "id": "NAV-009",
+      "phase": "服务器与资源",
+      "goal": "恢复并验证完整v2执行与校准资源",
+      "status": false,
+      "depends_on": [
+        "NAV-008"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "从权威清单定位v2冻结包、资产和精确配套校准文件；检查tiger11实际在位，HiRA迁移成功不替代v2核验。",
+        "发现散列或锁差异区分换行、缺文件与内容改变；不更新旧hash来绕过校验，不运行采集。"
+      ],
+      "acceptance_criteria": [
+        "模型可按冻结加载方式只读核验，所有必需资产/配置/锁可唯一对应。",
+        "来源清单记录绝对路径、hash类型和校验结果；缺失或歧义已解决或保持任务false。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R06",
+        "R08",
+        "R09"
+      ],
+      "planned_outputs": [
+        "reports/v2_resources.json"
+      ]
+    },
+    {
+      "id": "NAV-010",
+      "phase": "服务器与资源",
+      "goal": "建立独立导航实现与产物目录",
+      "status": false,
+      "depends_on": [
+        "NAV-009"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "先检查拟新增目录是否已有工作；新增包/config/tests/scripts/docs/reports，运行输出独立于旧校准和HiRA路径。",
+        "保留原repro.env与冻结源码；新配置解析已核验路径，主仓库现有修改不覆盖。"
+      ],
+      "acceptance_criteria": [
+        "目录和路径清单标明现有/新建，Python包能从登记的解释器定位。",
+        "run根目录有独立身份和冲突拒绝规则，未覆盖任何历史产物。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R01",
+        "R06",
+        "R08"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/（拟建）",
+        "config/runtime_paths.json",
+        "docs/implementation_handoff.md"
+      ]
+    },
+    {
+      "id": "NAV-055",
+      "phase": "环境与资源",
+      "goal": "核实速度域冲突并冻结导航有效命令范围",
+      "status": false,
+      "depends_on": [
+        "NAV-010"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只读对照协议、margins applicability、冻结部署约束、命令生成器、power domain与原始applied记录；已发现2/1/2与1/0.4/1的元数据冲突，不能取大值或改旧hash。",
+        "由数据锁定位真实记录，区分域上限、边际取值与实际联合支持；有多个来源且不能唯一裁定时按不确定策略询问，不擅自扩大/收窄用户已确认域。"
+      ],
+      "acceptance_criteria": [
+        "输出逐来源值/版本/hash/原始命令抽样与实际极值、冲突解释及裁定依据，不能只比对文档文字。",
+        "导航契约有唯一validated_command_domain、requested/applied限幅规则及来源标识；未解决冲突不放行G0，旧文件/数值保持原样。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R06",
+        "R08",
+        "R09",
+        "R13"
+      ],
+      "planned_outputs": [
+        "reports/command_domain_resolution.json",
+        "config/navigation_contract_v1.json：validated_command_domain与来源裁定"
+      ]
+    },
+    {
+      "id": "NAV-011",
+      "phase": "服务器与资源",
+      "goal": "冻结实施资源边界并通过G0",
+      "status": false,
+      "depends_on": [
+        "NAV-055"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "登记可用GPU、并行环境上限、磁盘/日志限制、短测试上限和正式训练预算确认流程；不能无限加跑。",
+        "核心环境、来源和范围未解决时不放行；正式试验配额及可用性阈值在NAV-021进一步冻结。",
+        "G0额外检查NAV-055的速度域冲突裁定；每项诊断的run/时长/GPU/磁盘上限和停止/续跑规则在启动前登记。"
+      ],
+      "acceptance_criteria": [
+        "G0报告逐项核对NAV-001–010，列出唯一执行节点、路径、框架和v2绑定。",
+        "资源预算具体且有授权依据；后续任务可引用，不以未授权远程写入/费用继续。",
+        "短测预算表明确NAV-059/060及NAV-034/043复查的配额登记位置；未授权资源或未知来源不放行。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R01",
+        "R06",
+        "R09"
+      ],
+      "planned_outputs": [
+        "config/resource_budget_v1.json",
+        "reports/gate_G0.json"
+      ]
+    },
+    {
+      "id": "NAV-012",
+      "phase": "契约与名义环境",
+      "goal": "冻结导航任务及事件终止契约",
+      "status": false,
+      "depends_on": [
+        "NAV-011"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "定义目标到达、碰撞/接触、跌倒、越界、停滞、预算耗尽和超时的判据及同刻优先级；有限时域状态含剩余时间。",
+        "首轮任务不越过原30秒校准时长；完整回合与子步事件/部分区间、截断bootstrap先登记，改变评分未决点先询问。",
+        "给出目标位置半径、是否要求朝向/速度/停稳持续时间、到达确认时刻及到达后控制行为；区分任务测量终止与物理安全停车，登记停车能量是否计入。",
+        "事件表明确子步到达与碰撞同刻、预算恰为0/变负、超时、跌倒及方法内部膨胀违反的优先级；真实SR共用判据，膨胀违反不静默等同物理碰撞。",
+        "明确不足0.1s最后区间的名义成本与200Hz实测积分如何对齐，以及有限时域终端和采样截断的bootstrap区别；不能无依据按比例缩放旧30秒覆盖。"
+      ],
+      "acceptance_criteria": [
+        "契约覆盖成功/失败/截断/无可行预算及自动复位的明确行为。",
+        "用到达与碰撞同刻、预算恰好用尽、提前终止等例子给出预期标签和成本停止规则。",
+        "navigation_contract填写具体判据/数值/依据/待确认决策记录，附事件真值表和成本停止示例；不能以'后续确定'通过。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R02",
+        "R03",
+        "R09"
+      ],
+      "planned_outputs": [
+        "config/navigation_contract_v1.json：任务事件"
+      ]
+    },
+    {
+      "id": "NAV-013",
+      "phase": "契约与名义环境",
+      "goal": "冻结观测动作及坐标契约",
+      "status": false,
+      "depends_on": [
+        "NAV-012"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "名义/物理共用平面真值、朝向、地图/目标表示、y、z和剩余时间；地图特征需足以定义本轮任务，不擅自删成有歧义的局部观察。",
+        "统一机身/世界坐标、四元数顺序、动作缩放、限幅、掩码及归一化；不新增未校准滤波或改变速度域。",
+        "冻结可直接供网络创建的字段排列、总维度、地图/目标编码、障碍容量和掩码、缩放/归一化常数与版本；实现框架引用NAV-008，命令范围引用NAV-055。"
+      ],
+      "acceptance_criteria": [
+        "逐字段列名称、单位、维度、范围、更新时刻与两端来源。",
+        "同一人工状态在两端编码一致；实际施加命令与cost/nominal/低层输入可一一对应。",
+        "以含不同障碍数/转向/负预算/剩余时间的人工状态核验名义/物理编码完全一致，所有待决字段在创建环境前解决。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R05",
+        "R07",
+        "R09",
+        "R10"
+      ],
+      "planned_outputs": [
+        "config/navigation_contract_v1.json：状态与动作"
+      ]
+    },
+    {
+      "id": "NAV-056",
+      "phase": "名义环境",
+      "goal": "冻结累计能量目标与双评价尺度停止契约",
+      "status": false,
+      "depends_on": [
+        "NAV-013"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "追踪原GAMMA_ENERGY/REACH、GAE、停止分段和预算扣减，区分数值训练配置与未折扣累计机械功目标；不默认复制折扣，也不未经推导改原算法。",
+        "逐项定义z_J/z_ref_J、V_c归一化、V_h及安全常数C/目标函数尺度、组合残差、阈值β和共同停止时刻。z_ref可以按场景固定，但不能随本回合初始预算变动。",
+        "停止目标引用NAV-012；若数学目标/评分或关键算法语义需改变，先给方案并询问。"
+      ],
+      "acceptance_criteria": [
+        "形成value_objective_contract，成本目标、折扣/GAE参数及选择依据、单位变换、正负号、终端/截断bootstrap和共同停止时刻全部明确。",
+        "用同总J不同发生时刻、同轨迹不同J单位/归一化、两个critic偏好不同停止时刻的手算反例证明实现语义；保留原实现与目标的差异表。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R02",
+        "R03",
+        "R04",
+        "R09",
+        "R10"
+      ],
+      "planned_outputs": [
+        "config/value_objective_contract_v1.json",
+        "reports/value_objective_alignment.json"
+      ]
+    },
+    {
+      "id": "NAV-014",
+      "phase": "契约与名义环境",
+      "goal": "实现J成本与有符号预算适配",
+      "status": false,
+      "depends_on": [
+        "NAV-056"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "导入冻结PowerModel/StepCost计算并显式加载α，不能沿用alpha_default=0作为完整方法；保持0.1秒接口。",
+        "实现固定z_ref的可逆归一化及负预算；不能直接复用BudgetState.z_ratio的initial_J分母或截零语义。",
+        "严格按NAV-056价值/预算契约实现；物理J、归一化z和critic target不能跨尺度比较。"
+      ],
+      "acceptance_criteria": [
+        "逐步和整段名义能量一致、α只乘一次、预算逐步可复算。",
+        "单位错误、负/非有限成本、history/reset及预算归一化反例通过；执行J与内部模型支出分离。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R09",
+        "R10"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/costs.py",
+        "tests/test_cost_budget.py"
+      ]
+    },
+    {
+      "id": "NAV-057",
+      "phase": "名义环境",
+      "goal": "确定位置裕度与姿态变化的足迹安全处理",
+      "status": false,
+      "depends_on": [
+        "NAV-014"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "δ仅由平面位置偏差取得，不能当作航向误差界；在几何实现前评估冻结足迹外接圆等保守近似，或列有依据的姿态处理，不虚构已测航向界。",
+        "保留原足迹和δ；任何近似只在新导航约束中明示。真实CR/MC各方法共用原始障碍与冻结物理足迹，不能用约束圆取代真实碰撞定义。",
+        "若近似改变任务安全判据/可用地图范围且超出已确认设计，先说明选项、保守代价和依据并询问；7–8m不是未经验证的最终尺寸。"
+      ],
+      "acceptance_criteria": [
+        "geometry_contract明确足迹坐标系/方向、位置偏差与姿态的关系、所选约束近似及保守性依据；仅名义姿态矩形加δ而无姿态依据不能通过。",
+        "人工案例覆盖同中心不同航向、长矩形转向、墙角与旋转扫掠；输出约束几何与实际碰撞几何对照，NAV-015可据此实现。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R09",
+        "R11"
+      ],
+      "planned_outputs": [
+        "config/geometry_contract_v1.json",
+        "reports/pose_footprint_alignment.json"
+      ]
+    },
+    {
+      "id": "NAV-015",
+      "phase": "契约与名义环境",
+      "goal": "实现足迹及裕度安全判据",
+      "status": false,
+      "depends_on": [
+        "NAV-057"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按原始障碍+占地足迹+δ一次构建约束，边界同样处理；定义y不可逆更新及原avoid符号映射。",
+        "独立核对旧几何函数，不直接修改旧锁内源码；交叉薄矩形无顶点包含、旋转扫掠等反例需要正确处理。",
+        "按NAV-057已冻结几何处理实现；位置δ与姿态处理边界必须进入代码元信息，不临时换足迹以腾通道。"
+      ],
+      "acceptance_criteria": [
+        "可独立验证真实几何碰撞、名义膨胀违反和安全历史，三者字段分明。",
+        "足迹/δ零次或二次膨胀、边界接触、边交叉、跨步穿障和旋转反例通过。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R09",
+        "R11"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/maps/geometry.py",
+        "tests/test_safety_geometry.py"
+      ]
+    },
+    {
+      "id": "NAV-016",
+      "phase": "契约与名义环境",
+      "goal": "建立宽通道分级地图生成器",
+      "status": false,
+      "depends_on": [
+        "NAV-015"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "统一生成无障碍、单障碍绕行、多路径布局；初始净宽7–8m，实际以冻结δ和足迹检查，不照搬旧近障窄净距。",
+        "保存原始几何/边界/目标/起点/seed；多路径能量由冻结功率模型计算，不把最短距离当能量最优。"
+      ],
+      "acceptance_criteria": [
+        "地图源可重复生成，三个难度均有明确任务目的和可视化几何核对。",
+        "各比较方法使用同一原始地图；场地扩大仍有绕行与路线差异。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R10",
+        "R11"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/maps/generator.py",
+        "config/map_design_v1.json"
+      ]
+    },
+    {
+      "id": "NAV-017",
+      "phase": "契约与名义环境",
+      "goal": "实现膨胀后通路和时限可行检查",
+      "status": false,
+      "depends_on": [
+        "NAV-016"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "在训练前检查起终点、边界、连通性和连续可行路线；独立规划仅作通路/受限参考验证。",
+        "离散网格连通不代替连续碰撞检查；路线同时满足命令域和30秒时限，失败地图不能减δ后冒充通过。",
+        "准入同时记录几何连通、名义含启停/转向用时与能量、物理执行待验证状态；最大速度下有路不证明省能路线能按时完成。",
+        "对无障碍、绕障、多路径分别登记任务目的和路线差异；宽场地不能使多路径退化为直线，也不能依据最终策略成绩重选地图。"
+      ],
+      "acceptance_criteria": [
+        "每张准入地图保存候选路径、最小净空、扫掠检查、执行指令和预计时长。",
+        "堵死通道、转弯不可行、目标在膨胀区、路线超时等反例被拒绝并记录原因。",
+        "map_feasibility列每个路径的长度/命令/时间/预测能量/最小净空和连续碰撞结果，物理证据由NAV-059/028补齐；不将名义预测标为实测。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R11"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/maps/feasibility.py",
+        "reports/map_feasibility.json"
+      ]
+    },
+    {
+      "id": "NAV-018",
+      "phase": "契约与名义环境",
+      "goal": "实现确定性名义导航环境",
+      "status": false,
+      "depends_on": [
+        "NAV-017"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "复用step_exact并封装reset/step/观测/地图/目标/y/z/time，原始安全和膨胀约束按契约分别记录。",
+        "不启用物理扰动；采样随机性使用独立可记录的rng，回合终止不混入自动复位的新状态。"
+      ],
+      "acceptance_criteria": [
+        "同状态同实际动作同dt得到同后继、成本和标签；seed复现地图/初态。",
+        "无障碍/单障碍/多路径均可用预设指令运行，所有状态/日志与契约一致。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R05",
+        "R10",
+        "R11"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/envs/nominal.py",
+        "scripts/check_nominal_env.py"
+      ]
+    },
+    {
+      "id": "NAV-019",
+      "phase": "契约与名义环境",
+      "goal": "独立验证名义环境数学与边界语义",
+      "status": false,
+      "depends_on": [
+        "NAV-018"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "采用直线/纯转向/圆弧解析案例、RK4独立对照、手算功率积分和安全历史反例，不仅调用同一函数相互验证。",
+        "数值容差按精度/现有解析对照依据预登记；所有工程检查记录静态或实际执行边界。"
+      ],
+      "acceptance_criteria": [
+        "运动、坐标、能量、预算、y、事件顺序与截断测试全部通过。",
+        "覆盖角度环绕、零/极限命令、非有限输入、区间穿障、无顶点包含交叠及回合间隔离。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R10",
+        "R11"
+      ],
+      "planned_outputs": [
+        "tests/test_nominal_env.py",
+        "reports/nominal_math_validation.json"
+      ]
+    },
+    {
+      "id": "NAV-020",
+      "phase": "契约与名义环境",
+      "goal": "建立训练选择评估互斥清单",
+      "status": false,
+      "depends_on": [
+        "NAV-019"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按地图几何族与seed划分train/development/budget_selection/final_nominal/final_clean/final_perturbed/integration_pilot。",
+        "同地图变换/近重复需识别；开发试跑不查看最终清单结果，正式剔除规则不由策略表现决定。"
+      ],
+      "acceptance_criteria": [
+        "清单hash、生成器版本和互斥检查可复算，无地图族/预算选择数据泄漏。",
+        "每个split的用途、方法配对、种子和失败处理明确，最终清单可锁定但不提前评估。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R08",
+        "R09",
+        "R11"
+      ],
+      "planned_outputs": [
+        "config/split_manifest_v1.json",
+        "tests/test_splits.py"
+      ]
+    },
+    {
+      "id": "NAV-058",
+      "phase": "名义环境",
+      "goal": "冻结共同预算与各自选择预算的公平比较协议",
+      "status": false,
+      "depends_on": [
+        "NAV-020"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只包含无校准和完整方法；同一物理J预算/共同网格的比较与各自按同一要求选最小可行预算的比较分开，分别注明用途和分母。",
+        "共同预算由train/development的任务/能量尺度确定；选择规则在独立budget_selection验证，最终结果不可用于确定预算或可行阈值。",
+        "分析α对同一轨迹成本的正比例缩放与δ改变可行空间的不同作用；不把提高初始预算的效果混作低能耗或单裕度贡献，不新增未授权大规模消融。"
+      ],
+      "acceptance_criteria": [
+        "budget_comparison_contract列每种模式的物理J/归一化转换、预算网格或生成规则、共同可行标准、搜索资源、配对/无解/失败口径及可复用轨迹规则。",
+        "用人工两方法相同轨迹但不同预算的例子验证BVR变化不能证明能耗改善；列出NAV-021必须填定的训练/选择/最终配额与资源字段，正式训练前全部锁定。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R02",
+        "R04",
+        "R09",
+        "R10"
+      ],
+      "planned_outputs": [
+        "config/budget_comparison_contract_v1.json",
+        "reports/budget_fairness_check.json"
+      ]
+    },
+    {
+      "id": "NAV-021",
+      "phase": "契约与名义环境",
+      "goal": "预登记训练评价指标与计算预算",
+      "status": false,
+      "depends_on": [
+        "NAV-058"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "在正式学习前确定种子数、训练步数/资源上限、试验次数、checkpoint规则、稳定性与阶段可用性条件；未知资源选择先询问。",
+        "冻结SR/Cost/CR/BVR/MC、无解/失败/缺失分母、置信区间及相关性处理；不能虚构已测目标或按最终结果倒定阈值。",
+        "依NAV-058分别填写共同预算与各自预算的训练/选择/clean/扰动配额及统计规则；预算网格和可行阈值先于正式结果冻结。",
+        "具体预登记NAV-059速度/命令/路线样本、NAV-060切换/扰动/前缀、NAV-034/043候选复查的次数、容差、业务可用性判据和资源上限；范围内诊断不重校准。",
+        "核心框架、观测维度、事件表、value/geometry/budget契约及审批决定均有版本/hash和owner，影响评分的空值不允许进入G1。"
+      ],
+      "acceptance_criteria": [
+        "experiment_prereg含具体可执行数量/规则/阈值及其授权或推导依据，不留影响评分的未决项。",
+        "明确双方公平训练/预算规则，全部业务试验可对账，开发/正式/诊断数据不会混用。",
+        "prereg中的诊断及正式资源均为具体有限数值，列阈值依据、方法公平性、无解/停滞/缺失口径，必要用户决定可追溯。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R08",
+        "R09"
+      ],
+      "planned_outputs": [
+        "config/experiment_prereg_v1.json",
+        "config/resource_budget_v1.json：正式配额"
+      ]
+    },
+    {
+      "id": "NAV-022",
+      "phase": "契约与名义环境",
+      "goal": "统一地图源到物理场景的几何契约",
+      "status": false,
+      "depends_on": [
+        "NAV-021"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "同一原始地图驱动物理障碍，尺寸/旋转/原点/墙体按实值；不能照搬旧固定0.3m、7槽和无实体边界墙假设。",
+        "根据宽场地核对并行env间距、碰撞组与障碍停放位置，避免相邻环境相互接触。"
+      ],
+      "acceptance_criteria": [
+        "地图到物理物体的字段及坐标变换有逐项核对和反向几何对照。",
+        "场景配置明确容量/尺寸/墙体/隔离策略，名义与物理原始边界一致。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R05",
+        "R11"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/maps/scene_adapter.py",
+        "tests/test_scene_mapping.py"
+      ]
+    },
+    {
+      "id": "NAV-023",
+      "phase": "契约与名义环境",
+      "goal": "通过名义环境G1门禁",
+      "status": false,
+      "depends_on": [
+        "NAV-022"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "汇总NAV-012–022真实证据，合同版本、地图、split和prereg唯一对应。",
+        "门禁不通过不得启动上层正式训练；无路/超时和实现错误分开定位。",
+        "G1同时核验NAV-056/057/058及NAV-012/013的具体决定；未决成本折扣、姿态或预算口径不放行。"
+      ],
+      "acceptance_criteria": [
+        "G1逐项记录数学/几何/契约/通路/统计预登记的通过证据。",
+        "所有后续物理/算法任务所依赖的字段均有来源，无已知未解决语义冲突。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R11"
+      ],
+      "planned_outputs": [
+        "reports/gate_G1.json"
+      ]
+    },
+    {
+      "id": "NAV-024",
+      "phase": "v2提前接通",
+      "goal": "实现冻结v2独立加载适配器",
+      "status": false,
+      "depends_on": [
+        "NAV-023"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "参考build_policy但避免直接导入带AppLauncher/参数解析的脚本；只读加载核验过的v2导出策略与配置。",
+        "不训练/更新底层参数，不替换资产、关节顺序、PD或观测缩放。"
+      ],
+      "acceptance_criteria": [
+        "加载元信息/权重hash/资产/配置与v2清单匹配，推理处于eval且关闭梯度。",
+        "输出关节动作与旧冻结运行方式在相同观测下数值一致，异常输入可定位。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R06",
+        "R07"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/control/v2_policy.py",
+        "reports/v2_adapter_parity.json"
+      ]
+    },
+    {
+      "id": "NAV-025",
+      "phase": "v2提前接通",
+      "goal": "实现10/50/200Hz在线速度执行桥",
+      "status": false,
+      "depends_on": [
+        "NAV-024"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "新上层命令先写ExternalCommandBridge再重算低层观测；每0.1秒5次低层推理、每次4物理子步。",
+        "在线控制不继续安装会覆盖指令的TableProgram；记录requested/applied/限幅/实际时间，所有模型使用同一applied。"
+      ],
+      "acceptance_criteria": [
+        "时序trace证明每个新命令及时进入观测，无一拍陈旧命令或内部重采样覆盖。",
+        "多环境独立命令、reset、限幅、NaN拒绝和子步计数通过；未把关节动作保持0.1秒。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R07",
+        "R12"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/control/velocity_bridge.py",
+        "tests/test_control_timing.py"
+      ]
+    },
+    {
+      "id": "NAV-026",
+      "phase": "v2提前接通",
+      "goal": "验证完整复位warmup与测量起点",
+      "status": false,
+      "depends_on": [
+        "NAV-025"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "复位root/关节/速度/上一动作/命令/动作历史/预算/y/计量器，再由v2闭环跟踪零速度warmup；不以零关节动作PD替代。",
+        "窗口起点使用warmup后实际平面位姿只对齐一次；核查单环境与批处理无残留。"
+      ],
+      "acceptance_criteria": [
+        "同初态单跑/批跑/连续reset按预登记容差一致，环境之间无污染。",
+        "warmup与窗口分离，初态/时间戳/previous_action完整记录并可重建名义参考。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R06",
+        "R07",
+        "R08",
+        "R12"
+      ],
+      "planned_outputs": [
+        "reports/reset_warmup_alignment.json"
+      ]
+    },
+    {
+      "id": "NAV-027",
+      "phase": "v2提前接通",
+      "goal": "接入200Hz真实机械功与轨迹记录",
+      "status": false,
+      "depends_on": [
+        "NAV-026"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "参照TrialRecorder但新记录器支持导航终止和活跃env掩码；确认实际施加力矩、qdot及采样相位，不能漏4个子步或对关节先求和再取正。",
+        "保留原始tau/qdot/命令/位姿/事件/预算并区分warmup、测量、终止后无效片段。"
+      ],
+      "acceptance_criteria": [
+        "离线从tau与qdot重算能量和在线积分一致，dt/样本数可对账。",
+        "提前终止、正常时限、批内异步失败及记录故障均有正确完整性标记，不跨自动reset累加。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R09",
+        "R12"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/evaluation/recorder.py",
+        "reports/energy_meter_validation.json"
+      ]
+    },
+    {
+      "id": "NAV-059",
+      "phase": "底层接通",
+      "goal": "核验名义省能低速区间的v2实际可执行性",
+      "status": false,
+      "depends_on": [
+        "NAV-027"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "解析约0.30986m/s仅针对冻结模型的匀速直线单位距离能量P(v)/v，不含有限时限、转弯/启停，不能称实测最优；按模型精确系数复算并与v2已知低速记录对照。",
+        "在NAV-021预登记的integration_pilot清单/次数/容差/资源内，验证候选附近、低速边界及可跟踪对照速度，并检查有代表性的侧移/转向组合和30秒路线。",
+        "保持v2/功率模型/域/PD/裕度不变；采集实际位移、跟踪、停滞、时间和200Hz能量，不隐藏失败。若需禁用低速、加滤波、改时限或重训先询问。",
+        "本任务不重启已接受的底层逐工况验收，也不要求所有低速命令都达标；检查的是已知局限对本次导航任务的影响。新放行条件只要求按预登记规则取得固定v2下代表任务可执行的证据，不能把历史局限本身改写成新的失败或已解决。"
+      ],
+      "acceptance_criteria": [
+        "输出解析预测与真实执行分列的速度—位移—时间—能量—跟踪对照，全部attempt可追溯；实际/名义能耗每米在未前进时明确不可计算。",
+        "按预登记可用性规则说明名义省能动作是否可执行及影响的路线；无法满足放行条件时保持false，给出用户裁定项，不以模型预测代替证据。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R12"
+      ],
+      "planned_outputs": [
+        "scripts/check_low_speed_energy.py",
+        "reports/low_speed_energy_executability.json"
+      ]
+    },
+    {
+      "id": "NAV-028",
+      "phase": "v2提前接通",
+      "goal": "完成固定指令与简单路线小测试并通过G2",
+      "status": false,
+      "depends_on": [
+        "NAV-059"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "先直行/侧移/转向再用简单规则跟踪已验证路线；只用integration_pilot，不训练导航网络。",
+        "如低速停滞或碰撞失败如实记录；不能隐式禁用低速、改PD或调裕度来过关。",
+        "G2纳入NAV-059实际省能区间/停滞结果与代表路线时间；NAV-060/G2A尚未通过时不得进入上层学习。"
+      ],
+      "acceptance_criteria": [
+        "物理场景、实际速度反馈、fresh观测、时序、复位和能量记录共同通过已登记检查。",
+        "简单路线有完整闭环trace及事件；G2区分接口错误、基础设施问题和已接受底层局限。",
+        "G2清楚区分工程接入通过、已接受底层局限和新发现的导航不可用性，不能把旧低速接受决定解释为允许隐瞒新失败。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R05",
+        "R06",
+        "R07",
+        "R11",
+        "R12"
+      ],
+      "planned_outputs": [
+        "scripts/check_v2_integration.py",
+        "reports/gate_G2.json"
+      ]
+    },
+    {
+      "id": "NAV-060",
+      "phase": "底层接通",
+      "goal": "完成训练前闭环指令与旧裕度适用性pilot并通过G2A",
+      "status": false,
+      "depends_on": [
+        "NAV-028"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只用预登记integration_pilot及限额：规则反馈导航产生0.1秒在线指令，比较原每1秒目标/参考0.2秒过渡程序，核查变化率、切换频率、组合/低速停留与延迟；不声称尚未训练的actor已被验证。",
+        "记录真实applied序列、warmup后实际初态并重建一次对齐的名义参考；有限pilot覆盖clean及已登记校准条件的扰动子集，先核验实际扰动有效，不碰最终评估集。",
+        "对预登记多个时间前缀与完整30秒分别比较名义/实测能量和最大位置差；提前终止、停滞、业务失败与不可计算记录保留，完整窗口与前缀不得混成同一覆盖率。",
+        "功率/足迹/α/δ保持冻结；评估经验适用性不等于重校准或随机保证。显著不匹配按用户决策处理，不能自行收窄命令或反调裕度。"
+      ],
+      "acceptance_criteria": [
+        "输出原/新指令分布、变化/持续时间、配对误差、完整/前缀分母、失败及实际扰动证据；代码/数据/run/hash齐全，所用阈值和资源先于数据冻结。",
+        "G2A逐项给工程正确性与经验适用性结论，未通过或科学范围需裁定时保持false并询问；未解除不启动NAV-029及任何上层学习。",
+        "写明后续NAV-034/043的学习策略复查及NAV-048最终审计义务；pilot通过不自动继承旧30秒覆盖结论，也不替未来策略背书。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R12",
+        "R13"
+      ],
+      "planned_outputs": [
+        "scripts/check_calibration_applicability.py",
+        "reports/calibration_applicability_pilot.json",
+        "reports/gate_G2A.json"
+      ]
+    },
+    {
+      "id": "NAV-029",
+      "phase": "算法迁移",
+      "goal": "实现预算条件策略与两个评价网络",
+      "status": false,
+      "depends_on": [
+        "NAV-060"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "使用G0冻结的框架，参考Policy_Network/Value_Network实现一个actor、到达安全critic和成本critic；明确各自输入及输出尺度。",
+        "原参考只读；上层参数和v2参数/优化器严格分离，不把HiRA单critic直接替换。",
+        "网络输入/输出/动作分布固定引用NAV-008/013/056/057的契约版本；不能在建网时新选地图编码、z_ref或critic尺度。"
+      ],
+      "acceptance_criteria": [
+        "网络维度、动作分布、y/z/time/地图编码和初始化可配置并有单位说明。",
+        "前向/梯度/序列化测试通过；优化器只包含上层参数，底层权重hash保持不变。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R05"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/algorithm/networks.py",
+        "tests/test_network_contract.py"
+      ]
+    },
+    {
+      "id": "NAV-030",
+      "phase": "算法迁移",
+      "goal": "实现并独立验证双评价目标与停止分段",
+      "status": false,
+      "depends_on": [
+        "NAV-029"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "逐项迁移calculate_indexs3、calculate_gae2和calculate_gae_reach4；区分原实现行为、数学定义和本轮边界处理。",
+        "环境terminated/truncated、目标停止分段、碰撞安全历史使用独立字段；原算法疑点先推导，不静默修正参考副本。",
+        "按NAV-056共同停止/未折扣能量目标验证原停止分段；人工测试含同总J不同发生时刻及双critic不同偏好，不能各取有利终点。"
+      ],
+      "acceptance_criteria": [
+        "手算短轨迹对照覆盖安全到达、先撞后到达、无目标、预算超支、终端/截断和边界bootstrap。",
+        "成本/安全critic及max联合目标分别可核验，原JAX局部oracle或独立枚举结果有一致性证据。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/algorithm/targets.py",
+        "tests/test_targets_oracle.py"
+      ]
+    },
+    {
+      "id": "NAV-031",
+      "phase": "算法迁移",
+      "goal": "实现成本最小化PPO更新",
+      "status": false,
+      "depends_on": [
+        "NAV-030"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "沿_ecefppo_update保留最小化的裁剪目标、优势及熵符号；明确动作变换前后log_prob和分布语义。",
+        "不套常规奖励最大化模板；检查归一化是否改变max(V_h,V_cost-z)的单位与判据。",
+        "显式加载value_objective_contract里的成本折扣、尺度与停止规则；优化符号正确不代表目标语义自动正确。"
+      ],
+      "acceptance_criteria": [
+        "正/负优势、裁剪区间内外、零优势及熵项的独立梯度方向测试通过。",
+        "与已登记参考小批输入比较loss/gradient/update，NaN或不一致不以扩大训练绕过。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/algorithm/ppo.py",
+        "tests/test_minimization_update.py"
+      ]
+    },
+    {
+      "id": "NAV-032",
+      "phase": "算法迁移",
+      "goal": "实现轨迹缓冲与可恢复短训练循环",
+      "status": false,
+      "depends_on": [
+        "NAV-031"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "记录观测、原动作/实际动作、log_prob、双value、y/z、能量、终止/截断、停止分段和地图/回合ID。",
+        "不把自动复位后新状态作为旧回合bootstrap；checkpoint保存rng/优化器/配置/归一化，日志不含凭证。"
+      ],
+      "acceptance_criteria": [
+        "小批轨迹索引、样本数、终止掩码和各目标可离线重建。",
+        "在同一短run中中断/恢复，样本/模型/优化器/rng连续且无重复写入。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R05"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/algorithm/storage.py",
+        "scripts/train_nominal.py",
+        "tests/test_rollout_resume.py"
+      ]
+    },
+    {
+      "id": "NAV-033",
+      "phase": "算法迁移",
+      "goal": "建立可枚举小问题的独立算法对照",
+      "status": false,
+      "depends_on": [
+        "NAV-032"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "用受限动作集/简单地图构造可独立枚举或动态规划的小问题，核对安全、成本与预算可行边界。",
+        "只在该受限问题上称为精确参考，不能将离散参考的最优值称为连续导航全局最优。"
+      ],
+      "acceptance_criteria": [
+        "目标先后、危险历史、预算正负及双critic联合判据与独立参考一致。",
+        "至少覆盖可达/不可达、有路但预算不足和先危险后到达等本质不同的案例。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R04",
+        "R10",
+        "R11"
+      ],
+      "planned_outputs": [
+        "tests/test_toy_reference.py",
+        "reports/toy_algorithm_validation.json"
+      ]
+    },
+    {
+      "id": "NAV-034",
+      "phase": "算法迁移",
+      "goal": "完成无裕度分级短训练",
+      "status": false,
+      "depends_on": [
+        "NAV-033"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "只用train/development，在无障碍→单障碍→多路径名义环境中做预登记短run，α=δ=0但保留足迹。",
+        "检查任务表现和稳定性，不以loss下降替代学会；不提前看最终split或无限延长预算。",
+        "在短训练完成后，仅用integration_pilot按NAV-021限额对实际学习候选执行NAV-060同口径指令/前缀复查；与规则控制pilot分开报告。",
+        "若实际候选出现新的切换/停滞/域偏移，不用早期pilot结论放行；不能通过临时滤波、限速或再校准解决而不裁定。"
+      ],
+      "acceptance_criteria": [
+        "各难度轨迹、成功/碰撞/成本/预算及学习曲线可追溯到同一配置。",
+        "达到短测试放行条件；异常能区分环境、目标、采样和优化问题，失败保持false。",
+        "短训练学习候选的真实指令与物理配对复查可追溯，适用性按预登记规则通过或用户对探索性范围作出明确决定。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R10",
+        "R11"
+      ],
+      "planned_outputs": [
+        "reports/nominal_smoke_training.json",
+        "短训练run原始轨迹和日志",
+        "reports/short_actor_applicability.json"
+      ]
+    },
+    {
+      "id": "NAV-035",
+      "phase": "算法迁移",
+      "goal": "通过算法G3门禁",
+      "status": false,
+      "depends_on": [
+        "NAV-034"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "汇总数值目标、梯度方向、轨迹边界、可枚举对照和短训练证据；不以网络能运行作为放行。",
+        "原算法目标与工程近似的差异形成清单，若改变核心评分语义需先询问。",
+        "G3必须包含NAV-060/G2A及NAV-034实际学习候选复查；在允许范围内解决未决项后才能正式训练。"
+      ],
+      "acceptance_criteria": [
+        "G3检查表逐项通过，含双critic及minimization的直接证据。",
+        "训练器可复现且无已知数据/终止污染，正式训练配置引用已冻结版本。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R04",
+        "R05"
+      ],
+      "planned_outputs": [
+        "reports/gate_G3.json",
+        "docs/algorithm_implementation.md"
+      ]
+    },
+    {
+      "id": "NAV-036",
+      "phase": "正式名义训练",
+      "goal": "完成预登记无校准基线训练",
+      "status": false,
+      "depends_on": [
+        "NAV-035",
+        "NAV-060",
+        "NAV-058"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按已授权训练种子、步数/GPU预算和课程，在确定性名义环境训练无校准版本；保存全部attempt。",
+        "地图原始几何、观测、动作、网络容量、预算/成本单位与完整方法使用同一比较协议。",
+        "正式run只消费G1/G2/G2A/G3已经冻结的范围、资源及对照规则；变更算法/域/观测/事件需要新版本和相应重验。"
+      ],
+      "acceptance_criteria": [
+        "完成预登记配额，训练/开发结果和checkpoint选择依据可复算。",
+        "所选模型来自开发规则，无最终集泄漏；所有失败/中断/恢复均有台账。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R09",
+        "R10"
+      ],
+      "planned_outputs": [
+        "无校准正式训练run与checkpoint",
+        "reports/training_uncalibrated.json"
+      ]
+    },
+    {
+      "id": "NAV-037",
+      "phase": "正式名义训练",
+      "goal": "完成预登记完整CaMRA名义训练",
+      "status": false,
+      "depends_on": [
+        "NAV-036"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "显式加载v2精确α/δ，成本和危险集合各修正一次；名义环境保持确定性。",
+        "使用相同原始地图/资源规则；膨胀后的可行性先验证，不把膨胀几何直接做成额外物理实体。"
+      ],
+      "acceptance_criteria": [
+        "完成登记训练配额，校准值/hash、地图安全几何和预算扣减可追溯。",
+        "开发验证满足预登记条件；性能不足不调裕度/改测试地图/隐藏失败。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R09",
+        "R10",
+        "R11"
+      ],
+      "planned_outputs": [
+        "完整方法正式训练run与checkpoint",
+        "reports/training_camra_full.json"
+      ]
+    },
+    {
+      "id": "NAV-038",
+      "phase": "正式名义训练",
+      "goal": "确定性部署策略与对应评价网络冻结",
+      "status": false,
+      "depends_on": [
+        "NAV-037"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "对两方法确定部署动作变换；若从随机采样改为均值，固定actor后用训练/开发数据核验或重新拟合两个critic。",
+        "预算选择与最终集此时尚不开放，不能沿用不对应部署策略的value搜索预算。"
+      ],
+      "acceptance_criteria": [
+        "每个部署模型actor/双critic、动作变换、归一化和来源checkpoint组成同一版本。",
+        "固定actor的评价误差/预算判据检查符合预登记要求，输出hash和冻结清单。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R04",
+        "R07"
+      ],
+      "planned_outputs": [
+        "delivery/deployment_candidates_v1.json",
+        "reports/deployment_critic_validation.json"
+      ]
+    },
+    {
+      "id": "NAV-039",
+      "phase": "正式名义训练",
+      "goal": "通过名义学习及部署G4门禁",
+      "status": false,
+      "depends_on": [
+        "NAV-038"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "依据开发集和预登记规则判定两方法学习稳定性、可用性及冻结完整性。",
+        "不能将有限训练结果称为PPO收敛定理；没达到条件时保留任务false并报告资源内可选处理。"
+      ],
+      "acceptance_criteria": [
+        "G4包含多训练种子的曲线/轨迹/性能、checkpoint规则和actor-critic匹配检查。",
+        "候选版本唯一，后续预算搜索只消费该版本，不继续边看最终结果边训练。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R03",
+        "R04",
+        "R09"
+      ],
+      "planned_outputs": [
+        "reports/gate_G4.json"
+      ]
+    },
+    {
+      "id": "NAV-040",
+      "phase": "预算与闭环",
+      "goal": "实现健壮的J单位预算搜索",
+      "status": false,
+      "depends_on": [
+        "NAV-039"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "参考Bisection但显式转换z_J与归一化输入，搜索区间由train/development确定，不能照搬[-1,1]当物理预算。",
+        "检查端点、括根、近似单调性、NaN及搜索精度；无解/非单调返回可解释状态，禁止输出伪可行中点或自动扩区间。",
+        "搜索使用NAV-056价值尺度和NAV-058预算模式，输出与共同参考预算分开；近似critic可行不等于物理安全保证。"
+      ],
+      "acceptance_criteria": [
+        "受限小问题及人工value曲线的可行/无根/全可行/全不可行/非单调/NaN测试通过。",
+        "返回物理J预算、对应判据、区间和迭代轨迹；能逆算至同一z输入。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R04",
+        "R10"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/budget/search.py",
+        "tests/test_budget_search.py"
+      ]
+    },
+    {
+      "id": "NAV-041",
+      "phase": "预算与闭环",
+      "goal": "在独立预算选择集冻结选择规则",
+      "status": false,
+      "depends_on": [
+        "NAV-040"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "仅使用budget_selection核验搜索区间、阈值、裕量与可行预算规则，评价网络/actor固定。",
+        "区分每个初态的预算搜索和全局规则选择；无解不能换用测试结果手填预算，标准改变先询问。",
+        "保留NAV-058的共同预算模式；各自预算只按已预登记同一要求与搜索配额选择，禁止看final后补改预算。"
+      ],
+      "acceptance_criteria": [
+        "选择记录可复算，预算规则、所用数据、阈值/β含义、z_ref和物理单位明确。",
+        "两方法使用同一选择协议，选择集不参与正式性能估计或actor训练。",
+        "输出双方所选物理J、归一化值、候选/无解比例与选择证据，并与共同预算指标标签区分。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R04",
+        "R09",
+        "R10"
+      ],
+      "planned_outputs": [
+        "config/budget_selection_v1.json",
+        "reports/budget_selection.json"
+      ]
+    },
+    {
+      "id": "NAV-042",
+      "phase": "预算与闭环",
+      "goal": "实现由实际状态反馈的在线导航闭环",
+      "status": false,
+      "depends_on": [
+        "NAV-041"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "每0.1秒从真实位姿构造上层观测并调用确定性策略，底层继续50Hz闭环，y/z按同一契约更新。",
+        "维护实际能量、内部预算和独立名义参考；不每步重置预算或将参考轨迹重新贴合实际位置。"
+      ],
+      "acceptance_criteria": [
+        "在线trace串联状态→预算→动作→applied→低层观测→物理状态，所有ID/时间一致。",
+        "子步事件、失败掩码、无可行预算和回合终止正常；不会把下一回合或别的env接入轨迹。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R05",
+        "R07",
+        "R10",
+        "R12"
+      ],
+      "planned_outputs": [
+        "src/camra_navigation/envs/physical.py",
+        "scripts/evaluate_navigation.py"
+      ]
+    },
+    {
+      "id": "NAV-043",
+      "phase": "预算与闭环",
+      "goal": "完成clean完整导航小批验证",
+      "status": false,
+      "depends_on": [
+        "NAV-042"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "仅用integration_pilot，依次验证无障碍、绕行和多路径，使用固定actor/critics/预算规则。",
+        "核查低速停滞、30秒任务长度与地图尺度的实际影响；问题不能靠换控制器或缩δ解决。",
+        "正式物理评估前对冻结部署候选重做NAV-060口径的闭环指令、能量前缀与位置偏差诊断，只用integration_pilot，匹配NAV-021登记条件及限额。",
+        "若部署候选分布不同于短actor或旧命令程序，更新适用性结论而非旧α/δ；改变科学范围或需新校准时暂停询问。"
+      ],
+      "acceptance_criteria": [
+        "小批导航具备完整成功与失败trace，实际碰撞和膨胀约束违反区分清楚。",
+        "两方法场景/起点/时序/能量判据一致，达到预登记闭环放行条件。",
+        "候选复查通过已登记放行规则；报告与NAV-060/NAV-034对照，未解决适用性缺口不签G5。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R05",
+        "R06",
+        "R07",
+        "R11",
+        "R12"
+      ],
+      "planned_outputs": [
+        "reports/clean_closed_loop_pilot.json",
+        "reports/deployment_actor_applicability.json"
+      ]
+    },
+    {
+      "id": "NAV-044",
+      "phase": "预算与闭环",
+      "goal": "冻结正式评估数据锁并通过G5",
+      "status": false,
+      "depends_on": [
+        "NAV-043"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "冻结actor/critics、预算、v2/资产/校准、代码快照、地图清单、评价规则和资源配额；新锁不覆盖旧校准锁。",
+        "保存原始源码字节或不可变快照，dirty代码hash可重建；最终集此时才能按计划开放。",
+        "G5纳入共同/自选预算协议及NAV-043部署候选适用性报告，冻结后不按最终数据改这些决定。"
+      ],
+      "acceptance_criteria": [
+        "G5对NAV-040–043及前置门禁逐项通过，所有路径/hash可从独立配置解析。",
+        "锁拒绝配置串用、split冲突和覆盖输出，正式任务入口有清晰resume规则。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R06",
+        "R08",
+        "R09"
+      ],
+      "planned_outputs": [
+        "config/navigation_evaluation_lock_v1.json",
+        "reports/gate_G5.json"
+      ]
+    },
+    {
+      "id": "NAV-045",
+      "phase": "预算与闭环",
+      "goal": "完成冻结策略的正式clean对照评估",
+      "status": false,
+      "depends_on": [
+        "NAV-044"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按final_clean预登记清单运行无校准与完整方法；同地图/初态协议，逐回合保存实际动作和机械功。",
+        "需要独立final_nominal对照时按同一冻结规则一并登记执行，不用其结果调整预算/策略。",
+        "按NAV-058/NAV-021分别执行并标注共同预算与各自预算评估，预登记复用规则外不得混用轨迹或把较大预算的低BVR当作低能耗。"
+      ],
+      "acceptance_criteria": [
+        "所有预登记业务试验状态可对账，成功/碰撞/跌倒/超时/无解/缺失均有记录。",
+        "clean主指标可直接由原始轨迹复算，来源与nominal/旧校准/示例数据分开。",
+        "两种预算口径的试验数、初始J预算、可行/无解比例及所有失败均可对账；物理成本/SR判据一致。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R07",
+        "R09",
+        "R11",
+        "R12"
+      ],
+      "planned_outputs": [
+        "正式clean与final_nominal评估run",
+        "reports/clean_comparison.json"
+      ]
+    },
+    {
+      "id": "NAV-046",
+      "phase": "扰动检验",
+      "goal": "核验扰动注入与固定策略小批执行",
+      "status": false,
+      "depends_on": [
+        "NAV-045"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "加载原v2协议实际profile定义，核验摩擦、质量、推力/噪声的真实作用；仅使用预登记扰动pilot。",
+        "所有actor/critic/预算/α/δ保持冻结；新增扰动范围或重新训练须询问。"
+      ],
+      "acceptance_criteria": [
+        "每个条件保存实际施加参数、时刻及证据，clean不会残留上个env/回合扰动。",
+        "固定策略可完成可记录的小批运行，基础设施故障/业务失败和数据完整性判定明确。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R09",
+        "R12"
+      ],
+      "planned_outputs": [
+        "reports/perturbation_effectiveness.json"
+      ]
+    },
+    {
+      "id": "NAV-047",
+      "phase": "扰动检验",
+      "goal": "完成固定策略正式扰动对照",
+      "status": false,
+      "depends_on": [
+        "NAV-046"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "按final_perturbed清单及资源上限执行两方法，保存预登记扰动描述和实际施加记录。",
+        "同seed不声称接触过程完全相同；不以结果反调策略、预算、裕度或换挑attempt。",
+        "按NAV-058/NAV-021分别执行并标注共同预算与各自预算评估，预登记复用规则外不得混用轨迹或把较大预算的低BVR当作低能耗。"
+      ],
+      "acceptance_criteria": [
+        "正式配额逐项对账，完整/提前终止/无预算/失败/缺失均保留，方法间场景可比较。",
+        "原始位姿/事件/命令/能量/预算及版本字段齐全，无学习参数在评估期间变化。",
+        "两种预算口径的试验数、初始J预算、可行/无解比例及所有失败均可对账；物理成本/SR判据一致。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R09",
+        "R12"
+      ],
+      "planned_outputs": [
+        "正式扰动评估run",
+        "reports/perturbed_comparison.json"
+      ]
+    },
+    {
+      "id": "NAV-048",
+      "phase": "扰动检验",
+      "goal": "诊断现有裕度对闭环指令的适用性",
+      "status": false,
+      "depends_on": [
+        "NAV-047"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "使用真实applied命令、warmup后实际初态及同时间基准重建名义轨迹；只在窗口起点对齐一次。",
+        "区分自主名义策略回合和同命令重放配对；提前终止/不同窗口的误差仅作诊断，不自动继承30秒分位数覆盖结论。",
+        "本任务保留为最终独立审计，不替代NAV-060提前pilot及NAV-034/043学习候选检查；对照三个先前版本报告，识别而不反调最终分布偏移。"
+      ],
+      "acceptance_criteria": [
+        "报告指令范围/变化、时长、低速/停滞、ε_c/ε_d及有效分母，引用精确冻结值。",
+        "标记分布偏移/不可计算/失败，不修改旧校准；确需新校准时给出独立后续建议并保持当前证据。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R08",
+        "R09",
+        "R10",
+        "R12"
+      ],
+      "planned_outputs": [
+        "reports/calibration_applicability.json"
+      ]
+    },
+    {
+      "id": "NAV-049",
+      "phase": "扰动检验",
+      "goal": "独立复算全体指标及统计区间",
+      "status": false,
+      "depends_on": [
+        "NAV-048"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "独立读取锁和原始轨迹复算SR/Cost/CR/BVR/MC，不只复制训练日志或成功子集摘要。",
+        "按预登记相关性/重采样方法处理训练种子、地图和条件配对；统计区间必须来自真实数据，所有分母清楚。",
+        "分开复算共同预算与自选预算，所选J预算必须出现在结果中；同轨迹重复计分不当作新增独立样本。"
+      ],
+      "acceptance_criteria": [
+        "在线与离线能量、预算、碰撞/成功计数和最小净空一致或差异被证据解释。",
+        "输出全体、成功条件、各场景/扰动子组及失败/缺失计数，包含全部attempt索引和区间方法。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R09",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "planned_outputs": [
+        "scripts/recompute_navigation_metrics.py",
+        "reports/independent_metrics_audit.json"
+      ]
+    },
+    {
+      "id": "NAV-050",
+      "phase": "扰动检验",
+      "goal": "完成科学与工程分项评估并通过G6",
+      "status": false,
+      "depends_on": [
+        "NAV-049"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "依据冻结标准判断功能/可用性与方法效果；区分名义学习、clean执行及分布内扰动表现。",
+        "允许诚实负结果，但未达约定可用性不能标通过；不得改阈值、无限加跑或宣称严格随机安全。",
+        "结论区分整体CaMRA效果、α预算缓冲、δ路径约束与较大预算带来的BVR变化；不从两方法总体差异推断单项裕度贡献或连续空间全局最优。"
+      ],
+      "acceptance_criteria": [
+        "G6逐项给出通过/未通过、证据、影响及剩余项，结论不超出任务/地图/校准条件。",
+        "比较完整与无校准方法的安全/成本权衡，不把某一成功率或预算数直接当全局最优。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R02",
+        "R08",
+        "R09"
+      ],
+      "planned_outputs": [
+        "reports/gate_G6.json",
+        "docs/results_and_limitations.md"
+      ]
+    },
+    {
+      "id": "NAV-051",
+      "phase": "复现交付",
+      "goal": "建立独立目录可恢复复现包",
+      "status": false,
+      "depends_on": [
+        "NAV-050"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "打包导航代码/依赖/配置/模型/清单/运行命令和日志索引，v2与旧校准只读引用并验证身份。",
+        "在tiger11独立输出目录恢复一个登记小回合和离线复算；不覆盖正式评估或旧冻结包。"
+      ],
+      "acceptance_criteria": [
+        "独立目录可按绝对解释器和配置运行，结果在预登记数值容差内复现。",
+        "中断续跑/冲突拒绝/缺资源报错正常，包索引无凭证或失效临时路径。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R06",
+        "R07",
+        "R08",
+        "R09"
+      ],
+      "planned_outputs": [
+        "delivery/navigation_bundle_manifest_v1.json",
+        "docs/reproduction.md"
+      ]
+    },
+    {
+      "id": "NAV-052",
+      "phase": "复现交付",
+      "goal": "审计写入范围与证据来源",
+      "status": false,
+      "depends_on": [
+        "NAV-051"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "对照开始时Git/dirty基线和冻结散列，检查HiRA/RC-PPO/旧v2/校准/论文未被改写。",
+        "如发现稿件变化视为异常，不纳入提交；所有结果须可追溯到真实run，历史示例不可混入。",
+        "审计全部correction记录：主体归属发现问题的任务，原证据可追溯，受影响任务/门禁/产物有明确状态与新版本重验，不存在静默改写历史或沿用失效结果。"
+      ],
+      "acceptance_criteria": [
+        "范围审计列新增/修改/已有修改及归属，所有保护路径保持原状态。",
+        "报告/锁/代码/原始run关联完整，无悄悄覆盖历史或删失败的证据。",
+        "每项回修的根因、原版本、修正、复验和下游影响可对账；所有待复验项明确列为受阻，不以旧通过报告代替新版本验收。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R01",
+        "R06",
+        "R08",
+        "R09"
+      ],
+      "planned_outputs": [
+        "reports/scope_and_provenance_audit.json"
+      ]
+    },
+    {
+      "id": "NAV-053",
+      "phase": "复现交付",
+      "goal": "更新模块入口与下一上下文交接",
+      "status": false,
+      "depends_on": [
+        "NAV-052"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "README解释各目录实际实现，AGENTS只写当前状态、最短阅读路径和待办；计划和交接保留逐项证据。",
+        "所有运行命令必须已验证并注明host/tmux/cwd/Python；不把随机再训练、真机或论文同步自动变成下一任务。",
+        "同步新增NAV-055–060的真实状态和tasks数组执行顺序；交接列各契约的裁定依据及仍需限制的适用范围，不把计划修订计为实验完成。"
+      ],
+      "acceptance_criteria": [
+        "导航README/系统文档/AGENTS与真实验收和资源路径一致，无旧的未实施/已完成误导。",
+        "交接含修改、测试、版本、资源缺口、已知局限和下一入口；论文差异仅给建议清单。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R01",
+        "R06",
+        "R08"
+      ],
+      "planned_outputs": [
+        "CaMRA/navigation/README.md",
+        "AGENTS.md及相关说明入口",
+        "docs/implementation_handoff.md"
+      ]
+    },
+    {
+      "id": "NAV-054",
+      "phase": "复现交付",
+      "goal": "完成计划与最终交付验收",
+      "status": false,
+      "depends_on": [
+        "NAV-053"
+      ],
+      "work_records": [],
+      "constraints_and_notes": [
+        "完整读取任务状态和全部门禁，运行工作记录update校验；只在所有验收满足时完成本任务。",
+        "用户未当次授权不git commit/push；任何阻塞保持false并给出事实和可选处理。",
+        "最终核查upstream_correction_policy的执行：未闭环回修保留为阻塞；仅在受影响依赖及门禁均恢复有效后才能完成最终交付。"
+      ],
+      "acceptance_criteria": [
+        "所有NAV任务的依赖、记录、证据和verification_result有效；最终验收清单逐项满足。",
+        "给出交付位置、实际训练/评估数量、结论边界、未决项及当前Git状态，清晰移交用户。"
+      ],
+      "verification_result": "",
+      "reference_ids": [
+        "R01"
+      ],
+      "planned_outputs": [
+        "reports/final_acceptance.json",
+        "doc/plan/20261109_camra_navigation_implementation.json：最终记录"
+      ]
+    }
+  ],
+  "final_acceptance": [
+    "NAV-001–060共60项全部有真实验收证据；按tasks数组顺序执行而非ID数值排序，任何未满足门禁保持false，计划修订不计为实验完成。",
+    "执行证据全部归属tiger11及tmux，运行路径、解释器、GPU、Git/dirty快照、控制器和资产散列可追溯。",
+    "固定v2与精确匹配的功率/足迹/α/δ/锁，参考仓库、旧校准、历史任务和论文无未授权修改。",
+    "地图使用统一原始几何，δ只计一次，存在经连续几何及速度/时限检查的可行路线，空间克隆互不干扰。",
+    "名义环境、成本J、y/z、终止/截断和原RC-PPO最小化目标通过独立数学及反例检查。",
+    "低层每0.02秒更新观测并推理、物理每0.005秒计量；在线命令新鲜、复位干净、无跨回合污染。",
+    "无校准与完整方法按同一预登记资源规则训练；部署策略及对应评价网络先冻结，预算选择与最终评估严格隔离。",
+    "预算搜索识别无解/无括根/非单调，不输出伪可行解；内部模型预算支出与实际机械功分别记录。",
+    "固定策略完成clean与原校准条件对应的扰动检验，全部业务失败、尝试、不可计算及基础设施异常在台账中可追溯；统计区间来自真实轨迹。",
+    "复现包可在独立目录恢复和复算，文档写清当前事实、已知限制及下一步；无自动随机再训练或论文改写。",
+    "所有新增/更新计划通过validate_worklog的update校验；交接列出未决项，提交/推送仅在用户当次授权下执行。",
+    "八类对齐问题均有对应任务与冻结决定：速度域、低速可执行性、闭环/前缀裕度、地图时限与姿态、价值目标、事件停止、预算公平性、框架观测及资源；未决来源/目标不得绕过。",
+    "NAV-059/060及G2A在上层学习前完成，NAV-034/043对实际学习/部署候选复查，NAV-048仍提供最终审计；不以旧覆盖率或短pilot证明全部导航覆盖。",
+    "共同J预算与各方法选择预算分别报告；真实机械功与成本折扣/价值尺度对齐、双critic共享停止目标，已登记全体失败与分母可复算。",
+    "所有前置回修均按upstream_correction_policy记录在发现问题的当前任务；旧工作记录、失败及证据保留，受影响验收和门禁完成重验，无未闭环问题被当作最终通过。"
+  ]
+}
