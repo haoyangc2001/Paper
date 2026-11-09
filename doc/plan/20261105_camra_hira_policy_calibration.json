@@ -3697,6 +3697,46 @@
             "若 .10 上路径布局与 .12 不同，用 tests/delivery_relock.py 生成派生锁（只改前缀、散列不动），不得改写原锁。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-09T17:40:00+08:00",
+          "summary": "用户 2026-11-09 更正执行主机：后续任务使用 192.168.20.11（tiger11），192.168.20.10 不使用。此前 2026-11-08 写入的「必须在 .10 执行」有误，已同步更正三处文档（AGENTS.md 执行主机节、handoff §44.2/44.4 并追加 §44.5 更正记录、reproduction.md 前置）。同时核实并写入 .11 的真实前置：/pub/data/caohy 只有 IsaacLab 与 miniconda，work/ 与 logs/ 均不存在（1820 条与工作副本仍在 .12 本地盘），env_isaaclab 为 Python 3.11.15（.12 为 3.11.18），机器有 GPU（多张 RTX 4090）。历史事实不变：HIRA-001–040 全部执行在 tiger12。",
+          "actions": [
+            "按用户更正把 AGENTS.md「执行主机」整节重写为 .11，并标明初版误写 .10、.10 不使用",
+            "handoff §44.2 表格改为：.11 为 2026-11-09 起用户指定的后续执行机、.10 未使用；§44.4 标题与四条正文全部改为 .11",
+            "handoff 追加 §44.5 更正记录，说明事实不变（历史仍在 .12）与 §44.3 故障记录保持原样（探测 .10 得到 Exceeded MaxStartups 属当时事实）",
+            "reproduction.md「前置」的执行主机改为 .11 并注明更正",
+            "实测 .11 的前置条件并写入文档：/pub/data/caohy 仅有 IsaacLab、miniconda、Miniconda3 安装包；无 work/、无 logs/；env_isaaclab=3.11.15；nvidia-smi 可见多张 RTX 4090",
+            "逐条核对替换结果，确认全文不再存在「必须在 .10 执行」的措辞，残留 .10 均为有意保留的历史事实与更正说明"
+          ],
+          "files_changed": [
+            "AGENTS.md（执行主机节改为 .11）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/implementation_handoff.md（§44.2 / §44.4 改为 .11，新增 §44.5 更正记录）",
+            "CaMRA/calibration/experiments/hira_go2_18500/docs/reproduction.md（前置改 .11）"
+          ],
+          "commands": [
+            "ssh 192.168.20.11 'hostname; ls /pub/data/caohy; /pub/data/caohy/miniconda/envs/env_isaaclab/bin/python -V; nvidia-smi -L'",
+            "grep -n '192.168.20.1[01]' AGENTS.md"
+          ],
+          "results": [
+            "文档更正完成，0 处残留「必须在 .10 执行」；AGENTS.md 第 95 行现为「后续任务必须在 192.168.20.11（tiger11）上执行」。",
+            ".11 前置实测：/pub/data/caohy 只有 IsaacLab 与 miniconda，无 work/、无 logs/；env_isaaclab 为 3.11.15；GPU 为多张 RTX 4090。",
+            "历史归属未改：HIRA-001–040 仍记录为全部执行在 tiger12；.10 记为未使用。",
+            "本轮只改文档与计划记录，未重跑验收、未重跑门禁、未采集、未触碰稿件。"
+          ],
+          "evidence": [
+            "AGENTS.md（执行主机一节，第 95 行起）",
+            "docs/implementation_handoff.md §44.2 / §44.4 / §44.5",
+            "docs/reproduction.md 第 74 行"
+          ],
+          "remaining_work": [
+            "在 .11 上执行任何任务前，必须先显式复制 /pub/data/caohy/{work,logs} 与 assets/usd_cache 并按 bundle_manifest 的 trial 级散列逐项核对。",
+            "config/hira.env 的根路径需按 .11 重设（解释器为 3.11.15，与 .12 的 3.11.18 不同）。",
+            "若 .11 布局与 .12 不同，用 tests/delivery_relock.py 生成派生锁，不得改写原锁。",
+            "交付索引 delivery/bundle_manifest_hira_v1.json 现在与改后的文档散列不一致，需在 .11 环境确认后重建。",
+            "工作区仍有 3 个未提交文件（final_acceptance_hira.py 超时补丁、final_acceptance.json 及其 .sha256），按用户「不做指令外动作」要求未处理。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
