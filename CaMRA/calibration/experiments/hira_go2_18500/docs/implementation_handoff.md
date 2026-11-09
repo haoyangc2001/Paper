@@ -2733,3 +2733,71 @@ EXIT=2
   `work/`、`logs/` 均不存在 —— 迁移前必须显式复制并逐 trial 核对散列（见 44.4 第 1 条）。
 - **§44.3 的故障记录保持原样**：那次是直接探测 `.10` 的 22 端口得到 `Exceeded MaxStartups`，属当时事实；
   `.12` 同现象，两者都是 sshd 未认证槽位打满，与"用哪台机器执行"无关。
+
+
+## §45 数据迁移：tiger12 → tiger11（2026-11-09，1880/1880 trial 核验通过）
+
+**为什么搬**：§44.5 把执行主机改成了 `.11`，但 `.11` 的 `/pub` 是**空的**（只有 `IsaacLab` 与 `miniconda`）。
+`/pub` 是节点本地盘、不共享，所以 1820 条采集与工作副本必须显式复制，`AGENTS.md` 的开工前置第 2 条才能落地。
+另一个动机是风险：v2 的 68 GB 当初没有第二份，如今已彻底找不回来（§39.1），这 2.13 GB 是同类隐患。
+
+### 45.1 搬了什么
+
+| 源（`tiger12:/pub/data/caohy`） | 目标（`tiger11:/pub/data/caohy`） | 体积 | 内容 |
+|---|---|---|---|
+| `logs/camra_hira` | 同名 | **2.13 GB / 14,362 文件** | 9 个 run、**1880 个 trial**（13,178 文件）、`quarantine` 9.3 MB、`assets/usd_cache` 18.8 MB、59 份运行日志 |
+| `work/hira` | 同名 | **132 MB** | `CaMRA` 工作副本 11 MB、三个交付验证副本、`guard_check` 负冒烟、`run_*.sh` |
+
+**未搬**：`camra_bundles`（v2 的 IT2999 包，HiRA 不用）、`fakehome`/`xdg*`（运行期缓存）、`IsaacLab` 与 `miniconda`（`.11` 自带）。
+
+**路径布局两机一致**（都是 `/pub/data/caohy/...`），所以 `config/hira.env` **一个字都没改**；
+采集用的 `--bundle` 默认指向仓库内的 `frozen/hira_go2_18500`（在共享 NFS 上，`.11` 本来就有）。
+顺带核实：`CAMRA_HIRA_BUNDLE_ROOT=/pub/data/caohy/camra_hira_bundles` 这个变量在**两台机器上都是空指**
+（目录从未存在），属历史遗留字段，迁移时**不要**去补建它。
+
+### 45.2 传输方式：换了两次，原因要记
+
+1. **`tar` 管道经操作机中转**（`ssh .12 'tar cf -' | ssh .11 'tar xf -'`）：可行但只有 **≈1 MB/s**
+   （操作机到集群的带宽瓶颈），2.26 GB 需 40 分钟 —— 否决。
+2. **两机直连**：`.11 → .12` 免密不通（共享 `~/.ssh/authorized_keys` 只有一把 ed25519，
+   `~/.ssh/id_rsa.pub` 未列入）。**没有改动 `authorized_keys`，也没有复制私钥**。
+3. **最终方案**：在 `.12` 起**临时只读 rsync 服务**（`port=8731`、`read only=true`、
+   `hosts allow=192.168.20.11`、`hosts deny=*`），由 `.11` 主动拉取：
+   **2.29 GB / 40 s，约 62 MB/s**。搬完按 pid 文件停服务、删除配置，**不留常驻进程、不改鉴权**。
+
+> 踩坑记录：`pkill -f 'rsyncd_migrate.conf'` 会把**执行它的那个 shell 自己**也匹配掉，
+> 表现是 SSH 会话 `rc=255` 直接断开（与 §43.4 的 L13 同一类自匹配问题）。正确做法是按 pid 文件 kill。
+
+### 45.3 三重验收（都对上了才算搬成功）
+
+| # | 检查 | 方法 | 结果 |
+|---|---|---|---|
+| 1 | **对冻结索引** | `tests/verify_migration_hira.py` 按 `delivery/bundle_manifest_hira_v1.json` 的 `sha256_tree` 逐 trial 重算 | **9/9 run、1880/1880 trial、usd_cache 7/7**，校验 2.13 GB，`verdict.all_matched=true` |
+| 2 | **对源端逐字节** | `.11` 上 `rsync -a -c -n --itemize-changes` 反向比两棵树 | 两棵树均 **0 差异**（覆盖索引之外的日志、`quarantine`、工作副本） |
+| 3 | **对锁** | `.11` 上 `DataLock.load(data_lock_hira_evaluation_v3.json, verify_hash=True)` + `verify_artifacts(/pub/data/caohy/work/hira/CaMRA)` | 返回**空列表 = 零项不符**（stage=evaluation、margins 仍 frozen） |
+
+第 3 条是关键：它证明的不只是"文件齐了"，而是**资产链在新机上完整**——代码散列、α/δ、清单、地图全部解析得到。
+报告：`reports/migration_tiger11_20261109.json`（+ `.sha256`）。
+
+### 45.4 边界（下游必须知道）
+
+1. **`.12` 上的原数据一个字节都没删**，现在是第二副本。要不要清理由用户决定；
+   在任何一处被覆盖之前，**它就是唯一的旁证**，不要当垃圾顺手清掉。
+2. **迁移不改变任何结论**：锁、α/δ、功率模型、期望值、清单散列**全部未动**，`§34–§37` 的结论照旧。
+   本节只证明"同一批字节现在多了一个可用的位置"。
+3. **解释器不同**：`.11` 的 `env_isaaclab` 是 Python **3.11.15**，`.12` 是 3.11.18。
+   只影响运行时，不影响已落盘的数据；但**在 `.11` 上跑采集前**需按 §44.4 第 3 条确认 Isaac Lab 与 GPU 可用。
+4. **验收只覆盖字节一致性**，不重跑能量/覆盖/几何；那些仍以 `§34–§38` 的报告为准。
+5. `.12` 上保留 `tmp/rsyncd.log`（搬运日志）作证据，未删。
+
+### 45.5 换机后怎么复核
+
+```bash
+cd /pub/data/caohy/work/hira/CaMRA/calibration/experiments/hira_go2_18500
+/pub/data/caohy/miniconda/envs/env_isaaclab/bin/python tests/verify_migration_hira.py \
+  --data-root /pub/data/caohy \
+  --out reports/migration_tiger11_20261109.json
+```
+
+口径与 `build_delivery_manifest.py` 完全一致（单文件 `sha256(bytes)`；trial 级 `sha256` over
+排序后的 `相对路径\0文件散列\n`，跳过 `__pycache__`）。任一 trial 不符返回码 1。
