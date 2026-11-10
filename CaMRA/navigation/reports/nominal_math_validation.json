@@ -1,0 +1,273 @@
+{
+  "task": "NAV-019",
+  "verdict": "PASS",
+  "n_checks": 16,
+  "n_failed": 0,
+  "tolerances": {
+    "analytic": 1e-12,
+    "rk4": 1e-09,
+    "cost_relative": 1e-12,
+    "sum": 1e-09
+  },
+  "references": [
+    "analytic: geometric rotation about the instantaneous centre",
+    "rk4: 400-substep numerical integration of the same ODE",
+    "hand polynomial: weights x feature_names, no PowerModel import"
+  ],
+  "checks": [
+    {
+      "check": "straight_matches_analytic",
+      "ok": true,
+      "detail": {
+        "max_abs_diff_m": 0.0,
+        "tolerance": 1e-12,
+        "cases": 3
+      }
+    },
+    {
+      "check": "pure_rotation_matches_analytic",
+      "ok": true,
+      "detail": {
+        "pose_after": [
+          1.5,
+          -0.5,
+          0.38
+        ],
+        "expected": [
+          1.5,
+          -0.5,
+          0.38
+        ],
+        "note": "原地转向不应产生位移；位移若出现说明闭式解在 v=0 分支写错"
+      }
+    },
+    {
+      "check": "arc_matches_geometric_reference",
+      "ok": true,
+      "detail": {
+        "max_abs_diff_m": 1.1102230246251565e-16,
+        "tolerance": 1e-12,
+        "radius_first_case_m": 1.0,
+        "reference": "绕瞬时中心的刚体旋转，与闭式解 sin/cos 恒等式不同源"
+      }
+    },
+    {
+      "check": "closed_form_matches_rk4",
+      "ok": true,
+      "detail": {
+        "max_abs_diff_m": 7.460698725481052e-14,
+        "tolerance": 1e-09,
+        "substeps": 400,
+        "note": "RK4 全局误差 O(h^3)，h=dt/400=2.5e-4，故 1e-9 足够严"
+      }
+    },
+    {
+      "check": "yaw_folded_into_contract_range",
+      "ok": true,
+      "detail": {
+        "steps": 200,
+        "unwrapped_total_rad": 20.022682106239497,
+        "final_yaw_rad": 1.173126184700734,
+        "all_within_open_pi_interval": true,
+        "sin_residual": 1.3322676295501878e-15,
+        "note": "冻结积分器不折回 yaw；状态边界处折回，否则长回合会漂到 5*pi"
+      }
+    },
+    {
+      "check": "zero_command_holds_still_but_charges",
+      "ok": true,
+      "detail": {
+        "pose_unchanged": true,
+        "power_W": 3.0284321184264877,
+        "idle_power_W": 3.0284321184264877,
+        "cost_J": 0.36052963469140276,
+        "note": "静止仍耗能；若为 0 说明功率模型被当成纯运动项"
+      }
+    },
+    {
+      "check": "domain_corners_reachable_and_clipped",
+      "ok": true,
+      "detail": {
+        "corner_applied": [
+          1.0,
+          0.4,
+          1.0
+        ],
+        "corner_clipped": false,
+        "corner_power_W": 51.34905817053213,
+        "hand_power_W": 51.34905817053213,
+        "over_requested": [
+          1.0,
+          -0.4,
+          0.5
+        ],
+        "over_clipped": true
+      }
+    },
+    {
+      "check": "nonfinite_action_sanitised",
+      "ok": true,
+      "detail": {
+        "invalid_flag": true,
+        "applied": [
+          0.0,
+          0.0,
+          0.3
+        ],
+        "observation_finite": true,
+        "note": "NaN/Inf 归零并置标志，绝不进入状态或观测"
+      }
+    },
+    {
+      "check": "power_matches_independent_polynomial",
+      "ok": true,
+      "detail": {
+        "worst_relative_error": 1.5525937019559776e-16,
+        "tolerance": 1e-12,
+        "feature_names": [
+          "bias",
+          "abs_vx",
+          "abs_vy",
+          "abs_wz",
+          "vx2",
+          "vy2",
+          "wz2",
+          "abs_vx_wz",
+          "abs_vy_wz",
+          "abs_vx_vy"
+        ],
+        "rows": [
+          {
+            "applied": [
+              0.6,
+              0.0,
+              0.0
+            ],
+            "env_W": 17.217123901093494,
+            "hand_W": 17.217123901093494
+          },
+          {
+            "applied": [
+              0.2,
+              0.04000000000000001,
+              -0.3
+            ],
+            "env_W": 5.720610734032907,
+            "hand_W": 5.720610734032906
+          },
+          {
+            "applied": [
+              -1.0,
+              0.16000000000000003,
+              1.0
+            ],
+            "env_W": 43.69443090070405,
+            "hand_W": 43.69443090070405
+          },
+          {
+            "applied": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "env_W": 3.0284321184264877,
+            "hand_W": 3.0284321184264877
+          }
+        ],
+        "note": "本文件用 weights×features 重算，不导入 PowerModel"
+      }
+    },
+    {
+      "check": "budget_equals_independent_sum",
+      "ok": true,
+      "detail": {
+        "charged_J": 54.86325411751022,
+        "hand_sum_J": 54.86325411751068,
+        "abs_diff_J": 4.547473508864641e-13,
+        "steps": 30,
+        "alpha": 0.19048279965649906
+      }
+    },
+    {
+      "check": "safety_history_counterexample",
+      "ok": true,
+      "detail": {
+        "first_step_with_y1": 47,
+        "retreat_steps": 15,
+        "retreat_y_values": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "label": "stagnation",
+        "note": "退出 delta 带后 y 仍为 1；若回到 0 说明历史被写成了瞬时标志"
+      }
+    },
+    {
+      "check": "interval_and_endpoint_agree_at_task_scale",
+      "ok": true,
+      "detail": {
+        "comparisons": 200,
+        "disagreements": 0,
+        "max_step_m": 0.10492480853428372,
+        "band_thickness_m": 6.238735599012962,
+        "ratio_band_over_step": 59.459108729033154,
+        "note": "禁入带厚 2*(r_fp+delta) 远大于单步位移，故逐步端点判据与段判据在本任务尺度等价；段判据仍保留在实现里作为保险"
+      }
+    },
+    {
+      "check": "vertex_free_overlap_labelled_collision",
+      "ok": true,
+      "detail": {
+        "label": "collision",
+        "clearance_m": 0.0,
+        "island": {
+          "width": 4.0,
+          "depth": 0.02
+        },
+        "note": "机身跨在 4x0.02 m 薄墙上，两多边形互不含对方顶点，仍被正确判为碰撞"
+      }
+    },
+    {
+      "check": "episode_isolation",
+      "ok": true,
+      "detail": {
+        "before_reset": {
+          "label": "collision",
+          "z_J": 7.331115280218,
+          "safety_y": 1.0,
+          "steps": 94
+        },
+        "after_reset": {
+          "z_J": 200.0,
+          "safety_y": 0.0,
+          "steps": 0,
+          "label": null
+        },
+        "new_episode_steps": 5,
+        "note": "上一回合的账本字符串在下一回合运行后不变，且新回合从 index=0 起"
+      }
+    },
+    {
+      "check": "truncation_exact_at_horizon",
+      "ok": true,
+      "detail": {
+        "label": "timeout",
+        "steps": 300,
+        "t_s": 30.000000000000156,
+        "note": "300 x 0.1 s 恰好到 30 s；不应多走一步也不应提前截断"
+      }
+    },
+    {
+      "check": "world_to_body_matches_rotation_matrix",
+      "ok": true,
+      "detail": {
+        "max_abs_diff": 0.0,
+        "tolerance": 1e-12,
+        "note": "用显式 R^T 复核，含接近 ±pi 的航向"
+      }
+    }
+  ]
+}

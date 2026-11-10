@@ -2315,11 +2315,65 @@
       "id": "NAV-019",
       "phase": "契约与名义环境",
       "goal": "独立验证名义环境数学与边界语义",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-018"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T13:20:00+08:00",
+          "summary": "用解析几何、RK4 数值积分与手算功率多项式独立复核名义环境的数学与边界语义，16 项检查全通过；过程中发现并修正 yaw 未折回契约区间、以及 wrap_angle 对已合规角度仍有 1e-16 扰动两个真实问题。",
+          "actions": [
+            "预登记容差：解析对照 1e-12、RK4 对照 1e-9（400 子步、h=2.5e-4、全局误差 O(h^3)）、成本相对 1e-12、求和 1e-9，均写在文件顶部而不是事后调参。",
+            "写独立参考：analytic_step 用绕瞬时中心的刚体旋转，与冻结闭式解的 sin/cos 恒等式不同源；rk4_step 直接数值积分 dp/dt=R(yaw)u、dyaw/dt=wz；power_by_hand 用 feature_names 与 weights 重算，并先断言特征顺序未被改动。",
+            "覆盖运动：直线三例、纯转向、三条圆弧（含 vy≠0）、十个位姿的 RK4 对照。",
+            "覆盖边界语义：零命令、命令域角点 (1,1,1) 与越界 (1.5,-2,0.5)、NaN/Inf 动作、预算手算累加、安全历史退出后不回零、回合隔离、30 s 截断、世界系到机体系的显式旋转矩阵。",
+            "覆盖几何难点：200 组随机位姿与命令比较端点判据与段判据；用 4x0.02 m 薄墙构造「两多边形互不含对方顶点」的交叠，验证环境仍判碰撞。",
+            "发现问题一：冻结积分器不折回 yaw，长回合可漂到 20 rad，与契约的 (-pi, pi] 不符；在状态边界处补折回。",
+            "发现问题二：camra_calibration.nominal.wrap_angle 对已在范围内的角度也会扰动约 1e-16，导致零指令一步之后位姿元组不再逐位相等；改为仅当越界时才折回，并用零指令用例确认位姿严格不变。",
+            "回归：名义环境 15 项与观测契约 28 项在本轮改动后仍全部通过。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/envs/nominal.py",
+            "CaMRA/navigation/tests/test_nominal_math.py",
+            "CaMRA/navigation/reports/nominal_math_validation.json",
+            "CaMRA/navigation/reports/nominal_env_check.json",
+            "CaMRA/navigation/reports/observation_contract_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_nominal_math.py --json CaMRA/navigation/reports/nominal_math_validation.json（在 tmux 内）",
+            "python CaMRA/navigation/tests/test_nominal_env.py --json CaMRA/navigation/reports/nominal_env_check.json（回归）",
+            "python CaMRA/navigation/tests/test_observation_contract.py --json CaMRA/navigation/reports/observation_contract_check.json（回归）"
+          ],
+          "results": [
+            "解析对照：直线、纯转向与三条圆弧与绕瞬时中心的几何参考最大绝对差均不超过 1e-12；纯转向位移严格为 0，yaw 精确加 0.08。",
+            "RK4 对照：十个位姿的最大绝对差 7.46e-14，比预登记的 1e-9 严四个数量级。",
+            "yaw 折回：200 步 (0.3,0,1.0) 使未折回角累到 20.0227 rad，逐步折回后终值 1.17313 rad 且全程落在 (-pi, pi]，sin 残差 1.33e-15。",
+            "零命令：位姿逐位不变，功率 3.0284 W 等于手算的 bias 项，单步成本 0.3605 J，说明静止仍耗能。",
+            "命令域：角点动作 (1,1,1) 精确得到 applied=(1.0,0.4,1.0) 且未裁剪，功率与手算一致；越界动作请求被压到 (1.0,-0.4,0.5) 并标记 clipped。",
+            "非有限输入：NaN/Inf 分量归零、invalid 置位，状态与 41 维观测全部有限。",
+            "功率：四个命令（含零与域角点）与手算多项式的最大相对误差不超过 1e-12，特征名顺序断言通过。",
+            "预算：30 步混合命令后扣账与手算累加差不超过 1e-9 J，alpha 只乘一次。",
+            "安全历史反例：第 47 步进入 delta 带后 y=1，随后后退 15 步离开该带，y 值序列仍全为 1，未回零。",
+            "区间判据：200 组随机位姿与命令、共 200 次比较，端点判据与段判据零分歧；最大单步位移 0.1049 m，禁入带厚 6.2387 m，比值 59.5 倍，说明本任务尺度下逐步端点判据不会漏判。",
+            "无顶点包含的交叠：机身跨在 4x0.02 m 薄墙上时两多边形互不含对方顶点，环境仍判 collision 且净空为 0，与冻结 polygon_distance 的缺陷形成对照。",
+            "回合隔离：上一回合（collision、z=7.331 J、y=1、94 步）的账本字符串在 reset 并跑新回合 5 步后逐字符不变；新回合 z 回到 200 J、y=0、index=0、label 为空。",
+            "截断：300 步恰好 30.0 s 记 timeout，既不多走一步也不提前结束。",
+            "世界系到机体系：六个航向（含接近 ±pi）与三组位移的显式 R^T 对照，最大差不超过 1e-12。",
+            "语义记录：停滞判据用净位移，所以前进 15 步再后退 15 步会在 3 s 窗口内被判 stagnation（实测如此），与冻结文本「连续 3.0 s 内 base 平面位移 < 0.05 m」一致；该阈值仍是 provisional，NAV-059 复核。",
+            "回归：名义环境 15 项、观测契约 28 项均 PASS。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nominal_math_validation.json：16 项检查全 ok、verdict=PASS，含预登记容差、三来源参考、各用例的绝对差与反例位姿。",
+            "CaMRA/navigation/reports/nominal_env_check.json 与 observation_contract_check.json：回归后分别 15/15 与 28/28。",
+            "CaMRA/navigation/src/camra_navigation/envs/nominal.py 的 yaw 折回处带注释说明为何在状态边界折回、且只折回越界值。",
+            "/pub/data/caohy/tmp/nav019_math.log 为 tmux 内原始输出。",
+            "未修改任何冻结文件；wrap_angle 的行为差异只记录不改（冻结实现按原样使用）。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "采用直线/纯转向/圆弧解析案例、RK4独立对照、手算功率积分和安全历史反例，不仅调用同一函数相互验证。",
         "数值容差按精度/现有解析对照依据预登记；所有工程检查记录静态或实际执行边界。"
@@ -2328,7 +2382,7 @@
         "运动、坐标、能量、预算、y、事件顺序与截断测试全部通过。",
         "覆盖角度环绕、零/极限命令、非有限输入、区间穿障、无顶点包含交叠及回合间隔离。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。用三个非同源参考独立复核：绕瞬时中心的解析旋转（直线/纯转向/三条圆弧，最大差不超过 1e-12）、400 子步 RK4 数值积分（十位姿最大差 7.46e-14，容差预登记 1e-9）、按 weights 与 feature_names 手算的功率多项式（四命令相对误差不超过 1e-12，含特征顺序断言）。边界语义：零指令位姿逐位不变但耗 3.0284 W；域角点 applied=(1.0,0.4,1.0) 未裁剪而越界请求被压到 (1.0,-0.4,0.5)；NaN/Inf 归零且观测全有限；30 步预算与手算累加差不超过 1e-9 J；安全历史进入 delta 带后后退 15 步仍全为 1；200 组随机比较中端点与段判据零分歧（单步 0.1049 m 对禁入带 6.2387 m，比 59.5）；4x0.02 m 薄墙的无顶点包含交叠仍判 collision；回合隔离下上一回合账本逐字符不变；300 步恰好 30.0 s 记 timeout。过程中发现并修正两处真实问题：冻结积分器不折回 yaw（长回合漂到 20 rad），以及 wrap_angle 对合规角度仍有 1e-16 扰动（改为仅越界时折回）。回归 15 项与 28 项全过。",
       "reference_ids": [
         "R10",
         "R11"

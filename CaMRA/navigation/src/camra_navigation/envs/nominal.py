@@ -38,13 +38,14 @@ from ..maps.generator import MapSpec
 
 try:  # frozen calibration package, read-only use
     from camra_calibration.geometry import Polygon
-    from camra_calibration.nominal import PlanarState, step_exact
+    from camra_calibration.nominal import PlanarState, step_exact, wrap_angle
 
     _FROZEN_INTEGRATOR = "camra_calibration.nominal.step_exact"
 except Exception as exc:  # pragma: no cover - import guard
     PlanarState = None  # type: ignore[assignment]
     step_exact = None  # type: ignore[assignment]
     Polygon = None  # type: ignore[assignment]
+    wrap_angle = None  # type: ignore[assignment]
     _FROZEN_INTEGRATOR = f"unavailable: {exc}"
 
 #: Terminal labels, in the frozen priority order (contract ``event_table``).
@@ -336,7 +337,19 @@ class NominalNavEnv:
         yaw0 = self._pose[2]
         nxt = integrate(p0, self._pose[1], yaw0, command.applied, DT_NAV_S)
         p1, y1 = float(nxt.px), float(nxt.py)
-        yaw1 = float(nxt.yaw)
+        # The frozen integrator accumulates yaw without folding it, so a long
+        # episode can drift to 5*pi.  sin/cos stay correct, but the contract says
+        # the stored heading lives in (-pi, pi], so the fold happens here, at the
+        # state boundary, not inside the integrator (whose identity with
+        # step_exact must stay checkable).  Only out-of-range values are folded:
+        # wrap_angle is not an identity on in-range angles (it perturbs them by
+        # ~1e-16), and folding a still-valid heading would make an idle step move
+        # the recorded pose for no reason.
+        raw_yaw = float(nxt.yaw)
+        if wrap_angle is not None and not (-math.pi < raw_yaw <= math.pi):
+            yaw1 = float(wrap_angle(raw_yaw))
+        else:
+            yaw1 = raw_yaw
 
         # --- cost on the applied command (charges the budget exactly once) ---
         cost = self.cost_model.step(command.applied, budget=self.budget)
