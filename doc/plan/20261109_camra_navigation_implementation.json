@@ -2013,11 +2013,56 @@
       "id": "NAV-015",
       "phase": "契约与名义环境",
       "goal": "实现足迹及裕度安全判据",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-057"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T11:55:00+08:00",
+          "summary": "实现足迹与裕度安全判据：按 NAV-057 契约用圆盘加 delta 一次膨胀，分离物理碰撞/名义违反/安全历史三个字段，自实现分离轴判交与边-边距离以绕开冻结 polygon_distance 的漏判，并用 14 项反例验证。",
+          "actions": [
+            "读冻结 geometry.py 全部原语（Polygon.rotate/translate/contains/distance/inflate/union/support、disc、minkowski_sum、swept_collision、rotating_sweep_hull）。",
+            "读冻结 obstacles.py 的 Obstacle(x,y,width,depth,yaw).polygon() 与 distances_to_obstacle/polygon_distance 实现，发现其判交只看一方顶点是否落在另一方内部。",
+            "写 src/camra_navigation/maps/geometry.py：SafetyGeometry（从冻结文件加载并复算 r_fp、记录双散列与 delta 语义）、convex_polygons_intersect（分离轴）、polygon_distance_exact（相交为 0，否则边-边最小距离）、segment_intersects_polygon、footprint_at、nominal_margin/nominal_violation、nominal_violation_during_step、physical_clearance/physical_collision、physical_collision_during_step（hull(F0,F1) 加 disc(r_fp*|dpsi|/2) 的保守界）、boundary_margin/boundary_violation、update_safety_history、legacy_avoid_to_y/y_to_legacy_avoid。",
+            "写 tests/test_safety_geometry.py 覆盖 14 项：几何身份与元信息、膨胀只乘一次、delta 0x/1x/2x 三态区分、边界与角点、薄矩形十字交叉、薄墙穿机身、真实 delta 下无跨步空间、任务尺度下不可能穿透、细带穿透被段判据抓到、旋转扫掠端点漏判、三字段分离、接触判定、安全历史不可逆与 avoid 符号映射、障碍顺序无关。",
+            "运行测试后发现三处自身断言写反（delta 加倍使约束更大而非更小、边界点属违反、delta=0 时足迹半径已达 0.5 m），修正后 14/14 通过。",
+            "把冻结 polygon_distance 的漏判实测写入 geometry_contract_v1.json 的 known_defects 与 interface_for_NAV_015.must_not，契约升至 1.0.1，未修改冻结源码。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/maps/geometry.py",
+            "CaMRA/navigation/src/camra_navigation/maps/__init__.py",
+            "CaMRA/navigation/tests/test_safety_geometry.py",
+            "CaMRA/navigation/config/geometry_contract_v1.json",
+            "CaMRA/navigation/reports/safety_geometry_check.json"
+          ],
+          "commands": [
+            "grep/sed 读 geometry.py 与 obstacles.py 的实现与签名",
+            "python CaMRA/navigation/tests/test_safety_geometry.py --json CaMRA/navigation/reports/safety_geometry_check.json（在 tmux 内）"
+          ],
+          "results": [
+            "几何身份：r_fp=0.5055013879783843、delta=2.6138664115280967、inflation=3.119367799506481 m，足迹字节散列与 data_lock 一致；metadata 记录 delta 为 90% 分位、只膨胀一次、attitude_treatment、not_a_safety_certificate=true。",
+            "膨胀只乘一次：距表面 r_fp+delta 处 margin=0 判违反，外侧 1e-6 安全、内侧 1e-6 违反。",
+            "delta 三态可分：两个探针（距表面 r_fp+0.5delta=1.8124 m 与 r_fp+1.5delta=4.4263 m）分别给出 F,F / T,F / T,T，二次膨胀会多出 2.614 m 假违反带。",
+            "边界同处理：四边半平面取 min 等价于按 disc 腐蚀（方角内切矩形），内侧 1e-3 违反、外侧 1e-3 安全，角点两轴同时越界即违反。",
+            "冻结函数漏判（关键发现）：20x0.2 与 0.2x20 薄矩形十字交叉，双方均无顶点落在对方内部，polygon_distance 返回 9.9 m 而实际相交（精确距离 0）；真实足迹与 4x0.05 薄墙穿过机身时它返回 0.06065 m。故不能用它做碰撞判据。",
+            "旋转扫掠：2x0.2 长条在 0 至 90 度的一步内扫过 (0.70,0.70) 的探针，两个端点姿态都不碰、两端点凸包也不含探针，保守界 hull 加 disc(1.005*pi/4)=0.7893 m 判定碰撞，32 细分采样同样找到碰撞。",
+            "跨步穿透：任务尺度下不可能——delta=0 时禁入带厚 1.011 m，是 0.1 m 最大步长的 10.1 倍；仍实现精确段判据，并用 r_fp=0.028 的合成足迹造出 0.057 m 细带，证明端点漏判、段判据能抓到。",
+            "三字段分离：位置距障碍表面 1.8124 m 时物理净空 1.2097 m（无接触）但名义 margin=-1.4194（违反），safety_y=1；字段不可互为别名。",
+            "安全历史不可逆：序列 0,0,1,1,1 验证；legacy avoid 映射 avoid=-1 对应 y=1、avoid=+1 对应 y=0 且双向可逆（对应 RC-PPO 的 avoid_value=where(is_avoid,-1,1)）。",
+            "障碍顺序无关：两障碍正序与逆序求最小 margin 完全相同。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/src/camra_navigation/maps/geometry.py：模块文档列出三字段定义与两处不采用冻结实现的理由；physical_collision_during_step 内含扫掠保守界的推导。",
+            "CaMRA/navigation/reports/safety_geometry_check.json：14 项全 ok、verdict=PASS，含漏判实测值与旋转反例细节。",
+            "CaMRA/navigation/config/geometry_contract_v1.json v1.0.1：known_defects 记录 polygon_distance 的两组实测漏判与处置，interface_for_NAV_015.must_not 增加对应禁令。",
+            "CaMRA/navigation/tests/test_safety_geometry.py 可复跑；/pub/data/caohy/tmp/nav015_test.log 为 tmux 内原始输出。",
+            "未修改 camra_calibration 下任何文件。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "按原始障碍+占地足迹+δ一次构建约束，边界同样处理；定义y不可逆更新及原avoid符号映射。",
         "独立核对旧几何函数，不直接修改旧锁内源码；交叉薄矩形无顶点包含、旋转扫掠等反例需要正确处理。",
@@ -2027,7 +2072,7 @@
         "可独立验证真实几何碰撞、名义膨胀违反和安全历史，三者字段分明。",
         "足迹/δ零次或二次膨胀、边界接触、边交叉、跨步穿障和旋转反例通过。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。maps/geometry.py 按 NAV-057 契约实现：SafetyGeometry 从冻结文件加载（r_fp=0.5055013879783843、delta=2.6138664115280967、inflation=3.119367799506481 m，metadata 注明 delta 为 90% 分位、只膨胀一次、非安全证书）；nominal/physical/history 三字段分离（物理净空 1.2097 m 无接触而名义 margin=-1.4194 违反，safety_y=1）；边界按四半平面 min；安全历史不可逆且 legacy avoid 映射双向可逆。14 项检查全通过：膨胀只乘一次、delta 三态由两探针唯一区分、薄矩形十字交叉与薄墙穿机身两例证明冻结 polygon_distance 会漏判（返回 9.9 m 与 0.06065 m，真值均相交）、旋转扫掠端点与端点凸包都漏判而保守界与 32 细分采样均判碰撞、任务尺度下跨步穿透不可能（禁入带 1.011 m 对 0.1 m 步长）但仍用 0.057 m 细带验证段判据正确。缺陷已写入 geometry_contract v1.0.1 的 known_defects，未改冻结源码。",
       "reference_ids": [
         "R03",
         "R09",

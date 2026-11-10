@@ -1,0 +1,206 @@
+{
+  "contract_version": "1.0.1",
+  "r_fp_m": 0.5055013879783843,
+  "delta_m": 2.6138664115280967,
+  "inflation_radius_m": 3.119367799506481,
+  "n_checks": 14,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "check": "geometry_from_frozen",
+      "ok": true,
+      "detail": {
+        "r_fp_m": 0.5055013879783843,
+        "delta_m": 2.6138664115280967,
+        "inflation_radius_m": 3.119367799506481,
+        "contract_version": "1.0.1",
+        "metadata_keys": [
+          "attitude_treatment",
+          "contract_version",
+          "delta_applications",
+          "delta_m",
+          "delta_semantics",
+          "footprint_sha256",
+          "inflation_radius_m",
+          "margins_sha256",
+          "not_a_safety_certificate",
+          "note",
+          "r_fp_m",
+          "r_fp_reference",
+          "schema"
+        ]
+      }
+    },
+    {
+      "check": "inflation_applied_exactly_once",
+      "ok": true,
+      "detail": {
+        "signed_distance_at_centre_m": -0.2999999999999998,
+        "inflation_radius_m": 3.119367799506481,
+        "margin_at_boundary_m": 0.0,
+        "violation_at_boundary": true,
+        "violation_1mm_outside": false,
+        "violation_1mm_inside": true,
+        "note": "边界计为违反，对应 d <= delta 的定义"
+      }
+    },
+    {
+      "check": "zero_and_double_inflation_distinguishable",
+      "ok": true,
+      "detail": {
+        "probe_a_distance_m": 1.8124345937424327,
+        "probe_b_distance_m": 4.426301005270529,
+        "violation_pattern_a_b": {
+          "delta_0x": [
+            false,
+            false
+          ],
+          "delta_1x": [
+            true,
+            false
+          ],
+          "delta_2x": [
+            true,
+            true
+          ]
+        },
+        "conclusion": "两个探针把 0x/1x/2x 分成唯一的三组结果；二次膨胀会多出 2.614 m 的假违反带"
+      }
+    },
+    {
+      "check": "boundary_same_treatment",
+      "ok": true,
+      "detail": {
+        "r_plus_delta_m": 3.119367799506481,
+        "margin_safe_m": 0.0009999999999994458,
+        "margin_bad_m": -0.0009999999999994458,
+        "corner_safe": [
+          -8.87963220049352,
+          -5.879632200493519
+        ],
+        "corner_bad_violation": true,
+        "note": "四边半平面取 min 等价于矩形按 disc 腐蚀（内切矩形，方角），两轴同时越界即违反"
+      }
+    },
+    {
+      "check": "edge_crossing_counterexample",
+      "ok": true,
+      "detail": {
+        "horizontal_vertices_inside_vertical": false,
+        "vertical_vertices_inside_horizontal": false,
+        "frozen_polygon_distance_m": 9.9,
+        "sat_intersect": true,
+        "exact_distance_m": 0.0,
+        "conclusion": "两个 20x0.2 的薄矩形十字交叉：任一方都没有顶点落在对方内部，冻结 polygon_distance 因此返回 9.900 m（漏判），SAT 与边-边距离判为相交。NAV-015 不能用该函数做碰撞判据。"
+      }
+    },
+    {
+      "check": "thin_wall_through_footprint",
+      "ok": true,
+      "detail": {
+        "sat_collision": true,
+        "frozen_polygon_distance_m": 0.06065384060645001,
+        "note": "0.05 m 薄墙整条落在足迹顶点之间，冻结函数因此报 0.061 m 的非零距离；机器人穿过薄墙这一最常见情形就会被漏判"
+      }
+    },
+    {
+      "check": "real_delta_endpoints_already_violate",
+      "ok": true,
+      "detail": {
+        "inflated_thickness_m": 6.258735599012962,
+        "step_length_m": 0.09999999999999998,
+        "endpoint_violation": true,
+        "segment_violation": true,
+        "conclusion": "delta=3.12 m 远大于 0.1 m 步长，端点就已经违反，不存在漏判空间"
+      }
+    },
+    {
+      "check": "tunnelling_impossible_at_task_scale",
+      "ok": true,
+      "detail": {
+        "max_step_m": 0.1,
+        "half_band_with_delta_m": 3.119367799506481,
+        "half_band_without_delta_m": 0.5055013879783843,
+        "conclusion": "即使把 delta 取 0，禁入带仍有 1.011 m 厚，是 0.1 m 步长的 10.1 倍；本任务尺度下跨步穿透不可能发生"
+      }
+    },
+    {
+      "check": "segment_test_catches_thin_band_tunnelling",
+      "ok": true,
+      "detail": {
+        "band_thickness_m": 0.0565685424949238,
+        "step_length_m": 0.8,
+        "endpoint_violation_start": false,
+        "endpoint_violation_end": false,
+        "segment_violation": true,
+        "conclusion": "带宽 0.057 m 小于步长时，只查端点会漏；段判据能抓到，证明该判断不是摆设"
+      }
+    },
+    {
+      "check": "rotation_sweep_endpoint_miss",
+      "ok": true,
+      "detail": {
+        "probe_xy": [
+          0.7,
+          0.7
+        ],
+        "collision_at_0deg": false,
+        "collision_at_90deg": false,
+        "endpoint_hull_contains_probe": false,
+        "conservative_sweep_collision": true,
+        "subsample_finds_collision": true,
+        "r_fp_m": 1.004987562112089,
+        "bound_extra_radius_m": 0.7893153855201136,
+        "conclusion": "长条在 0->90 deg 的一步内扫过探针，但两个端点姿态都不碰、两端点凸包也不含探针；保守扫掠界与 32 细分采样都能判定碰撞"
+      }
+    },
+    {
+      "check": "three_fields_separate",
+      "ok": true,
+      "detail": {
+        "physical_collision": false,
+        "nominal_violation": true,
+        "safety_y": 1.0,
+        "clearance_m": 1.2097466480874477,
+        "nominal_margin_m": -1.4193677995064808,
+        "conclusion": "位置在 delta 带内（名义违反）但没有真实接触；三个字段必须各记各的"
+      }
+    },
+    {
+      "check": "physical_contact_reported_when_touching",
+      "ok": true,
+      "detail": {
+        "clearance_m": 0.0,
+        "note": "足迹多边形前缘（+x 极值 0.3991 m）压入障碍 1 um 即判接触；注意这用的是真实足迹而非圆盘"
+      }
+    },
+    {
+      "check": "history_irreversible_and_sign_mapping",
+      "ok": true,
+      "detail": {
+        "history_sequence": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "avoid_mapping": {
+          "avoid=-1 -> y": 1.0,
+          "avoid=+1 -> y": 0.0
+        },
+        "round_trip_ok": true,
+        "reference": "RC-PPO avoid_value = where(is_avoid, -1, 1)：-1 不安全、+1 安全"
+      }
+    },
+    {
+      "check": "order_independent",
+      "ok": true,
+      "detail": {
+        "margin_forward_m": -1.2154245230405039,
+        "margin_reverse_m": -1.2154245230405039
+      }
+    }
+  ]
+}
