@@ -1,0 +1,183 @@
+{
+  "schema": "camra-navigation-budget-comparison-contract-v1",
+  "version": "1.0.0",
+  "owner": "NAV-058",
+  "created_at": "2026-11-10T14:05:00+08:00",
+  "status": "frozen_pending_nav021_fill",
+  "source": "doc/plan/20261109_camra_navigation_implementation.json 的 evaluation_contract.budget_comparison_modes 与 attribution_rule，加上 NAV-012/014/056 已冻结的预算与成本语义",
+  "scope": {
+    "methods": [
+      "uncalibrated",
+      "full"
+    ],
+    "excluded": "首轮只有这两种方法；不新增第三种、不做 α/δ 的大规模消融、不按结果增加预算网格点",
+    "why_two_only": "α 与 δ 的作用机制不同（一个乘成本、一个改可行空间），首轮先在不混淆归因的前提下比较整体方法，机制核验只用受限小例子"
+  },
+  "units": {
+    "internal_budget_J": "有符号 z_J，按 (1+α)·c_nom 逐 0.1 s 扣减；可为负，负值表示超支",
+    "model_cost_J": "c_nom = P̂(applied)·0.1 s；冻结 power-v1，history_k=0",
+    "measured_energy_J": "物理侧 200 Hz 逐子步累加 Σ_j max(τ_j·q̇_j, 0)；名义环境无此量，physical_status 恒为 not_measured",
+    "normalised": "z_ratio = clip(z_J / Z_REF_J, -1, 1)，Z_REF_J = 225.6069087767049；它只是归一化尺度，不是可达预算",
+    "why_two_units_matter": "内部预算用模型成本扣，BVR 用实测能量比。两者不同源，因此「内部预算耗尽」与「实测超预算」是两件事，必须分别记、不得互相当作代理"
+  },
+  "margin_effects": {
+    "alpha": {
+      "exact": "同一轨迹、同一 applied 命令序列下，逐区间 c_model = (1+α)·c_nom 恒成立",
+      "ratio": "1+α = 1.1904827996564991（α=0.19048279965649906，取自 margins_v1 精确值）",
+      "consequence": "相同 z0 下完整方法的内部预算以该倍数消耗，可支付区间数变为 1/(1+α) 倍",
+      "not_a_claim": "这不是「完整方法更耗能」。同一条轨迹的实测 J 完全相同；变化的只是记账速度与由此触发的提前终止",
+      "closed_loop_caveat": "上述「只改记账」严格成立于开环固定命令序列。闭环策略下 z_ratio 进入观测，α 会通过预算读数间接改变动作，因此 α 在闭环里确有行为影响；手工反例只能隔离记账效应，不能据此声称 α 对策略行为无影响"
+    },
+    "delta": {
+      "exact": "δ 只进入约束集合（禁入带 = r_fp + δ），不进入成本函数",
+      "consequence": "δ 通过改变可行空间与所选路线间接改变行程与能量",
+      "separation_rule": "不得把 δ 引起的路线变化记作 α 的贡献；也不得把提高 z0 的收益记作任一裕度的贡献"
+    },
+    "joint": "两种裕度都可能改变「是否到达」「走了多远」「花了多少」，因此单因子归因只在受限小例子中允许，且必须标注为机制核验而非消融证据"
+  },
+  "reference_energy": {
+    "symbol": "E_ref(map)",
+    "definition": "该地图在 NAV-017 准入时给出的可行路线、以「恰好赶上限」的巡航速度行驶、用 α=0 的功率模型算出的名义成本（即 map_feasibility 记录里的 predicted_energy_deadline_J）",
+    "why_this": "它只由几何与冻结功率模型决定，与任何策略、任何裕度、任何结果无关，因此可以用作预算网格的锚点而不引入结果依赖",
+    "not": "不是实测能量，不是可达性证明，也不随方法变化",
+    "recompute": "由 scripts/check_budget_fairness.py 重算并记录区间；契约不写死具体数值以免与清单漂移"
+  },
+  "budget_grid": {
+    "rule": "对每张地图，网格为 z0 = k · E_ref(map)，k 取自下面冻结的五个值",
+    "k_values": [
+      0.7,
+      0.85,
+      1.0,
+      1.15,
+      1.3
+    ],
+    "why_these": "0.7–1.3 覆盖「必然不够」「刚好够」「明显富余」三档；1.0 是名义路线成本的锚点。五点是预先定死的，不允许在看到结果后加密或平移",
+    "frozen": true,
+    "per_method_or_shared": "网格本身共享；两种模式的区别在于「谁用哪个 k」——共同预算模式两边用同一个 k，自选预算模式各自选最小的可行 k",
+    "not_allowed": [
+      "根据最终 split 的表现增删网格点",
+      "为某一方法单独平移网格",
+      "用 development 或 budget_selection 以外的数据挑选 k"
+    ]
+  },
+  "feasibility_requirement": {
+    "identical_for_both_methods": true,
+    "nominal_env_criterion": "label == goal_reached，且本回合未出现 collision / out_of_bounds / stagnation / timeout",
+    "physical_env_criterion": "在名义判据之上，另要求实测累计机械功 <= z0（即 BVR = 0）",
+    "why_split": "名义环境没有力矩，算不出实测能量；把「实测不超预算」写进名义判据会变成无法检验的空条件",
+    "internal_exhaustion": "budget_exhausted 是标签，属业务失败；它与「实测超过 z0」不是同一件事，两者都要报",
+    "tolerance": "z0 比较用闭合区间（z_J >= 0 视为未耗尽），与 NAV-012 的「z <= 0 即耗尽」保持一处定义"
+  },
+  "modes": {
+    "common_budget": {
+      "id": "common_budget",
+      "question": "在同样的能量额度下，哪个方法表现更好",
+      "assignment": "同一 (map, seed, 初态) 上，两种方法使用同一个 z0 = k·E_ref(map)",
+      "denominator": "该 k 下两种方法的全部业务试验；分母相同",
+      "reported": [
+        "SR",
+        "CR",
+        "BVR（仅物理）",
+        "实测 Cost 与名义预测（分列）",
+        "MC",
+        "budget_exhausted 计数",
+        "internal_violation 计数"
+      ],
+      "primary_readout": "同一 k 下的 SR 与实测 Cost 对比；跨 k 不允许挑最好的 k 报告",
+      "known_confound": "α 让完整方法的内部预算更快耗尽，因此在小 k 上它的失败可能完全来自记账而非行为差异；这一点必须在报告里明说，不得当作算法劣势"
+    },
+    "method_selected_budget": {
+      "id": "method_selected_budget",
+      "question": "在同样的可行性要求下，每个方法最少需要多少预算",
+      "assignment": "各自在 budget_selection 上选最小的可行 k，得到 z*_m(map) = k*_m · E_ref(map)",
+      "search_rule": "沿冻结网格从 0.7 递增，取第一个满足 feasibility_requirement 的 k；找不到则记 no_feasible_budget",
+      "monotonicity": "不假定「预算更大一定更好」；若观测到非单调，必须记录并说明，不得悄悄改选更大的 k",
+      "denominator": "budget_selection 上每 (method, map) 一条搜索记录；评估阶段的 SR 用 final_* 的固定分母",
+      "reported": [
+        "所选 k*_m 与 z*_m 的分布",
+        "可行/无解比例（按方法分别列）",
+        "在 z*_m 下的 SR、实测 Cost、CR、MC",
+        "搜索过程中的非单调实例"
+      ],
+      "primary_readout": "所选预算本身即是能耗结论；SR 是可行性条件，不是效率证据",
+      "known_confound": "若两方法的 SR 都接近 1，比较的是「各自花多少」；若某一方法选不出可行预算，那是能力的负结果，必须如实报告"
+    },
+    "must_not_mix": "两种模式的标签、分母与样本配额分别登记；不得把一种模式的结果当作另一种模式的证据，也不得把两模式的样本合并计数"
+  },
+  "pairing_and_accounting": {
+    "pairing": "配对以 (map, seed, 初态) 为键；同一键上两方法使用同一初态与同一时限",
+    "disturbance_pairing": "扰动只能保证 profile 相同，不能声称同 seed 下接触序列完全一致；报告中必须写成「同 profile」而非「同扰动」",
+    "no_solution": "某方法在某地图上无可行预算时，记 no_feasible_budget 并保留在地图分母里；不得用更大的 k 或换地图替代",
+    "failure": "collision / out_of_bounds / stagnation / budget_exhausted 计失败；timeout 单列 truncated；三者都不从分母删除",
+    "missing": "基础设施错误（崩溃、NaN、资源缺失）不计入业务分母，但必须逐条计数并报出，不得静默丢弃",
+    "resampling": "禁止为凑结果重跑同一 (split, map, method, k)；重跑必须换新 run id 并同时报告两次",
+    "denominator_fixed_by": "config/split_manifest_v1.json"
+  },
+  "reuse_rule": {
+    "when_allowed": "同一 method、同一 map、同一 seed、同一 z0、同一 checkpoint 的轨迹，可以在两种模式的报告里复用",
+    "how_counted": "复用不产生新的独立样本：两个模式各自引用同一条轨迹身份，样本量按轨迹去重后统计",
+    "when_forbidden": "只要 z0 不同、checkpoint 不同或初态不同，就是不同轨迹，不得复用也不得互相替代",
+    "why": "否则一次运行会在两个分母里各算一次，人为抬高样本量并低估不确定度"
+  },
+  "forbidden_inferences": [
+    "把「提高 z0 后 BVR 下降」当成能耗改善：同轨迹的实测 J 没有变化，变的只是额度",
+    "把「提高 z0 后 SR 上升」当成方法优势：那是额度效应，两种模式下的主读数不同",
+    "把 c_model 与 c_nom 的差异当成物理耗能差异：α 只乘记账，不改变仿真里的力矩与位移",
+    "把 δ 造成的路线变化归因给 α，或反向归因",
+    "在 final_* 上重新挑选 k 或可行阈值",
+    "把内部预算耗尽（budget_exhausted）与实测超预算（BVR）当作同一件事",
+    "在未检查单调性的情况下把「最小可行 k」解释为「最优预算」"
+  ],
+  "required_from_nav021": {
+    "note": "以下必须是具体有限数值或明确规则，不得留空、不得写成「待定」，也不得按最终结果倒填",
+    "training": [
+      "训练种子数（每个方法）",
+      "最大训练步数与最大墙钟时长",
+      "GPU 数量与显存上限",
+      "checkpoint 保存间隔与最终 checkpoint 的选取规则",
+      "早停/终止训练的判据（必须与最终指标无关）"
+    ],
+    "selection": [
+      "budget_selection 上每 (method, map) 的搜索次数上限与总时长上限",
+      "允许的 k 网格（应等于本契约的五个值）",
+      "无解时的记录与停止规则"
+    ],
+    "evaluation": [
+      "每个 final_* split 的主 attempt 数（每 (map, method) 一次或多次，需写明）",
+      "是否允许重试，以及重试如何计数",
+      "失败的记账口径（引用本契约 pairing_and_accounting）"
+    ],
+    "statistics": [
+      "置信水平与区间方法（并说明为何适用于比例）",
+      "训练种子与地图两个维度的相关性处理（聚类或分层）",
+      "多重比较是否校正",
+      "报告的分母（每个指标都要写明是全体业务试验还是子集）"
+    ],
+    "diagnostics": [
+      "NAV-059 的速度/命令/路线样本量与容差",
+      "NAV-060 的切换/扰动/前缀样本量与判据",
+      "NAV-034 与 NAV-043 候选复查的次数与业务可用性判据",
+      "以上诊断允许的资源上限"
+    ]
+  },
+  "open_items": [
+    {
+      "item": "E_ref 的逐图数值区间",
+      "owner": "NAV-058 报告",
+      "status": "computed",
+      "where": "reports/budget_fairness_check.json"
+    },
+    {
+      "item": "正式训练与评估配额的具体数值",
+      "owner": "NAV-021",
+      "status": "pending",
+      "blocker": "需要用户授权资源；resource_budget_v1 已把正式训练标记为 pending_user_authorization"
+    },
+    {
+      "item": "可用性门禁阈值（SR 下限等）",
+      "owner": "NAV-021",
+      "status": "pending",
+      "blocker": "必须在看最终结果之前定值；不得按结果倒定"
+    }
+  ]
+}

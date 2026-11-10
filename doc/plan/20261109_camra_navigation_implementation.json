@@ -2471,11 +2471,51 @@
       "id": "NAV-058",
       "phase": "名义环境",
       "goal": "冻结共同预算与各自选择预算的公平比较协议",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-020"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T14:18:00+08:00",
+          "summary": "冻结共同预算与自选预算两种公平比较协议：写明单位、α 与 δ 的不同作用、E_ref 锚点、五点预算网格、共同可行标准、配对与无解/失败口径、轨迹复用规则与七条禁止推断；并用开环固定序列反例证明「只改 z0 会改 BVR 但轨迹与能量不变」。",
+          "actions": [
+            "读 doc/plan 的 evaluation_contract：确认两种预算比较模式（common_budget、method_selected_budget）、五个指标定义（SR/Cost/CR/BVR/MC）、统计规则与归因规则，协议内容以此为准而非自拟。",
+            "读 NAV-012/014/056 已冻结的预算语义：z_J 有符号、(1+α)·c_nom 逐区间扣减、z_ratio 归一化用 Z_REF_J；确认「内部预算耗尽」与「实测超预算」是两件事。",
+            "写 config/budget_comparison_contract_v1.json：units（四种单位与为何必须分列）、margin_effects（α 乘成本、δ 改约束，含闭环耦合提醒）、reference_energy（E_ref 定义与为何与结果无关）、budget_grid（k=0.7/0.85/1.0/1.15/1.3 冻结）、feasibility_requirement（名义与物理分开）、两种模式、配对与记账、复用规则、七条禁止推断、NAV-021 必须填定的五类字段。",
+            "写 scripts/check_budget_fairness.py：对清单里 54 张图重算 E_ref；构造开环反例（同一固定命令序列跑三次：无校准@z0、完整@z0、完整@(1+α)z0）；检查前缀位姿逐位一致、逐步 c_model/c_nom 比值恒定；测预算单调性；并给出被禁止的比较方式的实际数值。",
+            "在 tmux 内用登记解释器运行并落盘 reports/budget_fairness_check.json。",
+            "修正报告中一处写死的步数文案（原写 88/12，实际 89/11），改为按运行结果生成。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/budget_comparison_contract_v1.json",
+            "CaMRA/navigation/scripts/check_budget_fairness.py",
+            "CaMRA/navigation/reports/budget_fairness_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/check_budget_fairness.py --json CaMRA/navigation/reports/budget_fairness_check.json（在 tmux 内）"
+          ],
+          "results": [
+            "E_ref 覆盖 54 张清单地图：总体 362.54-489.40 J；分层 L1 362.54-363.89、L2 462.48-489.40、L3 367.69-371.33 J。E_ref 只由几何与 α=0 功率模型决定，与策略和结果无关。",
+            "预算网格冻结为 z0 = k·E_ref，k ∈ {0.70, 0.85, 1.00, 1.15, 1.30}；以 L2 为例即 342.0/415.2/488.5/561.8/635.1 J，五点在看结果之前定死。",
+            "反例：同一 100 步固定命令序列 (0.6,0,0)，z0 = 105 步的名义成本。无校准跑满 100 步且未耗尽；完整方法在同一 z0 上第 89 步预算耗尽；把 z0 提到 (1+α) 倍后完整方法又跑满 100 步。",
+            "关键证据：三次运行前 89 步的位姿逐位相同（prefix_poses_bitwise_equal=true），逐步 c_model/c_nom 比值恒为 1.190482799656499、跨 89 步离散度为 0.0；即 α 不改变动力学，只改变记账速度。",
+            "因此「同 z0 下完整方法更早停止」是记账效应；把 z0 抬高后停止点回到原处而轨迹与能量都没变，说明以 z0 为参照的指标不能单独作为能耗或优劣证据。",
+            "被禁止的比较方式已用数值示例固定下来：同 z0 的模型成本 182.42 J 对抬高 z0 后的 204.97 J，差值来自多跑的 11 步（89 对 100），不是效率差异。",
+            "单调性实测：完整方法在 k=0.70/0.85/1.00/1.15/1.30 上分别完成 62/75/89/100/100 步，非递减；但契约明确不假定它在所有地图上成立，正式搜索须逐图记录非单调实例。",
+            "契约列明 NAV-021 必须填定的五类字段：训练（种子数、步数/时长/GPU 上限、checkpoint 规则、早停判据）、选择（搜索次数与时长、k 网格、无解规则）、评估（主 attempt 数、重试计数）、统计（置信水平与区间方法、地图与训练种子的相关性处理、多重比较、每个指标的分母）、诊断（NAV-059/060/034/043 的样本量、容差与资源上限）。",
+            "诚实边界已写入：名义环境无实测 J，BVR 只适用于物理评估；反例是开环的，闭环下 z_ratio 进入观测、α 会改变动作，届时记账与行为不可分。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/budget_comparison_contract_v1.json：两种模式的物理 J 与归一化换算、网格规则、共同可行标准、搜索资源与口径、复用规则、七条禁止推断、NAV-021 待填字段清单、三项 open_items（E_ref 已算、配额与门禁阈值待 NAV-021）。",
+            "CaMRA/navigation/reports/budget_fairness_check.json：verdict=PASS、E_ref 区间、三次运行的分步结果、前缀逐位一致与比值离散度 0.0、单调性探针、被禁止比较的具体数值。",
+            "/pub/data/caohy/tmp/nav058_check.log 为 tmux 内原始输出。",
+            "未修改任何冻结文件（power.py、step_cost.py、margins_v1、Z_REF_J 均只读引用）。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只包含无校准和完整方法；同一物理J预算/共同网格的比较与各自按同一要求选最小可行预算的比较分开，分别注明用途和分母。",
         "共同预算由train/development的任务/能量尺度确定；选择规则在独立budget_selection验证，最终结果不可用于确定预算或可行阈值。",
@@ -2485,7 +2525,7 @@
         "budget_comparison_contract列每种模式的物理J/归一化转换、预算网格或生成规则、共同可行标准、搜索资源、配对/无解/失败口径及可复用轨迹规则。",
         "用人工两方法相同轨迹但不同预算的例子验证BVR变化不能证明能耗改善；列出NAV-021必须填定的训练/选择/最终配额与资源字段，正式训练前全部锁定。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。budget_comparison_contract_v1.json 按 evaluation_contract 的两种模式落地：E_ref 定义为 NAV-017 准入路线在 alpha=0 下的名义成本（54 张清单地图实测 362.54-489.40 J，只由几何决定）；网格冻结为 k=0.7/0.85/1.0/1.15/1.3；共同可行标准按名义（goal_reached 且无业务失败）与物理（另加实测 J <= z0）分开写；明确内部预算耗尽与 BVR 不是同一件事。反例验证：同一 100 步固定序列、z0=105 步名义成本下，无校准跑满 100 步、完整方法第 89 步耗尽、z0 提高 (1+α) 倍后又跑满 100 步，且三次运行前 89 步位姿逐位相同、c_model/c_nom 比值恒为 1.190482799656499（离散度 0.0），证明只改 z0 会改 BVR 而轨迹与能量不变；被禁止的比较方式也给出具体数值（182.42 对 204.97 J，差 11 步）。单调性实测非递减但契约不假定普遍成立。列出 NAV-021 必须填定的训练/选择/评估/统计/诊断五类字段，并写明开环反例的边界（闭环下 z_ratio 进观测、α 会改变动作）。",
       "reference_ids": [
         "R02",
         "R04",

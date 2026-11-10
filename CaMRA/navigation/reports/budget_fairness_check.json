@@ -1,0 +1,139 @@
+{
+  "task": "NAV-058",
+  "schema": "camra-navigation-budget-fairness-check-v1",
+  "contract": "config/budget_comparison_contract_v1.json",
+  "contract_version": "1.0.0",
+  "verdict": "PASS",
+  "reference_energy": {
+    "n_maps": 54,
+    "range_J": [
+      362.5430017812395,
+      489.397680362936
+    ],
+    "per_level_range_J": {
+      "L1_empty": [
+        362.5430017812395,
+        363.8930116886081
+      ],
+      "L2_single_detour": [
+        462.48162526528307,
+        489.397680362936
+      ],
+      "L3_multi_path": [
+        367.69226838599593,
+        371.3348172252241
+      ]
+    },
+    "grid_J_example_level_L2": [
+      341.9656113091006,
+      415.2439565896222,
+      488.5223018701438,
+      561.8006471506653,
+      635.078992431187
+    ],
+    "note": "由脚本按 NAV-017 的准入路线重算，与任何策略无关"
+  },
+  "hand_example": {
+    "setup": {
+      "level": "L1_empty",
+      "seed": 101,
+      "command": [
+        0.6,
+        0.0,
+        0.0
+      ],
+      "n_steps_requested": 100,
+      "c_nom_per_step_J": 1.7217123901093494,
+      "z0_J": 180.7798009614817,
+      "one_plus_alpha": 1.190482799656499,
+      "z0_raised_J": 215.2152435699694
+    },
+    "runs": [
+      {
+        "variant": "uncalibrated",
+        "z0_J": 180.7798009614817,
+        "alpha": 0.0,
+        "steps_completed": 100,
+        "label": null,
+        "final_z_J": 8.608561950546687
+      },
+      {
+        "variant": "full",
+        "z0_J": 180.7798009614817,
+        "alpha": 0.19048279965649906,
+        "steps_completed": 89,
+        "label": "budget_exhausted",
+        "final_z_J": -1.6407388263970404
+      },
+      {
+        "variant": "full",
+        "z0_J": 215.2152435699694,
+        "alpha": 0.19048279965649906,
+        "steps_completed": 100,
+        "label": null,
+        "final_z_J": 10.248344931903489
+      }
+    ],
+    "prefix_steps_compared": 89,
+    "prefix_poses_bitwise_equal": true,
+    "per_step_model_over_nominal_ratio": {
+      "value": 1.190482799656499,
+      "spread_over_prefix": 0.0,
+      "expected": 1.190482799656499
+    },
+    "interpretation": "三段运行的前 89 步位姿逐位相同、逐步名义成本相同：α 不改变动力学。唯一变化的是内部预算耗尽发生的步数。因此「同 z0 下完整方法更早停止」是记账效应；把 z0 提高到 (1+α) 倍后停止点回到原处，而轨迹与能量都没有变。",
+    "conclusion": "BVR（或任何以 z0 为参照的指标）在只改 z0 时必然改变，所以它不能单独作为能耗改善或方法优劣的证据。"
+  },
+  "monotonicity_probe": {
+    "grid": [
+      {
+        "k_rel_to_base": 0.7,
+        "z0_J": 126.54586067303718,
+        "steps_completed": 62,
+        "label": "budget_exhausted"
+      },
+      {
+        "k_rel_to_base": 0.85,
+        "z0_J": 153.66283081725945,
+        "steps_completed": 75,
+        "label": "budget_exhausted"
+      },
+      {
+        "k_rel_to_base": 1.0,
+        "z0_J": 180.7798009614817,
+        "steps_completed": 89,
+        "label": "budget_exhausted"
+      },
+      {
+        "k_rel_to_base": 1.15,
+        "z0_J": 207.89677110570392,
+        "steps_completed": 100,
+        "label": null
+      },
+      {
+        "k_rel_to_base": 1.3,
+        "z0_J": 235.0137412499262,
+        "steps_completed": 100,
+        "label": null
+      }
+    ],
+    "non_decreasing": true,
+    "note": "本探针只证明该固定序列下单调；契约不假定它普遍成立，正式搜索须逐图记录"
+  },
+  "forbidden_comparison_demo": {
+    "model_cost_at_same_z0_J": 182.42053978787874,
+    "model_cost_at_raised_z0_J": 204.9668986380659,
+    "nominal_cost_at_same_z0_J": 153.23240271973205,
+    "nominal_cost_at_raised_z0_J": 172.171239010935,
+    "comparison_bases": {
+      "steps_at_same_z0": 89,
+      "steps_at_raised_z0": 100
+    },
+    "why_forbidden": "两列的比较基数不同（89 步对 100 步）：把总和相减得到的差值只是「多跑了 11 步」，不是效率差异"
+  },
+  "caveats": [
+    "名义环境 physical_status=not_measured，因此示例里没有实测 J；BVR 只适用于物理评估。",
+    "示例为开环固定命令序列；闭环策略下 z_ratio 进入观测，α 会改变动作，届时记账与行为无法分开。",
+    "E_ref 是路线名义成本，不是可达性证明，也不随方法变化。"
+  ]
+}
