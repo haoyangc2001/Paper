@@ -2983,11 +2983,44 @@
       "id": "NAV-027",
       "phase": "v2提前接通",
       "goal": "接入200Hz真实机械功与轨迹记录",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-026"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T18:32:56+08:00",
+          "summary": "NAV-027 完成：新增 200Hz 真实机械功记录器 NavEnergyRecorder（活跃掩码+导航终止+完整性标记），验证 9/9 全部 PASS，报告落盘 energy_meter_validation.json。",
+          "actions": [
+            "新增 src/camra_navigation/evaluation/recorder.py：NavEnergyRecorder——每物理子步留档 tau_applied/qdot_pre/qdot_post/root_pos（float32），float64 设备端按契约逐关节 max(tau*qdot,0) 截断再求和累加；支持 active_mask（掩掉子步留档不累加）、mark_event（提前终止/timeout 冻结后续子步）、observe_reset（窗口内复位写入立即 fault 并冻结）、begin_window 复用拒绝（结构性防跨 reset 累加）；finish 时自检（非有限值/求和断裂/跨 reset）非空则整体标 recorder_fault；JSON 报告先落盘再退出。",
+            "关键诊断与修复（5 轮 Isaac 迭代，详见 evidence 诊断日志）：① 不调 raw.reset() 物理缓冲全零；② 裸 sim.step() 缺 scene.write_data_to_sim() 动作进不了 PhysX（机器人趴窝 τ 恒 23.7 撞限幅）；③ 关节顺序：v2 契约 FL/FR/RL/RR 按关节类型分层 vs Lab 按腿整组，混序即趴死——复用 hira_go2.JointOrder 按名字建双射；④ 冻结执行语义是显式 PD（HiRA 链：ObservationAdapter 45 维源顺序观测 + ActionTorqueAdapter 25/0.5/scale0.25 + set_joint_effort_target），Lab implicit PD 的 applied_torque 不符合冻结口径；⑤ sim.step() 后必须 robot.update(sim_dt) 刷新缓冲（HIRA-016）。",
+            "check_energy_recorder.py 驱动层重写为冻结执行链：raw.reset() → full_reset(HIRA_INIT_BASE_POS z=0.42 + default_lab 关节 + obs_adapter.reset) → v2 闭环零速 warmup 0.5s → 20 nav 步窗口（4 env：env1 中途 early_termination_test、env2 中途异步掩码、env0/env3 跑满 timeout），每子步 record；沉降子步走 settle_substep 不进记录器，warmup 计数精确 5x20。",
+            "功能场景中的终止事件均为测试注入（标记 *_test），不删任何实验数据。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/evaluation/recorder.py",
+            "CaMRA/navigation/src/camra_navigation/evaluation/__init__.py",
+            "CaMRA/navigation/scripts/check_energy_recorder.py",
+            "CaMRA/navigation/reports/energy_meter_validation.json"
+          ],
+          "commands": [
+            "PYTHONPATH=.../locomotion/source/unitree_rl_lab:.../locomotion/adapters CUDA_VISIBLE_DEVICES=5 python -u CaMRA/navigation/scripts/check_energy_recorder.py --json CaMRA/navigation/reports/energy_meter_validation.json（tmux camra-nav-v2-20261110-bootstrap）"
+          ],
+          "results": [
+            "verdict PASS，n_checks=9，n_failed=0。",
+            "离线复算（camra_calibration.energy.integrate_series 独立 numpy 实现）与在线 f64 设备累加：rel_diff 全部 ≤4.2e-16（机器精度）；dt/样本数逐 env 对账精确（400/200/240/400 子步）。",
+            "窗口能量：env0=25.969 J、env1=24.431 J（200 步提前终止）、env2=16.824 J（240 步异步）、env3=25.631 J——机器人真实行走（0.6 m/s 命令）。",
+            "完整性标记：early_termination/timeout/incomplete_async/recorder_fault(NaN 注入、跨 reset 注入、窗口复用拒绝) 全部正确。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/energy_meter_validation.json（verdict PASS 9/9）",
+            "/pub/data/caohy/tmp/nav027_energy_meter6.log（PROGRESS 全链路 + 9 项 OK 摘要）",
+            "/pub/data/caohy/tmp/diag_tau*.log（5 轮诊断：全零缓冲/动作冻结/趴窝限幅时间线）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "参照TrialRecorder但新记录器支持导航终止和活跃env掩码；确认实际施加力矩、qdot及采样相位，不能漏4个子步或对关节先求和再取正。",
         "保留原始tau/qdot/命令/位姿/事件/预算并区分warmup、测量、终止后无效片段。"
@@ -2996,7 +3029,7 @@
         "离线从tau与qdot重算能量和在线积分一致，dt/样本数可对账。",
         "提前终止、正常时限、批内异步失败及记录故障均有正确完整性标记，不跨自动reset累加。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS 9/9 checks in reports/energy_meter_validation.json (run 6, 2026-11-10, offline-vs-online rel_diff<=4.2e-16)",
       "reference_ids": [
         "R09",
         "R12"

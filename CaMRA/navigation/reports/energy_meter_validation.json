@@ -1,0 +1,245 @@
+{
+  "task": "NAV-027",
+  "verdict": "PASS",
+  "n_checks": 9,
+  "n_failed": 0,
+  "metric_id": "D-ENERGY-001",
+  "energy_contract": "J = sum_k sum_j max(tau*qdot, 0)*dt, dt=0.005s, jointwise clamp",
+  "execution_chain": "frozen explicit-PD (HIRA chain): obs_adapter -> jit policy -> torque_adapter(25/0.5, scale 0.25) -> set_joint_effort_target",
+  "window": {
+    "nav_steps": 20,
+    "expected_substeps": 400,
+    "warmup_nav_steps": 5,
+    "scenario": {
+      "early_term_env": 1,
+      "early_at_nav": 10,
+      "async_env": 2,
+      "async_at_nav": 12,
+      "timeout_envs": [
+        0,
+        3
+      ],
+      "note": "所有终止事件均为功能测试注入，不删任何实验数据"
+    }
+  },
+  "offline_recompute": [
+    {
+      "env": 0,
+      "online_total_j": 25.969038935174716,
+      "offline_recomputed_j": 25.969038935174705,
+      "abs_diff_j": 1.0658141036401503e-14,
+      "rel_diff": 4.104172304183808e-16,
+      "n_valid_substeps": 400,
+      "active_steps_reported": 400,
+      "steps_match": true,
+      "dt_s": 0.005,
+      "elapsed_s": 2.0
+    },
+    {
+      "env": 1,
+      "online_total_j": 24.430833013043085,
+      "offline_recomputed_j": 24.430833013043088,
+      "abs_diff_j": 3.552713678800501e-15,
+      "rel_diff": 1.4541926085384748e-16,
+      "n_valid_substeps": 200,
+      "active_steps_reported": 200,
+      "steps_match": true,
+      "dt_s": 0.005,
+      "elapsed_s": 2.0
+    },
+    {
+      "env": 2,
+      "online_total_j": 16.82394076267815,
+      "offline_recomputed_j": 16.823940762678152,
+      "abs_diff_j": 3.552713678800501e-15,
+      "rel_diff": 2.1117012529441146e-16,
+      "n_valid_substeps": 240,
+      "active_steps_reported": 240,
+      "steps_match": true,
+      "dt_s": 0.005,
+      "elapsed_s": 2.0
+    },
+    {
+      "env": 3,
+      "online_total_j": 25.630740316446857,
+      "offline_recomputed_j": 25.630740316446868,
+      "abs_diff_j": 1.0658141036401503e-14,
+      "rel_diff": 4.158343030599992e-16,
+      "n_valid_substeps": 400,
+      "active_steps_reported": 400,
+      "steps_match": true,
+      "dt_s": 0.005,
+      "elapsed_s": 2.0
+    }
+  ],
+  "checks": [
+    {
+      "check": "no_cross_reset_on_main_path",
+      "ok": true,
+      "detail": {
+        "faults": [],
+        "note": "主窗口全程无 fault；observe_reset 仅在 warmup 前调用"
+      }
+    },
+    {
+      "check": "sanity_energy_nonzero",
+      "ok": true,
+      "detail": {
+        "total_j_per_env": [
+          25.969038935174716,
+          24.430833013043085,
+          16.82394076267815,
+          25.630740316446857
+        ],
+        "note": "0.6 m/s 命令下行走机械功必为正；全 0 说明仿真未真正推进"
+      }
+    },
+    {
+      "check": "offline_recompute_matches_online",
+      "ok": true,
+      "detail": {
+        "per_env": [
+          {
+            "env": 0,
+            "online_total_j": 25.969038935174716,
+            "offline_recomputed_j": 25.969038935174705,
+            "abs_diff_j": 1.0658141036401503e-14,
+            "rel_diff": 4.104172304183808e-16,
+            "n_valid_substeps": 400,
+            "active_steps_reported": 400,
+            "steps_match": true,
+            "dt_s": 0.005,
+            "elapsed_s": 2.0
+          },
+          {
+            "env": 1,
+            "online_total_j": 24.430833013043085,
+            "offline_recomputed_j": 24.430833013043088,
+            "abs_diff_j": 3.552713678800501e-15,
+            "rel_diff": 1.4541926085384748e-16,
+            "n_valid_substeps": 200,
+            "active_steps_reported": 200,
+            "steps_match": true,
+            "dt_s": 0.005,
+            "elapsed_s": 2.0
+          },
+          {
+            "env": 2,
+            "online_total_j": 16.82394076267815,
+            "offline_recomputed_j": 16.823940762678152,
+            "abs_diff_j": 3.552713678800501e-15,
+            "rel_diff": 2.1117012529441146e-16,
+            "n_valid_substeps": 240,
+            "active_steps_reported": 240,
+            "steps_match": true,
+            "dt_s": 0.005,
+            "elapsed_s": 2.0
+          },
+          {
+            "env": 3,
+            "online_total_j": 25.630740316446857,
+            "offline_recomputed_j": 25.630740316446868,
+            "abs_diff_j": 1.0658141036401503e-14,
+            "rel_diff": 4.158343030599992e-16,
+            "n_valid_substeps": 400,
+            "active_steps_reported": 400,
+            "steps_match": true,
+            "dt_s": 0.005,
+            "elapsed_s": 2.0
+          }
+        ],
+        "tolerance": "rel_diff < 1e-9（在线 f64 设备累加 vs 离线 numpy f64 独立实现）"
+      }
+    },
+    {
+      "check": "steps_and_dt_reconcile",
+      "ok": true,
+      "detail": {
+        "steps": 400,
+        "expected": 400,
+        "elapsed_s": 2.0,
+        "dt_s": 0.005,
+        "window_record_calls": 400,
+        "warmup_record_calls": 100,
+        "env_active_steps": [
+          400,
+          200,
+          240,
+          400
+        ]
+      }
+    },
+    {
+      "check": "no_substep_missed",
+      "ok": true,
+      "detail": {
+        "warmup_calls": 100,
+        "warmup_expected": 100,
+        "window_calls": 400,
+        "window_expected": 400,
+        "note": "bridge 每 nav 步恰好 20 次 physics_step，每次恰 1 条 record"
+      }
+    },
+    {
+      "check": "early_termination_marked_and_frozen",
+      "ok": true,
+      "detail": {
+        "env": 1,
+        "status": "early_termination",
+        "event_step_k": 200,
+        "expected_step_k": 200,
+        "valid_after_event": 1,
+        "energy_frozen": true,
+        "active_steps": 200,
+        "note": "终止事件后子步全部无效且能量为 0，绝不跨终止继续累加"
+      }
+    },
+    {
+      "check": "timeout_marked_on_full_run",
+      "ok": true,
+      "detail": {
+        "timeout_envs": [
+          0,
+          3
+        ],
+        "statuses": [
+          "timeout"
+        ],
+        "active_steps": {
+          "0": 400,
+          "3": 400
+        }
+      }
+    },
+    {
+      "check": "async_env_flagged",
+      "ok": true,
+      "detail": {
+        "env": 2,
+        "status": "incomplete_async",
+        "active_steps": 240,
+        "expected_active": 240,
+        "note": "批内异步失败（无事件掩码关闭）得到 incomplete_async 标记"
+      }
+    },
+    {
+      "check": "fault_detection_works",
+      "ok": true,
+      "detail": {
+        "nan_caught": true,
+        "nan_status_fault": true,
+        "cross_reset_caught": true,
+        "window_reuse_rejected": true,
+        "problems_nan": [
+          "total_j 含非有限值",
+          "energy_step_j 含非有限值",
+          "per_joint_j 含非有限值",
+          "tau_applied 含非有限值"
+        ],
+        "problems_cross_reset": [
+          "cross_reset_write: env0 在窗口内被复位（已累加 1 个活跃子步）"
+        ]
+      }
+    }
+  ]
+}
