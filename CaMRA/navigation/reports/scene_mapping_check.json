@@ -1,0 +1,238 @@
+{
+  "task": "NAV-022",
+  "verdict": "PASS",
+  "n_checks": 11,
+  "n_failed": 0,
+  "constants": {
+    "wall_thickness_m": 1.0,
+    "obstacle_height_m": 0.5,
+    "env_spacing_margin_m": 1.0
+  },
+  "checks": [
+    {
+      "check": "island_fields_map_exactly",
+      "ok": true,
+      "detail": {
+        "mismatches": [],
+        "n_islands": 2,
+        "note": "尺寸、旋转、中心、高度全部取自 spec；局部坐标 = 世界坐标 - 地图中心"
+      }
+    },
+    {
+      "check": "no_legacy_defaults",
+      "ok": true,
+      "detail": {
+        "box_sizes": [
+          [
+            0.91,
+            2.44
+          ],
+          [
+            1.37,
+            0.83
+          ]
+        ],
+        "constants": {
+          "wall_thickness_m": 1.0,
+          "obstacle_height_m": 0.5,
+          "env_spacing_margin_m": 1.0,
+          "parking_gap_m": 1.0
+        },
+        "note": "0.3 m 的旧默认箱体与固定槽位不进入本适配器；高度 0.5 m 高于 Go2 身高 0.35 m"
+      }
+    },
+    {
+      "check": "walls_are_physical_and_match_extent",
+      "ok": true,
+      "detail": {
+        "extent_scene_local": [
+          -55.5,
+          -39.5,
+          -52.5,
+          -42.5
+        ],
+        "extent_map_local": [
+          -7.0,
+          9.0
+        ],
+        "spec_extent": [
+          -7.0,
+          9.0,
+          -4.0,
+          6.0
+        ],
+        "env_origin": [
+          -47.5,
+          -47.5
+        ],
+        "wall_sizes": [
+          [
+            1.0,
+            12.0
+          ],
+          [
+            1.0,
+            12.0
+          ],
+          [
+            18.0,
+            1.0
+          ],
+          [
+            18.0,
+            1.0
+          ]
+        ],
+        "note": "墙体内侧面与地图边界重合，厚 1 m 向外、高 0.5 m；边界是几何体而非只存在于成本函数"
+      }
+    },
+    {
+      "check": "reverse_round_trip_recovers_islands",
+      "ok": true,
+      "detail": {
+        "original": [
+          [
+            -2.0,
+            3.0,
+            0.91,
+            2.44,
+            0.6
+          ],
+          [
+            1.0,
+            1.0,
+            1.37,
+            0.83,
+            0.0
+          ]
+        ],
+        "rebuilt": [
+          [
+            -2.0,
+            3.0,
+            0.91,
+            2.44,
+            0.6
+          ],
+          [
+            1.0,
+            1.0,
+            1.37,
+            0.83,
+            0.0
+          ]
+        ],
+        "note": "从场景盒子反推岛中心/尺寸/旋转并平移回世界系，与原 spec 完全一致"
+      }
+    },
+    {
+      "check": "rotation_preserved",
+      "ok": true,
+      "detail": {
+        "yaw_rad": 0.6,
+        "quat_wxyz": [
+          0.955336489125606,
+          0.0,
+          0.0,
+          0.29552020666133955
+        ],
+        "expected_wxyz": [
+          0.955336489125606,
+          0.0,
+          0.0,
+          0.29552020666133955
+        ],
+        "aabb": [
+          -51.56439152232585,
+          -49.43560847767415,
+          -46.763821775584546,
+          -44.236178224415454
+        ],
+        "note": "Isaac Lab 用 wxyz 四元数；yaw=0.6 rad 的箱子按原值输出"
+      }
+    },
+    {
+      "check": "parallel_envs_cannot_touch",
+      "ok": true,
+      "detail": {
+        "num_envs": 32,
+        "grid": [
+          6,
+          6
+        ],
+        "spacing_m": 25.0,
+        "footprint_xy_m": [
+          24.0,
+          18.4
+        ],
+        "margin_m": 1.0,
+        "overlapping_pairs": [],
+        "note": "足迹 = 地图范围 + 两侧 1 m 墙体；间距 = 足迹长边 + 1 m 余量"
+      }
+    },
+    {
+      "check": "parking_outside_all_envs",
+      "ok": true,
+      "detail": {
+        "n_parked": 7,
+        "park_row_y_m": 77.5,
+        "highest_env_footprint_y": 71.7,
+        "clashes": [],
+        "note": "停放的障碍体放在整片网格之外，不会与任何环境接触"
+      }
+    },
+    {
+      "check": "nominal_physical_boundary_identical",
+      "ok": true,
+      "detail": {
+        "levels_checked": 3,
+        "differences": [],
+        "note": "场景墙体围出的范围与名义环境的 extent 逐值一致，不做任何收缩"
+      }
+    },
+    {
+      "check": "spawn_inside_free_area",
+      "ok": true,
+      "detail": {
+        "spawn_xy_scene_local": [
+          -69.5,
+          -62.63835501030042
+        ],
+        "spawn_xy_world": [
+          -7.0,
+          -0.13835501030042252
+        ],
+        "spawn_yaw_rad": 0.04623684359202443,
+        "spec_start_yaw": 0.04623684359202443,
+        "note": "初始位姿随 env 平移，航向按原值输出"
+      }
+    },
+    {
+      "check": "scene_build_deterministic",
+      "ok": true,
+      "detail": {
+        "env_index": 5,
+        "bytes": 1381
+      }
+    },
+    {
+      "check": "grid_tiling_deterministic",
+      "ok": true,
+      "detail": {
+        "grid_32": [
+          6,
+          6
+        ],
+        "distinct_origins": true,
+        "first_origin": [
+          -62.5,
+          -62.5
+        ],
+        "last_origin": [
+          -37.5,
+          62.5
+        ]
+      }
+    }
+  ]
+}

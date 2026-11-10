@@ -2613,11 +2613,54 @@
       "id": "NAV-022",
       "phase": "契约与名义环境",
       "goal": "统一地图源到物理场景的几何契约",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-021"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T15:20:00+08:00",
+          "summary": "统一地图源到物理场景的几何契约：scene_adapter 把 MapSpec 逐字段转成 Isaac Lab 场景对象（岛箱、四面实体墙、机器人出生点、停放位），全部取实值不留旧默认；11 项检查含反向几何对照与 32 并行环境的接触防评。",
+          "actions": [
+            "核对约束：同一原始地图驱动物理障碍，尺寸/旋转/原点/墙体按实值；不得照搬旧 0.3 m 默认箱、固定槽位与「无实体边界墙」假设。",
+            "写 src/camra_navigation/maps/scene_adapter.py：BoxBody（含 Isaac Lab 的 wxyz 四元数与保守 AABB）、SceneLayout、map_center/required_env_spacing/env_grid/env_origin/parking_positions/build_scene/round_trip_spec/extent_from_walls/aabb_overlap。",
+            "坐标约定：env 局部原点 = 地图中心 + env 网格偏移；世界点 p 的场景坐标 = p - map_center + env_origin。",
+            "墙体是真实几何体：内侧面与 extent 重合，厚 1 m（与名义 wall_polygons 同值）向外、高 0.5 m（高于 Go2 约 0.35 m 身高，避免「爬墙」成为失败模式）。",
+            "并行隔离：required_env_spacing = (extent 长边 + 2×墙厚) + 1 m 余量；网格 32 env 取 6x6；停放行放在整个网格之外。",
+            "写 tests/test_scene_mapping.py 覆盖 11 项：字段逐一映射、无旧默认、墙体真实且范围一致、反向重建、旋转保持、32 环境两两不相交、停放位在所有环境外、名义与物理边界逐值一致、出生点在自由区、构建确定性、网格平铺。",
+            "测试先抓出 math.abs 的笔误（应为 abs），再抓出我自己的两处坐标还原错误：先漏加 env 原点（真实地图中心为 0 掩盖了它，奇尺寸合成图暴露），后漏加地图中心。修正后 11/11 通过。",
+            "在 tmux 内用登记解释器运行。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/maps/scene_adapter.py",
+            "CaMRA/navigation/tests/test_scene_mapping.py",
+            "CaMRA/navigation/reports/scene_mapping_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_scene_mapping.py --json CaMRA/navigation/reports/scene_mapping_check.json（在 tmux 内）"
+          ],
+          "results": [
+            "字段映射：用 1.37x0.83 与 0.91x2.44、yaw=0.6 rad 的合成图逐项核对，箱体尺寸/中心/旋转/高度与 spec 完全一致，中心 = 世界坐标 - 地图中心 + env 原点；无任何 0.3 m 或固定槽位默认。",
+            "墙体：四面真实箱体，内侧面与 extent 重合（误差 1e-12），厚 1 m、高 0.5 m；extent_from_walls 反推出的范围与 spec 逐值一致。",
+            "反向对照：从场景盒子重建岛（中心/宽/深/旋转），与原 spec 排序后完全一致。",
+            "旋转：yaw=0.6 的箱子输出 wxyz 四元数 (cos0.3,0,0,sin0.3)，保守 AABB 随旋转变化。",
+            "并行隔离：required spacing L1/L2=25.00 m、L3=26.50 m（足迹 24x18.4 / 25.5x27 m 加 1 m 余量）；32 env 的 6x6 网格中任意两环境的足迹 AABB 两两不相交（0 对重叠）。",
+            "停放：停放行 y=77.5 m（L3 82.0 m），高于所有环境足迹的最高 y，0 次接触；停放体按 2x2 m 保守盒计算仍不相交。",
+            "边界一致：三个 level 的场景墙体围出范围与名义 extent 逐值相同（差 0），不做收缩。",
+            "出生点：场景局部坐标换回世界系后落在 extent 内，航向按原值输出。",
+            "确定性：同 (spec, env_index, num_envs) 两次构建 JSON 逐字符相同；env_grid 对 1/2/5/32/64 均为 ceil(sqrt) x ceil(n/cols)，32 个原点互不重合。",
+            "常量：墙厚 1.0 m、障碍高 0.5 m、env 间距余量 1.0 m、停放间距 1.0 m，全部写在场景输出的 constants 里。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/scene_mapping_check.json：11 项检查全 ok、verdict=PASS，含合成图的逐字段对照、墙体范围、32 环境足迹与停放位置。",
+            "CaMRA/navigation/src/camra_navigation/maps/scene_adapter.py：模块文档写明坐标约定、墙体几何与「纯数据、不启动仿真器」的边界。",
+            "/pub/data/caohy/tmp/nav022_test.log 为 tmux 内原始输出。",
+            "未修改冻结文件；本模块只读 MapSpec。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "同一原始地图驱动物理障碍，尺寸/旋转/原点/墙体按实值；不能照搬旧固定0.3m、7槽和无实体边界墙假设。",
         "根据宽场地核对并行env间距、碰撞组与障碍停放位置，避免相邻环境相互接触。"
@@ -2626,7 +2669,7 @@
         "地图到物理物体的字段及坐标变换有逐项核对和反向几何对照。",
         "场景配置明确容量/尺寸/墙体/隔离策略，名义与物理原始边界一致。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。maps/scene_adapter.py 把 MapSpec 逐字段转成物理场景对象：岛箱尺寸/中心/旋转/高度全部取自 spec（用 1.37x0.83、yaw=0.6 的合成图证明无旧默认），坐标约定为场景局部 = 世界 - 地图中心 + env 原点；四面墙是真实几何体，内侧面与 extent 重合（误差 1e-12）、厚 1 m 向外、高 0.5 m；反向重建岛与原 spec 完全一致；并行 32 env 取 6x6 网格、required spacing 25.00/26.50 m（足迹加 1 m 余量），足迹 AABB 两两不相交；停放行 y=77.5/82.0 m 在全部环境之外且零接触；三个 level 的场景范围与名义 extent 逐值一致；出生点在世界系内且航向原值。11 项检查全过。测试抓出两处我自己的坐标还原错误（漏加 env 原点与漏加地图中心，后者被真实地图中心为 0 掩盖，由奇尺寸合成图暴露）并已修正。",
       "reference_ids": [
         "R05",
         "R11"
