@@ -1,0 +1,253 @@
+{
+  "contract": "config/value_objective_contract_v1.json",
+  "contract_version": "1.0.0",
+  "n_checks": 11,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "hand_computed": {
+    "case1_timing": {
+      "undiscounted_1.0": [
+        100.0,
+        100.0
+      ],
+      "discounted_0.99": [
+        100.0,
+        91.35172474836408
+      ]
+    },
+    "case2_units": {
+      "mixed_WRONG": 149.5,
+      "correct": 0.8,
+      "scene_scale": [
+        1.0637972094974304,
+        0.39892395356153637
+      ],
+      "per_episode_budget_WRONG": 0.8
+    },
+    "case3_stop": {
+      "common": {
+        "index": 0,
+        "W": 0.5
+      },
+      "separate_WRONG": -0.1
+    },
+    "bootstrap": {
+      "truncation": [
+        0.28049999999999997,
+        0.24
+      ],
+      "failure": [
+        1.0594999999999999,
+        1.06
+      ]
+    }
+  },
+  "reference_diff": [
+    {
+      "item": "折扣",
+      "reference": "GAMMA_ENERGY = 1.0（arguments.py 默认）",
+      "camra": "gamma_cost = 1.0",
+      "same": true,
+      "note": "沿用；任务书上「不得默认复制折扣」的核查结论是本项本就未折扣"
+    },
+    {
+      "item": "成本量纲",
+      "reference": "sum(control_real^2)/2，代理单位",
+      "camra": "P_nom(u_applied)*0.1 s，焦耳",
+      "same": false,
+      "note": "必须替换；功率模型冻结 history_k=0，只用当前 applied 命令"
+    },
+    {
+      "item": "预算变量",
+      "reference": "energy 为归一化 [-1,1]（×400 反归一化）",
+      "camra": "z_J（J）经 Z_REF_J 归一化为 z_ratio，保留负值",
+      "same": false,
+      "note": "不能把 J 直接塞进 [-1,1]，也不能沿用 x*variance+mean 的反归一化"
+    },
+    {
+      "item": "安全项",
+      "reference": "avoid ∈ {-1, +1}，h = ±300",
+      "camra": "y ∈ {0,1}，C*y = 1.0",
+      "same": false,
+      "note": "符号与量级都不同；本项目 y 不可逆且只覆盖名义膨胀几何，物理失败另行记"
+    },
+    {
+      "item": "目标函数 g",
+      "reference": "inside: -300；outside: 100*(dist - r)",
+      "camra": "g_norm = (dist - r_goal)/15，inside 取 -0.001",
+      "same": false,
+      "note": "改为同尺度无量纲，保证与 -z_ratio 可比"
+    },
+    {
+      "item": "组合残差",
+      "reference": "V_total = max(V_h, V_c - energy)",
+      "camra": "W = max(V_h, V_c - z_ratio)",
+      "same": true,
+      "note": "结构相同，变量语义不同"
+    },
+    {
+      "item": "停止时刻",
+      "reference": "calculate_indexs3 倒序扫描逐步 argmin，两 critic 共用一个 done",
+      "camra": "同",
+      "same": true,
+      "note": "必须复刻为逐步 argmin，不得改成全局 argmin"
+    },
+    {
+      "item": "可达性折扣",
+      "reference": "GAMMA_REACH_INIT 0.999 → FINAL 0.99999 线性退火",
+      "camra": "同",
+      "same": true,
+      "note": "γ_h < 1 是收缩性要求，不能取 1"
+    },
+    {
+      "item": "GAE",
+      "reference": "lambda 0.95，done 处截断，next_done=roll(done)",
+      "camra": "同",
+      "same": true,
+      "note": "截断与终止的 bootstrap 差异按本契约 bootstrap 段执行"
+    },
+    {
+      "item": "终止惩罚",
+      "reference": "无显式终止惩罚，失败体现为 avoid 使 h 变正",
+      "camra": "FAIL_PENALTY = 1.0 且不 bootstrap",
+      "same": false,
+      "note": "新增项：物理失败（跌倒/碰撞/越界）不在 y 的覆盖范围内，必须显式给终端代价"
+    }
+  ],
+  "checks": [
+    {
+      "check": "contract_values",
+      "ok": true,
+      "detail": {
+        "gamma_cost": 1.0,
+        "L_REF_m": 15.0,
+        "G_INSIDE": -0.001,
+        "C": 1.0,
+        "beta": 0.0,
+        "GAE_LAMBDA": 0.95
+      }
+    },
+    {
+      "check": "reference_gamma_traced",
+      "ok": true,
+      "detail": "RC-PPO rl/arguments.py 实测默认值：GAMMA_ENERGY=1.0、GAMMA_REACH_INIT=0.999、GAMMA_REACH_FINAL=0.99999、GAE_LAMBDA=0.95、CLIP_EPS=0.2、ENT_COEF=0.01、VF_COEF=0.5、MAX_GRAD_NORM=0.5；calculate_indexs3 的 argmin 是倒序扫描中的逐步取优，不是全局 argmin"
+    },
+    {
+      "check": "case1_undiscounted_timing_invariant",
+      "ok": true,
+      "detail": {
+        "gamma": 1.0,
+        "early_all_at_t0_J": 100.0,
+        "late_all_at_t9_J": 100.0,
+        "diff_J": 0.0
+      }
+    },
+    {
+      "check": "case1_discount_would_break_it",
+      "ok": true,
+      "detail": {
+        "gamma": 0.99,
+        "early_J": 100.0,
+        "late_J": 91.35172474836408,
+        "diff_J": 8.648275251635923,
+        "conclusion": "gamma_cost 必须是 1.0；0.99 会把晚发生的 100 J 记成 91.35 J"
+      }
+    },
+    {
+      "check": "case2_unit_mix_detected",
+      "ok": true,
+      "detail": {
+        "vc_J": 150.0,
+        "vc_normalised": 0.664873255935894,
+        "z_ratio": 0.5,
+        "W_mixed_units_WRONG": 149.5,
+        "W_correct": 0.8,
+        "conclusion": "混用单位把 W 放大约 187 倍且被成本项吞掉，会永远判不可行"
+      }
+    },
+    {
+      "check": "case2b_scale_is_scene_fixed",
+      "ok": true,
+      "detail": {
+        "z_ratio_with_Z_REF_J": [
+          1.0637972094974304,
+          0.39892395356153637
+        ],
+        "z_ratio_if_divided_by_initial_budget_WRONG": 0.8,
+        "conclusion": "除以本回合初始预算会把同样的绝对剩余量折成不同数值，破坏跨回合可比性与负预算表达"
+      }
+    },
+    {
+      "check": "case3_common_stop_is_stricter",
+      "ok": true,
+      "detail": {
+        "vc": [
+          0.2,
+          1.0
+        ],
+        "vh": [
+          0.5,
+          -0.1
+        ],
+        "z_ratio": 0.4,
+        "common_stop_index": 0,
+        "W_common": 0.5,
+        "W_separate_stops_WRONG": -0.1,
+        "feasible_common": false,
+        "feasible_separate_WRONG": true,
+        "conclusion": "t=0 预算够但没到目标，t=1 到目标但超支；分开取时刻误判可行 (-0.1)，真实不可行 (+0.5)"
+      }
+    },
+    {
+      "check": "case3_inequality_direction",
+      "ok": true,
+      "detail": "max(min_t a_t, min_t b_t) <= min_t max(a_t, b_t)：分开取时刻系统性偏低，只会过度乐观"
+    },
+    {
+      "check": "bootstrap_truncation_vs_failure",
+      "ok": true,
+      "detail": {
+        "truncation_targets": [
+          0.28049999999999997,
+          0.24
+        ],
+        "failure_targets": [
+          1.0594999999999999,
+          1.06
+        ],
+        "v_bootstrap_truncation": 0.18,
+        "terminal_cost_failure": 1.0,
+        "note": "截断用 V(x_T)=0.18 bootstrap；失败给 FAIL_PENALTY=1.0 且不 bootstrap；混用即错"
+      }
+    },
+    {
+      "check": "g_norm_sign_and_scale",
+      "ok": true,
+      "detail": {
+        "dist_m": [
+          0.0,
+          0.5,
+          5.0,
+          20.0
+        ],
+        "g_norm": [
+          -0.001,
+          -0.001,
+          0.3,
+          1.3
+        ],
+        "r_goal_m": 0.5
+      }
+    },
+    {
+      "check": "C_dominates",
+      "ok": true,
+      "detail": {
+        "C": 1.0,
+        "worst_minus_z_ratio": -1.0,
+        "G_INSIDE": -0.001,
+        "conclusion": "C*y=1.0 严格为正，y=1 时 W 必 > 0，可行判据不会翻转"
+      }
+    }
+  ]
+}

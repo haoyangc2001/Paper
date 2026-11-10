@@ -1,0 +1,151 @@
+{
+  "schema": "camra-navigation-geometry-v1",
+  "version": "1.0.0",
+  "created_at": "2026-11-10T11:25:00+08:00",
+  "owner_tasks": ["NAV-057"],
+  "depends_on": ["NAV-012", "NAV-013", "NAV-014"],
+  "status": "frozen",
+  "status_note": "冻结位置裕度与姿态变化的足迹处理。选定旋转不变的保守近似并给出证明；真实碰撞判据不变。",
+
+  "frames": {
+    "footprint_frame": "base_link_xy（footprint_v1.json 的 frame 字段）",
+    "position_reference": "base_link 原点",
+    "position_reference_note": "不是足迹质心；质心为 [-0.04563529179509698, -0.010971589494882339] m，以原点为参考时外接半径为 0.5055013879783843 m，以质心为参考只有 0.481320371878 m，少 2.42 cm，会漏掉机头/机尾方向",
+    "rotation": "绕 +z，逆时针为正，与 obs-v1 的 yaw 定义一致",
+    "units": "米"
+  },
+
+  "frozen_geometry": {
+    "footprint_path": "CaMRA/calibration/config/footprint_v1.json",
+    "footprint_sha256": "a11a3572d61be81a8eac9fe10fe203069f2b61d5555510335e6853aff42199ab",
+    "polygon_area_m2": 0.45796222510215423,
+    "polygon_bounds_xyxy_m": [-0.4902533519125521, 0.3990897413625509, -0.30661478347280263, 0.27801311177619614],
+    "circumscribed_radius_m": 0.5055013879783843,
+    "circumscribed_radius_reference": "以 base_link 原点为心（Polygon.circumscribed_radius = max |vertex|），与文件字段一致，已复算校验",
+    "centroid_offset_m": [-0.04563529179509698, -0.010971589494882339],
+    "role": "只读；不修改、不重算、不重新拟合"
+  },
+
+  "position_margin": {
+    "symbol": "delta",
+    "value_m": 2.6138664115280967,
+    "source": "CaMRA/calibration/config/margins_v1.json（delta 字段，q90_eps_d 同值，n_eps_d = 790）",
+    "definition": "平面位置偏差 eps_d 的 90% 分位（nearest-rank），0.1 s 采样、30 s 窗口、warmup 后起点对齐一次",
+    "what_it_is_not": [
+      "不是航向误差界：eps_d 只由平面位置偏差取得，量纲上也不含角度",
+      "不是硬上界：90% 分位意味着约 10% 的样本偏差更大，超出时保守性论证的假设失效",
+      "不是碰撞半径：它不描述机体尺寸"
+    ],
+    "usage_rule": "只在新导航约束里用一次：obstacle ⊕ disc(r_fp) ⊕ disc(delta)；不得在别处再叠一次"
+  },
+
+  "attitude_treatment": {
+    "chosen": "rotation_invariant_circumscribed_disc",
+    "statement": "约束几何取 base_link 原点为心、半径 r_fp = 0.5055013879783843 m 的圆盘，与航向无关。",
+    "proof": [
+      "足迹多边形是凸包，且包含于以其最远顶点到原点距离为半径的圆盘：凸包内任一点到原点的距离不超过顶点的最大距离。",
+      "绕原点旋转不改变每个顶点到原点的距离，因此旋转后的多边形仍在同一圆盘内。",
+      "故对任意航向 psi，Footprint(psi) 都包含于 disc(origin, r_fp)，且该圆盘是旋转不变的**最小**闭圆盘外包（半径由最远顶点决定，无法再缩小而不丢顶点）。"
+    ],
+    "why_not_attitude_aware": "精确的旋转多边形 + delta 只有在已知航向误差界 eps_psi 时才保守；本项目没有 eps_psi 的测量（calibration 只测平面位置偏差），凭空假设一个角度界属于虚构已测界。",
+    "consequence": "因为圆盘与航向无关，姿态不需要任何误差界即可保持保守；代价是沿某些方向比精确旋转多边形宽。"
+  },
+
+  "constraint_construction": {
+    "formula": "keep_out(o) = o ⊕ disc(r_fp + delta)，即在障碍表面外扩 r_fp + delta",
+    "two_step_form": "footprint ⊕ disc(delta) 再与障碍求 Minkowski 和",
+    "two_step_note": "数学上等价，但 disc() 默认外切成多边形（半径放大 1/cos(pi/n)），实测在 r≈3.12 m 上比一步式多出 1.35 mm。方向恒为更保守，绝不会更乐观，因此两种写法都可接受；但不得声称两者数值完全相同。",
+    "numeric_r_plus_delta_m": 3.119367799506481,
+    "nominal_predicate": "名义位置 p_hat 满足 d(p_hat, obstacle_surface) > r_fp + delta 时，约束成立",
+    "single_application": "delta 只在此处出现；不得在事件判据、成本或观测里再次叠加",
+    "implementation_reference": "用冻结的 camra_calibration.geometry：Polygon.circumscribed_radius、disc(radius, circumscribed=True)（默认外切，保证包含真圆盘）、minkowski_sum；不要在导航侧重新拟合或手写顶点"
+  },
+
+  "conservativeness": {
+    "claim": "若 |eps| <= delta 且名义位置满足 keep_out 约束，则实际足迹不与障碍接触。",
+    "derivation": [
+      "实际位置 p = p_hat + eps，|eps| <= delta。",
+      "对任意航向，Footprint ⊆ disc(p, r_fp) ⊆ disc(p_hat, r_fp + delta)。",
+      "若 p_hat 到障碍表面的距离 > r_fp + delta，则 disc(p_hat, r_fp + delta) 与障碍不相交，故实际足迹不相交。"
+    ],
+    "assumption": "|eps| <= delta。delta 是 90% 分位，不是上界；超出该分位的回合不享有此保证，必须在报告里按实际偏差统计超出比例。",
+    "not_a_safety_certificate": "因此本约束是「带概率裕度的名义几何约束」，不能宣称随机安全保证，也不能替代物理碰撞统计。"
+  },
+
+  "true_collision_definition": {
+    "rule": "CR / MC 一律用冻结物理足迹的多边形与原始障碍几何判定，所有比较方法共用同一判据。",
+    "disc_is_not_used_for": [
+      "真实碰撞判定",
+      "真实最小净空统计",
+      "论文里的 CR/MC 定义"
+    ],
+    "reason": "约束圆是给策略和价值网络用的名义几何；用它代替真实碰撞会把「保守约束」误当成「安全」，并让所有方法共享一个被放大的机体。"
+  },
+
+  "width_and_map": {
+    "straight_corridor_lower_bound_m": 6.238735599012962,
+    "formula": "W_min > 2 * (r_fp + delta)",
+    "nominal_attitude_rectangle_width_m": 5.840962390001799,
+    "rectangle_formula": "2 * (max|y| + delta) = 2 * (0.30661478347280263 + 2.6138664115280967)，取 0° 姿态",
+    "rectangle_is_unsound": "该宽度只在 0° 姿态成立。横向半宽随航向变化：0° 时 0.30661 m，最坏姿态等于 r_fp = 0.50550 m（这正是圆盘半径的定义），所需净宽因此在 5.84096 m 到 6.23874 m 之间变动。按 0° 定净宽会对会转向的机器人少算 0.39777 m。",
+    "disc_premium_m": 0.397773209011163,
+    "disc_premium_ratio": 0.0681,
+    "design_range_m": [7, 8],
+    "design_statement": "圆盘方案的下界 6.2387 m 仍在已确认的 7–8 m 净宽设计之内，因此本近似不改变已确认的设计尺度，不需要重新裁定；具体净宽仍由 NAV-016/017 依膨胀后通路、转弯扫掠与 30 s 可达性最终确定。",
+    "turn_and_corner_rule": "直线段用上式；转弯、墙角与窄门口必须按实际扫掠检查（NAV-017），不能只用直线下界"
+  },
+
+  "rejected_options": [
+    {
+      "option": "名义姿态矩形 ⊕ delta（不处理姿态变化）",
+      "why_rejected": "同中心不同航向会改变包围盒；45° 转向时矩形外接尺寸明显变大，按 0° 姿态算出的净空在转向时失效。delta 只描述位置偏差，补不上形状误差。",
+      "evidence": "reports/pose_footprint_alignment.json 的 long_rectangle_turning 与 same_centre_different_heading"
+    },
+    {
+      "option": "精确旋转多边形（按名义 yaw 旋转）⊕ delta",
+      "why_rejected": "名义 yaw 与实际 yaw 的差没有测量，等号不成立时既不保守也不可证；若要采用必须先测航向误差界。",
+      "unblocks_if": "新增 eps_psi 的标定（属于新校准，需用户批准），并按 eps_psi 做旋转扫掠"
+    },
+    {
+      "option": "用采样旋转扫掠凸包当安全边界",
+      "why_rejected": "冻结代码已声明采样凸包是连续扫掠的**下界**，采样越多只会变大，不能当安全边界；只能用于收敛性检查。",
+      "evidence": "camra_calibration/geometry.py::rotating_sweep_hull 文档串"
+    }
+  ],
+
+  "interface_for_NAV_015": {
+    "must_use": [
+      "camra_calibration.geometry.Polygon（构造即取凸包）",
+      "Polygon.circumscribed_radius（原点口径）",
+      "camra_calibration.geometry.disc(r, circumscribed=True)",
+      "camra_calibration.geometry.minkowski_sum"
+    ],
+    "must_not": [
+      "在导航侧手写足迹顶点或用质心当圆心",
+      "把 delta 与 r_fp 分别叠到不同判据里",
+      "用圆盘判定真实碰撞",
+      "对连续扫掠只做逐帧采样并声称安全"
+    ]
+  },
+
+  "provisional": [
+    {
+      "item": "圆盘近似",
+      "basis": "旋转不变且是包含足迹的最小闭圆盘；额外宽度约 0.398 m（+6.8%），远小于 delta 主导项",
+      "confirm_by": "NAV-017 地图与通路检查后可复核净宽；若要改用姿态感知方案须先测 eps_psi"
+    }
+  ],
+
+  "open_items": [
+    {
+      "item": "航向误差界 eps_psi 未测",
+      "owner": "未分配（需新校准）",
+      "note": "若未来要用精确旋转多边形，必须先有 eps_psi 的测量与用户授权"
+    },
+    {
+      "item": "最终净宽与转弯/墙角扫掠",
+      "owner": "NAV-017",
+      "note": "本契约只给直线下界与姿态处理，不给最终场地尺寸"
+    }
+  ]
+}

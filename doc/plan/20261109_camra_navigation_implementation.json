@@ -1643,11 +1643,48 @@
       "id": "NAV-012",
       "phase": "契约与名义环境",
       "goal": "冻结导航任务及事件终止契约",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-011"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T10:45:00+08:00",
+          "summary": "冻结任务定义与事件终止契约：8 个事件的判据与优先级、10 步判定流程、5 个同刻例子、三类结束的区分、自动复位与无可行预算行为、成本结算与部分段示例，契约升至 1.1.0。",
+          "actions": [
+            "从 eval_protocol.json 确认 v2 失败判据为 termination before horizon (base_contact or bad_orientation)，从 calibration_protocol 确认 30 s 窗口、终止与截断规则、能量公式。",
+            "定义任务：目标半径 0.5 m（依据足迹外接半径约 0.5055 m）、不要求朝向与停稳、到达取首个满足子步、到达即回合结束且不追加停车指令。",
+            "定义 8 个事件并按优先级排序：fall > collision > out_of_bounds > internal_violation（正交不计入 SR/CR）> goal_reached > budget_exhausted > stagnation > timeout。",
+            "写出 10 步有序判定流程与 5 个同刻例子（到达+碰撞、到达+预算归零、预算先耗尽、跌倒+越界、内部违反但未碰撞）。",
+            "区分 env_done / measurement_end / stop_segmentation 三类结束，规定自动复位隔离与无可行预算的记法。",
+            "规定成本只在 0.1 s 边界结算、部分段名义按完整段实测按真实子步、差额记 partial_step_gap_J、截断样本按前缀处理且不得等比缩放旧覆盖率。",
+            "给出数值示例：2.35 s 到达、24 段、c_nom 合计 96.0 J、实测 470 子步，并给出停滞 12 s 的截断示例。",
+            "登记 5 项 provisional 决策及复核时点。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/navigation_contract_v1.json"
+          ],
+          "commands": [
+            "python3 读取 eval_protocol.json 与 calibration_protocol_v1.0.2 的 termination/energy",
+            "python3 /pub/data/caohy/tmp/patch_contract.py（追加 task_definition/event_table/termination_semantics/cost_settlement）",
+            "python3 /pub/data/caohy/tmp/patch_contract2.py（追加 decision_procedure 与 worked_example）"
+          ],
+          "results": [
+            "契约 v1.1.0，新增 task_definition、event_table、termination_semantics、cost_settlement、provisional_decisions 五段，保留命令域与既有字段不变。",
+            "8 个事件均有判据、来源或依据、outcome 与是否计入分母；internal_violation 明确正交于物理判定。",
+            "10 步判定流程保证标签唯一；安全类排在到达之前，避免撞着到达被记为成功。",
+            "成本示例：2.35 s 到达 → 名义 24 段 × 4.0 J = 96.0 J，预算扣减 114.286 J；实测 470 子步；差额记 partial_step_gap_J。",
+            "明确禁止用 12/30 之类比例缩放旧 30 s 覆盖率。",
+            "5 项 provisional 值（r_goal、dwell、stagnation 阈值、到达优先于预算、不要求朝向）均标注依据与复核时点。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/navigation_contract_v1.json v1.1.0：task_definition / event_table（含 decision_procedure 10 步与 tie_examples 5 条）/ termination_semantics / cost_settlement（含 worked_example）/ provisional_decisions。",
+            "判据来源可复核：eval_protocol.json metric_definitions.failure_rate、calibration_protocol_v1.0.2.termination 与 .energy。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "定义目标到达、碰撞/接触、跌倒、越界、停滞、预算耗尽和超时的判据及同刻优先级；有限时域状态含剩余时间。",
         "首轮任务不越过原30秒校准时长；完整回合与子步事件/部分区间、截断bootstrap先登记，改变评分未决点先询问。",
@@ -1660,7 +1697,7 @@
         "用到达与碰撞同刻、预算恰好用尽、提前终止等例子给出预期标签和成本停止规则。",
         "navigation_contract填写具体判据/数值/依据/待确认决策记录，附事件真值表和成本停止示例；不能以'后续确定'通过。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。navigation_contract_v1.json 升至 1.1.0，任务定义含 r_goal=0.5 m（依据足迹外接半径）、不要求朝向与停稳、到达即结束且无停车能量；8 个事件按 fall>collision>out_of_bounds>goal_reached>budget_exhausted>stagnation>timeout 排序并附 10 步唯一判定流程与 5 个同刻例子，internal_violation 明确正交不入 SR/CR；三类结束（env_done/measurement_end/stop_segmentation）分开命名并规定自动复位隔离与无可行预算记法；成本按 0.1 s 边界结算，给出 2.35 s 到达的 96.0 J 示例与 partial_step_gap_J 规则，禁止按比例缩放旧 30 s 覆盖率；5 项 provisional 决策均标注依据与复核时点。",
       "reference_ids": [
         "R02",
         "R03",
@@ -1674,11 +1711,60 @@
       "id": "NAV-013",
       "phase": "契约与名义环境",
       "goal": "冻结观测动作及坐标契约",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-012"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T10:26:00+08:00",
+          "summary": "冻结坐标/观测/动作契约 obs-v1 与 cmd-v1：41 维观测逐字段给出单位/维度/范围/更新时刻/两端来源，名义与物理共用同一 encoder 并逐位相等，动作仿射映射保证命令域精确可达，28 项契约测试全通过。",
+          "actions": [
+            "读 v2 冻结契约 observation(45 维)/action(JointPositionAction, scale 0.25)/robot 与 eval_protocol.json 的失败判据，确认底层输入的字段与顺序不受本任务影响。",
+            "读 RC-PPO wind_field 的状态组织（12 维 state + avoid + energy = 14）与 info 结构，以及 tanh 位置偏移动作，确认上层状态应包含哪些量、以及哪些语义不能照搬。",
+            "读 HiRA high_level_navigation_env 的观测组装（heading cos/sin、机体系速度、目标方向与归一化距离、16 方位雷达箱、边界强度），提取地图编码的可用结构。",
+            "读 nominal.py 的 PlanarState(px,py,yaw) 与 step_exact 闭式积分，确认机体系速度经 yaw 旋转后积分，作为坐标契约的实现依据。",
+            "读 external_command.py 的 DEFAULT_LIMITS 与 CommandStepRecord（requested/applied/clipped/invalid），据此定义动作流水线与单一 applied 规则。",
+            "读 footprint_v1 确认质心为 [-0.04563529179509698, -0.010971589494882339] m，因此位置参考必须取 base_link 原点而非足迹质心。",
+            "写 src/camra_navigation/frames.py：世界/机体系、四元数 wxyz、投影朝向定义、朝向无定义时抛 HeadingUndefined。",
+            "写 src/camra_navigation/observation.py：41 维编码器、几何核 surface_distance、动作流水线与 CommandRecord。",
+            "写 tests/test_observation_contract.py：28 项检查，含名义/物理逐位一致、障碍数 0/1/3/8/12、负预算、剩余时间、动作越界与非有限值。",
+            "用脚本把 frames_and_conventions / observation_spec / action_spec / known_asymmetries 追加进 navigation_contract_v1.json，版本升至 1.2.0，保留 v1.1.0 全部字段。",
+            "在 tmux 会话内用登记解释器执行测试并输出 reports/observation_contract_check.json。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/navigation_contract_v1.json",
+            "CaMRA/navigation/src/camra_navigation/frames.py",
+            "CaMRA/navigation/src/camra_navigation/observation.py",
+            "CaMRA/navigation/tests/test_observation_contract.py",
+            "CaMRA/navigation/reports/observation_contract_check.json"
+          ],
+          "commands": [
+            "python3 (读 frozen_manifest.contract / eval_protocol / wind_field / high_level_navigation_env / nominal.py / external_command.py / footprint_v1)",
+            "python3 /pub/data/caohy/tmp/patch_contract_nav013.py",
+            "python CaMRA/navigation/tests/test_observation_contract.py --json CaMRA/navigation/reports/observation_contract_check.json (在 tmux 内)"
+          ],
+          "results": [
+            "契约 v1.2.0：observations_version=obs-v1、action_version=cmd-v1、total_dim=41，field_table 16 条覆盖 41 维，v1.1.0 的 task_definition/event_table/termination_semantics/cost_settlement/validated_command_domain 全部保留。",
+            "名义与物理逐位相等：yaw=0/0.3/-2.9/π/-π+1e-3/1.0 六个位姿下 encode_observation 与 encode_from_physical 返回值完全相同（bitwise_equal=true），因为物理侧只做四元数→朝向转换后调用同一 encoder。",
+            "yaw 在 ±π 处 sin/cos 差 2.45e-16，编码无跳变；机体近乎竖直时抛 HeadingUndefined，按 internal_violation 处理。",
+            "障碍数 0/1/3/8/12：掩码和分别为 0/1/3/8/8（容量 8，超出按规则丢弃），所有分箱强度落在 [0,1]，障碍列表随机打乱后编码完全不变。",
+            "负预算：z_J=-500 → z_ratio=-1.0；z_J=-50 → -0.2216；z_J=120 → 0.5319；z_J=1000 → 1.0，符号与截断均正确。",
+            "剩余时间 -5/0/15/30/45 s → 0/0/0.5/1/1，单调且不超界；安全历史严格二值。",
+            "动作域精确可达：a=(1,1,1) → applied=(1.0,0.4,1.0) 且未裁剪；a=(1.5,-2,0.5) → requested=(1.0,-0.4,0.5) 且被标记 clipped；NaN/Inf → 对应分量 0 且 invalid=True（初版实现漏传 invalid，测试发现后已修）。",
+            "单一 applied 规则的必要性有量化证据：请求 (2.0,0,0) 若误用于积分，0.1 s 位移为 0.2 m 而正确值是 0.1 m；功率 138.64 W 对 39.29 W，差 3.5 倍。",
+            "全部字段落在声明范围内；用质心代替 base_link 会改变 px_n，确认位置参考未被写错。",
+            "无 TBD 字段：41 维全部有具体冻结值与来源。三个值带复核归属（MAP_HALF_M→NAV-017、R_SENSE_M→NAV-017/057、Z_REF_J→NAV-056），且 NAV-056 与 NAV-016/017 在依赖链上都早于 NAV-018（创建名义环境），因此满足「创建环境前解决」。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/navigation_contract_v1.json v1.2.0：frames_and_conventions（世界/机体/四元数/朝向定义）、observation_spec（layout、16 条 field_table 含两端来源、constants 与 constant_provenance、map_encoding、nominal_physical_identity）、action_spec（仿射映射、单次裁剪、单一 applied 规则）、known_asymmetries 两条、provisional_decisions 新增 6 条。",
+            "CaMRA/navigation/reports/observation_contract_check.json：28 项检查全部 ok，verdict=PASS，含 nominal_equals_physical 六项逐位结果与 single_applied_command_matters 的具体数值。",
+            "CaMRA/navigation/tests/test_observation_contract.py 可复跑；/pub/data/caohy/tmp/nav013_test.log 为 tmux 内原始输出。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "名义/物理共用平面真值、朝向、地图/目标表示、y、z和剩余时间；地图特征需足以定义本轮任务，不擅自删成有歧义的局部观察。",
         "统一机身/世界坐标、四元数顺序、动作缩放、限幅、掩码及归一化；不新增未校准滤波或改变速度域。",
@@ -1689,7 +1775,7 @@
         "同一人工状态在两端编码一致；实际施加命令与cost/nominal/低层输入可一一对应。",
         "以含不同障碍数/转向/负预算/剩余时间的人工状态核验名义/物理编码完全一致，所有待决字段在创建环境前解决。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。contract v1.2.0 给出 obs-v1（41 维、16 条字段表含单位/维度/范围/更新时刻与名义和物理两端来源）与 cmd-v1（仿射映射、单次裁剪、单一 applied 规则），保留 v1.1.0 全部字段。tests/test_observation_contract.py 的 28 项检查全部通过：名义与物理在 6 个位姿下逐位相等；yaw ±π 连续（差 2.45e-16）且朝向无定义时按 internal_violation 抛错；障碍数 0/1/3/8/12 的掩码为 0/1/3/8/8 且顺序无关；负预算 z_ratio 取 -1.0~1.0 正确；剩余时间单调不越界；动作域 (1.0,0.4,1.0) 精确可达、越界与非有限值均被标记；误用 requested 会使 0.1 s 位移由 0.1 m 变 0.2 m、功率由 39.29 W 变 138.64 W。无 TBD 字段，MAP_HALF_M/R_SENSE_M 归 NAV-017、Z_REF_J 归 NAV-056，两者在依赖链上均早于 NAV-018，满足创建环境前解决。",
       "reference_ids": [
         "R05",
         "R07",
@@ -1704,11 +1790,55 @@
       "id": "NAV-056",
       "phase": "名义环境",
       "goal": "冻结累计能量目标与双评价尺度停止契约",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-013"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T10:58:00+08:00",
+          "summary": "冻结价值目标契约：确认参考实现 GAMMA_ENERGY 本就是 1.0、定义 z_J/z_ratio/V_c/V_h/C/beta 与共同停止时刻、区分四类 bootstrap，并用三组手算反例与一组 bootstrap 反例验证语义，11 项检查全部通过。",
+          "actions": [
+            "读 RC-PPO rl/arguments.py 实测超参默认值：GAMMA_ENERGY=1.0、GAMMA_REACH_INIT=0.999、GAMMA_REACH_FINAL=0.99999、GAE_LAMBDA=0.95、CLIP_EPS=0.2、ENT_COEF=0.01、VF_COEF=0.5、MAX_GRAD_NORM=0.5。",
+            "逐行读 calculate_indexs3：V_s 用 gamma 倒序累加成本、next_mask_1 屏蔽停止点之后、V_total=max(Vs-energy, Vhs)、再按 argmin 逐位标 done，确认这是倒序扫描中的逐步取优而非全局 argmin。",
+            "读 calculate_advantage2/calculate_gae2 确认 done 与 next_done=roll(done) 的截断方式与 GAE 递推。",
+            "定义 quantity 表：z_0(J)、spent_J、z_J=z_0-spent（有符号）、Z_REF_J(场景常数)、z_ratio=clip(z_J/Z_REF_J,-1,1)、g_norm=(dist-r_goal)/15、C=1.0、V_c(归一化成本)、V_h(可达性)、beta=0.0。",
+            "冻结组合残差 W=max(V_h, V_c - z_ratio) 与共同停止规则，写明必须复刻逐步 argmin、两 critic 共用一个 tau*。",
+            "区分四类 bootstrap：失败终止给 FAIL_PENALTY 且不 bootstrap；成功终止按实际成本；时间截断用 V(x_T) bootstrap 并单独标记；训练停止分段按 tau* 截断。",
+            "写 tests/test_value_objective.py 实现 cost_return/combined_stop/separate_stop_wrong/gae_1d 并计算三组反例与 bootstrap 对照。",
+            "产出 config/value_objective_contract_v1.json（含 10 条原实现差异表）与 reports/value_objective_alignment.json。",
+            "把 Z_REF_J 的确认回写到 navigation_contract_v1.json（升至 1.2.1，值未替换；NAV-013/056 两项 open item 标为 resolved）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/value_objective_contract_v1.json",
+            "CaMRA/navigation/config/navigation_contract_v1.json",
+            "CaMRA/navigation/tests/test_value_objective.py",
+            "CaMRA/navigation/reports/value_objective_alignment.json"
+          ],
+          "commands": [
+            "grep/sed 读 rl/arguments.py、rl/gae.py、rl/EC-EFPPO.py",
+            "python CaMRA/navigation/tests/test_value_objective.py --json CaMRA/navigation/reports/value_objective_alignment.json (在 tmux 内)"
+          ],
+          "results": [
+            "关键核查结论：参考实现的 GAMMA_ENERGY 默认就是 1.0，因此「未折扣累计 J」与参考实现一致，不存在「照抄折扣」的问题；真正被替换的是成本量纲（代理量→焦耳）、预算变量（归一化 [-1,1]→有符号 J/Z_REF_J）和安全项（avoid±1/±300→y∈{0,1}/C=1.0）。",
+            "停止语义：calculate_indexs3 是倒序扫描中每步对尾段重新取 argmin（逐步取优），不是一次性全局 argmin；契约明确要求复刻前者。",
+            "反例 1（同总 J 不同时刻）：gamma=1.0 时 100 J 早花与晚花完全相同（100 vs 100）；gamma=0.99 时变成 100 vs 91.3517，差 8.65 J，证明 gamma_cost 必须为 1.0。",
+            "反例 2（同轨迹不同单位）：V_c 直接用 150 J 与 z_ratio=0.5 混算得 W=149.5，归一化后正确值 0.80，放大 187 倍且被成本项吞掉；另证 z_ratio 若除以本回合初始预算（300 J→0.8）而非 Z_REF_J（300 J→1.0638），同样的绝对剩余量会得到不同数值。",
+            "反例 3（两 critic 偏好不同停止时刻）：V_c=[0.2,1.0]、V_h=[0.5,-0.1]、z=0.4 时，共同停止得 W=+0.5（不可行），分开取时刻得 W=-0.1（误判可行）；并证明 max(min a, min b) <= min max 恒成立，分开取时刻只会系统性过度乐观。",
+            "bootstrap 反例：两步成本 [0.04,0.06]、价值 [0.30,0.25]，截断用 V(x_T)=0.18 得目标 [0.2805,0.24]，失败给 FAIL_PENALTY=1.0 得 [1.0595,1.06]，两者必须不同。",
+            "11 项检查全通过，verdict=PASS；契约含 10 条原实现差异表（折扣/量纲/预算变量/安全项/g 函数/组合残差/停止时刻/可达性折扣/GAE/终止惩罚）。",
+            "navigation_contract_v1.json 升至 1.2.1：Z_REF_J 标为 confirmed（值未替换），新增 value_objective_reference 指向本契约；观测与动作语义未改。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/value_objective_contract_v1.json：objective/quantities/residual/stop_rule/estimator/bootstrap/training_targets/sign_conventions/reference_diff(10 条)/forbidden/provisional/open_items。",
+            "CaMRA/navigation/reports/value_objective_alignment.json：11 项检查全 ok、hand_computed 四组数值、reference_diff 原样带入。",
+            "CaMRA/navigation/tests/test_value_objective.py 可复跑；/pub/data/caohy/tmp/nav056_test.log 为 tmux 内原始输出。",
+            "参考实现取值可复核：RC-PPO/rl/arguments.py 第 51/54/57/60 行的 default 值，rl/gae.py 的 calculate_indexs3 与 calculate_advantage2。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "追踪原GAMMA_ENERGY/REACH、GAE、停止分段和预算扣减，区分数值训练配置与未折扣累计机械功目标；不默认复制折扣，也不未经推导改原算法。",
         "逐项定义z_J/z_ref_J、V_c归一化、V_h及安全常数C/目标函数尺度、组合残差、阈值β和共同停止时刻。z_ref可以按场景固定，但不能随本回合初始预算变动。",
@@ -1718,7 +1848,7 @@
         "形成value_objective_contract，成本目标、折扣/GAE参数及选择依据、单位变换、正负号、终端/截断bootstrap和共同停止时刻全部明确。",
         "用同总J不同发生时刻、同轨迹不同J单位/归一化、两个critic偏好不同停止时刻的手算反例证明实现语义；保留原实现与目标的差异表。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。value_objective_contract_v1.json 冻结目标（未折扣 J）、量纲表（z_0/spent/z_J/Z_REF_J/z_ratio/g_norm/C/V_c/V_h/beta）、组合残差 W=max(V_h,V_c-z_ratio)、共同停止规则、估计器参数（gamma_cost=1.0、lambda=0.95、gamma_h 0.999→0.99999）、四类 bootstrap、符号约定与 10 条原实现差异表；11 项检查全通过：同总 J 不同时刻在 gamma=1 下相等（100 vs 100）而 0.99 下变 100 vs 91.3517；单位混算得 149.5 对正确 0.80；分开取停止时刻得 -0.1（误判可行）对共同停止 +0.5；截断 bootstrap 0.24 对失败 1.06。已确认参考 GAMMA_ENERGY 本就是 1.0，故目标未被折扣；calculate_indexs3 的逐步 argmin 语义已写明必须复刻。Z_REF_J 回写为 confirmed，导航契约升至 1.2.1。",
       "reference_ids": [
         "R02",
         "R03",
@@ -1735,11 +1865,58 @@
       "id": "NAV-014",
       "phase": "契约与名义环境",
       "goal": "实现J成本与有符号预算适配",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-056"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T11:08:00+08:00",
+          "summary": "实现 J 成本与有符号预算适配层：包装冻结 PowerModel/StepCost、强制显式 alpha（禁止 0 冒充完整方法）、实现场景尺度归一化的有符号预算与可逆映射，并把执行机械功做成独立账本；20 项检查全部通过。",
+          "actions": [
+            "读冻结 power.py 的实际接口（feature_matrix 需 ≥2 个命令点、step_power 返回 N-1 个区间功率、j_nom、in_domain、step_cost_dt=0.1、history_k=0）。",
+            "读 step_cost.py 的 StepCost/BudgetState：确认 StepCost.step 已实现 c_nom=P*0.1 与 c=(1+α)c_nom，但其 alpha 默认 0.0；确认 BudgetState.z_ratio=max(0, remaining/initial_J) 会截零并按本回合初始预算归一，正是不能沿用的语义。",
+            "读 margins_v1.json 真实键名（alpha、delta、n_eps_c）与两种散列（文件自述 sha256=dd76972d、字节散列 2be77607），修正 load_margins 的键名与散列绑定。",
+            "写 src/camra_navigation/costs.py：MarginSet/load_margins、SignedBudget、JCostModel、ExecutionEnergy 与 normalized_cost。",
+            "JCostModel 强制 variant ∈ {full, uncalibrated}：full 要求 alpha>0，uncalibrated 要求 alpha==0，二者不能互相冒充；alpha 无默认值。",
+            "SignedBudget 保留负 z_J、按 Z_REF_J 归一、提供 to_ratio/from_ratio 可逆映射，并拒绝非有限与负成本。",
+            "ExecutionEnergy 按 200 Hz 累加 sum_j max(tau*qdot,0)，与模型预算完全分离，负功不计回。",
+            "写 tests/test_cost_budget.py 覆盖 20 项：alpha 只乘一次、逐步=整段、预算可逐步复算、负预算、可逆归一化、单位混用、非法成本、越域命令、reset、执行能量隔离、基线=名义能量。",
+            "在 tmux 内用登记解释器运行并输出 reports/cost_budget_check.json。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/costs.py",
+            "CaMRA/navigation/tests/test_cost_budget.py",
+            "CaMRA/navigation/reports/cost_budget_check.json"
+          ],
+          "commands": [
+            "sed 读 power.py / step_cost.py / margins_v1.json / data_lock_v1.json",
+            "python CaMRA/navigation/tests/test_cost_budget.py --json CaMRA/navigation/reports/cost_budget_check.json (在 tmux 内)"
+          ],
+          "results": [
+            "alpha 显式加载：full 用 margins 的 0.19048279965649906，baseline 显式 0.0；两种错配（full+alpha=0、uncalibrated+alpha=0.19）都被拒绝。",
+            "alpha 只乘一次：50 步里 cost_model/cost_nom 与 1+α 的最大偏差 2.22e-16；若叠乘两次比值会是 1.417249 而非 1.190483。",
+            "逐步与整段一致：50 个区间逐步求和 61.6463451960513 J，与 (1+α)·J_nom 的 61.64634519605127 J 差 2.84e-14 J。",
+            "预算可逐步复算：50 次扣减后 spent=61.6463 J、z_J=38.3537 J，逐步重算最大偏差 0.0。",
+            "归一化语义：z_ratio=0.1700 对应 z_J/Z_REF_J；若按 BudgetState 口径除以本回合 100 J 会得 0.3835，两者相差 2.3 倍。",
+            "负预算保留：z0=50 J 花 60 J → z_J=-10、over_budget=10、exhausted=true、z_ratio=-0.0443（未截零）。",
+            "可逆映射：z 在 [-Z_REF_J, Z_REF_J] 内往返误差 <1e-9；越界 1.5 被拒绝并说明截断后不可逆。",
+            "单位混用可量化：把归一化 0.5 当焦耳只扣 0.5 J，正确应为 112.80 J，低估 225.607 倍。",
+            "非法成本被拒：负成本、NaN、inf 均抛错且预算不变；越域命令 (1.5,0,0) 被 in_domain 拒绝，不静默外推。",
+            "执行账本隔离：同一步模型支出 1.1976 J，执行能量 3.2400 J（合成力矩，仅验证隔离，不代表模型误差），预算不受执行能量影响；负功 -2.0 W 不被计回，只累计 +0.01 J。",
+            "reset 清预算与时钟：spent 归零、charges=1、t_s=0，而模型对象不变。",
+            "基线等于名义能量：uncalibrated 的 segment 成本与 cost_nom 相同，full/baseline 比值 1.190483。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/src/camra_navigation/costs.py：模块文档写明三本账（cost_nom_J / cost_model_J / execution_J）与「执行能量不得回写预算」。",
+            "CaMRA/navigation/reports/cost_budget_check.json：20 项检查全 ok，含上述全部数值；model_sha256=bfe3b159（与 data_lock 的 power_model.content_sha256 一致），margins 字节散列 2be77607 与 data_lock.sha256 一致。",
+            "CaMRA/navigation/tests/test_cost_budget.py 可复跑；/pub/data/caohy/tmp/nav014_test.log 为 tmux 内原始输出。",
+            "未修改冻结的 power.py / step_cost.py / margins_v1.json，只读导入。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "导入冻结PowerModel/StepCost计算并显式加载α，不能沿用alpha_default=0作为完整方法；保持0.1秒接口。",
         "实现固定z_ref的可逆归一化及负预算；不能直接复用BudgetState.z_ratio的initial_J分母或截零语义。",
@@ -1749,7 +1926,7 @@
         "逐步和整段名义能量一致、α只乘一次、预算逐步可复算。",
         "单位错误、负/非有限成本、history/reset及预算归一化反例通过；执行J与内部模型支出分离。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。costs.py 包装冻结 PowerModel/StepCost 并提供强制显式 alpha（full 要求 >0、uncalibrated 要求 =0，互相冒充均被拒）、SignedBudget（保留负 z_J、按 Z_REF_J 归一、to_ratio/from_ratio 可逆）与独立 ExecutionEnergy 账本。20 项检查全通过：alpha 每步只乘一次（偏差 2.22e-16，叠乘两次会是 1.417249）；50 区间逐步求和 61.6463451960513 J 与 (1+α)·J_nom 差 2.84e-14 J；预算逐步重算偏差 0.0；z_ratio 用 Z_REF_J 得 0.1700 而按 initial_J 会得 0.3835；z0=50 花 60 得 z_J=-10、z_ratio=-0.0443 未截零；单位混用低估 225.607 倍；负成本/NaN/inf/越域命令均被拒；执行能量 3.24 J 不影响模型预算且负功不计回。未改动任何冻结文件。",
       "reference_ids": [
         "R09",
         "R10"
@@ -1763,11 +1940,56 @@
       "id": "NAV-057",
       "phase": "名义环境",
       "goal": "确定位置裕度与姿态变化的足迹安全处理",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-014"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T11:32:00+08:00",
+          "summary": "冻结姿态处理的几何契约：选旋转不变的外接圆盘（以 base_link 原点为心，r=0.5055013879783843 m）加 delta，给出保守性证明与假设边界；用同中心不同航向、长矩形转向、墙角、旋转扫掠、位置误差四类人工案例证明矩形口径不成立，12 项检查全部通过。",
+          "actions": [
+            "读 footprint_v1.json：确认 frame=base_link_xy、多边形 44 顶点、面积 0.45796 m²、bounds 0.8894×0.5846 m、circumscribed_radius=0.5055013879783843。",
+            "复算半径口径：以 base_link 原点为心得 0.505501387978（与文件字段一致），以质心得 0.481320372，差 2.42 cm；确认冻结字段用的正是原点口径，可直接支撑旋转不变性。",
+            "读 margins_v1 的 delta=2.6138664115280967（q90_eps_d，n=790），明确它只由平面位置偏差取得、是 90% 分位，不是航向界也不是硬上界。",
+            "读冻结 geometry.py：确认 Polygon.circumscribed_radius 为 max|vertex|、disc(circumscribed=True) 放大 1/cos(pi/n) 保证包含真圆盘、rotating_sweep_hull 文档明示是连续扫掠的下界不能当安全边界。",
+            "写 config/geometry_contract_v1.json：坐标与参考点、冻结几何、delta 语义、旋转不变圆盘的选择与三步证明、约束构造（r_fp+delta 只做一次）、保守性命题及其 |eps|<=delta 假设、真实碰撞判据不变、宽度算术与三个被否方案。",
+            "写 tests/test_pose_footprint.py 覆盖 12 项：足迹身份与双散列、半径参考点、720 航向旋转不变、扫掠凸包单调、矩形随航向变化、长矩形转向反例、墙角接触反例、同中心不同航向、位置误差下的保守性、宽度算术、两步膨胀一致性。",
+            "在 tmux 内用登记解释器运行并输出 reports/pose_footprint_alignment.json。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/geometry_contract_v1.json",
+            "CaMRA/navigation/tests/test_pose_footprint.py",
+            "CaMRA/navigation/reports/pose_footprint_alignment.json"
+          ],
+          "commands": [
+            "python3 读 footprint_v1 / margins_v1 / data_lock_v1 并复算外接半径",
+            "sed 读 geometry.py 的 disc/Polygon/rotating_sweep_hull",
+            "python CaMRA/navigation/tests/test_pose_footprint.py --json CaMRA/navigation/reports/pose_footprint_alignment.json (在 tmux 内)"
+          ],
+          "results": [
+            "选型：约束几何 = base_link 原点为心、半径 r_fp 的圆盘，keep_out = obstacle ⊕ disc(r_fp + delta) = 3.119367799506481 m 膨胀半径。",
+            "证明要点：凸包内任一点到原点距离不超过最远顶点距离；绕原点旋转不改变该距离；故任意航向的足迹都在同一圆盘内，且该圆盘是包含足迹的最小闭圆盘。",
+            "720 个航向采样下最远顶点半径恒为 0.5055013879783843，与 r_fp 完全一致；圆盘多边形内半径 0.505719 ≥ r_fp（外切保守）。",
+            "矩形口径不成立：0° 包围盒 0.8893×0.5846 m，45° 变为 0.8916×0.8550 m，纵向增长 0.3047 m；按 0° 算横向净空会少算约 0.30 m。",
+            "长矩形转向反例：转 45° 后有 27 个顶点落在 0° 足迹之外，示例点 [-0.2595, -0.4338]，距 0° 足迹边界 0.1273 m。",
+            "墙角反例：同一障碍点，0° 判据报不接触、45° 实际接触；该误差与 delta 无关，是形状误差，加多少位置裕度都补不上。",
+            "同中心不同航向：圆盘完全相同，矩形包围盒明显不同——约束几何必须与航向无关。",
+            "扫掠凸包是下界：substeps 1/4/16 时面积 0.5172→0.7521→0.7909 m² 单调不减，证实不能当安全边界。",
+            "保守性数值：|eps|=delta、24 个航向、16 个方向下实际足迹最远顶点 3.1193165 m ≤ r_fp+delta 3.1193678 m，余量 5.1e-5 m（界是紧的，故数值容差要小心）。",
+            "宽度：W_disc=6.238735599012962 m；0° 矩形口径 5.840962390001799 m；圆盘溢价 0.397773209011163 m（+6.81%）。圆盘下界仍小于已确认的 7 m，故不改变设计尺度。",
+            "两步膨胀：footprint ⊕ disc(delta) 的最大顶点半径 3.1207168 m，比一步式多 1.3489688201122618e-3 m（disc 默认外切成 96 边多边形，半径放大 1/cos(pi/96)），方向恒为更保守。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/geometry_contract_v1.json：frames / frozen_geometry / position_margin / attitude_treatment（含证明与为何不做姿态感知）/ constraint_construction / conservativeness（命题、推导、|eps|<=delta 假设、不是安全证书）/ true_collision_definition / width_and_map / rejected_options（3 条）/ interface_for_NAV_015。",
+            "CaMRA/navigation/reports/pose_footprint_alignment.json：12 项检查全 ok，含全部数值与两个接触反例点。",
+            "CaMRA/navigation/tests/test_pose_footprint.py 可复跑；/pub/data/caohy/tmp/nav057_test.log 为 tmux 内原始输出。",
+            "未修改 footprint_v1 / margins_v1 / geometry.py，全部只读。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "δ仅由平面位置偏差取得，不能当作航向误差界；在几何实现前评估冻结足迹外接圆等保守近似，或列有依据的姿态处理，不虚构已测航向界。",
         "保留原足迹和δ；任何近似只在新导航约束中明示。真实CR/MC各方法共用原始障碍与冻结物理足迹，不能用约束圆取代真实碰撞定义。",
@@ -1777,7 +1999,7 @@
         "geometry_contract明确足迹坐标系/方向、位置偏差与姿态的关系、所选约束近似及保守性依据；仅名义姿态矩形加δ而无姿态依据不能通过。",
         "人工案例覆盖同中心不同航向、长矩形转向、墙角与旋转扫掠；输出约束几何与实际碰撞几何对照，NAV-015可据此实现。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。geometry_contract_v1.json 选定旋转不变外接圆盘（base_link 原点为心，r_fp=0.5055013879783843 m）加 delta，keep_out=obstacle⊕disc(r_fp+delta)=3.119367799506481 m，并给出三步证明与 |eps|<=delta 的假设边界；明确 delta 是 90% 分位、不是航向界/硬上界，真实 CR/MC 仍用冻结物理足迹与原始障碍。12 项检查全通过：720 航向顶点半径恒为 r_fp；0° 与 45° 包围盒纵向差 0.3047 m；转 45° 后 27 个顶点落在 0° 足迹外（示例点距边界 0.1273 m），墙角处 0° 报不接触而 45° 实际接触；扫掠凸包面积随采样单调增（0.5172→0.7909 m²）证实不能当安全边界；|eps|=delta 下实际足迹 3.1193165 ≤ 3.1193678 m；W_disc=6.238735599012962 m 小于 0° 矩形口径 5.840962390001799 m 之上的 0.397773209011163 m 溢价，且仍低于已确认 7 m 净宽；两步膨胀实测多 1.35 mm 属外切多边形保守，两个写法不得称等价。未改动任何冻结文件。",
       "reference_ids": [
         "R09",
         "R11"

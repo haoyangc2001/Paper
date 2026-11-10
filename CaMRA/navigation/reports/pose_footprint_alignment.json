@@ -1,0 +1,187 @@
+{
+  "contract": "config/geometry_contract_v1.json",
+  "contract_version": "1.0.0",
+  "r_fp_m": 0.5055013879783843,
+  "delta_m": 2.6138664115280967,
+  "r_plus_delta_m": 3.119367799506481,
+  "W_disc_m": 6.238735599012962,
+  "W_rectangle_m": 5.840962390001799,
+  "premium_m": 0.397773209011163,
+  "n_checks": 12,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "check": "footprint_identity",
+      "ok": true,
+      "detail": {
+        "r_fp_m": 0.5055013879783843,
+        "area_m2": 0.4579622251021542,
+        "byte_sha256": "edff8978ff89467b",
+        "declared_content_sha256": "a11a3572d61be81a",
+        "note": "冻结足迹未改动；字节散列与自述散列分别绑定"
+      }
+    },
+    {
+      "check": "radius_reference_is_base_link_origin",
+      "ok": true,
+      "detail": {
+        "r_from_origin_m": 0.5055013879783843,
+        "r_from_centroid_m": 0.4813203718777497,
+        "shortfall_if_centroid_m": 0.02418101610063461,
+        "conclusion": "以质心为圆心会漏掉机头/机尾约 2.42 cm，且旋转时不再保守"
+      }
+    },
+    {
+      "check": "rotation_invariance_all_yaw",
+      "ok": true,
+      "detail": {
+        "yaw_samples": 720,
+        "worst_vertex_radius_m": 0.5055013879783844,
+        "r_fp_m": 0.5055013879783843,
+        "disc_polygon_inner_radius_m": 0.5057721847402,
+        "conclusion": "旋转不改变顶点到原点的距离，故任何航向都在同一圆盘内"
+      }
+    },
+    {
+      "check": "sweep_hull_is_lower_bound",
+      "ok": true,
+      "detail": {
+        "samples": [
+          {
+            "substeps": 1,
+            "area_m2": 0.517172500396835,
+            "max_vertex_radius_m": 0.5055013879783843
+          },
+          {
+            "substeps": 4,
+            "area_m2": 0.7521016772889257,
+            "max_vertex_radius_m": 0.5055013879783843
+          },
+          {
+            "substeps": 16,
+            "area_m2": 0.7908651848725696,
+            "max_vertex_radius_m": 0.5055013879783843
+          }
+        ],
+        "conclusion": "采样越多面积单调不减；故不能当安全边界，只能做收敛检查"
+      }
+    },
+    {
+      "check": "rectangle_changes_with_heading",
+      "ok": true,
+      "detail": {
+        "0deg": {
+          "x_extent_m": 0.889343093275103,
+          "y_extent_m": 0.5846278952489987
+        },
+        "45deg": {
+          "x_extent_m": 0.891599817025923,
+          "y_extent_m": 0.8550031816366708
+        },
+        "90deg": {
+          "x_extent_m": 0.5846278952489987,
+          "y_extent_m": 0.889343093275103
+        },
+        "growth_x_m": 0.0022567237508199778,
+        "growth_y_m": 0.30471519802610425,
+        "conclusion": "按 0° 姿态算的横向包围在转向 45° 后少算约 0.27 m；delta 补不上形状差"
+      }
+    },
+    {
+      "check": "long_rectangle_turning",
+      "ok": true,
+      "detail": {
+        "n_vertices_outside_0deg_footprint": 27,
+        "example_point_m": [
+          -0.25953138244936474,
+          -0.43379155682423626
+        ],
+        "clearance_from_0deg_footprint_m": 0.1273300721303672,
+        "conclusion": "同一中心转到 45° 后，机角会伸到 0° 足迹之外；按 0° 判据会漏判真实接触"
+      }
+    },
+    {
+      "check": "wall_corner_case",
+      "ok": true,
+      "detail": {
+        "point_m": [
+          -0.25953138244936474,
+          -0.43379155682423626
+        ],
+        "contact_at_0deg": false,
+        "contact_at_45deg": true,
+        "conclusion": "墙角场景下，0° 判据报「无接触」而 45° 实际接触；与 delta 无关，是形状误差"
+      }
+    },
+    {
+      "check": "same_centre_different_heading",
+      "ok": true,
+      "detail": {
+        "disc_identical": true,
+        "rect_0deg": {
+          "x_extent_m": 0.889343093275103,
+          "y_extent_m": 0.5846278952489987
+        },
+        "rect_45deg": {
+          "x_extent_m": 0.891599817025923,
+          "y_extent_m": 0.8550031816366708
+        },
+        "conclusion": "约束几何必须与航向无关；矩形方案在同一中心换航向时几何就变了"
+      }
+    },
+    {
+      "check": "conservative_under_position_error",
+      "ok": true,
+      "detail": {
+        "r_fp_plus_delta_m": 3.119367799506481,
+        "worst_actual_vertex_radius_m": 3.119316526254185,
+        "headroom_m": 5.127325229592472e-05,
+        "conclusion": "|eps| <= delta 时实际足迹必在 disc(p_hat, r_fp+delta) 内；delta 是 90% 分位，超出时不享有该保证"
+      }
+    },
+    {
+      "check": "width_arithmetic",
+      "ok": true,
+      "detail": {
+        "W_disc_m": 6.238735599012962,
+        "W_rectangle_0deg_m": 5.840962390001799,
+        "W_rectangle_worst_sampled_m": 6.23873378590792,
+        "half_width_0deg_m": 0.30661478347280263,
+        "half_width_worst_sampled_m": 0.5055004814258633,
+        "r_fp_m": 0.5055013879783843,
+        "premium_m": 0.397773209011163,
+        "premium_ratio": 0.06810062836426524,
+        "design_range_m": [
+          7,
+          8
+        ],
+        "conclusion": "圆盘下界 6.2387 m 仍低于已确认的 7 m 净宽，故本近似不改变已确认设计尺度"
+      }
+    },
+    {
+      "check": "rectangle_width_depends_on_heading",
+      "ok": true,
+      "detail": {
+        "W_rectangle_0deg_m": 5.840962390001799,
+        "W_rectangle_worst_sampled_m": 6.23873378590792,
+        "W_disc_m": 6.238735599012962,
+        "gap_m": 0.3977713959061209,
+        "half_width_worst_vs_r_fp_diff_m": 9.065525209406289e-07,
+        "yaw_samples": 720,
+        "conclusion": "横向半宽随航向变化，最坏姿态等于圆盘半径 r_fp（采样 0.5° 步长下差 9.1e-07 m，属航向采样分辨率而非几何误差）；按 0° 定的净宽对会转向的机器人少算 0.398 m"
+      }
+    },
+    {
+      "check": "two_step_inflation_matches_one_step",
+      "ok": true,
+      "detail": {
+        "max_vertex_radius_of_footprint_plus_delta_m": 3.1207167683265933,
+        "r_fp_plus_delta_m": 3.119367799506481,
+        "slack_m": 0.0013489688201122618,
+        "arc_vertices": 96,
+        "conclusion": "两步写法方向一致但略保守：disc() 默认外切成多边形，半径放大 1/cos(pi/n)，在 r≈3.12 m 上多出约 1.35 mm。绝不更乐观，故两种写法都可接受；但要说「等价」就是错的"
+      }
+    }
+  ]
+}

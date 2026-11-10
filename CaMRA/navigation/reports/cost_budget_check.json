@@ -1,0 +1,221 @@
+{
+  "unit": "J",
+  "alpha_full": 0.19048279965649906,
+  "alpha_baseline": 0.0,
+  "z_ref_J": 225.6069087767049,
+  "model_sha256": "bfe3b1594c08f729af78d4a22adf204ea0f96491892b98e1e0b24932f2ea1f55",
+  "margins_sha256": "2be77607b31c2fa5577d861ca4c6842caf6ed1fb7704abd284d65e01855e1704",
+  "n_checks": 20,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "check": "margins_loaded_exactly",
+      "ok": true,
+      "detail": {
+        "alpha": 0.19048279965649906,
+        "delta_m": 2.6138664115280967,
+        "n": 790
+      }
+    },
+    {
+      "check": "margins_two_hashes_bind_correctly",
+      "ok": true,
+      "detail": {
+        "byte_sha256": "2be77607b31c2fa5",
+        "data_lock_sha256": "2be77607b31c2fa5",
+        "declared_content_sha256": "dd76972dd49fc8d0",
+        "data_lock_content_sha256": "dd76972dd49fc8d0",
+        "note": "字节散列与文件自述散列是两个数，混用会造成 NAV-009 那类误判"
+      }
+    },
+    {
+      "check": "variants_carry_their_own_alpha",
+      "ok": true,
+      "detail": {
+        "full_alpha": 0.19048279965649906,
+        "baseline_alpha": 0.0
+      }
+    },
+    {
+      "check": "alpha_zero_cannot_pose_as_full_method",
+      "ok": true,
+      "detail": {
+        "full_with_alpha_0": "CostAdapterError: variant='full' requires alpha > 0; alpha=0 is the uncalibrated baseline, use variant='uncalibrated' to say so explicitly",
+        "uncalibrated_with_alpha_0.19": "CostAdapterError: variant='uncalibrated' requires alpha == 0, got 0.19"
+      }
+    },
+    {
+      "check": "alpha_applied_once_per_step",
+      "ok": true,
+      "detail": {
+        "1+alpha": 1.190482799656499,
+        "max_abs_dev": 2.220446049250313e-16,
+        "conclusion": "若叠乘两次，比值会是 (1+alpha)^2 = 1.417249"
+      }
+    },
+    {
+      "check": "alpha_applied_once_per_segment",
+      "ok": true,
+      "detail": {
+        "segment_ratio": 1.1904827996564988,
+        "1+alpha": 1.190482799656499
+      }
+    },
+    {
+      "check": "stepwise_equals_whole",
+      "ok": true,
+      "detail": {
+        "n_intervals": 50,
+        "stepwise_J": 61.6463451960513,
+        "whole_J": 61.64634519605127,
+        "abs_diff_J": 2.842170943040401e-14
+      }
+    },
+    {
+      "check": "budget_stepwise_recomputable",
+      "ok": true,
+      "detail": {
+        "max_abs_dev_J": 0.0,
+        "spent_J": 61.6463451960513,
+        "z_J": 38.3536548039487,
+        "z_ratio": 0.1700021289769514,
+        "charges": 50
+      }
+    },
+    {
+      "check": "z_ratio_uses_scene_scale_not_initial_budget",
+      "ok": true,
+      "detail": {
+        "z_ratio": 0.1700021289769514,
+        "z_J/Z_REF_J": 0.1700021289769514,
+        "z_J/z0_J_if_wrong": 0.383536548039487,
+        "conclusion": "BudgetState.z_ratio 的 initial_J 分母在这里会得到完全不同的数"
+      }
+    },
+    {
+      "check": "negative_budget_preserved",
+      "ok": true,
+      "detail": {
+        "unit": "J",
+        "z0_J": 50.0,
+        "spent_J": 60.0,
+        "z_J": -10.0,
+        "over_budget_J": 10.0,
+        "exhausted": true,
+        "z_ref_J": 225.6069087767049,
+        "z_ratio": -0.0443248837290596,
+        "charges": 2
+      }
+    },
+    {
+      "check": "z_ratio_clipped_but_z_J_not",
+      "ok": true,
+      "detail": {
+        "z_ratio": -1.0,
+        "z_J": -999990.0,
+        "note": "ratio 截到 -1 供观测；z_J 保留真实超支，供诊断与报告"
+      }
+    },
+    {
+      "check": "normalisation_invertible_inside_range",
+      "ok": true,
+      "detail": {
+        "z_values": [
+          -225.6069087767049,
+          -50.0,
+          0.0,
+          75.0,
+          225.6069087767049
+        ],
+        "round_trip": [
+          -225.6069087767049,
+          -50.0,
+          0.0,
+          75.0,
+          225.6069087767049
+        ],
+        "max_abs_dev": 0.0,
+        "outside_range": "CostAdapterError: ratio must lie in [-1, 1] to be invertible, got 1.5 (outside it the value was clipped and the inverse is not unique)"
+      }
+    },
+    {
+      "check": "unit_mixup_detectable",
+      "ok": true,
+      "detail": {
+        "correct_spend_J": 112.80345438835245,
+        "wrong_spend_J": 0.5,
+        "factor": 225.6069087767049,
+        "Z_REF_J": 225.6069087767049,
+        "conclusion": "把归一化值当焦耳会把支出低估 225.6 倍，预算永远不会耗尽"
+      }
+    },
+    {
+      "check": "negative_and_nonfinite_cost_rejected",
+      "ok": true,
+      "detail": {
+        "negative": "CostAdapterError: step cost must be non-negative, got -1.0",
+        "nan": "CostAdapterError: step cost must be finite, got nan",
+        "inf": "CostAdapterError: step cost must be finite, got inf"
+      }
+    },
+    {
+      "check": "out_of_domain_command_rejected",
+      "ok": true,
+      "detail": {
+        "msg": "CostAdapterError: command outside the power-model domain {'abs_vx': {'observed_max': 1.5, 'domain_max': 1.0}}; the model",
+        "domain": [
+          1.0,
+          0.4,
+          1.0
+        ]
+      }
+    },
+    {
+      "check": "reset_clears_budget_and_clock",
+      "ok": true,
+      "detail": {
+        "spent_before_J": 8.353311534806414,
+        "spent_after_reset_J": 0.36052963469140276,
+        "t_s_after_reset": 0.0,
+        "history_k": 0
+      }
+    },
+    {
+      "check": "history_k_zero_needs_no_augmentation",
+      "ok": true,
+      "detail": {
+        "history_k": 0,
+        "n_features": 10,
+        "note": "K=0：当前命令即完整 Markov 输入，观测不需要额外历史字段"
+      }
+    },
+    {
+      "check": "execution_ledger_isolated",
+      "ok": true,
+      "detail": {
+        "model_spent_J": 1.1976034878097521,
+        "execution_J": 3.2399999999999993,
+        "substeps": 20,
+        "conclusion": "执行能量只做审计，不参与预算扣减，否则 alpha 失去意义"
+      }
+    },
+    {
+      "check": "negative_work_not_credited",
+      "ok": true,
+      "detail": {
+        "total_J": 0.01,
+        "expected_J": 0.01
+      }
+    },
+    {
+      "check": "baseline_equals_nominal_energy",
+      "ok": true,
+      "detail": {
+        "full_J": 3.4137916720580033,
+        "baseline_J": 2.8675690846125756,
+        "ratio": 1.190482799656499
+      }
+    }
+  ]
+}

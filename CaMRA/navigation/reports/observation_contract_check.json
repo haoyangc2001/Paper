@@ -1,0 +1,328 @@
+{
+  "obs_version": "obs-v1",
+  "command_version": "cmd-v1",
+  "obs_dim": 41,
+  "n_checks": 28,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "check": "layout_total_dim",
+      "ok": true,
+      "detail": 41
+    },
+    {
+      "check": "layout_contiguous_no_overlap",
+      "ok": true,
+      "detail": {
+        "n_slices": 16,
+        "covered": 41
+      }
+    },
+    {
+      "check": "layout_arithmetic",
+      "ok": true,
+      "detail": {
+        "got": 41,
+        "want": 41
+      }
+    },
+    {
+      "check": "constants_match_contract",
+      "ok": true,
+      "detail": "all match"
+    },
+    {
+      "check": "command_max_matches_contract",
+      "ok": true,
+      "detail": {
+        "contract": [
+          [
+            -1.0,
+            1.0
+          ],
+          [
+            -0.4,
+            0.4
+          ],
+          [
+            -1.0,
+            1.0
+          ]
+        ],
+        "module": [
+          1.0,
+          0.4,
+          1.0
+        ]
+      }
+    },
+    {
+      "check": "layout_matches_contract",
+      "ok": true,
+      "detail": "field order and dims"
+    },
+    {
+      "check": "obs_dim_matches_contract",
+      "ok": true,
+      "detail": 41
+    },
+    {
+      "check": "z_ref_provenance",
+      "ok": true,
+      "detail": {
+        "z_ref_J": 225.6069087767049,
+        "recomputed": 225.6069087767049
+      }
+    },
+    {
+      "check": "deterministic",
+      "ok": true,
+      "detail": "identical on repeat"
+    },
+    {
+      "check": "all_finite",
+      "ok": true,
+      "detail": 41
+    },
+    {
+      "check": "nominal_equals_physical",
+      "ok": true,
+      "detail": [
+        {
+          "yaw": 0.0,
+          "bitwise_equal": true
+        },
+        {
+          "yaw": 0.3,
+          "bitwise_equal": true
+        },
+        {
+          "yaw": -2.9,
+          "bitwise_equal": true
+        },
+        {
+          "yaw": 3.141592653589793,
+          "bitwise_equal": true
+        },
+        {
+          "yaw": -3.1405926535897932,
+          "bitwise_equal": true
+        },
+        {
+          "yaw": 1.0,
+          "bitwise_equal": true
+        }
+      ]
+    },
+    {
+      "check": "tilted_heading_defined",
+      "ok": true,
+      "detail": {
+        "yaw": 0.4040662813978658
+      }
+    },
+    {
+      "check": "heading_undefined_raises",
+      "ok": true,
+      "detail": "internal_violation path"
+    },
+    {
+      "check": "yaw_wrap_continuity",
+      "ok": true,
+      "detail": {
+        "max_abs_diff": 2.4492935982947064e-16
+      }
+    },
+    {
+      "check": "obstacle_mask_counts",
+      "ok": true,
+      "detail": [
+        {
+          "n": 0,
+          "mask_sum": 0.0,
+          "expected_mask_sum": 0,
+          "bins_in_range": true,
+          "order_invariant": true
+        },
+        {
+          "n": 1,
+          "mask_sum": 1.0,
+          "expected_mask_sum": 1,
+          "bins_in_range": true,
+          "order_invariant": true
+        },
+        {
+          "n": 3,
+          "mask_sum": 3.0,
+          "expected_mask_sum": 3,
+          "bins_in_range": true,
+          "order_invariant": true
+        },
+        {
+          "n": 8,
+          "mask_sum": 8.0,
+          "expected_mask_sum": 8,
+          "bins_in_range": true,
+          "order_invariant": true
+        },
+        {
+          "n": 12,
+          "mask_sum": 8.0,
+          "expected_mask_sum": 8,
+          "bins_in_range": true,
+          "order_invariant": true
+        }
+      ]
+    },
+    {
+      "check": "obstacle_bins_range",
+      "ok": true,
+      "detail": "in [0,1]"
+    },
+    {
+      "check": "obstacle_order_invariance",
+      "ok": true,
+      "detail": "shuffle does not change encoding"
+    },
+    {
+      "check": "empty_map_silent",
+      "ok": true,
+      "detail": "no phantom obstacles"
+    },
+    {
+      "check": "z_ratio_signed_and_bounded",
+      "ok": true,
+      "detail": [
+        {
+          "z_J": -500.0,
+          "z_ratio": -1.0
+        },
+        {
+          "z_J": -50.0,
+          "z_ratio": -0.221624418645298
+        },
+        {
+          "z_J": 0.0,
+          "z_ratio": 0.0
+        },
+        {
+          "z_J": 120.0,
+          "z_ratio": 0.5318986047487152
+        },
+        {
+          "z_J": 1000.0,
+          "z_ratio": 1.0
+        }
+      ]
+    },
+    {
+      "check": "time_remaining_bounded_monotone",
+      "ok": true,
+      "detail": [
+        {
+          "t_s": -5.0,
+          "t_n": 0.0
+        },
+        {
+          "t_s": 0.0,
+          "t_n": 0.0
+        },
+        {
+          "t_s": 15.0,
+          "t_n": 0.5
+        },
+        {
+          "t_s": 30.0,
+          "t_n": 1.0
+        },
+        {
+          "t_s": 45.0,
+          "t_n": 1.0
+        }
+      ]
+    },
+    {
+      "check": "safety_y_binary",
+      "ok": true,
+      "detail": "y in {0,1}"
+    },
+    {
+      "check": "action_clipped_to_domain",
+      "ok": true,
+      "detail": {
+        "requested": [
+          1.0,
+          -0.4,
+          0.5
+        ],
+        "applied": [
+          1.0,
+          -0.4,
+          0.5
+        ],
+        "clipped": true
+      }
+    },
+    {
+      "check": "action_within_domain_not_clipped",
+      "ok": true,
+      "detail": {
+        "applied": [
+          0.5,
+          -0.1,
+          0.1
+        ],
+        "clipped": false
+      }
+    },
+    {
+      "check": "nonfinite_request_zeroed",
+      "ok": true,
+      "detail": {
+        "applied": [
+          0.0,
+          0.08000000000000002,
+          0.0
+        ],
+        "invalid": true
+      }
+    },
+    {
+      "check": "domain_fully_reachable",
+      "ok": true,
+      "detail": {
+        "applied": [
+          1.0,
+          0.4,
+          1.0
+        ]
+      }
+    },
+    {
+      "check": "single_applied_command_matters",
+      "ok": true,
+      "detail": {
+        "applied": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "dx_applied_m": 0.1,
+        "dx_requested_m": 0.2,
+        "P_applied_W": 39.29305940649039,
+        "P_requested_W": 138.6417249459821
+      }
+    },
+    {
+      "check": "all_fields_in_declared_range",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "check": "position_is_base_link_not_centroid",
+      "ok": true,
+      "detail": "centroid offset would change px_n"
+    }
+  ]
+}
