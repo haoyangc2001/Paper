@@ -2892,7 +2892,43 @@
       "depends_on": [
         "NAV-025"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T15:15:00+08:00",
+          "summary": "部分推进：编写完整复位/warmup/起点对齐验证脚本并上传；首次启动 Isaac 定位到缺失系统库 libXt.so.6 并用 LD_LIBRARY_PATH 修复，首启仍在 tmux 内进行，任务保持 false。",
+          "actions": [
+            "写 scripts/check_reset_warmup.py（已上传）：full_reset 覆盖 root/关节/时钟/previous_action/指令存储，warmup 用 v2 闭环跟踪零速度 0.5 s（5 个导航步），窗口起点取 warmup 后实测平面位姿仅对齐一次；容差预登记位置 1e-6 m、yaw 1e-6 rad；对比单跑/连跑 reset/批量环境；低层适配器走 action_manager.process_action 冻结路径。",
+            "在 tmux 内启动首次 AppLauncher 初始化（GPU 5，timeout 5400 s），用于一次性解包扩展。",
+            "定位首启卡住的根因：日志报 libMaterialXRenderHw.so 无法加载，依赖 libXt.so.6 缺失；tiger12 与 conda env lib 目录均有该库，只是 Kit 扩展加载器不搜 env lib 目录。",
+            "修复：向 /pub/data/caohy/v2_navigation.env 追加 LD_LIBRARY_PATH=env lib 目录（纯追加，不改任何包版本），重启首启后 libXt 报错数从 1 降为 0，进程继续加载中。",
+            "过程踩坑记录：pkill 的正则匹配到同一命令行里的文件名导致 SSH 自杀两次，已改用 [l] 括号模式并分两步执行。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/check_reset_warmup.py"
+          ],
+          "commands": [
+            "CUDA_VISIBLE_DEVICES=5 python /pub/data/caohy/tmp/isaac_first_launch.py（在 tmux 内，带 LD_LIBRARY_PATH 修复）"
+          ],
+          "results": [
+            "验证脚本就绪但未运行：需要 Isaac 首次初始化完成后才能执行。",
+            "阻塞根因已定位并修复：libXt.so.6 搜索路径缺失，修复后错误消失，但首启仍未完成（截至记录时仍在加载，xdgdata 158M 不变）。",
+            "后续步骤：等 FIRST_LAUNCH_OK 出现后，运行 check_reset_warmup.py 并按其 5 项检查完成本任务验收。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/tmp/isaac_first_launch.log（修复前后 libXt 错误计数 1 -> 0）",
+            "/pub/data/caohy/v2_navigation.env 追加的 LD_LIBRARY_PATH 行",
+            "CaMRA/navigation/scripts/check_reset_warmup.py 已上传待执行"
+          ],
+          "remaining_work": [
+            "等待 Isaac 首次初始化完成（tmux 会话 camra-nav-v2-20261110-bootstrap 内进行）",
+            "运行 scripts/check_reset_warmup.py 并调试至 5 项检查全过",
+            "写入 reports/reset_warmup_alignment.json 并完成 NAV-026 验收"
+          ],
+          "blockers": [
+            "Isaac 首次初始化仍在进行（一次性解包开销），未完成前无法运行复位/warmup 验证"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "复位root/关节/速度/上一动作/命令/动作历史/预算/y/计量器，再由v2闭环跟踪零速度warmup；不以零关节动作PD替代。",
         "窗口起点使用warmup后实际平面位姿只对齐一次；核查单环境与批处理无残留。"
