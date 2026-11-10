@@ -2541,11 +2541,51 @@
       "id": "NAV-021",
       "phase": "契约与名义环境",
       "goal": "预登记训练评价指标与计算预算",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-058"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T15:05:00+08:00",
+          "summary": "预登记训练评价指标与计算预算：实测名义环境吞吐（74-133 ms/步）作为资源依据，经用户批准向量化名义环境、每方法 3 种子、名义 SR 门禁 0.90 三项决定，并把训练、选择、评估、统计、诊断五类字段全部填成具体有限数值。",
+          "actions": [
+            "实测名义环境吞吐：L1 74.45 ms/步、L2 103.21 ms/步、L3 133.00 ms/步（纯 Python 标量），单回合 300 步 22-40 s，train 18 图一轮约 9 分钟；按 PPO 40 万步估算 6 个 run 约 68 小时串行，作为资源表依据。",
+            "向用户提出三项必须授权的决定（向量化、种子数、SR 门禁），获批准：向量化+逐位等价验证、每方法 3 种子（seed 0/1/2）、名义 SR>=0.90 且 CR=0（provisional，NAV-059 后只能收紧或维持）。",
+            "写 config/experiment_prereg_v1.json：三项用户决定、训练（4096 步/更新、上限 250 更新=102.4 万步、墙钟 6 h/run、CPU、每 25 更新存档、最终 checkpoint 取最后而非最好、无早停）、选择（9 图×2 方法×5 k=90 回合、墙钟 2 h）、评估（六个 split 共 192 回合，final_* 各 1 次 attempt、业务失败不重试）、统计（Wilson 95%、分层自助 10000 次、按地图与种子聚类、两主比较预先声明）、诊断（NAV-059 45 回合、NAV-060 18 回合、NAV-034/043 12 回合、合计上限 8 h）。",
+            "对账表：192 个业务回合按 split 分列；训练按更新数记账；诊断不计入业务分母；development 与 integration_pilot 永不进入最终报告。",
+            "更新 config/resource_budget_v1.json 到 1.1.0：formal_training_budget 从 pending_user_authorization 改为 authorized_2026_11_10，登记 run 数、每 run 上限与总墙钟 40 h；新增 formal_evaluation_quotas。",
+            "登记工程依赖：向量化名义环境已批准未实现，验收标准为逐位等价于标量实现，阻塞 NAV-036 起的训练任务。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/experiment_prereg_v1.json",
+            "CaMRA/navigation/config/resource_budget_v1.json"
+          ],
+          "commands": [
+            "python /pub/data/caohy/tmp/nav021_timing.py（在 tmux 内实测吞吐）",
+            "python /pub/data/caohy/tmp/patch_budget.py（登记正式配额）"
+          ],
+          "results": [
+            "吞吐实测：L1 13.4 步/s、L2 9.7 步/s、L3 7.5 步/s；这是向量化决策的量化依据。",
+            "训练：每 run 上限 102.4 万步、6 h、CPU、最终 checkpoint 取最后一个更新（按表现挑会破坏预登记）、无早停。",
+            "选择：budget_selection 90 回合，墙钟 2 h，网格不可增删，无可行预算记 no_feasible_budget。",
+            "评估：final_nominal/clean/perturbed 各 12/12/60 回合，均 1 次 attempt；业务失败不重试，基础设施错误换 run id 重跑且两次都报。",
+            "统计：比例用 Wilson 95%，连续量用分层自助（按 level 分层、按训练种子聚类、10000 次、种子固定 20261110）；两主比较预先声明，其余描述性。",
+            "诊断：NAV-059 五档速度×3 图×3 种子=45 回合（容差 0.05 m 与 0.05 rad/s，判据 >=90%）；NAV-060 18 回合；NAV-034/043 12 回合；合计墙钟 <=8 h。",
+            "门禁：G1 名义 SR>=0.90 且 CR=0，provisional；任何阈值看结果后不得修改。",
+            "对账：业务回合总数 192（6+12+90+12+12+60），分母由 split_manifest 固定。",
+            "资源：正式训练 6 个 run、总墙钟上限 40 h、CPU；物理评估 72 回合约 25 分钟 GPU。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/experiment_prereg_v1.json：三项用户决定（含依据与执行位置）、五类字段的具体数值、对账表、门禁、open_items 三项。",
+            "CaMRA/navigation/config/resource_budget_v1.json 1.1.0：formal_training_budget=authorized_2026_11_10 与 formal_evaluation_quotas。",
+            "/pub/data/caohy/tmp/nav021_timing.log 为吞吐实测原始输出。",
+            "吞吐与配额的关系可直接复算：1024000 步 × 0.103 s/步 ≈ 2.9 h/run（L2），与 6 h 上限一致。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "在正式学习前确定种子数、训练步数/资源上限、试验次数、checkpoint规则、稳定性与阶段可用性条件；未知资源选择先询问。",
         "冻结SR/Cost/CR/BVR/MC、无解/失败/缺失分母、置信区间及相关性处理；不能虚构已测目标或按最终结果倒定阈值。",
@@ -2558,7 +2598,7 @@
         "明确双方公平训练/预算规则，全部业务试验可对账，开发/正式/诊断数据不会混用。",
         "prereg中的诊断及正式资源均为具体有限数值，列阈值依据、方法公平性、无解/停滞/缺失口径，必要用户决定可追溯。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。experiment_prereg_v1.json 把五类字段全部填成具体有限数值，不留影响评分的未决项：训练（4096 步/更新、250 更新=102.4 万步、6 h/run、CPU、每 25 更新存档、最终取最后而非最好、无早停）、选择（90 回合、2 h、k 网格不可增删）、评估（192 业务回合分列、各 1 attempt、业务失败不重试）、统计（Wilson 95%、分层自助 10000 次按地图与种子聚类、两主比较预声明）、诊断（NAV-059 45 / NAV-060 18 / NAV-034/043 12 回合、合计 8 h 上限，容差与判据具体）。三项用户决定已登记（向量化+逐位等价、3 种子/方法、SR 门禁 0.90 provisional）。对账：192 回合由 split_manifest 固定分母，诊断不计入业务分母，development 与 pilot 永不进最终报告。resource_budget_v1 升 1.1.0，formal_training_budget 由 pending 改为 authorized_2026_11_10（6 run、40 h 上限）。吞吐实测 74-133 ms/步作为向量化依据，1024000 步 × 0.103 s ≈ 2.9 h/run 与上限一致。",
       "reference_ids": [
         "R03",
         "R08",

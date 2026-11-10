@@ -7,7 +7,10 @@
     "cpu": "AMD EPYC 9654 96-Core x2, 384 logical CPUs",
     "ram_gb_total": 503,
     "gpu": "8 x NVIDIA GeForce RTX 4090 24 GB",
-    "gpu_free_at_registration": [0, 2],
+    "gpu_free_at_registration": [
+      0,
+      2
+    ],
     "driver": "560.35.03",
     "disk_pub_avail": "27T",
     "note": "GPU 是共享资源；登记时 GPU 3 已占 21.7 GB、4/5/7 有活动，本任务不 reserve 任何卡"
@@ -52,26 +55,83 @@
   },
   "quick_check_quotas": {
     "note": "各诊断的配额在启动前登记到本文件对应条目；未登记不得启动",
-    "NAV-059_low_speed_executability": {"status": "not_started", "max_runs": 3, "max_wall_minutes": 60, "registered_at": null},
-    "NAV-060_closed_loop_margin_pilot": {"status": "not_started", "max_runs": 4, "max_wall_minutes": 120, "registered_at": null},
-    "NAV-034_short_training_recheck": {"status": "not_started", "max_runs": 2, "max_wall_minutes": 180, "registered_at": null},
-    "NAV-043_deployed_policy_recheck": {"status": "not_started", "max_runs": 2, "max_wall_minutes": 180, "registered_at": null}
+    "NAV-059_low_speed_executability": {
+      "status": "not_started",
+      "max_runs": 3,
+      "max_wall_minutes": 60,
+      "registered_at": null
+    },
+    "NAV-060_closed_loop_margin_pilot": {
+      "status": "not_started",
+      "max_runs": 4,
+      "max_wall_minutes": 120,
+      "registered_at": null
+    },
+    "NAV-034_short_training_recheck": {
+      "status": "not_started",
+      "max_runs": 2,
+      "max_wall_minutes": 180,
+      "registered_at": null
+    },
+    "NAV-043_deployed_policy_recheck": {
+      "status": "not_started",
+      "max_runs": 2,
+      "max_wall_minutes": 180,
+      "registered_at": null
+    }
   },
   "formal_training_budget": {
-    "status": "pending_user_authorization",
-    "reason": "计划明确不虚构正式种子/试验数/迭代数/GPU 小时；uncertainty_policy 要求冻结前展示具体资源表并取得授权",
-    "procedure": [
-      "1. 在 NAV-021 用短训练实测单位耗时（每 1e6 步的墙钟与显存）",
-      "2. 据此给出两种方法的迭代数与 GPU 小时估算区间",
-      "3. 展示资源表并取得用户明确授权",
-      "4. 授权后把数值写入本文件并标记 authorized，同时登记到评估协议",
-      "5. 未授权前只允许已登记的短测与 pilot"
-    ],
-    "must_not": "不得以未授权资源启动正式训练，不得事后追加配额冒充预登记"
+    "status": "authorized_2026_11_10",
+    "authorized_by": "user decision recorded in config/experiment_prereg_v1.json",
+    "runs": {
+      "methods": [
+        "uncalibrated",
+        "full"
+      ],
+      "seeds_per_method": [
+        0,
+        1,
+        2
+      ],
+      "runs_total": 6
+    },
+    "per_run_caps": {
+      "rollout_steps_per_update": 4096,
+      "max_updates": 250,
+      "max_total_steps": 1024000,
+      "wall_clock_hours": 6,
+      "device": "cpu",
+      "checkpoints_every_updates": 25,
+      "final_checkpoint": "last update, not best"
+    },
+    "vectorised_env": {
+      "required": true,
+      "acceptance": "bitwise equivalence with the scalar NominalNavEnv",
+      "status": "approved_not_started"
+    },
+    "total_wall_clock_cap_hours": 40
   },
   "authorization_record": {
     "user_approved_hardware_use": "2026-11-10 批准在 tiger11 继续推进计划（含本任务的结构性工作）",
     "formal_training_authorized": false,
     "note": "本文件登记的是短测/诊断上限与正式训练的确认流程，不是正式训练授权"
+  },
+  "version": "1.1.0",
+  "status_note": "v1.1.0：NAV-021 按用户 2026-11-10 的三项决定（向量化名义环境、每方法 3 种子、名义 SR 门禁 0.90 provisional）登记正式配额。短测上限不变。",
+  "formal_evaluation_quotas": {
+    "registered_by": "NAV-021",
+    "prereg": "config/experiment_prereg_v1.json v1.0.0",
+    "business_episodes_total": 192,
+    "breakdown": {
+      "integration_pilot": 6,
+      "development": 12,
+      "budget_selection": 90,
+      "final_nominal": 12,
+      "final_clean": 12,
+      "final_perturbed": 60
+    },
+    "physical_gpu_note": "final_clean 与 final_perturbed 共 72 个物理回合，按 32 并行 ≈ 3 批次 ≈ 25 分钟",
+    "diagnostics_total_episodes": 75,
+    "diagnostics_wall_clock_cap_hours": 8
   }
 }

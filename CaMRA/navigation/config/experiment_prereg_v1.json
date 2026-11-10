@@ -1,0 +1,183 @@
+{
+  "schema": "camra-navigation-experiment-prereg-v1",
+  "version": "1.0.0",
+  "owner": "NAV-021",
+  "created_at": "2026-11-10T14:55:00+08:00",
+  "status": "registered",
+  "depends_on": [
+    "NAV-058"
+  ],
+  "binding_contracts": {
+    "splits": "config/split_manifest_v1.json (hash 053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f)",
+    "budget_protocol": "config/budget_comparison_contract_v1.json v1.0.0",
+    "resource_caps": "config/resource_budget_v1.json",
+    "metrics": "doc/plan evaluation_contract.metrics"
+  },
+  "user_decisions_2026_11_10": {
+    "vectorized_nominal_env": {
+      "decision": true,
+      "condition": "必须通过逐位等价验证：同一 (level, seed) 与同一命令序列下，向量化实现与标量 NominalNavEnv 的位姿、成本、标签逐步完全相同",
+      "where_executed": "名义训练实现任务（NAV-035/036 区间），验收证据写入该任务记录",
+      "measured_basis": "标量实现实测 74-133 ms/步，40 万步约 11 小时/(方法×种子)，6 个 run 约 68 小时串行，不可接受"
+    },
+    "seeds_per_method": {
+      "decision": 3,
+      "seed_values": [
+        0,
+        1,
+        2
+      ],
+      "rng_rule": "torch.Generator(seed) 用于网络初始化与采样；环境侧不引入额外随机（地图由 split_manifest 的种子决定）",
+      "runs_total": 6
+    },
+    "sr_gate_nominal": {
+      "decision": 0.9,
+      "status": "provisional",
+      "review_by": "NAV-059 低速可执行性核验后复核；复核只能收紧或维持，不得在看最终结果后放宽"
+    }
+  },
+  "training": {
+    "algorithm": "PPO，双评价（V_c 成本 / V_h 可达性）+ 共同停止分段，按 value_objective_contract_v1",
+    "environment": "确定性名义环境（向量化后），train split 的 18 张地图",
+    "rollout_steps_per_update": 4096,
+    "max_updates": 250,
+    "max_total_steps_per_run": 1024000,
+    "wall_clock_cap_hours_per_run": 6,
+    "device": "cpu（网络为小 MLP，名义环境为 numpy；GPU 仅用于 Isaac Lab 物理评估）",
+    "checkpoint_rule": {
+      "save_every_updates": 25,
+      "final_checkpoint": "最后一个更新，不按验证表现挑选",
+      "why_not_best": "按表现挑 checkpoint 等于用评估结果选模型，会破坏预登记；曲线可以看，选择必须与表现无关"
+    },
+    "early_stop": "无早停。训练跑满预算；若未收敛，如实报告为负结果，不加跑、不改超参重训",
+    "hyperparameter_changes": "训练开始后不得改动任何超参；发现实现错误必须停止并记录，修复后从头重训该 run"
+  },
+  "selection": {
+    "split": "budget_selection（9 张地图）",
+    "per_method_per_map_episodes": 5,
+    "total_episodes": 90,
+    "grid": "budget_comparison_contract_v1 的五个 k 值，不得增删",
+    "search_rule": "从 k=0.70 递增，取第一个满足可行性要求的 k；无可行则记 no_feasible_budget",
+    "wall_clock_cap_hours": 2,
+    "monotonicity": "逐 (method, map) 记录非单调实例；不得据此改选更大的 k"
+  },
+  "evaluation": {
+    "final_nominal": {
+      "maps": 6,
+      "attempts_per_map_method": 1,
+      "episodes_total": 12
+    },
+    "final_clean": {
+      "maps": 6,
+      "attempts_per_map_method": 1,
+      "episodes_total": 12,
+      "note": "Isaac Lab，扰动关闭；GPU 预算按 32 并行 ≈ 3 批次 ≈ 25 分钟"
+    },
+    "final_perturbed": {
+      "maps": 6,
+      "attempts_per_map_method": 1,
+      "profiles": 5,
+      "episodes_total": 60,
+      "note": "扰动 profile 必须在看结果前冻结"
+    },
+    "development": {
+      "maps": 6,
+      "episodes_total": 12,
+      "reporting": "仅诊断，不得写成最终数字"
+    },
+    "integration_pilot": {
+      "maps": 3,
+      "episodes_total": 6,
+      "reporting": "接线证据，不入任何性能分母"
+    },
+    "retry_rule": "业务失败不重试；基础设施错误可换新 run id 重跑，两次都计入报告"
+  },
+  "statistics": {
+    "confidence_level": 0.95,
+    "proportion_intervals": "Wilson score interval（SR/CR/BVR 为二项比例）",
+    "continuous_intervals": "分层自助法：按 level 分层、按训练种子聚类，10000 次重采样，重采样种子固定 20261110",
+    "correlation_rule": "同一地图上的回合不独立，按地图聚类；同一训练种子下的回合共享网络，按种子聚类",
+    "multiplicity": "两个主比较（共同预算下的方法对比、自选预算对比）预先声明为主指标，不做额外校正；其余指标为描述性",
+    "denominators": "每个指标必须写明分母；全体业务试验分母由 split_manifest 固定，不随结果变化"
+  },
+  "diagnostics": {
+    "nav_059_low_speed": {
+      "speeds_mps": [
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.3
+      ],
+      "levels": 3,
+      "seeds_per_level_speed": 3,
+      "episodes_total": 45,
+      "tolerance": "跟踪误差 <= 0.05 m（位置）与 <= 0.05 rad/s（航向率），容差在首次运行前冻结",
+      "usability_criterion": "每档速度 >= 90% 回合无跌倒且跟踪达标；不达标即记录为 v2 低速局限，不得为此重训或禁用低速",
+      "wall_clock_cap_hours": 2
+    },
+    "nav_060_switching": {
+      "episodes_total": 18,
+      "design": "3 levels x 3 seeds x 2 条切换命令序列",
+      "criterion": "切换后 0.3 s 内命令被完整施加（单一 applied 规则），无中间旧指令残留",
+      "wall_clock_cap_hours": 1
+    },
+    "nav_034_043_candidate_check": {
+      "candidates_per_method": 2,
+      "maps": 3,
+      "episodes_total": 12,
+      "criterion": "候选 checkpoint 在 3 张开发图上无崩溃、无 NaN、标签可判定；这是工程可用性，不是性能评估",
+      "wall_clock_cap_hours": 2
+    },
+    "global_cap": "所有诊断合计 <= 8 h 墙钟；超限必须停下报告，不得加跑"
+  },
+  "gates": {
+    "G1_nominal_usability": {
+      "criterion": "名义 SR >= 0.90（final_nominal，两方法分别计算），且 CR = 0",
+      "status": "provisional",
+      "review_by": "NAV-059"
+    },
+    "G3_algorithm_numeric": "由 NAV-033 的独立数值对照判定，不在此处定值",
+    "no_result_based_changes": "任何门禁阈值在看到最终结果后不得修改；不达标即保留任务 false 并报告"
+  },
+  "accounting": {
+    "total_business_episodes": 192,
+    "breakdown": {
+      "integration_pilot": 6,
+      "development": 12,
+      "budget_selection": 90,
+      "final_nominal": 12,
+      "final_clean": 12,
+      "final_perturbed": 60
+    },
+    "training_accounted_by": "更新数与步数（每 run 上限 1024000 步），不按回合对账",
+    "diagnostics_excluded_from_business_denominator": true,
+    "separation_rule": "development 与 integration_pilot 的数字永不进入最终报告；budget_selection 只产出预算，不产出成功率"
+  },
+  "engineering_dependency": {
+    "item": "向量化名义环境",
+    "acceptance": "逐位等价于标量 NominalNavEnv（同 seed、同命令序列下位姿/成本/标签完全相同）",
+    "blocks": [
+      "NAV-036 起的训练任务"
+    ],
+    "status": "approved_by_user_2026_11_10",
+    "not_yet_implemented": true
+  },
+  "open_items": [
+    {
+      "item": "SR 门禁 0.90 为 provisional",
+      "owner": "NAV-059",
+      "action": "低速核验后复核，只能收紧或维持"
+    },
+    {
+      "item": "扰动 profile 的具体定义",
+      "owner": "NAV-046 之前的任务",
+      "action": "在看 final_perturbed 结果前冻结"
+    },
+    {
+      "item": "向量化名义环境的实现与等价验证",
+      "owner": "名义训练实现任务",
+      "status": "approved_not_started"
+    }
+  ]
+}
