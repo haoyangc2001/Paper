@@ -2159,11 +2159,52 @@
       "id": "NAV-017",
       "phase": "契约与名义环境",
       "goal": "实现膨胀后通路和时限可行检查",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-016"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T13:05:00+08:00",
+          "summary": "实现膨胀后通路与时限可行检查：网格只做搜索、路线逐段连续验证，能量给最快与赶时限两个界，起终点/连通/转弯/超时四类反例都被拒绝并记录原因；9 张正式地图全部准入。",
+          "actions": [
+            "写 src/camra_navigation/maps/feasibility.py：FreeSpace 栅格化名义约束（delta 只在内层用一次）、Dijkstra 八连通搜索、带连续净空检查的视线截断、path_stats（长度/转角/离散曲率）、max_feasible_speed、evaluate_path（净空、扫掠、命令、时间、两个能量界）、check_map/check_catalogue。",
+            "把两种失败分开：L/v_max 已超时记 timeout；L/v_max 够快但转弯把速度上限压到 v_cap 后超时记 turn_limited。",
+            "写 tests/test_map_feasibility.py 覆盖 14 项：9 图全准入、记录字段完整、净空与扫掠干净、时限满足、两个能量界单调、无实测冒充、连续检查能挡下直线穿岛、四类反例（堵死/目标在膨胀区/超时/转弯受限）被拒、转弯在真实 delta 下不成为约束、搜索路径不显著长于设计折线、最紧余量如实上报。",
+            "修正三处自身问题：无障碍时净空写成 inf（会让 JSON 出现非法 Infinity）→ 改为 null；能量只在最快速度算 → 补「恰赶时限速度」的下界；超时反例原先只加长场地（起终点没动，路线仍是 17 m）→ 改为起终点相距 32 m。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/maps/feasibility.py",
+            "CaMRA/navigation/tests/test_map_feasibility.py",
+            "CaMRA/navigation/reports/map_feasibility.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_map_feasibility.py --json CaMRA/navigation/reports/map_feasibility.json（在 tmux 内，网格 0.15 m）"
+          ],
+          "results": [
+            "9 张正式地图全部准入，无一条 reasons：网格连通、连续净空、扫掠检查全部通过。",
+            "时限：最短用时 13.95–17.12 s（v_cap 均顶到 1.0 m/s），离 30 s 有 13–16 s 余量；所需巡航速度 0.465–0.571 m/s。",
+            "能量两个界：恰赶时限速度下 362.5–485.3 J，最快速度下 554.0–688.3 J；前者是最省的合规跑法，后者是上限，两者都明确标为名义预测。",
+            "最紧名义余量 0.0123 m（L2-s13）：最短路径贴着膨胀边界走，物理净空仍有 2.75 m。准入判据是 >0，但余量这么小说明最短路径不等于最稳路径。",
+            "反例一（直线穿岛）：L2 起点直达终点的直线被判 corner_clip_after_shortcut + sweep_collision，最小名义 margin=-3.94，而起点本身在自由空间内——网格连通不代表直线可行。",
+            "反例二（堵死）：把岛加深到 40 m 后 free_fraction 大幅下降，判 no_connected_path。",
+            "反例三（目标在膨胀区）：目标移到 (0,3) 后 goal_margin≈-1.19，判 goal_outside_free。",
+            "反例四（超时）：起终点相距 32 m，路线 34.06 m，按 1.0 m/s 需 34.06 s，判 timeout。",
+            "反例五（转弯受限）：合成方波 20 m、曲率 1.571 /m，v_cap=0.637 m/s，按最大速度 20 s 够快但实际需 31.42 s，判 turn_limited 且名义 margin=1.88>0（不是几何问题）。",
+            "真实 delta 下转弯从不是约束：9 张图的 t_min 与 t_at_vmax 完全相等，说明 delta=3.12 m 把通道撑得很宽，时限才是唯一约束。",
+            "与 NAV-016 设计折线对比：L2 搜索路径比设计折线短 1.83 m（设计折线强制每道门取边控制点），L3 略长 0.1 m（网格分辨率量级）。",
+            "所有记录 physical_status=not_measured，标注物理证据由 NAV-028/059 补齐；selection_rule 写明准入在训练前、不按策略成绩重选地图。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/src/camra_navigation/maps/feasibility.py：模块文档说明网格只用于搜索、两类失败分开、不把名义预测当实测。",
+            "CaMRA/navigation/reports/map_feasibility.json：14 项检查全 ok、9 张地图的长度/速度/时间/两能量界/净空/扫掠/命令数/折线，以及 5 个反例的原因。",
+            "CaMRA/navigation/tests/test_map_feasibility.py 可复跑；/pub/data/caohy/tmp/nav017_test.log 为 tmux 内原始输出。",
+            "未修改冻结的 geometry/power；障碍与足迹仍只读导入。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "在训练前检查起终点、边界、连通性和连续可行路线；独立规划仅作通路/受限参考验证。",
         "离散网格连通不代替连续碰撞检查；路线同时满足命令域和30秒时限，失败地图不能减δ后冒充通过。",
@@ -2175,7 +2216,7 @@
         "堵死通道、转弯不可行、目标在膨胀区、路线超时等反例被拒绝并记录原因。",
         "map_feasibility列每个路径的长度/命令/时间/预测能量/最小净空和连续碰撞结果，物理证据由NAV-059/028补齐；不将名义预测标为实测。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。feasibility.py 用 0.15 m 栅格只做搜索，随后对路线逐 0.1 m 连续验证（名义 margin、物理净空、逐段扫掠），并把超时分成 timeout 与 turn_limited 两类。9 张正式地图全部准入：最短用时 13.95-17.12 s（离 30 s 余 13-16 s），v_cap 均顶到 1.0 m/s，所需巡航速度 0.465-0.571 m/s，两个能量界 362.5-485.3 J（赶时限）与 554.0-688.3 J（最快），最紧名义余量 0.0123 m（物理净空仍 2.75 m）。5 个反例全部被拒并记录原因：直线穿岛（margin=-3.94，判 corner_clip+sweep）、堵死（no_connected_path）、目标在膨胀区（goal_outside_free）、起终点相距 32 m 超时（timeout，34.06 s）、方波曲率 1.571 使 v_cap=0.637 导致 31.42 s（turn_limited，且名义 margin=1.88 说明不是几何问题）。真实 delta 下 t_min 与 t_at_vmax 全等，证明转弯不是约束、时限才是。所有记录 physical_status=not_measured，物理证据留给 NAV-028/059；无障碍地图净空写 null 以免 JSON 出现 Infinity。",
       "reference_ids": [
         "R09",
         "R10",
