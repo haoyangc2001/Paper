@@ -2231,11 +2231,66 @@
       "id": "NAV-018",
       "phase": "契约与名义环境",
       "goal": "实现确定性名义导航环境",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-017"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T12:48:00+08:00",
+          "summary": "组装确定性名义导航环境：复用冻结闭式积分器，按 0.1 s 结算成本并只扣一次预算，按冻结优先级给唯一标签，结束即拒绝再步进；同时按契约扩展规则把障碍图元从圆形扩为圆形或凸多边形并把观测升到 obs-v2。15 项检查与原有 28 项观测检查全部通过。",
+          "actions": [
+            "读 NAV-012 冻结事件表与判定流程（8 个事件、10 步顺序、internal_violation 正交），据此实现标签逻辑而不是自拟。",
+            "核对付观察契约 map_encoding：obs-v1 只接受 circle，且 extension_rule 明确要求非圆图元必须扩核升版、不得静默复用 radius；而 NAV-016 冻结的岛是矩形，故按规则执行扩展。",
+            "扩展 observation.py：新增 PolygonObstacle 与 obstacle_from_polygon，surface_distance 按图元分派；方位角统一改为指向最近表面点的方向（圆在外部时与旧口径完全一致），OBS_VERSION 升为 obs-v2。",
+            "更新 navigation_contract_v1.json 到 1.3.0：observation_version 与 observation_spec.version 均改为 obs-v2，map_encoding 写明两种图元、各自核公式、排序键变化、extension_rule 已执行，并新增 version_history 与 polygon_support 说明为何不做外接圆近似。",
+            "写 src/camra_navigation/envs/nominal.py：NominalNavEnv 提供 reset(seed)/step(action)/observation()/result()/trace()，墙体按四个外侧薄矩形参与物理碰撞，danger 与 internal_violation 分别记录，标签按 fall 之外的可达顺序判定。",
+            "写 tests/test_nominal_env.py 覆盖 15 项：观测版本、积分器一致性、确定性、种子复现、单步成本、预算累计、安全历史不可逆、内部违反正交、结束后拒绝步进、六个标签各自触发、同刻到达优先于预算、观测与编码器一致、多边形距离与方位、三级地图预设可跑、严格 JSON。",
+            "写 scripts/check_nominal_env.py：可指定 level/preset/steps/z0/variant 跑出逐 20 步表格与完整账本 JSON。",
+            "在 tmux 内用登记解释器先回归 test_observation_contract.py（28 项全过），再跑新测试，最后跑 L2 演示。",
+            "修正自己两处测试算术错误：0.6 m/s 单个区间只花约 2.05 J 而非超过 5 J，预算耗尽用例的 z0 应由 5 J 改为 1 J；对照圆半径取 1.0 且圆心应在原点，原写法把表面距离算成 2.0 m。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/observation.py",
+            "CaMRA/navigation/src/camra_navigation/envs/__init__.py",
+            "CaMRA/navigation/src/camra_navigation/envs/nominal.py",
+            "CaMRA/navigation/tests/test_nominal_env.py",
+            "CaMRA/navigation/scripts/check_nominal_env.py",
+            "CaMRA/navigation/config/navigation_contract_v1.json",
+            "CaMRA/navigation/reports/nominal_env_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_observation_contract.py --json CaMRA/navigation/reports/observation_contract_check.json（在 tmux 内，回归）",
+            "python CaMRA/navigation/tests/test_nominal_env.py --json CaMRA/navigation/reports/nominal_env_check.json（在 tmux 内）",
+            "python CaMRA/navigation/scripts/check_nominal_env.py --level L2_single_detour --preset forward --steps 200 --z0 5000 --json /pub/data/caohy/logs/camra_navigation/nominal_demo_L2.json（在 tmux 内）"
+          ],
+          "results": [
+            "观测版本：obs-v2，维度仍 41；契约 1.3.0 记录图元集合扩展与原因，旧 28 项检查逐位通过（n_failed=0）。",
+            "积分器：integrate() 与 camra_calibration.nominal.step_exact 在四个位姿下逐位相同（max_abs_diff=0.0），直线退化情形 dx=0.06 m 精确。",
+            "确定性：同一 40 步 mixed 序列两次运行产生完全相同的账本（35184 字节），步数与标签一致。",
+            "种子：jitter=0.05 时 seed=7 两次初态完全相同、seed=8 不同；jitter=0 时初态严格等于 spec.start。",
+            "成本：首步 power 与冻结 PowerModel.step_power 完全一致，cost_nom=power×0.1、cost_model=(1+α)×cost_nom；30 步累计扣账与逐步求和差小于 1e-9 J。",
+            "六个可达标签各自在正确条件下触发：collision（L2 直行第 94 步、x=-1.360、接触净空 0.0）、goal_reached（1 步、距目标 0.24 m）、budget_exhausted（z0=1 J 时 z_J=-1.0497、overshoot 1.0497 J）、stagnation（t=3.000 s、位移 0.0）、timeout（t=30.000 s、300 步）、out_of_bounds（起点在场地外 5 m，一步后 x=16.06 越过 11）。",
+            "优先级：同一区间既到达又超预算时取 goal_reached（z_J≤0 且 d_goal≤r_goal），符合冻结顺序。",
+            "正交性：进入 delta 带的区间只置 danger_violation、internal_violation 与 safety_y，label 保持为空，直到发生实际碰撞才结束。",
+            "无自动复位：结束后再次 step 抛 EpisodeOverError，位姿与步数均不变，满足「终止不混入新回合状态」。",
+            "观测：env.observation() 与 encode_observation(ego, polygons, extent, task) 返回同一向量，41 维且全部有限。",
+            "多边形图元：矩形岛最近面在正前方时表面距离 3.0 m、方位角 0，与该矩形在同等姿态下的冻结点距离完全一致；等价圆取到同一最近点时两者数值相同。",
+            "三级地图预设：L1/L2/L3 各 20 步均正常推进，累计成本 40.99 J、观测 41 维、无标签。",
+            "演示（L2 forward 200 步、z0=5000 J）：9.40 s 撞中央岛，94 步、行程 5.64 m，名义成本 161.84 J、模型成本 192.67 J，delta 带内 47 步，safety_y=1；账本写入 /pub/data/caohy/logs/camra_navigation/nominal_demo_L2.json。",
+            "账本可严格序列化（allow_nan=False 通过），physical_status 恒为 not_measured。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nominal_env_check.json：15 项检查全 ok、verdict=PASS，含六标签的触发位姿与时间、三个级别的预设运行结果。",
+            "CaMRA/navigation/reports/observation_contract_check.json：回归后 28 项全过，证明 obs-v2 对圆形地图编码逐位不变。",
+            "CaMRA/navigation/docs/../config/navigation_contract_v1.json 1.3.0：observation_version=obs-v2、map_encoding.version_history 与 polygon_support 记录扩展依据。",
+            "/pub/data/caohy/logs/camra_navigation/nominal_demo_L2.json 与 /pub/data/caohy/tmp/nav018_demo.log 为可复查的完整账本与原始输出。",
+            "未修改任何冻结文件（power.py、step_cost.py、geometry.py、footprint_v1、margins_v1 均只读）。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "复用step_exact并封装reset/step/观测/地图/目标/y/z/time，原始安全和膨胀约束按契约分别记录。",
         "不启用物理扰动；采样随机性使用独立可记录的rng，回合终止不混入自动复位的新状态。"
@@ -2244,7 +2299,7 @@
         "同状态同实际动作同dt得到同后继、成本和标签；seed复现地图/初态。",
         "无障碍/单障碍/多路径均可用预设指令运行，所有状态/日志与契约一致。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。src/camra_navigation/envs/nominal.py 复用冻结 step_exact（四位姿逐位相同、max_abs_diff=0.0），按 0.1 s 结算成本并只扣一次预算（累计扣账与步和一致），按冻结优先级给唯一标签。15 项检查全过：同一 40 步序列两次账本完全相同；seed=7 复现初态、seed=8 不同；六个可达标签各自在正确条件触发（collision 94 步 x=-1.360、goal 0.24 m、budget z_J=-1.0497 且 overshoot 1.0497 J、stagnation t=3.000 s、timeout t=30.000 s 300 步、out_of_bounds x=16.06）；同刻到达优先于预算耗尽；internal_violation 正交不改 label；结束后 step 抛 EpisodeOverError 且位姿不变。因 NAV-016 冻结图元为矩形，按契约 extension_rule 将观测扩为 obs-v2（图元 circle|convex_polygon，布局/维度 41/常数不变），旧 28 项观测检查回归全过；矩形最近面表面距离 3.0 m、方位 0 与冻结点距离一致。三级地图预设各 20 步正常推进，账本可严格 JSON 序列化且 physical_status=not_measured。",
       "reference_ids": [
         "R03",
         "R05",

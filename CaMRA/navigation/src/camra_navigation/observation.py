@@ -53,6 +53,8 @@ __all__ = [
     "OBSTACLE_SORT_RULE",
     "EgoState",
     "Obstacle",
+    "PolygonObstacle",
+    "obstacle_from_polygon",
     "MapExtent",
     "TaskState",
     "CommandRecord",
@@ -66,7 +68,13 @@ __all__ = [
 ]
 
 #: Version of the observation layout and of every constant below.
-OBS_VERSION = "obs-v1"
+#: ``obs-v1`` supported circles only.  NAV-016 froze rectangular islands, and the
+#: contract's ``map_encoding.extension_rule`` forbids reusing ``radius`` for a
+#: different primitive, so ``obs-v2`` widens the primitive set to circles *and*
+#: convex polygons.  The layout, dimension and every constant are unchanged;
+#: only the accepted primitive set grew, which is why the 28 obs-v1 checks still
+#: hold bit-for-bit on circle maps.
+OBS_VERSION = "obs-v2"
 #: Version of the action/normalisation mapping.
 COMMAND_VERSION = "cmd-v1"
 
@@ -167,15 +175,51 @@ class EgoState:
 class Obstacle:
     """A circular obstacle primitive in world coordinates, metres.
 
-    Circle primitives are all that ``obs-v1`` supports.  If NAV-017 freezes a
-    different primitive (polygon, segment), the geometry kernel must be extended
-    and the observation version bumped; silently reinterpreting ``radius`` is not
-    allowed.
+    Circles are one of the two primitives ``obs-v2`` accepts.  ``radius`` is only
+    ever a radius; turning a polygon into a circle is a separate, declared step
+    (:func:`obstacle_from_polygon`) and never a reinterpretation of this field.
     """
 
     cx: float
     cy: float
     radius: float
+
+
+@dataclass(frozen=True)
+class PolygonObstacle:
+    """A convex polygon primitive in world coordinates, metres.
+
+    Added with ``obs-v2`` because NAV-016 froze rectangular islands and the
+    contract forbids encoding a polygon through a ``radius``.  Coverage of a
+    rectangle by circles would either need many primitives (capacity is 8) or one
+    circumscribed circle that is ~0.4 m too fat per side — enough to close the
+    0.76 m free lane a 7 m corridor leaves after the delta inflation, so the
+    polygon has to be carried through honestly instead of approximated.
+    """
+
+    vertices: tuple[tuple[float, float], ...]
+    label: str = ""
+
+    def __post_init__(self) -> None:
+        if len(self.vertices) < 3:
+            raise ValueError(f"a polygon needs at least 3 vertices, got {len(self.vertices)}")
+        for x, y in self.vertices:
+            if not (math.isfinite(float(x)) and math.isfinite(float(y))):
+                raise ValueError("polygon vertices must be finite")
+
+    @property
+    def centroid(self) -> tuple[float, float]:
+        n = float(len(self.vertices))
+        return (
+            sum(float(v[0]) for v in self.vertices) / n,
+            sum(float(v[1]) for v in self.vertices) / n,
+        )
+
+
+def obstacle_from_polygon(vertices, *, label: str = "") -> PolygonObstacle:
+    """Wrap polygon vertices as an observation primitive (no simplification)."""
+    pts = tuple((float(v[0]), float(v[1])) for v in vertices)
+    return PolygonObstacle(vertices=pts, label=label)
 
 
 @dataclass(frozen=True)
@@ -210,16 +254,75 @@ class CommandRecord:
 
 
 # --- geometry kernel --------------------------------------------------------
+def _nearest_on_boundary(px: float, py: float, verts):
+    """Closest point on the polygon boundary, as ``(distance, qx, qy)``."""
+    best_d = math.inf
+    best_q = (px, py)
+    n = len(verts)
+    for i in range(n):
+        ax, ay = verts[i]
+        bx, by = verts[(i + 1) % n]
+        ex, ey = bx - ax, by - ay
+        seg2 = ex * ex + ey * ey
+        if seg2 <= 0.0:
+            qx, qy = ax, ay
+        else:
+            t = ((px - ax) * ex + (py - ay) * ey) / seg2
+            t = 0.0 if t < 0.0 else (1.0 if t > 1.0 else t)
+            qx, qy = ax + t * ex, ay + t * ey
+        d = math.hypot(px - qx, py - qy)
+        if d < best_d:
+            best_d, best_q = d, (qx, qy)
+    return best_d, best_q[0], best_q[1]
+
+
+def _point_in_convex(px: float, py: float, verts) -> bool:
+    """Cross-product sign test; the polygon is convex by contract."""
+    n = len(verts)
+    pos = neg = False
+    for i in range(n):
+        ax, ay = verts[i]
+        bx, by = verts[(i + 1) % n]
+        cross = (bx - ax) * (py - ay) - (by - ay) * (px - ax)
+        if cross > 1e-12:
+            pos = True
+        elif cross < -1e-12:
+            neg = True
+        if pos and neg:
+            return False
+    return True
+
+
+def _polygon_surface_distance(ego: EgoState, obstacle: "PolygonObstacle") -> tuple[float, float]:
+    verts = [(float(v[0]), float(v[1])) for v in obstacle.vertices]
+    d, qx, qy = _nearest_on_boundary(ego.px, ego.py, verts)
+    inside = _point_in_convex(ego.px, ego.py, verts)
+    surf = 0.0 if inside else d
+    if d <= 1e-12:
+        # base_link sits on the boundary: the contact direction is degenerate,
+        # so fall back to the centroid direction rather than emitting noise.
+        cx, cy = obstacle.centroid
+        bx, by = world_to_body_vector(ego.yaw, cx - ego.px, cy - ego.py)
+        return (surf, math.atan2(by, bx))
+    bx, by = world_to_body_vector(ego.yaw, qx - ego.px, qy - ego.py)
+    return (surf, math.atan2(by, bx))
+
+
 def surface_distance(
-    ego: EgoState, obstacle: Obstacle
+    ego: EgoState, obstacle
 ) -> tuple[float, float]:
     """Return ``(surface_distance_m, bearing_rad)`` of one obstacle from base_link.
 
     ``surface_distance`` is the gap between the base_link origin and the
-    primitive surface, clamped at zero: a negative centre distance (robot inside
-    the primitive) yields ``0.0``.  The bearing is the body-frame angle of the
-    primitive centre, in ``[-pi, pi)``.
+    primitive surface, clamped at zero: a point inside the primitive yields
+    ``0.0``.  The bearing is the body-frame angle of the **nearest surface
+    point**, in ``[-pi, pi)``.  For a circle seen from outside the nearest point
+    lies on the centre ray, so this reproduces the ``obs-v1`` circle behaviour
+    exactly; for a long rectangle it reports the direction of the face you would
+    actually hit, not the direction of the centroid.
     """
+    if isinstance(obstacle, PolygonObstacle):
+        return _polygon_surface_distance(ego, obstacle)
     dx, dy = world_to_body_vector(ego.yaw, obstacle.cx - ego.px, obstacle.cy - ego.py)
     centre = math.hypot(dx, dy)
     return (max(0.0, centre - max(0.0, float(obstacle.radius))), math.atan2(dy, dx))

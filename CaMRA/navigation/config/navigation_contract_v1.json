@@ -1,6 +1,6 @@
 {
   "schema": "camra-navigation-contract-v1",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "created_at": "2026-11-10T10:22:00+08:00",
   "owner_tasks": [
     "NAV-055",
@@ -9,7 +9,7 @@
     "NAV-056"
   ],
   "status": "partial",
-  "status_note": "v1.2.1：NAV-056 确认 Z_REF_J 为场景级归一化尺度（值未替换），成本/可达性尺度与共同停止契约落在 config/value_objective_contract_v1.json；观测与动作语义未改。",
+  "status_note": "v1.3.0：NAV-018 组装名义环境时发现 NAV-016 冻结的地图图元是矩形岛，而 obs-v1 只接受圆形。按 map_encoding.extension_rule 的要求扩展几何核并升版本到 obs-v2，未静默复用 radius。布局、维度（41）与全部常数不变，仅图元集合从 circle 扩为 circle|convex_polygon，故圆形地图的编码逐位不变。",
   "controller": {
     "id": "camra_go2_velocity_it2999_v2",
     "bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
@@ -417,7 +417,7 @@
       "confirm_by": "NAV-031 算法迁移时与 PPO 动作分布一并确认"
     }
   ],
-  "observation_version": "obs-v1",
+  "observation_version": "obs-v2",
   "action_version": "cmd-v1",
   "frames_and_conventions": {
     "world_frame": {
@@ -460,7 +460,7 @@
     "wrap_rule": "只在比较与显示时用 wrap_angle 折到 (-pi, pi]；轨迹与状态本身不折"
   },
   "observation_spec": {
-    "version": "obs-v1",
+    "version": "obs-v2",
     "total_dim": 41,
     "concatenate": true,
     "layout": [
@@ -760,17 +760,39 @@
       "obstacle_capacity": "provisional，NAV-017 保证 6 m 感知半径内图元数不超过 8；超出部分按规则丢弃并记数"
     },
     "map_encoding": {
-      "primitive_kind": "circle(center_xy, radius)",
+      "primitive_kind": "circle(center_xy, radius) | convex_polygon(vertices)",
       "primitive_owner": "NAV-017（地图生成）",
-      "kernel": "surface_distance = max(0, |center - base_link| - radius)，机身系方位分箱",
+      "kernel": "circle：surface_distance = max(0, |center - base_link| - radius)；convex_polygon：surface_distance = 0（base_link 在内部）否则到边界的精确点-多边形距离。方位角一律取「指向最近表面点」的方向；圆在外部时最近点位于圆心射线上，故与 obs-v1 完全一致。",
       "overflow_rule": "按 (表面距离, 方位) 升序保留前 8 个；被丢弃数量写入 step record 的 dropped_obstacles",
       "no_perception": "使用仿真真值与地图图元，首轮不做部分可观测感知任务",
-      "extension_rule": "若 NAV-017 冻结非圆形图元（多边形/线段），必须扩展几何核并升 obs 版本，不得静默复用 radius"
+      "extension_rule": "已执行：NAV-018 升 obs-v2。后续若出现非凸图元或线段，必须再次扩核升版",
+      "sort_key_note": "按 (表面距离, 机身系方位) 升序；矩形改用最近表面点方位后，长边的方位不再等于质心方位",
+      "version_history": [
+        [
+          {
+            "version": "obs-v1",
+            "change": "初版，仅圆形图元",
+            "task": "NAV-013"
+          },
+          {
+            "version": "obs-v2",
+            "change": "图元集合扩为 circle|convex_polygon；布局/维度/常数不变",
+            "task": "NAV-018",
+            "why": "NAV-016 冻结的岛是矩形；用圆覆盖要么需要超过 8 个图元，要么外接圆每侧多出约 0.4 m，足以堵死 7 m 通道在 delta 膨胀后仅剩的 0.76 m 自由带"
+          }
+        ]
+      ]
     },
     "nominal_physical_identity": {
       "rule": "两端调用同一 encoder；物理侧只负责把 root_pos/root_quat/实测速度转成同一 EgoState",
       "test": "tests/test_observation_contract.py::nominal_equals_physical（逐位相等，覆盖 yaw=0/0.3/-2.9/±pi/1.0）",
       "expected_differences": "只有来源不同造成的数值差，不允许编码规则不同"
+    },
+    "polygon_support": {
+      "added_in": "obs-v2",
+      "why_not_circles": "矩形 2x2 m 若用外接圆近似，半径 1.414 m 而非半对角以外的真实形状；每侧多出的面积会改变可通行判断，因此不做近似，直接携带多边形。",
+      "exactness": "点-凸多边形距离与包含判定都是精确的（与 maps/geometry.polygon_distance_exact 同源判据）",
+      "capacity_effect": "一组矩形岛仍各占 1 个槽位（L3 为 2 个），未触及 OBSTACLE_CAPACITY=8"
     }
   },
   "action_spec": {
