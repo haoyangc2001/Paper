@@ -861,9 +861,44 @@
       "id": "NAV-001",
       "phase": "背景学习",
       "goal": "建立新上下文的仓库与授权基线",
-      "status": false,
+      "status": true,
       "depends_on": [],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-09T23:48:00+08:00",
+          "summary": "建立仓库与授权基线：核对 HEAD/分支/子模块/工作树，通读 AGENTS、各模块 README、计划全文与技能执行规则，产出 docs/onboarding.md。",
+          "actions": [
+            "采集主仓库 HEAD、分支、tracked 改动、untracked 文件与 HiRA 子模块状态；未执行 pull/reset/clean。",
+            "通读 AGENTS.md、根与各模块 README、doc/README.md。",
+            "通读导航计划全文：document、background、goal、scope、global_constraints(24)、uncertainty_policy、runtime_contract、method_contract、map_contract、evaluation_contract、reference_map(13)、paths、gates(8)、60 项 tasks、final_acceptance(15)、upstream_correction_policy。",
+            "阅读 CaMRA/calibration/docs/controller_comparison_status_20261109.md 与技能 execution-rules.md。",
+            "盘点 navigation/locomotion/calibration/RC-PPO/HiRA/manuscripts 的实际状态，区分已核验资源与待核验项。",
+            "写入 CaMRA/navigation/docs/onboarding.md（本任务唯一新增文件）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/onboarding.md"
+          ],
+          "commands": [
+            "git rev-parse HEAD; git rev-parse --abbrev-ref HEAD",
+            "git status --porcelain -uno; git ls-files --others --exclude-standard",
+            "git submodule status; git -C HiRA status --porcelain -uno; git -C HiRA rev-parse HEAD",
+            "python3 /tmp/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+          ],
+          "results": [
+            "HEAD=8eddd8fc16f212554d7d833ad0bb816b3cc871ef，分支 main。",
+            "tracked 改动与 untracked 文件均为空；HiRA 子模块 6a05af55521e5f6668c50e9f90cf7049b3e35cd9，内部无改动。",
+            "HEAD 较计划创建时的 35a7b4a 多 2 个文档提交（3108413、8eddd8f），未触及代码与冻结产物。",
+            "CaMRA/navigation 仍然只有 README，计划的 proposed_* 路径均为拟建。",
+            "计划 runtime_contract.python_hint 指向 isaaclab 0.54.2 的 env_isaaclab，与实际使用的 env_isaaclab_v0472(0.47.2) 不一致，待 NAV-008 裁定。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/onboarding.md 记录快照、dirty 归属、硬约束、阅读清单、现状盘点与资源位点。",
+            "校验器输出 VALID (mode=update)。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "完整读取AGENTS、根/各模块README、本计划全文和技能执行规则；检查主仓库与HiRA子模块及已有修改，不执行git pull/reset/clean。",
         "区分历史任务完成、科学表现和本计划未实施状态；本机静态工作不作为服务器运行证据。",
@@ -873,7 +908,7 @@
         "背景笔记记录实际HEAD/子模块、dirty文件归属、用户硬约束及阅读清单。",
         "列明当前导航仅README、哪些旧资源已存在和哪些需在tiger11核验；无未知修改被清除。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。onboarding.md 记录实际 HEAD 8eddd8f、分支 main、HiRA 子模块 6a05af5、tracked/untracked 均为空（无未归属改动，未清除任何修改）、7 条用户硬约束与完整阅读清单；并明确 navigation 仅 README、已有 v2 冻结包/资产/权重/日志/隔离环境属已核验事实、runtime_paths.json 与 python_hint 冲突待 NAV-008 裁定。",
       "reference_ids": [
         "R01",
         "R06",
@@ -887,11 +922,46 @@
       "id": "NAV-002",
       "phase": "背景学习",
       "goal": "理解方法定义及本轮科学问题",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-001"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-09T23:56:00+08:00",
+          "summary": "只读研读论文问题定义与方法、RC-PPO 说明与校准步成本/功率模型实现，写出从状态到物理执行的完整因果链、三种执行的区别及校准适用性缺口。",
+          "actions": [
+            "读 main.tex §3 Problem Formulation（MCRA 目标、增广状态 y/z、增广目标 ĝ、闭环执行定义）与 §4（系统概览、冻结速度接口、执行失配校准、鲁棒 MCRA 学习与部署）。",
+            "读 RC-PPO/README.md 了解原算法定位与代码阅读顺序。",
+            "读 calibration/src/camra_calibration/step_cost.py 的预算契约（只接受 J、c_t=(1+α)c_nom、history_k 增广规则）与 power.py 的接口。",
+            "读 config/power_model_v1.json 确认 history_k=0、step_cost_dt=0.1、domain 为 |vx|≤1.0/|vy|≤0.4/|wz|≤1.0。",
+            "把方法理解、三种执行区分、适用性缺口与待裁定项追加到 docs/onboarding.md。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/onboarding.md"
+          ],
+          "commands": [
+            "grep -n 章节结构 manuscripts/CCDC/latex/1029/main.tex",
+            "sed -n 192,380p manuscripts/CCDC/latex/1029/main.tex",
+            "sed -n 1,70p CaMRA/calibration/src/camra_calibration/step_cost.py",
+            "python3 -c 读取 power_model_v1.json 的 domain/history_k/step_cost_dt"
+          ],
+          "results": [
+            "因果链写清：π(u|o,y,z) → u_t=[vx,vy,wz] 10Hz → f̄_cl 平面积分 → c_nom=P̂_nom(u)·0.1s → z-=（1+α)c_nom → F_δ 与不可逆 y → ĝ=max{g,Cy,-z} → W=max{V_h,V_c-z/z_ref} → 冻结 v2 执行 → J_exec 单独记账。",
+            "确认 α 只作用于成本侧、δ 只作用于安全侧，且各只计一次。",
+            "区分确定性名义（纯积分）、clean 物理（关闭扰动仍有系统偏差）、扰动物理（加预登记扰动）。",
+            "列出三处适用性缺口：提前终止使能量成为前缀、闭环指令分布不同、δ 不含航向误差。",
+            "发现 power_model_v1.domain(1.0/0.4/1.0) 与 margins_v1.applicability(2/1/2) 不一致，登记为 NAV-055 待裁定项。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/onboarding.md「方法理解与边界」章节，含因果链代码块、三种执行对照表与缺口说明。",
+            "论文与代码行号可复核：main.tex §3–4、step_cost.py 头部契约注释。",
+            "未修改论文、冻结配置或校准代码。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只读论文问题定义/方法/实验口径，结合RC-PPO说明理解名义动力学、安全历史、预算、分层与双裕度。",
         "不把论文示例/a.u.指标迁入当前J成本，不宣称随机安全或PPO必然收敛。"
@@ -900,7 +970,7 @@
         "写出一回合从状态→速度→名义步成本→预算→物理执行的因果链。",
         "列出确定性名义、clean物理和扰动物理的区别，以及原校准30秒与导航提前终止的适用性缺口。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。onboarding.md 写出完整因果链（状态→10 Hz 速度→名义步成本 c_nom=P̂·0.1s→(1+α) 预算扣减→F_δ 安全历史→ĝ 与 W→冻结 v2 执行→J_exec 单独记账），列明确定性名义/clean 物理/扰动物理三类执行的误差来源，并指出三处适用性缺口（提前终止使能量成为前缀、闭环指令分布不同于校准命令程序、δ 不含航向误差），同时登记速度域 1.0/0.4/1.0 与 2/1/2 冲突为 NAV-055 待裁定，未把 a.u. 或示例数值迁入 J 成本。",
       "reference_ids": [
         "R02",
         "R09",
@@ -914,11 +984,54 @@
       "id": "NAV-003",
       "phase": "背景学习",
       "goal": "追踪RC-PPO当前实际算法调用链",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-002"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-09T00:12:00+08:00",
+          "summary": "只读追踪 RC-PPO 真实调用链，产出调用图、张量形状、价值符号、三种 done 的区分，以及 11 项迁移检查表。",
+          "actions": [
+            "读 rl/EC-EFPPO.py 全部，确认 train→_train→scan(_env_step)→起始终止值拼接→calculate_indexs3→三个 GAE→scan(update_epoch) 的实际顺序。",
+            "读 rl/gae.py 的 calculate_indexs3 与 calculate_gae_reach4 / calculate_gae2。",
+            "读 rl/EFPPO_utils.py 的 _env_step 与 _ecefppo_update 三个 loss。",
+            "读 model/actorcritic.py 的网络结构（tanh 激活、Policy 输出 mean+std、Value 单标量）。",
+            "读 rl/root_finding.py 的二分实现与 env/reach_avoid/wind_field.py 的 step_env / is_reach / is_terminal。",
+            "读 env/env_list.py 的观测归一化（预算位 mean=0 variance=400）。",
+            "find 确认 plot_utils 在副本中不存在。",
+            "写入 CaMRA/navigation/docs/source_reference_map.md。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/source_reference_map.md"
+          ],
+          "commands": [
+            "sed -n 1,130p RC-PPO/rl/EC-EFPPO.py",
+            "sed -n /^def calculate_indexs3/,/^def calculate_gae(/p RC-PPO/rl/gae.py",
+            "sed -n 195,246p RC-PPO/rl/gae.py; sed -n 394,412p RC-PPO/rl/gae.py",
+            "sed -n /def _ecefppo_update/,/^def /p RC-PPO/rl/EFPPO_utils.py",
+            "sed -n 1,34p RC-PPO/rl/EFPPO_utils.py",
+            "sed -n 1,69p RC-PPO/rl/root_finding.py",
+            "sed -n 97,175p RC-PPO/env/reach_avoid/wind_field.py",
+            "find RC-PPO -name plot_utils*"
+          ],
+          "results": [
+            "调用图确认：V_total=max(V_h, V_cost−z) 与 g=max(reach,−z) 在 _train 内构造；策略更新使用 advantages_total。",
+            "reward 实为成本（sum(control_real^2)/2，正数），energy 同步扣减。",
+            "策略损失为 mean(max(ratio*A, clip(ratio)*A)) + 梯度下降，等价于标准 PPO 的 min+上升，符号不可照抄。",
+            "done 来自 calculate_indexs3 的 argmin（最优停止时刻），与 env 的 time>=max_steps 截断、avoid 不可逆标志三者不同。",
+            "动作是 tanh(a)*1.5 的位置目标偏移，与 CaMRA 的速度输出不同空间。",
+            "root_finding 固定搜索 [-1,1]（归一化预算，×400 反归一化），sign==0 时仍返回中点。",
+            "plot_utils 在副本中不存在，EC-EFPPO 无法直接运行。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/source_reference_map.md：调用图、张量形状表、符号说明、三种 done 对照表、动作语义差异、预算归一化说明、11 项迁移检查表、参考副本缺陷清单。",
+            "以上均基于只读 grep/sed 阅读，未修改 RC-PPO/ 任何文件。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "从EC-EFPPO.train追到_env_step、calculate_indexs3、calculate_gae2、calculate_gae_reach4和_ecefppo_update；识别原副本缺失导入/绝对路径。",
         "只读参考源码，不改写成普通奖励最大化PPO；原代码可疑处用独立推导区分原意和实现行为。"
@@ -927,7 +1040,7 @@
         "列调用图、张量形状、价值单位/符号、停止分段与真实done的区别。",
         "记录max(V_h,V_cost-z)、策略裁剪最小化、动作变换/log_prob及预算归一化的迁移检查表。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。source_reference_map.md 给出 EC-EFPPO.train 到 update_epoch 的完整调用图与张量形状；明确 reward 实为成本、策略损失为 max+梯度下降、三个 GAE 的分工；区分 env_done/avoid/停止分段 done 三种结束；记录 max(V_h,V_cost−z)、裁剪最小化、动作 tanh 位置偏移与速度输出的空间差异、log_prob 需在采样空间取、预算 [-1,1] 为归一化而非焦耳，并形成 11 项迁移检查表；如实记录副本绝对导入与 plot_utils 缺失问题，未改写参考源码。",
       "reference_ids": [
         "R03",
         "R04"
@@ -940,11 +1053,46 @@
       "id": "NAV-004",
       "phase": "背景学习",
       "goal": "核对v2及匹配校准的来源和局限",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-003"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-09T00:28:00+08:00",
+          "summary": "核对 v2 冻结契约与配套校准产物，建立绑定清单、数值/hash 口径区分、速度域三方对照，以及 HiRA 旧问题对 v2 共享代码的核查点。",
+          "actions": [
+            "读 frozen_manifest 的 contract.observation/action/robot/timing/command 与 training/actor、assets、integrity。",
+            "读 calibration_protocol_v1.0.2 的 clocks、command_domain、command_program、termination、profiles、energy、statistics、tolerances、invalid_rules。",
+            "读 power_model_v1（history_k=0、step_cost_dt=0.1、domain 1.0/0.4/1.0）、footprint_v1（凸多边形 0.45796 m²、不含 δ）、margins_v1（α/δ 精确值、applicability 文本 2/1/2、n=790）、data_lock_v1（content_sha256 绑定项）。",
+            "读 calibration/README.md 与 controller_comparison_status_20261109.md 的 5 项静态问题。",
+            "对速度域做四方对照（protocol / v2 contract / power_model / margins 文本）。",
+            "把 v2 来源契约、绑定清单、口径区分、核查点与禁止动作追加到 docs/onboarding.md。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/onboarding.md"
+          ],
+          "commands": [
+            "python3 读 frozen_manifest.jsontract 各小节",
+            "python3 读 calibration_protocol_v1.0.2 顶层键",
+            "python3 读 margins_v1 / footprint_v1 / data_lock_v1 顶层键",
+            "sed -n 读 calibration/README.md"
+          ],
+          "results": [
+            "绑定清单覆盖权重/网络/资产/PD/观测 45 维/动作 12 维与关节顺序/时序 200-50-10 Hz/命令域/功率模型/足迹/裕度/步成本/协议/数据锁共 15 层。",
+            "区分精确文件值（alpha=0.19048279965649906）、报告近似值（≈0.190483）、content_sha256 与逐文件/树散列四种口径。",
+            "速度域四方对照：protocol、v2 contract、power_model.domain 三方一致为 1.0/0.4/1.0；仅 margins_v1.applicability 文本为 2/1/2。仅登记不裁定。",
+            "登记 5 个待核查点（批间复位、warmup 命令来源、起点用实测还是预设、全体分母、交付索引可移植性）对应到 v2 的 collect_trials.py/sim/recorder.py/evaluate_heldout.py/nominal.py/artifact_index.py。",
+            "明确本轮禁止动作：不重训、不改任何冻结文件字节、不反调 α/δ、不改写历史状态。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/onboarding.md「v2 来源契约」章节：15 层绑定表、四类数值口径、速度域四方对照表、资源线索、5 项核查点、禁止动作。",
+            "所有数值直接读取自 JSON 文件，未手抄近似值；未修改任何冻结配置或校准代码。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "完整读取v2冻结说明、校准协议、交接关键修正和来源台账；区分精确文件值、报告近似值、内容hash和原始字节hash。",
         "保留低速局限、旧失败验收、数据缺口与全部历史记录；不默认重新训练或重校准。"
@@ -953,7 +1101,7 @@
         "列出权重/资产/PD/观测/动作/时序与配套功率/足迹/裕度/锁的绑定清单。",
         "列服务器资源线索、旧起点/复位问题对共享代码的核查点，以及本轮禁止动作。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。onboarding.md 建立 15 层绑定清单（权重/网络/资产/PD/观测/动作/关节顺序/时序/命令域/功率/足迹/裕度/步成本/协议/数据锁），区分精确文件值、报告近似值、content_sha256 与逐文件/树散列四种口径；速度域四方对照显示 protocol、v2 contract、power_model 三方为 1.0/0.4/1.0，仅 margins_v1 文本为 2/1/2，已登记为 NAV-055 待裁定；列出服务器资源线索、5 项旧起点/复位问题对 v2 共享代码的核查位置及本轮禁止动作，保留低速局限与旧失败结论。",
       "reference_ids": [
         "R06",
         "R08",
@@ -967,11 +1115,48 @@
       "id": "NAV-005",
       "phase": "背景学习",
       "goal": "追踪HiRA可借鉴的分层工程结构",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-004"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-09T00:42:00+08:00",
+          "summary": "只读追踪 HiRA 分层结构，梳理入口链、分层 step 的可借鉴写法、观测与速度映射、Isaac Gym 到 Isaac Lab 的改写清单，并发现其子步循环缺少自动复位隔离。",
+          "actions": [
+            "读 train_reach_avoid.py 的入口构造（HierarchicalGO2Env + ReachAvoidPPO + env.step 返回四元组）。",
+            "读 hierarchical_go2_env.py 全部，逐行分析 reset 与 step 的子步循环、指令重写、观测重算、dones OR 累计。",
+            "读 high_level_navigation_env.py 的接口定义（num_high_level_obs/actions）与 update_velocity_commands 的缩放链。",
+            "核对 HiRA 实际速度域（0.6/0.2/0.8）与 v2（1.0/0.4/1.0）的差异。",
+            "把 HiRA 工程映射、可借鉴点、改写清单与缺口追加到 docs/source_reference_map.md。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/source_reference_map.md"
+          ],
+          "commands": [
+            "ls HiRA/legged_gym_go2/legged_gym/envs/go2/",
+            "wc -l HiRA/legged_gym_go2/legged_gym/envs/go2/*.py HiRA/legged_gym_go2/legged_gym/scripts/*.py",
+            "sed -n 1,120p HiRA/legged_gym_go2/legged_gym/envs/go2/hierarchical_go2_env.py",
+            "sed -n 120,200p HiRA/legged_gym_go2/legged_gym/envs/go2/hierarchical_go2_env.py",
+            "grep -n 关键符号 HiRA/legged_gym_go2/legged_gym/envs/go2/high_level_navigation_env.py",
+            "sed -n /def update_velocity_commands/,/def /p HiRA/legged_gym_go2/legged_gym/envs/go2/high_level_navigation_env.py",
+            "grep -n create_hierarchical|ReachAvoidPPO|env.step HiRA/legged_gym_go2/legged_gym/scripts/train_reach_avoid.py"
+          ],
+          "results": [
+            "入口链：train_reach_avoid.py → HierarchicalGO2Env(make_env + OnPolicyRunner.load + HighLevelNavigationEnv) → ReachAvoidPPO → env.step 返回 (obs, g, h, dones, infos)。",
+            "分层 step 可借鉴三点：每子步重写 commands、每子步重算底层观测并重新推理、子步事件用 |= 累计。",
+            "高层动作 3 维，观测 = base_obs + target_feature + lidar_feature；速度映射为 clip(a)*action_scale 再乘 0.6/0.2/0.8。",
+            "HiRA 速度域 ±0.6/±0.2/±0.8 与 v2 ±1.0/±0.4/±1.0 不同，缩放不可复用。",
+            "发现缺口：子步循环内 base_env.step 会自动复位已 done 的 env，后续子步的 avoid/reach 已属新回合，导致旧回合事件与新回合指标拼接；CaMRA 需在循环内冻结已 done env 并分开命名三种结束。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/source_reference_map.md「HiRA 分层工程结构」章节：入口链、可借鉴代码块、观测与速度映射表、Isaac Gym→Isaac Lab 改写表、缺口说明与隔离实现位置、可复用/不可复用清单。",
+            "未加载 HiRA 控制器、未复用 Isaac Gym 环境、未修改 HiRA 子模块任何文件。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "沿train_reach_avoid→HierarchicalGO2Env→HighLevelNavigationEnv追踪真实入口，核对观测、缩放、低层重复调用和终止记录。",
         "不加载HiRA控制器替代v2，不直接复用IsaacGym运行环境或单价值ReachAvoidPPO作为CaMRA算法。"
@@ -980,7 +1165,7 @@
         "逐文件说明可参考的接口/观测/训练日志结构及需要改写的IsaacLab部分。",
         "明确新指令写入后重算低层观测、内部子步事件累计和自动复位隔离的实现位置。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。source_reference_map.md 逐文件说明 train_reach_avoid → HierarchicalGO2Env → HighLevelNavigationEnv 的入口与接口，给出分层 step 的可借鉴代码块（每子步重写指令、重算观测并重新推理、dones 用 |= 累计）、观测组成与速度映射（0.6/0.2/0.8 与 v2 不同）、Isaac Gym 到 Isaac Lab 的六项改写清单；并明确指出其子步循环缺少自动复位隔离的缺口，给出 CaMRA 应在循环内冻结已 done env、按回合结束快照算 g/h、三类别结束分开命名的实现位置。",
       "reference_ids": [
         "R05",
         "R07"
@@ -993,11 +1178,41 @@
       "id": "NAV-006",
       "phase": "背景学习",
       "goal": "形成六阶段实施理解与代码复用矩阵",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-005"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-09T00:55:00+08:00",
+          "summary": "综合前五项源码证据，形成六阶段代码复用矩阵、五条关键判断、七个实际未决点及解除条件与门禁对应关系。",
+          "actions": [
+            "汇总 NAV-001–005 的阅读证据，区分现成可复用、只参考结构、必须新写三类。",
+            "按 AGENTS.md 实施顺序组织六阶段，并映射到计划 stages 与 NAV 任务区间。",
+            "逐项列出未决点、现状、解除条件与负责任务。",
+            "把复用矩阵、关键判断、未决点与进入下一阶段条件追加到 docs/onboarding.md。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/onboarding.md"
+          ],
+          "commands": [
+            "cat >> CaMRA/navigation/docs/onboarding.md（六阶段矩阵章节）"
+          ],
+          "results": [
+            "矩阵覆盖六阶段加复现交付，每阶段列出可复用函数（如 power.py/step_cost.py/rollout_exported_policy.py/evaluate_heldout.py）、只参考结构（RC-PPO gae 与 HiRA 分层 step）、必须新写模块与拟验收证据。",
+            "给出阶段到 NAV 区间的映射：1→012–023、2→024–028、3→029–035、4→036–039、5→040–045、6→046–050、收尾→051–054。",
+            "列出 7 个未决点：速度域口径、实现框架、解释器路径、足迹姿态处理、z_ref 定义、资源配额、地图净宽与可达性，并指定 NAV-055/008/057/056/021/017。",
+            "明确未决点 1 与 3 须在 G0 前关闭，2 在冻结前关闭，4/5 在 G1 前关闭，6 在训练前登记，7 在 G1 前给出证据。",
+            "明确本阶段仅学习与文档，未安装依赖、未运行仿真、未创建实现代码；服务器已有资源不构成 NAV-009 验收结论。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/onboarding.md「六阶段实施理解与代码复用矩阵」章节：四列表矩阵、五条关键判断、七项未决点表、门禁对应条件。",
+            "同期产出 CaMRA/navigation/docs/source_reference_map.md（RC-PPO 与 HiRA 追踪）。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "综合前五项，由执行模型自己阅读和整理，不用聊天摘要代替源码证据。",
         "有会改变范围或来源的冲突先记录并询问；纯历史HiRA独立问题不自动追加为前置实验。"
@@ -1006,7 +1221,7 @@
         "矩阵覆盖六阶段：现成可复用函数、只参考结构、必须新写模块、拟验收证据。",
         "列出实际未决点及解除条件，后续环境任务不带着未识别来源继续。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。onboarding.md 给出六阶段（含复现交付）复用矩阵，逐阶段列出现成可复用函数、只参考结构、必须新写模块与拟验收证据，并映射到计划 stages 与 NAV 任务区间；汇总五条来自源码的关键判断（成本预算需新写、算法需重实现而非翻译、分层可借鉴但复位隔离须自补、v2 接通须早于训练、校准只给数值不给结论）；列出 7 个实际未决点及解除条件与负责任务，并明确 G0/G1/训练前的关闭要求。",
       "reference_ids": [
         "R01",
         "R03",
@@ -1025,11 +1240,49 @@
       "id": "NAV-007",
       "phase": "服务器与资源",
       "goal": "确认tiger11并建立可恢复tmux执行会话",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-006"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T09:46:00+08:00",
+          "summary": "确认执行主机为 tiger11（192.168.20.11），采集 GPU/磁盘/会话现状，建立独立命名的持久 tmux 执行会话并验证可重入，产出 runtime_environment.json。",
+          "actions": [
+            "只读确认 hostname=tiger11.ios.ac.cn、LAN IP=192.168.20.11，与 global_constraints[1] 一致；未接触 .10/.12。",
+            "采集现有 tmux 会话（本用户无会话）、GPU 八卡占用、/pub 磁盘余量与既有导航进程（无）。",
+            "创建会话 camra-nav-v2-20261110-bootstrap，cwd=/home/caohy/repositories/Paper，run_id=20261110-bootstrap。",
+            "在会话内执行引导命令并把 hostname/IP/pwd/Python 版本/GPU 空闲情况写入 /pub/data/caohy/tmp/nav_bootstrap_20261110.log。",
+            "用 tmux list-sessions/list-panes 记录 server_pid=2639274、pane_pid=2639277、pane_cwd；用 tmux has-session 验证会话存活。",
+            "写入 CaMRA/navigation/docs/runtime_environment.json 并做 JSON 解析校验。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/runtime_environment.json"
+          ],
+          "commands": [
+            "hostname; hostname -I; date -Iseconds; tmux ls; nvidia-smi --query-gpu=...; df -h /pub",
+            "tmux new-session -d -s camra-nav-v2-20261110-bootstrap -c /home/caohy/repositories/Paper",
+            "tmux send-keys -t <session> <bootstrap command> Enter; tmux capture-pane -p -t <session>",
+            "tmux list-sessions -F; tmux list-panes -t <session> -F; tmux has-session -t <session>"
+          ],
+          "results": [
+            "hostname=tiger11.ios.ac.cn，IP=192.168.20.11，时间 2026-11-10T09:44:29+08:00。",
+            "会话 camra-nav-v2-20261110-bootstrap 存活，1 个窗口（bash），pane_pid=2639277，cwd=/home/caohy/repositories/Paper，server_pid=2639274。",
+            "引导日志 169 字节，含 hostname/IP/pwd/Python 3.11.15/GPU 前三卡占用。",
+            "GPU 现状：0 与 2 空闲（4 MiB, 0%），3 已占 21.7 GB，4/5/7 有活动；本任务未占用任何 GPU。",
+            "/pub 可用 27T（62% 已用）。本用户 tmux server 内无其他会话，未干扰他人任务。",
+            "未启动 Isaac Sim、未跑训练或采集、未装依赖、未写实现代码。",
+            "同期记录用户 2026-11-10 已批准实现框架为 PyTorch，待 NAV-008 正式落定并写入 runtime_paths.json。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/runtime_environment.json：主机、tmux（会话名/窗口/pid/cwd/has-session）、解释器版本、GPU 快照、磁盘、日志路径、重入命令、未启动项、待办归属。",
+            "tmux capture-pane 输出显示引导命令的实际执行结果；日志文件可复读。",
+            "tmux has-session 返回 alive，满足断线重入前提。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "先只读确认192.168.20.11的hostname为tiger11；失败时停止，不去.10/.12。最小tmux引导后所有服务器命令在tmux。",
         "先查已有会话、GPU占用和本任务锁，建立独立run命名与日志，不干扰他人任务。"
@@ -1038,7 +1291,7 @@
         "记录登录目标/hostname、tmux会话窗口、cwd、时间和GPU占用证据。",
         "断线可重新接入同一会话并定位日志/PID；无仿真或训练提前启动。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。runtime_environment.json 记录登录目标 192.168.20.11 与 hostname tiger11.ios.ac.cn（未接触 .10/.12），tmux 会话 camra-nav-v2-20261110-bootstrap 的窗口/pane_pid 2639277/cwd 与 server_pid，采集时间与八卡 GPU 占用快照（0、2 空闲，本任务未占卡）；tmux has-session 返回 alive 且给出重入命令与日志定位方式，满足断线恢复；引导日志写入 /pub/data/caohy/tmp/nav_bootstrap_20261110.log；全程未启动仿真、训练或采集。",
       "reference_ids": [
         "R01",
         "R06"
@@ -1051,11 +1304,52 @@
       "id": "NAV-008",
       "phase": "服务器与资源",
       "goal": "核验设备依赖并确定隔离实现框架",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-007"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T09:53:00+08:00",
+          "summary": "在 tmux 内完成设备与依赖核验，导出 pip freeze，落定上层实现框架为 PyTorch（用户已批准）并写明依据、张量流与数值对照方案，产出 runtime_paths.json 并升级 runtime_environment.json。",
+          "actions": [
+            "写 /pub/data/caohy/tmp/nav008_env_check.sh 并在 tmux 会话内执行，输出到 nav008_env_check.log。",
+            "核验 CPU/内存/驱动/CUDA/绝对解释器/isaaclab 全家桶/torch/numpy/onnxruntime/gymnasium/jax 的存在与版本。",
+            "导出 pip freeze 到 /pub/data/caohy/tmp/nav008_pip_freeze.txt（262 包）。",
+            "检查 torch.cuda 可用性与设备数、cudnn deterministic/benchmark 标志。",
+            "创建 CaMRA/navigation/config/ 并写入 runtime_paths.json（路径、解释器裁定、框架决定、依赖、隔离恢复、消费者、未决项）。",
+            "重写 runtime_environment.json 为 v2，补入 dependencies、framework_decision、frozen_environment_identity、consumers。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/runtime_paths.json",
+            "CaMRA/navigation/docs/runtime_environment.json"
+          ],
+          "commands": [
+            "tmux send-keys -t camra-nav-v2-20261110-bootstrap /pub/data/caohy/tmp/nav008_env_check.sh",
+            "lscpu; free -g; nvidia-smi --query-gpu=driver_version; nvidia-smi | grep CUDA Version",
+            "pip show <10 packages>; pip freeze > nav008_pip_freeze.txt",
+            "python -c import torch/numpy/onnxruntime; import rsl_rl"
+          ],
+          "results": [
+            "硬件：AMD EPYC 9654 x2（384 逻辑核）、503 GB 内存（可用 232 GB）、8 x RTX 4090 24 GB、驱动 560.35.03、驱动 CUDA 12.6。",
+            "环境：Python 3.11.15 / isaaclab 0.47.2 / assets 0.2.3 / tasks 0.11.6 / rl 0.4.4 / isaacsim 5.1.0.0 / rsl-rl 3.0.1 / torch 2.7.0+cu128 / numpy 1.26.0 / onnxruntime 1.31.1 / gymnasium 1.2.0；jax 全缺。",
+            "torch.cuda.is_available()=True，device_count=8；cudnn deterministic=False、benchmark=False。",
+            "import 检查：torch/numpy/onnxruntime 与 rsl_rl 均 OK；pip freeze 262 行。",
+            "解释器裁定：采用 env_isaaclab_v0472；否决计划 python_hint 指向的 env_isaaclab（实测 isaaclab 0.54.2，与冻结不符）。",
+            "框架决定：PyTorch 为上层实现框架，依据为 v2 策略为 RecursiveScriptModule 可直接 jit.load、Isaac Lab 不依赖 jax、仓库其余均为 torch、瓶颈在 200 Hz 物理、同进程双框架有 CUDA 争用与异步风险。",
+            "数值对照方案：JAX 原版在隔离环境生成参考数值，与 PyTorch 实现交叉验证；隔离环境与 jax 依赖尚未安装，属新增依赖，留待 NAV-033 并经用户确认。",
+            "本任务未安装任何新包、未占用 GPU、未运行仿真。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/runtime_paths.json：host/interpreter/paths/framework_decision/dependencies/isolation_and_recovery/consumers/unresolved。",
+            "CaMRA/navigation/docs/runtime_environment.json（v2）：核心包精确版本、pip_freeze 路径、import 检查、框架决定依据与用户批准时间、冻结环境身份、契约消费者、已知偏差（torch cu128、Python 3.11.15、cudnn 标志）。",
+            "/pub/data/caohy/tmp/nav008_env_check.log 与 nav008_pip_freeze.txt 可复查。",
+            "两个 JSON 均通过 python json 解析校验。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "在tmux核对CPU/GPU/驱动/CUDA、绝对Python、IsaacLab/Sim、torch和原算法对照所需依赖，按设备配置。",
         "是否使用PyTorch迁移/JAX对照依实际兼容性说明；新增核心版本/升级共享环境等决策须先询问，不混用其他节点解释器。",
@@ -1066,7 +1360,7 @@
         "核心框架与数值对照方案有明确版本及依据；未解决依赖不能算性能失败。",
         "runtime_environment包含确切版本、框架决定依据、必要用户决定记录、冻结环境身份及后续观测/算法契约的消费者。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。tmux 内完成设备与依赖核验并留存 nav008_env_check.log 与 262 行 pip_freeze；设备报告含 CPU/内存/驱动/CUDA/8x4090；10 个核心包版本与冻结记录逐项一致，jax 全缺，import 检查通过，未安装任何新包。解释器裁定为 env_isaaclab_v0472 并给出否决 python_hint(0.54.2) 的依据；上层框架落定为 PyTorch，记录用户 2026-11-10 批准、五条依据、被否方案与重议条件、张量流与 JAX 隔离对照方案（待 NAV-033 授权）。runtime_environment(v2) 含精确版本、框架依据、用户决定时间、冻结环境身份（bundle tree d0f0ec3c/checkpoint/policy.pt ScriptModule/asset/校准配置）及 NAV-013/014/025/029 四个契约消费者，并登记 torch cu128 与 Python 3.11.15 偏差。",
       "reference_ids": [
         "R03",
         "R05",
@@ -1081,11 +1375,49 @@
       "id": "NAV-009",
       "phase": "服务器与资源",
       "goal": "恢复并验证完整v2执行与校准资源",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-008"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T10:05:00+08:00",
+          "summary": "在 tmux 内只读核验 v2 冻结包、Go2 资产、训练权重与六个校准配置：29/29 与 4/4 文件散列及两级树散列全部一致，policy.pt 按冻结方式加载并前向 45->12，锁绑定值 6/6 匹配；同时查清 content_sha256 与旁挂 .sha256 的真实语义。",
+          "actions": [
+            "按 frozen_manifest.integrity.files 逐文件校验 29 项 sha256 并复算树散列（规则：排序后 rel sha bytes 以换行连接）。",
+            "按 freeze_controller_bundle.tree_integrity 的真实 root 口径（含 Go2/ 前缀）复算资产树散列，并与包内 assets 副本交叉验证。",
+            "核对 checkpoint 存在性与字节散列。",
+            "用 torch.jit.load 加载 exported/policy.pt，前向 zeros(1,45) 验证输出 [1,12]。",
+            "读 build_data_lock.py 的 entry() 确认 content_sha256 来源，改以 entry.sha256 比对 6 个配置文件的字节哈希。",
+            "将结果写入 CaMRA/navigation/reports/v2_resources.json。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/v2_resources.json"
+          ],
+          "commands": [
+            "python3 /pub/data/caohy/tmp/nav009_verify.py > nav009_verify.json（在 tmux 内）",
+            "python3 比对 data_lock entry.sha256 与文件字节 sha256",
+            "python3 按 rel sha bytes 规则复算 unitree_model 与 bundle/assets 树散列",
+            "grep -A18 def tree_integrity scripts/freeze_controller_bundle.py",
+            "sed -n 55,90p scripts/build_data_lock.py"
+          ],
+          "results": [
+            "冻结包：declared 29，ok 29，bad 0，missing 0；树散列 d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f 与声明一致。",
+            "Go2 资产：4 文件，树散列 9560507238240de79eb8a2f3a80b82e69a0adc25bde982062340a1750db1f7c9；源目录与包内 assets 两个位置均匹配。",
+            "训练权重 model_2999.pt 在位，4,639,669 字节，sha256 1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9。",
+            "policy.pt 为 RecursiveScriptModule，jit.load 后前向 (1,45)->(1,12)，输出绝对均值 0.2014。",
+            "六个校准配置字节哈希 6/6 与 data_lock entry.sha256 一致；其中 4 个文件的自述 content_sha256 也与锁一致。",
+            "查清语义：content_sha256 取自文件内顶层 sha256 字段（非字节哈希）；旁挂 .sha256 对 protocol/asset_geometry 存字节哈希、对另外四个存自述值，属既有工具不一致，未修改。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/v2_resources.json：algorithm 说明、逐资源结论、uniqueness 论证、known_inconsistencies 两条、not_done 清单、PASS 结论。",
+            "/pub/data/caohy/tmp/nav009_verify.json 与 nav009_verify.err 可复查原始输出。",
+            "哈希规则引自仓库脚本 freeze_controller_bundle.tree_integrity 与 build_data_lock.entry，非推测。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "从权威清单定位v2冻结包、资产和精确配套校准文件；检查tiger11实际在位，HiRA迁移成功不替代v2核验。",
         "发现散列或锁差异区分换行、缺文件与内容改变；不更新旧hash来绕过校验，不运行采集。"
@@ -1094,7 +1426,7 @@
         "模型可按冻结加载方式只读核验，所有必需资产/配置/锁可唯一对应。",
         "来源清单记录绝对路径、hash类型和校验结果；缺失或歧义已解决或保持任务false。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。v2 冻结包 29/29 文件散列与 tree d0f0ec3c 一致；Go2 资产 4 文件与 tree 95605072 一致（源与包内 assets 双位置互验）；model_2999.pt 在位且散列 1c8f5aad；exported/policy.pt 可按冻结方式 torch.jit.load 并前向 (1,45)->(1,12)；六份校准配置字节哈希 6/6 匹配 data_lock 的 entry.sha256。已查清 content_sha256 取自文件自述字段而非字节哈希、旁挂 .sha256 对四个文件存自述值，属既有工具语义差异，已在报告登记且未修改任何文件。无缺失、无歧义、无内容改变。",
       "reference_ids": [
         "R06",
         "R08",
@@ -1108,11 +1440,52 @@
       "id": "NAV-010",
       "phase": "服务器与资源",
       "goal": "建立独立导航实现与产物目录",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-009"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T10:12:00+08:00",
+          "summary": "建立独立导航包骨架与仓库外输出根，实现运行目录身份与冲突拒绝规则并实测三类反例，写出交接文档。",
+          "actions": [
+            "核查 CaMRA/navigation 现有 6 个文件与仓库外 work/logs 子目录，确认拟建路径未被占用、不会覆盖历史产物。",
+            "新建 pyproject.toml、src/camra_navigation/{__init__.py,runs.py} 以及 tests/、scripts/ 空目录。",
+            "在 tmux 内以登记解释器执行 editable 安装（--no-deps --no-build-isolation），得到 camra-navigation 0.1.0。",
+            "实测包定位（camra_navigation.__file__ 指向 src/camra_navigation）与常量 CONTROLLER_ID/COST_UNIT。",
+            "实测 resolve_run_dir：正例创建成功并写出含 hostname 的 run_manifest.json；重名、非法 id、allow_existing 下非空目录三类反例均被拒绝。",
+            "创建 /pub/data/caohy/work/camra_navigation 与 /pub/data/caohy/logs/camra_navigation 两个输出根。",
+            "写 docs/implementation_handoff.md（87 行）并更新 runtime_paths.json 的目录状态与 package 段。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/pyproject.toml",
+            "CaMRA/navigation/src/camra_navigation/__init__.py",
+            "CaMRA/navigation/src/camra_navigation/runs.py",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/config/runtime_paths.json"
+          ],
+          "commands": [
+            "mkdir -p src/camra_navigation tests scripts config docs reports",
+            "pip install -e . --no-deps --no-build-isolation（在 tmux 内）",
+            "python /tmp/nav010_check.py | tee /pub/data/caohy/tmp/nav010_check.log",
+            "mkdir -p /pub/data/caohy/work/camra_navigation /pub/data/caohy/logs/camra_navigation"
+          ],
+          "results": [
+            "包可被登记解释器定位：package=.../src/camra_navigation/__init__.py，version 0.1.0，CONTROLLER_ID=camra_go2_velocity_it2999_v2，COST_UNIT=J。",
+            "默认 work_root/output_root 解析为 /pub/data/caohy/work/camra_navigation 与 /pub/data/caohy/logs/camra_navigation。",
+            "run 目录冲突拒绝生效：已存在 -> refused；非法 id Bad ID -> refused；allow_existing 且非空 -> refused；正例写出 run_manifest.json 且含 hostname。",
+            "两个输出根均为本次新建，未触碰 logs/camra（v2 校准）、logs/camra_hira（HiRA）与 work/hira。",
+            "目录清单在 handoff 中标明现有与新建；唯一环境写入是 editable 安装本仓库包。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/implementation_handoff.md：目录清单（现有/新建）、运行身份三条规则、环境、下一步入口 NAV-055、未决点、恢复方式。",
+            "/pub/data/caohy/tmp/nav010_check.log 记录正例与三类反例的实际输出。",
+            "runtime_paths.json 新增 package 段与目录状态 created and verified。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "先检查拟新增目录是否已有工作；新增包/config/tests/scripts/docs/reports，运行输出独立于旧校准和HiRA路径。",
         "保留原repro.env与冻结源码；新配置解析已核验路径，主仓库现有修改不覆盖。"
@@ -1121,7 +1494,7 @@
         "目录和路径清单标明现有/新建，Python包能从登记的解释器定位。",
         "run根目录有独立身份和冲突拒绝规则，未覆盖任何历史产物。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。新建 src/camra_navigation（__init__.py、runs.py）、pyproject.toml、tests/、scripts/，editable 安装为 camra-navigation 0.1.0 并可由登记解释器定位（__file__ 指向 src）；创建 work/camra_navigation 与 logs/camra_navigation 两个独立输出根，均未覆盖 logs/camra、logs/camra_hira 或 work/hira。run 身份规则实测有效：重名、非法 id、allow_existing 且非空三类均被拒绝，正例写出含 hostname 的 run_manifest.json。handoff 标明现有/新建目录、三条身份规则、环境与下一步入口 NAV-055 及六项未决点。",
       "reference_ids": [
         "R01",
         "R06",
@@ -1137,11 +1510,52 @@
       "id": "NAV-055",
       "phase": "环境与资源",
       "goal": "核实速度域冲突并冻结导航有效命令范围",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-010"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T10:25:00+08:00",
+          "summary": "定位校准原始数据在 tiger10，扫描 800 条真实 applied 命令得极值 1.0/0.4/1.0，与协议、冻结契约、功率模型、生成器硬编码四方一致，裁定有效命令域为 1.0/0.4/1.0，margins 的 2/1/2 文本判为过时描述，未改任何旧文件。",
+          "actions": [
+            "在 tiger11 与 tiger12 的 logs/camra 下均未找到 trial_lists_v1.0.2 与 trials，扩大排查后按 implementation_handoff.md 第 320 行确认校准执行主机为 tiger10（192.168.20.10）。",
+            "在 tiger10 的 /pub/data/caohy/logs/camra 找到 trial_lists_v1.0.2（含 calibration.jsonl 800 条）、trials/calibration（800 trial）、heldout、near_obstacle、audit、env_setup 等完整目录，只读访问。",
+            "核验 calibration.jsonl 的 sha256 = f99a3b07... 与 data_lock 记录一致，行数 800。",
+            "识别 pairing_10hz.npz 实为 torch.save 产物（dict，含 cmd 301x3），逐 trial 读取 800/800，无缺失、无形状异常。",
+            "统计 applied 极值：vx[-1.0,1.0]、vy±0.4000000059604645、wz[-1.0,1.0]；20 个 family×profile 格全部落在域内，越界 trial 数 0。",
+            "四方文字/实现来源核对：protocol 1.0.2、冻结包 contract、power_model.domain、commands.py LIMITS 均为 1.0/0.4/1.0。",
+            "产出 reports/command_domain_resolution.json 与 config/navigation_contract_v1.json（validated_command_domain 与裁定来源）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/command_domain_resolution.json",
+            "CaMRA/navigation/config/navigation_contract_v1.json"
+          ],
+          "commands": [
+            "ssh 192.168.20.10 ls /pub/data/caohy/logs/camra（只读）",
+            "grep tiger1[0-9] CaMRA/calibration/docs/implementation_handoff.md",
+            "python3 /pub/data/caohy/tmp/nav055_scan.py（在 tiger10 上，env_isaaclab 解释器）",
+            "scp 两份 JSON 到 tiger11 并做 json.load 校验"
+          ],
+          "results": [
+            "数据位置：校准原始轨迹与清单在 tiger10，不在 tiger11/tiger12；tiger11 与 tiger12 的 logs/camra 只有 TASK-* 与 backups。",
+            "manifest 绑定：calibration.jsonl 800 行、sha256 f99a3b07a73fa3b7970e1b03855a40ff6e06edcf26190fb0d394c962aa629f38，与 data_lock 一致。",
+            "实测 applied：800/800 trial 可读；vx[-1.0,1.0]、vy[-0.4000000059604645,0.4000000059604645]、wz[-1.0,1.0]；越界 0 条。",
+            "20 格证据：4 family × 5 profile × 40 条，全部在域内；cell 最大值为 1.0/0.4/1.0。",
+            "五方一致：协议、冻结契约、功率模型域、生成器 LIMITS、800 条实测。",
+            "被否值 2/1/2 仅存在于 margins_v1.applicability 的描述文本，不参与计算，也超出功率模型拟合域。",
+            "float32 说明：vy 上界 0.4000000059604645 即 float32(0.4)，相对误差 1.5e-8，判定需用 1e-6 容差。",
+            "未修改 margins_v1、protocol、power_model 或任何锁；旧文件与散列保持原样。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/command_domain_resolution.json：verdict、五个来源逐项（路径/字段/值/hash 校验）、per_cell_evidence、float32 说明、resolution_rules、data_location_note、not_done。",
+            "CaMRA/navigation/config/navigation_contract_v1.json：validated_command_domain（含容差与裁定来源）、command_pipeline 的 requested/applied/单一 applied 规则、timing 与 cost_interface 引用、四个消费者、五项未冻结项。",
+            "tiger10 上 /pub/data/caohy/tmp/nav055_scan.json 保存完整扫描结果（含 20 格明细）。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "只读对照协议、margins applicability、冻结部署约束、命令生成器、power domain与原始applied记录；已发现2/1/2与1/0.4/1的元数据冲突，不能取大值或改旧hash。",
         "由数据锁定位真实记录，区分域上限、边际取值与实际联合支持；有多个来源且不能唯一裁定时按不确定策略询问，不擅自扩大/收窄用户已确认域。"
@@ -1150,7 +1564,7 @@
         "输出逐来源值/版本/hash/原始命令抽样与实际极值、冲突解释及裁定依据，不能只比对文档文字。",
         "导航契约有唯一validated_command_domain、requested/applied限幅规则及来源标识；未解决冲突不放行G0，旧文件/数值保持原样。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。在 tiger10 定位到校准完整数据（trial_lists_v1.0.2 与 trials/calibration，此前 tiger11/tiger12 均无）；calibration.jsonl 800 行且 sha256 f99a3b07 与 data_lock 一致；逐 trial 读取 800/800 条 applied 命令，极值 vx[-1.0,1.0]、vy±0.400000006、wz[-1.0,1.0]，20 个 family×profile 格全部在域内、越界 0 条。与协议 1.0.2、冻结包 contract、power_model.domain、commands.py LIMITS 构成五方一致，裁定 validated_command_domain=1.0/0.4/1.0（容差 1e-6），否决 2/1/2 为 margins_v1 的过时描述文本。产出 command_domain_resolution.json 与 navigation_contract_v1.json（含 requested/applied 单一 applied 规则与来源标识），未改动任何旧文件与散列。",
       "reference_ids": [
         "R06",
         "R08",
@@ -1166,11 +1580,44 @@
       "id": "NAV-011",
       "phase": "服务器与资源",
       "goal": "冻结实施资源边界并通过G0",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-055"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T10:36:00+08:00",
+          "summary": "登记资源预算（以历史实测为依据并区分短测与正式训练）、逐项核对 NAV-001–010 与 NAV-055，产出 G0 报告并判定 PASS。",
+          "actions": [
+            "从 calibration_protocol_v1.0.2 与 data_lock_v1 提取历史实测（tiger10 A100-40GB，32 env × 30 s = 484 s，每 trial 12.3 s，显存 12.8 GB，每 trial 2.9 MB）作为预算依据。",
+            "登记硬件事实与短测上限：单次 ≤60 min / ≤32 env / 1 GPU / ≤20 GB 显存 / ≤20 GB 磁盘；单任务 ≤6 run / ≤4 h / ≤60 GB。",
+            "写入 NAV-059/060/034/043 四项诊断的配额条目与登记位置（未登记不得启动）。",
+            "把正式训练预算标记为 pending_user_authorization 并写明五步确认流程（实测单位耗时 → 资源表 → 用户授权 → 冻结 → 未授权仅允许短测）。",
+            "逐项核对 NAV-001–010 与 NAV-055 的验收证据，汇总唯一执行节点、解释器、框架与 v2 绑定身份。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/resource_budget_v1.json",
+            "CaMRA/navigation/reports/gate_G0.json"
+          ],
+          "commands": [
+            "python3 读取 protocol/data_lock 的 resource_budget",
+            "scp 两个 JSON 到 tiger11 并 json.load 校验"
+          ],
+          "results": [
+            "resource_budget_v1.json：硬件事实、历史实测基线、短测上限、并行策略（32 env 为已验证档，提高需先做缩放测试）、停止与续跑规则、磁盘与留存策略、四项 quick_check 配额、正式训练授权流程。",
+            "gate_G0.json：verdict=PASS，11 项任务逐条有证据；唯一执行节点 tiger11；冻结身份含 bundle tree d0f0ec3c、checkpoint 1c8f5aad、asset tree 95605072、6/6 配置哈希；命令域 1.0/0.4/1.0（容差 1e-6）。",
+            "正式训练预算未授权，明确标注 pending_user_authorization，不构成正式训练放行。",
+            "七个待办项（NAV-012/013/056/057/058/033/021）列为不阻塞 G0，分别标明 G1/正式训练/G3 前的期限。",
+            "G0 不放行任何仿真、训练或采集；旧文件、锁、散列与论文均未修改。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/resource_budget_v1.json",
+            "CaMRA/navigation/reports/gate_G0.json（含 task_checklist 11 项与 unresolved_not_blocking_G0 清单）"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "登记可用GPU、并行环境上限、磁盘/日志限制、短测试上限和正式训练预算确认流程；不能无限加跑。",
         "核心环境、来源和范围未解决时不放行；正式试验配额及可用性阈值在NAV-021进一步冻结。",
@@ -1181,7 +1628,7 @@
         "资源预算具体且有授权依据；后续任务可引用，不以未授权远程写入/费用继续。",
         "短测预算表明确NAV-059/060及NAV-034/043复查的配额登记位置；未授权资源或未知来源不放行。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。resource_budget_v1.json 以冻结协议的历史实测（32 env × 30 s = 484 s，12.8 GB 显存，2.9 MB/trial）为依据登记短测上限（单次 ≤60 min/≤32 env/1 GPU/≤20 GB）与单任务上限，并登记 NAV-059/060/034/043 四项配额位置；正式训练预算明确标记 pending_user_authorization 并给出五步确认流程，未擅自授权。gate_G0.json 逐项核对 NAV-001–010 与 NAV-055 共 11 项均有证据，列出唯一执行节点 tiger11、解释器 env_isaaclab_v0472、框架 PyTorch、v2 冻结身份（tree d0f0ec3c、checkpoint 1c8f5aad、asset 95605072）与命令域 1.0/0.4/1.0，verdict=PASS；未放行任何仿真或训练，旧文件未改。",
       "reference_ids": [
         "R01",
         "R06",

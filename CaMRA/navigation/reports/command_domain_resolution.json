@@ -1,0 +1,106 @@
+{
+  "schema": "camra-navigation-command-domain-resolution-v1",
+  "task": "NAV-055",
+  "created_at": "2026-11-10T10:20:00+08:00",
+  "question": "导航有效命令域到底是 vx±1.0/vy±0.4/wz±1.0，还是 vx±2.0/vy±1.0/wz±2.0",
+  "verdict": {
+    "validated_command_domain": {
+      "vx_mps": [-1.0, 1.0],
+      "vy_mps": [-0.4, 0.4],
+      "wz_radps": [-1.0, 1.0]
+    },
+    "confidence": "high",
+    "basis": "五个独立来源一致，其中包含 800 条真实 applied 命令的实测极值",
+    "outlier_explained": "margins_v1.applicability 的 ±2.0/±1.0/±2.0 是过时或错误的文本描述，与任何实测数据和生成器实现都不符"
+  },
+  "sources": [
+    {
+      "name": "calibration protocol",
+      "path": "CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+      "field": "command_domain",
+      "value": {"vx": [-1.0, 1.0], "vy": [-0.4, 0.4], "wz": [-1.0, 1.0]},
+      "identity": "version 1.0.2, state frozen, sha256 bound via data_lock.protocol",
+      "hash_verified": true
+    },
+    {
+      "name": "frozen controller contract",
+      "path": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/frozen_manifest.json",
+      "field": "contract.command.ranges",
+      "value": {"vx": [-1.0, 1.0], "vy": [-0.4, 0.4], "wz": [-1.0, 1.0]},
+      "identity": "bundle tree_sha256 d0f0ec3c..., verified 29/29 files",
+      "hash_verified": true
+    },
+    {
+      "name": "frozen power model domain",
+      "path": "CaMRA/calibration/config/power_model_v1.json",
+      "field": "domain",
+      "value": {
+        "abs_vx_max": 1.0,
+        "abs_vy_max": 0.4000000059604645,
+        "abs_wz_max": 1.0,
+        "n_points": 72240
+      },
+      "note": "拟合样本的实际取值上界；0.400000006 是 float32(0.4) 的精确表示",
+      "hash_verified": true
+    },
+    {
+      "name": "command generator implementation",
+      "path": "CaMRA/calibration/src/camra_calibration/commands.py",
+      "field": "LIMITS",
+      "value": [[-1.0, 1.0], [-0.4, 0.4], [-1.0, 1.0]],
+      "note": "硬编码常量，注释写明为“协议命令域”；所有族的目标命令在写入 applied 前都经 clip() 裁剪",
+      "hash_verified": "file tracked in git, read-only inspection"
+    },
+    {
+      "name": "actual applied commands (measured)",
+      "path": "/pub/data/caohy/logs/camra/trials/calibration/*/pairing_10hz.npz",
+      "host": "tiger10 (192.168.20.10)",
+      "field": "cmd (301 x 3, float32)",
+      "sample": {"trials_scanned": 800, "trials_ok": 800, "missing": 0, "bad_shape": 0},
+      "observed_extremes": {
+        "vx": [-1.0, 1.0],
+        "vy": [-0.4000000059604645, 0.4000000059604645],
+        "wz": [-1.0, 1.0]
+      },
+      "trials_exceeding_declared": {"vx_gt_1_0": 0, "vy_gt_0_4": 0, "wz_gt_1_0": 0},
+      "manifest_binding": {
+        "path": "/pub/data/caohy/logs/camra/trial_lists_v1.0.2/calibration.jsonl",
+        "lines": 800,
+        "sha256": "f99a3b07a73fa3b7970e1b03855a40ff6e06edcf26190fb0d394c962aa629f38",
+        "declared_in_data_lock": true,
+        "match": true
+      }
+    },
+    {
+      "name": "outlier text",
+      "path": "CaMRA/calibration/config/margins_v1.json",
+      "field": "applicability.command_domain",
+      "value_text": "与 data_lock 绑定的 30 s 命令程序域（|vx|≤2.0, |vy|≤1.0, |wz|≤2.0）",
+      "status": "contradicted",
+      "assessment": "纯描述性字符串，不参与任何计算；与其绑定的同一文件内 alpha/delta 计算只依赖 calibration 数据，而该数据的实测极值为 1.0/0.4/1.0"
+    }
+  ],
+  "per_cell_evidence": {
+    "n_cells": 20,
+    "definition": "4 command families x 5 profiles, 40 trials each",
+    "all_cells_within_domain": true,
+    "cell_wise_max": {"vx": 1.0, "vy": 0.4000000059604645, "wz": 1.0},
+    "examples": [
+      {"cell": "alternating/clean", "n": 40, "vx": [-0.8, 0.8], "vy": [-0.4, 0.4], "wz": [-0.3, 0.3]},
+      {"cell": "arc_combined/clean", "n": 40, "vx": [0.0, 1.0], "vy": [-0.2, 0.2], "wz": [-1.0, 1.0]}
+    ]
+  },
+  "float32_note": "vy 实测上界 0.4000000059604645 即 float32 对 0.4 的最近可表示值（相对误差 1.5e-8）。用 float64 的 0.4 做严格比较会把它误判为越界；判定必须用 1e-6 级容差或统一用 float32 表示。",
+  "resolution_rules": {
+    "requested_vs_applied": "上层请求命令先按 validated_command_domain 裁剪，裁剪后的值即为 applied；同一 applied 必须同时用于名义运动积分、功率模型成本、底层观测与日志，不得四处各裁一次",
+    "not_expanded": "不采用 2.0/1.0/2.0。该类未经验证的范围既无实测支持，也超出 v2 功率模型 domain，会让成本外推",
+    "not_narrowed": "不因保守而收窄到实测 cell 最小值（如 vx 0.8）。域的合法性由协议与控制器共同定义，具体 cell 的取值分布是采样结果，不是界",
+    "legacy_files_untouched": "未修改 margins_v1.json、protocol、power_model 或任何锁文件；冲突只在导航契约中裁定"
+  },
+  "data_location_note": "校准原始轨迹、trial_lists_v1.0.2、heldout、near_obstacle、audit、env_setup 等目录位于 tiger10（192.168.20.10）的 /pub/data/caohy/logs/camra 与 /pub/data/caohy/camra_run，不在 tiger11/tiger12。依据：implementation_handoff.md 第 320 行记载执行主机为 tiger10。本次为只读访问。",
+  "not_done": [
+    "未修改任何冻结文件或散列",
+    "未采集、未训练、未运行仿真",
+    "未在 tiger10 上执行任何写操作"
+  ]
+}

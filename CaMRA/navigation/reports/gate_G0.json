@@ -1,0 +1,70 @@
+{
+  "schema": "camra-navigation-gate-report-v1",
+  "gate": "G0",
+  "task": "NAV-011",
+  "created_at": "2026-11-10T10:34:00+08:00",
+  "condition_required": "背景理解、tiger11 环境、v2 身份与隔离资源方案明确；NAV-055 速度域冲突已裁定",
+  "verdict": "PASS",
+  "single_execution_node": {
+    "host": "tiger11.ios.ac.cn",
+    "ip": "192.168.20.11",
+    "forbidden": ["192.168.20.10", "192.168.20.12"],
+    "note": "NAV-055 对 tiger10 的只读数据访问属读取历史证据，不是执行节点切换；本门禁后所有执行仍在 tiger11"
+  },
+  "task_checklist": [
+    {"id": "NAV-001", "status": true, "evidence": "onboarding.md：HEAD 8eddd8f、HiRA 6a05af5、工作树干净、7 条硬约束、阅读清单"},
+    {"id": "NAV-002", "status": true, "evidence": "onboarding.md：状态→速度→名义成本→预算→物理执行因果链，三种执行区分，三处适用性缺口"},
+    {"id": "NAV-003", "status": true, "evidence": "source_reference_map.md：RC-PPO 调用图、reward 实为成本、max+下降、三种 done、11 项迁移检查表"},
+    {"id": "NAV-004", "status": true, "evidence": "onboarding.md：15 层绑定清单、四类数值口径、速度域四方对照、5 项旧问题核查点"},
+    {"id": "NAV-005", "status": true, "evidence": "source_reference_map.md：HiRA 入口链、分层 step 三点可借鉴、复位隔离缺口、Isaac Gym→Lab 改写清单"},
+    {"id": "NAV-006", "status": true, "evidence": "onboarding.md：六阶段复用矩阵、五条关键判断、七个未决点与解除条件"},
+    {"id": "NAV-007", "status": true, "evidence": "runtime_environment.json：tiger11 确认、tmux camra-nav-v2-20261110-bootstrap、pane 2639277、has-session alive"},
+    {"id": "NAV-008", "status": true, "evidence": "runtime_paths.json：PyTorch 框架决定与依据、解释器裁定 env_isaaclab_v0472、pip freeze 262 包、GPU/驱动事实"},
+    {"id": "NAV-009", "status": true, "evidence": "v2_resources.json：bundle 29/29 + tree d0f0ec3c、asset 4/4 + tree 95605072、policy.pt jit 前向 45→12、6/6 配置字节哈希匹配锁"},
+    {"id": "NAV-010", "status": true, "evidence": "implementation_handoff.md：包骨架、editable 安装、三类 run 冲突拒绝实测、两个独立输出根"},
+    {"id": "NAV-055", "status": true, "evidence": "command_domain_resolution.json + navigation_contract_v1.json：800 条实测 applied 极值 1.0/0.4/1.0，五方一致"}
+  ],
+  "frozen_identity": {
+    "controller_id": "camra_go2_velocity_it2999_v2",
+    "bundle_tree_sha256": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+    "checkpoint_sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+    "asset_tree_sha256": "9560507238240de79eb8a2f3a80b82e69a0adc25bde982062340a1750db1f7c9",
+    "calibration_configs_byte_hash_match": "6/6 against data_lock entry.sha256",
+    "command_domain": {"vx": [-1.0, 1.0], "vy": [-0.4, 0.4], "wz": [-1.0, 1.0], "tolerance": 1e-06}
+  },
+  "environment": {
+    "interpreter": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "python": "3.11.15",
+    "isaaclab": "0.47.2",
+    "isaacsim": "5.1.0.0",
+    "rsl_rl_lib": "3.0.1",
+    "torch": "2.7.0+cu128",
+    "numpy": "1.26.0",
+    "onnxruntime": "1.31.1",
+    "framework": "PyTorch (user-approved 2026-11-10)",
+    "known_deviations": ["torch cu128 vs frozen cu126", "Python 3.11.15 vs frozen 3.11.18"]
+  },
+  "resource_budget": {
+    "file": "config/resource_budget_v1.json",
+    "short_test_limits": "per-run ≤60 min / ≤32 envs / 1 GPU / ≤20 GB VRAM / ≤20 GB disk；per-task ≤6 runs / ≤4 h / ≤60 GB",
+    "basis": "historical measurement 32 env x 30 s = 484 s including startup (protocol v1.0.2.resource_budget)",
+    "formal_training": "pending_user_authorization；NAV-021 负责实测单位耗时、展示资源表、取得授权后冻结",
+    "quick_check_quota_registry": "resource_budget_v1.json.quick_check_quotas（NAV-059/060/034/043 各自条目）"
+  },
+  "unresolved_not_blocking_G0": [
+    {"item": "任务/终止语义", "owner": "NAV-012", "due": "G1"},
+    {"item": "观测与坐标契约", "owner": "NAV-013", "due": "G1"},
+    {"item": "z_ref 与归一化", "owner": "NAV-056", "due": "G1"},
+    {"item": "足迹姿态处理", "owner": "NAV-057", "due": "G1"},
+    {"item": "预算公平性协议", "owner": "NAV-058", "due": "正式训练前"},
+    {"item": "JAX 对照环境", "owner": "NAV-033", "due": "G3"},
+    {"item": "正式训练配额授权", "owner": "NAV-021", "due": "正式训练前"}
+  ],
+  "blocking_none": true,
+  "next_task": "NAV-012（冻结导航任务及事件终止契约）",
+  "notes": [
+    "本门禁不放行任何仿真、训练或采集；下一阶段从契约编写开始。",
+    "NAV-055 的裁定基于 800 条真实 applied 命令，数据位于 tiger10；该访问为只读，不改变执行节点约束。",
+    "旧冻结文件、锁、散列与论文均未修改。"
+  ]
+}

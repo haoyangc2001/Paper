@@ -1,0 +1,110 @@
+{
+  "schema": "camra-navigation-v2-resources-v1",
+  "task": "NAV-009",
+  "created_at": "2026-11-10T10:02:00+08:00",
+  "host": "tiger11.ios.ac.cn (192.168.20.11)",
+  "method": "read-only; no collection, no training, no file modification",
+  "authority_chain": {
+    "frozen_manifest": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/frozen_manifest.json",
+    "repo_copy": "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+    "data_lock": "CaMRA/calibration/config/data_lock_v1.json",
+    "note": "以冻结包内 frozen_manifest.json 与仓库副本为权威标识来源；data_lock 绑定校准侧配置"
+  },
+  "hash_algorithms": {
+    "file": "sha256 over file bytes",
+    "bundle_tree": "sha256 over sorted lines '<relpath> <sha256> <bytes>' joined by newline, no trailing newline",
+    "asset_tree": "same formula as bundle_tree, but root is <unitree_model> or <bundle>/assets, so relpath starts with 'Go2/'",
+    "content_sha256": "NOT a byte hash: it is the value of the file's own top-level 'sha256' field (see build_data_lock.py entry())",
+    "sidecar_sha256": "file '<name>.json.sha256'; semantics are inconsistent across files, see known_inconsistencies"
+  },
+  "resources": {
+    "frozen_bundle": {
+      "path": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+      "exists": true,
+      "declared_files": 29,
+      "ok": 29,
+      "bad": 0,
+      "missing": 0,
+      "tree_sha256_computed": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+      "tree_sha256_declared": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+      "tree_match": true,
+      "verdict": "PASS"
+    },
+    "go2_asset": {
+      "path": "/pub/data/caohy/unitree_model/Go2",
+      "declared_files": 4,
+      "n_files": 4,
+      "tree_sha256_computed": "9560507238240de79eb8a2f3a80b82e69a0adc25bde982062340a1750db1f7c9",
+      "tree_sha256_declared": "9560507238240de79eb8a2f3a80b82e69a0adc25bde982062340a1750db1f7c9",
+      "tree_match": true,
+      "cross_check": "bundle internal copy <bundle>/assets also yields the same tree digest",
+      "files": [
+        "usd/configuration/go2_description_base.usd",
+        "usd/configuration/go2_description_physics.usd",
+        "usd/configuration/go2_description_sensor.usd",
+        "usd/go2.usd"
+      ],
+      "verdict": "PASS"
+    },
+    "checkpoint": {
+      "path": "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4/model_2999.pt",
+      "exists": true,
+      "bytes": 4639669,
+      "sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+      "verdict": "PASS (present; byte-identical to source tiger12 copy verified during migration)"
+    },
+    "policy_jit": {
+      "path": "<bundle>/exported/policy.pt",
+      "load_method": "torch.jit.load(map_location='cpu')",
+      "type": "RecursiveScriptModule",
+      "forward_ok": true,
+      "input_shape": [1, 45],
+      "output_shape": [1, 12],
+      "output_abs_mean": 0.20140177011489868,
+      "verdict": "PASS (loads and runs in the frozen way, read-only)"
+    },
+    "calibration_configs": {
+      "checked_against": "data_lock_v1.json entry.sha256 (byte hash) and entry.content_sha256 (file self-declared value)",
+      "items": [
+        {"name": "protocol", "path": "CaMRA/calibration/config/calibration_protocol_v1.0.2.json", "byte_hash": "match", "content_sha256": "absent in file"},
+        {"name": "power_model", "path": "CaMRA/calibration/config/power_model_v1.json", "byte_hash": "match", "content_sha256": "bfe3b1594c08f729af78d4a22adf204ea0f96491892b98e1e0b24932f2ea1f55"},
+        {"name": "footprint", "path": "CaMRA/calibration/config/footprint_v1.json", "byte_hash": "match", "content_sha256": "a11a3572d61be81a8eac9fe10fe203069f2b61d5555510335e6853aff42199ab"},
+        {"name": "margins", "path": "CaMRA/calibration/config/margins_v1.json", "byte_hash": "match", "content_sha256": "dd76972d49fc8d078982c73c5bcb6c6e3eaa5fe1dc89281866b3801d538b5ec"},
+        {"name": "step_cost_schema", "path": "CaMRA/calibration/config/step_cost_schema_v1.json", "byte_hash": "match", "content_sha256": "a2a5fbc62f58dc46f44f0b88f140b148ef6dcf288a064b6ad98b7ff74ad95518"},
+        {"name": "asset_geometry", "path": "CaMRA/calibration/config/go2_asset_geometry_v1.json", "byte_hash": "match", "content_sha256": "absent in file"}
+      ],
+      "verdict": "PASS (6/6 byte hashes match the lock; 4/4 declared content hashes match)"
+    }
+  },
+  "uniqueness": {
+    "statement": "每个必需对象都能由权威清单唯一确定，无歧义候选",
+    "controller_id": "camra_go2_velocity_it2999_v2",
+    "bundle_version": "camra_go2_velocity_it2999_v2 (release_state=frozen)",
+    "asset_root": "/pub/data/caohy/unitree_model（唯一 Go2 树，4 文件）",
+    "checkpoint_name": "model_2999.pt（冻结包 training.checkpoint 指定）",
+    "policy_entry": "exported/policy.pt（JIT）+ exported/policy.onnx（ONNX）",
+    "calibration_lock": "data_lock_v1.json 同时绑定 protocol/model/footprint/margins/step_cost/asset_geometry"
+  },
+  "known_inconsistencies": [
+    {
+      "item": "sidecar .sha256 semantics",
+      "detail": "calibration_protocol_v1.0.2.json.sha256 与 go2_asset_geometry_v1.json.sha256 存的是文件字节哈希；而 power_model_v1 / footprint_v1 / margins_v1 / step_cost_schema_v1 的 .sha256 存的是文件自述的 content_sha256，不是字节哈希",
+      "impact": "若按“旁挂文件应与字节哈希一致”去比对，会对后四个文件误报不一致",
+      "resolution": "改用 data_lock 的 entry.sha256 比对字节哈希，6/6 全部一致；未修改任何文件或 hash",
+      "note": "属仓库既有工具语义差异，登记备查，不在本任务修复"
+    },
+    {
+      "item": "content_sha256 is not a byte hash",
+      "detail": "build_data_lock.py 的 entry() 把文件内顶层 'sha256' 字段复制为 content_sha256",
+      "impact": "不能把 content_sha256 当作文件完整性校验值",
+      "resolution": "完整性判定一律使用 entry.sha256（字节哈希）与 frozen_manifest 的逐文件散列"
+    }
+  ],
+  "not_done": [
+    "未运行采集",
+    "未运行仿真或训练",
+    "未修改任何文件、锁或散列",
+    "未从其他节点复制资源（资源已于 2026-11-09 迁移并逐字节核对）"
+  ],
+  "conclusion": "PASS。v2 冻结包 29/29 文件与树散列一致；Go2 资产 4 文件与树散列一致（源与包内双位置互验）；训练权重在位；policy.pt 可按冻结方式加载并前向 45->12；6 个校准配置文件的字节哈希均与 data_lock 绑定值一致；无缺失、无歧义、无内容改变。"
+}

@@ -1,0 +1,131 @@
+{
+  "schema": "camra-navigation-runtime-env-v2",
+  "task": "NAV-007 + NAV-008",
+  "captured_at": "2026-11-10T09:46:19+08:00",
+  "updated_at": "2026-11-10T09:52:00+08:00",
+  "host": {
+    "login_target": "192.168.20.11",
+    "hostname": "tiger11.ios.ac.cn",
+    "hostname_short": "tiger11",
+    "ip_on_lan": "192.168.20.11",
+    "compliance": "符合 global_constraints[1]：执行主机固定 tiger11；未使用 192.168.20.10 或 192.168.20.12",
+    "hardware": {
+      "cpu": "AMD EPYC 9654 96-Core Processor x2 sockets, 384 logical CPUs",
+      "ram_total_gb": 503,
+      "ram_available_gb": 232,
+      "gpu": "8 x NVIDIA GeForce RTX 4090 24 GB",
+      "driver": "560.35.03",
+      "driver_cuda": "12.6"
+    }
+  },
+  "tmux": {
+    "session_name": "camra-nav-v2-20261110-bootstrap",
+    "session_name_rule": "camra-nav-v2-<run_id>，run_id=20261110-bootstrap",
+    "server_pid": 2639274,
+    "windows": 1,
+    "window_0": "bash",
+    "pane_pid": 2639277,
+    "pane_current_command": "bash",
+    "pane_cwd": "/home/caohy/repositories/Paper",
+    "has_session_check": "tmux has-session -t camra-nav-v2-20261110-bootstrap -> alive",
+    "other_sessions_on_host": "本用户 tmux server 内仅此一个会话；系统上存在其他用户的 tmux 进程（非本任务）"
+  },
+  "interpreter": {
+    "path": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "version": "3.11.15",
+    "env_file": "/pub/data/caohy/v2_navigation.env",
+    "source_root": "/pub/data/caohy/IsaacLab_v0472",
+    "decision": "采用 env_isaaclab_v0472；计划 runtime_contract.python_hint 指向的 env_isaaclab 实测为 isaaclab 0.54.2，与冻结记录不符，已否决",
+    "known_deviations": [
+      "torch 2.7.0+cu128（冻结记录 +cu126）；CUDA 可用，识别 8 卡",
+      "Python 3.11.15（冻结记录 3.11.18）",
+      "cudnn deterministic=False / benchmark=False；名义环境不受影响"
+    ]
+  },
+  "dependencies": {
+    "core_exact_versions": {
+      "isaaclab": "0.47.2",
+      "isaaclab_assets": "0.2.3",
+      "isaaclab_tasks": "0.11.6",
+      "isaaclab_rl": "0.4.4",
+      "isaacsim": "5.1.0.0",
+      "rsl-rl-lib": "3.0.1",
+      "torch": "2.7.0+cu128",
+      "numpy": "1.26.0",
+      "onnxruntime": "1.31.1",
+      "gymnasium": "1.2.0"
+    },
+    "absent": ["jax", "jaxlib", "flax", "optax"],
+    "export": {"pip_freeze": "/pub/data/caohy/tmp/nav008_pip_freeze.txt", "package_count": 262},
+    "import_checks": ["torch/numpy/onnxruntime OK", "rsl_rl OK"],
+    "pip_check_residual": "wheel 0.46.3 要求 packaging>=24.0（实际 23.0），与 tiger12 冻结环境同源噪声",
+    "added_by_nav008": "无；本任务未安装任何新包"
+  },
+  "framework_decision": {
+    "upper_layer": "PyTorch",
+    "user_approved_at": "2026-11-10T09:44:00+08:00",
+    "user_approved_scope": "实现框架为 PyTorch；JAX 仅用于原算法数值对照，不进入主实现环境",
+    "recorded_by": "NAV-008（本任务）",
+    "basis": [
+      "v2 策略为 RecursiveScriptModule，torch.jit.load 直接前向 45->12（现场验证）",
+      "Isaac Lab 0.47.2 不依赖 jax；当前环境 jax 全缺",
+      "仓库其余部分均为 torch/numpy；JAX 仅存在于冻结的 RC-PPO 参考副本",
+      "算力瓶颈在 200 Hz 物理而非 10 Hz 名义积分",
+      "torch 与 jax 同进程争用 CUDA 且 jax 异步 dispatch 易产生难归因错误"
+    ],
+    "tensor_flow": "torch 单进程：上层策略(GPU) -> 速度指令 -> v2 torch.jit(GPU) -> 关节动作 -> Isaac Lab 物理(GPU)；名义环境固定 device 并禁止隐式跨设备拷贝",
+    "numerical_reference": {
+      "strategy": "PyTorch 主实现 + RC-PPO 原版 JAX 在隔离环境生成参考数值，双实现交叉验证",
+      "status": "planned for NAV-033；隔离环境尚未建立，需用户授权新增 jax 依赖",
+      "artifacts": ["reference_inputs.json", "reference_outputs.json"]
+    },
+    "rejected": "JAX 作为主框架：需自建 torch<->jax 桥、重写 Isaac Lab reset 语义、调试成本高"
+  },
+  "frozen_environment_identity": {
+    "controller_id": "camra_go2_velocity_it2999_v2",
+    "bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+    "bundle_verified": "29/29 文件散列一致，tree d0f0ec3c...",
+    "checkpoint": "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4/model_2999.pt",
+    "policy_jit": "exported/policy.pt = RecursiveScriptModule，前向 (1,45)->(1,12)",
+    "asset": "/pub/data/caohy/unitree_model/Go2",
+    "calibration_config": "CaMRA/calibration/config/{calibration_protocol_v1.0.2,power_model_v1,footprint_v1,margins_v1,data_lock_v1,step_cost_schema_v1}.json",
+    "note": "以上为运行期必须匹配的身份；任何一项变化都要新版本并重新验证"
+  },
+  "consumers": [
+    {"contract": "observation_contract", "owner": "NAV-013"},
+    {"contract": "action_and_cost_contract", "owner": "NAV-014"},
+    {"contract": "timing_contract", "owner": "NAV-025"},
+    {"contract": "training_contract", "owner": "NAV-029"}
+  ],
+  "gpu_snapshot": {
+    "captured_at": "2026-11-10T09:44:29+08:00",
+    "free_for_smoke": [0, 2],
+    "note": "GPU 3 已占 21.7 GB；4/5/7 有活动；本任务未占用任何 GPU"
+  },
+  "disk": {"path": "/pub", "size": "73T", "used": "43T", "avail": "27T", "use_pct": 62},
+  "logs": {
+    "bootstrap_log": "/pub/data/caohy/tmp/nav_bootstrap_20261110.log",
+    "env_check_log": "/pub/data/caohy/tmp/nav008_env_check.log",
+    "env_check_script": "/pub/data/caohy/tmp/nav008_env_check.sh",
+    "pip_freeze": "/pub/data/caohy/tmp/nav008_pip_freeze.txt",
+    "note": "均为临时区；正式输出根 /pub/data/caohy/logs/camra_navigation 待 NAV-010 建立"
+  },
+  "resume": {
+    "command": "ssh 192.168.20.11 -t tmux attach -t camra-nav-v2-20261110-bootstrap",
+    "locate_logs": "tmux list-panes -t camra-nav-v2-20261110-bootstrap -F #{pane_pid} #{pane_current_path}",
+    "connection_loss_rule": "先查 tmux ls 与既有进程/PID；不重复启动同一 run"
+  },
+  "not_started": [
+    "未启动 Isaac Sim 或仿真",
+    "未启动任何训练或采集",
+    "未安装新依赖",
+    "未创建导航实现代码",
+    "未占用 GPU"
+  ],
+  "pending": [
+    {"item": "正式导航工作与输出目录", "owner": "NAV-010"},
+    {"item": "速度域冲突裁定", "owner": "NAV-055", "blocks": "G0"},
+    {"item": "JAX 对照环境与依赖授权", "owner": "NAV-033", "blocks": "G3"},
+    {"item": "正式训练资源配额", "owner": "NAV-021"}
+  ]
+}

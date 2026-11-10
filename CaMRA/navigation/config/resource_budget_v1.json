@@ -1,0 +1,77 @@
+{
+  "schema": "camra-navigation-resource-budget-v1",
+  "task": "NAV-011",
+  "created_at": "2026-11-10T10:32:00+08:00",
+  "host": "tiger11 (192.168.20.11)",
+  "hardware_facts": {
+    "cpu": "AMD EPYC 9654 96-Core x2, 384 logical CPUs",
+    "ram_gb_total": 503,
+    "gpu": "8 x NVIDIA GeForce RTX 4090 24 GB",
+    "gpu_free_at_registration": [0, 2],
+    "driver": "560.35.03",
+    "disk_pub_avail": "27T",
+    "note": "GPU 是共享资源；登记时 GPU 3 已占 21.7 GB、4/5/7 有活动，本任务不 reserve 任何卡"
+  },
+  "historical_measurement": {
+    "source": "calibration_protocol_v1.0.2.resource_budget（冻结文件，未修改）",
+    "measured_at": "2026-11-04",
+    "measured_on": "tiger10, 1 x A100-40GB",
+    "trials": 32,
+    "window_s": 30.0,
+    "wall_seconds_including_startup": 484,
+    "per_trial_steady_state_s": 12.3,
+    "gpu_memory_mib": 12779,
+    "gpu_utilization_pct": 96,
+    "storage_per_trial_mb_uncompressed": 2.9,
+    "note": "该基线是 v2 物理采集；导航的名义环境（纯数学积分）远低于此，物理闭环阶段才可比"
+  },
+  "short_test_limits": {
+    "rationale": "以历史 32 env × 30 s = 484 s（含约 90 s 启动）为单次上限依据；诊断类任务不得无限加跑",
+    "per_run": {
+      "max_wall_minutes": 60,
+      "max_parallel_envs": 32,
+      "max_gpus": 1,
+      "max_gpu_memory_gb": 20,
+      "max_disk_gb": 20
+    },
+    "per_task": {
+      "max_runs": 6,
+      "max_total_wall_hours": 4,
+      "max_total_disk_gb": 60
+    },
+    "parallelism_policy": "32 envs 是已验证档位；提高并行度需先做一次缩放测试并登记实测，未测档位不得写入预算或用于正式评估",
+    "stop_rule": "单次超 60 分钟、显存超 20 GB 或磁盘超 20 GB 时先停止并记录，不静默延长",
+    "resume_rule": "中断后先查 tmux 会话、进程、run_manifest 与 DONE 标记，续跑复用同一 run_id，不重复写同一 run 目录"
+  },
+  "disk_and_log_policy": {
+    "work_root": "/pub/data/caohy/work/camra_navigation",
+    "output_root": "/pub/data/caohy/logs/camra_navigation",
+    "per_trial_estimate_mb": 3.0,
+    "compression_note": "npz 压缩后约为未压缩的 40-50%",
+    "retention": "正式 run 与失败 run 均保留；清理需单独授权，不覆盖历史产物"
+  },
+  "quick_check_quotas": {
+    "note": "各诊断的配额在启动前登记到本文件对应条目；未登记不得启动",
+    "NAV-059_low_speed_executability": {"status": "not_started", "max_runs": 3, "max_wall_minutes": 60, "registered_at": null},
+    "NAV-060_closed_loop_margin_pilot": {"status": "not_started", "max_runs": 4, "max_wall_minutes": 120, "registered_at": null},
+    "NAV-034_short_training_recheck": {"status": "not_started", "max_runs": 2, "max_wall_minutes": 180, "registered_at": null},
+    "NAV-043_deployed_policy_recheck": {"status": "not_started", "max_runs": 2, "max_wall_minutes": 180, "registered_at": null}
+  },
+  "formal_training_budget": {
+    "status": "pending_user_authorization",
+    "reason": "计划明确不虚构正式种子/试验数/迭代数/GPU 小时；uncertainty_policy 要求冻结前展示具体资源表并取得授权",
+    "procedure": [
+      "1. 在 NAV-021 用短训练实测单位耗时（每 1e6 步的墙钟与显存）",
+      "2. 据此给出两种方法的迭代数与 GPU 小时估算区间",
+      "3. 展示资源表并取得用户明确授权",
+      "4. 授权后把数值写入本文件并标记 authorized，同时登记到评估协议",
+      "5. 未授权前只允许已登记的短测与 pilot"
+    ],
+    "must_not": "不得以未授权资源启动正式训练，不得事后追加配额冒充预登记"
+  },
+  "authorization_record": {
+    "user_approved_hardware_use": "2026-11-10 批准在 tiger11 继续推进计划（含本任务的结构性工作）",
+    "formal_training_authorized": false,
+    "note": "本文件登记的是短测/诊断上限与正式训练的确认流程，不是正式训练授权"
+  }
+}

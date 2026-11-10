@@ -1,0 +1,79 @@
+{
+  "schema": "camra-navigation-contract-v1",
+  "version": "1.0.0",
+  "created_at": "2026-11-10T10:22:00+08:00",
+  "owner_tasks": ["NAV-055"],
+  "status": "partial",
+  "status_note": "本版本只冻结命令域。任务/事件/终止契约（NAV-012）、观测与坐标契约（NAV-013）、成本与预算契约（NAV-014/056）、几何与足迹契约（NAV-015/057）将在各自任务中追加；未列出的字段一律视为未冻结，实现不得自行假定。",
+  "controller": {
+    "id": "camra_go2_velocity_it2999_v2",
+    "bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+    "bundle_tree_sha256": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+    "checkpoint_sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+    "policy_entry": "exported/policy.pt (RecursiveScriptModule, 45 -> 12)"
+  },
+  "validated_command_domain": {
+    "vx_mps": [-1.0, 1.0],
+    "vy_mps": [-0.4, 0.4],
+    "wz_radps": [-1.0, 1.0],
+    "unit": {"vx": "m/s", "vy": "m/s", "wz": "rad/s"},
+    "frame": "body",
+    "comparison_tolerance": 1e-6,
+    "comparison_note": "实测值以 float32 表示（如 0.4000000059604645）。判定越界必须用容差，不得直接与 float64 边界做严格比较。",
+    "resolution": {
+      "decided_by": "NAV-055",
+      "report": "reports/command_domain_resolution.json",
+      "confidence": "high",
+      "sources_agreeing": 5,
+      "sources": [
+        "calibration_protocol_v1.0.2.command_domain",
+        "frozen_manifest.contract.command.ranges",
+        "power_model_v1.domain",
+        "commands.py LIMITS (hard-coded)",
+        "800 measured applied commands on tiger10 (extremes 1.0 / 0.400000006 / 1.0)"
+      ],
+      "rejected_value": {"vx": [-2.0, 2.0], "vy": [-1.0, 1.0], "wz": [-2.0, 2.0]},
+      "rejected_reason": "仅出现在 margins_v1.applicability 的描述文本中；无实测支持，且超出功率模型拟合域",
+      "legacy_files_modified": false
+    }
+  },
+  "command_pipeline": {
+    "requested": "上层策略输出的机身系速度，未经裁剪",
+    "clip_rule": "逐轴裁剪到 validated_command_domain，容差 1e-6",
+    "applied": "裁剪后的值，作为唯一实际下发命令",
+    "single_applied_rule": "同一 applied 必须同时用于：名义运动积分、功率模型成本计算、底层观测输入、日志记录。禁止在各处分别裁剪或分别记录不同版本。",
+    "prohibited": [
+      "使用 rejected_value 的任何轴范围",
+      "对 applied 做二次平滑或滤波而不记录（若需滤波，须在契约中新增并重新登记）",
+      "把 requested 写入日志冒充 applied"
+    ]
+  },
+  "timing": {
+    "physics_dt_s": 0.005,
+    "low_level_dt_s": 0.02,
+    "navigation_dt_s": 0.1,
+    "source": "protocol.clocks 与 frozen_manifest.contract.timing 一致",
+    "status": "reference only; binding validation belongs to NAV-025"
+  },
+  "cost_interface": {
+    "unit": "J",
+    "step_interval_s": 0.1,
+    "nominal_step_cost": "c_nom = P_nom(applied) * 0.1",
+    "budget_decrement": "z <- z - (1 + alpha) * c_nom",
+    "alpha_source": "margins_v1.json alpha (exact file value, not rounded)",
+    "status": "reference only; full semantics belong to NAV-014/NAV-056"
+  },
+  "consumers": [
+    {"task": "NAV-012", "needs": "event/termination contract", "uses": "validated_command_domain"},
+    {"task": "NAV-014", "needs": "cost and budget adapter", "uses": "validated_command_domain + cost_interface"},
+    {"task": "NAV-025", "needs": "10/50/200 Hz bridge", "uses": "timing + validated_command_domain"},
+    {"task": "NAV-029", "needs": "training contract", "uses": "all frozen fields"}
+  ],
+  "open_items": [
+    "任务与终止语义未冻结（NAV-012）",
+    "观测编码与坐标契约未冻结（NAV-013）",
+    "z_ref 与归一化映射未冻结（NAV-056）",
+    "足迹与姿态处理未冻结（NAV-057）",
+    "预算比较协议未冻结（NAV-058）"
+  ]
+}

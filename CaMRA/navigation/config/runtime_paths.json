@@ -1,0 +1,202 @@
+{
+  "schema": "camra-navigation-runtime-paths-v1",
+  "task": "NAV-008",
+  "created_at": "2026-11-10T09:50:00+08:00",
+  "authority": "runtime_contract.resource_resolution 要求 NAV-007–010 逐项核验并写本文件；path_status 明确 line clues 不代表可用",
+  "host": {
+    "ssh_target": "192.168.20.11",
+    "hostname": "tiger11.ios.ac.cn",
+    "forbidden_nodes": [
+      "192.168.20.10",
+      "192.168.20.12"
+    ],
+    "verified_at": "2026-11-10T09:46:19+08:00",
+    "hardware": {
+      "cpu": "AMD EPYC 9654 96-Core Processor x2 sockets, 384 logical CPUs",
+      "ram_total_gb": 503,
+      "ram_available_gb": 232,
+      "gpu": "8 x NVIDIA GeForce RTX 4090 24 GB",
+      "driver": "560.35.03",
+      "driver_cuda": "12.6",
+      "disk_pub_avail": "27T (62% used of 73T)"
+    }
+  },
+  "interpreter": {
+    "path": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "version": "3.11.15",
+    "source_editable_root": "/pub/data/caohy/IsaacLab_v0472",
+    "env_file": "/pub/data/caohy/v2_navigation.env",
+    "decision": "采用 env_isaaclab_v0472（isaaclab 0.47.2）",
+    "decision_basis": [
+      "v2 冻结记录要求 isaaclab 0.47.2 / isaacsim 5.1.0.0 / rsl-rl-lib 3.0.1 / onnxruntime 1.31.1 / numpy 1.26.0",
+      "计划 runtime_contract.python_hint 指向 /pub/data/caohy/miniconda/envs/env_isaaclab/bin/python，实测该环境为 isaaclab 0.54.2（IsaacLab v2.3.2），与冻结不符，不能作为执行环境",
+      "0.47.2 源码置于独立目录 IsaacLab_v0472，未触碰本机原有 2.3.2 源码，env_isaaclab 保持可用",
+      "8 个核心包版本与冻结记录逐项一致（见 dependencies.core）"
+    ],
+    "known_deviations": [
+      {
+        "item": "torch",
+        "actual": "2.7.0+cu128",
+        "frozen_record": "2.7.0+cu126",
+        "impact": "CUDA build 不同；torch.cuda.is_available()=True 且识别 8 卡，驱动 12.6 下可运行；需在正式评估报告中标注"
+      },
+      {
+        "item": "python",
+        "actual": "3.11.15",
+        "frozen_record": "3.11.18",
+        "impact": "次版本差异，未观察到包兼容问题；作为环境身份的一部分写入 run manifest"
+      },
+      {
+        "item": "cudnn flags",
+        "actual": "deterministic=False, benchmark=False",
+        "impact": "名义环境为纯数学，不受影响；物理仿真不保证逐位一致，与 v2 记录一致"
+      }
+    ]
+  },
+  "paths": {
+    "repository": "/home/caohy/repositories/Paper",
+    "repository_note": "/home 为共享 NFS，可见不代表在 tiger11 执行；每次 run 必须记录 hostname",
+    "v2_frozen_bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+    "v2_frozen_bundle_verified": "29/29 文件散列一致，tree_sha256 d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+    "v2_checkpoint": "/pub/data/caohy/logs/rsl_rl/rsl_rl/camra_go2_locomotion/2026-11-02_11-14-49_formal_s0_3000it_r4/model_2999.pt",
+    "v2_asset_root": "/pub/data/caohy/unitree_model",
+    "v2_calibration_logs": "/pub/data/caohy/logs/camra",
+    "nav_work_root": "/pub/data/caohy/work/camra_navigation",
+    "nav_work_root_status": "created and verified 2026-11-10 by NAV-010",
+    "nav_output_root": "/pub/data/caohy/logs/camra_navigation",
+    "nav_output_root_status": "created and verified 2026-11-10 by NAV-010",
+    "interim_log_dir": "/pub/data/caohy/tmp",
+    "isaac_runtime_dirs": [
+      "/pub/data/caohy/fakehome",
+      "/pub/data/caohy/tmp",
+      "/pub/data/caohy/xdgdata",
+      "/pub/data/caohy/xdgcache",
+      "/pub/data/caohy/xdgconfig"
+    ],
+    "isaac_runtime_dirs_status": "created and verified"
+  },
+  "framework_decision": {
+    "upper_layer": "PyTorch",
+    "approved_by_user_at": "2026-11-10T09:44:00+08:00",
+    "approved_scope": "实现框架为 PyTorch；JAX 仅用于原算法数值对照，不进入主实现环境",
+    "basis": [
+      "v2 策略以 RecursiveScriptModule 交付，torch.jit.load 直接前向 45->12，已现场验证",
+      "Isaac Lab 0.47.2 全 torch，不依赖 jax；当前环境 jax 全缺",
+      "仓库其余部分（locomotion / calibration / rsl_rl）均为 torch/numpy",
+      "算力瓶颈在 200 Hz 物理，不在 10 Hz 名义积分；JAX 并行优势在本架构无收益",
+      "torch 与 jax 同进程并存会争抢 CUDA runtime，且 jax 异步 dispatch 易产生难归因错误"
+    ],
+    "rejected_alternative": {
+      "option": "JAX 作为主实现框架",
+      "reasons": [
+        "需自建 torch<->jax 状态桥，每 0.1 s 交换，落在基础设施错误与业务失败的灰区",
+        "Isaac Lab 的 reset/terminate 语义需重写包装",
+        "jit 追踪报错难定位，调试成本高"
+      ],
+      "revisit_if": [
+        "上层训练规模达 1e5 env 且名义环境成为瓶颈",
+        "放弃 Isaac Lab 改为纯离线",
+        "团队对 JAX 熟练度显著更高"
+      ]
+    },
+    "tensor_flow": "全部在 torch 单进程内：上层策略(GPU) -> 机身速度指令 -> v2 torch.jit(GPU) -> 关节动作 -> Isaac Lab 物理(GPU)；名义环境可用 CPU 或 GPU 张量，需在契约中固定 device 并禁止隐式跨设备拷贝",
+    "numerical_reference": {
+      "strategy": "双实现交叉验证：PyTorch 实现为主，RC-PPO 原版 JAX 在隔离环境跑可枚举小问题生成参考数值",
+      "why": "同构移植只能证明抄得像；双实现才算得对",
+      "artifacts": [
+        "reference_inputs.json",
+        "reference_outputs.json（含 V_h、V_c、优势、目标值、停止索引）"
+      ],
+      "environment": "独立 conda env（含 jax/jaxlib/flax/optax），不与 env_isaaclab_v0472 混装",
+      "status": "planned for NAV-033, not created in NAV-008",
+      "requires_user_consent": "新增隔离环境与 jax 依赖属新增核心依赖，执行前需确认"
+    }
+  },
+  "dependencies": {
+    "core": {
+      "isaaclab": "0.47.2",
+      "isaaclab_assets": "0.2.3",
+      "isaaclab_tasks": "0.11.6",
+      "isaaclab_rl": "0.4.4",
+      "isaacsim": "5.1.0.0",
+      "rsl-rl-lib": "3.0.1",
+      "torch": "2.7.0+cu128",
+      "numpy": "1.26.0",
+      "onnxruntime": "1.31.1",
+      "gymnasium": "1.2.0"
+    },
+    "existing_not_added": "以上全部为迁移时已存在的依赖；NAV-008 未安装任何新包",
+    "unknown_or_absent": [
+      "jax",
+      "jaxlib",
+      "flax",
+      "optax"
+    ],
+    "export": {
+      "pip_freeze": "/pub/data/caohy/tmp/nav008_pip_freeze.txt",
+      "package_count": 262
+    },
+    "import_checks": [
+      "torch/numpy/onnxruntime OK",
+      "rsl_rl OK"
+    ],
+    "pip_check_residual": "wheel 0.46.3 要求 packaging>=24.0（实际 23.0）；该冲突在 tiger12 冻结环境同样存在，属既有噪声"
+  },
+  "isolation_and_recovery": {
+    "env_isolation": "新导航环境独立命名 env_isaaclab_v0472；源码根 IsaacLab_v0472；不覆盖 env_isaaclab 与 /pub/data/caohy/IsaacLab",
+    "output_isolation": "导航产物将写入 work/camra_navigation 与 logs/camra_navigation，不写入 v2 校准目录或 HiRA 目录",
+    "recovery": "环境可由 IsaacLab_v0472 源码 + 记录版本重建；pip freeze 已导出；资源散列已复验，可用冻结清单恢复",
+    "prohibited": [
+      "升级共享 env_isaaclab",
+      "复制其他节点解释器路径",
+      "在 /pub 之外新建隐蔽依赖目录"
+    ]
+  },
+  "consumers": [
+    {
+      "contract": "observation_contract",
+      "owner": "NAV-013",
+      "needs": "45 维观测构造、device/dtype、归一化与裁剪"
+    },
+    {
+      "contract": "action_and_cost_contract",
+      "owner": "NAV-014",
+      "needs": "速度指令限幅、J 步成本、有符号预算"
+    },
+    {
+      "contract": "timing_contract",
+      "owner": "NAV-025",
+      "needs": "10/50/200 Hz 桥与子步语义"
+    },
+    {
+      "contract": "training_contract",
+      "owner": "NAV-029",
+      "needs": "双 critic、停止分段、优势与目标值"
+    }
+  ],
+  "unresolved": [
+    {
+      "item": "速度域 1.0/0.4/1.0 vs 2.0/1.0/2.0",
+      "owner": "NAV-055",
+      "blocks": "G0"
+    },
+    {
+      "item": "JAX 对照环境的建立与依赖安装授权",
+      "owner": "NAV-033",
+      "blocks": "G3"
+    },
+    {
+      "item": "正式训练资源配额",
+      "owner": "NAV-021",
+      "blocks": "正式训练"
+    }
+  ],
+  "package": {
+    "name": "camra-navigation",
+    "version": "0.1.0",
+    "install_mode": "editable",
+    "source_dir": "CaMRA/navigation/src/camra_navigation",
+    "locatable_by": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "run_identity_rule": "camra_navigation.runs.resolve_run_dir refuses existing or non-empty run dirs; run_manifest.json is never overwritten"
+  }
+}
