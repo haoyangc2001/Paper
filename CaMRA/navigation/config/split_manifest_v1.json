@@ -1,0 +1,598 @@
+{
+  "schema": "camra-navigation-split-manifest-v1",
+  "version": "1.0.0",
+  "owner": "NAV-020",
+  "created_at": "2026-11-10T13:40:00+08:00",
+  "status": "membership_locked_evaluation_not_started",
+  "generator": {
+    "factory": "camra_navigation.maps.generator.build(level, seed, design)",
+    "design_path": "CaMRA/navigation/config/map_design_v1.json",
+    "design_version": "1.0.2",
+    "design_sha256": "43ebb07f3c73237256489d24c0d3848245436d3ceaaf43a7a94697838aecec82",
+    "seed_effect": "只扰动 start/goal/start_yaw；岛几何由 level 决定",
+    "map_id_rule": "<level.lower()>-s<seed>",
+    "geometry_hash_rule": "sha256(canonical{extent,start,start_yaw,goal,islands})",
+    "layout_hash_rule": "sha256(canonical{extent,islands})，用于识别近重复"
+  },
+  "levels": [
+    "L1_empty",
+    "L2_single_detour",
+    "L3_multi_path"
+  ],
+  "splits": {
+    "integration_pilot": {
+      "purpose": "阶段 2 的接线自检：v2 加载、10/50/200 Hz 时序、复位隔离、计量对账。",
+      "phase": "阶段 2（NAV-024–028）",
+      "reporting": "只作接线证据；不得作为任何性能数字，也不进入成功率分母。",
+      "levels": [
+        "L1_empty",
+        "L2_single_detour",
+        "L3_multi_path"
+      ],
+      "seeds": [
+        101
+      ],
+      "n_maps": 3,
+      "maps": [
+        {
+          "level": "L1_empty",
+          "seed": 101,
+          "map_id": "l1_empty-s101",
+          "geometry_hash": "8cd899aa4545324b751ab1f73fa2a7c9ed72923166cc5496cc3419a5f0e2db38",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 101,
+          "map_id": "l2_single_detour-s101",
+          "geometry_hash": "751d0570eb9aa7d1f0311af5953d7a8194a196b054227790bb0eee47408c90f8",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 101,
+          "map_id": "l3_multi_path-s101",
+          "geometry_hash": "a6cddfed5e83e416ff1fd9c0a134fbb89cac543710b8027b5c6e78b2a1c4d565",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        }
+      ]
+    },
+    "train": {
+      "purpose": "两组方法的训练集（无校准与完整方法）。",
+      "phase": "阶段 4（NAV-036–039）",
+      "reporting": "训练曲线可报告，但不作为最终性能。",
+      "levels": [
+        "L1_empty",
+        "L2_single_detour",
+        "L3_multi_path"
+      ],
+      "seeds": [
+        1001,
+        1002,
+        1003,
+        1004,
+        1005,
+        1006
+      ],
+      "n_maps": 18,
+      "maps": [
+        {
+          "level": "L1_empty",
+          "seed": 1001,
+          "map_id": "l1_empty-s1001",
+          "geometry_hash": "006fd0f04ecb00473f8884cbb23f7def6202c0657b295cfcd82f62a55217bd6c",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 1002,
+          "map_id": "l1_empty-s1002",
+          "geometry_hash": "fc8c9b87203f476e90d214168beb8badd7a7a357f6566bf05148800120152338",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 1003,
+          "map_id": "l1_empty-s1003",
+          "geometry_hash": "45502e96bd655d8adfc80984bc312d690f4434097418c1d8d3b0dbbf8bb5da15",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 1004,
+          "map_id": "l1_empty-s1004",
+          "geometry_hash": "9c527352359e933c85f22e877ba90f73618f20218e688c8dc0d4d0e13abf3dae",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 1005,
+          "map_id": "l1_empty-s1005",
+          "geometry_hash": "9e080ae4d58b131bd1f69c9f4f3ba1ee7dd5cb457635827b94187e442c1f6144",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 1006,
+          "map_id": "l1_empty-s1006",
+          "geometry_hash": "a959d3cd722a6fd274f8d8f3360f182833a3013e6030d49316692b11087455e1",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 1001,
+          "map_id": "l2_single_detour-s1001",
+          "geometry_hash": "39bf74373254399f4100398bc64f24cf745972684244c4c1f37e6643968aaf74",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 1002,
+          "map_id": "l2_single_detour-s1002",
+          "geometry_hash": "197c0ce0466a4d20261ee91d460f0218ecfdc66e4d1f2fa577ed65e3259ac1c9",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 1003,
+          "map_id": "l2_single_detour-s1003",
+          "geometry_hash": "80765a7ee2a2744421ac80ce9af5b1b80f68872b920bfabc26906a875e1f5556",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 1004,
+          "map_id": "l2_single_detour-s1004",
+          "geometry_hash": "026f865ba76e50311209c87d92f83c2adf21cd15c7d88e6db5704b5ecafd252d",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 1005,
+          "map_id": "l2_single_detour-s1005",
+          "geometry_hash": "b3d2e5f90474fd7a54affe67ea79e84a9bf674b2a352bb935951dba25062ab39",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 1006,
+          "map_id": "l2_single_detour-s1006",
+          "geometry_hash": "89a4d8487f1267b7da688c4f3029a7951ca3fa694f318520b3eddcbfbb8d7c94",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 1001,
+          "map_id": "l3_multi_path-s1001",
+          "geometry_hash": "12ad04eedc88b4d83a192a937c49448fb588efc0b63ac927cb204bbf5f69a002",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 1002,
+          "map_id": "l3_multi_path-s1002",
+          "geometry_hash": "b5e5bc12238cd0ad21949d8a9f9def91da6c592e2a3216c86035a24ea62871f1",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 1003,
+          "map_id": "l3_multi_path-s1003",
+          "geometry_hash": "29aca9e298f62d5b9eb7eb303e83d978e082159a2f3a22e464a3822837f73252",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 1004,
+          "map_id": "l3_multi_path-s1004",
+          "geometry_hash": "8bff59e2ac32ca0402435fee29f2a89c3af4b1f9e14e2e718f44d96273a1e772",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 1005,
+          "map_id": "l3_multi_path-s1005",
+          "geometry_hash": "59244a12b881fd8d057f2ee99c144bab7edad14a99458b7fc7844fbf6641761c",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 1006,
+          "map_id": "l3_multi_path-s1006",
+          "geometry_hash": "b45a1aa6feb3ac023245b29e6e189502baf85af42d92583ef22f42760117965d",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        }
+      ]
+    },
+    "development": {
+      "purpose": "开发期诊断：短训练策略复查、超参检查、失败模式归因。",
+      "phase": "阶段 4–5（NAV-034/035/042）",
+      "reporting": "只用于诊断；不得写成最终数字，也不得据此挑选最终地图。",
+      "levels": [
+        "L1_empty",
+        "L2_single_detour",
+        "L3_multi_path"
+      ],
+      "seeds": [
+        2001,
+        2002
+      ],
+      "n_maps": 6,
+      "maps": [
+        {
+          "level": "L1_empty",
+          "seed": 2001,
+          "map_id": "l1_empty-s2001",
+          "geometry_hash": "7d49993960d23b8bb7d954f2186efa16689e0d484d54eeea030b91564bedd02f",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 2002,
+          "map_id": "l1_empty-s2002",
+          "geometry_hash": "7a85b3bf4780ca2cc62d54bca28a39798539e4cec3b01d4bdbdc90c1d740df35",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 2001,
+          "map_id": "l2_single_detour-s2001",
+          "geometry_hash": "617419da259ec7f0d9143a0446e7e5b6d6cceebe1aecbb42bd79c34b7551088a",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 2002,
+          "map_id": "l2_single_detour-s2002",
+          "geometry_hash": "c4539fb9bab760a2665f1fe5e95ee4830560d9d6ad2d6dcdbbd75695c66a3393",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 2001,
+          "map_id": "l3_multi_path-s2001",
+          "geometry_hash": "c3c8d54332a87597d050b4147f199801d4e8b235a9023287345261f93570762f",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 2002,
+          "map_id": "l3_multi_path-s2002",
+          "geometry_hash": "2798b6516a48a831f0cd0323eebd78cff2bfe540a832485c8555af403bb36e93",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        }
+      ]
+    },
+    "budget_selection": {
+      "purpose": "预算搜索：为给定场景参考预算选出可行做法并检验无解比例。",
+      "phase": "阶段 5（NAV-040–045）",
+      "reporting": "只报告可行/无解与搜索诊断；不报告导航成功率，也不参与最终对比。",
+      "levels": [
+        "L1_empty",
+        "L2_single_detour",
+        "L3_multi_path"
+      ],
+      "seeds": [
+        3001,
+        3002,
+        3003
+      ],
+      "n_maps": 9,
+      "maps": [
+        {
+          "level": "L1_empty",
+          "seed": 3001,
+          "map_id": "l1_empty-s3001",
+          "geometry_hash": "22e4597d8d5f5849ed81a74f07bfc1f768d35f02778d000dee197cc32269a803",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 3002,
+          "map_id": "l1_empty-s3002",
+          "geometry_hash": "11701033b79b022c024814322410b8688c825430b182fee279211b01a2e02bd3",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 3003,
+          "map_id": "l1_empty-s3003",
+          "geometry_hash": "18869e1ceefe2a95cf53b4da3915818f75cbe9c5093134c6cf731f6d715a5730",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 3001,
+          "map_id": "l2_single_detour-s3001",
+          "geometry_hash": "1193ab1ae137037d5f82cac846ff4429db19607f1c6cb6d66066e25c89af00cf",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 3002,
+          "map_id": "l2_single_detour-s3002",
+          "geometry_hash": "53ba7ed0adffc6092216733a25d35b55a8da88f3d2624384d860453a11fbba73",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 3003,
+          "map_id": "l2_single_detour-s3003",
+          "geometry_hash": "62836ec36dbb1a5acfd07f7f459d676a80a8c72b50454520c6b4f2c71dbd1ae2",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 3001,
+          "map_id": "l3_multi_path-s3001",
+          "geometry_hash": "4381ba78ad24d1130e6b508f21cd79e055f54f3f7372dd55ae6ae5738f56eac8",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 3002,
+          "map_id": "l3_multi_path-s3002",
+          "geometry_hash": "8401c470fec2f4fb14b1aa647b726eb1729bf47cd4f3818cec9e1c63fb343e4a",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 3003,
+          "map_id": "l3_multi_path-s3003",
+          "geometry_hash": "c433dd5a5e77f57bbb5556e5e9dc3dff1a5c990a5c0ea80e63e61305b552a21c",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        }
+      ]
+    },
+    "final_nominal": {
+      "purpose": "确定性名义环境上的最终评估。",
+      "phase": "阶段 5–6（NAV-043/044）",
+      "reporting": "最终数字之一；训练冻结后才可运行。",
+      "levels": [
+        "L1_empty",
+        "L2_single_detour",
+        "L3_multi_path"
+      ],
+      "seeds": [
+        4001,
+        4002
+      ],
+      "n_maps": 6,
+      "maps": [
+        {
+          "level": "L1_empty",
+          "seed": 4001,
+          "map_id": "l1_empty-s4001",
+          "geometry_hash": "46c9d262eb48d147fe48feb8b99389712516eb7cafb068b3ffc50a9be3074533",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 4002,
+          "map_id": "l1_empty-s4002",
+          "geometry_hash": "4ff883b76ab74bcd1f4307f1f5af18ad08b673a66f83a6b2a90b398adaa9865b",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 4001,
+          "map_id": "l2_single_detour-s4001",
+          "geometry_hash": "1a2df616adbf9e1e9adbf38691605757aa9422bb618eefd37119a7a423a7ca47",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 4002,
+          "map_id": "l2_single_detour-s4002",
+          "geometry_hash": "55d2964fa527f219a08aeadd823ddc9e8be1b7296b30f0bac96884c64ff52570",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 4001,
+          "map_id": "l3_multi_path-s4001",
+          "geometry_hash": "77ed792b4e68f02d22d29b24c600f542defa8a26a6fe3be428614c31ac935b2d",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 4002,
+          "map_id": "l3_multi_path-s4002",
+          "geometry_hash": "d12422b214f611c97c4148cfe293890efd790ca597922cc726d6d219096342b5",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        }
+      ]
+    },
+    "final_clean": {
+      "purpose": "Isaac Lab clean 物理（关闭扰动）上的最终评估。",
+      "phase": "阶段 5（NAV-045）",
+      "reporting": "最终数字之一；训练冻结后才可运行。",
+      "levels": [
+        "L1_empty",
+        "L2_single_detour",
+        "L3_multi_path"
+      ],
+      "seeds": [
+        5001,
+        5002
+      ],
+      "n_maps": 6,
+      "maps": [
+        {
+          "level": "L1_empty",
+          "seed": 5001,
+          "map_id": "l1_empty-s5001",
+          "geometry_hash": "7e1f905aaf1c5a3e8c9cb7d86f708644ee114c61aa4393c4938133eaf8a3a2f4",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 5002,
+          "map_id": "l1_empty-s5002",
+          "geometry_hash": "96e2699f0d437ef4d7a2a07431bb28e8b554c24d9143a83b008e76c89d253c9f",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 5001,
+          "map_id": "l2_single_detour-s5001",
+          "geometry_hash": "81f250edff0aadcf843794aa66442d4e46227da4c1b6d4bac4841587f800ceae",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 5002,
+          "map_id": "l2_single_detour-s5002",
+          "geometry_hash": "9ad5ac57afcc5db8724f29ce37694b877f2bad40f6937efaade9a53a46ac09a4",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 5001,
+          "map_id": "l3_multi_path-s5001",
+          "geometry_hash": "e12ce64b6bf78c34d5b27da9597ddb368904d16f333daf7b2ab36c1a16f8c2ef",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 5002,
+          "map_id": "l3_multi_path-s5002",
+          "geometry_hash": "44d7a1b2e6a6c0fe9867355363ad929aeff3d70a28b5506fb91aaac5cf176f9c",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        }
+      ]
+    },
+    "final_perturbed": {
+      "purpose": "固定策略在预登记扰动下的最终评估。",
+      "phase": "阶段 6（NAV-046–050）",
+      "reporting": "最终数字之一；扰动 profile 必须在看结果前冻结。",
+      "levels": [
+        "L1_empty",
+        "L2_single_detour",
+        "L3_multi_path"
+      ],
+      "seeds": [
+        6001,
+        6002
+      ],
+      "n_maps": 6,
+      "maps": [
+        {
+          "level": "L1_empty",
+          "seed": 6001,
+          "map_id": "l1_empty-s6001",
+          "geometry_hash": "347ac4e83aafef5782bf41e0a8167110229032b2fd45fe737dcfd75cd90be10a",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L1_empty",
+          "seed": 6002,
+          "map_id": "l1_empty-s6002",
+          "geometry_hash": "d007e12cea8171d1a3e376db1113dd9196de27cf33d09999ba0cd75e867b09d3",
+          "layout_hash": "ad790aa234c28862764e716caaf949b890b300453382e48b55d645d7e377506b"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 6001,
+          "map_id": "l2_single_detour-s6001",
+          "geometry_hash": "4130835b39e62c24883bea054a48d5d276b67d894fe611b0a1e67d23021a41a3",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L2_single_detour",
+          "seed": 6002,
+          "map_id": "l2_single_detour-s6002",
+          "geometry_hash": "bf6bedcfdcbb982d26c30d28bc200021bd5f30eb76cfdeea4931751a69e32ad4",
+          "layout_hash": "782a99ba98adf445c9c25dc5bd1e792999212fa7b9ad98a9bd424827fcdae9f6"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 6001,
+          "map_id": "l3_multi_path-s6001",
+          "geometry_hash": "09caa18b15e70116403f25b609dfcec30774e2708ee7d4ee247a2df3277f4bc5",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        },
+        {
+          "level": "L3_multi_path",
+          "seed": 6002,
+          "map_id": "l3_multi_path-s6002",
+          "geometry_hash": "d61117c92e08bdfcf20c8b15e258d2f9cdff5d8c43301378f5ac670ff2c92d0a",
+          "layout_hash": "dc7ed33091fe654b7820b9e919a236abf4be89277318bafcfde4b032e3cdbf30"
+        }
+      ]
+    }
+  },
+  "exclusivity": {
+    "rule": "(level, seed) 在全清单内唯一",
+    "n_pairs": 54,
+    "n_maps_declared": 54,
+    "duplicates_found": [],
+    "holds": true
+  },
+  "near_duplicates": {
+    "finding": "同一 level 的所有 seed 共享同一岛几何（seed 只扰动起终点与初始航向），因此同一 level 内任意两张地图是「近重复」而非独立布局。",
+    "distinct_layouts_per_level": {
+      "L1_empty": 1,
+      "L2_single_detour": 1,
+      "L3_multi_path": 1
+    },
+    "consequence": "final_* 上的数字度量的是起终点与预算上的泛化，不是布局泛化；任何「未见地图」的表述必须限定为「未见任务实例」。",
+    "not_a_leak": "这是设计使然（移动岛可能让场地不可通行），不是数据泄漏；泄漏控制只要求 (level, seed) 不跨 split 复用。",
+    "maps_per_level": {
+      "L1_empty": 18,
+      "L2_single_detour": 18,
+      "L3_multi_path": 18
+    }
+  },
+  "method_pairing": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "rule": "两组必须落在同一 split、同一 seed、同一初态、同一预算规则上；唯一允许的差别是 alpha（0 与 margins_v1 的精确值）以及由此得到的成本。",
+    "why": "α=0 组是对照，不是「少调一点」；任何其它差异都会让对比失去意义。",
+    "z0_owner": "本清单不固定预算数值：训练预算由 NAV-021 登记，搜索预算由 NAV-040–045 决定。"
+  },
+  "failure_handling": {
+    "counted_as_success": [
+      "goal_reached"
+    ],
+    "counted_as_failure": [
+      "collision",
+      "out_of_bounds",
+      "budget_exhausted",
+      "stagnation"
+    ],
+    "counted_separately": {
+      "timeout": "记为 truncated，单独报数；既不算成功也不算失败，也不从分母里删。"
+    },
+    "not_a_label": {
+      "internal_violation": "与标签正交，只作诊断计数；不得据此改标签或剔除回合。",
+      "fall": "名义模型无物理接触，不会发生；物理侧出现即记 fall 并计入失败。"
+    },
+    "infrastructure_errors": "进程崩溃、NaN 进状态、读不到资源等属基础设施错误：不计入业务分母，但必须逐条记录并报出条数；不得悄悄丢弃。",
+    "no_resampling": "禁止为凑成功率重跑同一 (split, seed)；重跑必须作为新的 run id 留档，两者都报。",
+    "denominator": "分母由本清单的 (split, level, seed) 数量固定，不随结果变化。"
+  },
+  "leakage_controls": [
+    "(level, seed) 在全清单内唯一：同一任务实例不得出现在两个 split。",
+    "final_* 的地图在训练冻结前不得构建或步进；reports/ 下不得出现 final_* 结果文件。",
+    "budget_selection 只允许决定预算；其结果不得用于挑最终地图、改 α/δ 或改方法。",
+    "split 归属只由几何与预登记种子决定；不得因策略表现调整归属。",
+    "development 的数字不得写成最终数字；这一条是流程约束，代码只能检查文件命名。"
+  ],
+  "locks": {
+    "membership_frozen": true,
+    "final_evaluated": false,
+    "unlock_condition": "final_* 只允许在 NAV-037/039 的训练与 checkpoint 冻结之后运行；扰动 profile 必须在看结果前冻结。",
+    "forbidden_before_unlock": [
+      "构建或步进 final_* 地图",
+      "在 reports/ 下写 final_* 结果文件",
+      "用 development/budget_selection 的结果替代最终数字"
+    ]
+  },
+  "integrity": {
+    "manifest_hash": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+    "hash_rule": "sha256 over canonical JSON (sort_keys, compact separators, UTF-8) of the manifest with the integrity block removed"
+  }
+}

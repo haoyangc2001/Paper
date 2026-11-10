@@ -1,0 +1,250 @@
+{
+  "task": "NAV-020",
+  "verdict": "PASS",
+  "n_checks": 15,
+  "n_failed": 0,
+  "manifest_hash": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+  "n_maps": 54,
+  "checks": [
+    {
+      "check": "manifest_matches_generator",
+      "ok": true,
+      "detail": {
+        "committed_hash": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "rebuilt_hash": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "identical": true,
+        "note": "手改 JSON 会立刻暴露：清单是代码加设计文件的函数"
+      }
+    },
+    {
+      "check": "manifest_hash_reproducible",
+      "ok": true,
+      "detail": {
+        "recomputed": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "declared": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "rule": "sha256 over canonical JSON (sort_keys, compact separators, UTF-8) of the manifest with the integrity block removed"
+      }
+    },
+    {
+      "check": "design_binding_matches",
+      "ok": true,
+      "detail": {
+        "declared_version": "1.0.2",
+        "design_version": "1.0.2",
+        "declared_sha256": "43ebb07f3c732372",
+        "file_sha256": "43ebb07f3c732372"
+      }
+    },
+    {
+      "check": "pairs_unique_across_splits",
+      "ok": true,
+      "detail": {
+        "n_pairs": 54,
+        "declared": 54,
+        "duplicates": [],
+        "declared_holds": true
+      }
+    },
+    {
+      "check": "split_sizes_match",
+      "ok": true,
+      "detail": {
+        "declared": {
+          "integration_pilot": 3,
+          "train": 18,
+          "development": 6,
+          "budget_selection": 9,
+          "final_nominal": 6,
+          "final_clean": 6,
+          "final_perturbed": 6
+        },
+        "actual": {
+          "integration_pilot": 3,
+          "train": 18,
+          "development": 6,
+          "budget_selection": 9,
+          "final_nominal": 6,
+          "final_clean": 6,
+          "final_perturbed": 6
+        },
+        "expected": {
+          "integration_pilot": 3,
+          "train": 18,
+          "development": 6,
+          "budget_selection": 9,
+          "final_nominal": 6,
+          "final_clean": 6,
+          "final_perturbed": 6
+        },
+        "total": 54
+      }
+    },
+    {
+      "check": "map_identity_reproducible",
+      "ok": true,
+      "detail": {
+        "maps_checked": 54,
+        "mismatched": [],
+        "note": "map_id、geometry_hash 与 design_version 必须与清单逐项一致"
+      }
+    },
+    {
+      "check": "all_geometry_hashes_distinct",
+      "ok": true,
+      "detail": {
+        "n_maps": 54,
+        "n_distinct": 54
+      }
+    },
+    {
+      "check": "near_duplicate_layouts_declared",
+      "ok": true,
+      "detail": {
+        "distinct_layouts": {
+          "L1_empty": 1,
+          "L2_single_detour": 1,
+          "L3_multi_path": 1
+        },
+        "declared": {
+          "L1_empty": 1,
+          "L2_single_detour": 1,
+          "L3_multi_path": 1
+        },
+        "maps_per_level": {
+          "L1_empty": 18,
+          "L2_single_detour": 18,
+          "L3_multi_path": 18
+        },
+        "consequence": "final_* 上的数字度量的是起终点与预算上的泛化，不是布局泛化；任何「未见地图」的表述必须限定为「未见任务实例」。"
+      }
+    },
+    {
+      "check": "seed_blocks_disjoint",
+      "ok": true,
+      "detail": {
+        "blocks": {
+          "integration_pilot": [
+            101,
+            101
+          ],
+          "train": [
+            1001,
+            1006
+          ],
+          "development": [
+            2001,
+            2002
+          ],
+          "budget_selection": [
+            3001,
+            3003
+          ],
+          "final_nominal": [
+            4001,
+            4002
+          ],
+          "final_clean": [
+            5001,
+            5002
+          ],
+          "final_perturbed": [
+            6001,
+            6002
+          ]
+        },
+        "overlaps": [],
+        "n_seeds": 18,
+        "n_distinct": 18
+      }
+    },
+    {
+      "check": "budget_selection_disjoint_from_evaluation",
+      "ok": true,
+      "detail": {
+        "budget_selection": 9,
+        "finals": 18,
+        "development": 6,
+        "overlaps": {
+          "finals": [],
+          "development": [],
+          "train": []
+        }
+      }
+    },
+    {
+      "check": "all_declared_maps_admissible",
+      "ok": true,
+      "detail": {
+        "maps_checked": 54,
+        "rejected": [],
+        "t_min_range_s": [
+          13.95,
+          17.178525407415542
+        ],
+        "deadline_s": 30.0,
+        "resolution_m": 0.15,
+        "note": "准入是几何事实，在任何策略存在之前就已确定，因此不构成按结果挑图"
+      }
+    },
+    {
+      "check": "final_splits_not_evaluated",
+      "ok": true,
+      "detail": {
+        "final_evaluated_flag": false,
+        "final_result_files": [],
+        "unlock_condition": "final_* 只允许在 NAV-037/039 的训练与 checkpoint 冻结之后运行；扰动 profile 必须在看结果前冻结。"
+      }
+    },
+    {
+      "check": "method_pairing_covers_variants",
+      "ok": true,
+      "detail": {
+        "declared": [
+          "uncalibrated",
+          "full"
+        ],
+        "frozen_variants": [
+          "full",
+          "uncalibrated"
+        ],
+        "z0_owner": "本清单不固定预算数值：训练预算由 NAV-021 登记，搜索预算由 NAV-040–045 决定。"
+      }
+    },
+    {
+      "check": "failure_handling_covers_all_labels",
+      "ok": true,
+      "detail": {
+        "labels": [
+          "fall",
+          "collision",
+          "out_of_bounds",
+          "goal_reached",
+          "budget_exhausted",
+          "stagnation",
+          "timeout"
+        ],
+        "covered": [
+          "budget_exhausted",
+          "collision",
+          "fall",
+          "goal_reached",
+          "internal_violation",
+          "out_of_bounds",
+          "stagnation",
+          "timeout"
+        ],
+        "missing": [],
+        "no_resampling": "禁止为凑成功率重跑同一 (split, seed)；重跑必须作为新的 run id 留档，两者都报。"
+      }
+    },
+    {
+      "check": "rebuild_is_stable",
+      "ok": true,
+      "detail": {
+        "first": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "second": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "note": "同一代码同一设计文件两次生成必须逐字节相同"
+      }
+    }
+  ]
+}

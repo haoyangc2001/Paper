@@ -2396,11 +2396,58 @@
       "id": "NAV-020",
       "phase": "契约与名义环境",
       "goal": "建立训练选择评估互斥清单",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-019"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T13:52:00+08:00",
+          "summary": "建立七个 split 的互斥清单（54 张地图、18 个种子块互不重叠），清单由生成器与设计文件推导而非手写，hash 可复算、54 张图全部通过准入；同时识别并如实登记「同一 level 的 18 个种子共享同一岛几何」这一近重复事实及其对结论范围的限制。",
+          "actions": [
+            "读 NAV-020 的约束：按几何族与 seed 划分七个 split，需识别同地图变换与近重复，开发试跑不得查看最终清单结果。",
+            "核对 maps/generator.build 的 seed 语义：seed 只扰动 start/goal/start_yaw，岛几何由 level 决定，因此同一 level 内是「近重复任务实例」而非独立布局。",
+            "设计种子分块（101 / 1001-1006 / 2001-2002 / 3001-3003 / 4001-4002 / 5001-5002 / 6001-6002），块间彼此远离，便于一眼看出重叠。",
+            "写 scripts/build_split_manifest.py：把 split 规格、种子、用途、方法配对、失败处理写成常量，其余（地图数、geometry_hash、layout_hash、互斥检查、manifest hash）全部由代码计算。",
+            "生成 config/split_manifest_v1.json（24.5 KB）：7 个 split、54 张地图、每个 split 逐图列出 level/seed/map_id/geometry_hash/layout_hash。",
+            "写 tests/test_splits.py 覆盖 15 项：清单与生成器一致、hash 可复算、设计绑定、跨 split 唯一、尺寸一致、地图身份可重建、几何散列互不相同、近重复声明、种子块不重叠、预算选择集与评估集不相交、全部地图准入、final_* 未评估、方法配对覆盖两个变体、失败处理覆盖全部标签、重建稳定。",
+            "在 tmux 内用登记解释器运行：先探测 54 张图是否全准入（0 拒绝），再跑完整测试。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/split_manifest_v1.json",
+            "CaMRA/navigation/scripts/build_split_manifest.py",
+            "CaMRA/navigation/tests/test_splits.py",
+            "CaMRA/navigation/reports/split_manifest_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/build_split_manifest.py（在 tmux 内生成清单）",
+            "python CaMRA/navigation/tests/test_splits.py --json CaMRA/navigation/reports/split_manifest_check.json（在 tmux 内，含 54 次准入检查）"
+          ],
+          "results": [
+            "七个 split 与地图数：integration_pilot 3、train 18、development 6、budget_selection 9、final_nominal 6、final_clean 6、final_perturbed 6，合计 54。",
+            "互斥：(level, seed) 共 54 组，跨 split 重复 0；18 个种子分属七个互不重叠的数值块。",
+            "清单 hash 053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f，规则为「去掉 integrity 后按规范化 JSON 求 sha256」，测试独立复算一致。",
+            "清单与生成器一致性：把提交的 JSON 与重新生成的结果逐字段比较完全相同，手改 JSON 会立即暴露。",
+            "设计绑定：design_version=1.0.2 且 design_sha256 与实际文件字节散列一致，改动设计文件必须重建清单。",
+            "关键事实（近重复）：三个 level 的 18 张地图各自的 layout_hash 完全相同，即 distinct_layouts_per_level 全为 1，maps_per_level 各 18。已在清单中断言并写明后果：final_* 上的数字度量起终点与预算上的泛化，不是布局泛化。",
+            "准入：54 张图全部通过 NAV-017 的准入检查（0.15 m 栅格 + 连续验证），最短用时 13.95-17.18 s，全部在 30 s 时限内。",
+            "预算选择集与三个 final_* 及 development、train 两两不相交（交集均为空）。",
+            "final_* 未评估：locks.final_evaluated=false，且 reports/ 下不存在 final_* 结果文件。",
+            "方法配对：声明的两个变体与 costs.VARIANTS 完全一致（uncalibrated、full）；预算数值归属明确留给 NAV-021 与 NAV-040-045，本清单不擅自固定。",
+            "失败处理覆盖全部 7 个标签：goal_reached 计成功，collision/out_of_bounds/budget_exhausted/stagnation 计失败，timeout 单列 truncated，internal_violation 与 fall 归入 not_a_label 并说明理由；另规定基础设施错误不计入业务分母但必须计数、禁止重采样、分母由清单固定。",
+            "重建稳定：两次生成逐字节相同。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/split_manifest_v1.json：splits（含逐图 map_id/geometry_hash/layout_hash）、exclusivity、near_duplicates、method_pairing、failure_handling、leakage_controls、locks、integrity。",
+            "CaMRA/navigation/reports/split_manifest_check.json：15 项检查全 ok、verdict=PASS，含 54 张图的准入结论与 shortest/longest 时间区间。",
+            "CaMRA/navigation/scripts/build_split_manifest.py --check 可随时确认提交的 JSON 与代码产物一致。",
+            "/pub/data/caohy/tmp/nav020_build.log 与 nav020_test.log 为 tmux 内原始输出。",
+            "未修改地图设计文件、冻结配置或任何既有产物；清单为新增文件。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "按地图几何族与seed划分train/development/budget_selection/final_nominal/final_clean/final_perturbed/integration_pilot。",
         "同地图变换/近重复需识别；开发试跑不查看最终清单结果，正式剔除规则不由策略表现决定。"
@@ -2409,7 +2456,7 @@
         "清单hash、生成器版本和互斥检查可复算，无地图族/预算选择数据泄漏。",
         "每个split的用途、方法配对、种子和失败处理明确，最终清单可锁定但不提前评估。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。split_manifest_v1.json 由 scripts/build_split_manifest.py 从常量规格与设计文件推导生成（7 个 split、54 张地图），manifest hash 053f9bcd 由「去 integrity 后规范化 JSON 的 sha256」复算一致，提交文件与重新生成结果逐字段相同。互斥：(level,seed) 54 组跨 split 重复 0，18 个种子分属互不重叠的数值块；budget_selection 与三个 final_* 及 development、train 交集全空。设计绑定 design_version=1.0.2 且 design_sha256 与实际文件一致。54 张图全部通过准入（13.95-17.18 s，30 s 时限内）。近重复已如实登记：三个 level 各自的 18 张图 layout_hash 全同（distinct_layouts_per_level 全为 1），因此结论限定为「未见任务实例」而非「未见布局」。final_evaluated=false 且 reports/ 无 final_* 文件；方法配对与 costs.VARIANTS 一致，预算数值留给 NAV-021/040-045；失败处理覆盖全部 7 个标签并规定禁止重采样与固定分母。15 项检查全过。",
       "reference_ids": [
         "R08",
         "R09",
