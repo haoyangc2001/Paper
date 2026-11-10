@@ -3047,7 +3047,46 @@
       "depends_on": [
         "NAV-027"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T22:41:15+08:00",
+          "summary": "NAV-059 核验完成（51 回合全量，FAIL）：名义省能低速区间 0.05-0.3 m/s 在开环执行下全部不可执行（usable 0%，判据要求 >=90%）；按预登记保持 false，低速处置待用户裁定。",
+          "actions": [
+            "解析复算：冻结功率模型 power-v1（sha bfe3b159 经 PowerModel.sha256() 官方校验）精确系数 P(v)=3.0284+4.7226v+31.542v^2，v*=sqrt(bias/vx2)=0.30986 m/s（与 0.30986 吻合）；0.3 档 J/m 名义 24.28 与 v* 仅差 0.01%。",
+            "执行链修正（12 轮 Isaac 迭代，关键转折）：v2 是 Lab 训练策略，冻结语义 = ManagerBasedRLEnv 完整 env.step() 管线（implicit PD 25/0.5 由 actuator cfg 提供、JointPositionAction、manager 观测、Lab 关节顺序自洽）；HiRA 显式 PD 链（20/0.5，isaacgym 语义）不适用于 v2。对照实验：raw.step() 全管线站稳行走（tilt 2.6°、0.3 m/s），全部手动驱动变体翻倒/僵死。",
+            "环境配置修正：episode_length_s 覆盖 warmup+窗口（默认 20s 到期触发内部自动 reset 污染窗口，实测 ctrl1000 位置跳回 origin）；命令重采样禁用（resampling_time_range=1e9，防覆写外部命令）；root 写入加 env_origins 偏移（否则多 env 同点重叠爆炸，实测飞出 80m）；掉落高度用 v2 契约 0.4m（env.yaml init_state）。",
+            "200Hz 能量经 patched sim.step 逐子步记录（v2 TrialRecorder 相位门控同款：tau=update 前 applied_torque、qdot=robot.update 后 joint_vel），NavEnergyRecorder 窗口/沉降分离。",
+            "全量 51 回合（45 预登记直线 + 6 诊断组合）：5 档速度 x 3 层级 x 3 种子，30s/6000 子步/回合，墙钟 17.8 分钟（上限 2h）。",
+            "跟踪容差语义经用户裁定：横向累积偏差 <=0.05m（忠于预登记字面，最保守口径）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/check_low_speed_energy.py",
+            "CaMRA/navigation/reports/low_speed_energy_executability.json"
+          ],
+          "commands": [
+            "PYTHONPATH=.../locomotion/source/unitree_rl_lab CUDA_VISIBLE_DEVICES=5 python -u CaMRA/navigation/scripts/check_low_speed_energy.py --json CaMRA/navigation/reports/low_speed_energy_executability.json（tmux camra-nav-v2-20261110-bootstrap）"
+          ],
+          "results": [
+            "verdict FAIL：5 档 usable 全部 0%（判据 >=90%）。",
+            "0.05 档：6/9 停滞（位移约 0），实测 J/m 均值 988.9（名义 66.9，14.8 倍）；0.1 档：3/9 停滞，J/m 414.3（名义 38.2）；0.15 档：位移仅 0.02-0.23m（应走 4.5m），J/m 346.9；0.2 档：位移 0.47-2.0m（应走 6m），J/m 84.2；0.3 档：位移 4.4-6.7m（应走 9m），J/m 46.9（名义 24.3，1.9 倍）。",
+            "跌倒 0、停滞集中在 <=0.1 档：失败模式是低速速度跟踪不足（命令 0.15 实际 ~0.08 m/s 甚至停滞），不是翻倒。",
+            "0.3 档横向累积偏差 0.63m、航向率误差 0.23 rad/s，均超预登记容差（0.05m/0.05rad/s）。",
+            "诊断组合（侧移/转向）：0.3+0.1+0.2 组合 3 seed 中 2 个停滞（0.00/0.05m）、1 个走 1.58m；0.1+0.05+0.1 组合 2 个停滞、1 个走 15.1m——低速组合行为极不稳定。",
+            "实际/名义能耗在未前进时明确不可计算（progress<=0.01m 记 null），已前进档位 J/m 实测均高于名义（1.9-14.8 倍），如实报告不重校准。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/low_speed_energy_executability.json（verdict FAIL，attempts 51 条全可追溯）",
+            "/pub/data/caohy/tmp/nav059_full.log（6 批 PROGRESS + verdict FAIL）",
+            "/pub/data/caohy/tmp/nav059_pilot*.log、diag_envstep.log（12 轮诊断链：env.step 对照实验决定性）"
+          ],
+          "remaining_work": [
+            "用户裁定项（预登记列明）：低速处置方式——禁用低速档/加低通滤波/改任务时限/重训，任一选择都会改变路线设计与能量比较口径，须先定再进 NAV-028+。"
+          ],
+          "blockers": [
+            "按预登记规则低速区间不可执行，放行条件未满足——status 保持 false；路线/预算选择依赖低速可用性裁定。"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "解析约0.30986m/s仅针对冻结模型的匀速直线单位距离能量P(v)/v，不含有限时限、转弯/启停，不能称实测最优；按模型精确系数复算并与v2已知低速记录对照。",
         "在NAV-021预登记的integration_pilot清单/次数/容差/资源内，验证候选附近、低速边界及可跟踪对照速度，并检查有代表性的侧移/转向组合和30秒路线。",
@@ -3058,7 +3097,7 @@
         "输出解析预测与真实执行分列的速度—位移—时间—能量—跟踪对照，全部attempt可追溯；实际/名义能耗每米在未前进时明确不可计算。",
         "按预登记可用性规则说明名义省能动作是否可执行及影响的路线；无法满足放行条件时保持false，给出用户裁定项，不以模型预测代替证据。"
       ],
-      "verification_result": "",
+      "verification_result": "核验完成但放行条件未满足：5 档 usable 0%（判据 >=90%），FAIL 按预登记保持 false（run 51 episodes, 2026-11-10）",
       "reference_ids": [
         "R06",
         "R07",
