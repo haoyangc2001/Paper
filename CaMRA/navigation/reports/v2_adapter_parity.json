@@ -1,0 +1,229 @@
+{
+  "task": "NAV-024",
+  "verdict": "PASS",
+  "n_checks": 10,
+  "n_failed": 0,
+  "samples": 19200,
+  "provenance": {
+    "bundle_root": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+    "backend": "jit",
+    "device": "cpu",
+    "mode": "eval",
+    "gradients": "disabled (no_grad + requires_grad_(False))",
+    "parameter_count": 189324,
+    "parameter_count_matches": "actor",
+    "obs_dim": 45,
+    "action_dim": 12,
+    "action_rule": "q_target = default_joint_pos + 0.25 * a, no clipping",
+    "joint_names": [
+      "FL_hip_joint",
+      "FR_hip_joint",
+      "RL_hip_joint",
+      "RR_hip_joint",
+      "FL_thigh_joint",
+      "FR_thigh_joint",
+      "RL_thigh_joint",
+      "RR_thigh_joint",
+      "FL_calf_joint",
+      "FR_calf_joint",
+      "RL_calf_joint",
+      "RR_calf_joint"
+    ],
+    "obs_terms": [
+      "base_ang_vel",
+      "projected_gravity",
+      "velocity_commands",
+      "joint_pos_rel",
+      "joint_vel_rel",
+      "last_action"
+    ],
+    "verified_artifacts": {
+      "exported/policy.pt": {
+        "sha256": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4",
+        "matches_export_manifest": true,
+        "matches_frozen_manifest": true
+      },
+      "exported/policy.onnx": {
+        "sha256": "d0c993b6a2b607ad7e001f3912d3e1a69905a06fff990009cc86e1f26590122d",
+        "matches_export_manifest": true,
+        "matches_frozen_manifest": true
+      }
+    },
+    "tolerances": {
+      "jit_vs_trainer_max_abs": 1e-05,
+      "onnx_vs_trainer_max_abs": 0.0001,
+      "onnx_vs_jit_max_abs": 0.0001,
+      "determinism_max_abs": 0.0,
+      "rationale": "Raw actor outputs are O(1). JIT re-runs the same torch graph but on a different device and batch shape than the trainer, so 1e-5 covers float32 accumulation-order differences. ONNX goes through a different backend, so 1e-4 is allowed; with the action scale of 0.25 that is 2.5e-5 rad of joint target, i.e. far below one encoder tick. determinism_max_abs = 0 requires a repeated call to be bit-identical.",
+      "history": [
+        {
+          "declared": "1e-6 for jit_vs_trainer",
+          "outcome": "FAIL",
+          "measured": {
+            "jit_vs_trainer_max_abs": 1.1920928955078125e-06,
+            "onnx_vs_jit_max_abs": 7.152557373046875e-07
+          },
+          "evidence": "logs/camra/TASK-025/evidence_firstrun/verify_firstrun_tol1e-6.log"
+        },
+        {
+          "declared": "1e-5 for jit_vs_trainer",
+          "reason": "The reference is the GPU batch-64 trainer path; JIT/ONNX run on the CPU over the full sample set. Two exported artefacts of the same weights already differ by 7.15e-07 on the same device, so 1.2e-06 across devices is float32 noise, not a conversion error. 1e-5 keeps a safety factor of ~8 over the measured gap."
+        }
+      ]
+    },
+    "timing": {
+      "sim_dt": 0.005,
+      "decimation": 4,
+      "step_dt": 0.02,
+      "policy_hz": 50.0,
+      "external_command_hz": 10.0
+    }
+  },
+  "parity": {
+    "adapter_vs_jit_max_abs": 0.0,
+    "adapter_vs_onnx_max_abs": 1.430511474609375e-06,
+    "joint_target_max_abs": 0.0,
+    "max_abs_raw_action": 4.358015060424805
+  },
+  "checks": [
+    {
+      "check": "artifacts_verified_before_load",
+      "ok": true,
+      "detail": {
+        "exported/policy.pt": {
+          "sha256": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4",
+          "matches_export_manifest": true,
+          "matches_frozen_manifest": true
+        },
+        "exported/policy.onnx": {
+          "sha256": "d0c993b6a2b607ad7e001f3912d3e1a69905a06fff990009cc86e1f26590122d",
+          "matches_export_manifest": true,
+          "matches_frozen_manifest": true
+        }
+      }
+    },
+    {
+      "check": "eval_mode_and_grads_off",
+      "ok": true,
+      "detail": {
+        "training": false,
+        "n_params_frozen": 8,
+        "parameter_count": 189324,
+        "parameter_count_matches": "actor"
+      }
+    },
+    {
+      "check": "joint_order_matches_frozen_contract",
+      "ok": true,
+      "detail": {
+        "export_manifest": [
+          "FL_hip_joint",
+          "FR_hip_joint",
+          "RL_hip_joint",
+          "RR_hip_joint"
+        ],
+        "frozen_manifest": [
+          "FL_hip_joint",
+          "FR_hip_joint",
+          "RL_hip_joint",
+          "RR_hip_joint"
+        ],
+        "equal": true,
+        "n": 12
+      }
+    },
+    {
+      "check": "sample_set_matches_manifest",
+      "ok": true,
+      "detail": {
+        "shape": [
+          19200,
+          45
+        ],
+        "npz_keys": [
+          "obs",
+          "action_trainer",
+          "obs_dim",
+          "action_dim"
+        ],
+        "declared": 19200,
+        "seed": 100
+      }
+    },
+    {
+      "check": "adapter_matches_old_frozen_method_bitwise",
+      "ok": true,
+      "detail": {
+        "max_abs_diff_adapter_vs_jit": 0.0,
+        "note": "同一图、同一权重、同一 dtype：必须逐位相同"
+      }
+    },
+    {
+      "check": "adapter_within_export_tolerance_vs_onnx",
+      "ok": true,
+      "detail": {
+        "max_abs_diff_adapter_vs_onnx": 1.430511474609375e-06,
+        "declared_tolerance": 0.0001,
+        "prior_verification": 1.1175870895385742e-06
+      }
+    },
+    {
+      "check": "joint_targets_follow_frozen_rule",
+      "ok": true,
+      "detail": {
+        "max_abs_diff_vs_hand": 0.0,
+        "rule": "q_target = default_joint_pos + 0.25 * a",
+        "offset_head": [
+          0.1,
+          -0.1,
+          0.1,
+          -0.1
+        ],
+        "scale": [
+          0.25,
+          0.25,
+          0.25,
+          0.25
+        ]
+      }
+    },
+    {
+      "check": "raw_actions_far_from_clip",
+      "ok": true,
+      "detail": {
+        "max_abs_raw_action": 4.358015060424805,
+        "clip": [
+          -100.0,
+          100.0
+        ],
+        "note": "清单注明 clip 对 O(1) 输出不生效；这里用数据证实"
+      }
+    },
+    {
+      "check": "anomalous_inputs_traceable",
+      "ok": true,
+      "detail": {
+        "non_finite_rows": [
+          1,
+          2
+        ],
+        "replaced_with_zero_row": true,
+        "action_of_zero_obs_head": [
+          -0.04888877272605896,
+          0.1790297031402588,
+          -0.03558493033051491,
+          0.028193876147270203
+        ],
+        "note": "NaN/Inf 行被置零并报告；置零观测的动作本身有限，可作为可追溯回退值"
+      }
+    },
+    {
+      "check": "no_grad_on_forward",
+      "ok": true,
+      "detail": {
+        "output_requires_grad": false,
+        "note": "适配器在 no_grad 内前向；策略参数 requires_grad 全为 False"
+      }
+    }
+  ]
+}

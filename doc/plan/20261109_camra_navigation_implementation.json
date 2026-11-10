@@ -2752,11 +2752,52 @@
       "id": "NAV-024",
       "phase": "v2提前接通",
       "goal": "实现冻结v2独立加载适配器",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-023"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T14:40:00+08:00",
+          "summary": "实现冻结 v2 独立加载适配器：不导入带 AppLauncher 的旧脚本，只读加载核验过的导出策略；19200 条样本上与旧冻结方式逐位一致，与 ONNX 差 1.43e-6（容差 1e-4），10 项检查全过。",
+          "actions": [
+            "读 rollout_exported_policy.py 的 build_policy jit 分支作为参考（其 jit 臂即旧冻结运行方式），确认其顶层 import AppLauncher 与 argparse，不可直接导入。",
+            "读 bundle 的 export_manifest.json：actor 维度 45->12 与参数量、action_contract（offset/default_joint_pos、scale 0.25、clip 不生效）、observation_contract 六项 45 维、tolerance（jit 1e-5 / onnx 1e-4 / 确定性 0）、sample_set 19200 条、verification pass。",
+            "读 deploy.yaml：q_target = default_joint_pos + 0.25*a、PD 25.0/0.5、joint_ids_map 为恒等。",
+            "写 src/camra_navigation/control/v2_policy.py：FrozenV2Policy.load 先对 policy.pt/policy.onnx 同时对照 export_manifest 与 frozen_manifest 的 sha256，任一不符即拒绝加载；jit 加载后强制 eval、requires_grad_(False)；参数量与 manifest 的 parameters_actor=189324 对账；raw_action 对非有限行置零并报告；joint_targets 按 offset + scale*a 计算。",
+            "写 scripts/check_v2_adapter.py：三臂对比（适配器 jit、旧方式 jit、ONNX）跑 19200 条清单自带样本；修正一处自身假设——ONNX 导出固定 batch=1，须按参考实现的 looped-batch1 逐行跑，不能一次喂 19200。",
+            "在 tmux 内用登记解释器运行并落盘 reports/v2_adapter_parity.json。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/control/__init__.py",
+            "CaMRA/navigation/src/camra_navigation/control/v2_policy.py",
+            "CaMRA/navigation/scripts/check_v2_adapter.py",
+            "CaMRA/navigation/reports/v2_adapter_parity.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/check_v2_adapter.py --json CaMRA/navigation/reports/v2_adapter_parity.json（在 tmux 内）"
+          ],
+          "results": [
+            "工件核验：policy.pt sha 8e3f14ad6aca、policy.onnx sha d0c993b6a2b6 与 export_manifest 和 frozen_manifest 双向一致后才加载；checkpoint 未放入包内，不参与本项。",
+            "加载态：policy.training=False，全部参数 requires_grad=False，参数量 189324 与 manifest 的 parameters_actor 精确对账。",
+            "奇偶校验（19200 样本）：适配器 vs 旧冻结方式（新进程 jit.load）max_abs=0.0，逐位相同；适配器 vs ONNX max_abs=1.4305e-06，远小于清单容差 1e-4。",
+            "关节目标：q_target = offset + 0.25*a 与手算差 0.0；offset=[0.1,-0.1,0.1,-0.1,0.8,0.8,1.0,1.0,-1.5,-1.5,-1.5,-1.5]。",
+            "原始动作最大绝对值 4.358，远离 clip ±100，证实清单「clip 不生效」的说明。",
+            "异常输入可定位：NaN/Inf 行被标记（行号 1、2）、置零后重算，零观测的动作本身有限，可作可追溯回退值。",
+            "关节顺序与 frozen_manifest.contract.action.joint_names 完全一致（12 关节，FL/FR/RL/RR hip->thigh->calf）。",
+            "no_grad：输出 requires_grad=False，策略参数无梯度。",
+            "未启动 Isaac Sim、未更新任何参数、未替换资产/关节顺序/PD/观测缩放。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/v2_adapter_parity.json：10 项检查全 ok、verdict=PASS、provenance（工件散列、参数量、eval/no_grad、时序 50 Hz/10 Hz）与三臂奇偶数值。",
+            "CaMRA/navigation/src/camra_navigation/control/v2_policy.py：模块文档写明与 build_policy 的关系及「只读、不训练、不改契约」边界。",
+            "/pub/data/caohy/tmp/nav024_parity.log 为 tmux 内原始输出。",
+            "bundle 的 export_verification.json（此前 19200 样本 jit_vs_trainer 1.19e-6）与本报告一致，未复用其数值，全部为本机重算。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "参考build_policy但避免直接导入带AppLauncher/参数解析的脚本；只读加载核验过的v2导出策略与配置。",
         "不训练/更新底层参数，不替换资产、关节顺序、PD或观测缩放。"
@@ -2765,7 +2806,7 @@
         "加载元信息/权重hash/资产/配置与v2清单匹配，推理处于eval且关闭梯度。",
         "输出关节动作与旧冻结运行方式在相同观测下数值一致，异常输入可定位。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。control/v2_policy.py 独立加载冻结 v2 策略：先对 policy.pt(8e3f14ad) 与 policy.onnx(d0c993b6) 同时对照 export_manifest 与 frozen_manifest 的 sha256，任一不符即拒载；jit 加载后强制 eval、requires_grad_(False)，参数量 189324 与 manifest parameters_actor 对账；raw_action 对非有限行置零并报告行号，joint_targets 按 offset+0.25*a 计算。19200 条清单样本三臂对比：适配器 vs 旧冻结方式（新进程 jit.load）max_abs=0.0 逐位相同，vs ONNX 1.43e-6（容差 1e-4），关节目标与手算差 0.0；原始动作最大 4.358 远离 clip ±100；关节顺序与 frozen_manifest 完全一致；输出 requires_grad=False。未导入带 AppLauncher 的旧脚本、未启动 Isaac、未更新参数、未改资产/关节顺序/PD/观测缩放。10 项检查全过。",
       "reference_ids": [
         "R06",
         "R07"
