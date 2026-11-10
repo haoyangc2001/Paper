@@ -1,0 +1,180 @@
+{
+  "schema": "camra-navigation-map-design-v1",
+  "version": "1.0.2",
+  "created_at": "2026-11-10T12:20:00+08:00",
+  "owner_tasks": [
+    "NAV-016"
+  ],
+  "depends_on": [
+    "NAV-015",
+    "NAV-057"
+  ],
+  "status": "frozen",
+  "status_note": "v1.0.2：两道门的多路径方案在 delta=2.62 m 下不可行（门间至少 2*(w/2+delta)=7.48 m，换门还要横穿约 11 m，总长约 37 m，30 s 内需 1.23 m/s 超出速度域）。L3 改为单门三开口：中间 14 m、两侧 18 m，长度差 4 m 且全部可行。v1.0.1 已把场地长度从 ±9 加到 ±11，因为起点 x=-7 原先落在墙体 δ 带内。",
+  "principles": [
+    "同一份原始几何同时驱动名义约束与物理障碍：地图只存 extent / start / goal / islands，名义侧用 SafetyGeometry 的圆盘加 delta，物理侧用冻结足迹多边形，两者读同一份数据。",
+    "净宽按冻结 delta 与足迹反算，不照搬旧近障地图的 0.05–0.35 m 净距（那是固定命令回放用的，不是导航场地）。",
+    "路线差异必须真实存在：不同开口给出不同长度，且最短距离不等于最小能量，能量用冻结功率模型算。",
+    "种子只扰动起点/终点（任务实例），不改场地几何，避免同一难度出现不可通行实例。"
+  ],
+  "sizing": {
+    "r_fp_m": 0.5055013879783843,
+    "delta_m": 2.6138664115280967,
+    "inflation_radius_m": 3.119367799506481,
+    "min_passable_width_m": 6.238735599012962,
+    "target_gap_range_m": [
+      7.0,
+      8.0
+    ],
+    "free_lane_at_target_width_m": {
+      "at_7m": 0.761264400987038,
+      "at_8m": 1.761264400987038
+    },
+    "design_consequence": "7–8 m 开口只给中线留下 0.76–1.76 m 的自由带。这不是保守过头，而是 delta=2.614 m 的直接后果；任何希望更宽的通道都必须重新裁定 delta 或用更小的裕度等级。",
+    "field_length_rule": "x 半幅 >= |start_x| + (r_fp+delta) + 余量；当前 11 = 7 + 3.119 + 0.881"
+  },
+  "levels": [
+    {
+      "level": "L1_empty",
+      "purpose": "无障碍直通道基线：验证成本记账与到达判据本身，不引入绕行。任何方法在此都应接近解析最优速度。",
+      "extent": [
+        -11.0,
+        11.0,
+        -3.8,
+        3.8
+      ],
+      "net_width_m": 7.6,
+      "start": [
+        -7.0,
+        0.0
+      ],
+      "start_yaw": 0.0,
+      "goal": [
+        7.0,
+        0.0
+      ],
+      "islands": [],
+      "expected_routes": 1,
+      "straight_distance_m": 14.0
+    },
+    {
+      "level": "L2_single_detour",
+      "purpose": "单个中央障碍：必须横向偏移选择一侧通过，首个会触发安全历史与绕行成本的地形。两侧开口等宽，避免把「选哪边」变成运气。",
+      "extent": [
+        -11.0,
+        11.0,
+        -8.2,
+        8.2
+      ],
+      "net_width_m": 16.4,
+      "start": [
+        -7.0,
+        0.0
+      ],
+      "start_yaw": 0.0,
+      "goal": [
+        7.0,
+        0.0
+      ],
+      "islands": [
+        {
+          "x": 0.0,
+          "y": 0.0,
+          "width": 2.0,
+          "depth": 2.0,
+          "yaw": 0.0
+        }
+      ],
+      "expected_routes": 2,
+      "straight_distance_m": 14.0,
+      "expected_gaps_m": [
+        7.2,
+        7.2
+      ]
+    },
+    {
+      "level": "L3_multi_path",
+      "purpose": "单个门洞开出三条通路：中间开口最短、两侧等长但更远，用于检验路线选择、「最短距离 ≠ 最小能量」以及预算分配；宽度 23.5 m 是三个 7 m 开口加两个岛的必要结果。",
+      "extent": [
+        -10.5,
+        10.5,
+        -11.75,
+        11.75
+      ],
+      "net_width_m": 23.5,
+      "start": [
+        -7.0,
+        0.0
+      ],
+      "start_yaw": 0.0,
+      "goal": [
+        7.0,
+        0.0
+      ],
+      "islands": [
+        {
+          "x": 0.0,
+          "y": 4.125,
+          "width": 1.2,
+          "depth": 1.25,
+          "yaw": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": -4.125,
+          "width": 1.2,
+          "depth": 1.25,
+          "yaw": 0.0
+        }
+      ],
+      "expected_routes": 3,
+      "straight_distance_m": 14.0,
+      "expected_gaps_m": [
+        7.0,
+        7.0,
+        7.0
+      ],
+      "rejected_variant": "两道门各两开口（4 种组合）：门间至少 7.48 m，换门横穿约 11 m，总长 37 m，30 s 内需 1.23 m/s，超出 1.0 m/s 域，故弃用。"
+    }
+  ],
+  "seeds": {
+    "values": [
+      11,
+      12,
+      13
+    ],
+    "jitter": {
+      "start_y_m": 0.5,
+      "goal_y_m": 0.5,
+      "start_yaw_rad": 0.05,
+      "rule": "只扰动起终点与初始航向，绝不移动障碍或改变场地尺寸；同 seed 必得同图。"
+    }
+  },
+  "reference_profile": {
+    "dt_s": 0.1,
+    "t_deadline_s": 30.0,
+    "v_max_mps": 1.0,
+    "wz_max_radps": 1.0,
+    "policy": "沿路线折线等速前进，航向率取折线转角的差分并截断到速度域；这是前馈参考profile，不是可跟踪的执行轨迹。",
+    "energy_rule": "J = sum P_nom(u)·0.1 s，用冻结 power-v1 计算；不把折线长度当能量。"
+  },
+  "validation_policy": {
+    "route_feasible_rule": "沿折线每 0.1 m 采样，用 NAV-015 的 nominal_violation 与 boundary_violation 判定；任一点违反即该组合不可行，不作为路线报告。",
+    "minimum_routes": {
+      "L1_empty": 1,
+      "L2_single_detour": 2,
+      "L3_multi_path": 2
+    },
+    "gap_rule": "每个开口宽度必须 >= min_passable_width_m，且设计目标区间为 7–8 m。"
+  },
+  "splits": {
+    "note": "train/dev/select/eval 的划分与配额由 NAV-021 拥有；本文件只给出可用的地图目录（level × seed），不指定划分。"
+  },
+  "open_items": [
+    {
+      "item": "最终场地尺寸与连通性",
+      "owner": "NAV-017",
+      "note": "本文件给设计意图与几何；膨胀后连通、转弯扫掠与 30 s 可达的正式判定在 NAV-017"
+    }
+  ]
+}

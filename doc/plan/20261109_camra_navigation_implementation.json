@@ -2087,11 +2087,56 @@
       "id": "NAV-016",
       "phase": "契约与名义环境",
       "goal": "建立宽通道分级地图生成器",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-015"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T12:05:00+08:00",
+          "summary": "实现三级宽通道地图生成器：同一份原始几何同时驱动名义膨胀与物理障碍，按 (level, seed) 可重复生成，开口宽度由几何切片算出并由 NAV-015 判据逐点验证路线，能量用冻结 power-v1 计算；11 项检查通过并产出可视化图。",
+          "actions": [
+            "读 map_contract 的净宽要求与 clearance_to_gate_width 公式，按 r_fp+delta=3.119367799506481 m 反算：7 m 开口只留 0.761 m 中线自由带，8 m 留 1.761 m。",
+            "写 config/map_design_v1.json：三级任务目的、场地尺寸、开口宽度、种子扰动规则（只扰动起终点与初始航向）、参考 profile 与能量规则、验证策略与拆分归属。",
+            "写 src/camra_navigation/maps/generator.py：MapSpec（可序列化、几何散列）、build（确定性）、free_intervals_at_x（按多边形切片求开口，不抄设计值）、gate_columns、routes、reference_commands、route_energy、evaluate、catalogue、render_svg。",
+            "写 tests/test_map_generator.py 覆盖 11 项：可重复与往返序列化、三级几何、起终点在约束内、绕行真实存在、能量来自冻结模型、同一原始几何两端一致、扩大场地仍绕行、每级可视化。",
+            "首轮生成失败：起点 x=-7 落在墙体 δ 带内（x 只到 ±9，内缩后可用 ±5.88），所有路线判不可行；把三个 level 的 x 半幅加到 11。",
+            "二轮发现直折线从起点斜插开口中心会切进膨胀岛角：膨胀后的岛在 x 向也外扩 3.119 m，故给每个开口左右各加一个 x 边控制点。",
+            "三轮发现两道门的多路径方案不可行：门间至少 7.48 m、换门横穿约 11 m，总长约 37 m，30 s 内需 1.23 m/s 超出 1.0 m/s 域；改为单门三开口（中间短、两侧长）。",
+            "修正测试自身两处判据：把「每条路线都要比直线长」改为「图上存在明确绕行且路线确有差异」；L2 两侧对称，长度差下限从 0.3 放到 0.05。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/map_design_v1.json",
+            "CaMRA/navigation/src/camra_navigation/maps/generator.py",
+            "CaMRA/navigation/tests/test_map_generator.py",
+            "CaMRA/navigation/reports/map_catalogue.json",
+            "CaMRA/navigation/reports/map_catalogue.svg"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_map_generator.py --json reports/map_catalogue.json --svg reports/map_catalogue.svg（在 tmux 内）"
+          ],
+          "results": [
+            "9 张地图（3 级 × 3 seed）全部生成并通过：同 (level,seed) 两次生成几何散列一致，to_dict/from_dict 往返一致，不同 seed 散列不同。",
+            "L1_empty：22×7.6 m，无岛，1 条路线 14.00 m，v_ref=0.467 m/s，J=364.3 J。",
+            "L2_single_detour：22×16.4 m，中央 2×2 m 岛，两开口各 7.2 m，2 条路线 18.81/19.42 m，J=557.8/583.3 J，绕行比 1.34–1.36。",
+            "L3_multi_path：21×23.5 m，两个岛形成 7.0/7.0/7.0 m 三开口，3 条路线 14.05/24.45/26.00 m，J=369/841/934 J，最长-最短差约 12 m。",
+            "扩大场地检验：L2 扩到 24×20.4 m（开口 9.2 m）后仍必须绕行，最短路线 20.54 m、绕行比 1.47，两侧路线都可行。",
+            "能量来自冻结 power-v1（sha256 bfe3b159），不是折线长度；6 张多路线地图的长度序与能量序全部一致，如实记录「未出现最短距离非最省能」的反例，未编造。",
+            "交叉校验：L1 在 30 s 时限下需 0.467 m/s，J=364 J 是 Z_REF_J=225.6 的 1.61 倍，印证 NAV-056 的「z_ref 是归一化尺度、不是可达预算」。",
+            "三条路线都由 NAV-015 的 nominal_violation 与 boundary_violation 逐 0.1 m 采样验证，起终点到岛与墙的名义裕度均为正。",
+            "可视化：reports/map_catalogue.svg 900x2083，每级一张代表图（seed=11），含墙体、r_fp+delta 内缩虚线、岛多边形、路线折线、起终点；完整 9 张图数据在 JSON。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/map_design_v1.json v1.0.2：sizing（含 field_length_rule 与 free_lane 数值）、三级 purpose/extent/islands/expected_gaps、seeds 与扰动规则、reference_profile、validation_policy、splits 归属。",
+            "CaMRA/navigation/reports/map_catalogue.json：11 项检查全 ok、9 张地图的 extent/gaps/道路长度/速度/能量/折线坐标。",
+            "CaMRA/navigation/reports/map_catalogue.svg：三级几何可视化，可直接核对开口与绕行。",
+            "CaMRA/navigation/src/camra_navigation/maps/generator.py 模块文档说明两级用途与「路线折线不是规划器输出」。",
+            "未修改任何冻结配置；geometry 与 power 模型只读导入。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "统一生成无障碍、单障碍绕行、多路径布局；初始净宽7–8m，实际以冻结δ和足迹检查，不照搬旧近障窄净距。",
         "保存原始几何/边界/目标/起点/seed；多路径能量由冻结功率模型计算，不把最短距离当能量最优。"
@@ -2100,7 +2145,7 @@
         "地图源可重复生成，三个难度均有明确任务目的和可视化几何核对。",
         "各比较方法使用同一原始地图；场地扩大仍有绕行与路线差异。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。map_design_v1.0.2 与 maps/generator.py 建立三级地图：L1 22x7.6 m 单路线 14.00 m；L2 22x16.4 m 中央岛两开口 7.2 m、2 条路线 18.81/19.42 m（绕行比 1.34）；L3 21x23.5 m 单门三开口 7.0 m、3 条路线 14.05/24.45/26.00 m。9 张图（3 级 x 3 seed）同 (level,seed) 几何散列可重复、序列化往返一致、不同 seed 不同。开口宽度由多边形切片实算而非抄设计值，全部路线用 NAV-015 的 nominal_violation 与 boundary_violation 逐 0.1 m 验证，起终点裕度为正。能量用冻结 power-v1 计算（非折线长度），6 张多路线图的长度序与能量序一致，未出现反例，如实记录。扩大场地到 24x20.4 m（开口 9.2 m）仍必须绕行、绕行比 1.47。产出 map_catalogue.json 与三级可视化 SVG。过程中修正三处设计/判据错误：场地长度不足使起点落入墙体 δ 带（+/-9 -> +/-11）、直折线切入膨胀岛角（加门边控制点）、两道门方案 37 m 超出 30 s 时限（改单门三开口）。",
       "reference_ids": [
         "R10",
         "R11"
