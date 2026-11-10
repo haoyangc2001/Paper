@@ -1,0 +1,194 @@
+{
+  "task": "NAV-025",
+  "verdict": "PASS",
+  "n_checks": 10,
+  "n_failed": 0,
+  "structure": {
+    "nav_step_s": 0.1,
+    "policy_step_s": 0.02,
+    "physics_substep_s": 0.005,
+    "policy_steps_per_nav": 5,
+    "substeps_per_nav": 20
+  },
+  "checks": [
+    {
+      "check": "nav_step_structure_exact",
+      "ok": true,
+      "detail": {
+        "policy_steps": 5,
+        "substeps": 20,
+        "sim_time_s": 0.10000000000000002,
+        "controller_calls": 5,
+        "action_applies": 5,
+        "command_current": true,
+        "note": "0.1 s = 5 x 0.02 s = 20 x 0.005 s；每步都重算观测并重新推理，未把关节动作保持 0.1 s"
+      }
+    },
+    {
+      "check": "new_command_reaches_observations_immediately",
+      "ok": true,
+      "detail": {
+        "applied": [
+          [
+            0.8,
+            0.1,
+            -0.2
+          ]
+        ],
+        "stale_policy_steps": [],
+        "first_seen": [
+          0.8,
+          0.1,
+          -0.2
+        ],
+        "note": "新命令在下一个 0.1 s 的第一次推理就已进入观测，无一拍陈旧"
+      }
+    },
+    {
+      "check": "internal_resampling_detected_and_bounded",
+      "ok": true,
+      "detail": {
+        "clobber_ticks": [
+          2,
+          4
+        ],
+        "policy_steps_with_foreign_command": [
+          1,
+          3
+        ],
+        "policy_steps_recovered": [
+          0,
+          2,
+          4
+        ],
+        "note": "桥以 50 Hz 重写指令：外部覆盖只能污染当前一拍，下一拍即被写回并被 trace 记录"
+      }
+    },
+    {
+      "check": "multi_env_independent_commands",
+      "ok": true,
+      "detail": {
+        "applied": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ],
+          [
+            -1.0,
+            0.4,
+            1.0
+          ],
+          [
+            0.0,
+            -0.4,
+            -1.0
+          ],
+          [
+            1.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "distinct_commands_seen": 4,
+        "note": "四个环境同时各持各的 applied 指令，观测回显互不串扰"
+      }
+    },
+    {
+      "check": "clip_applied_once",
+      "ok": true,
+      "detail": {
+        "requested": [
+          [
+            2.0,
+            -5.0,
+            0.5
+          ]
+        ],
+        "applied": [
+          [
+            1.0,
+            -0.4,
+            0.5
+          ]
+        ],
+        "clipped": [
+          true
+        ],
+        "note": "限幅只在 10 Hz 应用一次；之后 5 次推理用的都是同一个 applied 值"
+      }
+    },
+    {
+      "check": "nonfinite_commands_rejected",
+      "ok": true,
+      "detail": {
+        "invalid": [
+          true,
+          true
+        ],
+        "applied": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.3,
+            0.0,
+            0.0
+          ]
+        ],
+        "note": "非有限分量按 cmd-v1 归零并置 invalid；同批次其它环境的合法分量不受影响"
+      }
+    },
+    {
+      "check": "reset_clears_state",
+      "ok": true,
+      "detail": {
+        "nav_index_after_reset_and_step": 1,
+        "trace_nav_index_zero_based": 0,
+        "first_record_t_s": 0.0,
+        "t_s": 0.10000000000000002,
+        "traces": 1,
+        "note": "reset 后时钟、索引、trace 与指令记录全部清零，不残留上一回合"
+      }
+    },
+    {
+      "check": "clock_exact_over_ten_nav_steps",
+      "ok": true,
+      "detail": {
+        "t_s_after_10_steps": 1.0000000000000007,
+        "expected": 1.0,
+        "nav_index": 10
+      }
+    },
+    {
+      "check": "frozen_v2_runs_through_bridge",
+      "ok": true,
+      "detail": {
+        "controller_calls": 5,
+        "q_head_first_step": [
+          0.031288765370845795,
+          -0.024451717734336853,
+          0.03427029401063919,
+          -0.026663675904273987
+        ],
+        "reference_q_head": [
+          0.031288765370845795,
+          -0.024451717734336853,
+          0.03427029401063919,
+          -0.026663675904273987
+        ],
+        "note": "真策略经桥推理；关节目标与直接调用 FrozenV2Policy 逐位一致"
+      }
+    },
+    {
+      "check": "incompatible_low_level_refused",
+      "ok": true,
+      "detail": {
+        "raised": "low-level env is missing 'write_commands'; the bridge cannot verify that a fresh",
+        "note": "缺少 commands_view 等接口就无法证明命令及时进入观测，桥拒绝运行"
+      }
+    }
+  ]
+}

@@ -2820,11 +2820,52 @@
       "id": "NAV-025",
       "phase": "v2提前接通",
       "goal": "实现10/50/200Hz在线速度执行桥",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-024"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T14:55:00+08:00",
+          "summary": "实现 10/50/200 Hz 速度执行桥：0.1 s 导航步内先限幅一次得单一 applied，再以 50 Hz 做「写指令-重算观测-推理-施加关节目标」共 5 次，每次 4 个 200 Hz 物理子步；以 50 Hz 重写指令抵御内部重采样，trace 记录 requested/applied/限幅/时间戳。10 项检查全过。",
+          "actions": [
+            "按 NAV-005 的 HiRA 经验设计写入顺序：write_commands -> recompute_observations -> get_observations -> controller.infer -> apply_action -> 4x physics_step，且写指令发生在每次观测重算之前而非每个导航步一次。",
+            "写 src/camra_navigation/control/velocity_bridge.py：CommandBridge（每环境 applied 存储、单次限幅、非有限归零置 invalid、记录 t_s/nav_index）、VelocityBridge（结构校验 dt 关系、协议缺接口即拒绝、NavStepTrace/PolicyStepTrace 全量记录）、V2VelocityController（把 FrozenV2Policy 适配为 infer(obs)->12 关节目标）。",
+            "低层协议显式要求 write_commands/recompute_observations/get_observations/apply_action/physics_step/commands_view 六个接口——没有 commands_view 就无法证明新命令及时进入观测，桥拒绝运行。",
+            "写 tests/test_control_timing.py 用 mock 低层环境（可注入「内部重采样」敌意行为）覆盖 10 项：结构精确、新命令即时进入、外部覆盖被检测且只污染一拍、多环境独立、单次限幅、非有限拒绝、reset 清空、时钟不漂移、真策略经桥运行、不兼容低层被拒。",
+            "修正测试自身一处断言：trace.nav_index 是本步 0 基索引（reset 后首步为 0），bridge.nav_index 才是步进后的计数。",
+            "在 tmux 内用登记解释器运行并落盘 reports/control_timing_check.json。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/control/velocity_bridge.py",
+            "CaMRA/navigation/tests/test_control_timing.py",
+            "CaMRA/navigation/reports/control_timing_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_control_timing.py --json CaMRA/navigation/reports/control_timing_check.json（在 tmux 内）"
+          ],
+          "results": [
+            "结构精确：一个 0.1 s 导航步恰好 5 次策略推理、20 个物理子步、模拟时间推进 0.1 s（误差 1e-12）；控制器被调用 5 次、apply_action 5 次——关节动作未被保持 0.1 s。",
+            "新命令即时性：第 0 步发 (0.5,0,0)、第 1 步发 (0.8,0.1,-0.2)，第 1 步的全部 5 次推理都看到新命令，陈旧策略步数为 0。",
+            "内部重采样：注入每 2 次重算把指令改成 9.9 的敌意命令项后，trace 在被污染的策略步检测到 command_seen != command_written（command_current_everywhere=False），且后续步恢复——桥以 50 Hz 重写使外部覆盖只能污染当前一拍，且必然被记录。",
+            "多环境独立：4 个环境同时持 (0.5,0,0)/(-1.0,0.4,1.0)/(0.0,-0.4,-1.0)/(1.0,0,0)，全部策略步的回显互不串扰。",
+            "单次限幅：requested (2.0,-5.0,0.5) -> applied (1.0,-0.4,0.5)、clipped=True，5 次推理看到的都是同一个 applied 值。",
+            "非有限拒绝：(nan,0,0) 与 (0.3,inf,0) 分别整行归零与分量归零、invalid=True，同批次合法分量不受影响。",
+            "reset 清空：时钟、nav_index、trace、指令记录全部归零，新回合首步 trace.nav_index=0、记录 t_s=0.0。",
+            "时钟：10 步后 t_s=1.0（误差 <1e-9）、nav_index=10。",
+            "真策略：冻结 v2 经 V2VelocityController 在桥内推理 5 次，关节目标与直接调用 FrozenV2Policy 逐位一致（差 1e-12 内），全部有限。",
+            "协议守卫：缺少接口的低层被 BridgeError 拒绝，说明没有 commands_view 就无法证明命令及时进入观测。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/control_timing_check.json：10 项检查全 ok、verdict=PASS、时序结构（0.1/0.02/0.005、5 步、20 子步）与各检查明细。",
+            "CaMRA/navigation/src/camra_navigation/control/velocity_bridge.py：模块文档写明两条结构性规则（50 Hz 重写、单一 applied）与不安装 TableProgram 的边界。",
+            "/pub/data/caohy/tmp/nav025_test.log 为 tmux 内原始输出。",
+            "真策略经桥的推理与 NAV-024 的直接调用逐位一致，把两层适配串起来验证了。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "新上层命令先写ExternalCommandBridge再重算低层观测；每0.1秒5次低层推理、每次4物理子步。",
         "在线控制不继续安装会覆盖指令的TableProgram；记录requested/applied/限幅/实际时间，所有模型使用同一applied。"
@@ -2833,7 +2874,7 @@
         "时序trace证明每个新命令及时进入观测，无一拍陈旧命令或内部重采样覆盖。",
         "多环境独立命令、reset、限幅、NaN拒绝和子步计数通过；未把关节动作保持0.1秒。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。control/velocity_bridge.py 实现 10/50/200 Hz 执行桥：0.1 s 导航步内限幅一次得单一 applied，再以 50 Hz 执行「写指令-重算观测-推理-施加关节目标」共 5 次，每次 4 个物理子步；指令在每次观测重算前重写（50 Hz 而非 10 Hz），抵御低层内部重采样；不安装 TableProgram 等自重采样源。10 项检查全过：结构精确（5 推理、20 子步、0.1 s 无漂移）、新命令下一次推理即进入观测（陈旧 0 步）、敌意重采样被 trace 检测且只污染一拍、4 环境独立、单次限幅、非有限归零置 invalid、reset 全清、真冻结策略经桥推理与直接调用逐位一致、缺接口的低层被拒。低层协议显式要求 commands_view 等 6 接口，否则无法证明命令及时性，桥拒绝运行。trace 记录 requested/applied/clipped/invalid/t_s。",
       "reference_ids": [
         "R07",
         "R12"
