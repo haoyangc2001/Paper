@@ -75,7 +75,9 @@ def main() -> int:
     from camra_navigation.control.v2_policy import FrozenV2Policy
 
     BUNDLE = "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2"
+    print("PROGRESS loading_policy", flush=True)
     policy = FrozenV2Policy.load(BUNDLE, device="cpu", backend="jit")
+    print("PROGRESS policy_loaded", flush=True)
     controller = V2VelocityController(policy)
 
     device = "cpu"
@@ -85,8 +87,10 @@ def main() -> int:
     )
     env_cfg.seed = 100
     env_cfg.observations.policy.enable_corruption = False
+    print("PROGRESS gym_make_start", flush=True)
     raw = gym.make("CaMRA-Go2-Velocity", cfg=env_cfg)
     env = raw.unwrapped
+    print("PROGRESS gym_make_done", flush=True)
     robot = env.scene["robot"]
     N = num_envs
 
@@ -172,7 +176,8 @@ def main() -> int:
     info = full_reset(0.0)
     zero_cmd = [(0.0, 0.0, 0.0)] * N
     warm_traces = []
-    for _ in range(WARMUP_NAV_STEPS):
+    for k in range(WARMUP_NAV_STEPS):
+        print(f"PROGRESS warmup1_step {k}", flush=True)
         warm_traces.append(bridge.step_nav(low, zero_cmd))
     px, py, yaw0 = planar_pose()
     check(
@@ -198,7 +203,8 @@ def main() -> int:
     check(
         "warmup_and_window_separated",
         WARMUP_NAV_STEPS == 5 and "t_s" in window_origin
-        and window_origin["t_s"] == WARMUP_NAV_STEPS * 0.1,
+        and math.isclose(window_origin["t_s"], WARMUP_NAV_STEPS * 0.1,
+                         rel_tol=1e-9, abs_tol=1e-9),
         {
             "warmup_nav_steps": WARMUP_NAV_STEPS,
             "warmup_seconds": window_origin["t_s"],
@@ -208,21 +214,23 @@ def main() -> int:
     )
 
     # --- 3. single vs batch vs consecutive reset ---------------------------
-    def warmup_end_pose_batch(offset_y: float) -> tuple[float, float, float]:
+    def warmup_end_pose_batch(offset_y: float, tag: str = "") -> tuple[float, float, float]:
         bridge.reset()
         full_reset(offset_y)
-        for _ in range(WARMUP_NAV_STEPS):
+        for k in range(WARMUP_NAV_STEPS):
+            print(f"PROGRESS warmup_batch {tag} step {k}", flush=True)
             bridge.step_nav(low, zero_cmd)
         return planar_pose()
 
-    single_pose = warmup_end_pose_batch(0.0)
-    again_pose = warmup_end_pose_batch(0.0)
+    single_pose = warmup_end_pose_batch(0.0, "single")
+    again_pose = warmup_end_pose_batch(0.0, "again")
     batch_poses = {}
     for i in range(1, num_envs):
         # per-env pose, read after the same warm-up
         bridge.reset()
         full_reset(SPREAD_Y_M * 0.0)  # same spawn; contamination check uses obs
-        for _ in range(WARMUP_NAV_STEPS):
+        for k in range(WARMUP_NAV_STEPS):
+            print(f"PROGRESS warmup_batch env{i} step {k}", flush=True)
             bridge.step_nav(low, zero_cmd)
         root = robot.data.root_pos_w[:, :2].detach().cpu().numpy()
         batch_poses[f"env{i}"] = [float(root[i, 0]), float(root[i, 1])]
@@ -243,6 +251,7 @@ def main() -> int:
     )
 
     # --- 4. no cross-env contamination -------------------------------------
+    print("PROGRESS check4_start", flush=True)
     env_positions = robot.data.root_pos_w[:, :2].detach().cpu().numpy()
     expected_y = [SPREAD_Y_M * 0.0] * num_envs
     spread_ok = True
@@ -264,6 +273,7 @@ def main() -> int:
     )
 
     # --- 5. previous_action and timestamps are recorded --------------------
+    print("PROGRESS check5_start", flush=True)
     am = env.action_manager
     prev = getattr(am, "prev_action", getattr(am, "_prev_action"))
     prev_head = [float(v) for v in prev.detach().cpu().numpy()[0][:4]]
@@ -271,16 +281,16 @@ def main() -> int:
     check(
         "state_and_timestamps_recorded",
         all(math.isfinite(v) for v in prev_head)
-        and last_trace.t_end_s == last_trace.t_start_s + 0.1
+        and math.isclose(last_trace.t_end_s, last_trace.t_start_s + 0.1,
+                         rel_tol=1e-9, abs_tol=1e-9)
         and last_trace.n_policy_steps == 5,
         {
             "previous_action_head": prev_head,
             "last_trace_t_s": [last_trace.t_start_s, last_trace.t_end_s],
             "reconstructable": "初态、时间戳、previous_action 与窗口起点均已记录，名义参考可重建",
+            "float_compare_note": "时间戳用 1e-9 容差的 math.isclose 比较（累加浮点尾差），非放宽验收",
         },
     )
-
-    sim_app.close()
 
     verdict = all(r["ok"] for r in RESULTS)
     report = {
@@ -292,6 +302,9 @@ def main() -> int:
         "warmup": {"nav_steps": WARMUP_NAV_STEPS, "seconds": WARMUP_NAV_STEPS * 0.1},
         "checks": RESULTS,
     }
+    # Write the report BEFORE tearing Isaac down: sim_app.close() can be slow
+    # or hang, and the evidence must survive a kill/timeout.
+    print("PROGRESS writing_report", flush=True)
     print(json.dumps({k: report[k] for k in ("task", "verdict", "n_checks")}, ensure_ascii=False))
     for r in RESULTS:
         print(("  OK   " if r["ok"] else "  FAIL ") + r["check"])
@@ -301,6 +314,10 @@ def main() -> int:
         with open(args.json, "w", encoding="utf-8") as fh:
             json.dump(report, fh, ensure_ascii=False, indent=2, allow_nan=False)
             fh.write("\n")
+    print("PROGRESS report_written", flush=True)
+    print("PROGRESS closing_isaac", flush=True)
+    sim_app.close()
+    print("PROGRESS isaac_closed", flush=True)
     return 0 if verdict else 1
 
 

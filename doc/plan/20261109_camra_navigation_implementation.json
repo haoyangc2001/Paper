@@ -2888,7 +2888,7 @@
       "id": "NAV-026",
       "phase": "v2提前接通",
       "goal": "验证完整复位warmup与测量起点",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-025"
       ],
@@ -2927,6 +2927,37 @@
           "blockers": [
             "Isaac 首次初始化仍在进行（一次性解包开销），未完成前无法运行复位/warmup 验证"
           ]
+        },
+        {
+          "timestamp": "2026-11-10T16:12:25+08:00",
+          "summary": "NAV-026 完成：Isaac 首启解包完成（libXt 修复生效，LAUNCH_RC=0），复位/warmup/起点对齐验证 5 项检查全部 PASS，报告落盘 reset_warmup_alignment.json。",
+          "actions": [
+            "确认 Isaac 首启成功：第二次启动 LAUNCH_RC=0，日志推进到 GPU P2P 检测（941 GB/s），libXt 错误 0；首启日志无 FIRST_LAUNCH_OK 字样系 Python stdout 块缓冲在 Kit 硬退出路径下未刷新，属观测问题非启动失败。",
+            "运行 check_reset_warmup.py：补 PYTHONPATH=locomotion/source/unitree_rl_lab（unitree_rl_lab 为源码包未装进 env，CaMRA-Go2-Velocity 的 gym 注册在该包 go2/__init__.py）。",
+            "首轮运行 18 分钟无输出（首启资产解包冷缓存，gym_make 阶段极慢）；杀掉后给脚本加 PROGRESS 进度标记重跑，gym_make 与全部 warmup 场景约 3 分钟完成。",
+            "发现收尾 sim_app.close() 可能长时间占用（上一进程 close 阶段满载 7 分钟未退）；将 JSON 写入移到 close 之前，保证证据先落盘（防御性重排，不改变检查语义）。",
+            "修复两处浮点比较错误：t_s 与 t_start+0.1 原用 == 精确比较，累加浮点尾差 0.5000000000000003 != 0.5 必然 FAIL；改 math.isclose(rel_tol=1e-9, abs_tol=1e-9)，容差远严于预登记 1e-6 位置容差，非放宽验收；JSON detail 内注明 float_compare_note。",
+            "第四次运行 5/5 PASS：warmup_runs_and_commands_stay_zero、warmup_and_window_separated、same_initial_state_reproducible（平面差 0、yaw 差 0，容差 1e-6）、no_cross_env_contamination、state_and_timestamps_recorded。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/check_reset_warmup.py",
+            "CaMRA/navigation/reports/reset_warmup_alignment.json"
+          ],
+          "commands": [
+            "set -a; . /pub/data/caohy/v2_navigation.env; set +a; export PYTHONPATH=/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab; CUDA_VISIBLE_DEVICES=5 python -u CaMRA/navigation/scripts/check_reset_warmup.py --json CaMRA/navigation/reports/reset_warmup_alignment.json（tmux 会话 camra-nav-v2-20261110-bootstrap 内）"
+          ],
+          "results": [
+            "verdict PASS，n_checks=5，n_failed=0；预登记容差位置 1e-6 m / yaw 1e-6 rad，实际单跑与连跑复位差为 0。",
+            "warmup=5 nav 步 x 0.1 s（0.5 s 零速闭环），窗口起点取 warmup 后实测平面位姿仅对齐一次。",
+            "批跑 4 环境同初态同指令无串扰（各 env y 偏差在 1e-6 m 内）。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/reset_warmup_alignment.json（verdict PASS）",
+            "/pub/data/caohy/tmp/nav026_reset_warmup4.log（PROGRESS 全链路 + 5 项 OK 摘要）",
+            "/pub/data/caohy/tmp/isaac_first_launch.log（首启 P2P 检测 + libXt 错误 0）"
+          ],
+          "remaining_work": [],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -2937,7 +2968,7 @@
         "同初态单跑/批跑/连续reset按预登记容差一致，环境之间无污染。",
         "warmup与窗口分离，初态/时间戳/previous_action完整记录并可重建名义参考。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS 5/5 checks in reports/reset_warmup_alignment.json (run 4, 2026-11-10)",
       "reference_ids": [
         "R06",
         "R07",

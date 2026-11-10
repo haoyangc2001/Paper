@@ -1,0 +1,128 @@
+{
+  "task": "NAV-026",
+  "verdict": "PASS",
+  "n_checks": 5,
+  "n_failed": 0,
+  "tolerances": {
+    "pos_m": 1e-06,
+    "yaw_rad": 1e-06
+  },
+  "warmup": {
+    "nav_steps": 5,
+    "seconds": 0.5
+  },
+  "checks": [
+    {
+      "check": "warmup_runs_and_commands_stay_zero",
+      "ok": true,
+      "detail": {
+        "nav_steps": 5,
+        "policy_steps": 25,
+        "substeps": 100,
+        "window_start_pose_m": [
+          0.0,
+          0.0
+        ],
+        "window_start_yaw_rad": 0.0,
+        "reset_info": {
+          "offset_y": 0.0,
+          "settle_steps": 2,
+          "default_joint_pos_head": [
+            0.10000000149011612,
+            -0.10000000149011612,
+            0.10000000149011612,
+            -0.10000000149011612
+          ]
+        },
+        "note": "warmup 由 v2 闭环跟踪零速度完成，非零关节动作 PD"
+      }
+    },
+    {
+      "check": "warmup_and_window_separated",
+      "ok": true,
+      "detail": {
+        "warmup_nav_steps": 5,
+        "warmup_seconds": 0.5000000000000003,
+        "alignment_recorded_once": true,
+        "window_origin": {
+          "px": 0.0,
+          "py": 0.0,
+          "yaw": 0.0,
+          "t_s": 0.5000000000000003
+        }
+      }
+    },
+    {
+      "check": "same_initial_state_reproducible",
+      "ok": true,
+      "detail": {
+        "single": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "consecutive_reset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "planar_diff_m": 0.0,
+        "yaw_diff_rad": 0.0,
+        "tolerance_pos_m": 1e-06,
+        "tolerance_yaw_rad": 1e-06
+      }
+    },
+    {
+      "check": "no_cross_env_contamination",
+      "ok": true,
+      "detail": {
+        "per_env_y": [
+          {
+            "env": 0,
+            "y_m": 0.0,
+            "expected_y": 0.0,
+            "abs_dev_m": 0.0
+          },
+          {
+            "env": 1,
+            "y_m": 0.0,
+            "expected_y": 0.0,
+            "abs_dev_m": 0.0
+          },
+          {
+            "env": 2,
+            "y_m": 0.0,
+            "expected_y": 0.0,
+            "abs_dev_m": 0.0
+          },
+          {
+            "env": 3,
+            "y_m": 0.0,
+            "expected_y": 0.0,
+            "abs_dev_m": 0.0
+          }
+        ],
+        "tolerance_m": 1e-06,
+        "note": "同初态同指令下各环境应保持自身状态；偏移即串扰"
+      }
+    },
+    {
+      "check": "state_and_timestamps_recorded",
+      "ok": true,
+      "detail": {
+        "previous_action_head": [
+          0.5610246062278748,
+          0.004111669957637787,
+          0.20151926577091217,
+          -0.5337470769882202
+        ],
+        "last_trace_t_s": [
+          0.40000000000000024,
+          0.5000000000000003
+        ],
+        "reconstructable": "初态、时间戳、previous_action 与窗口起点均已记录，名义参考可重建",
+        "float_compare_note": "时间戳用 1e-9 容差的 math.isclose 比较（累加浮点尾差），非放宽验收"
+      }
+    }
+  ]
+}
