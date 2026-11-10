@@ -162,6 +162,7 @@ def run_isaac(args, analytic: dict, design: dict) -> dict:
     import isaaclab_tasks  # noqa: F401
     import unitree_rl_lab.tasks  # noqa: F401
     from unitree_rl_lab.utils.parser_cfg import parse_env_cfg
+    from unitree_rl_lab.utils.external_command import DEFAULT_LIMITS, ExternalCommandWrapper
 
     from camra_navigation.evaluation.recorder import NavEnergyRecorder, offline_recompute
     from camra_navigation.maps.generator import build as build_map
@@ -179,22 +180,25 @@ def run_isaac(args, analytic: dict, design: dict) -> dict:
     )
     env_cfg.seed = 100
     env_cfg.observations.policy.enable_corruption = False
-    # 恒速核验：命令由外部固定注入，禁用命令重采样（resample 会覆写 vel_command_b）
-    env_cfg.commands.base_velocity.resampling_time_range = (1.0e9, 1.0e9)
+    # 官方 rollout 同款：命令域拉到全极限域（wrapper 再锁 resampling/standing）
+    env_cfg.commands.base_velocity.ranges = env_cfg.commands.base_velocity.limit_ranges
     # episode 时长必须覆盖 warmup+窗口：默认 20 s 到期会触发 ManagerBasedRLEnv
-    # 内部自动 reset（实测 ctrl1000 位置跳回 origin，能量/轨迹被污染）
+    # 内部自动 reset（实测 ctrl1000 位置跳回原点，能量/轨迹被污染）
     env_cfg.episode_length_s = WARMUP_SECONDS + EPISODE_SECONDS + 0.2
     progress("gym_make_start")
     raw = gym.make("CaMRA-Go2-Velocity", cfg=env_cfg)
-    env = raw.unwrapped
-    robot = env.scene["robot"]
-    sim = env.sim
+    # 官方 ExternalCommandWrapper：锁 resampling、清 standing/heading 后处理、
+    # 每次 term.compute 后立即重写命令、捕获内部自动 reset —— 与 TASK-026
+    # rollout 完全同款（那一版 0.1-0.9 m/s 全速度域跟踪正常）
+    env = ExternalCommandWrapper(raw, limits=DEFAULT_LIMITS, enforce_limits=True, on_reset="zero")
+    u = raw.unwrapped
+    robot = u.scene["robot"]
+    sim = u.sim
     sim_dt = sim.get_physics_dt()
     N = args.batch
-    raw.reset()
     progress("gym_make_done")
 
-    env_origins_np = env.scene.env_origins.detach().cpu().numpy()  # (N, 3)
+    env_origins_np = u.scene.env_origins.detach().cpu().numpy()  # (N, 3)
 
     substeps_total = int(round(EPISODE_SECONDS / SUBSTEP_DT))       # 6000
     ctrl_steps_total = substeps_total // 4                          # 1500 policy steps
@@ -246,7 +250,7 @@ def run_isaac(args, analytic: dict, design: dict) -> dict:
         recorder.begin_warmup()
 
         # ---- reset every env to its own episode start ----------------------
-        obs, _ = raw.reset()
+        obs, _ = env.reset()
         for e, ep in enumerate(batch_plan):
             spec = maps[ep["level"]]
             rng = torch.Generator().manual_seed(ep["seed"] + 5000)
@@ -270,7 +274,7 @@ def run_isaac(args, analytic: dict, design: dict) -> dict:
                 djp, torch.zeros_like(djp), env_ids=torch.tensor([e], device=device))
         # 未分配 env（pilot）保持 raw.reset 的默认状态（各自 subplot，互不影响）
         robot.update(sim_dt)
-        am = env.action_manager
+        am = u.action_manager
         prev = getattr(am, "prev_action", getattr(am, "_prev_action"))
         prev.zero_()
         robot.update(sim_dt)
@@ -279,14 +283,15 @@ def run_isaac(args, analytic: dict, design: dict) -> dict:
         low_cmd = torch.zeros(N, 3, device=device)
 
         def write_cmd(rows):
-            term = env.command_manager.get_term("base_velocity")
-            arr = torch.tensor([list(r) for r in rows], dtype=torch.float32, device=device)
-            term.vel_command_b[:, :3] = arr
+            # 官方 wrapper：按 env 写请求（limits 内部单次裁剪 + 每步重写锁）
+            for e, row in enumerate(rows):
+                env.bridge.set_command(row, env_ids=torch.tensor([e], device=device))
 
         write_cmd([[0.0, 0.0, 0.0]] * N)
         for _ in range(warmup_ctrl):
+            write_cmd([[0.0, 0.0, 0.0]] * N)
             act = policy(obs["policy"])
-            obs, _, _, _, _ = raw.step(act)
+            obs, _, _, _, _ = env.step(act)
         warmup_calls = recorder.n_record_calls
         recorder.begin_window()
 
@@ -299,8 +304,9 @@ def run_isaac(args, analytic: dict, design: dict) -> dict:
         fell = [False] * B
         fall_step = [None] * B
         for i in range(ctrl_steps_total):
+            write_cmd(rows)          # 每 policy 步重写（官方 wrapper 语义）
             act = policy(obs["policy"])
-            obs, _, te, tr, _ = raw.step(act)
+            obs, _, te, tr, _ = env.step(act)
             q = robot.data.root_quat_w.detach().cpu().numpy()
             gz = -(1.0 - 2.0 * (q[:, 1] ** 2 + q[:, 2] ** 2))
             tilt = np.degrees(np.arccos(np.clip(-gz, -1.0, 1.0)))
@@ -314,8 +320,13 @@ def run_isaac(args, analytic: dict, design: dict) -> dict:
                     fall_step[e] = i
             if args.debug and i % 100 == 0:
                 p0 = robot.data.root_pos_w[0].detach().cpu().numpy()
+                _cmd_obs = obs["policy"][0, 6:9].detach().cpu().numpy()
+                _vcb = u.command_manager.get_term("base_velocity").vel_command_b[0, :3].detach().cpu().numpy()
+                _act = act[0].detach().cpu().numpy()
                 print(f"DBG ctrl{i:04d} h={h[0]:.3f} tilt={tilt[0]:.1f} "
-                      f"pos=({p0[0]:.3f},{p0[1]:.3f})", flush=True)
+                      f"pos=({p0[0]:.3f},{p0[1]:.3f}) "
+                      f"obs_cmd={_cmd_obs.round(3).tolist()} vcb={_vcb.round(3).tolist()} "
+                      f"act_max={abs(_act).max():.2f}", flush=True)
         recorder.mark_event(range(N), "timeout", detail="30 s 路线到时")
         result = recorder.finish()
         problems = recorder.problems(result)
@@ -378,7 +389,7 @@ def run_isaac(args, analytic: dict, design: dict) -> dict:
     tiers.append(("diag_combos", [ep for ep in plan if ep.get("diag")]))
     recon_note = None
     for tier_name, tier in tiers:
-        if args.pilot and not tier_name.startswith("speed_0.3"):
+        if args.pilot and tier_name not in ("speed_0.15", "speed_0.3"):
             continue
         if args.pilot:
             tier = tier[:1]

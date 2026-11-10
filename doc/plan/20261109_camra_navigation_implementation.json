@@ -3085,6 +3085,40 @@
           "blockers": [
             "按预登记规则低速区间不可执行，放行条件未满足——status 保持 false；路线/预算选择依赖低速可用性裁定。"
           ]
+        },
+        {
+          "timestamp": "2026-11-10T23:55:20+08:00",
+          "summary": "NAV-059 追加验证（官方 ExternalCommandWrapper 跑法，51 回合）：结论不变 FAIL，且证据链补强——命令通道经诊断为正确（obs_cmd 与 vel_command_b 均为 0.15），v2 在稳态低速命令下站桩属策略行为局限，非执行链问题；纠正上轮\"策略无问题\"的过速判断（TASK-026 ramp 的 0.1 m/s 仅持续 1 秒，属瞬态，不覆盖稳态低速）。",
+          "actions": [
+            "对齐官方 TASK-026 rollout 跑法：ExternalCommandWrapper(limits=DEFAULT_LIMITS, enforce_limits=True, on_reset=zero) + commands.ranges=limit_ranges；wrapper 自动锁 resampling、清 rel_standing_envs(0.1)/heading 后处理、每次 term.compute 后重写命令、捕获内部自动 reset。",
+            "命令通道诊断（pilot18）：逐 policy 步打印 obs 命令段与 vel_command_b，确认两者均为 [0.15,0,0]、policy 动作输出 act_max 1.08-1.24（有输出），但机器人 30s 仅位移 6.6cm——命令被正确执行而策略选择站桩。",
+            "wrapper 版全量重跑（51 回合，墙钟 0.44h）：0.05 档 8/9 停滞、0.1 档 4/9 停滞、0.15 档位移中位 0.096m（应 4.5m）、0.2 档中位 1.456m（应 6m）、0.3 档中位 5.235m（应 9m）；跌倒 0，全部 usable 0%（横向 0.05m 口径）。",
+            "认知修正：TASK-026 官方 rollout 的 ramp 场景从 0.1 m/s 起步但 8 秒内爬升到 0.9，0.1 m/s 仅约 1 秒——只覆盖瞬态启动，不能作为稳态低速可执行的证据；上轮据此判断\"环境偏差\"属证据不足，现修正为策略稳态低速行为局限。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/check_low_speed_energy.py",
+            "CaMRA/navigation/reports/low_speed_energy_executability.json"
+          ],
+          "commands": [
+            "PYTHONPATH=.../locomotion/source/unitree_rl_lab CUDA_VISIBLE_DEVICES=5 python -u CaMRA/navigation/scripts/check_low_speed_energy.py --json CaMRA/navigation/reports/low_speed_energy_executability.json（官方 wrapper 版全量）"
+          ],
+          "results": [
+            "verdict FAIL（两版一致）：5 档 usable 0%。",
+            "wrapper 版实测 J/m 中位：441.6/267.8/206.0/71.9/47.0，名义 66.9/38.2/29.6/26.2/24.3——实际/名义 6.6/7.0/7.0/2.7/1.9 倍，低速段模型-执行偏差随速度降低而放大。",
+            "失败模式确认：非翻倒（0 跌倒）、非命令错误（命令通道已验证），而是稳态低速命令下策略站桩（policy 行为局限，rel_standing_envs=0.1 的站桩课程可能强化了该行为）。",
+            "0.2 档为部分可用过渡区（中位 1.5m/6m），0.3 档中位 5.2m/9m。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/low_speed_energy_executability.json（wrapper 版全量，verdict FAIL）",
+            "/pub/data/caohy/tmp/nav059_full_wrapper.log（6 批 PROGRESS + FAIL）",
+            "/pub/data/caohy/tmp/nav059_pilot18.log（命令通道诊断：obs_cmd=vcb=0.15、act_max 1.2、位移 6.6cm）"
+          ],
+          "remaining_work": [
+            "用户裁定项（最终）：证据表明低速不可执行源于策略本身——环境对齐路径已走完。可选：A) 按预登记记录局限、规划域保留低速但论文如实报告不可执行；B) 把规划域定在 ≥0.3（是否算\"禁用\"需你认定，预登记原文禁\"禁用低速\"）；C) 重训（预登记明文禁止，需你批准修订）。"
+          ],
+          "blockers": [
+            "按预登记规则低速区间不可执行，放行条件未满足——status 保持 false；低速处置需用户最终裁定。"
+          ]
         }
       ],
       "constraints_and_notes": [
