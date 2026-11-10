@@ -2683,11 +2683,52 @@
       "id": "NAV-023",
       "phase": "契约与名义环境",
       "goal": "通过名义环境G1门禁",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-022"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-10T14:30:00+08:00",
+          "summary": "通过名义环境 G1 门禁：12 项审计逐项核对 NAV-012-022 的真实证据（共 167 项阶段检查）、复算全部 hash、确认折扣/姿态/预算三类语义均有确定值且无未决冲突；审计过程发现并补上一条 NAV-017 未回写的 open item。",
+          "actions": [
+            "写 scripts/check_gate_g1.py：逐份重读 11 份阶段报告的 verdict 与计数、G0 报告、六份契约版本、split manifest、prereg、resource_budget。",
+            "复算 split manifest hash（053f9bcd 与重算一致）、prereg 绑定的 manifest hash、data_lock 五个冻结文件的字节散列（protocol/power_model/footprint/margins/step_cost_schema 全部未漂移）。",
+            "核对三类语义：gamma_cost=1.0（折扣）、attitude chosen=rotation_invariant_circumscribed_disc（姿态）、z_ratio 定义只含 Z_REF_J 不含 z_0（预算口径）。",
+            "审计发现一条真实登记遗漏：NAV-013 留下的「地图图元类型与地图半幅」open item 在 NAV-016/017 完成后未回写。实测 54 张地图最大 |x|=11.0、最大 |y|=11.75 m，均在 MAP_HALF_M=15.0 覆盖内，图元已按 obs-v2 扩为 circle|convex_polygon，故补记为 resolved（追加 resolution 字段，不删除原内容）。",
+            "修正审计脚本自身三处假设错误：姿态字段名是 chosen 而非 selected、prereg 的 hash 带括号后缀应用包含而非 endswith、rejected_value 是 dict 而非 list。",
+            "确认 final_* 无训练产物、向量化名义环境处于 approved_not_started，正式训练尚未开始。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/check_gate_g1.py",
+            "CaMRA/navigation/reports/gate_G1.json",
+            "CaMRA/navigation/config/navigation_contract_v1.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/check_gate_g1.py --json CaMRA/navigation/reports/gate_G1.json（在 tmux 内）"
+          ],
+          "results": [
+            "verdict=PASS，12 项审计全过，汇总 167 项阶段检查（013:28、056:11、014:20、057:12、015:14、016:11、017:14、018:15、019:16、020:15、022:11）。",
+            "身份唯一对应：navigation_contract 1.3.0（obs-v2/cmd-v1）、geometry_contract 1.0.1、value_objective 1.0.0、budget_comparison 1.0.0、map_design 1.0.2、experiment_prereg 1.0.0、resource_budget 1.1.0、split_manifest hash 053f9bcd。",
+            "语义冲突清零：折扣 gamma_cost=1.0、姿态取旋转不变外接圆、z_ratio 归一化只用场景级 Z_REF_J；open_items 中无未解决项。",
+            "provisional 决策全部带复核归属（r_goal、dwell、stagnation 阈值、到达优先于预算、朝向不要求、MAP_HALF_M 等），NAV-059 为 SR 门禁复核点。",
+            "冻结文件零漂移：data_lock 绑定的五个校准文件字节散列全部一致。",
+            "命令域唯一：1.0/0.4/1.0（容差 1e-6），被否值 2/1/2 已记录，五个来源一致。",
+            "下游字段均有来源：alpha=0.19048279965649906、delta=2.6138664115280967、Z_REF_J=225.6069087767049、r_goal=0.5 m、t_max=30 s、k 网格、8 个事件 id、obs_dim=41、膨胀半径 3.119367799506481 m。",
+            "失败与基础设施错误可分：4 类业务失败标签 + 基础设施错误规则 + 可行性检查区分 rejects_timeout 与 rejects_turn_limited_route。",
+            "正式训练未开始：无训练产物文件，向量化环境 approved_not_started。",
+            "审计发现的登记遗漏已补：NAV-013 的地图图元/半幅 open item 回写为 resolved（由 NAV-016/017 实际解决，证据为 obs-v2 与 54 图最大坐标 11.75 m < 15.0）。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/gate_G1.json：verdict=PASS、12 项检查明细、身份表、unlocks 说明（允许进入阶段 2 与名义训练实现，正式训练仍受 prereg 约束）。",
+            "CaMRA/navigation/config/navigation_contract_v1.json：open_items 无未解决项，新增的 resolution 注明由谁解决与证据位置。",
+            "/pub/data/caohy/tmp/nav023_g1.log 为 tmux 内原始输出。",
+            "未修改任何冻结校准文件（data_lock 字节散列核对通过）。"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "汇总NAV-012–022真实证据，合同版本、地图、split和prereg唯一对应。",
         "门禁不通过不得启动上层正式训练；无路/超时和实现错误分开定位。",
@@ -2697,7 +2738,7 @@
         "G1逐项记录数学/几何/契约/通路/统计预登记的通过证据。",
         "所有后续物理/算法任务所依赖的字段均有来源，无已知未解决语义冲突。"
       ],
-      "verification_result": "",
+      "verification_result": "通过。G1 门禁 12 项审计全过，汇总 NAV-012-022 共 167 项阶段检查（全部 verdict=PASS 且 failed=0）。身份唯一对应：navigation_contract 1.3.0/obs-v2/cmd-v1、geometry 1.0.1、value_objective 1.0.0、budget_comparison 1.0.0、map_design 1.0.2、prereg 1.0.0、resource_budget 1.1.0、manifest hash 053f9bcd 与重算一致，prereg 绑定当前 manifest。三类语义有确定值：gamma_cost=1.0、姿态=rotation_invariant_circumscribed_disc、z_ratio 只用场景级 Z_REF_J；open_items 无未决。data_lock 绑定的五个冻结文件字节散列零漂移；命令域 1.0/0.4/1.0 五方一致。下游字段均有来源（alpha 0.19048279965649906、delta 2.6138664115280967、Z_REF_J 225.6069、r_goal 0.5、t_max 30、k 网格、8 事件、obs_dim 41、膨胀半径 3.1194 m）。业务失败与基础设施错误分离（4 标签 + timeout/turn_limited 区分）。审计发现并补上一条 NAV-017 未回写的 open item（地图图元/半幅，实测 54 图最大坐标 11.75 m < MAP_HALF_M 15.0，已回写 resolved）。正式训练未开始，向量化为 approved_not_started。",
       "reference_ids": [
         "R09",
         "R10",

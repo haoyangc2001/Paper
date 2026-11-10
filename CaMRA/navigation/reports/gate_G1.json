@@ -1,0 +1,320 @@
+{
+  "task": "NAV-023",
+  "gate": "G1",
+  "verdict": "PASS",
+  "n_checks": 12,
+  "n_failed": 0,
+  "total_stage_checks": 167,
+  "identities": {
+    "navigation_contract": "1.3.0",
+    "geometry_contract": "1.0.1",
+    "value_objective": "1.0.0",
+    "budget_comparison": "1.0.0",
+    "split_manifest_hash": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+    "map_design": "1.0.2",
+    "experiment_prereg": "1.0.0",
+    "resource_budget": "1.1.0"
+  },
+  "unlocks": "G1 通过后允许进入阶段 2（接通 v2、时序/复位/计量验证）与名义训练实现；正式训练仍受 prereg 的资源与 checkpoint 规则约束",
+  "checks": [
+    {
+      "check": "all_stage_reports_pass",
+      "ok": true,
+      "detail": {
+        "total_checks": 167,
+        "reports": [
+          {
+            "stage": "NAV-013 observation",
+            "report": "observation_contract_check.json",
+            "checks": 28,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-056 value objective",
+            "report": "value_objective_alignment.json",
+            "checks": 11,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-014 cost/budget",
+            "report": "cost_budget_check.json",
+            "checks": 20,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-057 pose footprint",
+            "report": "pose_footprint_alignment.json",
+            "checks": 12,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-015 safety geometry",
+            "report": "safety_geometry_check.json",
+            "checks": 14,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-016 map generator",
+            "report": "map_catalogue.json",
+            "checks": 11,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-017 feasibility",
+            "report": "map_feasibility.json",
+            "checks": 14,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-018 nominal env",
+            "report": "nominal_env_check.json",
+            "checks": 15,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-019 math validation",
+            "report": "nominal_math_validation.json",
+            "checks": 16,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-020 split manifest",
+            "report": "split_manifest_check.json",
+            "checks": 15,
+            "failed": 0,
+            "verdict": "PASS"
+          },
+          {
+            "stage": "NAV-022 scene mapping",
+            "report": "scene_mapping_check.json",
+            "checks": 11,
+            "failed": 0,
+            "verdict": "PASS"
+          }
+        ],
+        "failed": []
+      }
+    },
+    {
+      "check": "gate_G0_recorded_pass",
+      "ok": true,
+      "detail": {
+        "verdict": "PASS",
+        "tasks_checked": 11
+      }
+    },
+    {
+      "check": "contract_identities_pinned",
+      "ok": true,
+      "detail": {
+        "navigation_contract": "1.3.0",
+        "geometry_contract": "1.0.1",
+        "value_objective": "1.0.0",
+        "budget_comparison": "1.0.0",
+        "split_manifest_hash": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "map_design": "1.0.2",
+        "experiment_prereg": "1.0.0",
+        "resource_budget": "1.1.0"
+      }
+    },
+    {
+      "check": "split_manifest_recomputes",
+      "ok": true,
+      "detail": {
+        "declared": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "rebuilt": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+        "n_maps": 54,
+        "note": "build_split_manifest imported from scripts/"
+      }
+    },
+    {
+      "check": "prereg_binds_current_manifest",
+      "ok": true,
+      "detail": {
+        "declared": "config/split_manifest_v1.json (hash 053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f)",
+        "current": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f"
+      }
+    },
+    {
+      "check": "semantic_conflicts_resolved",
+      "ok": true,
+      "detail": {
+        "unresolved_open_items": [],
+        "topics": {
+          "cost_discount": true,
+          "attitude": true,
+          "budget_semantics": true
+        },
+        "note": "折扣、姿态、预算口径三项各自由其契约给出确定值"
+      }
+    },
+    {
+      "check": "provisional_decisions_have_review_owner",
+      "ok": true,
+      "detail": {
+        "n_provisional": 11,
+        "items": [
+          "r_goal = 0.5 m",
+          "dwell_s = 0（不要求停稳）",
+          "stagnation 阈值 0.05 m / 3.0 s",
+          "到达优先于预算耗尽",
+          "不要求朝向、不要求停稳",
+          "R_SENSE_M = 6.0 m",
+          "MAP_HALF_M = 15.0 m",
+          "OBSTACLE_CAPACITY = 8",
+          "观测含实测机身速度",
+          "Z_REF_J = 225.6069087767049",
+          "动作映射为仿射而非 tanh"
+        ],
+        "missing_owner": []
+      }
+    },
+    {
+      "check": "frozen_calibration_files_unchanged",
+      "ok": true,
+      "detail": {
+        "checked": [
+          "protocol",
+          "power_model",
+          "footprint",
+          "margins",
+          "step_cost_schema"
+        ],
+        "drifted": [],
+        "basis": "data_lock entry.sha256"
+      }
+    },
+    {
+      "check": "command_domain_single_source",
+      "ok": true,
+      "detail": {
+        "validated": [
+          [
+            -1.0,
+            1.0
+          ],
+          [
+            -0.4,
+            0.4
+          ],
+          [
+            -1.0,
+            1.0
+          ]
+        ],
+        "rejected": {
+          "vx": [
+            -2.0,
+            2.0
+          ],
+          "vy": [
+            -1.0,
+            1.0
+          ],
+          "wz": [
+            -2.0,
+            2.0
+          ]
+        },
+        "sources_agreeing": 5
+      }
+    },
+    {
+      "check": "downstream_fields_have_sources",
+      "ok": true,
+      "detail": {
+        "fields": {
+          "alpha_full": {
+            "value": 0.19048279965649906,
+            "source": "margins_v1 exact file value via data_lock"
+          },
+          "delta_m": {
+            "value": 2.6138664115280967,
+            "source": "margins_v1 q90_eps_d via data_lock"
+          },
+          "Z_REF_J": {
+            "value": 225.6069087767049,
+            "source": "power-v1 idle power x 30 s"
+          },
+          "r_goal_m": {
+            "value": 0.5,
+            "source": "footprint circumradius"
+          },
+          "t_max_s": {
+            "value": 30.0,
+            "source": "protocol window"
+          },
+          "budget_grid_k": {
+            "value": [
+              0.7,
+              0.85,
+              1.0,
+              1.15,
+              1.3
+            ],
+            "source": "frozen before results"
+          },
+          "event_ids": {
+            "value": [
+              "budget_exhausted",
+              "collision",
+              "fall",
+              "goal_reached",
+              "internal_violation",
+              "out_of_bounds",
+              "stagnation",
+              "timeout"
+            ],
+            "source": "NAV-012"
+          },
+          "obs_dim": {
+            "value": 41,
+            "source": "obs-v2"
+          },
+          "inflation_radius_m": {
+            "value": 3.119367799506481,
+            "source": "r_fp + delta"
+          }
+        },
+        "missing": []
+      }
+    },
+    {
+      "check": "business_vs_implementation_separable",
+      "ok": true,
+      "detail": {
+        "failure_labels": [
+          "collision",
+          "out_of_bounds",
+          "budget_exhausted",
+          "stagnation"
+        ],
+        "infrastructure_rule": "进程崩溃、NaN 进状态、读不到资源等属基础设施错误：不计入业务分母，但必须逐条",
+        "feasibility_reject_checks": [
+          "rejects_blocked_corridor",
+          "rejects_goal_inside_inflated_region",
+          "rejects_timeout",
+          "rejects_turn_limited_route"
+        ],
+        "note": "超时再分 timeout 与 turn_limited，两类失败与基础设施错误分别记账"
+      }
+    },
+    {
+      "check": "formal_training_not_started",
+      "ok": true,
+      "detail": {
+        "training_artifacts": [],
+        "vectorised_env_status": "approved_by_user_2026_11_10"
+      }
+    }
+  ]
+}
