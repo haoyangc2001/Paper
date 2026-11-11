@@ -1,0 +1,721 @@
+{
+  "task": "NAV-028",
+  "gate": "G2",
+  "verdict": "PASS",
+  "date": "2026-11-11T09:56:01+08:00",
+  "scope": {
+    "maps": "integration_pilot 3 张图（L1_empty / L2_single_detour / L3_multi_path，seed 101）",
+    "episodes_per_map": 2,
+    "route_seconds": 30.0,
+    "route_follower": "手写 heading P 控制器（vx 0.6 巡航 / 0.3 近目标，wz <= 0.8），不训练任何导航网络",
+    "obstacles": "地图墙与岛屿按 maps.scene_adapter 生成真实碰撞盒（kinematic）注入物理场景",
+    "execution_chain": "ManagerBasedRLEnv 完整管线 + ExternalCommandWrapper（TASK-026 同款）；物理地面为本地兜底薄板（terrain_type=plane 需 Nucleus，集群不可用）"
+  },
+  "engineering_ok": {
+    "routes_goal_reached": "12/12",
+    "falls": 0,
+    "stuck": 0,
+    "energy_offline_max_rel_diff": 3.8728116798213116e-15,
+    "per_level": {
+      "L1_empty": {
+        "verdict": "PASS",
+        "route_summary": {
+          "episodes": 4,
+          "goal_reached": 4,
+          "fell": 0,
+          "stuck": 0
+        },
+        "obstacles": 4
+      },
+      "L2_single_detour": {
+        "verdict": "PASS",
+        "route_summary": {
+          "episodes": 4,
+          "goal_reached": 4,
+          "fell": 0,
+          "stuck": 0
+        },
+        "obstacles": 5
+      },
+      "L3_multi_path": {
+        "verdict": "PASS",
+        "route_summary": {
+          "episodes": 4,
+          "goal_reached": 4,
+          "fell": 0,
+          "stuck": 0
+        },
+        "obstacles": 6
+      }
+    },
+    "fixed_command": null,
+    "fixed_command_detail": null,
+    "checks_summary": {
+      "total": 13,
+      "passed": 13,
+      "failed": []
+    }
+  },
+  "accepted_limitation": {
+    "v2_steady_low_speed_stagnation": {
+      "source": "NAV-059 (user-ruled plan A, 2026-11-11)",
+      "detail": "0.05-0.3 m/s 稳态命令下 v2 站桩；本任务路线命令取 0.25-0.45 m/s，未隐式禁用低速，也未用低速段过关",
+      "measured_before": {
+        "usable_ratio_all_tiers": 0.0,
+        "actual_over_nominal_j_per_m": [
+          6.6,
+          7.0,
+          7.0,
+          2.7,
+          1.9
+        ]
+      }
+    },
+    "lateral_band_unresponsiveness": {
+      "source": "本次 G2（与 NAV-059 侧移诊断组合 0.3/0.1/0.2 几乎不走一致）",
+      "detail": "纯侧移命令 vy=0.25 下实测横移≈0.008 m/s（直行 0.425、转向 0.379 正常）；命令通道已核对到达 policy。属 v2 执行能力局限，不阻断接线判定"
+    },
+    "fixed_command_tracking_efficiency": [
+      {
+        "axis": "straight_vx",
+        "cmd": 0.5,
+        "measured": 0.425,
+        "efficiency": 0.849
+      },
+      {
+        "axis": "lateral_vy",
+        "cmd": 0.25,
+        "measured": 0.008,
+        "efficiency": 0.033,
+        "note": "侧移带宽跟踪效率明显低于直行（小于 50%）"
+      },
+      {
+        "axis": "turn_wz",
+        "cmd": 0.5,
+        "measured": 0.379,
+        "efficiency": 0.757
+      }
+    ]
+  },
+  "new_unavailability": [],
+  "levels": {
+    "L1_empty": {
+      "report_file": "gate_G2_L1.json",
+      "verdict": "PASS",
+      "map_id": "l1_empty-s101",
+      "route_summary": {
+        "episodes": 4,
+        "goal_reached": 4,
+        "fell": 0,
+        "stuck": 0
+      },
+      "checks": [
+        {
+          "check": "reset_reproducible",
+          "ok": true
+        },
+        {
+          "check": "fixed_command_responsive",
+          "ok": true
+        },
+        {
+          "check": "energy_offline_matches",
+          "ok": true
+        },
+        {
+          "check": "substeps_accounted",
+          "ok": true
+        },
+        {
+          "check": "route_trace_complete",
+          "ok": true
+        }
+      ],
+      "g2_sections": {
+        "engineering_ok": {
+          "pipeline": "ManagerBasedRLEnv full pipeline + ExternalCommandWrapper (TASK-026 recipe)",
+          "fixed_command_responsive": true,
+          "fixed_command_detail": {
+            "straight": {
+              "cmd": [
+                0.5,
+                0.0,
+                0.0
+              ],
+              "seconds": 8.0,
+              "mean_speed_measured": 0.42474505895858883,
+              "mean_yawrate_measured": null,
+              "rmse_vx": 0.0899586741308151,
+              "rmse_wz": 0.052220274363350694,
+              "total_j": 106.73203579454744,
+              "substeps": 1600,
+              "obs_cmd_at_end": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            },
+            "lateral": {
+              "cmd": [
+                0.0,
+                0.25,
+                0.0
+              ],
+              "seconds": 8.0,
+              "mean_speed_measured": 0.008260271666405939,
+              "mean_yawrate_measured": null,
+              "rmse_vx": 0.016773296181422242,
+              "rmse_wz": 0.021032304678321293,
+              "total_j": 7.7522781740383016,
+              "substeps": 1600,
+              "obs_cmd_at_end": [
+                0.0,
+                0.25,
+                0.0
+              ]
+            },
+            "turn": {
+              "cmd": [
+                0.0,
+                0.0,
+                0.5
+              ],
+              "seconds": 8.0,
+              "mean_speed_measured": null,
+              "mean_yawrate_measured": 0.37860413027898177,
+              "rmse_vx": 0.03159826023334405,
+              "rmse_wz": 0.1345816905475523,
+              "total_j": 46.17970200541903,
+              "substeps": 1600,
+              "obs_cmd_at_end": [
+                0.0,
+                0.0,
+                0.5
+              ]
+            }
+          },
+          "reset_reproducible": true,
+          "energy_offline_matches": true,
+          "substeps_accounted": true,
+          "obstacles_placed": 4,
+          "env_spacing_m": 25.0
+        },
+        "accepted_limitation": {
+          "lateral_band_unresponsiveness": {
+            "source": "本次 G2（与 NAV-059 侧移诊断组合 0.3/0.1/0.2 几乎不走一致）",
+            "detail": "纯侧移命令 vy=0.25 下实测横移≈0.008 m/s（直行 0.425、转向 0.379 正常）；命令通道已核对到达 policy。属 v2 执行能力局限，不阻断接线判定"
+          },
+          "fixed_command_tracking_efficiency": [
+            {
+              "axis": "straight_vx",
+              "cmd": 0.5,
+              "measured": 0.425,
+              "efficiency": 0.849
+            },
+            {
+              "axis": "lateral_vy",
+              "cmd": 0.25,
+              "measured": 0.008,
+              "efficiency": 0.033,
+              "note": "侧移带宽跟踪效率明显低于直行（小于 50%）"
+            },
+            {
+              "axis": "turn_wz",
+              "cmd": 0.5,
+              "measured": 0.379,
+              "efficiency": 0.757
+            }
+          ],
+          "v2_steady_low_speed_stagnation": {
+            "source": "NAV-059 (user-ruled plan A, 2026-11-11)",
+            "detail": "0.05-0.3 m/s 稳态命令下 v2 站桩；本任务路线命令取 0.25-0.45 m/s，未隐式禁用低速，也未用低速段过关",
+            "measured_before": {
+              "usable_ratio_all_tiers": 0.0,
+              "actual_over_nominal_j_per_m": [
+                6.6,
+                7.0,
+                7.0,
+                2.7,
+                1.9
+              ]
+            }
+          }
+        },
+        "new_unavailability": []
+      },
+      "obstacles_placed": 4
+    },
+    "L2_single_detour": {
+      "report_file": "gate_G2_L2.json",
+      "verdict": "PASS",
+      "map_id": "l2_single_detour-s101",
+      "route_summary": {
+        "episodes": 4,
+        "goal_reached": 4,
+        "fell": 0,
+        "stuck": 0
+      },
+      "checks": [
+        {
+          "check": "reset_reproducible",
+          "ok": true
+        },
+        {
+          "check": "energy_offline_matches",
+          "ok": true
+        },
+        {
+          "check": "substeps_accounted",
+          "ok": true
+        },
+        {
+          "check": "route_trace_complete",
+          "ok": true
+        }
+      ],
+      "g2_sections": {
+        "engineering_ok": {
+          "pipeline": "ManagerBasedRLEnv full pipeline + ExternalCommandWrapper (TASK-026 recipe)",
+          "fixed_command_responsive": null,
+          "fixed_command_detail": "skipped",
+          "reset_reproducible": true,
+          "energy_offline_matches": true,
+          "substeps_accounted": true,
+          "obstacles_placed": 5,
+          "env_spacing_m": 25.0
+        },
+        "accepted_limitation": {
+          "lateral_band_unresponsiveness": {
+            "source": "本次 G2（与 NAV-059 侧移诊断组合 0.3/0.1/0.2 几乎不走一致）",
+            "detail": "纯侧移命令 vy=0.25 下实测横移≈0.008 m/s（直行 0.425、转向 0.379 正常）；命令通道已核对到达 policy。属 v2 执行能力局限，不阻断接线判定"
+          },
+          "fixed_command_tracking_efficiency": [],
+          "v2_steady_low_speed_stagnation": {
+            "source": "NAV-059 (user-ruled plan A, 2026-11-11)",
+            "detail": "0.05-0.3 m/s 稳态命令下 v2 站桩；本任务路线命令取 0.25-0.45 m/s，未隐式禁用低速，也未用低速段过关",
+            "measured_before": {
+              "usable_ratio_all_tiers": 0.0,
+              "actual_over_nominal_j_per_m": [
+                6.6,
+                7.0,
+                7.0,
+                2.7,
+                1.9
+              ]
+            }
+          }
+        },
+        "new_unavailability": []
+      },
+      "obstacles_placed": 5
+    },
+    "L3_multi_path": {
+      "report_file": "gate_G2_L3.json",
+      "verdict": "PASS",
+      "map_id": "l3_multi_path-s101",
+      "route_summary": {
+        "episodes": 4,
+        "goal_reached": 4,
+        "fell": 0,
+        "stuck": 0
+      },
+      "checks": [
+        {
+          "check": "reset_reproducible",
+          "ok": true
+        },
+        {
+          "check": "energy_offline_matches",
+          "ok": true
+        },
+        {
+          "check": "substeps_accounted",
+          "ok": true
+        },
+        {
+          "check": "route_trace_complete",
+          "ok": true
+        }
+      ],
+      "g2_sections": {
+        "engineering_ok": {
+          "pipeline": "ManagerBasedRLEnv full pipeline + ExternalCommandWrapper (TASK-026 recipe)",
+          "fixed_command_responsive": null,
+          "fixed_command_detail": "skipped",
+          "reset_reproducible": true,
+          "energy_offline_matches": true,
+          "substeps_accounted": true,
+          "obstacles_placed": 6,
+          "env_spacing_m": 26.5
+        },
+        "accepted_limitation": {
+          "lateral_band_unresponsiveness": {
+            "source": "本次 G2（与 NAV-059 侧移诊断组合 0.3/0.1/0.2 几乎不走一致）",
+            "detail": "纯侧移命令 vy=0.25 下实测横移≈0.008 m/s（直行 0.425、转向 0.379 正常）；命令通道已核对到达 policy。属 v2 执行能力局限，不阻断接线判定"
+          },
+          "fixed_command_tracking_efficiency": [],
+          "v2_steady_low_speed_stagnation": {
+            "source": "NAV-059 (user-ruled plan A, 2026-11-11)",
+            "detail": "0.05-0.3 m/s 稳态命令下 v2 站桩；本任务路线命令取 0.25-0.45 m/s，未隐式禁用低速，也未用低速段过关",
+            "measured_before": {
+              "usable_ratio_all_tiers": 0.0,
+              "actual_over_nominal_j_per_m": [
+                6.6,
+                7.0,
+                7.0,
+                2.7,
+                1.9
+              ]
+            }
+          }
+        },
+        "new_unavailability": []
+      },
+      "obstacles_placed": 6
+    }
+  },
+  "attempts": [
+    {
+      "episode": 0,
+      "env": 0,
+      "level": "L1_empty",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        -0.1595
+      ],
+      "goal_local": [
+        7.0,
+        0.1529
+      ],
+      "final_pos_local": [
+        6.62,
+        0.076
+      ],
+      "substeps_recorded": 5532,
+      "total_j": 430.8352715220467,
+      "energy_offline_rel_diff": 1.7151902224251617e-15,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 0,
+      "env": 1,
+      "level": "L1_empty",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        -0.1595
+      ],
+      "goal_local": [
+        7.0,
+        0.1529
+      ],
+      "final_pos_local": [
+        6.607,
+        0.083
+      ],
+      "substeps_recorded": 5532,
+      "total_j": 370.1520967867152,
+      "energy_offline_rel_diff": 1.3821096089644875e-15,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 1,
+      "env": 0,
+      "level": "L1_empty",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        -0.1595
+      ],
+      "goal_local": [
+        7.0,
+        0.1529
+      ],
+      "final_pos_local": [
+        6.624,
+        0.088
+      ],
+      "substeps_recorded": 5504,
+      "total_j": 435.12891230959707,
+      "energy_offline_rel_diff": 1.3063581217596396e-15,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 1,
+      "env": 1,
+      "level": "L1_empty",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        -0.1595
+      ],
+      "goal_local": [
+        7.0,
+        0.1529
+      ],
+      "final_pos_local": [
+        6.601,
+        0.128
+      ],
+      "substeps_recorded": 5504,
+      "total_j": 368.838834300625,
+      "energy_offline_rel_diff": 1.5411451716734723e-15,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 0,
+      "env": 0,
+      "level": "L2_single_detour",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.3279
+      ],
+      "goal_local": [
+        7.0,
+        -0.4803
+      ],
+      "final_pos_local": [
+        6.616,
+        -0.513
+      ],
+      "substeps_recorded": 5480,
+      "total_j": 435.02758498783265,
+      "energy_offline_rel_diff": 2.6133248015708187e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 0,
+      "env": 1,
+      "level": "L2_single_detour",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.3279
+      ],
+      "goal_local": [
+        7.0,
+        -0.4803
+      ],
+      "final_pos_local": [
+        6.604,
+        -0.527
+      ],
+      "substeps_recorded": 5480,
+      "total_j": 366.93895521038297,
+      "energy_offline_rel_diff": 3.8728116798213116e-15,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 1,
+      "env": 0,
+      "level": "L2_single_detour",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.3279
+      ],
+      "goal_local": [
+        7.0,
+        -0.4803
+      ],
+      "final_pos_local": [
+        6.602,
+        -0.499
+      ],
+      "substeps_recorded": 5448,
+      "total_j": 429.979604774012,
+      "energy_offline_rel_diff": 5.288010708385454e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 1,
+      "env": 1,
+      "level": "L2_single_detour",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.3279
+      ],
+      "goal_local": [
+        7.0,
+        -0.4803
+      ],
+      "final_pos_local": [
+        6.616,
+        -0.52
+      ],
+      "substeps_recorded": 5448,
+      "total_j": 372.58855367463747,
+      "energy_offline_rel_diff": 6.102540542396422e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 0,
+      "env": 0,
+      "level": "L3_multi_path",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.1854
+      ],
+      "goal_local": [
+        7.0,
+        0.4775
+      ],
+      "final_pos_local": [
+        6.652,
+        0.284
+      ],
+      "substeps_recorded": 5464,
+      "total_j": 443.56476670696287,
+      "energy_offline_rel_diff": 2.0504214266724613e-15,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 0,
+      "env": 1,
+      "level": "L3_multi_path",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.1854
+      ],
+      "goal_local": [
+        7.0,
+        0.4775
+      ],
+      "final_pos_local": [
+        6.613,
+        0.402
+      ],
+      "substeps_recorded": 5464,
+      "total_j": 366.75295421642795,
+      "energy_offline_rel_diff": 1.5499103199387896e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 1,
+      "env": 0,
+      "level": "L3_multi_path",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.1854
+      ],
+      "goal_local": [
+        7.0,
+        0.4775
+      ],
+      "final_pos_local": [
+        6.653,
+        0.281
+      ],
+      "substeps_recorded": 5496,
+      "total_j": 436.5968183281108,
+      "energy_offline_rel_diff": 5.207863774956702e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 1,
+      "env": 1,
+      "level": "L3_multi_path",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.1854
+      ],
+      "goal_local": [
+        7.0,
+        0.4775
+      ],
+      "final_pos_local": [
+        6.607,
+        0.393
+      ],
+      "substeps_recorded": 5496,
+      "total_j": 371.29815529149255,
+      "energy_offline_rel_diff": 3.06187456364723e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    }
+  ],
+  "notes": [
+    "G2 只判工程接入：管线、时序（200 Hz/50 Hz/10 Hz）、复位、能量、观测新鲜度、路线闭环 trace。",
+    "路线命令取 0.3-0.6 m/s，未使用 NAV-059 记录的 0.3 以下停滞区间，也未隐式禁用低速（规划域未改）。",
+    "侧移带宽无响应（vy=0.25 实测 0.008 m/s）为本次新观察到的执行局限，与 NAV-059 侧移组合一致，记入 accepted_limitation。",
+    "本门禁不评价导航算法性能，也不进入任何性能分母（integration_pilot 报告口径）。"
+  ]
+}

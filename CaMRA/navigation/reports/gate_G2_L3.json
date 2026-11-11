@@ -1,0 +1,1234 @@
+{
+  "task": "NAV-028",
+  "verdict": "PASS",
+  "level": "L3_multi_path",
+  "map_id": "l3_multi_path-s101",
+  "seed": 101,
+  "episodes": 2,
+  "gate": "G2",
+  "g2_sections": {
+    "engineering_ok": {
+      "pipeline": "ManagerBasedRLEnv full pipeline + ExternalCommandWrapper (TASK-026 recipe)",
+      "fixed_command_responsive": null,
+      "fixed_command_detail": "skipped",
+      "reset_reproducible": true,
+      "energy_offline_matches": true,
+      "substeps_accounted": true,
+      "obstacles_placed": 6,
+      "env_spacing_m": 26.5
+    },
+    "accepted_limitation": {
+      "lateral_band_unresponsiveness": {
+        "source": "本次 G2（与 NAV-059 侧移诊断组合 0.3/0.1/0.2 几乎不走一致）",
+        "detail": "纯侧移命令 vy=0.25 下实测横移≈0.008 m/s（直行 0.425、转向 0.379 正常）；命令通道已核对到达 policy。属 v2 执行能力局限，不阻断接线判定"
+      },
+      "fixed_command_tracking_efficiency": [],
+      "v2_steady_low_speed_stagnation": {
+        "source": "NAV-059 (user-ruled plan A, 2026-11-11)",
+        "detail": "0.05-0.3 m/s 稳态命令下 v2 站桩；本任务路线命令取 0.25-0.45 m/s，未隐式禁用低速，也未用低速段过关",
+        "measured_before": {
+          "usable_ratio_all_tiers": 0.0,
+          "actual_over_nominal_j_per_m": [
+            6.6,
+            7.0,
+            7.0,
+            2.7,
+            1.9
+          ]
+        }
+      }
+    },
+    "new_unavailability": []
+  },
+  "checks": [
+    {
+      "check": "reset_reproducible",
+      "ok": true,
+      "detail": {
+        "dpos_m": 0.0,
+        "dyaw_rad": 0.0,
+        "tolerance": {
+          "pos_m": 1e-06,
+          "yaw_rad": 1e-06
+        }
+      }
+    },
+    {
+      "check": "energy_offline_matches",
+      "ok": true,
+      "detail": {
+        "rel_diffs": [
+          2.0504214266724613e-15,
+          1.5499103199387896e-16,
+          5.207863774956702e-16,
+          3.06187456364723e-16
+        ],
+        "tolerance": 1e-09
+      }
+    },
+    {
+      "check": "substeps_accounted",
+      "ok": true,
+      "detail": {
+        "note": "timeout 回合必须恰好 6000 子步；提前结束回合按事件截断",
+        "per_attempt": [
+          [
+            0,
+            "goal_reached",
+            5464
+          ],
+          [
+            0,
+            "goal_reached",
+            5464
+          ],
+          [
+            1,
+            "goal_reached",
+            5496
+          ],
+          [
+            1,
+            "goal_reached",
+            5496
+          ]
+        ]
+      }
+    },
+    {
+      "check": "route_trace_complete",
+      "ok": true,
+      "detail": {
+        "trace_points": [
+          28,
+          28
+        ],
+        "outcomes": [
+          [
+            0,
+            "goal_reached"
+          ],
+          [
+            0,
+            "goal_reached"
+          ],
+          [
+            1,
+            "goal_reached"
+          ],
+          [
+            1,
+            "goal_reached"
+          ]
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "attempts": [
+        {
+          "episode": 0,
+          "env": 0,
+          "level": "L3_multi_path",
+          "outcome": "goal_reached",
+          "fell": false,
+          "stuck": false,
+          "start_local": [
+            -7.0,
+            0.1854
+          ],
+          "goal_local": [
+            7.0,
+            0.4775
+          ],
+          "final_pos_local": [
+            6.652,
+            0.284
+          ],
+          "substeps_recorded": 5464,
+          "total_j": 443.56476670696287,
+          "energy_offline_rel_diff": 2.0504214266724613e-15,
+          "commands_used": {
+            "vx_cruise": 0.6,
+            "vx_near_goal": 0.3,
+            "wz_limit": 0.8
+          }
+        },
+        {
+          "episode": 0,
+          "env": 1,
+          "level": "L3_multi_path",
+          "outcome": "goal_reached",
+          "fell": false,
+          "stuck": false,
+          "start_local": [
+            -7.0,
+            0.1854
+          ],
+          "goal_local": [
+            7.0,
+            0.4775
+          ],
+          "final_pos_local": [
+            6.613,
+            0.402
+          ],
+          "substeps_recorded": 5464,
+          "total_j": 366.75295421642795,
+          "energy_offline_rel_diff": 1.5499103199387896e-16,
+          "commands_used": {
+            "vx_cruise": 0.6,
+            "vx_near_goal": 0.3,
+            "wz_limit": 0.8
+          }
+        }
+      ],
+      "trace_sample": [
+        {
+          "t_s": 0.02,
+          "env": 0,
+          "pos_local": [
+            -7.009,
+            0.184
+          ],
+          "dist_to_goal": 14.012,
+          "cmd": [
+            0.6,
+            0.0,
+            0.102
+          ],
+          "tilt_deg": 1.1
+        },
+        {
+          "t_s": 0.02,
+          "env": 1,
+          "pos_local": [
+            -7.015,
+            0.185
+          ],
+          "dist_to_goal": 14.018,
+          "cmd": [
+            0.6,
+            0.0,
+            0.105
+          ],
+          "tilt_deg": 1.4
+        },
+        {
+          "t_s": 2.02,
+          "env": 0,
+          "pos_local": [
+            -5.979,
+            0.17
+          ],
+          "dist_to_goal": 12.983,
+          "cmd": [
+            0.6,
+            0.0,
+            0.022
+          ],
+          "tilt_deg": 2.6
+        },
+        {
+          "t_s": 2.02,
+          "env": 1,
+          "pos_local": [
+            -5.968,
+            0.158
+          ],
+          "dist_to_goal": 12.972,
+          "cmd": [
+            0.6,
+            0.0,
+            0.036
+          ],
+          "tilt_deg": 3.1
+        },
+        {
+          "t_s": 4.02,
+          "env": 0,
+          "pos_local": [
+            -4.922,
+            0.156
+          ],
+          "dist_to_goal": 11.926,
+          "cmd": [
+            0.6,
+            0.0,
+            0.02
+          ],
+          "tilt_deg": 2.4
+        },
+        {
+          "t_s": 4.02,
+          "env": 1,
+          "pos_local": [
+            -4.91,
+            0.131
+          ],
+          "dist_to_goal": 11.915,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 3.0
+        },
+        {
+          "t_s": 6.02,
+          "env": 0,
+          "pos_local": [
+            -3.866,
+            0.146
+          ],
+          "dist_to_goal": 10.871,
+          "cmd": [
+            0.6,
+            0.0,
+            0.015
+          ],
+          "tilt_deg": 2.2
+        },
+        {
+          "t_s": 6.02,
+          "env": 1,
+          "pos_local": [
+            -3.848,
+            0.121
+          ],
+          "dist_to_goal": 10.854,
+          "cmd": [
+            0.6,
+            0.0,
+            0.035
+          ],
+          "tilt_deg": 2.7
+        },
+        {
+          "t_s": 8.02,
+          "env": 0,
+          "pos_local": [
+            -2.851,
+            0.19
+          ],
+          "dist_to_goal": 9.855,
+          "cmd": [
+            0.6,
+            0.0,
+            0.006
+          ],
+          "tilt_deg": 2.6
+        },
+        {
+          "t_s": 8.02,
+          "env": 1,
+          "pos_local": [
+            -2.794,
+            0.16
+          ],
+          "dist_to_goal": 9.799,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 3.0
+        },
+        {
+          "t_s": 10.02,
+          "env": 0,
+          "pos_local": [
+            -1.794,
+            0.182
+          ],
+          "dist_to_goal": 8.799,
+          "cmd": [
+            0.6,
+            0.0,
+            0.008
+          ],
+          "tilt_deg": 2.9
+        },
+        {
+          "t_s": 10.02,
+          "env": 1,
+          "pos_local": [
+            -1.738,
+            0.141
+          ],
+          "dist_to_goal": 8.745,
+          "cmd": [
+            0.6,
+            0.0,
+            0.037
+          ],
+          "tilt_deg": 3.2
+        },
+        {
+          "t_s": 12.02,
+          "env": 0,
+          "pos_local": [
+            -0.737,
+            0.179
+          ],
+          "dist_to_goal": 7.742,
+          "cmd": [
+            0.6,
+            0.0,
+            0.01
+          ],
+          "tilt_deg": 2.5
+        },
+        {
+          "t_s": 12.02,
+          "env": 1,
+          "pos_local": [
+            -0.625,
+            0.106
+          ],
+          "dist_to_goal": 7.634,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 3.0
+        },
+        {
+          "t_s": 14.02,
+          "env": 0,
+          "pos_local": [
+            0.362,
+            0.24
+          ],
+          "dist_to_goal": 6.643,
+          "cmd": [
+            0.6,
+            0.0,
+            -0.037
+          ],
+          "tilt_deg": 1.6
+        },
+        {
+          "t_s": 14.02,
+          "env": 1,
+          "pos_local": [
+            0.453,
+            0.103
+          ],
+          "dist_to_goal": 6.558,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 2.9
+        },
+        {
+          "t_s": 16.02,
+          "env": 0,
+          "pos_local": [
+            1.441,
+            0.262
+          ],
+          "dist_to_goal": 5.563,
+          "cmd": [
+            0.6,
+            0.0,
+            0.007
+          ],
+          "tilt_deg": 2.2
+        },
+        {
+          "t_s": 16.02,
+          "env": 1,
+          "pos_local": [
+            1.513,
+            0.114
+          ],
+          "dist_to_goal": 5.499,
+          "cmd": [
+            0.6,
+            0.0,
+            0.036
+          ],
+          "tilt_deg": 2.9
+        },
+        {
+          "t_s": 18.02,
+          "env": 0,
+          "pos_local": [
+            2.498,
+            0.265
+          ],
+          "dist_to_goal": 4.507,
+          "cmd": [
+            0.6,
+            0.0,
+            0.018
+          ],
+          "tilt_deg": 1.9
+        },
+        {
+          "t_s": 18.02,
+          "env": 1,
+          "pos_local": [
+            2.56,
+            0.133
+          ],
+          "dist_to_goal": 4.454,
+          "cmd": [
+            0.6,
+            0.0,
+            0.04
+          ],
+          "tilt_deg": 3.1
+        },
+        {
+          "t_s": 20.02,
+          "env": 0,
+          "pos_local": [
+            3.606,
+            0.196
+          ],
+          "dist_to_goal": 3.406,
+          "cmd": [
+            0.6,
+            0.0,
+            0.075
+          ],
+          "tilt_deg": 0.1
+        },
+        {
+          "t_s": 20.02,
+          "env": 1,
+          "pos_local": [
+            3.622,
+            0.164
+          ],
+          "dist_to_goal": 3.393,
+          "cmd": [
+            0.6,
+            0.0,
+            0.041
+          ],
+          "tilt_deg": 3.3
+        },
+        {
+          "t_s": 22.02,
+          "env": 0,
+          "pos_local": [
+            4.668,
+            0.225
+          ],
+          "dist_to_goal": 2.345,
+          "cmd": [
+            0.6,
+            0.0,
+            0.029
+          ],
+          "tilt_deg": 1.9
+        },
+        {
+          "t_s": 22.02,
+          "env": 1,
+          "pos_local": [
+            4.682,
+            0.235
+          ],
+          "dist_to_goal": 2.331,
+          "cmd": [
+            0.6,
+            0.0,
+            0.043
+          ],
+          "tilt_deg": 3.1
+        },
+        {
+          "t_s": 24.02,
+          "env": 0,
+          "pos_local": [
+            5.724,
+            0.301
+          ],
+          "dist_to_goal": 1.288,
+          "cmd": [
+            0.6,
+            0.0,
+            0.036
+          ],
+          "tilt_deg": 2.3
+        },
+        {
+          "t_s": 24.02,
+          "env": 1,
+          "pos_local": [
+            5.724,
+            0.299
+          ],
+          "dist_to_goal": 1.288,
+          "cmd": [
+            0.6,
+            0.0,
+            0.056
+          ],
+          "tilt_deg": 3.3
+        },
+        {
+          "t_s": 26.02,
+          "env": 0,
+          "pos_local": [
+            6.394,
+            0.304
+          ],
+          "dist_to_goal": 0.631,
+          "cmd": [
+            0.3,
+            0.0,
+            0.097
+          ],
+          "tilt_deg": 2.8
+        },
+        {
+          "t_s": 26.02,
+          "env": 1,
+          "pos_local": [
+            6.394,
+            0.375
+          ],
+          "dist_to_goal": 0.615,
+          "cmd": [
+            0.3,
+            0.0,
+            0.041
+          ],
+          "tilt_deg": 2.8
+        }
+      ],
+      "wallclock_s": 17.4
+    },
+    {
+      "attempts": [
+        {
+          "episode": 1,
+          "env": 0,
+          "level": "L3_multi_path",
+          "outcome": "goal_reached",
+          "fell": false,
+          "stuck": false,
+          "start_local": [
+            -7.0,
+            0.1854
+          ],
+          "goal_local": [
+            7.0,
+            0.4775
+          ],
+          "final_pos_local": [
+            6.653,
+            0.281
+          ],
+          "substeps_recorded": 5496,
+          "total_j": 436.5968183281108,
+          "energy_offline_rel_diff": 5.207863774956702e-16,
+          "commands_used": {
+            "vx_cruise": 0.6,
+            "vx_near_goal": 0.3,
+            "wz_limit": 0.8
+          }
+        },
+        {
+          "episode": 1,
+          "env": 1,
+          "level": "L3_multi_path",
+          "outcome": "goal_reached",
+          "fell": false,
+          "stuck": false,
+          "start_local": [
+            -7.0,
+            0.1854
+          ],
+          "goal_local": [
+            7.0,
+            0.4775
+          ],
+          "final_pos_local": [
+            6.607,
+            0.393
+          ],
+          "substeps_recorded": 5496,
+          "total_j": 371.29815529149255,
+          "energy_offline_rel_diff": 3.06187456364723e-16,
+          "commands_used": {
+            "vx_cruise": 0.6,
+            "vx_near_goal": 0.3,
+            "wz_limit": 0.8
+          }
+        }
+      ],
+      "trace_sample": [
+        {
+          "t_s": 0.02,
+          "env": 0,
+          "pos_local": [
+            -7.01,
+            0.183
+          ],
+          "dist_to_goal": 14.013,
+          "cmd": [
+            0.6,
+            0.0,
+            0.098
+          ],
+          "tilt_deg": 1.1
+        },
+        {
+          "t_s": 0.02,
+          "env": 1,
+          "pos_local": [
+            -7.014,
+            0.185
+          ],
+          "dist_to_goal": 14.017,
+          "cmd": [
+            0.6,
+            0.0,
+            0.104
+          ],
+          "tilt_deg": 1.4
+        },
+        {
+          "t_s": 2.02,
+          "env": 0,
+          "pos_local": [
+            -5.984,
+            0.163
+          ],
+          "dist_to_goal": 12.987,
+          "cmd": [
+            0.6,
+            0.0,
+            0.025
+          ],
+          "tilt_deg": 2.6
+        },
+        {
+          "t_s": 2.02,
+          "env": 1,
+          "pos_local": [
+            -5.958,
+            0.16
+          ],
+          "dist_to_goal": 12.962,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 3.0
+        },
+        {
+          "t_s": 4.02,
+          "env": 0,
+          "pos_local": [
+            -4.926,
+            0.149
+          ],
+          "dist_to_goal": 11.931,
+          "cmd": [
+            0.6,
+            0.0,
+            0.02
+          ],
+          "tilt_deg": 2.4
+        },
+        {
+          "t_s": 4.02,
+          "env": 1,
+          "pos_local": [
+            -4.902,
+            0.134
+          ],
+          "dist_to_goal": 11.907,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 2.9
+        },
+        {
+          "t_s": 6.02,
+          "env": 0,
+          "pos_local": [
+            -3.87,
+            0.139
+          ],
+          "dist_to_goal": 10.875,
+          "cmd": [
+            0.6,
+            0.0,
+            0.015
+          ],
+          "tilt_deg": 2.2
+        },
+        {
+          "t_s": 6.02,
+          "env": 1,
+          "pos_local": [
+            -3.825,
+            0.183
+          ],
+          "dist_to_goal": 10.829,
+          "cmd": [
+            0.6,
+            0.0,
+            0.022
+          ],
+          "tilt_deg": 2.8
+        },
+        {
+          "t_s": 8.02,
+          "env": 0,
+          "pos_local": [
+            -2.814,
+            0.134
+          ],
+          "dist_to_goal": 9.82,
+          "cmd": [
+            0.6,
+            0.0,
+            0.012
+          ],
+          "tilt_deg": 2.6
+        },
+        {
+          "t_s": 8.02,
+          "env": 1,
+          "pos_local": [
+            -2.767,
+            0.163
+          ],
+          "dist_to_goal": 9.773,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 2.9
+        },
+        {
+          "t_s": 10.02,
+          "env": 0,
+          "pos_local": [
+            -1.807,
+            0.126
+          ],
+          "dist_to_goal": 8.814,
+          "cmd": [
+            0.6,
+            0.0,
+            0.01
+          ],
+          "tilt_deg": 2.5
+        },
+        {
+          "t_s": 10.02,
+          "env": 1,
+          "pos_local": [
+            -1.713,
+            0.141
+          ],
+          "dist_to_goal": 8.719,
+          "cmd": [
+            0.6,
+            0.0,
+            0.037
+          ],
+          "tilt_deg": 3.1
+        },
+        {
+          "t_s": 12.02,
+          "env": 0,
+          "pos_local": [
+            -0.75,
+            0.129
+          ],
+          "dist_to_goal": 7.758,
+          "cmd": [
+            0.6,
+            0.0,
+            0.014
+          ],
+          "tilt_deg": 1.9
+        },
+        {
+          "t_s": 12.02,
+          "env": 1,
+          "pos_local": [
+            -0.591,
+            0.082
+          ],
+          "dist_to_goal": 7.601,
+          "cmd": [
+            0.6,
+            0.0,
+            0.033
+          ],
+          "tilt_deg": 2.6
+        },
+        {
+          "t_s": 14.02,
+          "env": 0,
+          "pos_local": [
+            0.307,
+            0.137
+          ],
+          "dist_to_goal": 6.702,
+          "cmd": [
+            0.6,
+            0.0,
+            0.018
+          ],
+          "tilt_deg": 2.1
+        },
+        {
+          "t_s": 14.02,
+          "env": 1,
+          "pos_local": [
+            0.467,
+            0.087
+          ],
+          "dist_to_goal": 6.545,
+          "cmd": [
+            0.6,
+            0.0,
+            0.032
+          ],
+          "tilt_deg": 2.6
+        },
+        {
+          "t_s": 16.02,
+          "env": 0,
+          "pos_local": [
+            1.324,
+            0.188
+          ],
+          "dist_to_goal": 5.684,
+          "cmd": [
+            0.6,
+            0.0,
+            -0.002
+          ],
+          "tilt_deg": 2.8
+        },
+        {
+          "t_s": 16.02,
+          "env": 1,
+          "pos_local": [
+            1.525,
+            0.099
+          ],
+          "dist_to_goal": 5.488,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 2.6
+        },
+        {
+          "t_s": 18.02,
+          "env": 0,
+          "pos_local": [
+            2.373,
+            0.214
+          ],
+          "dist_to_goal": 4.634,
+          "cmd": [
+            0.6,
+            0.0,
+            0.018
+          ],
+          "tilt_deg": 2.4
+        },
+        {
+          "t_s": 18.02,
+          "env": 1,
+          "pos_local": [
+            2.643,
+            0.036
+          ],
+          "dist_to_goal": 4.38,
+          "cmd": [
+            0.6,
+            0.0,
+            0.067
+          ],
+          "tilt_deg": 2.4
+        },
+        {
+          "t_s": 20.02,
+          "env": 0,
+          "pos_local": [
+            3.429,
+            0.237
+          ],
+          "dist_to_goal": 3.579,
+          "cmd": [
+            0.6,
+            0.0,
+            0.016
+          ],
+          "tilt_deg": 2.4
+        },
+        {
+          "t_s": 20.02,
+          "env": 1,
+          "pos_local": [
+            3.722,
+            0.058
+          ],
+          "dist_to_goal": 3.304,
+          "cmd": [
+            0.6,
+            0.0,
+            0.034
+          ],
+          "tilt_deg": 3.5
+        },
+        {
+          "t_s": 22.02,
+          "env": 0,
+          "pos_local": [
+            4.486,
+            0.272
+          ],
+          "dist_to_goal": 2.522,
+          "cmd": [
+            0.6,
+            0.0,
+            0.015
+          ],
+          "tilt_deg": 2.8
+        },
+        {
+          "t_s": 22.02,
+          "env": 1,
+          "pos_local": [
+            4.778,
+            0.142
+          ],
+          "dist_to_goal": 2.247,
+          "cmd": [
+            0.6,
+            0.0,
+            0.037
+          ],
+          "tilt_deg": 3.3
+        },
+        {
+          "t_s": 24.02,
+          "env": 0,
+          "pos_local": [
+            5.545,
+            0.317
+          ],
+          "dist_to_goal": 1.464,
+          "cmd": [
+            0.6,
+            0.0,
+            0.028
+          ],
+          "tilt_deg": 3.0
+        },
+        {
+          "t_s": 24.02,
+          "env": 1,
+          "pos_local": [
+            5.832,
+            0.253
+          ],
+          "dist_to_goal": 1.19,
+          "cmd": [
+            0.6,
+            0.0,
+            0.049
+          ],
+          "tilt_deg": 3.0
+        },
+        {
+          "t_s": 26.02,
+          "env": 0,
+          "pos_local": [
+            6.355,
+            0.309
+          ],
+          "dist_to_goal": 0.666,
+          "cmd": [
+            0.3,
+            0.0,
+            0.117
+          ],
+          "tilt_deg": 1.4
+        },
+        {
+          "t_s": 26.02,
+          "env": 1,
+          "pos_local": [
+            6.413,
+            0.37
+          ],
+          "dist_to_goal": 0.597,
+          "cmd": [
+            0.3,
+            0.0,
+            0.063
+          ],
+          "tilt_deg": 2.5
+        }
+      ],
+      "wallclock_s": 20.6
+    }
+  ],
+  "attempts": [
+    {
+      "episode": 0,
+      "env": 0,
+      "level": "L3_multi_path",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.1854
+      ],
+      "goal_local": [
+        7.0,
+        0.4775
+      ],
+      "final_pos_local": [
+        6.652,
+        0.284
+      ],
+      "substeps_recorded": 5464,
+      "total_j": 443.56476670696287,
+      "energy_offline_rel_diff": 2.0504214266724613e-15,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 0,
+      "env": 1,
+      "level": "L3_multi_path",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.1854
+      ],
+      "goal_local": [
+        7.0,
+        0.4775
+      ],
+      "final_pos_local": [
+        6.613,
+        0.402
+      ],
+      "substeps_recorded": 5464,
+      "total_j": 366.75295421642795,
+      "energy_offline_rel_diff": 1.5499103199387896e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 1,
+      "env": 0,
+      "level": "L3_multi_path",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.1854
+      ],
+      "goal_local": [
+        7.0,
+        0.4775
+      ],
+      "final_pos_local": [
+        6.653,
+        0.281
+      ],
+      "substeps_recorded": 5496,
+      "total_j": 436.5968183281108,
+      "energy_offline_rel_diff": 5.207863774956702e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    },
+    {
+      "episode": 1,
+      "env": 1,
+      "level": "L3_multi_path",
+      "outcome": "goal_reached",
+      "fell": false,
+      "stuck": false,
+      "start_local": [
+        -7.0,
+        0.1854
+      ],
+      "goal_local": [
+        7.0,
+        0.4775
+      ],
+      "final_pos_local": [
+        6.607,
+        0.393
+      ],
+      "substeps_recorded": 5496,
+      "total_j": 371.29815529149255,
+      "energy_offline_rel_diff": 3.06187456364723e-16,
+      "commands_used": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "wz_limit": 0.8
+      }
+    }
+  ],
+  "route_summary": {
+    "episodes": 4,
+    "goal_reached": 4,
+    "fell": 0,
+    "stuck": 0
+  },
+  "constants": {
+    "episode_seconds": 30.0,
+    "warmup_seconds": 1.0,
+    "fall_rule": {
+      "height_m": 0.15,
+      "tilt_deg": 60.0
+    },
+    "goal_radius_m": 0.4,
+    "stuck": {
+      "window_s": 10.0,
+      "progress_m": 0.1
+    },
+    "route_follower": {
+      "vx_cruise": 0.6,
+      "vx_near_goal": 0.3,
+      "k_wz": 1.5,
+      "wz_limit": 0.8
+    }
+  }
+}
