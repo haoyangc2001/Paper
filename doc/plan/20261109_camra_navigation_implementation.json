@@ -4461,11 +4461,41 @@
       "id": "NAV-040",
       "phase": "预算与闭环",
       "goal": "实现健壮的J单位预算搜索",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-039"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-12T00:45:00+08:00",
+          "summary": "NAV-040 收口（git 5a1b347，status True，46/60）：J 单位预算搜索模块 + 测试，17/17 PASS。返回物理焦耳预算、判据值、最终区间与逐步轨迹；六类结局（可行/无根/全可行/全不可行/非单调/NaN）全部有可解释状态且区间不自动扩张；z_J 与 z_ratio 显式互转、越界拒绝逆算。",
+          "actions": [
+            "新增 src/camra_navigation/budget/{__init__,search}.py：search_min_budget(score, lo_J, hi_J, z_ref_J, tol_J, max_iter, probes)——①物理 J 单位搜索，区间由调用方按 train/development 证据给定，从不使用 [-1,1] 当预算；②先做 8 点近似单调性探测（可行必须呈\"不可行…可行\"单调台阶），发现\"可行岛\"即返回 non_monotonic 而不是静默返回岛的某一侧；③随后二分保持 a 不可行/b 可行的不变式，tol 或迭代上限停止，答案是**实测可行**的 b（绝不插值）；④端点可行→all_feasible 且不改区间；无根→all_infeasible；NaN/抛异常→invalid；参数非法→BudgetSearchError。",
+            "to_ratio/from_ratio 显式转换（[-1,1] 外拒绝逆算）；budget_J/k_of_budget 把契约锚点z0=k·E_ref 与物理预算分开返回（选中预算永远以 J + k 分别报告，不覆盖共享参考预算）；select_smallest_feasible_on_grid 实现\"从 k 网格低端递增取第一个可行\"的契约规则，网格不允许加密/平移/扩展，全不可行返回 no_feasible_budget。",
+            "新增 tests/test_budget_search.py：受限小问题（两条路径链，较便宜一条精确 45.0 J，闭式手算）验证搜索收敛到 [45, 45+tol] 且答案确为实测点；人工曲线覆盖：有根/无根/全可行/全不可行/可行岛非单调/NaN/抛异常/端点恰在根上；逆算往返逐位一致、越界拒绝；参数守卫（lo≥hi、lo≤0、tol≤0、z_ref≤0、probes<2）；紧容差到 1e-6、迭代上限如实披露；结果可 JSON 序列化且携带判据与轨迹；k 网格选择与守卫。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/budget/__init__.py（新增）",
+            "CaMRA/navigation/src/camra_navigation/budget/search.py（新增）",
+            "CaMRA/navigation/tests/test_budget_search.py（新增）",
+            "CaMRA/navigation/reports/budget_search_check.json（verdict=PASS）"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_budget_search.py --json CaMRA/navigation/reports/budget_search_check.json"
+          ],
+          "results": [
+            "17/17 PASS：受限小问题收敛到闭式解 45.0 J（答案落在 [45, 45.25] 且为实测可行点）；六类结局状态齐备；非单调（可行岛 40 J/45–60 J 不可行/60+ 可行）被探测捕获；NaN 与抛异常均判 invalid 而非伪可行；逆算 to_ratio→from_ratio 往返一致；k 网格守卫与\"最小可行 k\"选择正确（E_ref=60、51 J 起可行 → k=0.85）。",
+            "如实边界：模块不做任何\"物理安全\"声明——评分函数由调用方给出，critic 近似可行 ≠ 物理保证（写在模块文档与结果 note 中）。"
+          ],
+          "evidence": [
+            "reports/budget_search_check.json（17 项明细）",
+            "src/camra_navigation/budget/search.py（模块文档列出全部契约性质）",
+            "git 5a1b347"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "参考Bisection但显式转换z_J与归一化输入，搜索区间由train/development确定，不能照搬[-1,1]当物理预算。",
         "检查端点、括根、近似单调性、NaN及搜索精度；无解/非单调返回可解释状态，禁止输出伪可行中点或自动扩区间。",
@@ -4475,7 +4505,7 @@
         "受限小问题及人工value曲线的可行/无根/全可行/全不可行/非单调/NaN测试通过。",
         "返回物理J预算、对应判据、区间和迭代轨迹；能逆算至同一z输入。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：受限小问题（双路径链，闭式最小预算 45.0 J）与六类人工剧情（可行/无根/全可行/全不可行/非单调/NaN）全部通过，另含抛异常、端点恰在根、参数守卫、紧容差与迭代上限披露；返回物理 J 预算 + 判据值 + 最终区间 + 逐步轨迹（答案必须是实测可行点，拒绝插值）；z_J↔z_ratio 显式互转且越界拒绝，能逆算回同一输入；k 网格规则（最小可行 k、不扩展网格）与锚点换算（budget_J/k_of_budget，预算与 E_ref 分开报告）实现并测试。",
       "reference_ids": [
         "R04",
         "R10"
