@@ -586,6 +586,10 @@ def run_isaac(args, prereg: dict) -> dict:
                     dist = math.hypot(dx, dy)
                     he = (math.atan2(dy, dx) - yaw + math.pi) % (2 * math.pi) - math.pi
                     wz = max(-ROUTE_WZ_LIMIT, min(ROUTE_WZ_LIMIT, ROUTE_K_WZ * he))
+                    if abs(wz) < args.wz_deadband:
+                        # 实测底层对该量级的角速率无响应（yawrate_deadband.json），
+                        # 继续下发只会在名义参考里累积一个不会发生的转角
+                        wz = 0.0
                     vx = ROUTE_VX_NEAR_GOAL if dist < ROUTE_NEAR_GOAL_M else ROUTE_VX_CRUISE
                     rows.append([vx, 0.0, wz])
             write_cmd(rows)
@@ -775,6 +779,10 @@ def run_isaac(args, prereg: dict) -> dict:
                     "first_response_substep_max": (max(probe_first) if probe_first else None),
                     "n_no_response": sum(1 for v in probe_first if v <= 0),
                     "obs_cmd_mismatch_total": int(sum(obs_cmd_mismatch))},
+        "controller": {"kind": "heading_p_feedback", "nav_period_s": NAV_DT,
+                       "vx_cruise": ROUTE_VX_CRUISE, "vx_near_goal": ROUTE_VX_NEAR_GOAL,
+                       "k_wz": ROUTE_K_WZ, "wz_limit": ROUTE_WZ_LIMIT,
+                       "wz_deadband_rad_s": args.wz_deadband},
         "recorder_problems": problems,
         "env_origins": env_origins_np[:, :2].tolist(),
     }
@@ -1063,7 +1071,8 @@ def aggregate(paths: list[str], prereg: dict) -> dict:
         },
         "runs": [{"split": r["split"], "level": r["level"], "n": r["n"],
                   "wallclock_s": r["wallclock_s"], "latency": r["latency"],
-                  "source": p} for r, p in zip(runs, paths)],
+                  "controller": r.get("controller"), "source": p}
+                 for r, p in zip(runs, paths)],
         "episodes": episodes,
         "engineering_ok": [c for c in checks if c["ok"]],
         "empirical_applicability": {
@@ -1136,6 +1145,8 @@ def main() -> int:
     ap.add_argument("--inputs", nargs="*", default=[])
     ap.add_argument("--json", default="")
     ap.add_argument("--gate", default="")
+    ap.add_argument("--wz-deadband", type=float, default=0.0,
+                    help="导航层角速率死区规避阈值（rad/s）：|wz| 低于它直接发 0，依据 reports/yawrate_deadband.json 的实测")
     ap.add_argument("--npz", default="")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--debug", action="store_true")

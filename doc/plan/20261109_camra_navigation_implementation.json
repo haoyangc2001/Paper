@@ -3308,6 +3308,49 @@
           "blockers": [
             "G2A 未通过（几何项），按任务约束 NAV-029 及任何上层学习不得启动，status 保持 false，等待用户裁定。"
           ]
+        },
+        {
+          "timestamp": "2026-11-11T11:03:36+08:00",
+          "summary": "处置 C 已执行并失败：实测底层角速率死区（≤0.2 rad/s 完全无响应、0.3 只 21%、0.5 才 71%），导航层按 0.20 归零后重跑 48 回合，ε_d 仅从 6.47 降到 6.20，仍超 δ=2.61。前缀分解给出根因：δ 只覆盖到约 10 s 的闭环指令，20 s 起线性超限。",
+          "actions": [
+            "新增 scripts/check_yawrate_deadband.py：10 档 |wz|（0.01-0.5）各 5 s 恒速闭环，正负两轮，取后 4 s 均值。第一版把 wz 填进了 vx 槽位（实测全 0），已修并重测。",
+            "死区实测（reports/yawrate_deadband.json）：0.01-0.15 比值 ≈0；0.20 为 0.004；0.30 为 0.213；0.50 为 0.706。故分两个量记录——deadband_no_response=0.20（此档及以下完全不转）、usable_threshold=0.50（首个比值≥0.6）。",
+            "导航层按 deadband_no_response=0.20 做规避（|wz|<0.2 直接发 0），四批全部重跑（3 图 × 4 种子 × 3 profile + 对照 12）。",
+            "发现并修正自己的方法错误：曾用反事实脚本（假定命令归零不改变物理）预测阈值 0.2 下 ε_d=2.556 可通过；实测 6.20，证明假设不成立——命令是策略观测的一部分，归零会改变步态，物理并非不变。该预测文件保留并标注 role=prediction_only，不作为证据。",
+            "取前缀分解定位 δ 的有效范围（预登记本就要求分前缀报告）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/check_yawrate_deadband.py",
+            "CaMRA/navigation/scripts/analyze_deadband_counterfactual.py（预测工具，非证据）",
+            "CaMRA/navigation/reports/yawrate_deadband.json",
+            "CaMRA/navigation/reports/deadband_counterfactual_{0.2,0.3,0.5}.json",
+            "CaMRA/navigation/reports/calibration_applicability_pilot.json（重跑覆盖）",
+            "CaMRA/navigation/reports/applicability_*.json/.npz（重跑覆盖）"
+          ],
+          "commands": [
+            "python check_yawrate_deadband.py --json reports/yawrate_deadband.json",
+            "python check_calibration_applicability.py --split new --level <L> --wz-deadband 0.2 ...",
+            "python check_calibration_applicability.py --aggregate --inputs <4 runs> --json ... --gate ..."
+          ],
+          "results": [
+            "G2A 仍 FAIL（唯一失败项仍为 new_clean q90(ε_d)=6.201 m > δ=2.6139 m）；其余 9 项全过。",
+            "死区实测曲线：0.01/0.02/0.03/0.05/0.08/0.12/0.15 比值 0.005/-0.002/-0.003/-0.000/-0.000/-0.000/0.001；0.20=0.004；0.30=0.213；0.50=0.706。",
+            "前缀 ε_d（q90）：new_clean 5s 0.46 / 10s 1.24 / 20s 3.93 / 30s 6.20；对照 old_clean 5s 0.53 / 10s 0.92 / 20s 1.07 / 30s 1.98——δ 对闭环指令只覆盖到约 10-15 s，20 s 起线性超限。",
+            "前缀 ε_c（q90）：new_clean -0.013/-0.048/-0.061/-0.067 全程为负（模型偏保守）；对照 old_clean +0.131/+0.053/+0.093/+0.067。成本项与时间前缀无关，始终通过。",
+            "执行侧事实：new 回合全部 goal_reached，路径对弦线横向偏移 0.15-0.18 m；偏差主要是沿轨迹方向的滞后（30 s 处 along 5.1-6.0 m，cross 2.8-3.1 m）。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/yawrate_deadband.json（死区曲线与两个量）",
+            "CaMRA/navigation/reports/gate_G2A.json（重跑后的门禁，FAIL）",
+            "CaMRA/navigation/reports/calibration_applicability_pilot.json（含 populations_by_prefix）",
+            "/pub/data/caohy/tmp/nav060b_*.log（重跑日志）"
+          ],
+          "remaining_work": [
+            "回到用户裁定：C 已排除（不解决问题）。剩余路径 A 重估（含按前缀的 δ(T) 方案）/ B 闭环改用计划路线作几何参考 / D 记局限继续；建议 A 的具体形式是δ 随指令持续时间增长的登记表。"
+          ],
+          "blockers": [
+            "G2A 仍未通过，NAV-029 及上层学习不得启动，status 保持 false。"
+          ]
         }
       ],
       "constraints_and_notes": [

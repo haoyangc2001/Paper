@@ -1,0 +1,275 @@
+{
+  "task": "NAV-060",
+  "purpose": "measure the frozen v2 yaw-rate deadband",
+  "generated_at": "2026-11-11T10:42:40+0800",
+  "method": {
+    "wave_s": 5.0,
+    "measure_tail_s": 4.0,
+    "ctrl_dt_s": 0.02,
+    "wz_levels": [
+      0.01,
+      0.02,
+      0.03,
+      0.05,
+      0.08,
+      0.12,
+      0.15,
+      0.2,
+      0.3,
+      0.5
+    ],
+    "ratio_accept": 0.6,
+    "threshold_rule": "ascending scan, first |wz| with pos/neg mean ratio >= 0.60; if none, max tested level and flag rule_not_met",
+    "deadband_rule": "ascending scan, LAST level with pos/neg mean ratio < 0.05",
+    "usable_rule": "ascending scan, FIRST level with pos/neg mean ratio >= 0.60"
+  },
+  "rule_met": true,
+  "curve": [
+    {
+      "abs_wz_cmd": 0.01,
+      "ratio_pos_neg_mean": 0.004765639136609908,
+      "achieved_mean": 2.8997855180850973e-05,
+      "net_ratio_mean": 0.03851614725000285
+    },
+    {
+      "abs_wz_cmd": 0.02,
+      "ratio_pos_neg_mean": -0.002231469548988552,
+      "achieved_mean": 0.00015501630676320033,
+      "net_ratio_mean": 0.0324253961869303
+    },
+    {
+      "abs_wz_cmd": 0.03,
+      "ratio_pos_neg_mean": -0.0025179434447099623,
+      "achieved_mean": -3.81328279580098e-05,
+      "net_ratio_mean": 0.03401987836045617
+    },
+    {
+      "abs_wz_cmd": 0.05,
+      "ratio_pos_neg_mean": -5.5565487260941164e-05,
+      "achieved_mean": 8.302234927179742e-05,
+      "net_ratio_mean": 0.03433216490168167
+    },
+    {
+      "abs_wz_cmd": 0.08,
+      "ratio_pos_neg_mean": -5.4082550379571414e-05,
+      "achieved_mean": 9.743069869616855e-06,
+      "net_ratio_mean": 0.03475467181063452
+    },
+    {
+      "abs_wz_cmd": 0.12,
+      "ratio_pos_neg_mean": -6.251505092454172e-05,
+      "achieved_mean": 3.213507957783094e-06,
+      "net_ratio_mean": 0.03585021554653863
+    },
+    {
+      "abs_wz_cmd": 0.15,
+      "ratio_pos_neg_mean": 0.0005089442034039199,
+      "achieved_mean": -7.406083475540237e-05,
+      "net_ratio_mean": 0.03719650703911389
+    },
+    {
+      "abs_wz_cmd": 0.2,
+      "ratio_pos_neg_mean": 0.0040268583698845695,
+      "achieved_mean": -0.00046122835268351363,
+      "net_ratio_mean": 0.04484349956011591
+    },
+    {
+      "abs_wz_cmd": 0.3,
+      "ratio_pos_neg_mean": 0.21325280104732472,
+      "achieved_mean": 0.013478966228025163,
+      "net_ratio_mean": 0.24032047081993602
+    },
+    {
+      "abs_wz_cmd": 0.5,
+      "ratio_pos_neg_mean": 0.7064223482568164,
+      "achieved_mean": 0.014457883333788168,
+      "net_ratio_mean": 0.70411055854059
+    }
+  ],
+  "raw": [
+    {
+      "wz_cmd": 0.01,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 7.665424654695005e-05,
+      "ratio": 0.007665424654695005,
+      "net_dyaw_rad": 0.002486240309219845,
+      "net_ratio": 0.0497248061843969
+    },
+    {
+      "wz_cmd": 0.02,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 0.00011038691578342927,
+      "ratio": 0.005519345789171464,
+      "net_dyaw_rad": 0.003584688846739681,
+      "net_ratio": 0.03584688846739681
+    },
+    {
+      "wz_cmd": 0.03,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": -0.00011367113129930867,
+      "ratio": -0.0037890377099769556,
+      "net_dyaw_rad": 0.0050266389994426675,
+      "net_ratio": 0.03351092666295112
+    },
+    {
+      "wz_cmd": 0.05,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 8.024407490875036e-05,
+      "ratio": 0.0016048814981750072,
+      "net_dyaw_rad": 0.008866560345389018,
+      "net_ratio": 0.035466241381556074
+    },
+    {
+      "wz_cmd": 0.08,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 5.416465839251142e-06,
+      "ratio": 6.770582299063928e-05,
+      "net_dyaw_rad": 0.014193531713968532,
+      "net_ratio": 0.03548382928492133
+    },
+    {
+      "wz_cmd": 0.12,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": -4.288298153161912e-06,
+      "ratio": -3.573581794301593e-05,
+      "net_dyaw_rad": 0.022026220524552276,
+      "net_ratio": 0.03671036754092046
+    },
+    {
+      "wz_cmd": 0.15,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 2.2807957551856177e-06,
+      "ratio": 1.5205305034570786e-05,
+      "net_dyaw_rad": 0.028558258627427335,
+      "net_ratio": 0.038077678169903116
+    },
+    {
+      "wz_cmd": 0.2,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 0.00034414332129340035,
+      "ratio": 0.0017207166064670016,
+      "net_dyaw_rad": 0.04476776058581544,
+      "net_ratio": 0.04476776058581544
+    },
+    {
+      "wz_cmd": 0.3,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 0.07745480654222257,
+      "ratio": 0.2581826884740753,
+      "net_dyaw_rad": 0.4169980701764038,
+      "net_ratio": 0.27799871345093585
+    },
+    {
+      "wz_cmd": 0.5,
+      "sign": "positive",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 0.36766905746219636,
+      "ratio": 0.7353381149243927,
+      "net_dyaw_rad": 1.810849319603646,
+      "net_ratio": 0.7243397278414584
+    },
+    {
+      "wz_cmd": -0.01,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": -1.8658536185248104e-05,
+      "ratio": 0.0018658536185248104,
+      "net_dyaw_rad": -0.0013653744157804404,
+      "net_ratio": 0.027307488315608808
+    },
+    {
+      "wz_cmd": -0.02,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 0.00019964569774297137,
+      "ratio": -0.009982284887148567,
+      "net_dyaw_rad": -0.002900390390646379,
+      "net_ratio": 0.02900390390646379
+    },
+    {
+      "wz_cmd": -0.03,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 3.7405475383289074e-05,
+      "ratio": -0.0012468491794429691,
+      "net_dyaw_rad": -0.005179324508694183,
+      "net_ratio": 0.03452883005796122
+    },
+    {
+      "wz_cmd": -0.05,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 8.580062363484447e-05,
+      "ratio": -0.0017160124726968895,
+      "net_dyaw_rad": -0.008299522105451818,
+      "net_ratio": 0.03319808842180727
+    },
+    {
+      "wz_cmd": -0.08,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 1.4069673899982569e-05,
+      "ratio": -0.0001758709237497821,
+      "net_dyaw_rad": -0.013610205734539083,
+      "net_ratio": 0.034025514336347706
+    },
+    {
+      "wz_cmd": -0.12,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": 1.07153140687281e-05,
+      "ratio": -8.92942839060675e-05,
+      "net_dyaw_rad": -0.02099403813129408,
+      "net_ratio": 0.0349900635521568
+    },
+    {
+      "wz_cmd": -0.15,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": -0.00015040246526599034,
+      "ratio": 0.001002683101773269,
+      "net_dyaw_rad": -0.027236501931243495,
+      "net_ratio": 0.03631533590832466
+    },
+    {
+      "wz_cmd": -0.2,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": -0.0012666000266604277,
+      "ratio": 0.006333000133302138,
+      "net_dyaw_rad": -0.04491923853441637,
+      "net_ratio": 0.04491923853441637
+    },
+    {
+      "wz_cmd": -0.3,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": -0.05049687408617225,
+      "ratio": 0.16832291362057417,
+      "net_dyaw_rad": -0.30396334228340427,
+      "net_ratio": 0.20264222818893618
+    },
+    {
+      "wz_cmd": -0.5,
+      "sign": "negative",
+      "wave_s": 5.0,
+      "wz_achieved_mean": -0.33875329079462,
+      "ratio": 0.67750658158924,
+      "net_dyaw_rad": -1.709703473099304,
+      "net_ratio": 0.6838813892397215
+    }
+  ],
+  "wallclock_s": 15.1,
+  "note": "本测量只改命令、不改任何冻结物；结果用于导航层死区规避（NAV-060 处置 C）",
+  "deadband_no_response_rad_s": 0.2,
+  "usable_threshold_rad_s": 0.5
+}
