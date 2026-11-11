@@ -4251,11 +4251,49 @@
       "id": "NAV-038",
       "phase": "正式名义训练",
       "goal": "确定性部署策略与对应评价网络冻结",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-037"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T21:05:00+08:00",
+          "summary": "NAV-038 收口（git 891c90c/c2e2722，status True，44/60）：6 个部署候选冻结为delivery/deployment_candidates_v1.json，每个候选把方法/种子/源 checkpoint 散列/actor 与双 critic 内容散列/确定性动作变换/归一化声明/核验判定绑成一个版本。评价网络核验：预登记阈值先行（rel MAE ≤0.35、Pearson ≥0.70），首轮 PARTIAL（2 过 4 卡），4 个 FAIL 全部卡在相关系数——确定性均值策略使目标方差退化，皮尔逊在近常数目标上数学失真；经用户批准立 amend 1（方差门限后的 Pearson，尺度无关），复判 6/6 PASS，漂移守卫逐位通过。",
+          "actions": [
+            "冻结预登记 config/deployment_freeze_prereg_v1.json（sha 66b038d0…，散列先冻结后验证）：候选=2 方法 × 3 种子，源 checkpoint=最后更新规则；确定性变换=policy mean → action_to_requested → clip_applied；obs 归一化=恒等（显式记录）；核验数据=train 18 + development 6 共 24 图的确定性完整回合（无 bootstrap 循环依赖）；budget_selection 与 final_* 全程未触碰。",
+            "核验：collect_complete_episodes 逐图跑确定性完整回合，storage.compute_objectives 给精确目标，逐 critic 算 rel MAE 与 Pearson。第一轮 PARTIAL（full_s0/s1 过，其余 4 个卡 Pearson）。",
+            "重拟合分支（预登记触发）：4 个候选各 3 轮（actor 冻结、只训双 critic、227-call 窗口收集 + 契约 value_loss、30 步/轮）；rel MAE 从 0.14–0.50 降到 0.06–0.18。第 2/3 轮指标与第 1 轮逐位相同（第 1 轮已收敛）——如实披露。",
+            "发现判据结构缺陷后停下请示：4 个 FAIL 的相对误差全部远低于 0.35，卡死全是相关系数（目标方差被确定性策略压扁，相关在退化数据上无意义）。用户选 A。",
+            "amend 1（用户批准）：Pearson 加方差门限 std(target) ≥ 0.5·mean(|target|)（尺度无关比，不从数据挑常数），门限下由 rel MAE 单独判定；rel MAE 门槛不变。复判另出文件（原 PARTIAL 报告原样留档），复判脚本带漂移守卫（重算指标必须与原报告逐位一致，否则拒判），无重新训练。复判 6/6 PASS。",
+            "清理：早前一次多文件 scp 误把预登记三件套复制进 scripts/（与 config/ 逐字节相同），diff 验证后删除。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/deployment_freeze_prereg_v1.json(+.sha256)、.amend1.json",
+            "CaMRA/navigation/scripts/freeze_deployment.py、rejudge_deployment_critic.py、compute_train_map_refs.py（补提交 development 扩展）",
+            "CaMRA/navigation/delivery/deployment_candidates_v1.json（含 amend 链与新判）",
+            "CaMRA/navigation/reports/deployment_critic_validation.json（PARTIAL，留档）、deployment_critic_validation_rejudge.json（PASS）",
+            "重拟合权重：/pub/data/caohy/work/camra_navigation/formal_{uncal,full}_s{n}/deploy_refit/state.pt"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/freeze_deployment.py --json …/reports/deployment_critic_validation.json",
+            "python CaMRA/navigation/scripts/rejudge_deployment_critic.py --json …/reports/deployment_critic_validation_rejudge.json"
+          ],
+          "results": [
+            "复判 6/6 PASS；漂移守卫零失配；重拟合把 rel MAE 降到 0.064–0.183（门槛 0.35）。",
+            "V_c 相关在全部 6 个候选都过方差门限且 ≥0.90（该判据只对 V_h 退化）。",
+            "每候选六项（方法/种子/源散列/三网络散列/变换/归一化）绑定同版本，任何一项变动即新版本。",
+            "门限选择记录：0.35 与 0.70 在跑数之前冻结；amend 的方差门限用尺度无关比，修正理由与\"看数后不松误差门槛\"的边界写进 amend 文件。"
+          ],
+          "evidence": [
+            "delivery/deployment_candidates_v1.json（含 amend 链、逐候选散列与判定）",
+            "reports/deployment_critic_validation.json（原 PARTIAL，原样留档）+ _rejudge.json（PASS）",
+            "config/deployment_freeze_prereg_v1.json.sha256 + .amend1.json（散列 5e7ed559…）",
+            "git 891c90c、c2e2722"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "对两方法确定部署动作变换；若从随机采样改为均值，固定actor后用训练/开发数据核验或重新拟合两个critic。",
         "预算选择与最终集此时尚不开放，不能沿用不对应部署策略的value搜索预算。"
@@ -4264,7 +4302,7 @@
         "每个部署模型actor/双critic、动作变换、归一化和来源checkpoint组成同一版本。",
         "固定actor的评价误差/预算判据检查符合预登记要求，输出hash和冻结清单。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：每个部署候选的 actor/双 critic/动作变换/归一化/源 checkpoint 以散列绑定为同一版本（delivery/deployment_candidates_v1.json，含 amend 链）；固定 actor 的评价误差核验按预登记执行——阈值先冻结（rel MAE ≤0.35、Pearson ≥0.70），首轮 PARTIAL 如实留档，相关性判据的方差退化缺陷经用户批准以尺度无关门限修正后复判 6/6 PASS（无重新训练、漂移守卫逐位一致）；重拟合历史、轮数、散列全部在清单与复判书可查；budget_selection 与 final_* 划分全程未触碰。",
       "reference_ids": [
         "R03",
         "R04",
