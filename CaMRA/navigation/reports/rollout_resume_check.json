@@ -1,0 +1,406 @@
+{
+  "task": "NAV-032",
+  "n_checks": 24,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "config": {
+    "episodes": 3,
+    "stop_at_samples": 5,
+    "objective": {
+      "gamma_cost": 1.0,
+      "gamma_h": 0.999,
+      "gae_lambda": 0.95,
+      "beta": 0.0,
+      "C": 1.0,
+      "Z_REF_J": 225.6069087767049,
+      "L_REF_m": 15.0,
+      "G_INSIDE": -0.001,
+      "fail_penalty": 1.0,
+      "r_goal_m": 0.5,
+      "n_actions": 3
+    }
+  },
+  "runs": {
+    "run_root": "/tmp/nav032_p006yyhi",
+    "continuous": "/tmp/nav032_p006yyhi/cont",
+    "stop_then_resume": "/tmp/nav032_p006yyhi/stopgo",
+    "crash_then_resume": "/tmp/nav032_p006yyhi/crash"
+  },
+  "open_items": [
+    {
+      "id": "advantage-sign-vs-contract-wording",
+      "issue": "value_objective_contract_v1.json 的 sign_conventions[5] 写「优势 A > 0 表示该动作优于平均水平（此处为成本更低）」，但同一契约的 training_targets.policy_loss 是「最小化 mean(max(ratio·A, clip(ratio)·A))」。两者代数上不能同时成立：dL/dlogp ∝ A，最小化 L 会压低 A>0 的动作概率，因此 A>0 必须是「更贵」。",
+      "resolution": "本轮按代数落地：A = 目标成本 − V（A>0 更贵），与 NAV-031 的有限差分结论一致。契约措辞需下次升版更正；本轮不改冻结文件。",
+      "affects": [
+        "NAV-031",
+        "NAV-032",
+        "NAV-033"
+      ]
+    },
+    {
+      "id": "policy-advantage-not-lambda-smoothed",
+      "issue": "参考实现 RC-PPO 的 policy 优势是对「停止即走的残差」做 λ 平滑 GAE；本轮用 W_sel − V_total（残差的一阶差）。",
+      "resolution": "W_sel 已含整条尾段信息，再做 λ 平滑会把 τ* 之后的步混进来，与契约「按 τ* 截断、其后不计入优势」冲突。是否改回 λ 平滑留 NAV-034 做对照。",
+      "affects": [
+        "NAV-032",
+        "NAV-034"
+      ]
+    },
+    {
+      "id": "reach-bootstrap-uses-measured-h-not-critic",
+      "issue": "截断时 V_c 的目标用 critic 的 bootstrap（契约明文：该段成本 + V_c(x_T)），而 V_h 的目标用实测 h_T = max(g_norm(x_T), C·y)，不调 critic。",
+      "resolution": "与参考实现一致（reach_append 用的就是环境给的终端 reach），且避免用被训练的同一个网络给自己造目标。两种口径不同，NAV-033 做对照时要分开处理。",
+      "affects": [
+        "NAV-032",
+        "NAV-033"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "check": "three_runs_completed",
+      "ok": true,
+      "detail": {
+        "continuous": "finished",
+        "stop_then_resume": [
+          "stopped_after_samples",
+          "finished"
+        ],
+        "crash_then_resume": "finished"
+      }
+    },
+    {
+      "check": "stop_landed_mid_episode",
+      "ok": true,
+      "detail": {
+        "outcome": "stopped_after_samples",
+        "episodes_done": 0,
+        "partial_samples": 5
+      }
+    },
+    {
+      "check": "crash_injection_fired",
+      "ok": true,
+      "detail": {
+        "exit_code_expected": 90
+      }
+    },
+    {
+      "check": "store_audit_clean",
+      "ok": true,
+      "detail": {
+        "problems": [],
+        "n_chunks": 3,
+        "n_samples": 119,
+        "events": {
+          "budget_exhausted": 1,
+          "stagnation": 2
+        },
+        "terminal_kinds": {
+          "failure": 1,
+          "truncation": 2
+        }
+      }
+    },
+    {
+      "check": "trajectory_index_contiguous",
+      "ok": true,
+      "detail": {
+        "n_samples": 119,
+        "first": 0,
+        "last": 118,
+        "sum_of_chunks": 119
+      }
+    },
+    {
+      "check": "per_episode_counts_and_index",
+      "ok": true,
+      "detail": {
+        "episodes": [
+          {
+            "chunk": 0,
+            "episode_id": 0,
+            "n_samples": 51,
+            "t_first": 0,
+            "t_last": 50
+          },
+          {
+            "chunk": 1,
+            "episode_id": 1,
+            "n_samples": 36,
+            "t_first": 0,
+            "t_last": 35
+          },
+          {
+            "chunk": 2,
+            "episode_id": 2,
+            "n_samples": 32,
+            "t_first": 0,
+            "t_last": 31
+          }
+        ]
+      }
+    },
+    {
+      "check": "successor_observation_consistent",
+      "ok": true,
+      "detail": {
+        "note": "同回合内 obs[t+1] 必须等于 next_obs[t]（逐位）"
+      }
+    },
+    {
+      "check": "reset_state_not_used_as_bootstrap",
+      "ok": true,
+      "detail": {
+        "real_problems": [],
+        "negative_control_hits": 1,
+        "note": "真实数据无命中；把复位后状态硬塞进末步 next_obs 时检测器必须报出来"
+      }
+    },
+    {
+      "check": "termination_mask_single_and_split",
+      "ok": true,
+      "detail": {
+        "rows": [
+          {
+            "chunk": 0,
+            "event": "budget_exhausted",
+            "terminal_kind": "failure",
+            "terminated_steps": 1,
+            "truncated_steps": 0
+          },
+          {
+            "chunk": 1,
+            "event": "stagnation",
+            "terminal_kind": "truncation",
+            "terminated_steps": 0,
+            "truncated_steps": 1
+          },
+          {
+            "chunk": 2,
+            "event": "stagnation",
+            "terminal_kind": "truncation",
+            "terminated_steps": 0,
+            "truncated_steps": 1
+          }
+        ]
+      }
+    },
+    {
+      "check": "objectives_recomputed_from_raw_fields",
+      "ok": true,
+      "detail": {
+        "problems": [],
+        "chunks": [
+          {
+            "chunk": 0,
+            "terminal_kind": "failure",
+            "n_samples": 51
+          },
+          {
+            "chunk": 1,
+            "terminal_kind": "truncation",
+            "n_samples": 36
+          },
+          {
+            "chunk": 2,
+            "terminal_kind": "truncation",
+            "n_samples": 32
+          }
+        ]
+      }
+    },
+    {
+      "check": "objectives_match_independent_bruteforce",
+      "ok": true,
+      "detail": {
+        "problems": [],
+        "note": "手写 O(T²) 版本不调用 targets 的矩阵实现，tolerance 1e-12"
+      }
+    },
+    {
+      "check": "terminal_bootstrap_semantics",
+      "ok": true,
+      "detail": {
+        "rows": [
+          {
+            "chunk": 0,
+            "terminal_kind": "failure",
+            "target_cost_last": 1.0,
+            "cost_last": 0.025209583727298993,
+            "bootstrap_last": 0.0,
+            "stop_now_steps": 11,
+            "ok": true
+          },
+          {
+            "chunk": 1,
+            "terminal_kind": "truncation",
+            "target_cost_last": 0.8461108458259481,
+            "cost_last": 0.007919992230214416,
+            "bootstrap_last": 0.8381908535957336,
+            "stop_now_steps": 4,
+            "ok": true
+          },
+          {
+            "chunk": 2,
+            "terminal_kind": "truncation",
+            "target_cost_last": 1.4645181806403105,
+            "cost_last": 0.025524965079397468,
+            "bootstrap_last": 1.438993215560913,
+            "stop_now_steps": 9,
+            "ok": true
+          }
+        ],
+        "note": "failure 末步目标=FAIL_PENALTY；truncation 末步=成本+V_c(x_T)；success=成本"
+      }
+    },
+    {
+      "check": "success_branch_ignores_bootstrap",
+      "ok": true,
+      "detail": {
+        "success_target_cost_last": 0.01,
+        "success_target_reach_last": -0.001,
+        "success_h_last": -0.001,
+        "y_last": 1.0,
+        "truncation_target_cost_last": 0.71,
+        "note": "同样 0.01 成本 + 0.7 bootstrap：success 用 0.01，truncation 用 0.71；成功步即使 y=1 也取 g_norm 而非 C·y"
+      }
+    },
+    {
+      "check": "saturated_z_ratio_refused",
+      "ok": true,
+      "detail": {
+        "note": "z_ratio 触到 ±1 时 W 定义在截断量上，直接拒算而不是给个看着像数的结果"
+      }
+    },
+    {
+      "check": "resume_matches_continuous_state",
+      "ok": true,
+      "detail": {
+        "differences": [],
+        "n_differences": 0,
+        "note": "模型/优化器/RNG/计数器/归一化/配置全部逐位比较"
+      }
+    },
+    {
+      "check": "crash_replay_matches_continuous_state",
+      "ok": true,
+      "detail": {
+        "differences": [],
+        "n_differences": 0
+      }
+    },
+    {
+      "check": "resume_writes_identical_chunks",
+      "ok": true,
+      "detail": {
+        "chunk_hashes_equal": true,
+        "differences": [],
+        "n_chunks": 3
+      }
+    },
+    {
+      "check": "crash_replay_writes_identical_chunks",
+      "ok": true,
+      "detail": {
+        "chunk_hashes_equal": true,
+        "differences": [],
+        "n_chunks": 3
+      }
+    },
+    {
+      "check": "no_duplicate_episode_writes",
+      "ok": true,
+      "detail": {
+        "continuous": [
+          0,
+          1,
+          2
+        ],
+        "stop_then_resume": [
+          0,
+          1,
+          2
+        ],
+        "crash_then_resume": [
+          0,
+          1,
+          2
+        ],
+        "chunks": [
+          3,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "check": "resume_paths_exercised",
+      "ok": true,
+      "detail": {
+        "crash_replayed_chunks": [
+          0
+        ],
+        "stop_run_chunks_on_disk_at_resume": 0,
+        "note": "崩-恢复必须走重放；停-恢复必须从半截回合接着跑（当时盘上还没有 chunk）"
+      }
+    },
+    {
+      "check": "resume_refused_on_config_change",
+      "ok": true,
+      "detail": {
+        "note": "回合数从 3 改成 4 后必须拒绝，而不是悄悄接着跑"
+      }
+    },
+    {
+      "check": "tampered_checkpoint_refused",
+      "ok": true,
+      "detail": {
+        "note": "改一个字节后 sha256 旁路校验必须拦住"
+      }
+    },
+    {
+      "check": "no_credentials_in_logs",
+      "ok": true,
+      "detail": {
+        "assert_raised": true,
+        "redacted": "warning token=*** remaining 3",
+        "bad_keys": []
+      }
+    },
+    {
+      "check": "checkpoint_carries_rng_optimizers_config_normalization",
+      "ok": true,
+      "detail": {
+        "keys": [
+          "buffer",
+          "code",
+          "config",
+          "counters",
+          "created_at",
+          "episode",
+          "last_update",
+          "model",
+          "normalization",
+          "optimizers",
+          "reason",
+          "rng",
+          "run_id",
+          "schema"
+        ],
+        "normalization": {
+          "obs_normalization": "none：obs-v2 各字段已由契约归一化（无量纲、有界）",
+          "advantage_normalization": "per-minibatch stateless：(A − mean)/(std + 1e-8)",
+          "has_stateful_normalizer": false,
+          "last_adv_mean": -0.486228346824646,
+          "last_adv_std": 0.10115910321474075
+        },
+        "optimizer_roles": [
+          "critic_cost",
+          "critic_reach",
+          "policy"
+        ]
+      }
+    }
+  ]
+}
