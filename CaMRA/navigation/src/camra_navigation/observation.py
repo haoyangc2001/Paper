@@ -103,11 +103,20 @@ W_REF_RADPS = 1.0
 V_BODY_CLIP = 2.0
 #: Reference budget for ``z_ratio``, joules.
 #:
-#: ``P_nom(0.30986, 0, 0) * 30 s`` with the frozen ``power-v1`` weights, i.e. the
-#: 30 s energy of the analytically energy-optimal straight-line speed.  It is a
-#: *scale*, not a task budget: NAV-056 owns ``z_J`` / ``z_ref_J`` and the critic
-#: scale, and must confirm or replace this value with a version bump.
-Z_REF_J = 225.6069087767049
+#: NAV-035 replaced the original value (225.6069087767049 J = the 30 s energy at
+#: the analytically energy-optimal speed 0.30986 m/s) with 550 J.  The old scale
+#: was below the reference route energy of *every* scenario (362-489 J, see
+#: reports/budget_fairness_check.json), and ``z_ratio`` has to stay unsaturated
+#: for the residual to mean anything -- so no policy could ever be judged
+#: feasible, the observation blinded the policy to its own budget for the first
+#: part of each episode, and FAIL_PENALTY (1.0) ended up cheaper than a
+#: successful route (1.61-2.05 on the old scale).
+#:
+#: 550 J = 1.05 x the largest reference energy (489.40 J, L2) rounded up: the
+#: hardest route sits at 0.89 of the scale and reference costs span 0.66-0.89,
+#: all strictly below FAIL_PENALTY.  It is a *scale*, not a task budget: the
+#: per-episode budget ``z0_J`` stays a task parameter chosen elsewhere.
+Z_REF_J = 550.0
 
 #: Validated commanded velocity domain ``(vx, vy, wz)`` from NAV-055: protocol,
 #: frozen controller contract, power-model domain, generator limits and 800

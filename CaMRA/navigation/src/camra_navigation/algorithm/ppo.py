@@ -46,7 +46,7 @@ class PPOConfig:
     gamma_h_init: float = 0.999
     gamma_h_final: float = 0.99999
     beta: float = 0.0
-    z_ref_j: float = 225.6069087767049
+    z_ref_j: float = 550.0
     contract_version: str = ""
 
     @classmethod

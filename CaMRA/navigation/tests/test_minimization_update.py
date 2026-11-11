@@ -83,7 +83,7 @@ def main() -> int:
     check("config_loaded_from_contract",
           cfg.gamma_cost == 1.0 and cfg.gae_lambda == 0.95 and cfg.clip_eps == 0.2
           and cfg.ent_coef == 0.01 and cfg.vf_coef == 0.5 and cfg.beta == 0.0
-          and abs(cfg.z_ref_j - 225.6069087767049) < 1e-12 and clash_ok,
+          and abs(cfg.z_ref_j - 550.0) < 1e-12 and clash_ok,
           {"config": cfg.as_dict(),
            "rejects_frozen_override": clash_ok,
            "note": "γ_c=1（未折扣）、λ=0.95、clip=0.2、beta=0 全部来自契约；覆盖被拒"})

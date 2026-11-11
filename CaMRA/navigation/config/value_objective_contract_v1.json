@@ -1,6 +1,6 @@
 {
   "schema": "camra-navigation-value-objective-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "created_at": "2026-11-10T10:52:00+08:00",
   "owner_tasks": ["NAV-056"],
   "depends_on": ["NAV-012", "NAV-013", "NAV-055"],
@@ -41,10 +41,12 @@
     },
     "Z_REF_J": {
       "meaning": "归一化尺度（场景级常数）",
-      "value": 225.6069087767049,
-      "provenance": "power-v1 在解析省能速度 0.30986 m/s 处 P_nom=7.52023029255683 W 乘 30 s",
+      "value": 550.0,
+      "previous_value": 225.6069087767049,
+      "provenance": "1.05 x 54 张图里最大的参考路线能量（NAV-058：L2 489.397680362936 J）向上取整；三级的参考成本因此落在 0.66-0.89，均严格小于 FAIL_PENALTY=1.0",
       "rule": "按场景固定；严禁随本回合初始预算变化",
-      "confirmed_by": "NAV-056（沿用 NAV-013 的 obs-v1 值，未替换）"
+      "confirmed_by": "NAV-035 重定（旧值 225.6069087767049 J 是解析省能速度 0.30986 m/s 的 30 s 能量，低于全部场景的参考能量，导致可行性被判死、观测饱和、FAIL_PENALTY 弱于成功成本）",
+      "change_reason": "NAV-035 / OI-2：z_ratio 必须不饱和，而 z0 <= Z_REF_J；旧值使任何策略在整个回合里都不可行"
     },
     "z_ratio": {
       "meaning": "归一化有符号剩余预算",

@@ -102,15 +102,35 @@ def main() -> int:
     )
     check("obs_dim_matches_contract", obs.OBS_DIM == spec["total_dim"], spec["total_dim"])
 
-    # z_ref_J provenance: recompute from the frozen power model.
+    # 功率模型的权重后面还要用来手算成本，这里一并取出（原出处算式已随 NAV-035 移出）
     pm = json.load(open(POWER_MODEL, encoding="utf-8"))
     w = pm["weights"]
-    v = 0.30986
-    p_ref = w[0] + w[1] * v + w[4] * v * v
+
+    # z_ref_J 的出处。NAV-035 把尺度从"解析省能速度的 30 s 能量"（225.6069 J）改成
+    # "场景参考能量的 1.05 倍"，所以这里不再校验某个算式，而是校验**尺度必须满足的性质**：
+    #   (a) 覆盖全部场景的参考路线能量（否则 z0 <= Z_REF 时任何策略都不可行）；
+    #   (b) 余量有界（否则等于把归一化常数随便放大，V_c 全被压扁、网络学不到差别）；
+    #   (c) 归一化后的参考成本仍 < FAIL_PENALTY=1.0（否则"成功"比"失败惩罚"更贵）。
+    # 参考能量取自 NAV-058 的 reports/budget_fairness_check.json（54 张图，与策略无关）。
+    REFERENCE_ENERGY_UPPER_J = {
+        "L1_empty": 363.8930116886081,
+        "L2_single_detour": 489.397680362936,
+        "L3_multi_path": 371.3348172252241,
+    }
+    fail_penalty = json.load(
+        open(os.path.join(_NAV_ROOT, "config", "value_objective_contract_v1.json"),
+             encoding="utf-8"))["bootstrap"]["FAIL_PENALTY"]["value"]
+    max_ref = max(REFERENCE_ENERGY_UPPER_J.values())
+    normalized = {k: v / obs.Z_REF_J for k, v in REFERENCE_ENERGY_UPPER_J.items()}
     check(
         "z_ref_provenance",
-        abs(obs.Z_REF_J - p_ref * 30.0) < 1e-6,
-        {"z_ref_J": obs.Z_REF_J, "recomputed": p_ref * 30.0},
+        1.05 * max_ref <= obs.Z_REF_J <= 1.20 * max_ref
+        and all(c < fail_penalty for c in normalized.values()),
+        {"z_ref_J": obs.Z_REF_J, "max_reference_energy_J": max_ref,
+         "ratio_to_max": obs.Z_REF_J / max_ref,
+         "normalized_reference_cost": normalized, "fail_penalty": fail_penalty,
+         "previous_value": 225.6069087767049,
+         "note": "旧尺度 225.6 J 只有场景最大参考能量的 0.46 倍，三条性质全不满足"},
     )
 
     # 3. Determinism --------------------------------------------------------
@@ -226,7 +246,9 @@ def main() -> int:
 
     # 7. Negative budget and remaining time ---------------------------------
     z_cases = []
-    for z in (-500.0, -50.0, 0.0, 120.0, 1000.0):
+    # NAV-035：Z_REF_J 由 225.6069 重定为 550.0，这里换成能把两端都压到 ±1 的取值，
+    # 否则"截断"这条根本没被覆盖（-500/550 = -0.909 不会饱和）
+    for z in (-1000.0, -50.0, 0.0, 120.0, 1000.0):
         vec = obs.encode_observation(
             ego, [], extent, obs.TaskState(1.0, 1.0, 0.0, z, 10.0)
         )
@@ -235,7 +257,8 @@ def main() -> int:
         "z_ratio_signed_and_bounded",
         all(-1.0 <= c["z_ratio"] <= 1.0 for c in z_cases)
         and z_cases[0]["z_ratio"] == -1.0
-        and z_cases[3]["z_ratio"] > 0.0,
+        and z_cases[3]["z_ratio"] > 0.0
+        and z_cases[4]["z_ratio"] == 1.0,
         z_cases,
     )
     t_cases = []

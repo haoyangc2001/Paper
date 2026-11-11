@@ -49,7 +49,7 @@ UNIT_TABLE: dict[str, dict[str, str]] = {
     "command": {"unit": "m/s, m/s, rad/s", "range": "(1.0, 0.4, 1.0) 乘子后的机身系速度",
                 "note": "cmd-v1：u_req = clip(a,-1,1) * (1.0, 0.4, 1.0)"},
     "V_c": {"unit": "J / Z_REF_J（无量纲）", "range": ">= 0",
-            "note": "剩余期望模型成本除以场景常数 Z_REF_J=225.6069087767049 J"},
+            "note": "剩余期望模型成本除以场景常数 Z_REF_J=550.0 J（NAV-035 由 225.6069 重定）"},
     "V_h": {"unit": "无量纲", "range": "<= 0 表示可安全到达",
             "note": "min_tau max(g_norm, C*y)；C=1.0，g_norm 以 L_REF=15 m 归一化"},
 }

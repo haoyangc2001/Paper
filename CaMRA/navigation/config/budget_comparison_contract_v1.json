@@ -1,6 +1,6 @@
 {
   "schema": "camra-navigation-budget-comparison-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "owner": "NAV-058",
   "created_at": "2026-11-10T14:05:00+08:00",
   "status": "frozen_pending_nav021_fill",
@@ -17,7 +17,7 @@
     "internal_budget_J": "有符号 z_J，按 (1+α)·c_nom 逐 0.1 s 扣减；可为负，负值表示超支",
     "model_cost_J": "c_nom = P̂(applied)·0.1 s；冻结 power-v1，history_k=0",
     "measured_energy_J": "物理侧 200 Hz 逐子步累加 Σ_j max(τ_j·q̇_j, 0)；名义环境无此量，physical_status 恒为 not_measured",
-    "normalised": "z_ratio = clip(z_J / Z_REF_J, -1, 1)，Z_REF_J = 225.6069087767049；它只是归一化尺度，不是可达预算",
+    "normalised": "z_ratio = clip(z_J / Z_REF_J, -1, 1)，Z_REF_J = 550.0（NAV-035 由 225.6069087767049 重定，见 value_objective_contract 1.1.0）；它只是归一化尺度，不是可达预算",
     "why_two_units_matter": "内部预算用模型成本扣，BVR 用实测能量比。两者不同源，因此「内部预算耗尽」与「实测超预算」是两件事，必须分别记、不得互相当作代理"
   },
   "margin_effects": {
