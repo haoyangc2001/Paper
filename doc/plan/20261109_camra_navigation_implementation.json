@@ -3876,7 +3876,54 @@
       "depends_on": [
         "NAV-034"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T16:27:05+08:00",
+          "summary": "NAV-035 门禁表已建成（25 项：21 绿 / 3 黄 / 1 红，verdict=BLOCKED），新增学习候选指令分布的名义侧对照证据，差异清单 D1–D9 与实现文档已落。按计划的「改变核心评分语义需先询问」，停在 4 个开放项上等裁定，status 保持 false。",
+          "actions": [
+            "新增 scripts/build_gate_g3.py：按五个维度（数值目标/梯度方向/轨迹边界/可枚举对照/短训练证据）加两项直接证据要求（双 critic、minimization）摆出 25 项检查。每项记录证据文件、文件里的**实际**verdict、散列，以及「这条能证明什么、不能证明什么」；证据文件缺失或实际 verdict 与声明不符即报错。不重算任何数值。",
+            "新增 scripts/check_candidate_commands.py：用与 NAV-060 pilot **逐行相同的 command_stats 定义与常数**（NAV_DT=0.1、LOW_SPEED_VX/WZ=0.3、保持判据 du<=0.02），只把指令来源从规则控制器换成学习候选，从已落盘的 90 个 chunk 统计分布，并按 NAV-060 实测死区分档统计占比。不重训、不开 Isaac、不改老脚本。",
+            "新增 reports/candidate_command_stats.json：候选 vs 规则控制器 —— 指令变化率 1.177 vs 0.0526（22.4×）、|wz| 均值 0.639 vs 0.038（16.6×）、保持时长 0.100 s vs 0.402 s、|vy| 均值 0.254 vs 0.000、15.1% 的步落在 |wz|<0.2 的完全死区、15.5% 的步 |vx|<0.2。",
+            "新增 docs/algorithm_implementation.md：三层结构与频率、五个语义量的定义/单位/使用者、三条容易写错的语义（共享 τ*、max(·,0) 抹平 G_INSIDE、γ_c=1 使停止时刻与 t 无关）、实现地图、D1–D9 差异清单（工程近似/语义偏离/缺陷修正分类）、已知限制、以及「尚未证明的事」清单。",
+            "新增 reports/gate_G3.json：verdict=BLOCKED，含 25 项检查、按维度分组、差异清单、4 个开放项（事实/为何阻塞/选项）、证据完整性检查（problems 为空）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/build_gate_g3.py",
+            "CaMRA/navigation/scripts/check_candidate_commands.py",
+            "CaMRA/navigation/reports/candidate_command_stats.json",
+            "CaMRA/navigation/reports/gate_G3.json",
+            "CaMRA/navigation/docs/algorithm_implementation.md"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/check_candidate_commands.py --json CaMRA/navigation/reports/candidate_command_stats.json",
+            "python CaMRA/navigation/scripts/build_gate_g3.py --json CaMRA/navigation/reports/gate_G3.json"
+          ],
+          "results": [
+            "gate_G3 判定 BLOCKED，git d53a713；25 项 = 21 绿 / 3 黄 / 1 红，证据完整性 problems 为空。",
+            "3 项黄：G3-14 低速与侧移不可用（NAV-059，已裁定记录局限）、G3-15 角速率死区（|wz|<0.2 几乎不转 / 0.3 为 21% / 0.5 为 71%）、G3-19 短训练原始报告 FAIL（原样保留，旁边是复判 PASS）。",
+            "1 项红：G3-21 学习候选指令分布 —— 与规则控制器差一个数量级，旧裕度不适用（OI-1）。",
+            "4 个开放项：OI-1 候选指令超出原校准条件；OI-2 预算尺度低于全部场景参考能量（评分语义）；OI-3 policy 优势构造与参考不同且未做对照；OI-4 max_grad_norm 过紧（长训配置前置，非门禁红灯）。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/gate_G3.json（25 项检查、按维度分组、开放项与选项）",
+            "CaMRA/navigation/reports/candidate_command_stats.json（候选与规则控制器的同尺子对照）",
+            "CaMRA/navigation/docs/algorithm_implementation.md（结构、语义、D1–D9 差异、未证明清单）",
+            "CaMRA/navigation/scripts/build_gate_g3.py、check_candidate_commands.py（可复算）"
+          ],
+          "remaining_work": [
+            "OI-1 需裁定：①按探索性检验跑一次物理复查（不进分母）；②先改训练抑制抖动、复查放长训后；③为学习候选另立新版校准（δ(T) 与可执行域）。",
+            "OI-2 需裁定：①按场景缩放 Z_REF_J（改契约、需升版）；②残差成本项改用未截断 z_J/Z_REF（观测仍截断，与参考实现一致）。",
+            "OI-3 需裁定：保持现状并在长训里补对照，或现在就改成参考的 λ 平滑 GAE 并重跑相关项。",
+            "OI-4 已知处置（不需裁定，写入长训预登记即可）：max_grad_norm 0.5 → 2.5。",
+            "开放项解决后重跑 build_gate_g3.py，全部转绿才可把 status 置真、进入 NAV-036 正式训练。"
+          ],
+          "blockers": [
+            "OI-1 学习候选指令分布超出原校准条件，旧裕度缺乏适用性（不确定策略明文要求等待用户裁定）",
+            "OI-2 预算尺度低于全部场景参考能量，属评分语义变更（计划要求先询问）",
+            "OI-3 策略优势构造与参考不同，未做对照（评分语义的一部分）"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "汇总数值目标、梯度方向、轨迹边界、可枚举对照和短训练证据；不以网络能运行作为放行。",
         "原算法目标与工程近似的差异形成清单，若改变核心评分语义需先询问。",
