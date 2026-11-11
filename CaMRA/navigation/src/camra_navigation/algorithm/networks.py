@@ -1,0 +1,300 @@
+"""预算条件策略与两个评价网络（NAV-029）。
+
+契约来源（全部只读，不在此重新选择任何尺度或编码）：
+  * obs-v2（41 维）与 cmd-v1（3 维动作）：``config/navigation_contract_v1.json``（NAV-013）
+  * 价值目标、V_c/V_h 尺度、共同停止规则、估计器参数：``config/value_objective_contract_v1.json``
+    （NAV-056）
+  * 参考架构（只读）：``RC-PPO/model/actorcritic.py`` 的 ``Policy_Network`` / ``Value_Network``。
+    该参考是 JAX/Flax 实现；本仓库上层框架已由 NAV-008 冻结为 PyTorch（jax 在环境中缺失），
+    因此这里按**同一架构**重写，不引入 jax 依赖、不改变层数/宽度/初始化增益。
+
+三个网络严格分开、各自独立参数（不把单 critic 直接拆成两半）：
+  ``policy``        obs -> Independent(Normal(mean, std))，作用于**归一化动作** a ∈ R^3
+  ``critic_cost``   obs -> V_c，单位 J / Z_REF_J（无量纲、非负）
+  ``critic_reach``  obs -> V_h，无量纲，<= 0 表示可安全到达（min 型 Bellman）
+
+动作映射（cmd-v1，仿射而非 tanh）::
+
+    u_req = clip(a, -1, 1) * (vx_max, vy_max, wz_max) = clip(a, -1, 1) * (1.0, 0.4, 1.0)
+
+契约明文要求用仿射而非 tanh：tanh 会系统性压低指令值，而低速段（0.2–0.31 m/s）必须精确可达。
+裁剪只在 applied 处发生一次，本模块只做映射，不写日志、不做重采样。
+
+预算条件怎么进来的：obs-v2 已含 ``z_ratio`` / ``safety_y`` / ``time_remaining_n``
+（layout 第 39/40/41 维），因此"预算条件策略"是**通过观测**实现的，不另建旁路输入通道——
+这样训练与观测不会各算一套（value contract quantities.z_ratio.note）。
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import os
+from dataclasses import dataclass
+from typing import Any, Iterable, Sequence
+
+import torch
+from torch import nn
+from torch.distributions import Independent, Normal
+
+_THIS = os.path.abspath(__file__)
+NAV_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(_THIS))))
+CONTRACT_PATH = os.path.join(NAV_ROOT, "config", "navigation_contract_v1.json")
+VALUE_CONTRACT_PATH = os.path.join(NAV_ROOT, "config", "value_objective_contract_v1.json")
+
+#: 输出量的单位说明（契约要求"有单位说明"；不在此处做任何换算）
+UNIT_TABLE: dict[str, dict[str, str]] = {
+    "action_normalized": {"unit": "无量纲", "range": "R^3（未裁剪，可超出 ±1）",
+                          "note": "策略分布作用在归一化动作上；裁剪只发生在 applied"},
+    "command": {"unit": "m/s, m/s, rad/s", "range": "(1.0, 0.4, 1.0) 乘子后的机身系速度",
+                "note": "cmd-v1：u_req = clip(a,-1,1) * (1.0, 0.4, 1.0)"},
+    "V_c": {"unit": "J / Z_REF_J（无量纲）", "range": ">= 0",
+            "note": "剩余期望模型成本除以场景常数 Z_REF_J=225.6069087767049 J"},
+    "V_h": {"unit": "无量纲", "range": "<= 0 表示可安全到达",
+            "note": "min_tau max(g_norm, C*y)；C=1.0，g_norm 以 L_REF=15 m 归一化"},
+}
+
+
+def load_contracts() -> tuple[dict[str, Any], dict[str, Any]]:
+    """读取导航契约与价值目标契约（只读）。"""
+    with open(CONTRACT_PATH, encoding="utf-8") as fh:
+        nav = json.load(fh)
+    with open(VALUE_CONTRACT_PATH, encoding="utf-8") as fh:
+        val = json.load(fh)
+    return nav, val
+
+
+# ---------------------------------------------------------------- 观测布局
+@dataclass(frozen=True)
+class ObservationLayout:
+    """obs-v2 的具名切片；只按契约给出的顺序与维度构造，不做任何推断。"""
+
+    names: tuple[str, ...]
+    dims: tuple[int, ...]
+
+    @property
+    def total_dim(self) -> int:
+        return sum(self.dims)
+
+    @classmethod
+    def from_contract(cls, nav_contract: dict[str, Any]) -> "ObservationLayout":
+        layout = nav_contract["observation_spec"]["layout"]
+        names = tuple(str(item["name"]) for item in layout)
+        dims = tuple(int(item["dim"]) for item in layout)
+        total = int(nav_contract["observation_spec"]["total_dim"])
+        if sum(dims) != total:
+            raise ValueError(f"layout 维度之和 {sum(dims)} ≠ total_dim {total}")
+        return cls(names=names, dims=dims)
+
+    def slice_of(self, name: str) -> slice:
+        if name not in self.names:
+            raise KeyError(f"obs-v2 中没有字段 {name!r}；现有 {self.names}")
+        start = sum(self.dims[: self.names.index(name)])
+        return slice(start, start + self.dims[self.names.index(name)])
+
+    #: 预算/时间条件字段（"预算条件策略"通过这三项进入网络）
+    BUDGET_FIELDS: tuple[str, ...] = ("z_ratio", "safety_y", "time_remaining_n")
+    #: 地图编码字段（16 方位 bin / 4 面墙距 / 8 容量掩码）
+    MAP_FIELDS: tuple[str, ...] = ("obstacle_bins", "wall_dist_n", "obstacle_mask")
+
+    def budget_slices(self) -> dict[str, slice]:
+        return {name: self.slice_of(name) for name in self.BUDGET_FIELDS}
+
+    def map_slices(self) -> dict[str, slice]:
+        return {name: self.slice_of(name) for name in self.MAP_FIELDS}
+
+    def index_of(self, name: str) -> int:
+        sl = self.slice_of(name)
+        if sl.stop - sl.start != 1:
+            raise ValueError(f"字段 {name!r} 维度为 {sl.stop - sl.start}，不是标量")
+        return sl.start
+
+
+# ---------------------------------------------------------------- 配置
+@dataclass(frozen=True)
+class NetworkConfig:
+    """网络结构配置。默认值取自 RC-PPO 参考实现（只读参考，不是重新设计）。"""
+
+    obs_dim: int = 41
+    action_dim: int = 3
+    hidden: tuple[int, ...] = (256, 256)
+    activation: str = "tanh"
+    log_std_init: float = 0.0
+    hidden_gain: float = math.sqrt(2.0)
+    policy_head_gain: float = 0.01
+    value_head_gain: float = 1.0
+    action_scale: tuple[float, float, float] = (1.0, 0.4, 1.0)
+
+    def validate_against(self, nav_contract: dict[str, Any]) -> dict[str, Any]:
+        """与契约逐项核对；不匹配就是实现错误，不能靠调参绕过。"""
+        problems: list[str] = []
+        obs_spec = nav_contract["observation_spec"]
+        act_spec = nav_contract["action_spec"]
+        layout = ObservationLayout.from_contract(nav_contract)
+
+        if self.obs_dim != int(obs_spec["total_dim"]):
+            problems.append(f"obs_dim {self.obs_dim} ≠ 契约 total_dim {obs_spec['total_dim']}")
+        if layout.total_dim != self.obs_dim:
+            problems.append(f"layout 求和 {layout.total_dim} ≠ obs_dim {self.obs_dim}")
+        if self.action_dim != int(act_spec["action_dim"]):
+            problems.append(f"action_dim {self.action_dim} ≠ 契约 {act_spec['action_dim']}")
+        if list(act_spec["action_order"]) != ["vx", "vy", "wz"]:
+            problems.append(f"动作顺序与契约不符：{act_spec['action_order']}")
+        scale_text = "(" + ", ".join(repr(float(v)) for v in self.action_scale) + ")"
+        if scale_text not in str(act_spec["mapping"]):
+            problems.append(f"动作尺度 {scale_text} 未出现在契约映射文本中：{act_spec['mapping']}")
+        if self.activation not in ("tanh", "relu"):
+            problems.append(f"未知激活 {self.activation!r}")
+
+        # 预算条件必须来自观测，而不是旁路输入
+        for required in ObservationLayout.BUDGET_FIELDS + ObservationLayout.MAP_FIELDS:
+            if required not in layout.names:
+                problems.append(f"obs-v2 缺少预算条件字段 {required!r}")
+
+        return {
+            "ok": not problems,
+            "problems": problems,
+            "obs_dim": self.obs_dim,
+            "action_dim": self.action_dim,
+            "action_scale": list(self.action_scale),
+            "obs_layout": {"names": list(layout.names), "dims": list(layout.dims)},
+            "budget_fields": {k: layout.index_of(k)
+                              for k in ("z_ratio", "safety_y", "time_remaining_n")
+                              if k in layout.names},
+        }
+
+
+def _activation(name: str) -> nn.Module:
+    if name == "tanh":
+        return nn.Tanh()
+    if name == "relu":
+        return nn.ReLU()
+    raise ValueError(f"未知激活 {name!r}")
+
+
+def _mlp(in_dim: int, hidden: Sequence[int], act: str, gain: float) -> nn.Sequential:
+    layers: list[nn.Module] = []
+    last = in_dim
+    for width in hidden:
+        linear = nn.Linear(last, width)
+        nn.init.orthogonal_(linear.weight, gain)
+        nn.init.constant_(linear.bias, 0.0)
+        layers.append(linear)
+        layers.append(_activation(act))
+        last = width
+    return nn.Sequential(*layers)
+
+
+def _head(in_dim: int, out_dim: int, gain: float) -> nn.Linear:
+    linear = nn.Linear(in_dim, out_dim)
+    nn.init.orthogonal_(linear.weight, gain)
+    nn.init.constant_(linear.bias, 0.0)
+    return linear
+
+
+# ---------------------------------------------------------------- 网络
+class PolicyNetwork(nn.Module):
+    """obs -> Independent(Normal(mean, std))，作用在归一化动作上。"""
+
+    def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None) -> None:
+        super().__init__()
+        self.cfg = cfg
+        self.layout = layout
+        self.body = _mlp(cfg.obs_dim, cfg.hidden, cfg.activation, cfg.hidden_gain)
+        self.head = _head(cfg.hidden[-1], cfg.action_dim, cfg.policy_head_gain)
+        # 与参考实现一致：log_std 是独立参数、初值 0（std=1），不随状态变化
+        self.log_std = nn.Parameter(torch.full((cfg.action_dim,), float(cfg.log_std_init)))
+
+    def forward(self, obs: torch.Tensor) -> Independent:
+        if obs.shape[-1] != self.cfg.obs_dim:
+            raise ValueError(f"obs 最后一维应为 {self.cfg.obs_dim}，得到 {tuple(obs.shape)}")
+        mean = self.head(self.body(obs))
+        std = self.log_std.exp().expand_as(mean)
+        return Independent(Normal(mean, std), 1)
+
+    def act(self, obs: torch.Tensor, deterministic: bool = False
+            ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """返回 (动作, log_prob, 分布均值)。动作是**未裁剪**的归一化动作。"""
+        dist = self.forward(obs)
+        action = dist.mean if deterministic else dist.sample()
+        return action, dist.log_prob(action), dist.mean
+
+
+class ValueNetwork(nn.Module):
+    """obs -> 标量价值。V_c 与 V_h 各建一个独立实例，不共享参数。"""
+
+    def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None) -> None:
+        super().__init__()
+        self.cfg = cfg
+        self.layout = layout
+        self.body = _mlp(cfg.obs_dim, cfg.hidden, cfg.activation, cfg.hidden_gain)
+        self.head = _head(cfg.hidden[-1], 1, cfg.value_head_gain)
+
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        if obs.shape[-1] != self.cfg.obs_dim:
+            raise ValueError(f"obs 最后一维应为 {self.cfg.obs_dim}，得到 {tuple(obs.shape)}")
+        return self.head(self.body(obs)).squeeze(-1)
+
+
+class BudgetConditionedNetworks(nn.Module):
+    """策略 + 两个 critic 的容器；三个子网参数互不共享。"""
+
+    ROLES = ("policy", "critic_cost", "critic_reach")
+
+    def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None) -> None:
+        super().__init__()
+        self.cfg = cfg
+        self.layout = layout
+        self.policy = PolicyNetwork(cfg, layout)
+        self.critic_cost = ValueNetwork(cfg, layout)
+        self.critic_reach = ValueNetwork(cfg, layout)
+
+    # ---- 参数分组：优化器只允许拿到这些 ----
+    def parameters_of(self, role: str) -> list[nn.Parameter]:
+        if role not in self.ROLES:
+            raise KeyError(f"未知角色 {role!r}；可选 {self.ROLES}")
+        return list(getattr(self, role).parameters())
+
+    def param_groups(self) -> dict[str, list[nn.Parameter]]:
+        return {role: self.parameters_of(role) for role in self.ROLES}
+
+    def n_parameters(self) -> dict[str, int]:
+        return {role: sum(p.numel() for p in self.parameters_of(role)) for role in self.ROLES}
+
+    # ---- 前向便捷入口 ----
+    def act(self, obs: torch.Tensor, deterministic: bool = False):
+        return self.policy.act(obs, deterministic=deterministic)
+
+    def values(self, obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """返回 (V_c, V_h)。"""
+        return self.critic_cost(obs), self.critic_reach(obs)
+
+    def units(self) -> dict[str, dict[str, str]]:
+        return dict(UNIT_TABLE)
+
+
+# ---------------------------------------------------------------- 映射
+def normalized_to_command(action: torch.Tensor,
+                          scale: Sequence[float] = (1.0, 0.4, 1.0)) -> torch.Tensor:
+    """cmd-v1 的仿射映射：``clip(a,-1,1) * scale``。
+
+    刻意不是 tanh：契约要求目标域精确可达（低速段必须能精确下发 0.2–0.31 m/s）。
+    这里只做映射；记录 requested/applied、单次裁剪与非法值置零属于 cmd-v1 的执行侧。
+    """
+    if action.shape[-1] != len(scale):
+        raise ValueError(f"动作最后一维 {action.shape[-1]} ≠ scale 长度 {len(scale)}")
+    scale_t = torch.as_tensor(scale, dtype=action.dtype, device=action.device)
+    return torch.clamp(action, -1.0, 1.0) * scale_t
+
+
+def build(nav_contract: dict[str, Any] | None = None,
+          cfg: NetworkConfig | None = None) -> BudgetConditionedNetworks:
+    """按契约构造三个网络，并在构造时校验配置。"""
+    if nav_contract is None:
+        nav_contract, _ = load_contracts()
+    cfg = cfg or NetworkConfig()
+    report = cfg.validate_against(nav_contract)
+    if not report["ok"]:
+        raise ValueError("网络配置与契约不符：" + "; ".join(report["problems"]))
+    layout = ObservationLayout.from_contract(nav_contract)
+    return BudgetConditionedNetworks(cfg, layout)

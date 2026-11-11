@@ -3423,11 +3423,53 @@
       "id": "NAV-029",
       "phase": "算法迁移",
       "goal": "实现预算条件策略与两个评价网络",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-060"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T11:33:54+08:00",
+          "summary": "NAV-029 完成：按 RC-PPO 参考架构用 PyTorch 实现预算条件 actor 与两个独立 critic（V_c 成本 / V_h 到达安全），维度与尺度全部取自契约，20 项检查全过；优化器只含上层参数，冻结 v2 包的 29 个文件散列逐一核对一致。",
+          "actions": [
+            "新增 src/camra_navigation/algorithm/networks.py：三个网络严格分开、参数不共享——policy（obs→Independent(Normal(mean,std))，仿射输出归一化动作）、critic_cost（V_c，J/Z_REF_J）、critic_reach（V_h，无量纲，<=0 可达）。",
+            "架构按 RC-PPO/model/actorcritic.py 的 Policy_Network / Value_Network 逐个对齐：Dense256(orthogonal sqrt2)→tanh→Dense256→tanh→head（策略头增益 0.01、价值头 1.0），log_std 为独立参数初值 0。参考实现是 JAX/Flax，本仓库上层框架已由 NAV-008 冻结为 PyTorch，故按同架构重写，不引入 jax（测试断言 sys.modules 中无 jax）。",
+            "动作映射按 cmd-v1 用仿射 clip(a,-1,1)*(1.0,0.4,1.0)，并在代码与测试里写明\"为什么不是 tanh\"（tanh(1.0)=0.7616，会系统性压低指令，低速段必须精确可达——0.25 映射后精确等于 0.25）。",
+            "预算条件通过 obs-v2 的 z_ratio/safety_y/time_remaining_n 进入网络，不另建旁路输入通道；ObservationLayout 从契约 layout 构造具名切片，提供 budget_slices()/map_slices()，下游消融或缩放不必硬编码下标；UNIT_TABLE 给出各输出单位。",
+            "构造时自动校验契约（obs_dim=41、action_dim=3、动作顺序 vx/vy/wz、尺度文本、预算与地图字段齐备），不匹配直接拒绝构造。",
+            "新增 tests/test_network_contract.py：20 项检查覆盖契约一致性、切片连续性、前向形状、采样统计、梯度流、正交初始化、序列化、参数隔离与优化器、冻结物完整性、初始化可复现、单位说明与无 jax 依赖。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/algorithm/__init__.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/networks.py",
+            "CaMRA/navigation/tests/test_network_contract.py",
+            "CaMRA/navigation/reports/network_contract_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_network_contract.py --json CaMRA/navigation/reports/network_contract_check.json"
+          ],
+          "results": [
+            "verdict PASS，20/20 检查通过。",
+            "参数完全分离：policy 77,318、critic_cost 76,801、critic_reach 76,801，三组 id 无交集；优化器 19 个参数张量恰为这三个子网的全部参数，外部冻结模块被排除。",
+            "正交初始化：隐藏层 Gram 误差 8.3e-7；策略头行范数 0.0100、价值头 1.0000（与参考增益一致）。",
+            "采样统计（n=20000）：均值误差 <=0.0122、标准差误差 <=0.0081（容差 0.02）。",
+            "序列化往返：策略均值与两个 critic 输出的最大差均为 0.0。",
+            "梯度：策略损失只流到策略参数（critic 梯度为 None），两 critic 之和的梯度只流到各自网络；log_std 梯度绝对值和 0.646（非常数）。",
+            "冻结物完整性：exported/policy.pt 建网前后散列不变且等于 frozen_manifest 登记值；包内 29 个文件逐一核对，0 处不一致。",
+            "契约常数一致：Z_REF_J 在价值契约与 obs 常量中均为 225.6069087767049。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/network_contract_check.json（20 项检查明细与数值）",
+            "CaMRA/navigation/src/camra_navigation/algorithm/networks.py",
+            "RC-PPO/model/actorcritic.py（只读参考）"
+          ],
+          "remaining_work": [
+            "NAV-030：实现并独立验证双评价目标与停止分段（targets.py），下一步。",
+            "字段语义提示（建议 NAV-048 审计时补进契约）：controller.checkpoint_sha256 指向的是训练 checkpoint model/model_2999.pt（1c8f5aad…），而实际被执行的是 exported/policy.pt（8e3f14ad…，仅在 frozen_manifest.integrity 中登记）。契约未直接给出后者散列，本任务只能经冻结清单交叉核对；建议在契约中显式登记 exported 产物的散列，避免后续混淆。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "使用G0冻结的框架，参考Policy_Network/Value_Network实现一个actor、到达安全critic和成本critic；明确各自输入及输出尺度。",
         "原参考只读；上层参数和v2参数/优化器严格分离，不把HiRA单critic直接替换。",
@@ -3437,7 +3479,7 @@
         "网络维度、动作分布、y/z/time/地图编码和初始化可配置并有单位说明。",
         "前向/梯度/序列化测试通过；优化器只包含上层参数，底层权重hash保持不变。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：20 项契约检查全过。三维度与尺度均取自契约（obs-v2 41 维、cmd-v1 3 维、仿射 (1.0,0.4,1.0)）；前向/梯度/序列化全部通过（序列化差 0.0，正交核误差 8.3e-7）；优化器仅含上层 19 个参数张量、三子网参数 id 无交集；冻结包 29 个文件散列与清单一致、建网前后 exported/policy.pt 散列不变。",
       "reference_ids": [
         "R03",
         "R05"

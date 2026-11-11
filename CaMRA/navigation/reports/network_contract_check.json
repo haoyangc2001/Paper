@@ -1,0 +1,437 @@
+{
+  "task": "NAV-029",
+  "n_checks": 20,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "network_config": {
+    "obs_dim": 41,
+    "action_dim": 3,
+    "hidden": [
+      256,
+      256
+    ],
+    "activation": "tanh",
+    "log_std_init": 0.0,
+    "hidden_gain": 1.4142135623730951,
+    "policy_head_gain": 0.01,
+    "value_head_gain": 1.0,
+    "action_scale": [
+      1.0,
+      0.4,
+      1.0
+    ]
+  },
+  "reference": {
+    "path": "RC-PPO/model/actorcritic.py",
+    "policy": "Dense256(sqrt2)->tanh->Dense256(sqrt2)->tanh->Dense(A,0.01)+log_std",
+    "value": "Dense256(sqrt2)->tanh->Dense256(sqrt2)->tanh->Dense(1,1.0)",
+    "port": "PyTorch（框架由 NAV-008 冻结；参考实现为 JAX/Flax，只读对照）"
+  },
+  "checks": [
+    {
+      "check": "config_matches_contract",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "problems": [],
+        "obs_dim": 41,
+        "action_dim": 3,
+        "action_scale": [
+          1.0,
+          0.4,
+          1.0
+        ],
+        "obs_layout": {
+          "names": [
+            "sin_yaw",
+            "cos_yaw",
+            "vx_body_n",
+            "vy_body_n",
+            "wz_body_n",
+            "px_n",
+            "py_n",
+            "goal_dir_x_body",
+            "goal_dir_y_body",
+            "goal_dist_n",
+            "obstacle_bins",
+            "wall_dist_n",
+            "obstacle_mask",
+            "safety_y",
+            "z_ratio",
+            "time_remaining_n"
+          ],
+          "dims": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            16,
+            4,
+            8,
+            1,
+            1,
+            1
+          ]
+        },
+        "budget_fields": {
+          "z_ratio": 39,
+          "safety_y": 38,
+          "time_remaining_n": 40
+        }
+      }
+    },
+    {
+      "check": "obs_layout_slices",
+      "ok": true,
+      "detail": {
+        "total_dim": 41,
+        "contiguous": true,
+        "slices": {
+          "sin_yaw": [
+            0,
+            1
+          ],
+          "cos_yaw": [
+            1,
+            2
+          ],
+          "vx_body_n": [
+            2,
+            3
+          ],
+          "vy_body_n": [
+            3,
+            4
+          ],
+          "wz_body_n": [
+            4,
+            5
+          ],
+          "px_n": [
+            5,
+            6
+          ],
+          "py_n": [
+            6,
+            7
+          ],
+          "goal_dir_x_body": [
+            7,
+            8
+          ],
+          "goal_dir_y_body": [
+            8,
+            9
+          ],
+          "goal_dist_n": [
+            9,
+            10
+          ],
+          "obstacle_bins": [
+            10,
+            26
+          ],
+          "wall_dist_n": [
+            26,
+            30
+          ],
+          "obstacle_mask": [
+            30,
+            38
+          ],
+          "safety_y": [
+            38,
+            39
+          ],
+          "z_ratio": [
+            39,
+            40
+          ],
+          "time_remaining_n": [
+            40,
+            41
+          ]
+        },
+        "budget_fields": {
+          "z_ratio": 39,
+          "safety_y": 38,
+          "time_remaining_n": 40
+        }
+      }
+    },
+    {
+      "check": "observation_fields_configurable",
+      "ok": true,
+      "detail": {
+        "budget": {
+          "z_ratio": [
+            39,
+            40
+          ],
+          "safety_y": [
+            38,
+            39
+          ],
+          "time_remaining_n": [
+            40,
+            41
+          ]
+        },
+        "map": {
+          "obstacle_bins": [
+            10,
+            26
+          ],
+          "wall_dist_n": [
+            26,
+            30
+          ],
+          "obstacle_mask": [
+            30,
+            38
+          ]
+        },
+        "note": "y/z/time/map 都可按名字取切片，下游做消融或缩放不必硬编码下标"
+      }
+    },
+    {
+      "check": "policy_output_shapes",
+      "ok": true,
+      "detail": {
+        "mean": [
+          8,
+          3
+        ],
+        "log_prob": [
+          8
+        ],
+        "log_std": [
+          3
+        ],
+        "action": [
+          8,
+          3
+        ]
+      }
+    },
+    {
+      "check": "critic_output_shapes",
+      "ok": true,
+      "detail": {
+        "V_c": [
+          8
+        ],
+        "V_h": [
+          8
+        ],
+        "init_vc_absmax": 0.3957422971725464,
+        "init_vh_absmax": 1.4752774238586426
+      }
+    },
+    {
+      "check": "action_mapping_affine",
+      "ok": true,
+      "detail": {
+        "mapping": "u = clip(a,-1,1) * (1.0,0.4,1.0)",
+        "result": [
+          [
+            1.0,
+            0.4000000059604645,
+            1.0
+          ],
+          [
+            1.0,
+            -0.4000000059604645,
+            0.5
+          ],
+          [
+            -1.0,
+            0.0,
+            -0.25
+          ]
+        ],
+        "expected": [
+          [
+            1.0,
+            0.4000000059604645,
+            1.0
+          ],
+          [
+            1.0,
+            -0.4000000059604645,
+            0.5
+          ],
+          [
+            -1.0,
+            0.0,
+            -0.25
+          ]
+        ],
+        "why_not_tanh": "tanh(1.0)=0.7615942 ≠ 1.0，会压低指令值"
+      }
+    },
+    {
+      "check": "low_speed_band_exactly_reachable",
+      "ok": true,
+      "detail": {
+        "a_vx": 0.25,
+        "u_vx": 0.25,
+        "note": "NAV-059 要探 0.2-0.31 m/s，仿射映射保证精确"
+      }
+    },
+    {
+      "check": "sampling_statistics",
+      "ok": true,
+      "detail": {
+        "n": 20000,
+        "mean_err_max": 0.012126656249165535,
+        "std_err_max": 0.008095622062683105
+      }
+    },
+    {
+      "check": "policy_gradient_flows",
+      "ok": true,
+      "detail": {
+        "n_param_tensors": 7,
+        "all_finite": true,
+        "log_std_grad_abs_sum": 0.6462923288345337,
+        "critic_untouched": true
+      }
+    },
+    {
+      "check": "critic_gradients_flow",
+      "ok": true,
+      "detail": {
+        "both_critics_finite": true,
+        "policy_untouched": true
+      }
+    },
+    {
+      "check": "orthogonal_init",
+      "ok": true,
+      "detail": {
+        "hidden_gram_err": 8.344650268554688e-07,
+        "hidden_gain": 1.4142135623730951,
+        "policy_head_row_norm": 0.009999999776482582,
+        "value_head_row_norm": 1.0
+      }
+    },
+    {
+      "check": "serialization_roundtrip",
+      "ok": true,
+      "detail": {
+        "policy_mean_max_abs_diff": 0.0,
+        "critic_max_abs_diff": 0.0,
+        "file": "state_dict round-trip via torch.save/load"
+      }
+    },
+    {
+      "check": "optimizer_only_upper_params",
+      "ok": true,
+      "detail": {
+        "roles_disjoint": true,
+        "n_params_by_role": {
+          "policy": 77318,
+          "critic_cost": 76801,
+          "critic_reach": 76801
+        },
+        "optimizer_param_count": 19,
+        "network_param_count": 19,
+        "frozen_module_excluded": true
+      }
+    },
+    {
+      "check": "frozen_v2_policy_hash_stable",
+      "ok": true,
+      "detail": {
+        "policy_pt": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/exported/policy.pt",
+        "sha256_before": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4",
+        "sha256_after": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4",
+        "declared_in_frozen_manifest": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4"
+      }
+    },
+    {
+      "check": "checkpoint_field_semantics",
+      "ok": true,
+      "detail": {
+        "contract_field": "controller.checkpoint_sha256",
+        "resolves_to": "model/model_2999.pt",
+        "sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+        "contract_value": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+        "exported_policy_is_a_different_file": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4",
+        "note": "契约字段点名的是训练 checkpoint；执行用的是 exported/policy.pt，两者散列不同属正常，不能混用"
+      }
+    },
+    {
+      "check": "frozen_bundle_manifest_matches_disk",
+      "ok": true,
+      "detail": {
+        "n_entries": 29,
+        "n_verified": 29,
+        "n_mismatched": 0,
+        "mismatched": [],
+        "skipped_gt_50mb": []
+      }
+    },
+    {
+      "check": "deterministic_init",
+      "ok": true,
+      "detail": {
+        "same_seed_identical": true,
+        "different_seed_differs": true
+      }
+    },
+    {
+      "check": "units_declared",
+      "ok": true,
+      "detail": {
+        "unit_table": {
+          "action_normalized": {
+            "unit": "无量纲",
+            "range": "R^3（未裁剪，可超出 ±1）",
+            "note": "策略分布作用在归一化动作上；裁剪只发生在 applied"
+          },
+          "command": {
+            "unit": "m/s, m/s, rad/s",
+            "range": "(1.0, 0.4, 1.0) 乘子后的机身系速度",
+            "note": "cmd-v1：u_req = clip(a,-1,1) * (1.0, 0.4, 1.0)"
+          },
+          "V_c": {
+            "unit": "J / Z_REF_J（无量纲）",
+            "range": ">= 0",
+            "note": "剩余期望模型成本除以场景常数 Z_REF_J=225.6069087767049 J"
+          },
+          "V_h": {
+            "unit": "无量纲",
+            "range": "<= 0 表示可安全到达",
+            "note": "min_tau max(g_norm, C*y)；C=1.0，g_norm 以 L_REF=15 m 归一化"
+          }
+        }
+      }
+    },
+    {
+      "check": "no_jax_dependency",
+      "ok": true,
+      "detail": {
+        "note": "参考实现是 JAX/Flax；本仓库上层框架 NAV-008 已冻结为 PyTorch",
+        "jax_in_sys_modules": false,
+        "new_modules": 0
+      }
+    },
+    {
+      "check": "z_ref_single_source",
+      "ok": true,
+      "detail": {
+        "value_contract": 225.6069087767049,
+        "obs_constants": 225.6069087767049,
+        "note": "网络不重算 Z_REF，只引用契约；训练与观测共用同一常数"
+      }
+    }
+  ]
+}
