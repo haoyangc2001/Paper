@@ -3626,11 +3626,51 @@
       "id": "NAV-032",
       "phase": "算法迁移",
       "goal": "实现轨迹缓冲与可恢复短训练循环",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-031"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T12:07:08+08:00",
+          "summary": "NAV-032 完成：chunk 化的轨迹缓冲（原始 25 字段 + 派生 15 目标字段，npz + manifest 双写对账）与可恢复短训练循环。24 项检查全过：目标可由原始字段离线重建（含手写 O(T²) 独立实现），连续跑 / 停-续 / 崩-续三种跑法的模型·优化器·RNG·样本逐位相同。",
+          "actions": [
+            "新增 src/camra_navigation/algorithm/storage.py：逐样本记 obs/next_obs、原动作与 applied 动作、log_prob、双 value、y/z、能量、terminated/truncated、事件码、地图与回合 id、终端 bootstrap；派生目标（成本/reach/停止分段/联合残差优势）另存一组，便于离线对账。",
+            "写入语义：chunk 序号必须等于已有 manifest 条数，global_step 必须接续上一 chunk 且 chunk 内 +1，n_samples 与实际一致；已存在同名文件时只有内容哈希相同才接受（崩溃后的幂等提交），否则拒绝覆盖。",
+            "终端处理严格照契约 bootstrap 表：failure 末步目标 = FAIL_PENALTY（不叠加该步成本）、success 末步目标 = 实际成本且不 bootstrap、truncation = 尾段成本 + V_c(x_T)。z_ratio 触到 ±1 时直接拒算（z0_J 必须 <= Z_REF_J，否则 W 定义在截断量上）。",
+            "新增 scripts/train_nominal.py：名义环境 10 Hz、一回合一个 chunk、一 chunk 一次更新；存点含模型/三个优化器/torch 与 numpy RNG/回合种子流/半截回合/环境快照/配置指纹/契约散列/归一化口径，原子写 + sha256 旁路校验；配置变了或文件被改一律拒绝恢复。",
+            "两种中断都支持并都被测试覆盖：停在回合中途（靠显式环境快照接上）、崩在 chunk 提交之后（靠确定性重放已提交的 chunk 接上，而不是重跑回合）。",
+            "新增 tests/test_rollout_resume.py：24 项检查。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/algorithm/storage.py",
+            "CaMRA/navigation/scripts/train_nominal.py",
+            "CaMRA/navigation/tests/test_rollout_resume.py",
+            "CaMRA/navigation/reports/rollout_resume_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_rollout_resume.py --json CaMRA/navigation/reports/rollout_resume_check.json"
+          ],
+          "results": [
+            "verdict PASS，24/24，git 37e9c3d。",
+            "离线可重建：拿掉全部 obj_* 字段后重算，与落盘值逐位相同；再用不 import targets 的手写 O(T²) 实现独立复算，成本/reach/停止分段/联合优势四组目标一致到 1e-12。",
+            "轨迹索引：3 chunk 共 119 样本（51/36/32），global_step 覆盖 [0,119) 无缺口无重复；每回合 t 从 0 连续到 n-1；终止掩码每回合恰好一个末步，且 terminated 与 truncated 分开。",
+            "中断-恢复：连续跑 / 第 5 个样本停下再续 / 写完 chunk 0 就崩再恢复，三种跑法的模型、三个优化器状态、torch RNG、回合种子流、计数器、chunk content hash 全部逐位相同；日志里每个回合恰好一条记录，无重复写入。",
+            "守卫：配置改动后 resume 拒绝；状态文件改一个字节被 sha256 旁路校验拦住；日志/状态文件不含禁用键，redact 与 assert_no_secrets 均生效。",
+            "短跑事实：回合 0 预算耗尽（51 步，185.1 J），回合 1/2 僵持截断（36/32 步）；随机策略 3 回合没到目标，success 分支用合成段单独验证（同样成本 + 0.7 bootstrap，success 取 0.01、truncation 取 0.71）。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/rollout_resume_check.json（24 项检查、三种跑法的逐位比较、开放项）",
+            "CaMRA/navigation/src/camra_navigation/algorithm/storage.py",
+            "CaMRA/navigation/scripts/train_nominal.py",
+            "RC-PPO/rl/EC-EFPPO.py（只读参考：另一处证据是它把 env done 与停止分段混用同一个 done）"
+          ],
+          "remaining_work": [
+            "下一步 NAV-033（可枚举小问题的独立算法对照）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "记录观测、原动作/实际动作、log_prob、双value、y/z、能量、终止/截断、停止分段和地图/回合ID。",
         "不把自动复位后新状态作为旧回合bootstrap；checkpoint保存rng/优化器/配置/归一化，日志不含凭证。"
@@ -3639,7 +3679,7 @@
         "小批轨迹索引、样本数、终止掩码和各目标可离线重建。",
         "在同一短run中中断/恢复，样本/模型/优化器/rng连续且无重复写入。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：24/24。目标（成本、reach、停止分段、联合残差优势）可由原始字段离线重建，并用不 import 矩阵实现的手写 O(T²) 版本独立复核到 1e-12；轨迹索引、样本数、终止掩码可独立对账；连续跑 / 停-续 / 崩-续三种跑法的模型、优化器、RNG、回合种子流与样本内容逐位相同且无重复写入。遗留三条开放项（优势符号与契约措辞冲突、policy 优势未做 λ 平滑、reach 的截断 bootstrap 用实测 h_T）已写入报告 open_items，交 NAV-033/034 处理；冻结的契约文件未改动。",
       "reference_ids": [
         "R03",
         "R05"
