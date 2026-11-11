@@ -62,8 +62,7 @@ from camra_navigation.maps.geometry import SafetyGeometry  # noqa: E402
 
 NAV_CONTRACT = os.path.join(NAV_ROOT, "config", "navigation_contract_v1.json")
 VALUE_CONTRACT = os.path.join(NAV_ROOT, "config", "value_objective_contract_v1.json")
-PREREG = os.path.join(NAV_ROOT, "config", "formal_training_prereg_v1.json")
-PREREG_SHA = os.path.join(NAV_ROOT, "config", "formal_training_prereg_v1.json.sha256")
+PREREG_DIR = os.path.join(NAV_ROOT, "config")
 DESIGN = os.path.join(NAV_ROOT, "config", "map_design_v1.json")
 FOOTPRINT = os.path.join(CALIB, "config", "footprint_v1.json")
 MARGINS = os.path.join(CALIB, "config", "margins_v1.json")
@@ -78,9 +77,9 @@ TRUNCATION_LABELS = ("stagnation", "timeout")
 ALL_LABELS = FAILURE_LABELS + SUCCESS_LABELS + TRUNCATION_LABELS
 
 
-def verify_prereg() -> tuple[dict, str]:
-    sha = open(PREREG_SHA, encoding="utf-8").read().strip()
-    payload = open(PREREG, "rb").read()
+def verify_prereg(name: str) -> tuple[dict, str]:
+    sha = open(os.path.join(PREREG_DIR, name + ".sha256"), encoding="utf-8").read().strip()
+    payload = open(os.path.join(PREREG_DIR, name), "rb").read()
     actual = hashlib.sha256(payload).hexdigest()
     if actual != sha:
         raise SystemExit(
@@ -176,12 +175,13 @@ def main() -> int:
                     choices=("uncalibrated", "full"))
     ap.add_argument("--seed", type=int, required=True)
     ap.add_argument("--work-root", default="/pub/data/caohy/work/camra_navigation")
+    ap.add_argument("--prereg-name", default="formal_training_prereg_v1.json")
     ap.add_argument("--smoke-updates", type=int, default=0,
                     help="mechanical test only: N updates with 2 calls per window; "
                          "never for a formal run")
     args = ap.parse_args()
 
-    prereg, prereg_sha = verify_prereg()
+    prereg, prereg_sha = verify_prereg(args.prereg_name)
     smoke = bool(args.smoke_updates)
     if smoke:
         print(f"[SMOKE] mechanical test: {args.smoke_updates} updates, "

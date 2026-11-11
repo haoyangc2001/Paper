@@ -1,0 +1,151 @@
+{
+ "task": "NAV-039 round 2 (budget anchor k=1.10, user-approved route 2)",
+ "schema": "camra-formal-training-report-v1",
+ "prereg": "config/formal_training_prereg_v2.json (sha256 6f477afa...)",
+ "method": "full",
+ "purpose": "test whether the round-1 budget (k=1.0) was the binding constraint",
+ "gates": {
+  "updates_run_full_250": true,
+  "env_steps_match_prereg": true,
+  "wall_clock_under_6h": true,
+  "store_audit_clean": true
+ },
+ "honest_findings": {
+  "training_goal_reached": 0,
+  "note": "k_train 1.0 -> 1.10（油量 +10%，饱和约束下的最大整档）后仍然 0 次 goal_reached；budget_exhausted 份额从 82% 降到 79-87%（几乎没变）。油量假设被证伪。更深的证据：策略的 log_std 在 250 次更新后仍为 0.965-1.023（初值 1.0）——整个训练只做了 250 个 Adam 步（每个 4086 样本窗口一步），探索噪声从未收敛，PPO 的比例裁剪（clip_eps=0.2）一次都没触发过。瓶颈是梯度步数，不是油、不是环境、不是评价网络。"
+ },
+ "runs": {
+  "seed_0": {
+   "run_id": "formal_full_k110_s0",
+   "seed": 0,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.427,
+   "prereg_sha256": "6f477afabd538209...",
+   "z0_J_range": [
+    398.83,
+    534.91
+   ],
+   "grad_norm_policy": {
+    "p50": 0.182,
+    "max": 0.394
+   },
+   "clip_fraction_mean": 0.0,
+   "entropy": {
+    "first25": 4.2561,
+    "last25": 4.2458
+   },
+   "episode_label_counts": {
+    "collision": 521,
+    "out_of_bounds": 0,
+    "budget_exhausted": 7977,
+    "goal_reached": 0,
+    "stagnation": 888,
+    "timeout": 0
+   },
+   "store_chunks": 13848,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "min_distance_range": [
+     5.858,
+     10.252
+    ]
+   },
+   "oi1": {
+    "change_rate": 0.016327359318034626,
+    "hold_mean_s": 1.0723214285714286,
+    "mean_abs_vy": 0.023115920406307944,
+    "low_speed_share": 0.4750208159866778
+   }
+  },
+  "seed_1": {
+   "run_id": "formal_full_k110_s1",
+   "seed": 1,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.418,
+   "prereg_sha256": "6f477afabd538209...",
+   "z0_J_range": [
+    398.83,
+    534.91
+   ],
+   "grad_norm_policy": {
+    "p50": 0.177,
+    "max": 0.405
+   },
+   "clip_fraction_mean": 0.0,
+   "entropy": {
+    "first25": 4.2602,
+    "last25": 4.2406
+   },
+   "episode_label_counts": {
+    "collision": 265,
+    "out_of_bounds": 0,
+    "budget_exhausted": 8169,
+    "goal_reached": 0,
+    "stagnation": 742,
+    "timeout": 0
+   },
+   "store_chunks": 13635,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "min_distance_range": [
+     4.935,
+     10.312
+    ]
+   },
+   "oi1": {
+    "change_rate": 0.011720273308834675,
+    "hold_mean_s": 1.4601593625498008,
+    "mean_abs_vy": 0.07460398552868144,
+    "low_speed_share": 0.5978171896316508
+   }
+  },
+  "seed_2": {
+   "run_id": "formal_full_k110_s2",
+   "seed": 2,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.43,
+   "prereg_sha256": "6f477afabd538209...",
+   "z0_J_range": [
+    398.83,
+    534.91
+   ],
+   "grad_norm_policy": {
+    "p50": 0.183,
+    "max": 0.445
+   },
+   "clip_fraction_mean": 0.0,
+   "entropy": {
+    "first25": 4.2597,
+    "last25": 4.253
+   },
+   "episode_label_counts": {
+    "collision": 870,
+    "out_of_bounds": 0,
+    "budget_exhausted": 7862,
+    "goal_reached": 0,
+    "stagnation": 690,
+    "timeout": 0
+   },
+   "store_chunks": 13886,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "min_distance_range": [
+     5.906,
+     10.564
+    ]
+   },
+   "oi1": {
+    "change_rate": 0.015241487859402858,
+    "hold_mean_s": 0.9312154696132597,
+    "mean_abs_vy": 0.15134908839003758,
+    "low_speed_share": 0.6253337288638386
+   }
+  }
+ }
+}
