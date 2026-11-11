@@ -3493,11 +3493,50 @@
       "id": "NAV-030",
       "phase": "算法迁移",
       "goal": "实现并独立验证双评价目标与停止分段",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-029"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T11:39:58+08:00",
+          "summary": "NAV-030 完成：按\"数学定义 / 参考转写 / 本轮边界\"三层实现双评价目标、停止分段与两条 GAE，15 项 oracle 检查全过（120 例随机数据与独立枚举逐位一致，索引差 0、W 差 3.3e-16）。",
+          "actions": [
+            "新增 src/camra_navigation/algorithm/targets.py，三层结构：(1) 数学定义（训练与判定用）：spent_between / stop_residual / select_stop / reach_values / cost_gae / reach_gae；(2) 参考转写（仅交叉核对）：_ref_gae2 / _ref_gae_reach4 / _ref_indexs3，逐行保留 roll、[::-1]、inf 原样；(3) 本轮边界：terminated 与 truncated 分离、截断用 critic bootstrap 而失败给终止代价、停止分段与安全历史各用独立字段。",
+            "停止规则严格按契约：W(t,τ)=max(reach(τ), spent(t,τ)+[τ=T]·V_c(T)−z_ratio(t))，τ*(t)=argmin 取**首个**最小值（每步对尾段重取，非一次性全局 argmin），done[t]=1[index==t]；可行判据 W<=−beta（beta=0）。",
+            "新增 tests/test_targets_oracle.py：手算 5 类场景（安全到达 / 先撞后到达 / 无目标 / 到达但超支 / 终端-截断 bootstrap），加独立 O(T²) 枚举、恒等式与参考交叉核对。",
+            "发现并修复自身实现缺陷：spent_between 的 γ 指数方向写反（算成 γ^{t−s} 而非 γ^{s−t}）；γ=1 时完全看不出来，是随机数据带 γ=0.95 的用例把它暴露的。",
+            "发现参考实现疑点（如实记录、不修改参考副本）：calculate_indexs3 的逐行转写在给定输入下返回越界索引（t=1 处返回 0 < t），说明其 argmin 位置依赖内部 roll/反转构造，不能直接当作 τ 使用；本轮以契约定义的枚举为准。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/algorithm/targets.py",
+            "CaMRA/navigation/tests/test_targets_oracle.py",
+            "CaMRA/navigation/reports/targets_oracle_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_targets_oracle.py --json CaMRA/navigation/reports/targets_oracle_check.json"
+          ],
+          "results": [
+            "verdict PASS，15/15 检查通过。",
+            "独立枚举一致性：120 例随机短轨迹（T≤8、γ∈{1.0,0.95}、bootstrap∈{0,0.2,0.6}），索引最大差 0，W 最大绝对差 3.3e-16。",
+            "共享停止：构造出 W_shared=+0.3（判不可行）而分开取时刻为 −0.05（会误判可行）的用例，证明实现走的是同一停止时刻，没有让两个 critic 各取有利终点。",
+            "未折扣恒等：同样 0.3 的成本发生在第 0 步或第 1 步，W(τ=2) 均为 0.4。",
+            "GAE：λ=1、γ=1 时目标退化为蒙特卡洛（0.48），λ=0.95 时与 n 步 λ-return 显式展开逐位一致（0.467325），且严格小于蒙特卡洛值。",
+            "min 型 Bellman：常量 h 时 V_h 收敛到 h 本身；递减 h 时与手算递推逐位一致，且恒有 V_h<=h。",
+            "手算 5 类场景全部与实现一致（含并列时取 τ=t 的边界）。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/targets_oracle_check.json（15 项检查与数值）",
+            "CaMRA/navigation/src/camra_navigation/algorithm/targets.py",
+            "RC-PPO/rl/gae.py（只读参考：calculate_indexs3 / calculate_gae2 / calculate_gae_reach4）"
+          ],
+          "remaining_work": [
+            "参考疑点建议进 NAV-048 审计：calculate_indexs3 的索引语义与契约的 τ 定义不对应，若后续要与参考实现对齐，需要先在参考侧确认其 roll/反转构造的真实含义。",
+            "下一步 NAV-031（按计划依赖链）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "逐项迁移calculate_indexs3、calculate_gae2和calculate_gae_reach4；区分原实现行为、数学定义和本轮边界处理。",
         "环境terminated/truncated、目标停止分段、碰撞安全历史使用独立字段；原算法疑点先推导，不静默修正参考副本。",
@@ -3507,7 +3546,7 @@
         "手算短轨迹对照覆盖安全到达、先撞后到达、无目标、预算超支、终端/截断和边界bootstrap。",
         "成本/安全critic及max联合目标分别可核验，原JAX局部oracle或独立枚举结果有一致性证据。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：15/15。停止分段与双评价均按 NAV-056 契约实现（同一 τ 取 max、首个最小值、未折扣、beta=0），并与独立 O(T²) 枚举在 120 例随机短轨迹上逐位一致（索引差 0、W 差 3.3e-16）；手算覆盖安全到达/先撞后到达/无目标/到达超支/终端-截断五类。参考转写仅作交叉核对，其 indexs3 的越界行为已如实记录、未修改参考副本。",
       "reference_ids": [
         "R03"
       ],

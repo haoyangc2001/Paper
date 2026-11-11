@@ -1,0 +1,294 @@
+{
+  "task": "NAV-030",
+  "n_checks": 15,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "objective": {
+    "beta": 0.0,
+    "C": 1.0,
+    "Z_REF_J": 225.6069087767049,
+    "L_REF_m": 15.0,
+    "G_INSIDE": -0.001,
+    "gamma_cost": 1.0,
+    "gae_lambda": 0.95,
+    "gamma_h_init": 0.999,
+    "gamma_h_final": 0.99999
+  },
+  "checks": [
+    {
+      "check": "hand_safe_arrival",
+      "ok": true,
+      "detail": {
+        "cost": [
+          0.2,
+          0.2
+        ],
+        "z": [
+          1.0,
+          1.0
+        ],
+        "reach": [
+          0.5,
+          0.3,
+          -0.001
+        ],
+        "index": [
+          2,
+          2
+        ],
+        "W": [
+          -0.001,
+          -0.001
+        ],
+        "feasible": [
+          true,
+          true
+        ],
+        "hand": "t=0: τ=0→max(0.5,-1.0)=0.5; τ=1→max(0.3,-0.8)=0.3; τ=2→max(-0.001,-0.6)=-0.001 最小"
+      }
+    },
+    {
+      "check": "hand_hit_then_arrive",
+      "ok": true,
+      "detail": {
+        "h": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "index": [
+          0,
+          1
+        ],
+        "W": [
+          1.0,
+          1.0
+        ],
+        "done": [
+          1,
+          1
+        ],
+        "hand": "y=1 ⇒ h=max(g,C·y)=1.0；所有 τ 的 W 都等于 1.0（并列）⇒ argmin 取首个，即 τ=t，故 index=[0,1]、done=[1,1]"
+      }
+    },
+    {
+      "check": "hand_no_goal",
+      "ok": true,
+      "detail": {
+        "index": [
+          3,
+          3,
+          3
+        ],
+        "W": [
+          0.2,
+          0.2,
+          0.2
+        ],
+        "hand": "reach 单调降到 0.2 但始终 >0 ⇒ 选最远 τ=3，W=0.2>0 不可行"
+      }
+    },
+    {
+      "check": "hand_arrived_but_overspent",
+      "ok": true,
+      "detail": {
+        "index": [
+          0,
+          1
+        ],
+        "W": [
+          0.2,
+          0.2
+        ],
+        "hand": "spent(0,0)=0，z=-0.2 ⇒ W=max(-0.001, 0.2)=0.2 > 0 ⇒ 已到目标但超支，不可行；t=1 同理，并列时取 τ=t"
+      }
+    },
+    {
+      "check": "hand_terminal_bootstrap",
+      "ok": true,
+      "detail": {
+        "bootstrap_0.3": {
+          "index": [
+            2,
+            2
+          ],
+          "W": [
+            0.1,
+            0.1
+          ]
+        },
+        "bootstrap_1.0": {
+          "index": [
+            1,
+            1
+          ],
+          "W": [
+            0.15,
+            0.15
+          ]
+        },
+        "hand": "b=0.3: τ=2→max(0.1,0.2+0.3-0.5=0.0)=0.1；b=1.0: τ=2→max(0.1,0.7)=0.7 反而更差，改选 τ=1→0.15"
+      }
+    },
+    {
+      "check": "bruteforce_oracle_matches",
+      "ok": true,
+      "detail": {
+        "n_cases": 120,
+        "max_index_diff": 0,
+        "max_W_abs_diff": 3.3306690738754696e-16,
+        "worst": {
+          "T": 8,
+          "gamma": 0.95,
+          "bootstrap": 0.2
+        },
+        "note": "三条互相独立的实现：向量化 spent 矩阵 / 逐点枚举 / 手算"
+      }
+    },
+    {
+      "check": "shared_stop_not_separable",
+      "ok": true,
+      "detail": {
+        "index": [
+          1,
+          1
+        ],
+        "W_shared": [
+          0.3,
+          -0.05
+        ],
+        "W_separate_WRONG": -0.05,
+        "W_matrix": [
+          [
+            0.9,
+            0.3,
+            0.3
+          ],
+          [
+            Infinity,
+            -0.05,
+            -0.05
+          ]
+        ],
+        "hand": "W(0,0)=max(0.9,-0.2)=0.9; W(0,1)=max(-0.05,0.3)=0.3; W(0,2)=max(-0.05,0.3)=0.3 ⇒ 首个最小 τ=1",
+        "note": "分开取时刻得 -0.05（判可行），共享停止得 +0.3（判不可行）；契约明文要求同一停止时刻，两个 critic 不得各取有利终点"
+      }
+    },
+    {
+      "check": "undiscounted_timing_invariance",
+      "ok": true,
+      "detail": {
+        "W_cost_early": 0.4,
+        "W_cost_late": 0.4,
+        "note": "契约要求未折扣：同样 0.3 的成本发生在第 0 步或第 1 步，W(τ=2) 必须相同"
+      }
+    },
+    {
+      "check": "reach_bellman_contraction",
+      "ok": true,
+      "detail": {
+        "const_h_V": [
+          0.7,
+          0.7,
+          0.7,
+          0.7,
+          0.7
+        ],
+        "decreasing_h_V": [
+          0.20199800099979998,
+          0.20119920019999998,
+          0.2005998,
+          0.20020000000000002,
+          0.2
+        ],
+        "hand_V0": 0.20199800099979998,
+        "note": "V_h <= h 恒成立（min 型）；常量 h 时不动点即 h"
+      }
+    },
+    {
+      "check": "cost_gae_monte_carlo",
+      "ok": true,
+      "detail": {
+        "targets": [
+          0.48,
+          0.43,
+          0.32999999999999996
+        ],
+        "advantages": [
+          0.07999999999999996,
+          0.13,
+          0.12999999999999995
+        ],
+        "hand": "λ=1、γ=1 ⇒ 目标退化为蒙特卡洛：target[0]=0.05+0.10+0.15+0.18=0.48"
+      }
+    },
+    {
+      "check": "cost_gae_lambda_return",
+      "ok": true,
+      "detail": {
+        "target_lam095": 0.467325,
+        "hand_lambda_return": 0.46732500000000005,
+        "target_lam1": 0.48,
+        "note": "λ<1 时目标是 λ 加权混合，必然小于等于蒙特卡洛值；两者不可混用"
+      }
+    },
+    {
+      "check": "cost_gae_failure_no_bootstrap",
+      "ok": true,
+      "detail": {
+        "targets": [
+          0.16,
+          0.1
+        ],
+        "note": "done=1 处 target=c+V，不再加 bootstrap；截断才用 last_value"
+      }
+    },
+    {
+      "check": "reach_lambda_return",
+      "ok": true,
+      "detail": {
+        "Q0": 0.30097030999999996,
+        "hand": 0.30097030999999996,
+        "adv0": -0.010949890000000018,
+        "note": "λ-return 作用于 min 型 DP 值；λ=0.95、γ_h=0.99"
+      }
+    },
+    {
+      "check": "reference_gae2_agrees_without_done",
+      "ok": true,
+      "detail": {
+        "adv_diff": 0.0,
+        "target_diff": 0.0,
+        "note": "无 done 时参考的 roll 掩码退化，两条路径必须逐位一致"
+      }
+    },
+    {
+      "check": "reference_indexs3_crosscheck",
+      "ok": true,
+      "detail": {
+        "definition_index": [
+          2,
+          2
+        ],
+        "definition_in_range": true,
+        "definition_W": [
+          -0.001,
+          -0.001
+        ],
+        "reference_index": [
+          2,
+          0
+        ],
+        "reference_done": [
+          1.0,
+          0.0,
+          1.0
+        ],
+        "reference_in_range": false,
+        "same": false,
+        "status": "reference transcribed as-is (roll/[::-1]/inf kept)",
+        "finding": "参考转写给出越界索引（t=1 处返回 0 < t），说明 calculate_indexs3 的 argmin 位置依赖其内部 roll/反转构造，不能直接当作 τ 使用；本任务以契约定义的枚举为准，差异如实记录，不修改参考副本"
+      }
+    }
+  ]
+}
