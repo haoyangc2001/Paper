@@ -201,6 +201,20 @@ def main() -> int:
     obs_dim = int(nav_contract["observation_spec"]["total_dim"])
     envs, z0s, map_ids = build_envs(prereg, args.variant)
     n_envs = len(envs)
+    # NAV-037 traceability: the calibration values and frozen-file hashes the
+    # cost/geometry actually used, logged before the first update
+    provenance = {
+        "alpha": envs[0]._cost_models[0].alpha,
+        "alpha_source": envs[0]._cost_models[0].alpha_source,
+        "variant": envs[0]._cost_models[0].variant,
+        "delta_m": envs[0].geometry.delta_m,
+        "inflation_radius_m": envs[0].geometry.inflation_radius_m,
+        "geometry_contract_version": envs[0].geometry.contract_version,
+        "footprint_sha256": envs[0].geometry.footprint_sha256,
+        "margins_sha256": envs[0].geometry.margins_sha256,
+        "power_model_sha256": S.file_sha256(POWER),
+        "geometry_contract_sha256": S.file_sha256(GEOM_CONTRACT),
+    }
 
     net = NW.build(nav_contract)
     cfg = P.PPOConfig.from_contract(VALUE_CONTRACT)
@@ -237,7 +251,7 @@ def main() -> int:
          "seed": args.seed, "prereg_sha256": prereg_sha,
          "n_envs": n_envs, "z0_J_range": [round(min(z0s), 2), round(max(z0s), 2)],
          "calls_per_window": calls_per_window, "max_updates": max_updates,
-         "smoke": smoke})
+         "smoke": smoke, "provenance": provenance})
 
     for update_idx in range(max_updates):
         t_win = time.time()
