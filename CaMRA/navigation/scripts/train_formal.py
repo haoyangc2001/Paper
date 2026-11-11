@@ -362,7 +362,25 @@ def main() -> int:
             "value_reach_old": torch.as_tensor(batch_arrays["value_reach"], dtype=torch.float32),
             "target_reach": torch.as_tensor(batch_arrays["obj_target_reach"], dtype=torch.float32),
         }
-        stats = updater.update(batch)
+        epochs = int(prereg["algorithm"].get("epochs_per_window", 1))
+        mb = int(prereg["algorithm"].get("minibatch_size", 0)) or int(batch["obs"].shape[0])
+        n_samples = int(batch["obs"].shape[0])
+        stats_acc: dict[str, list[float]] = {}
+        grad_steps = 0
+        for _epoch in range(epochs):
+            perm = torch.randperm(n_samples)
+            for start in range(0, n_samples, mb):
+                sel = perm[start:start + mb]
+                if int(sel.numel()) < 2:
+                    continue
+                sub = {k: v[sel] for k, v in batch.items()}
+                st_sub = updater.update(sub)
+                grad_steps += 1
+                for k, v in st_sub.items():
+                    if isinstance(v, float):
+                        stats_acc.setdefault(k, []).append(v)
+        stats = {k: float(np.mean(v)) for k, v in stats_acc.items()}
+        stats["grad_steps"] = float(grad_steps)
 
         # ---- audit chunks (per-env stores keep global_step continuity) ----
         for st, kind, arrays, env_done in window_segments:
@@ -384,6 +402,7 @@ def main() -> int:
             "wall_seconds": round(time.time() - t_win, 3),
             "n_segments": len(window_segments),
             "n_samples": int(batch["obs"].shape[0]),
+            "epochs": epochs, "minibatch_size": mb, "grad_steps": grad_steps,
             "labels_last_window": {
                 name: sum(1 for x in tail if x == name) for name in ALL_LABELS
             },

@@ -1,0 +1,154 @@
+{
+ "task": "NAV-039 round 3 (4 epochs x 512 minibatch, k=1.10)",
+ "schema": "camra-formal-training-report-v1",
+ "prereg": "config/formal_training_prereg_v3.json (sha256 adc7f7d2...)",
+ "method": "uncalibrated",
+ "purpose": "restore the clip_eps intent: 32 gradient steps per window (32x round 2)",
+ "gates": {
+  "updates_run_full_250": true,
+  "env_steps_match_prereg": true,
+  "wall_clock_under_6h": true,
+  "store_audit_clean": true
+ },
+ "honest_findings": {
+  "training_goal_reached": 0,
+  "note": "第三轮：每窗口 4 epochs × 512 小批 = 32 个梯度步（第二轮为 1 步），总梯度步数 250 -> 8000。clip_eps 首次真正生效（裁剪占比 5-8%）、熵从 4.26 降到 3.7-3.9、碰撞与僵持在后期窗口清零——策略确实在学（无校准方法 dev 最近距离 4.1-10.6 -> 2.6-5.7 m）。但成功率仍为 0：所有回合都变成一直开、油烧完，说明策略的路线效率不足，在 1.10xE_ref 的预算内走不完全程。按 v3 预登记写明的后果接受负结果（O-3），不再追加训练轮次；下游改用实测预算扫描。"
+ },
+ "runs": {
+  "seed_0": {
+   "run_id": "formal_uncal_k110e4_s0",
+   "seed": 0,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.419,
+   "prereg_sha256": "adc7f7d2bd62ae60...",
+   "z0_J_range": [
+    398.83,
+    534.91
+   ],
+   "grad_steps_per_window": 32,
+   "grad_norm_policy": {
+    "p50": 0.632,
+    "max": 1.159
+   },
+   "clip_fraction_mean": 0.0595,
+   "entropy": {
+    "first25": 4.2319,
+    "last25": 3.7131
+   },
+   "episode_label_counts": {
+    "collision": 135,
+    "out_of_bounds": 0,
+    "budget_exhausted": 8487,
+    "goal_reached": 0,
+    "stagnation": 158,
+    "timeout": 0
+   },
+   "store_chunks": 13242,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "min_distance_range": [
+     3.39,
+     5.376
+    ]
+   },
+   "oi1": {
+    "change_rate": 0.050941952722173216,
+    "hold_mean_s": 0.2801223241590214,
+    "mean_abs_vy": 0.14403433637589141,
+    "low_speed_share": 0.3598981077147016
+   }
+  },
+  "seed_1": {
+   "run_id": "formal_uncal_k110e4_s1",
+   "seed": 1,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.406,
+   "prereg_sha256": "adc7f7d2bd62ae60...",
+   "z0_J_range": [
+    398.83,
+    534.91
+   ],
+   "grad_steps_per_window": 32,
+   "grad_norm_policy": {
+    "p50": 0.628,
+    "max": 0.977
+   },
+   "clip_fraction_mean": 0.0596,
+   "entropy": {
+    "first25": 4.2056,
+    "last25": 3.5957
+   },
+   "episode_label_counts": {
+    "collision": 104,
+    "out_of_bounds": 0,
+    "budget_exhausted": 8085,
+    "goal_reached": 0,
+    "stagnation": 152,
+    "timeout": 0
+   },
+   "store_chunks": 12805,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "min_distance_range": [
+     2.569,
+     5.328
+    ]
+   },
+   "oi1": {
+    "change_rate": 0.07947768235383289,
+    "hold_mean_s": 0.3101313320825516,
+    "mean_abs_vy": 0.10366648796160413,
+    "low_speed_share": 0.40199637023593465
+   }
+  },
+  "seed_2": {
+   "run_id": "formal_uncal_k110e4_s2",
+   "seed": 2,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.406,
+   "prereg_sha256": "adc7f7d2bd62ae60...",
+   "z0_J_range": [
+    398.83,
+    534.91
+   ],
+   "grad_steps_per_window": 32,
+   "grad_norm_policy": {
+    "p50": 0.66,
+    "max": 1.107
+   },
+   "clip_fraction_mean": 0.062,
+   "entropy": {
+    "first25": 4.2383,
+    "last25": 3.6999
+   },
+   "episode_label_counts": {
+    "collision": 224,
+    "out_of_bounds": 0,
+    "budget_exhausted": 8076,
+    "goal_reached": 0,
+    "stagnation": 183,
+    "timeout": 0
+   },
+   "store_chunks": 12935,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "min_distance_range": [
+     3.38,
+     5.665
+    ]
+   },
+   "oi1": {
+    "change_rate": 0.08654534242225881,
+    "hold_mean_s": 0.24122137404580155,
+    "mean_abs_vy": 0.13878960062855786,
+    "low_speed_share": 0.4262658227848101
+   }
+  }
+ }
+}
