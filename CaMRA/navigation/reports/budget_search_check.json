@@ -1,0 +1,197 @@
+{
+ "task": "NAV-040",
+ "check": "budget_search",
+ "verdict": "PASS",
+ "n_checks": 17,
+ "n_failed": 0,
+ "checks": [
+  {
+   "check": "toy_chain_finds_exact_min_budget",
+   "ok": true,
+   "detail": {
+    "status": "found",
+    "z_J": 45.0,
+    "exact": 45.0,
+    "interval_J": [
+     44.84375,
+     45.0
+    ],
+    "iterations": 16
+   }
+  },
+  {
+   "check": "toy_chain_trace_and_bracket",
+   "ok": true,
+   "detail": {
+    "n_trace": 16,
+    "bracket_width": 0.15625,
+    "answer_measured_feasible": true,
+    "last_entry": {
+     "iteration": 6,
+     "z_J": 44.84375,
+     "z_ratio": 0.0815340909090909,
+     "score": -0.15625,
+     "feasible": false
+    }
+   }
+  },
+  {
+   "check": "inverse_returns_same_z_input",
+   "ok": true,
+   "detail": {
+    "z_J": 45.0,
+    "z_ratio": 0.08181818181818182,
+    "from_ratio": 45.0
+   }
+  },
+  {
+   "check": "inverse_refuses_clipped_ratio",
+   "ok": true,
+   "detail": {
+    "ratio": 1.2,
+    "refused": true
+   }
+  },
+  {
+   "check": "all_feasible_returns_endpoint_not_smaller_budget",
+   "ok": true,
+   "detail": {
+    "status": "all_feasible",
+    "z_J": 60.0,
+    "notes": [
+     "low endpoint already feasible; interval not expanded"
+    ]
+   }
+  },
+  {
+   "check": "all_infeasible_reports_no_root",
+   "ok": true,
+   "detail": {
+    "status": "all_infeasible",
+    "interval_J": [
+     5.0,
+     40.0
+    ]
+   }
+  },
+  {
+   "check": "non_monotonic_curve_detected",
+   "ok": true,
+   "detail": {
+    "status": "non_monotonic",
+    "notes": [
+     "non-monotonic: z_J=50.0 infeasible after a smaller budget (40.0) was feasible; the minimal feasible budget is ill-defined"
+    ],
+    "n_trace": 6
+   }
+  },
+  {
+   "check": "nan_score_is_invalid_not_feasible",
+   "ok": true,
+   "detail": {
+    "status": "invalid",
+    "notes": [
+     "non-finite score nan at z_J=10.0",
+     "non-finite score nan at z_J=100.0"
+    ]
+   }
+  },
+  {
+   "check": "raising_criterion_is_invalid",
+   "ok": true,
+   "detail": {
+    "status": "invalid",
+    "notes": [
+     "score raised at z_J=100.0: RuntimeError('critic exploded')"
+    ]
+   }
+  },
+  {
+   "check": "argument_guards_raise",
+   "ok": true,
+   "detail": {
+    "results": [
+     true,
+     true,
+     true,
+     true
+    ]
+   }
+  },
+  {
+   "check": "root_on_low_endpoint_counts_feasible",
+   "ok": true,
+   "detail": {
+    "status": "all_feasible",
+    "z_J": 45.0
+   }
+  },
+  {
+   "check": "grid_selects_smallest_feasible_k_and_reports_j_separately",
+   "ok": true,
+   "detail": {
+    "status": "found",
+    "k": 0.85,
+    "z_J": 51.0,
+    "e_ref_J": 60.0
+   }
+  },
+  {
+   "check": "grid_no_feasible_point_no_extension",
+   "ok": true,
+   "detail": {
+    "status": "no_feasible_budget",
+    "n_grid": 5
+   }
+  },
+  {
+   "check": "grid_guards_raise",
+   "ok": true,
+   "detail": {
+    "results": [
+     true,
+     true,
+     true
+    ]
+   }
+  },
+  {
+   "check": "tight_tolerance_reaches_root",
+   "ok": true,
+   "detail": {
+    "z_J": 45.0,
+    "exact": 45.0,
+    "iterations": 34
+   }
+  },
+  {
+   "check": "iteration_cap_disclosed_not_hidden",
+   "ok": true,
+   "detail": {
+    "status": "found",
+    "iterations": 13,
+    "notes": [
+     "iteration cap 3 hit before tol; bracket 1.25 J"
+    ]
+   }
+  },
+  {
+   "check": "result_serialises_with_criterion_and_trace",
+   "ok": true,
+   "detail": {
+    "keys": [
+     "interval_J",
+     "iterations",
+     "notes",
+     "score",
+     "status",
+     "tol_J",
+     "trace",
+     "z_J",
+     "z_ratio",
+     "z_ref_J"
+    ]
+   }
+  }
+ ]
+}
