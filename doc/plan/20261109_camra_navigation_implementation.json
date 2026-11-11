@@ -4041,6 +4041,40 @@
             "已批准的前置组件（向量化名义环境，逐位等价）未实现，且其速度增益未经实测",
             "authorization_record 与 experiment_prereg 对\"正式训练是否已授权\"记载矛盾"
           ]
+        },
+        {
+          "timestamp": "2026-11-11T17:28:09+08:00",
+          "summary": "路线 C 速度原型完成：批处理几何 0.338 ms/步，frozen 62.5 ms/步，快 185 倍；墙碰撞布尔 6400/6400 一致，nominal violation 逐岛对照 4000/4000 一致。授权目标 47.4 步/s 需要 ≤21 ms/步，几何段只占 0.34 ms —— 路线 A（向量化环境）可行，剩余工程量是把整条 step 管线（积分/成本/观测编码/标签/僵持）批量化的实现与逐位等价验证。",
+          "actions": [
+            "写原型 scripts/bench_vec.py：把两条热点路径换成数学上精确的批处理实现——①swept-hull 碰撞改为对 F0/F1 全部边法向做 SAT（凸包的边法向是其点集边法向的子集，轴集扩大只会更早发现分离、不会把相交误判成分离，布尔结果与 frozen 严格相同），省掉 2 次 hull + 1 次 inflate；②nominal violation 的障碍物预膨胀缓存（inflation_radius 全回合为常数，frozen 每步重算，且膨胀后的多边形有 100 个顶点）。",
+            "逐例对照 frozen：墙碰撞 6400/6400 一致；nominal violation 逐岛 4000/4000 一致（2000 例 × 2 岛）。第一版对照曾报 2358 处不一致，排查后是**对照逻辑写错**（把多岛 OR 当成单岛布尔），不是几何差异；已修正为逐岛对照并重跑。",
+            "新增 scripts/bench_vec2.py（逐岛对照的独立复跑，4000/4000 一致）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/bench_vec.py（路线 C 速度原型，含逐多边形对照）",
+            "CaMRA/navigation/scripts/bench_vec2.py（nominal violation 逐岛对照）"
+          ],
+          "commands": [
+            "python /tmp/bench_vec.py（6400 例）",
+            "python /tmp/bench2.py（2000 例 × 2 岛）"
+          ],
+          "results": [
+            "几何段：批处理 0.338 ms/步 vs frozen 62.5 ms/步（185 倍）；授权目标 ≤21 ms/步。",
+            "正确性：墙碰撞 6400/6400 一致、nominal violation 4000/4000 一致（0 不一致）。",
+            "frozen 慢的根因确认：膨胀后的岛多边形有 100 个顶点，frozen 每步对每个岛重算 inflate 并做86 点的 hull（f0∪f1），单次 hull 4.6 ms、每步 ~24 次。",
+            "积分器本身极快（6400 步 0.01 s），不是瓶颈。",
+            "结论：路线 A 可行。剩余工程 = 把整条 step 管线批量化 + 逐位等价验证 + 正式训练器 + 3 个 run。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/scripts/bench_vec.py、bench_vec2.py（可复算）",
+            "/tmp/bench.log、/tmp/bench2.py 输出（本记录 results 数值）"
+          ],
+          "remaining_work": [
+            "实现 VectorNominalNavEnv：批量积分/成本/安全/观测编码/标签/僵持检测 + 预膨胀缓存 + SAT 几何。",
+            "逐位等价验证：同一 (level, seed) 与同一命令序列下与标量 NominalNavEnv 逐步对拍（位姿、成本、标签、z_ratio、观测 41 维全部逐位相同）——experiment_prereg 的验收条款。",
+            "正式训练器 + 预登记（引用 value 1.1.0 / nav 1.4.0 / budget 1.1.0、max_grad_norm=2.5、3 种子、4096×250、checkpoint 每 25 updates）。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
