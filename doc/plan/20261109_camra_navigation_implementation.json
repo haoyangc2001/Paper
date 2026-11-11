@@ -3259,7 +3259,57 @@
       "depends_on": [
         "NAV-028"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T10:34:48+08:00",
+          "summary": "NAV-060 pilot 跑完（48 回合：new 36 + 对照 old 12）。G2A 判定 FAIL——10 项检查 9 过 1 败，唯一失败项是几何项 ε_d（q90 6.47 m > δ 2.61 m）；成本项 α、对照复现、低速停留、延迟、指令域、扰动有效性、前缀分母全过。按任务约束保持 false 并请求用户裁定，未自行收窄命令或改动裕度。",
+          "actions": [
+            "设计先冻结：新增 config/calibration_applicability_prereg_v1.json（sha256 36355ead…），锁定阈值、population、排除项与失败处置；运行模式每次校验 7 个输入文件散列，任一变化即拒跑。阈值 q90(ε_c)≤0.15（比 α=0.1905 更紧）、q90(ε_d)≤δ=2.6139、低速停留单向≤+10pp、延迟≤1 控制步。",
+            "新增 scripts/check_calibration_applicability.py：old 侧用 pilot split 的 12 条 clean/friction_only/mass_only（program_sha256 逐条重建校验，全部一致）；new 侧为规则反馈导航 10 Hz 闭环指令（3 图 × 4 种子 × 3 profile = 36）。push_only/combined 因协议 energy.push_work_rule（推扰功不计入 J_exec）显式排除。",
+            "执行链沿用 G2 已验证的官方 Lab 管线（env.step + ExternalCommandWrapper）；扰动用 calibration/sim/profiles_sim 的 apply_friction/apply_mass 逐 env 直写并读回校验（全部 ok）；warmup 1.0 s 零速闭环后取实测初态积分名义参考。",
+            "能量 200 Hz 逐子步记录（NavEnergyRecorder），离线复算 rel_diff 全部 <1e-9；前缀 5/10/20/30 s 与完整窗口分开记分母。",
+            "延迟实测：命令写入→policy 观测携带=0 控制步（0 次不一致/275 次换命令）；命令→首个物理子步力矩变化=1 子步(5 ms)，无一次无响应。",
+            "对照组成立：old 12 回合 ε_c q90=0.1904，与冻结 α=0.19050 几乎精确一致；ε_d q90=1.355 m ≤ δ。说明本机管线与原标定可比，对账口径正确。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/calibration_applicability_prereg_v1.json",
+            "CaMRA/navigation/scripts/check_calibration_applicability.py",
+            "CaMRA/navigation/reports/calibration_applicability_pilot.json",
+            "CaMRA/navigation/reports/gate_G2A.json",
+            "CaMRA/navigation/reports/applicability_L1_empty.json(+npz)",
+            "CaMRA/navigation/reports/applicability_L2_single_detour.json(+npz)",
+            "CaMRA/navigation/reports/applicability_L3_multi_path.json(+npz)",
+            "CaMRA/navigation/reports/applicability_old.json(+npz)"
+          ],
+          "commands": [
+            "python check_calibration_applicability.py --write-prereg",
+            "python check_calibration_applicability.py --split {new --level L1_empty|L2_single_detour|L3_multi_path | old} --json <per-run> --npz <per-run>",
+            "python check_calibration_applicability.py --aggregate --inputs <4 runs> --json reports/calibration_applicability_pilot.json --gate reports/gate_G2A.json"
+          ],
+          "results": [
+            "verdict FAIL，failed=[new_clean_q90_eps_d]。",
+            "成本项：new_clean q90(ε_c)=-0.0723（全负=模型偏保守）、new_friction=-0.0744、new_mass=+0.1905（=α 边界内），全部 ≤0.15 ✓。",
+            "几何项：new_clean q90(ε_d)=6.467 m、new_all=6.530 m，对照 old_all=1.355 m；δ=2.6139 m → 闭环流超 2.5 倍 ✗。",
+            "指令形态（任务要求的分布/变化/持续时间）：old |vx|=0.36/最大1.0/Δu均值0.068/保持0.44 s/wz 换向0.22次每秒/低速占比0.58；new |vx|=0.52/最大0.60/Δu均值0.0076（小 9 倍）/保持4.7-6.2 s（长 10 倍）/wz 换向0.02次每秒/低速占比0.18。闭环流比标定域更平滑、幅值更窄，是标定域的子集。",
+            "低速停留：new 0.1825 vs old 0.5775，shift=-0.395（单向判据通过；双向绝对值 0.395 也如实记录在报告里，方向为更少低速=安全侧）。",
+            "失败项机制（诊断，不参与判定）：执行路径对起终点弦线的最大横向偏移仅 0.149-0.182 m（弦长 13.6 m），但命令累计转角 0.73-1.20 rad——名义参考按完美跟踪把这 1 rad 转成约 6 m 的弧，而底层实际几乎未执行该角速率。即 ε_d 主要量的是名义参考自身漂移，不是机器人跑偏。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/gate_G2A.json（verdict FAIL，10 项检查明细 + 裁定请求）",
+            "CaMRA/navigation/reports/calibration_applicability_pilot.json（48 回合全量 + 逐回合前缀/分解 + diagnostic_observations，sha 见 gate）",
+            "CaMRA/navigation/config/calibration_applicability_prereg_v1.json（冻结设计，sha256 36355ead…）",
+            "/pub/data/caohy/tmp/nav060_{L1_empty,L2_single_detour,L3_multi_path,old2}.log（PROGRESS 全链路）"
+          ],
+          "remaining_work": [
+            "用户裁定项（4 选 1 或另行指示）：A 维持 ε_d 定义另给闭环几何裕度；B 闭环几何项改用计划路线作名义参考（δ 保留）；C 先测底层角速率死区、导航层只发可执行 wz 后复测；D 成本项沿用、几何项记闭环暂不适用。",
+            "裁定后：若走 C 需重跑 pilot（约 30 分钟）；若走 A/B 需登记契约变更。",
+            "义务延续：NAV-034/NAV-043 需对学习到的策略复查该适用性，NAV-048 需最终审计；本次 pilot 不替未来策略背书。"
+          ],
+          "blockers": [
+            "G2A 未通过（几何项），按任务约束 NAV-029 及任何上层学习不得启动，status 保持 false，等待用户裁定。"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "只用预登记integration_pilot及限额：规则反馈导航产生0.1秒在线指令，比较原每1秒目标/参考0.2秒过渡程序，核查变化率、切换频率、组合/低速停留与延迟；不声称尚未训练的actor已被验证。",
         "记录真实applied序列、warmup后实际初态并重建一次对齐的名义参考；有限pilot覆盖clean及已登记校准条件的扰动子集，先核验实际扰动有效，不碰最终评估集。",
@@ -3271,7 +3321,7 @@
         "G2A逐项给工程正确性与经验适用性结论，未通过或科学范围需裁定时保持false并询问；未解除不启动NAV-029及任何上层学习。",
         "写明后续NAV-034/043的学习策略复查及NAV-048最终审计义务；pilot通过不自动继承旧30秒覆盖结论，也不替未来策略背书。"
       ],
-      "verification_result": "",
+      "verification_result": "pilot 完成但 G2A 未通过：10 项检查 9 过 1 败（new_clean q90(ε_d)=6.467 m > δ=2.6139 m）。成本项 ε_c 全过（clean -0.0723 / friction -0.0744 / mass +0.1905）、对照复现 α（0.1904 vs 0.19050）。失败机制诊断为名义参考漂移（实际路径横向偏移仅 0.15-0.18 m）。按任务约束保持 false 并请求用户裁定。",
       "reference_ids": [
         "R07",
         "R08",

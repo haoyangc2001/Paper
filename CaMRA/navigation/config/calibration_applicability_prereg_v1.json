@@ -1,0 +1,143 @@
+{
+  "task": "NAV-060",
+  "gate": "G2A",
+  "schema": "camra.nav.applicability.prereg.v1",
+  "created_at": "2026-11-11T10:06:39+08:00",
+  "frozen_before_data": true,
+  "mutation_rule": "本文件在运行任何 pilot 回合之前落盘；运行模式会校验输入散列，任一输入变化即拒绝继续。阈值不得在看到数据后调整。",
+  "question": "闭环 10 Hz 在线指令下，冻结功率模型与裕度 α/δ 是否仍适用于成本与几何判定",
+  "frozen_inputs": {
+    "margins_v1.json": "2be77607b31c2fa5577d861ca4c6842caf6ed1fb7704abd284d65e01855e1704",
+    "power_model_v1.json": "e718595d1f2e1c41cdd07ce6e9d5f303649457394f2f1b0ae8b3d305f60915c6",
+    "calibration_protocol_v1.0.2.json": "da76c72e8d0bcda1373a750b7e95778fea11290a9023c63acc7a1a68e97c711e",
+    "pilot.jsonl": "c5e3083ea9cc95104b32e824a44ccd01af1d33a78ba871eb9a08e1aa4c98e7cf",
+    "lock.json": "d8bbe8bf6e56ce7594a06457e00f6045626969f61915ef39c5d785cffb86897c",
+    "split_manifest_v1.json": "17db0f0810f1844c2e663ed33a930d9a47d931fef26acf75bfbe0472675fe0af",
+    "map_design_v1.json": "43ebb07f3c73237256489d24c0d3848245436d3ceaaf43a7a94697838aecec82"
+  },
+  "frozen_values": {
+    "alpha": 0.19048279965649906,
+    "delta": 2.6138664115280967,
+    "q90_eps_c_of_calibration": 0.19048279965649906,
+    "q90_eps_d_of_calibration": 2.6138664115280967,
+    "margins_sha256_declared": "dd76972dd49fc8d078982c73c5bcb6c6e3eaa5fe1dc89281866b3801d538b5ec",
+    "power_model_sha256_declared": "bfe3b1594c08f729af78d4a22adf204ea0f96491892b98e1e0b24932f2ea1f55",
+    "protocol_version": "1.0.2",
+    "command_domain": {
+      "vx_mps": [
+        -1.0,
+        1.0
+      ],
+      "vy_mps": [
+        -0.4,
+        0.4
+      ],
+      "yaw_rate_radps": [
+        -1.0,
+        1.0
+      ],
+      "clip_rule": "目标命令先按域裁剪，再记录为 applied；原始目标与 applied 同时保存",
+      "zero_order_hold_s": 0.1
+    },
+    "command_program": {
+      "target_change_period_s": 1.0,
+      "transition_ramp_s": 0.2
+    }
+  },
+  "streams": {
+    "old": {
+      "description": "原校准命令程序：每 1.0 s 换目标、0.2 s 线性过渡，0.1 s 命令点，开环",
+      "generator": "camra_calibration.commands.build_program(family, seed, 30 s, dt=0.1, target_period=1.0, ramp=0.2)",
+      "domain": "pilot split（v2_lists/pilot.jsonl）中的 clean / friction_only / mass_only，4 命令族 × 3 profile = 12 回合；program_sha256 逐条校验",
+      "excluded_profiles": [
+        "combined",
+        "push_only"
+      ],
+      "exclusion_reason": "push_only / combined 含水平速度冲击；协议 energy.push_work_rule 规定推扰做功不计入 J_exec，会把能量配对污染成系统性偏差。本 pilot 不评推扰条件，属显式排除，不是静默丢弃。"
+    },
+    "new": {
+      "description": "规则反馈导航产生的 0.1 s 在线闭环指令（朝目标 heading P 控制）",
+      "controller": {
+        "vx_cruise": 0.6,
+        "vx_near_goal": 0.3,
+        "near_goal_m": 1.0,
+        "k_wz": 1.5,
+        "wz_limit": 0.8,
+        "vy": 0.0
+      },
+      "maps": [
+        "L1_empty",
+        "L2_single_detour",
+        "L3_multi_path"
+      ],
+      "map_seed": 101,
+      "seeds": {
+        "clean": [
+          9001,
+          9002,
+          9003,
+          9004
+        ],
+        "friction_only": [
+          9101,
+          9102,
+          9103,
+          9104
+        ],
+        "mass_only": [
+          9201,
+          9202,
+          9203,
+          9204
+        ]
+      },
+      "note": "9xxx 段为导航 pilot 专用种子；v2_lists 实占 4000-4399/5100-5119/6000-6799/7000-7399/8000-8199，互不重叠（运行时断言）"
+    }
+  },
+  "episode": {
+    "seconds": 30.0,
+    "warmup_seconds": 1.0,
+    "substeps": 6000,
+    "nav_steps": 300
+  },
+  "metrics": {
+    "eps_c": "(J_exec - J_nom) / J_nom，J_nom >= 1.0 J 才算；J_nom 由冻结功率模型对该回合实际 applied 命令序列积分（c_nom = P_nom(applied) * 0.1）",
+    "eps_d": "单回合 max_t ||p_exec(t) - p_nom(t)||_2，10 Hz 公共网格，p_nom 由 warmup 后实测平面初态积分得到（不插值、不相位对齐）",
+    "population_statistic": "nearest-rank q90（与协议 statistics.quantile_method 一致，k = ceil(0.9 n)，等于阈值视为通过）",
+    "change_rate": "相邻 0.1 s 命令点的 ||Δu||∞，报均值/最大值",
+    "switch_rate": "各轴符号翻转次数 / 秒",
+    "dwell": "命令保持（||Δu||∞ <= 0.02）的平均持续时间",
+    "low_speed_share": "|vx| <= 0.3 且 |wz| <= 0.3 的 0.1 s 区间占比（协议 strict 口径）",
+    "latency": {
+      "nav_period_s": 0.1,
+      "command_to_obs_ctrl_steps": "命令写入后 policy 观测携带该命令的控制步数",
+      "command_to_first_substep_s": "换命令的控制步内首个物理子步是否出现力矩变化"
+    }
+  },
+  "thresholds": {
+    "q90_eps_c_max": 0.15,
+    "q90_eps_d_max_m": 2.6138664115280967,
+    "alpha_bootstrap_interval": [
+      0.09345073247564634,
+      0.2319126400427789
+    ],
+    "delta_bootstrap_interval": [
+      1.7012786584342907,
+      3.242309687484631
+    ],
+    "low_speed_dwell_shift_max_pp": 0.1,
+    "low_speed_dwell_shift_direction": "one_sided",
+    "low_speed_dwell_shift_note": "只限制「新指令低速停留不超过旧程序 +10 个百分点」。反向（更少低速）不构成适用性风险，不判失败；双向数值仍如实报告。",
+    "latency_max_s": 0.02,
+    "j_min_j": 1.0,
+    "gate_populations": {
+      "primary": "new_clean（3 图 × 4 种子 = 12 回合）",
+      "secondary": "new_friction_only / new_mass_only（各 12 回合），同阈值分开报告",
+      "control": "old（12 回合）必须复现 α/δ，否则管线不可比，结论记为不可比而非通过"
+    }
+  },
+  "decisions": {
+    "on_pass": "G2A 通过：证明冻结 α/δ 对闭环指令形态适用；不替未来策略背书，NAV-034/043 仍需学习策略复查，NAV-048 需最终审计。",
+    "on_fail": "保持 false 并询问用户；不得收窄命令域、不得重估 α/δ、不得删样本。"
+  }
+}
