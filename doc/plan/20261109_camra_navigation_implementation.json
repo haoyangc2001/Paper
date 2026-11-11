@@ -3694,11 +3694,46 @@
       "id": "NAV-033",
       "phase": "算法迁移",
       "goal": "建立可枚举小问题的独立算法对照",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-032"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T12:15:47+08:00",
+          "summary": "NAV-033 完成：5×5 格、4 个离散动作、常数步成本的受限问题上穷举全部轨迹当精确参考，核对停止分段、预算符号、双 critic 联合判据与危险历史。13 项检查全过；可达/有路但预算不足/先危险后到达/不可达四类案例全部覆盖。",
+          "actions": [
+            "新增 tests/test_toy_reference.py：三张 toy 地图（开阔可达、单走廊带危险格、目标被围死），枚举所有轨迹及其每个前缀共 345/49/349 条，作为\"精确参考\"；参考实现全部在本文件重写（O(T²) 双层循环 + 状态空间反向归纳），不 import targets 的矩阵版本。",
+            "四个案例：A 可达（成本 0.4、预算 0.8、W*=0、停在上目标那步）；B 有路但预算不足（W* 恰等于 最小成本−预算 = 0.1，成本项压过到达项）；C 先危险后到达（唯一通路穿危险格，到达时残差恰为 C=1.0，预算给到 10 也不可行，最优是进危险格之前就停）；D 不可达（W* 退化为所有可达前缀里最小的 h = 0.712）。",
+            "逐前缀对账：三条 toy 的全部 740 条非空轨迹上，targets.select_stop 与 O(T²) 暴力在 τ*、W、done 上零不一致。",
+            "预算扫描：0.30→0.50 步长 0.01 共 21 点，判据实现与\"z0 >= DP 最小成本\"逐点一致；z0 = 0.4 时 W 恰为 0 且仍判可行（W <= −beta）。",
+            "联合判据：在 C 案例里找到契约 why_not_sum 的数值反例——reach=1.0、成本项=−9.6，求和为 −8.6 会误判可行，取 max 得 1.0 正确拒绝。",
+            "危险历史：y 只置 1 不复位；穷举 (cell, y=1, 剩余步数) 全部状态，V_h >= C 恒成立。",
+            "两条跨实现交叉核对：本文件的状态空间反向归纳与 targets.reach_values 在贪心轨迹上逐点一致到 1e-12；storage.compute_objectives 复现 toy 的三种终端规则（成功=实际成本、失败=FAIL_PENALTY、截断=成本+V_c(x_T)）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/tests/test_toy_reference.py",
+            "CaMRA/navigation/reports/toy_algorithm_validation.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_toy_reference.py --json CaMRA/navigation/reports/toy_algorithm_validation.json"
+          ],
+          "results": [
+            "verdict PASS，13/13，git 1a30035，运行 1.8 s。",
+            "γ_c = 1 的结构性发现：残差对 t 可加 → W(t,τ) 与 t 无关 → 每步重取与全局 argmin 等价（τ* 恒为 [3,3,3,3]）；同一路径改 γ_c = 0.9 则变成 [4,4,4,3]。这就是契约把 γ_c 钉死为 1、而不是当\"可调超参\"的理由。",
+            "边界发现：h = max(g_norm, C·y) 里最后那个 max(·, 0) 会把 G_INSIDE=−0.001 抹平，所以\"干净到达\"的残差恰好是 0 而不是负数——可行判据必须写成 W <= −beta，写成严格 < 会把完美到达判成不可行。",
+            "范围声明写进报告 scope_note：这个\"精确参考\"只对 4 个离散动作、确定性转移、常数步成本成立，不能外推成连续导航的全局最优，也不能用来给学到的策略打分。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/toy_algorithm_validation.json（13 项检查、四个案例的数值、扫描表）",
+            "CaMRA/navigation/tests/test_toy_reference.py（穷举 + DP + O(T²) 参考实现）"
+          ],
+          "remaining_work": [
+            "下一步 NAV-034（按依赖链）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "用受限动作集/简单地图构造可独立枚举或动态规划的小问题，核对安全、成本与预算可行边界。",
         "只在该受限问题上称为精确参考，不能将离散参考的最优值称为连续导航全局最优。"
@@ -3707,7 +3742,7 @@
         "目标先后、危险历史、预算正负及双critic联合判据与独立参考一致。",
         "至少覆盖可达/不可达、有路但预算不足和先危险后到达等本质不同的案例。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：13/13。在 5×5 格、4 离散动作、常数步成本的受限问题上穷举全部轨迹作精确参考：停止分段（τ*、W、done）在 740 条轨迹上与 O(T²) 暴力零不一致；预算符号翻转点恰等于 DP 最小成本；双 critic 联合判据给出契约 why_not_sum 的数值反例（sum=−8.6 误判可行、max=1.0 拒绝）；y 单调且 y=1 后 V_h>=C 在状态空间上穷举成立；四类案例（可达/有路但预算不足/先危险后到达/不可达）全部覆盖。本步的\"精确参考\"只对该受限问题成立，不外推到连续导航最优，已写入 scope_note。",
       "reference_ids": [
         "R03",
         "R04",
