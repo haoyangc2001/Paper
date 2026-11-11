@@ -1,0 +1,118 @@
+{
+  "schema": "camra-formal-training-prereg-v1",
+  "version": "1.0.0",
+  "owner": "NAV-036",
+  "created_at": "2026-11-11T19:30:00+08:00",
+  "status": "frozen_before_first_run",
+  "task": "NAV-036 无校准基线训练（预登记 run；正式训练授权依据 config/experiment_prereg_v1.json 的 user_decisions_2026_11_10 与 resource_budget_v1.formal_training_budget）",
+
+  "binding_contracts": {
+    "value_objective": {
+      "path": "config/value_objective_contract_v1.json",
+      "version": "1.2.0",
+      "note": "1.2.0 相对 1.1.0 仅改 estimator.max_grad_norm 0.5→2.5（NAV-034 复判整改，用户批准）；1.1.0 逐字节快照在 config/snapshots/value_objective_contract_v1.mgn0.5.pre-1.2.0.json"
+    },
+    "navigation": {
+      "path": "config/navigation_contract_v1.json",
+      "version": "1.4.0"
+    },
+    "budget_comparison": {
+      "path": "config/budget_comparison_contract_v1.json",
+      "version": "1.1.0"
+    },
+    "split_manifest": {
+      "path": "config/split_manifest_v1.json",
+      "hash": "053f9bcdd83c7f602e93847fa2361878a25c7c5827d6f80f49eb7e789b51720f",
+      "train_maps": 18
+    },
+    "experiment_prereg": "config/experiment_prereg_v1.json（training/selection/统计口径的上位文件）"
+  },
+
+  "method": {
+    "variant": "uncalibrated",
+    "alpha": 0.0,
+    "delta_m": 0.0,
+    "footprint": "保留冻结足迹 r_fp（几何判据不变，只去安全裕度）",
+    "cost_model": "JCostModel.from_frozen(variant='uncalibrated')：冻结 power-v1，α=0",
+    "note": "完整方法（full）的 3 个 run 用同一训练器与同一预登记，仅 variant/α/δ 不同；本文件对两种方法除裕度外的一切训练语义同等约束"
+  },
+
+  "environment": {
+    "implementation": "camra_navigation.envs.vector.VectorNominalNavEnv（NAV-036 逐位等价门 6/6 PASS，reports/vector_equivalence_check.json）",
+    "maps": "split_manifest train split 全部 18 张（3 level × seeds 1001-1006），每张图一个向量 env、每 env 一个回合，18 路锁步",
+    "map_cycle": "不轮换、不抽样：18 张图全程同时在跑；每 env 回合结束后立即在同图重置",
+    "env_randomness": "无（jitter=0，环境确定性；地图由 split_manifest 种子决定，与 experiment_prereg 的 rng_rule 一致）",
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5,
+    "stagnation": "窗口 3.0 s、最小位移 0.05 m（标量环境默认值）"
+  },
+
+  "budget": {
+    "rule": "z0 = k_train × E_ref(map)，k_train = 1.0（budget_comparison_contract budget_grid 的锚点档）",
+    "e_ref_source": "reports/train_map_reference_energy.json（用冻结 maps.feasibility.check_map 对 18 张训练地图重算，与策略无关）",
+    "saturation_guard": "全部 E_ref ≤ Z_REF_J=550.0，z_ratio 不触 ±1 饱和（reports/train_map_reference_energy.json verdict=PASS）",
+    "why_k_1.0": "k=1.0 是契约里『名义路线成本』锚点；k≥1.15 时 L2 的 z0=E_ref×1.15>550 会饱和，不可用；k_train 不参与 selection 网格（selection 的 k 是评估协议，不是训练预算）"
+  },
+
+  "algorithm": {
+    "network": "camra_navigation.algorithm.networks（256×2 tanh，正交初始化；log_std 独立参数、初值 0）",
+    "update": "MinimizationUpdater（NAV-031），PPOConfig.from_contract()（value_objective 1.2.0）：clip_eps=0.2、ent_coef=0.01、vf_coef=0.5、gamma_cost=1.0、gae_lambda=0.95、beta=0、max_grad_norm=2.5",
+    "lr_policy": 3e-4,
+    "lr_critic": 1e-3,
+    "objective": "每段样本按 storage.compute_objectives（契约 bootstrap 表：failure=FAIL_PENALTY、success=实际成本、truncation=尾段成本+V_c(x_T)）；policy 目标 = W_sel − V_total（storage 模块文档第 2 条差异）",
+    "advantage_normalization": "每次更新对整个更新窗（4086 样本）联合标准化——与短训练（每回合各自标准化）不同，这是 minibatch 语义的预登记选择，两种不可比"
+  },
+
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "deviation_note": "授权写的是 4096 步/update；18 路锁步无法整除，取 227 calls=4086 步（不足不超），250 updates 合计 1,021,500 ≤ 授权上限 1,024,000",
+    "max_updates": 250,
+    "max_total_env_steps_per_run": 1021500,
+    "truncation_at_boundary": "窗口结束时未完成的回合在训练段边界截断：该段按 truncation 计目标、V_c(x_T)/V_h(x_T) 用窗口末 critic 值 bootstrap；环境侧回合不重置，下个窗口继续",
+    "one_gradient_step_per_window": "每个窗口的全部段拼成一个 batch，一次梯度更新；每回合只被更新一次（与 NAV-032 一致，epochs=1）"
+  },
+
+  "seeds_and_rng": {
+    "training_seeds": [0, 1, 2],
+    "runs_total_uncalibrated": 3,
+    "rng_rule": "torch.manual_seed(training_seed) 管网络初始化与动作采样（experiment_prereg 的 rng_rule）；环境侧无随机",
+    "checkpoint_rng": "checkpoint 保存 torch RNG 状态，基础设施故障换新 run id 重跑（experiment_prereg retry_rule），不做中途续跑"
+  },
+
+  "checkpoints": {
+    "save_every_updates": 25,
+    "final_checkpoint": "最后一个更新，不按验证表现挑选（experiment_prereg checkpoint_rule 原文约束）",
+    "path_pattern": "<run_dir>/state_u{N}.pt + <run_dir>/state.pt（最终）"
+  },
+
+  "discipline": {
+    "early_stop": "无早停，跑满 250 updates；未收敛如实报告为负结果",
+    "hyperparameter_changes": "训练开始后不得改动任何超参；实现错误必须停止并记录，修复后从头重训该 run",
+    "wall_clock_cap_hours_per_run": 6,
+    "device": "cpu"
+  },
+
+  "logging": {
+    "per_update": "train_log.jsonl 一行：losses、grad norms（三项）、entropy、clip fractions、优势统计、窗口回合标签直方图、墙钟",
+    "per_episode": "rollout/manifest.jsonl 一 chunk 一回合（NAV-032 RolloutStore，三重对账），样本级字段可离线重算对账",
+    "no_credentials": "日志经 storage.assert_no_secrets 检查"
+  },
+
+  "evaluation_of_this_task": {
+    "in_training": "无验证、无模型选择（checkpoint_rule）",
+    "after_training": "最终 checkpoint 在 development split 6 图上做确定性（mean action）诊断评估，每 run 每图 1 回合；只作诊断，不得写成最终数字（experiment_prereg evaluation.development.reporting）",
+    "sr_gate_0_9": "provisional 名义成功率门 0.9 属最终评估协议（NAV-037+），本任务只报告不判定"
+  },
+
+  "deliverables": {
+    "per_run": "<work_root>/<run_id>/（train_log.jsonl、rollout/、checkpoints）",
+    "report": "reports/training_uncalibrated.json：三 run 汇总、曲线摘要、最终 dev 诊断、门禁自检（吞吐、墙钟、grad clip 占比、无 NaN）"
+  },
+
+  "open_items_carryover": [
+    "OI-1 候选指令分布复测（变化率/保持时长/死区占比/侧移）是长训出口条件：本任务训练结束后对最终 checkpoint 按候选指令统计口径复测并给数",
+    "OI-3 λ 平滑优势对照：留待后续任务，不在本 run 内做"
+  ]
+}

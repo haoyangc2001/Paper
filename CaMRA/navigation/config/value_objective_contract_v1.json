@@ -1,12 +1,17 @@
 {
   "schema": "camra-navigation-value-objective-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "created_at": "2026-11-10T10:52:00+08:00",
-  "owner_tasks": ["NAV-056"],
-  "depends_on": ["NAV-012", "NAV-013", "NAV-055"],
+  "owner_tasks": [
+    "NAV-056"
+  ],
+  "depends_on": [
+    "NAV-012",
+    "NAV-013",
+    "NAV-055"
+  ],
   "status": "frozen",
   "status_note": "冻结累计能量目标与双评价尺度、停止契约。优化超参（学习率/批大小/epoch）不属于本契约，可自由调整。",
-
   "objective": {
     "statement": "在冻结 v2 底层之上，找到使任务成功率可行的最小未折扣累计机械功执行策略；成本只累加执行前缀，不按时间折扣。",
     "cost_per_step": "c_model,t = (1 + alpha) * P_nom(u_applied,t) * dt_nav，dt_nav = 0.1 s，单位 J",
@@ -19,7 +24,6 @@
       "按 <1 的折扣因子加权的成本（那会把晚发生的能耗当成更便宜）"
     ]
   },
-
   "quantities": {
     "z_0": {
       "meaning": "本回合初始预算",
@@ -52,7 +56,10 @@
       "meaning": "归一化有符号剩余预算",
       "definition": "clip(z_J / Z_REF_J, -1, 1)",
       "unit": "无量纲",
-      "range": [-1.0, 1.0],
+      "range": [
+        -1.0,
+        1.0
+      ],
       "note": "与观测 obs-v1 的 z_ratio 字段同式同值，训练与观测不得各算一套"
     },
     "g_norm": {
@@ -93,7 +100,6 @@
       "not_a_safety_margin": "beta 是数值可行性容差，不能替代 delta 或作为安全裕度解释"
     }
   },
-
   "residual": {
     "formula": "W(x) = max( V_h(x), V_c(x) - z_ratio )",
     "reading": "V_c - z_ratio <= 0 表示预计剩余成本装得进剩余预算；V_h <= 0 表示能安全到达；两者都满足才可行",
@@ -101,7 +107,6 @@
     "why_not_sum": "求和会把「能到达但超支」和「装得进预算但到不了」互相抵消，破坏分离语义",
     "scale_requirement": "V_c、z_ratio 同为 J/Z_REF_J；V_h、g_norm、C 为无量纲。任一侧混入 J 会使 W 失去意义（见反例 2）"
   },
-
   "stop_rule": {
     "definition": "tau* = argmin_{tau in tail} max( V_c(x_tau) - z_ratio(x_tau), V_h(x_tau) )，取首个最小值",
     "implementation_note": "RC-PPO calculate_indexs3 在倒序扫描中逐步选 argmin，因此是「每步对尾段重新取最优停止」，不是一次性全局 argmin；实现必须复刻该语义而非改写为全局 argmin",
@@ -109,7 +114,6 @@
     "shared_index": "两个 critic 共用同一 tau*；违反即视为实现错误，不是数值差异",
     "counterexample": "reports/value_objective_alignment.json 的 separate_stop_counterexample：分开取时刻会给出 W=-0.1（误判可行），正确值为 +0.5（不可行）"
   },
-
   "estimator": {
     "gamma_cost": 1.0,
     "gamma_cost_rationale": "目标就是未折扣累计 J。RC-PPO 的 GAMMA_ENERGY 默认值恰为 1.0，本条沿用而非改写；若改成 0.99，同样 100 J 但晚发生的轨迹会被低估约 8.65 J（见反例 1），等于偷偷把目标改成折扣成本。",
@@ -121,12 +125,17 @@
     "clip_eps": 0.2,
     "ent_coef": 0.01,
     "vf_coef": 0.5,
-    "max_grad_norm": 0.5,
-    "optimization_hyperparameters_note": "clip_eps / ent_coef / vf_coef / lr / epochs / minibatches / max_grad_norm 属于优化超参，训练任务可调整，不改变本契约语义，因此不在此冻结具体值以外的约束。"
+    "max_grad_norm": 2.5,
+    "optimization_hyperparameters_note": "clip_eps / ent_coef / vf_coef / lr / epochs / minibatches / max_grad_norm 属于优化超参，训练任务可调整，不改变本契约语义，因此不在此冻结具体值以外的约束。",
+    "max_grad_norm_provenance": "NAV-034 复判整改（用户批准）：0.5 在短训练中导致 97.8% 更新被裁剪、CLI 步长与梯度脱钩；1.2.0 仅改此一处，1.1.0 的逐字节快照在 config/snapshots/value_objective_contract_v1.mgn0.5.pre-1.2.0.json（sha256=cd3c232218dce1a9386de57ec4de3075af8fdcea4882532cd7651c5765be1a60）。其余估计器量与 1.1.0 完全一致。"
   },
-
   "bootstrap": {
-    "types": ["env_done_failure", "env_done_success", "truncation_timeout", "training_stop_segmentation"],
+    "types": [
+      "env_done_failure",
+      "env_done_success",
+      "truncation_timeout",
+      "training_stop_segmentation"
+    ],
     "env_done_failure": {
       "target": "V_c 目标 = FAIL_PENALTY；V_h 目标 = FAIL_PENALTY",
       "bootstrap": false,
@@ -154,7 +163,6 @@
       "review": "NAV-034 训练诊断时若有证据表明过大/过小再调整，需升版本"
     }
   },
-
   "training_targets": {
     "policy_advantage": "总残差 W 的优势（对应 RC-PPO 的 advantages_total，用 GAMMA_REACH_INIT 的 GAE）",
     "cost_critic_target": "advantages_V + value（GAE(gamma_cost, lambda)）",
@@ -163,7 +171,6 @@
     "policy_loss": "最小化 mean(max(ratio*A, clip(ratio)*A)) + 熵项（最小化下熵为负号）；不得照抄成 min + 梯度上升",
     "common_value_units": "V_c 与 z_ratio 同为 J/Z_REF_J；V_h 为无量纲残差量；两者在 W 中相加/取 max 前必须已同尺度"
   },
-
   "sign_conventions": [
     "成本 c_model > 0（支出为正），z 递减",
     "V_c >= 0，表示还要花的归一化成本",
@@ -172,7 +179,6 @@
     "W <= -beta 判为可行",
     "优势 A > 0 表示该动作优于平均水平（此处为成本更低）"
   ],
-
   "reference_diff": [
     {
       "item": "折扣",
@@ -245,7 +251,6 @@
       "note": "新增项：物理失败（跌倒/碰撞/越界）不在 y 的覆盖范围内，必须显式给终端代价"
     }
   ],
-
   "forbidden": [
     "用 J 数值直接与无量纲 V_h 比较",
     "把 z_ref 设成本回合初始预算并据此归一化",
@@ -255,7 +260,6 @@
     "在截断样本上做 bootstrap 却在评估时当作失败",
     "用 FAIL_PENALTY 参与可行性判定 W <= -beta"
   ],
-
   "provisional": [
     {
       "item": "C = 1.0",
@@ -278,7 +282,6 @@
       "confirm_by": "NAV-034 可调，不需要改目标语义"
     }
   ],
-
   "open_items": [
     {
       "item": "L_REF_m 与地图半幅同步",
