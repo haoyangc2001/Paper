@@ -56,15 +56,16 @@ def main() -> int:
     model = PowerModel.from_dict(json.load(open(POWER, encoding="utf-8")))
     split = json.load(open(SPLIT, encoding="utf-8"))
     train_maps = split["splits"]["train"]["maps"]
-    assert len(train_maps) == 18, len(train_maps)
-
+    dev_maps = split["splits"]["development"]["maps"]
+    all_maps = [(m, "train") for m in train_maps] + [(m, "development") for m in dev_maps]
     records: list[dict[str, Any]] = []
-    for m in train_maps:
+    for m, split_name in all_maps:
         spec = M.build(m["level"], m["seed"], design)
         rec = F.check_map(spec, geometry, model, resolution=RESOLUTION)
         route = rec.get("route") or {}
         records.append({
             "map_id": m["map_id"],
+            "split": split_name,
             "level": m["level"],
             "seed": m["seed"],
             "admitted": bool(rec.get("admitted")),
@@ -79,9 +80,10 @@ def main() -> int:
                 or spec.geometry_hash() == m.get("geometry_hash"),
         })
 
-    missing = [r["map_id"] for r in records
+    train_records = [r for r in records if r["split"] == "train"]
+    missing = [r["map_id"] for r in train_records
                if not r["admitted"] or r["e_ref_J"] is None]
-    e_refs = [r["e_ref_J"] for r in records if r["e_ref_J"] is not None]
+    e_refs = [r["e_ref_J"] for r in train_records if r["e_ref_J"] is not None]
     max_ref = max(e_refs) if e_refs else None
     # value_objective_contract 1.2.0: z_ratio saturation guard requires
     # z0 = k*E_ref <= Z_REF_J for the training anchor k=1.0.
@@ -96,7 +98,8 @@ def main() -> int:
         "task": "NAV-036",
         "schema": "camra-train-map-reference-energy-v1",
         "verdict": verdict,
-        "n_maps": len(records),
+        "n_maps_train": len(train_records),
+        "n_maps_development": len(records) - len(train_records),
         "all_admitted": not missing,
         "e_ref_range_J": [min(e_refs), max(e_refs)] if e_refs else None,
         "z_ref_J": z_ref,
@@ -104,7 +107,9 @@ def main() -> int:
         "budget_rule": "z0 = k_train * E_ref(map); prereg pins k_train = 1.0",
         "maps": records,
         "note": "Recomputed with the frozen maps.feasibility.check_map code path "
-                "(same as NAV-017 admission, resolution=0.15); policy-independent.",
+                "(same as NAV-017 admission, resolution=0.15); policy-independent. "
+                "2026-11-11: development-split entries added for the final "
+                "diagnostic evaluation (train entries unchanged, same code path).",
     }
     print(json.dumps({"verdict": verdict, "n_maps": len(records),
                       "missing": missing, "saturated": saturated,
