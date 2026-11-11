@@ -3762,7 +3762,51 @@
       "depends_on": [
         "NAV-033"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T12:50:04+08:00",
+          "summary": "NAV-034 名义环境部分完成、gate 判定 FAIL（G4 优化层）。预登记冻结后跑完 L1→L2→L3 各 30 回合：G1 环境 / G2 目标 / G3 采样 / G5 可学性全过，G4 因 grad_norm_p50=1.035 超过登记阈值 0.45 而失败。任务保持 false，等两个裁定。",
+          "actions": [
+            "新增 config/smoke_training_prereg_v1.json（sha256 83e1db20）+ .sha256：跑前冻结，内容包括α=0/δ=0 但保留足迹、三级课程 30/30/30、train 1001–1006、development 2001–2002、z0=0.98·Z_REF_J、G1–G5 全部阈值、禁止事项与 amend 规则。运行脚本先校验散列，不符拒跑。",
+            "新增 config/smoke_training_prereg_v1.amend1.json：只把墙钟护栏 20→35 分钟，理由实测——冻结模块 camra_calibration.geometry.convex_hull_2d 单次 4.6 ms，|wz|>0 时每步调用约 24 次（67 ms/步，直线指令只有 4.3 ms/步）。回合预算、阈值、种子、z0 一律未动；实际跑完 16.9 分钟，amend 没有改变任何结论。",
+            "新增 scripts/run_smoke_training.py：预登记校验 → 基线评估 → 三级课程训练（一回合一个 chunk，复用 NAV-032 的 storage，最后 audit 干净，6214 样本）→ 每阶段 development 确定性评估 → G1–G5 判定 → 报告。诊断按环境/目标/采样/优化四层分开，便于定位失败原因。",
+            "报告写进 reports/nominal_smoke_training.json：配置指纹、契约散列、每回合曲线、三次评估快照、诊断量、gate 明细、结构性发现。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/smoke_training_prereg_v1.json",
+            "CaMRA/navigation/config/smoke_training_prereg_v1.json.sha256",
+            "CaMRA/navigation/config/smoke_training_prereg_v1.amend1.json",
+            "CaMRA/navigation/scripts/run_smoke_training.py",
+            "CaMRA/navigation/reports/nominal_smoke_training.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/run_smoke_training.py --run-id nav034_smoke_02 --json CaMRA/navigation/reports/nominal_smoke_training.json"
+          ],
+          "results": [
+            "verdict FAIL，git cf9ab09。90 个训练回合 1012.9 s（16.9 min，未越 35 min 护栏）；run 目录 /pub/data/caohy/work/camra_navigation/nav034_smoke_02，6214 样本，store audit 无问题。",
+            "G1 环境通过（env_faults=0、nonfinite=0）；G2 目标通过（objective_nonfinite=0、stop_index_below_t=0）；G3 采样通过（动作饱和率 0.329 ≤ 0.35、熵 4.2568→4.2616 未塌缩、log_std=0.0016 ≥ log 0.3）。",
+            "G4 优化失败：grad_norm_p50 = 1.035 > 0.45。torch 的 clip_grad_norm_ 返回的是**裁剪前**的范数，所以这条等于说策略梯度稳定在 max_grad_norm=0.5 的约 2 倍，至少一半更新被裁剪——每次更新都是固定长度的归一化步，而不是与梯度成比例的步。参数相对变化 0.0498 在 [1e-5, 0.5] 内，损失全部有限，所以只有\"梯度贴顶\"这一条触发。",
+            "G5 可学性通过（3/3 级）：development 上最近到达距离 13.98→6.60 m（L1，预算耗尽）、13.97→8.41 m（L2，碰撞）、13.97→6.92 m（L3，预算耗尽）；基线全部是 30 步僵持。",
+            "训练曲线的事件结构也在动：L1 阶段 14 僵持/16 预算耗尽 → L3 阶段 1 僵持/29 预算耗尽，说明策略学会了\"别停着\"，而不是靠 loss 下降。",
+            "**结构性发现（跑前已登记，现测得）**：z0=0.98·Z_REF=221.09 J 在 0.6 m/s 下最多买 7.9 m，而 NAV-058 的参考能量是 362.5/462.5/367.7 J（1.61/2.05/1.63 × Z_REF）。6214 个样本里 feasible_steps = 0，全部回合以预算耗尽或更早结束，成功率 0 是结构性的、不是没学好。由于 z_ratio 在 ±1 截断，把 z0 提到 Z_REF 以上也没用：残差的成本项会退化成 min(z0, Z_REF)。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nominal_smoke_training.json（gate 明细、三次评估、诊断量、学习曲线）",
+            "CaMRA/navigation/config/smoke_training_prereg_v1.json + .sha256 + amend1.json",
+            "CaMRA/navigation/scripts/run_smoke_training.py",
+            "/pub/data/caohy/work/camra_navigation/nav034_smoke_02（原始轨迹 chunk + train_log.jsonl）"
+          ],
+          "remaining_work": [
+            "待裁定 A（G4 阈值）：grad_norm_p50 判据把\"梯度贴裁剪上限\"当病征，但 PPO 在早期本来就会贴；要么在下一轮之前另立 amend 把判据改成可解释的形式（例如看更新步长与梯度方向的余弦、或看参数相对变化的分布），要么认定它是真问题并在 NAV-035 调 lr / 优势尺度后重跑本门。",
+            "待裁定 B（预算尺度）：Z_REF_J=225.6 J 低于全部场景的参考能量，按契约字面实现则任何策略都不可行。归 NAV-036：①按场景缩放 Z_REF_J（改契约、需升版）；②残差的成本项改用未截断 z_J/Z_REF（观测仍截断）。",
+            "NAV-034 第二半（未做）：用 NAV-060 同口径对学习候选做 integration_pilot 指令/前缀复查。需要把 check_calibration_applicability.py 的指令源从写死的 heading-P 反馈换成学习 actor，并登记 quick_check_quotas 的 2 次 / 180 分钟配额。这一步要动已通过门禁的脚本，等确认。"
+          ],
+          "blockers": [
+            "G4 阈值判据需要裁定（改动的是判据，不是让结果通过）",
+            "第二半需要动 check_calibration_applicability.py 并消耗 Isaac 配额，需先确认"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "只用train/development，在无障碍→单障碍→多路径名义环境中做预登记短run，α=δ=0但保留足迹。",
         "检查任务表现和稳定性，不以loss下降替代学会；不提前看最终split或无限延长预算。",
@@ -3774,7 +3818,7 @@
         "达到短测试放行条件；异常能区分环境、目标、采样和优化问题，失败保持false。",
         "短训练学习候选的真实指令与物理配对复查可追溯，适用性按预登记规则通过或用户对探索性范围作出明确决定。"
       ],
-      "verification_result": "",
+      "verification_result": "FAIL：G1/G2/G3/G5 通过，G4 优化层不通过（grad_norm_p50=1.035 > 0.45，即裁剪前梯度范数稳定在 max_grad_norm 的约 2 倍、至少一半更新被裁剪）。可学性信号是真实的：development 最近到达距离 13.98→6.60 m（L1）、13.97→8.41 m（L2）、13.97→6.92 m（L3），且事件结构从\"僵持为主\"转为\"预算耗尽为主\"，没有用 loss 下降替代任务指标。同时测得结构性限制：参考能量 362–489 J 高于 Z_REF_J=225.6 J，z_ratio 截断使得 z0 提到 Z_REF 以上无效，本轮 6214 个样本 feasible_steps=0、成功率为 0 属构造性结果，不是策略问题；该冲突归 NAV-036 裁定。任务保持 false，等 G4 判据与第二半（Isaac 复查）两项裁定后再继续。",
       "reference_ids": [
         "R03",
         "R10",
