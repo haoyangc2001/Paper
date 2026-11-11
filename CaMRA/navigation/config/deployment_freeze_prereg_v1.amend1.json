@@ -1,0 +1,18 @@
+{
+  "schema": "camra-deployment-freeze-prereg-amend-v1",
+  "amend_id": 1,
+  "task": "NAV-038",
+  "created_at": "2026-11-11T20:55:00+08:00",
+  "base_prereg_sha256": "66b038d0c4211720cf96c18403fb00cc75b1f6db145a1597ec9bb8daa2825a4b",
+  "approved_by": "user, 2026-11-11 NAV-038 session (PARTIAL verdict presented; option A chosen)",
+  "changes": [
+    {
+      "field": "critic_pass_thresholds.pearson",
+      "from": "无条件 corr(V, target) >= 0.70",
+      "to": "方差门限后的 corr(V, target) >= 0.70：仅当 std(target) >= 0.5 * mean(|target|) 时适用；门限不满足（目标方差退化）时，由 rel_mae <= 0.35 单独判定",
+      "why": "确定性均值策略使同一地图的轨迹逐位相同，24 张图的目标（尤其 V_h）方差被压扁——皮尔逊相关在近常数目标上数学失真。实测：4 个 FAIL 候选的相对误差 0.064-0.183 全部远低于 0.35 门限，卡死的全是相关系数（0.016-0.356），而 2 个 PASS 候选的相关 0.93-0.96 只是恰好有一点方差。门限取 0.5*mean(|target|) 是尺度无关比，不依赖从本次数据挑出的绝对常数。",
+      "what_does_not_change": "rel_mae <= 0.35 原样保留；重拟合分支与轮数原样保留；本轮核验不重新训练——复判只对已完成的同一次重拟合结果重新应用判据"
+    }
+  ],
+  "protocol": "复判不覆盖原报告（verdict=PARTIAL 原样留档）；复判书另出文件，携带原判/新判/本修正散列/输入指标；bundle 随新判重建并在版本内登记 amend 链"
+}

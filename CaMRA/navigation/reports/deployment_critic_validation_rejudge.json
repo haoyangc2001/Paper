@@ -1,0 +1,188 @@
+{
+ "task": "NAV-038",
+ "schema": "camra-deployment-critic-rejudge-v1",
+ "base_report": "reports/deployment_critic_validation.json (verdict=PARTIAL, preserved)",
+ "prereg_sha256": "66b038d0c4211720cf96c18403fb00cc75b1f6db145a1597ec9bb8daa2825a4b",
+ "amend": "config/deployment_freeze_prereg_v1.amend1.json (sha256 5e7ed559fbd4067116d13ddb92c9f22dd7f43d6034cecf50c5ab00b24c95d160)",
+ "amended_criterion": "rel_mae <= 0.35 always; Pearson >= 0.70 only when std(target) >= 0.5*mean(|target|); below the gate rel MAE alone governs",
+ "no_retraining": "same weights as the original run; drift guard enforced (recomputed metrics must equal the original ones)",
+ "n_candidates": 6,
+ "n_pass_rejudged": 6,
+ "verdict": "PASS",
+ "rows": [
+  {
+   "run_id": "formal_uncal_s0",
+   "original_verdict": "FAIL",
+   "rejudged_verdict": "PASS",
+   "metrics": {
+    "critic_cost": {
+     "mae": 0.02258,
+     "mean_abs_target": 0.27687,
+     "rel_mae": 0.08157,
+     "pearson": 0.9184
+    },
+    "critic_reach": {
+     "mae": 0.04251,
+     "mean_abs_target": 0.34293,
+     "rel_mae": 0.12397,
+     "pearson": 0.14466
+    }
+   },
+   "target_std_over_mean": {
+    "critic_cost": 0.8098,
+    "critic_reach": 0.1841
+   },
+   "pearson_gate_applied": {
+    "critic_cost": true,
+    "critic_reach": false
+   },
+   "problems": [],
+   "episodes_used": 18
+  },
+  {
+   "run_id": "formal_uncal_s1",
+   "original_verdict": "FAIL",
+   "rejudged_verdict": "PASS",
+   "metrics": {
+    "critic_cost": {
+     "mae": 0.02161,
+     "mean_abs_target": 0.19676,
+     "rel_mae": 0.10984,
+     "pearson": 0.91812
+    },
+    "critic_reach": {
+     "mae": 0.05149,
+     "mean_abs_target": 0.282,
+     "rel_mae": 0.18259,
+     "pearson": 0.35531
+    }
+   },
+   "target_std_over_mean": {
+    "critic_cost": 1.0684,
+    "critic_reach": 0.2534
+   },
+   "pearson_gate_applied": {
+    "critic_cost": true,
+    "critic_reach": false
+   },
+   "problems": [],
+   "episodes_used": 17
+  },
+  {
+   "run_id": "formal_uncal_s2",
+   "original_verdict": "FAIL",
+   "rejudged_verdict": "PASS",
+   "metrics": {
+    "critic_cost": {
+     "mae": 0.01815,
+     "mean_abs_target": 0.17953,
+     "rel_mae": 0.10111,
+     "pearson": 0.92233
+    },
+    "critic_reach": {
+     "mae": 0.02893,
+     "mean_abs_target": 0.32423,
+     "rel_mae": 0.08922,
+     "pearson": 0.35151
+    }
+   },
+   "target_std_over_mean": {
+    "critic_cost": 1.1141,
+    "critic_reach": 0.1834
+   },
+   "pearson_gate_applied": {
+    "critic_cost": true,
+    "critic_reach": false
+   },
+   "problems": [],
+   "episodes_used": 17
+  },
+  {
+   "run_id": "formal_full_s0",
+   "original_verdict": "PASS",
+   "rejudged_verdict": "PASS",
+   "metrics": {
+    "critic_cost": {
+     "mae": 0.04418,
+     "mean_abs_target": 0.18685,
+     "rel_mae": 0.23645,
+     "pearson": 0.90088
+    },
+    "critic_reach": {
+     "mae": 0.14761,
+     "mean_abs_target": 0.55272,
+     "rel_mae": 0.26706,
+     "pearson": 0.95871
+    }
+   },
+   "target_std_over_mean": {
+    "critic_cost": 1.0204,
+    "critic_reach": 0.5022
+   },
+   "pearson_gate_applied": {
+    "critic_cost": true,
+    "critic_reach": true
+   },
+   "problems": [],
+   "episodes_used": 16
+  },
+  {
+   "run_id": "formal_full_s1",
+   "original_verdict": "PASS",
+   "rejudged_verdict": "PASS",
+   "metrics": {
+    "critic_cost": {
+     "mae": 0.04401,
+     "mean_abs_target": 0.18309,
+     "rel_mae": 0.24036,
+     "pearson": 0.89642
+    },
+    "critic_reach": {
+     "mae": 0.13929,
+     "mean_abs_target": 0.50523,
+     "rel_mae": 0.27571,
+     "pearson": 0.92975
+    }
+   },
+   "target_std_over_mean": {
+    "critic_cost": 1.0388,
+    "critic_reach": 0.4727
+   },
+   "pearson_gate_applied": {
+    "critic_cost": true,
+    "critic_reach": false
+   },
+   "problems": [],
+   "episodes_used": 16
+  },
+  {
+   "run_id": "formal_full_s2",
+   "original_verdict": "FAIL",
+   "rejudged_verdict": "PASS",
+   "metrics": {
+    "critic_cost": {
+     "mae": 0.02045,
+     "mean_abs_target": 0.25553,
+     "rel_mae": 0.08002,
+     "pearson": 0.90242
+    },
+    "critic_reach": {
+     "mae": 0.02262,
+     "mean_abs_target": 0.35179,
+     "rel_mae": 0.06431,
+     "pearson": 0.01605
+    }
+   },
+   "target_std_over_mean": {
+    "critic_cost": 0.8484,
+    "critic_reach": 0.1763
+   },
+   "pearson_gate_applied": {
+    "critic_cost": true,
+    "critic_reach": false
+   },
+   "problems": [],
+   "episodes_used": 8
+  }
+ ]
+}

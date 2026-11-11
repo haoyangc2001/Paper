@@ -1,0 +1,65 @@
+{
+  "schema": "camra-deployment-freeze-prereg-v1",
+  "version": "1.0.0",
+  "owner": "NAV-038",
+  "created_at": "2026-11-11T20:45:00+08:00",
+  "status": "frozen_before_validation",
+  "task": "NAV-038 确定性部署策略与评价网络冻结",
+
+  "source_candidates": {
+    "rule": "每方法 3 个训练种子（formal_uncal_s{0,1,2} 与 formal_full_s{0,1,2}），源 checkpoint = state.pt（预登记钉死的「最后更新」，NAV-036/037 已收口）；共 6 个部署候选。",
+    "excluded": "两次 smoke run（smoke_formal_01/02）不是候选；budget_selection 与 final_* 划分此任务全程不触碰。"
+  },
+
+  "deterministic_transform": {
+    "action": "a = policy_mean(obs)（不做采样、不加噪声；PolicyNetwork.act(deterministic=True) 的语义）",
+    "pipeline": "a → action_to_requested → clip_applied（与训练完全一致；COMMAND_MAX 取自 navigation_contract_v1 1.4.0，随清单散列冻结）",
+    "why_record_transform": "部署模型由 actor 权重 + 该变换共同定义，缺一不可"
+  },
+
+  "normalization": {
+    "obs": "恒等映射（obs-v2 编码已归一化，网络不叠加额外归一化层）——显式记录，避免部署侧误加"
+  },
+
+  "validation_data": {
+    "maps": "split_manifest 的 train(18) + development(6) 共 24 张图，每图 1 条确定性完整回合",
+    "targets": "仅完整回合（failure/success 终止）进入核验，目标由 storage.compute_objectives 按契约表精确给出（无 truncation bootstrap 的循环依赖）；窗口截断段不参与",
+    "forbidden": "budget_selection 与 final_* 划分不得用于核验或重拟合"
+  },
+
+  "critic_pass_thresholds": {
+    "rel_mae": "MAE(V, target) / mean(|target|) ≤ 0.35，V_c 与 V_h 分别计算",
+    "pearson": "corr(V, target) ≥ 0.70，V_c 与 V_h 分别计算",
+    "pass_rule": "两个 critic 同时满足两条 → 该候选 PASS",
+    "why_0.35": "critic 在采样分布上训练，部署分布换成均值动作必有漂移；0.35 是『漂移可接受』的粗判据，先冻结再验，不许看数后改"
+  },
+
+  "refit_branch": {
+    "trigger": "任一 critic 未达标",
+    "procedure": [
+      "actor 完全冻结（只训 critic_cost 与 critic_reach 的参数组）",
+      "数据：同 24 图，用当前策略（均值动作）滚动收集段（窗口 227 calls 截断，bootstrap 用当时 critic——与训练收集同构），每轮重收集",
+      "训练：Adam(lr=1e-3)，MSE 即 MinimizationUpdater 的 value_loss（含 clip_eps），batch=整窗样本，每轮 30 个梯度步，共 3 轮",
+      "每轮结束按同一阈值复验，最后一轮的结果为该候选的最终判定"
+    ],
+    "fail_after_refit": "如实记 FAIL；下游预算搜索任务在该候选上不得使用 value 搜索（约束第二句的直接后果），不得调阈值放行"
+  },
+
+  "bundle_schema": {
+    "file": "delivery/deployment_candidates_v1.json",
+    "per_candidate": [
+      "method, seed, source_run_id, source_checkpoint_sha256",
+      "actor/critic_cost/critic_reach 的 state_dict 内容 sha256",
+      "refit_rounds（0 = 未重拟合）",
+      "deterministic_transform 描述与 navigation_contract 版本",
+      "normalization 声明",
+      "validation: rel_mae/pearson/verdict/数据范围"
+    ],
+    "invariants": "同候选内六项组成一个版本；任何一项变动即新版本，禁止就地替换"
+  },
+
+  "deliverables": {
+    "bundle": "delivery/deployment_candidates_v1.json",
+    "report": "reports/deployment_critic_validation.json（核验明细 + 门禁自检）"
+  }
+}

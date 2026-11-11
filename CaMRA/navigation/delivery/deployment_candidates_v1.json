@@ -1,0 +1,450 @@
+{
+ "schema": "camra-deployment-candidates-v1",
+ "version": 1,
+ "task": "NAV-038",
+ "prereg_sha256": "66b038d0c4211720cf96c18403fb00cc75b1f6db145a1597ec9bb8daa2825a4b",
+ "binding_contracts": {
+  "value_objective": "1.2.0",
+  "navigation": "1.4.0"
+ },
+ "n_candidates": 6,
+ "candidates": [
+  {
+   "candidate_id": "uncalibrated_s0",
+   "method": "uncalibrated",
+   "seed": 0,
+   "source_run_id": "formal_uncal_s0",
+   "source_checkpoint_sha256": "6482a185c09f05a28f00e3dae5b28d2c5591b134f48819e483a21ac99301cee0",
+   "refit_rounds": 3,
+   "refit_history": [
+    {
+     "round": 1,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.003149
+    },
+    {
+     "round": 2,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.002012
+    },
+    {
+     "round": 3,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.001903
+    }
+   ],
+   "weights": {
+    "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+    "critic_cost_sha256": "17220b7e29888de74e17b25198820ceb46284c3f3e66634868ac952b2e5910b8",
+    "critic_reach_sha256": "2688cb65e7b5efd1184ac50213854b6c3c36d8cd74bdcf5a9f5c2203c65cd32b",
+    "refit_state_path": "/pub/data/caohy/work/camra_navigation/formal_uncal_s0/deploy_refit/state.pt"
+   },
+   "deterministic_transform": {
+    "action": "policy mean (no sampling, no noise)",
+    "pipeline": "mean -> action_to_requested -> clip_applied",
+    "navigation_contract_version": "1.4.0"
+   },
+   "normalization": {
+    "obs": "identity (obs-v2 already normalised)"
+   },
+   "validation": {
+    "data": "24 maps (train 18 + development 6), deterministic complete episodes only (bootstrap-free targets)",
+    "final": {
+     "run_id": "formal_uncal_s0",
+     "round": 3,
+     "metrics": {
+      "critic_cost": {
+       "mae": 0.02258,
+       "mean_abs_target": 0.27687,
+       "rel_mae": 0.08157,
+       "pearson": 0.9184
+      },
+      "critic_reach": {
+       "mae": 0.04251,
+       "mean_abs_target": 0.34293,
+       "rel_mae": 0.12397,
+       "pearson": 0.14466
+      }
+     },
+     "episodes_used": 18,
+     "n_samples": 2113,
+     "verdict": "FAIL",
+     "problems": [
+      "critic_reach pearson 0.14466 < 0.70"
+     ],
+     "rejudged_verdict": "PASS",
+     "rejudge_note": "amend 1: variance-gated Pearson; rel MAE unchanged",
+     "target_std_over_mean": {
+      "critic_cost": 0.8098,
+      "critic_reach": 0.1841
+     }
+    },
+    "amend_chain": [
+     "prereg 66b038d0... (frozen)",
+     "amend1 5e7ed559... (variance-gated Pearson, user approved)"
+    ]
+   }
+  },
+  {
+   "candidate_id": "uncalibrated_s1",
+   "method": "uncalibrated",
+   "seed": 1,
+   "source_run_id": "formal_uncal_s1",
+   "source_checkpoint_sha256": "bcb9733daa71ce098318b0080274d1e0e2a4da0bb0044f92bb83d8b0c25c42d2",
+   "refit_rounds": 3,
+   "refit_history": [
+    {
+     "round": 1,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.003238
+    },
+    {
+     "round": 2,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.002317
+    },
+    {
+     "round": 3,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.002198
+    }
+   ],
+   "weights": {
+    "actor_sha256": "fe5978b9eb2182d1621d8ea1664ffb3e229e3b7958b79ef50ca02a4e77edee65",
+    "critic_cost_sha256": "0ea88407c4d9ef8004af2db26d38b1cc0a676d0e6e3525cad1dbb8848c60db9b",
+    "critic_reach_sha256": "60a94518225569ad6683167f96181d2fbc9a2a5e795b9a7c263dea582b978e5d",
+    "refit_state_path": "/pub/data/caohy/work/camra_navigation/formal_uncal_s1/deploy_refit/state.pt"
+   },
+   "deterministic_transform": {
+    "action": "policy mean (no sampling, no noise)",
+    "pipeline": "mean -> action_to_requested -> clip_applied",
+    "navigation_contract_version": "1.4.0"
+   },
+   "normalization": {
+    "obs": "identity (obs-v2 already normalised)"
+   },
+   "validation": {
+    "data": "24 maps (train 18 + development 6), deterministic complete episodes only (bootstrap-free targets)",
+    "final": {
+     "run_id": "formal_uncal_s1",
+     "round": 3,
+     "metrics": {
+      "critic_cost": {
+       "mae": 0.02161,
+       "mean_abs_target": 0.19676,
+       "rel_mae": 0.10984,
+       "pearson": 0.91812
+      },
+      "critic_reach": {
+       "mae": 0.05149,
+       "mean_abs_target": 0.282,
+       "rel_mae": 0.18259,
+       "pearson": 0.35531
+      }
+     },
+     "episodes_used": 17,
+     "n_samples": 2918,
+     "verdict": "FAIL",
+     "problems": [
+      "critic_reach pearson 0.35531 < 0.70"
+     ],
+     "rejudged_verdict": "PASS",
+     "rejudge_note": "amend 1: variance-gated Pearson; rel MAE unchanged",
+     "target_std_over_mean": {
+      "critic_cost": 1.0684,
+      "critic_reach": 0.2534
+     }
+    },
+    "amend_chain": [
+     "prereg 66b038d0... (frozen)",
+     "amend1 5e7ed559... (variance-gated Pearson, user approved)"
+    ]
+   }
+  },
+  {
+   "candidate_id": "uncalibrated_s2",
+   "method": "uncalibrated",
+   "seed": 2,
+   "source_run_id": "formal_uncal_s2",
+   "source_checkpoint_sha256": "f757f689f6d00953f1b1de092d0af67ad3d9922c40f5d1477fdf3567ae03adc3",
+   "refit_rounds": 3,
+   "refit_history": [
+    {
+     "round": 1,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.002846
+    },
+    {
+     "round": 2,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.00204
+    },
+    {
+     "round": 3,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.002
+    }
+   ],
+   "weights": {
+    "actor_sha256": "95892f9b9081c926ba1ef6c643bc2171e148b8215e17366749aaeffffbc95351",
+    "critic_cost_sha256": "c62a3d4da2d1232acd03aaed6e864c4147eeec7aa29de038eeacbb051f0ba484",
+    "critic_reach_sha256": "5d97657199629419abbcafbb6f48db037619e24dbae59e5ed1c169632323218d",
+    "refit_state_path": "/pub/data/caohy/work/camra_navigation/formal_uncal_s2/deploy_refit/state.pt"
+   },
+   "deterministic_transform": {
+    "action": "policy mean (no sampling, no noise)",
+    "pipeline": "mean -> action_to_requested -> clip_applied",
+    "navigation_contract_version": "1.4.0"
+   },
+   "normalization": {
+    "obs": "identity (obs-v2 already normalised)"
+   },
+   "validation": {
+    "data": "24 maps (train 18 + development 6), deterministic complete episodes only (bootstrap-free targets)",
+    "final": {
+     "run_id": "formal_uncal_s2",
+     "round": 3,
+     "metrics": {
+      "critic_cost": {
+       "mae": 0.01815,
+       "mean_abs_target": 0.17953,
+       "rel_mae": 0.10111,
+       "pearson": 0.92233
+      },
+      "critic_reach": {
+       "mae": 0.02893,
+       "mean_abs_target": 0.32423,
+       "rel_mae": 0.08922,
+       "pearson": 0.35151
+      }
+     },
+     "episodes_used": 17,
+     "n_samples": 3443,
+     "verdict": "FAIL",
+     "problems": [
+      "critic_reach pearson 0.35151 < 0.70"
+     ],
+     "rejudged_verdict": "PASS",
+     "rejudge_note": "amend 1: variance-gated Pearson; rel MAE unchanged",
+     "target_std_over_mean": {
+      "critic_cost": 1.1141,
+      "critic_reach": 0.1834
+     }
+    },
+    "amend_chain": [
+     "prereg 66b038d0... (frozen)",
+     "amend1 5e7ed559... (variance-gated Pearson, user approved)"
+    ]
+   }
+  },
+  {
+   "candidate_id": "full_s0",
+   "method": "full",
+   "seed": 0,
+   "source_run_id": "formal_full_s0",
+   "source_checkpoint_sha256": "85ce171646b4f69e92f251bf703377a6be3a4e079aa336176bdb20f7d70ff6e4",
+   "refit_rounds": 0,
+   "refit_history": [],
+   "weights": {
+    "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+    "critic_cost_sha256": "a43d80b349986bdce417d9a3f5a323e663667e1faa49e14551aa1b17e92ac03b",
+    "critic_reach_sha256": "1714308f12233540881a28ccaba4316c88c2fc70376d3f94567c19a3f87dfd49",
+    "refit_state_path": null
+   },
+   "deterministic_transform": {
+    "action": "policy mean (no sampling, no noise)",
+    "pipeline": "mean -> action_to_requested -> clip_applied",
+    "navigation_contract_version": "1.4.0"
+   },
+   "normalization": {
+    "obs": "identity (obs-v2 already normalised)"
+   },
+   "validation": {
+    "data": "24 maps (train 18 + development 6), deterministic complete episodes only (bootstrap-free targets)",
+    "final": {
+     "run_id": "formal_full_s0",
+     "round": 0,
+     "metrics": {
+      "critic_cost": {
+       "mae": 0.04418,
+       "mean_abs_target": 0.18685,
+       "rel_mae": 0.23645,
+       "pearson": 0.90088
+      },
+      "critic_reach": {
+       "mae": 0.14761,
+       "mean_abs_target": 0.55272,
+       "rel_mae": 0.26706,
+       "pearson": 0.95871
+      }
+     },
+     "episodes_used": 16,
+     "n_samples": 3071,
+     "verdict": "PASS",
+     "problems": [],
+     "rejudged_verdict": "PASS",
+     "rejudge_note": "amend 1: variance-gated Pearson; rel MAE unchanged",
+     "target_std_over_mean": {
+      "critic_cost": 1.0204,
+      "critic_reach": 0.5022
+     }
+    },
+    "amend_chain": [
+     "prereg 66b038d0... (frozen)",
+     "amend1 5e7ed559... (variance-gated Pearson, user approved)"
+    ]
+   }
+  },
+  {
+   "candidate_id": "full_s1",
+   "method": "full",
+   "seed": 1,
+   "source_run_id": "formal_full_s1",
+   "source_checkpoint_sha256": "d16a2527b8a23fdd67aaac6438b11f334d4aa3923effe51784f5ba9c2e9deb91",
+   "refit_rounds": 0,
+   "refit_history": [],
+   "weights": {
+    "actor_sha256": "63f64e7f003280fd627e61a12da6fd7532ef48555b97f0d7ea251954a5cb4984",
+    "critic_cost_sha256": "3976349dfafedbbdb5de0446efc166afba2f89875341fe9fdf6759af7af9650d",
+    "critic_reach_sha256": "adf8e6d920d5c4e07f80a384d0e02b729047dfd97c041354d66cbd80392c1c11",
+    "refit_state_path": null
+   },
+   "deterministic_transform": {
+    "action": "policy mean (no sampling, no noise)",
+    "pipeline": "mean -> action_to_requested -> clip_applied",
+    "navigation_contract_version": "1.4.0"
+   },
+   "normalization": {
+    "obs": "identity (obs-v2 already normalised)"
+   },
+   "validation": {
+    "data": "24 maps (train 18 + development 6), deterministic complete episodes only (bootstrap-free targets)",
+    "final": {
+     "run_id": "formal_full_s1",
+     "round": 0,
+     "metrics": {
+      "critic_cost": {
+       "mae": 0.04401,
+       "mean_abs_target": 0.18309,
+       "rel_mae": 0.24036,
+       "pearson": 0.89642
+      },
+      "critic_reach": {
+       "mae": 0.13929,
+       "mean_abs_target": 0.50523,
+       "rel_mae": 0.27571,
+       "pearson": 0.92975
+      }
+     },
+     "episodes_used": 16,
+     "n_samples": 3011,
+     "verdict": "PASS",
+     "problems": [],
+     "rejudged_verdict": "PASS",
+     "rejudge_note": "amend 1: variance-gated Pearson; rel MAE unchanged",
+     "target_std_over_mean": {
+      "critic_cost": 1.0388,
+      "critic_reach": 0.4727
+     }
+    },
+    "amend_chain": [
+     "prereg 66b038d0... (frozen)",
+     "amend1 5e7ed559... (variance-gated Pearson, user approved)"
+    ]
+   }
+  },
+  {
+   "candidate_id": "full_s2",
+   "method": "full",
+   "seed": 2,
+   "source_run_id": "formal_full_s2",
+   "source_checkpoint_sha256": "f6a6625e5bc4ed24965e9dacec6cc1a154ba10e702555401707948258b21cab2",
+   "refit_rounds": 3,
+   "refit_history": [
+    {
+     "round": 1,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.001973
+    },
+    {
+     "round": 2,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.000881
+    },
+    {
+     "round": 3,
+     "n_samples": 5448,
+     "grad_steps": 30,
+     "mean_last5_loss": 0.000828
+    }
+   ],
+   "weights": {
+    "actor_sha256": "9b2035054537a56065f76c75e20450d5699cd39e47944a3b960788d106d6f65c",
+    "critic_cost_sha256": "c3aa6d901051375081798c4bdc4dde8773d4840a971c78031d2b11acca57f326",
+    "critic_reach_sha256": "b537b366da165397a5402e330d6802afb100e9a550147cc74ddb5a7eff412959",
+    "refit_state_path": "/pub/data/caohy/work/camra_navigation/formal_full_s2/deploy_refit/state.pt"
+   },
+   "deterministic_transform": {
+    "action": "policy mean (no sampling, no noise)",
+    "pipeline": "mean -> action_to_requested -> clip_applied",
+    "navigation_contract_version": "1.4.0"
+   },
+   "normalization": {
+    "obs": "identity (obs-v2 already normalised)"
+   },
+   "validation": {
+    "data": "24 maps (train 18 + development 6), deterministic complete episodes only (bootstrap-free targets)",
+    "final": {
+     "run_id": "formal_full_s2",
+     "round": 3,
+     "metrics": {
+      "critic_cost": {
+       "mae": 0.02045,
+       "mean_abs_target": 0.25553,
+       "rel_mae": 0.08002,
+       "pearson": 0.90242
+      },
+      "critic_reach": {
+       "mae": 0.02262,
+       "mean_abs_target": 0.35179,
+       "rel_mae": 0.06431,
+       "pearson": 0.01605
+      }
+     },
+     "episodes_used": 8,
+     "n_samples": 894,
+     "verdict": "FAIL",
+     "problems": [
+      "critic_reach pearson 0.01605 < 0.70"
+     ],
+     "rejudged_verdict": "PASS",
+     "rejudge_note": "amend 1: variance-gated Pearson; rel MAE unchanged",
+     "target_std_over_mean": {
+      "critic_cost": 0.8484,
+      "critic_reach": 0.1763
+     }
+    },
+    "amend_chain": [
+     "prereg 66b038d0... (frozen)",
+     "amend1 5e7ed559... (variance-gated Pearson, user approved)"
+    ]
+   }
+  }
+ ],
+ "forbidden": "budget_selection / final_* splits untouched; value-search budgets from earlier tasks are void for refitted candidates",
+ "amend_chain": [
+  "amend1 5e7ed559fbd4067116d13ddb92c9f22dd7f43d6034cecf50c5ab00b24c95d160"
+ ],
+ "final_verdict": "PASS"
+}
