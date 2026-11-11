@@ -4000,7 +4000,7 @@
       "id": "NAV-036",
       "phase": "正式名义训练",
       "goal": "完成预登记无校准基线训练",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-035",
         "NAV-060",
@@ -4111,6 +4111,55 @@
             "修正 resource_budget_v1.authorization_record.formal_training_authorized=false 与 experiment_prereg 已授权记录的矛盾（需用户确认后改）。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-11T20:10:00+08:00",
+          "summary": "NAV-036 收口（git daa599a/9b759f6，status True，42/60）：预登记正式训练完成——3 个无校准 run（种子 0/1/2）各跑满 250 updates × 4086 步 = 1,021,500 步，墙钟 0.37–0.38 h（上限 6 h），checkpoint 取最后更新，无早停、无中途改参。门禁八项全绿（COMPLETED_AS_PREREGISTERED）。训练结果为如实报告的负结果：29,703 个训练回合 0 次 goal_reached，确定性评估（训练图+开发图）成功率 0。",
+          "actions": [
+            "value_objective 契约 1.1.0 → 1.2.0（estimator.max_grad_norm 0.5→2.5，NAV-034 复判整改，用户已批准；逐字节快照留存）。升版后四个算法测试回归全过。",
+            "预登记冻结：config/formal_training_prereg_v1.json（sha256 ac5c8c1a…，先冻结后运行，runner 启动即校验散列）。钉死：18 训练图各一向量 env、z0 = 1.0×E_ref(map)、227 calls × 18 = 4086 步/update（对 4096 的向下取整，250 updates 合计 1,021,500 ≤ 授权 1,024,000）、窗口边界截断 bootstrap、整窗联合优势标准化、每窗一次梯度更新、checkpoint 每 25 updates、最终取最后更新。",
+            "scripts/compute_train_map_refs.py：用冻结 maps.feasibility.check_map 路径重算训练图 E_ref（18/18 准入，362.6–486.3 J，无饱和）；后追加 development 6 图（同一代码路径，训练条目不变）。",
+            "scripts/train_formal.py：预登记训练器。调试三轮：①批量动作形状 (3,)→(1,3)；②chunk_index 忘传 expected_chunk_index；③窗口边界截断关闭段后忘开新段（下窗样本追加进已写盘旧段，global_step 对账抓住）。两次冒烟（36 步、1440 步/4 回合完成）验证全部终端类型与 18 分库对账后才开始正式 run。",
+            "授权矛盾修正（用户确认）：resource_budget.authorization_record.formal_training_authorized false→true（依据 experiment_prereg 的 user_decisions_2026_11_10；原 note 与同文件 formal_training_budget.status=authorized_2026_11_10 自相矛盾）；vectorised_env status → verified_bitwise_2026_11_11；experiment_prereg.engineering_dependency.not_yet_implemented → False。",
+            "正式训练：3 run 并行各 23 分钟完成；逐 env RolloutStore 审计（chunk 序号/步号接续/样本数三重对账）18×3 库零问题；逐 update 日志含损失/梯度/熵/裁剪占比/标签直方图。",
+            "scripts/eval_formal_final.py：最终 checkpoint 确定性（mean action）诊断评估——development 6 图（仅诊断，不入最终分母，不用于选择模型）+ 训练图 + OI-1 指令分布复测（与 NAV-060/NAV-035 口径逐行一致）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/value_objective_contract_v1.json（1.2.0）",
+            "CaMRA/navigation/config/snapshots/value_objective_contract_v1.mgn0.5.pre-1.2.0.json",
+            "CaMRA/navigation/config/formal_training_prereg_v1.json(+.sha256)",
+            "CaMRA/navigation/config/resource_budget_v1.json（授权登记修正）",
+            "CaMRA/navigation/config/experiment_prereg_v1.json（工程依赖状态）",
+            "CaMRA/navigation/scripts/compute_train_map_refs.py、train_formal.py、eval_formal_final.py",
+            "CaMRA/navigation/reports/train_map_reference_energy.json（24 图）",
+            "CaMRA/navigation/reports/formal_uncal_s{0,1,2}_eval.json",
+            "CaMRA/navigation/reports/training_uncalibrated.json（verdict=COMPLETED_AS_PREREGISTERED）",
+            "训练产物：/pub/data/caohy/work/camra_navigation/formal_uncal_s{0,1,2}/（日志、18×3 个审计 chunk 库、每 25 updates checkpoint + 最终 state.pt）"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/compute_train_map_refs.py --json …/train_map_reference_energy.json",
+            "python CaMRA/navigation/scripts/train_formal.py --run-id formal_uncal_s{0,1,2} --variant uncalibrated --seed {0,1,2}（先两次 --smoke-updates 冒烟）",
+            "python CaMRA/navigation/scripts/eval_formal_final.py --run-id formal_uncal_s{0,1,2} --json …/formal_uncal_s{n}_eval.json"
+          ],
+          "results": [
+            "门禁八项全绿：跑满 250 updates、步数对账、墙钟、18×3 审计库零问题、损失有限、裁剪占比已记录（均值 0.000：梯度 p50=0.22 ≪ 2.5，NAV-034 整改彻底消除常态裁剪）、无早停、无改参。",
+            "负结果（如实报告）：每 run 9,901 个训练回合、三 run 共 29,703 回合，goal_reached = 0；确定性评估训练图/开发图成功率均 0。budget_exhausted 占 82%（z0=E_ref 是紧预算）。",
+            "可学性证据：开发图最近距离 4.3–5.7 m（起点约 14 m）；标签结构早期→后期变化可见（记录于报告 label_share_first25/last25_updates）。",
+            "OI-1 出口条件已给数：确定性指令变化率 0.012–0.015（规则控制器 0.053，重训前候选 1.18）、保持时长 0.78–0.82 s（规则 0.4 s、候选 0.1 s）、|vy| 均值 0.02–0.14（候选 0.254）、低速带占比 40–58%。策略指令分布已进入可执行范围且比规则控制器更平滑。",
+            "checkpoint 选择依据：预登记钉死「最后更新」，与表现无关，无最终集泄漏（final_* 划分从未被触碰；development 仅诊断）。"
+          ],
+          "evidence": [
+            "reports/training_uncalibrated.json（八门 + 每 run 曲线摘要 + 诚实发现）",
+            "reports/formal_uncal_s{0,1,2}_eval.json（逐图评估 + OI-1 四项指标）",
+            "config/formal_training_prereg_v1.json.sha256（散列先冻结；runner 校验）",
+            "reports/vector_equivalence_check.json（环境逐位等价 6/6，git 8d7ba2e）",
+            "git daa599a、9b759f6"
+          ],
+          "remaining_work": [
+            "完整方法（full：α>0、δ>0）的 3 个正式 run 用同一预登记与训练器（variant=full），按计划归属后续任务。",
+            "负结果的处置（是否调参重训、budget 语义、成功率门复核）属评估/选择任务的裁定范围，本任务不自行决定。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -4122,7 +4171,7 @@
         "完成预登记配额，训练/开发结果和checkpoint选择依据可复算。",
         "所选模型来自开发规则，无最终集泄漏；所有失败/中断/恢复均有台账。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：预登记配额全部完成且可复算——3 个无校准 run 各 250 updates × 4086 步（1,021,500 ≤ 授权 1,024,000），墙钟 0.37–0.38 h；逐回合 chunk（三重对账、内容哈希）+ 逐 update 日志 + 散列冻结的预登记 + 每 25 updates checkpoint，训练/开发结果可离线重算；checkpoint 按「最后更新」规则取得，与表现无关，无最终集泄漏（final_* 划分未触碰，development 仅诊断不入分母）；无失败/中断/恢复事件（两次冒烟 run 独立目录、标记 smoke、不计入正式台账）。训练结果如实报告：goal_reached = 0 为负结果，报告 verdict=COMPLETED_AS_PREREGISTERED，处置留给后续任务。",
       "reference_ids": [
         "R03",
         "R09",
