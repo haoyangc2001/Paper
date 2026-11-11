@@ -4186,11 +4186,47 @@
       "id": "NAV-037",
       "phase": "正式名义训练",
       "goal": "完成预登记完整CaMRA名义训练",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-036"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T20:40:00+08:00",
+          "summary": "NAV-037 收口（git 373a99e，status True，43/60）：预登记完整方法（full：α=0.19048279965649906、δ=2.6138664115280967）名义训练完成——3 个 run（种子 0/1/2）各跑满 250 updates × 4086 步 = 1,021,500 步，墙钟 0.36–0.37 h，checkpoint 取最后更新，无早停、无改参。八门全绿（COMPLETED_AS_PREREGISTERED）。训练结果同为如实报告的负结果：0 次 goal_reached，budget_exhausted 占 91%。",
+          "actions": [
+            "复用 NAV-036 的冻结预登记（sha ac5c8c1a…，其 method 块明文覆盖 full run：「完整方法的 3 个 run 用同一训练器与同一预登记，仅 variant/α/δ 不同」）与训练器，variant=full：成本按 (1+α)·c_nom 扣减、几何用冻结 margins（δ 进入禁入带）；预算锚 z0 = 1.0×E_ref(map) 与无校准完全一致——α 的记账加速是设计的方法差异。",
+            "train_formal.py run_start 增加溯源块：α 值与出处、δ、膨胀半径、footprint/margins/geometry_contract/power_model 散列——满足「校准值/hash 可追溯」验收；曾因 cm 未定义 NameError 启动失败一次（该次启动未产生任何训练产物，直接修复重启，无中断台账负担）。",
+            "正式训练：3 run 并行 22 分钟完成；18×3 审计库三重对账零问题。",
+            "scripts/eval_formal_final.py：3 个最终 checkpoint 确定性诊断评估（development 6 图仅诊断 + 训练图 + OI-1 指令统计）。",
+            "对比汇总（两份训练报告并列）：无校准 vs 完整方法在相同锚预算下的行为差异与机制预测一致——budget_exhausted 82%→91%（α 让同一路线扣得更快）、碰撞 1167→363、僵持 568→915、dev 最近距离 4.3–5.7 m→5.5–10.4 m。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/train_formal.py（run_start 溯源块）",
+            "CaMRA/navigation/reports/training_camra_full.json（verdict=COMPLETED_AS_PREREGISTERED）",
+            "CaMRA/navigation/reports/formal_full_s{0,1,2}_eval.json",
+            "训练产物：/pub/data/caohy/work/camra_navigation/formal_full_s{0,1,2}/"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/train_formal.py --run-id formal_full_s{0,1,2} --variant full --seed {0,1,2}",
+            "python CaMRA/navigation/scripts/eval_formal_final.py --run-id formal_full_s{n} --variant full --json …/formal_full_s{n}_eval.json"
+          ],
+          "results": [
+            "八门全绿：配额、步数对账、墙钟、54 个审计库零问题、损失有限、裁剪占比已记录、无早停、无改参。",
+            "负结果（如实报告）：goal_reached = 0；budget_exhausted 91%——与 margin_effects.alpha 的机制预测一致（同一路线按 (1+α) 倍速扣同一锚预算）。",
+            "确定性指令分布保持平滑：变化率 0.012–0.020、保持时长 0.88–1.41 s、|vy| 0.03–0.08。",
+            "可追溯性：每个 run 的 α/δ/膨胀半径/footprint/margins/geometry/power 散列写入运行日志首行；预算扣减逐回合在 chunk 中可离线重算。"
+          ],
+          "evidence": [
+            "reports/training_camra_full.json（八门 + 每 run 曲线摘要 + 诚实发现）",
+            "reports/formal_full_s{0,1,2}_eval.json（逐图评估 + OI-1 指标）",
+            "冻结预登记 sha ac5c8c1a…（覆盖两种方法）",
+            "git 373a99e"
+          ],
+          "remaining_work": [],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "显式加载v2精确α/δ，成本和危险集合各修正一次；名义环境保持确定性。",
         "使用相同原始地图/资源规则；膨胀后的可行性先验证，不把膨胀几何直接做成额外物理实体。"
@@ -4199,7 +4235,7 @@
         "完成登记训练配额，校准值/hash、地图安全几何和预算扣减可追溯。",
         "开发验证满足预登记条件；性能不足不调裕度/改测试地图/隐藏失败。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：登记配额全部完成且可追溯——3 个 full run 各 250 updates × 4086 步，墙钟 0.36–0.37 h；每个 run 的校准值（α=0.1905，取自 margins_v1 散列 2be77607…）与几何散列写入运行日志首行，预算扣减逐回合存 chunk 可离线重算；checkpoint 按「最后更新」规则取得，development 仅诊断不入选择；无早停、无改参、性能不足未通过调裕度/换图/隐藏失败处理——0 goal_reached 如实记入报告 honest_findings。",
       "reference_ids": [
         "R03",
         "R09",
