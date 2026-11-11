@@ -1,0 +1,28 @@
+{
+  "schema": "camra-navigation-smoke-training-prereg-amend-v1",
+  "amends": "config/smoke_training_prereg_v1.json",
+  "amend_index": 1,
+  "created_at": "2026-11-11T12:52:00+08:00",
+  "status": "applied_before_any_gate_evaluation",
+  "changes": [
+    {
+      "field": "resource_cap.max_wall_minutes",
+      "from": 20,
+      "to": 35
+    }
+  ],
+  "reason": {
+    "measurement": "冻结模块 camra_calibration.geometry.convex_hull_2d 单次调用 4.6 ms；每个物理步在 |wz| > 0 时被调用约 24 次（4 面墙 × union/inflate），合计 67 ms/步。",
+    "evidence": "cProfile 单步 30 次：674 万次调用 / 3.43 s，其中 convex_hull_2d 占 3.35 s（720 次调用），cross 占 1.71 s（219 万次调用）。直线指令 [0.6,0,0] 时是 4.3 ms/步，带角速率时 67 ms/步，差 16 倍。",
+    "consequence": "单回合（约 130 步）实测 8–14 s，而不是定上限时估计的 1.5 s；90 个训练回合 + 24 个评估回合约需 18–19 分钟，贴着 20 分钟的上限。共享机上再有别的负载就会越界，而越界按预登记必须停机记录。",
+    "why_raise_the_wall_cap_and_not_the_episode_budget": "墙钟上限是防跑飞的基础设施护栏，不是科学参数；回合数（30/30/30）才是统计预算。改护栏不影响任何结论，改回合数会。"
+  },
+  "unchanged": [
+    "curriculum 的 30/30/30 回合",
+    "z0_J 与 Z_REF_J 的关系",
+    "G1–G5 的全部阈值",
+    "train / development 种子集合",
+    "禁止事项（不看 final_*、不放宽阈值、不延长回合预算）"
+  ],
+  "peeking_declaration": "本 amend 写在任何 gate 结果产生之前。此时只存在一个被基础设施中断的 run（nav034_smoke_01，33 个 chunk，被我自己的 600 s ssh 超时杀掉），其训练日志未被用于任何判定，评估结果未读取。"
+}

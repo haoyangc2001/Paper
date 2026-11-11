@@ -1,0 +1,87 @@
+{
+  "schema": "camra-navigation-smoke-training-prereg-v1",
+  "task": "NAV-034",
+  "created_at": "2026-11-11T12:30:00+08:00",
+  "status": "frozen_before_run",
+  "purpose": "无裕度分级短训练的可学性放行判定。本文件在跑之前冻结；短训练只回答「这套管线与目标能不能学」，不产生任何性能数字。",
+
+  "scope": {
+    "splits_used": ["train", "development"],
+    "splits_forbidden": [
+      "integration_pilot",
+      "budget_selection",
+      "final_nominal",
+      "final_clean",
+      "final_perturbed"
+    ],
+    "margins": "α=0（成本模型 variant=uncalibrated）、δ=0（安全几何 delta 置零），足迹保留：r_fp=0.5055013879783843 m 仍然参与碰撞与安全判据",
+    "why_margin_free": "无裕度是有意的：先看「不带任何标定裕度」时目标能不能学，裕度带来的收紧留给后面分级比较",
+    "forbidden_actions": [
+      "看 final_* 或 integration_pilot 的任何 episode",
+      "因 gate 不过而放宽阈值或改本文件",
+      "延长训练 episode 预算（超预算即停止并如实记录）",
+      "用 loss 下降代替任务指标"
+    ]
+  },
+
+  "budget": {
+    "z0_J": 221.0947706005708,
+    "rule": "0.98 × Z_REF_J（Z_REF_J = 225.6069087767049）",
+    "rationale": "z_ratio = clip(z_J / Z_REF_J, -1, 1)。z0 超过 Z_REF_J 时初始即饱和，残差里的成本项 spent − z_ratio 会退化成 min(z0, Z_REF_J)，停止规则与判据全部失真（NAV-032 已把「饱和即拒算」写进实现）。因此本轮取 0.98·Z_REF_J，保证全程不饱和。",
+    "structural_finding_registered_before_run": {
+      "fact": "NAV-058 的参考能量是 L1 362.54 J / L2 462.48 J / L3 367.69 J（= 1.61 / 2.05 / 1.63 × Z_REF_J），而本轮可用预算只有 221.09 J。",
+      "consequence": "在这个预算下，任何策略都无法走完参考路线到目标，成功回合数按构造为 0。因此 gate 不要求成功率；可学性信号改用「到达目标的最近距离」与「每焦耳推进距离」。",
+      "to_be_decided_in": "NAV-036（预算选择，budget_selection split 归它）。候选处置：①按场景缩放 Z_REF_J（改契约，需升版）；②残差的成本项改用未截断的 z_J/Z_REF（obs 仍截断）——参考实现 RC-PPO 用的就是未截断的累计能量。",
+      "status": "open，本任务不裁定"
+    }
+  },
+
+  "curriculum": [
+    {"phase": 1, "level": "L1_empty", "train_episodes": 30, "eval_after": true},
+    {"phase": 2, "level": "L2_single_detour", "train_episodes": 30, "eval_after": true},
+    {"phase": 3, "level": "L3_multi_path", "train_episodes": 30, "eval_after": true}
+  ],
+  "train_seeds": [1001, 1002, 1003, 1004, 1005, 1006],
+  "dev_seeds": [2001, 2002],
+  "eval_protocol": "每 (level, dev_seed) 跑 1 个回合；动作取策略分布均值（确定性），不引入采样噪声；基线在训练前用同一协议跑一遍",
+  "optimizer": {
+    "lr_policy": 0.0003,
+    "lr_critic": 0.001,
+    "epochs_per_episode": 1,
+    "note": "与 NAV-032 的短训练循环一致；超参不在本轮搜"
+  },
+  "resource_cap": {
+    "max_wall_minutes": 20,
+    "max_train_episodes": 90,
+    "max_eval_episodes": 30,
+    "extension_allowed": false,
+    "note": "名义环境是纯数学积分，不占 GPU；上限只用来防跑飞"
+  },
+
+  "gates": {
+    "G1_environment": {
+      "rule": "env_faults == 0 且 nonfinite_samples == 0",
+      "meaning": "环境层：异常中止、非有限观测/奖励"
+    },
+    "G2_objective": {
+      "rule": "objective_nonfinite == 0 且 stop_index_below_t == 0",
+      "meaning": "目标层：目标/优势非有限、停止索引越界（矩阵结构被破坏）",
+      "not_a_gate": "feasible_steps == 0 是预期结果（预算不足以到达），记录但不作为通过条件"
+    },
+    "G3_sampling": {
+      "rule": "action_saturation_rate <= 0.35 且 entropy_final >= 0.5 * entropy_initial 且 log_std_final >= log(0.3)",
+      "meaning": "采样层：动作长期贴 ±1、熵塌缩、策略方差过小"
+    },
+    "G4_optimization": {
+      "rule": "grad_norm_p50 <= 0.45 且 param_rel_l2 在 [1e-5, 0.5] 内 且 所有 loss 有限",
+      "meaning": "优化层：梯度长期贴 max_grad_norm=0.5（等于没裁剪在想事）、参数几乎不动（死网络）或一次改动过半（发散）"
+    },
+    "G5_learnability": {
+      "rule": "development 上至少 2 个 level 的「最近到达距离」相对未训练基线下降 >= 5%",
+      "meaning": "可学性：任务指标（不是 loss）在留出图上真的动了",
+      "explicitly_not": "这不是「学会」。学会的判定在长训练与最终 split 上，见 NAV-035 之后"
+    }
+  },
+
+  "amendment_rule": "本文件在首个 run 启动后不得修改。若需改动，另立 config/smoke_training_prereg_v1.amendN.json 写明理由与影响，并把 amend 链写进报告。"
+}
