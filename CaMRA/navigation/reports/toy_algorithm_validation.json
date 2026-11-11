@@ -1,0 +1,477 @@
+{
+  "task": "NAV-033",
+  "n_checks": 13,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "toy": {
+    "grid": "5x5, cell = 5.0 m",
+    "move_cost_norm": 0.1,
+    "horizon": 5,
+    "actions": [
+      "E",
+      "N",
+      "S",
+      "W"
+    ],
+    "constants": {
+      "beta": 0.0,
+      "C": 1.0,
+      "Z_REF_J": 225.6069087767049,
+      "L_REF_m": 15.0,
+      "G_INSIDE": -0.001,
+      "gamma_h": 0.999,
+      "gamma_cost": 1.0,
+      "fail_penalty": 1.0,
+      "r_goal_m": 0.5
+    },
+    "cases": {
+      "reachable": {
+        "paths": 345,
+        "goal": 1,
+        "collision": 62,
+        "open_ended": 282,
+        "max_steps": 5
+      },
+      "danger_first": {
+        "paths": 49,
+        "goal": 1,
+        "collision": 28,
+        "open_ended": 20,
+        "max_steps": 5
+      },
+      "unreachable": {
+        "paths": 349,
+        "goal": 0,
+        "collision": 64,
+        "open_ended": 285,
+        "max_steps": 5
+      }
+    },
+    "dp_min_safe_cost": 0.4
+  },
+  "scope_note": "本报告的「精确参考」只对这个受限问题成立：4 个离散动作、确定性转移、常数步成本、5 步上限。它与连续动作导航的最优值之间没有可比性保证，不能据此声称任何连续策略的最优性，也不能用来评价学习到的策略有多好——只用来核对判据（停止分段、预算符号、联合判据、危险历史）与穷举结果是否一致。",
+  "checks": [
+    {
+      "check": "toy_cases_enumerated",
+      "ok": true,
+      "detail": {
+        "reachable": {
+          "paths": 345,
+          "goal": 1,
+          "collision": 62,
+          "open_ended": 282,
+          "max_steps": 5
+        },
+        "danger_first": {
+          "paths": 49,
+          "goal": 1,
+          "collision": 28,
+          "open_ended": 20,
+          "max_steps": 5
+        },
+        "unreachable": {
+          "paths": 349,
+          "goal": 0,
+          "collision": 64,
+          "open_ended": 285,
+          "max_steps": 5
+        }
+      }
+    },
+    {
+      "check": "case_A_reachable_feasible",
+      "ok": true,
+      "detail": {
+        "w_star": 0.0,
+        "info": {
+          "moves": "EEEE",
+          "terminal": "goal",
+          "stop_tau": 4,
+          "spent_at_stop": 0.4,
+          "h_at_stop": 0.0,
+          "cells": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              4,
+              0
+            ]
+          ]
+        },
+        "budget": 0.8,
+        "dp_min_cost": 0.4,
+        "note": "预算 0.8 > 成本 0.4：最优停止就在目标那一步，残差 = h(goal) = 0（可行，判据是 <=）"
+      }
+    },
+    {
+      "check": "case_B_route_exists_but_budget_short",
+      "ok": true,
+      "detail": {
+        "w_star": 0.10000000000000003,
+        "goal_paths": 1,
+        "min_cost": 0.4,
+        "budget": 0.3,
+        "cost_term": 0.10000000000000003,
+        "h_term": 0.0,
+        "note": "路是通的（有 goal 轨迹），但 W = 最小成本−预算 > 0，成本项压过到达项"
+      }
+    },
+    {
+      "check": "case_C_danger_before_arrival",
+      "ok": true,
+      "detail": {
+        "w_star": 0.6333333333333333,
+        "budget": 10.0,
+        "C": 1.0,
+        "residual_if_arriving": 1.0,
+        "info": {
+          "moves": "EE",
+          "terminal": null,
+          "stop_tau": 2,
+          "spent_at_stop": 0.2,
+          "h_at_stop": 0.6333333333333333,
+          "cells": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "goal_paths_all_hit_danger": true,
+        "note": "预算给到 10 也不行：唯一通路穿过危险格，到达那一步 h = max(G_INSIDE, C·1) = C；最优其实是「进危险格之前就停」（残差 = 那格之前的最小 h），仍然 > 0"
+      }
+    },
+    {
+      "check": "case_D_unreachable",
+      "ok": true,
+      "detail": {
+        "w_star": 0.7120226591665966,
+        "h_floor_over_all_prefixes": 0.7120226591665966,
+        "budget": 10.0,
+        "info": {
+          "moves": "EEENN",
+          "terminal": null,
+          "stop_tau": 5,
+          "spent_at_stop": 0.5,
+          "h_at_stop": 0.7120226591665966,
+          "cells": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              3,
+              2
+            ]
+          ]
+        },
+        "note": "预算是 10（远大于任何花费），spent−z 恒为负，残差退化为「到过的最安全那格的 h」"
+      }
+    },
+    {
+      "check": "budget_sign_flip_at_exact_min_cost",
+      "ok": true,
+      "detail": {
+        "mismatches": 0,
+        "dp_min_cost": 0.4,
+        "w_at_min_cost": 0.0,
+        "sweep": [
+          {
+            "z0": 0.3,
+            "w": 0.1,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.31,
+            "w": 0.09,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.32,
+            "w": 0.08,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.33,
+            "w": 0.07,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.34,
+            "w": 0.06,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.35,
+            "w": 0.05,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.36,
+            "w": 0.04,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.37,
+            "w": 0.03,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.38,
+            "w": 0.02,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.39,
+            "w": 0.01,
+            "impl": false,
+            "ref": false
+          },
+          {
+            "z0": 0.4,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.41,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.42,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.43,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.44,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.45,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.46,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.47,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.48,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.49,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          },
+          {
+            "z0": 0.5,
+            "w": 0.0,
+            "impl": true,
+            "ref": true
+          }
+        ],
+        "note": "预算恰好等于最小成本时 W = 0 且判可行（W <= −beta，beta=0）；少一分就不行"
+      }
+    },
+    {
+      "check": "stop_rule_matches_bruteforce_on_every_prefix",
+      "ok": true,
+      "detail": {
+        "paths_compared": 740,
+        "mismatches": [],
+        "note": "三条 toy 的全部轨迹（含碰撞终止、含不同长度）逐前缀比 τ*、W、done"
+      }
+    },
+    {
+      "check": "joint_criterion_max_not_sum",
+      "ok": true,
+      "detail": {
+        "cases_where_sum_would_pass": 1,
+        "examples": [
+          {
+            "moves": "EEEE",
+            "reach": 1.0,
+            "cost": -9.6,
+            "max": 1.0,
+            "sum": -8.6
+          }
+        ],
+        "note": "「装得进预算但到不了」：求和会抵消成负数（误判可行），取 max 不会——这正是契约 residual.why_not_sum 的反例"
+      }
+    },
+    {
+      "check": "danger_history_monotone_and_floor",
+      "ok": true,
+      "detail": {
+        "y_monotone_all_paths": true,
+        "vh_below_C": [],
+        "note": "y 只置 1 不复位；y=1 时 V_h >= C 对所有 (cell, 剩余步数) 成立——min 型递推 + h>=C 的直接推论，状态空间穷举验过"
+      }
+    },
+    {
+      "check": "reach_dp_matches_sequence_recursion",
+      "ok": true,
+      "detail": {
+        "max_abs_dev": 0.0,
+        "path_len": 4,
+        "values": [
+          0.003196868199700003,
+          0.0018987669666666682,
+          0.000933033333333334,
+          0.00030000000000000024,
+          0.0
+        ],
+        "note": "状态空间反向归纳（本文件）与 targets.reach_values（仓库）在贪心轨迹上逐点相等"
+      }
+    },
+    {
+      "check": "toy_targets_go_through_storage_pipeline",
+      "ok": true,
+      "detail": {
+        "rows": [
+          {
+            "kind": "success",
+            "moves": "EEEE",
+            "target_cost_last": 0.1,
+            "expected": 0.1,
+            "target_cost": [
+              0.4,
+              0.30000000000000004,
+              0.2,
+              0.1
+            ]
+          },
+          {
+            "kind": "failure",
+            "moves": "EEEWS",
+            "target_cost_last": 1.0,
+            "expected": 1.0,
+            "target_cost": [
+              0.5,
+              0.4,
+              0.30000000000000004,
+              0.2,
+              1.0
+            ]
+          },
+          {
+            "kind": "truncation",
+            "target_cost_last": 0.7999999999999999,
+            "expected": 0.7999999999999999
+          }
+        ],
+        "note": "success → 实际成本；failure → FAIL_PENALTY；truncation → 成本 + V_c(x_T)"
+      }
+    },
+    {
+      "check": "undiscounted_residual_stop_time_independent",
+      "ok": true,
+      "detail": {
+        "gamma_1_index": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "gamma_1_residual": [
+          0.3,
+          0.3,
+          0.3,
+          0.3
+        ],
+        "gamma_09_index": [
+          4,
+          4,
+          4,
+          3
+        ],
+        "gamma_09_residual": [
+          0.24390000000000003,
+          0.2710000000000001,
+          0.29000000000000004,
+          0.3
+        ],
+        "note": "γ_c=1 时 spent 对 t 可加，W(t,τ) 与 t 无关 → 每步重取得到同一个 τ*；γ≠1 时 τ* 会随 t 变，这就是契约把 γ_c 钉死在 1 的原因"
+      }
+    },
+    {
+      "check": "residual_uses_decreasing_budget_correctly",
+      "ok": true,
+      "detail": {
+        "max_abs_dev": 0.0,
+        "note": "z(t)=z0−spent(0,t) 代入后 W(t,τ) 必须只依赖 τ（= spent(0,τ)−z0）；γ 指数写反或 z 方向写反都会让这条断言失败"
+      }
+    }
+  ]
+}
