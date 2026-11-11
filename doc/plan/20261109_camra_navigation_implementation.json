@@ -4006,7 +4006,43 @@
         "NAV-060",
         "NAV-058"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T17:06:53+08:00",
+          "summary": "NAV-036 开工即阻塞：已授权的训练配额（每 run 250 updates × 4096 步 = 102.4 万步，6 h 墙钟）要求 ≥47.4 步/s 的聚合吞吐，而当前标量名义环境实测只有 9.1–15.6 步/s（随难度）——跑满授权步数需要 18–31 h，超墙钟上限 3–5 倍。已批准的前置组件（向量化名义环境，须逐位等价）尚未实现。任务保持 false，等用户在三条路线里裁定。",
+          "actions": [
+            "核对授权链：config/experiment_prereg_v1.json 的 user_decisions_2026_11_10 记录了三项用户决策（向量化名义环境 decision=true、每方法 3 个种子 [0,1,2]、名义成功率门 0.9 provisional），formal_training_budget.status=authorized_2026_11_10 引用它；但 resource_budget_v1.authorization_record.formal_training_authorized=false，两处矛盾（见 blockers）。",
+            "确认向量化环境不存在：全仓检索 VecEnv/vectoris/向量化/num_envs，命中的都是 Isaac 侧脚本，名义环境只有标量 NominalNavEnv。experiment_prereg 写明其验收是「同一 (level, seed) 与同一命令序列下位姿、成本、标签逐步完全相同（逐位）」，落地区间标注为 NAV-035/036。",
+            "实测当前吞吐（随机指令、Z_REF=550 新契约）：L1_empty 15.6 步/s、L3_multi_path 9.1 步/s，与 NAV-021 的实测（13.4/9.7/7.5）一致。按此速度 102.4 万步需要 18–31 h/run。",
+            "定位热点：4.2 ms/步（直线指令）→ 67 ms/步（带角速率），差值来自冻结模块camra_calibration.geometry.convex_hull_2d（单次 4.6 ms，每步约 24 次：4 面墙 × union/inflate）。跨 env 批处理只能摊薄固定开销，摊不掉这个逐 env 的 hull 成本，所以\"向量化\"必须包含几何批处理/预膨胀缓存，否则达不到 47.4 步/s。"
+          ],
+          "files_changed": [],
+          "commands": [
+            "/tmp/p36.py、/tmp/p36b.py、/tmp/p36c.py（授权链核对、向量化检索、吞吐实测）"
+          ],
+          "results": [
+            "标量吞吐实测：L1 15.6 步/s、L3 9.1 步/s（300 步采样，随机指令）。",
+            "授权配额：4096 步/update × 250 updates = 1,024,000 步，6 h/run，CPU，checkpoint 每 25 updates，最终 checkpoint 取最后一个更新（不按表现挑），无早停，训练开始后不许改超参。",
+            "6 个 run（无校准 3 + 完整 3）总计墙钟上限 40 h。",
+            "向量化环境：required=true，status=approved_not_started，验收=逐位等价。"
+          ],
+          "evidence": [
+            "config/experiment_prereg_v1.json（user_decisions_2026_11_10、training、selection）",
+            "config/resource_budget_v1.json（formal_training_budget、authorization_record）",
+            "NAV-021 记录（吞吐实测 13.4/9.7/7.5 步/s；训练/选择/评估/统计/诊断配额）",
+            "实测脚本 /tmp/p36c.py 的输出（本记录 results 第 2 条）"
+          ],
+          "remaining_work": [
+            "等用户裁定路线（A 向量化 / B 调低步数 / C 原型先行）后：实现训练器（复用 storage/ppo，4096 步/update、checkpoint 每 25 updates、最终取最后更新）、写正式训练预登记（引用 value 1.1.0 / nav 1.4.0 / budget_comparison 1.1.0 + max_grad_norm=2.5）、跑 3 个种子的无校准训练、出 reports/training_uncalibrated.json。",
+            "修正 authorization_record.formal_training_authorized 与 experiment_prereg 的矛盾（待用户确认后改）。"
+          ],
+          "blockers": [
+            "授权配额与标量环境吞吐不匹配：1,024,000 步 / 6 h 需要 ≥47.4 步/s，实测 9.1–15.6 步/s",
+            "已批准的前置组件（向量化名义环境，逐位等价）未实现，且其速度增益未经实测",
+            "authorization_record 与 experiment_prereg 对\"正式训练是否已授权\"记载矛盾"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "按已授权训练种子、步数/GPU预算和课程，在确定性名义环境训练无校准版本；保存全部attempt。",
         "地图原始几何、观测、动作、网络容量、预算/成本单位与完整方法使用同一比较协议。",
