@@ -1,0 +1,232 @@
+{
+ "task": "NAV-036",
+ "check": "vector_nominal_env_bitwise_equivalence",
+ "verdict": "PASS",
+ "n_checks": 6,
+ "n_passed": 6,
+ "checks": [
+  {
+   "check": "bitwise_equivalence::L1_random6",
+   "ok": true,
+   "detail": {
+    "level": "L1_empty",
+    "seeds": [
+     11,
+     1001,
+     2026,
+     3407,
+     777,
+     4242
+    ],
+    "plans": [
+     "random",
+     "random",
+     "random",
+     "random",
+     "random",
+     "random"
+    ],
+    "z0_J": 550.0,
+    "compared_fields": 39852,
+    "compared_obs_values": 23780,
+    "degenerate_steps_covered": 0,
+    "tails": {
+     "env0": {
+      "label": null,
+      "n_steps": 130
+     },
+     "env1": {
+      "label": "stagnation",
+      "n_steps": 98
+     },
+     "env2": {
+      "label": "stagnation",
+      "n_steps": 130
+     },
+     "env3": {
+      "label": "stagnation",
+      "n_steps": 48
+     },
+     "env4": {
+      "label": "stagnation",
+      "n_steps": 109
+     },
+     "env5": {
+      "label": "stagnation",
+      "n_steps": 59
+     }
+    },
+    "n_problems": 0,
+    "first_problems": []
+   }
+  },
+  {
+   "check": "bitwise_equivalence::L2_mixed_plans",
+   "ok": true,
+   "detail": {
+    "level": "L2_single_detour",
+    "seeds": [
+     11,
+     1001,
+     2026,
+     3407
+    ],
+    "plans": [
+     "idle_then_mixed",
+     "random",
+     "turn_drift",
+     "random"
+    ],
+    "z0_J": 550.0,
+    "compared_fields": 28178,
+    "compared_obs_values": 16810,
+    "degenerate_steps_covered": 40,
+    "tails": {
+     "env0": {
+      "label": null,
+      "n_steps": 130
+     },
+     "env1": {
+      "label": "stagnation",
+      "n_steps": 98
+     },
+     "env2": {
+      "label": null,
+      "n_steps": 130
+     },
+     "env3": {
+      "label": "stagnation",
+      "n_steps": 48
+     }
+    },
+    "n_problems": 0,
+    "first_problems": []
+   }
+  },
+  {
+   "check": "bitwise_equivalence::L3_mixed_plans",
+   "ok": true,
+   "detail": {
+    "level": "L3_multi_path",
+    "seeds": [
+     11,
+     1001,
+     2026,
+     3407,
+     777
+    ],
+    "plans": [
+     "random",
+     "idle_then_mixed",
+     "turn_drift",
+     "random",
+     "idle_then_mixed"
+    ],
+    "z0_J": 550.0,
+    "compared_fields": 39397,
+    "compared_obs_values": 23493,
+    "degenerate_steps_covered": 80,
+    "tails": {
+     "env0": {
+      "label": null,
+      "n_steps": 130
+     },
+     "env1": {
+      "label": null,
+      "n_steps": 130
+     },
+     "env2": {
+      "label": null,
+      "n_steps": 130
+     },
+     "env3": {
+      "label": "stagnation",
+      "n_steps": 48
+     },
+     "env4": {
+      "label": null,
+      "n_steps": 130
+     }
+    },
+    "n_problems": 0,
+    "first_problems": []
+   }
+  },
+  {
+   "check": "bitwise_equivalence::L1_full_variant",
+   "ok": true,
+   "detail": {
+    "level": "L1_empty",
+    "seeds": [
+     11,
+     2026
+    ],
+    "plans": [
+     "random",
+     "turn_drift"
+    ],
+    "z0_J": 550.0,
+    "compared_fields": 18022,
+    "compared_obs_values": 10742,
+    "degenerate_steps_covered": 0,
+    "tails": {
+     "env0": {
+      "label": null,
+      "n_steps": 130
+     },
+     "env1": {
+      "label": null,
+      "n_steps": 130
+     }
+    },
+    "n_problems": 0,
+    "first_problems": []
+   }
+  },
+  {
+   "check": "bitwise_equivalence::L2_pure_idle",
+   "ok": true,
+   "detail": {
+    "level": "L2_single_detour",
+    "seeds": [
+     11,
+     1001
+    ],
+    "plans": [
+     "pure_idle",
+     "pure_idle"
+    ],
+    "z0_J": 550.0,
+    "compared_fields": 4222,
+    "compared_obs_values": 2542,
+    "degenerate_steps_covered": 60,
+    "tails": {
+     "env0": {
+      "label": "stagnation",
+      "n_steps": 30
+     },
+     "env1": {
+      "label": "stagnation",
+      "n_steps": 30
+     }
+    },
+    "n_problems": 0,
+    "first_problems": []
+   }
+  },
+  {
+   "check": "throughput_aggregate_ge_47.4",
+   "ok": true,
+   "detail": {
+    "level": "L3_multi_path",
+    "n_envs": 16,
+    "lockstep_calls": 188,
+    "env_steps": 3008,
+    "elapsed_s": 0.32,
+    "aggregate_steps_per_s": 9424.3,
+    "requirement": ">= 47.4 (1,024,000 steps / 6 h authorized quota)"
+   }
+  }
+ ],
+ "note": "All float comparisons are exact equality (==), no tolerance. Equivalence clause: same (level, seed) + same command sequence => identical poses, costs, labels, z, safety and observations."
+}
