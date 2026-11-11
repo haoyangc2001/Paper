@@ -3872,7 +3872,7 @@
       "id": "NAV-035",
       "phase": "算法迁移",
       "goal": "通过算法G3门禁",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-034"
       ],
@@ -3922,6 +3922,58 @@
             "OI-2 预算尺度低于全部场景参考能量，属评分语义变更（计划要求先询问）",
             "OI-3 策略优势构造与参考不同，未做对照（评分语义的一部分）"
           ]
+        },
+        {
+          "timestamp": "2026-11-11T16:58:28+08:00",
+          "summary": "NAV-035 收口（用户裁定后）：按场景重定归一化尺度 Z_REF_J 225.6069 → 550 J（三契约升版 + 快照），11 项受影响检查全部重跑通过；门禁重建为 26 项 22 绿/3 黄/0 红/1 顺延，verdict=PASS_WITH_CONDITIONS，附四条放行条件。",
+          "actions": [
+            "三份契约升版并留 byte 级快照（config/snapshots/*.zref225.6069.json）：value_objective 1.0.0→1.1.0、navigation 1.3.0→1.4.0、budget_comparison 1.0.0→1.1.0；Z_REF_J 225.6069087767049 → 550.0，provenance 改为「1.05 × 场景最大参考能量（L2 489.40 J）向上取整」。",
+            "一个常数修三条缺陷：①可行性被判死（旧尺度低于全部场景参考能量，6214 样本 feasible_steps=0）；②观测 z_ratio 饱和导致策略看不见预算；③FAIL_PENALTY=1.0 低于参考成本 1.61–2.05（成功比失败惩罚更贵）。新尺度下三级参考成本 0.662/0.890/0.675，全部严格小于 1.0。",
+            "observation.py 的常数与出处说明重写（costs 由它 import，一处改动全局生效）；ppo 默认值、networks 单位说明同步。",
+            "测试修正（非掩盖）：test_observation_contract 的饱和取值 z=-500 在新尺度下不再饱和（-500/550=-0.909），换成两端都饱和的 ±1000，并补正端断言；z_ref_provenance 由「复算一个算式」改成「校验三条性质」（尺度 ∈ [1.05,1.20]×场景最大参考能量、且归一化参考成本 < FAIL_PENALTY）——旧值三条全不满足。",
+            "11 项受影响检查重跑全部 exit=0/PASS；7 类不引用 Z_REF 的套件（几何/地图/划分/场景映射/时序）重执行确认无回归，全部 exit=0。",
+            "build_gate_g3.py 更新：新增 G3-26（尺度性质校验）、open_items 四项状态更新（OI-2 resolved、OI-1 deferred_by_user、OI-3 accepted_with_comparison_planned、OI-4 carry_over）、新增 release_conditions 四条与 contract_bump 块、正式训练必须引用的冻结版本清单。",
+            "OI-1 的判定依据补充：候选 log_std 只从 0.0 走到 0.0016（std≈1），按 std=1 推算的每步指令变化约 1.2，实测 1.18 —— 22 倍抖动是未退火的探索噪声，不是策略风格。复查转 NAV-036 出口条件。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/value_objective_contract_v1.json（1.1.0）",
+            "CaMRA/navigation/config/navigation_contract_v1.json（1.4.0）",
+            "CaMRA/navigation/config/budget_comparison_contract_v1.json（1.1.0）",
+            "CaMRA/navigation/config/snapshots/*（3 份 byte 快照）",
+            "CaMRA/navigation/src/camra_navigation/observation.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/ppo.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/networks.py",
+            "CaMRA/navigation/tests/test_observation_contract.py",
+            "CaMRA/navigation/tests/test_minimization_update.py",
+            "CaMRA/navigation/scripts/build_gate_g3.py",
+            "CaMRA/navigation/reports/*（11 份重生成）",
+            "CaMRA/navigation/reports/gate_G3.json"
+          ],
+          "commands": [
+            "python /tmp/patch_zref.py（一次性补丁，含快照与三契约）",
+            "for n in test_value_objective test_observation_contract test_nominal_math test_nominal_env test_targets_oracle test_network_contract test_minimization_update test_toy_reference test_cost_budget test_rollout_resume …（全部 --json 重生成报告，exit=0）",
+            "python CaMRA/navigation/scripts/build_gate_g3.py --json CaMRA/navigation/reports/gate_G3.json"
+          ],
+          "results": [
+            "gate_G3 verdict=PASS_WITH_CONDITIONS，26 项 = 22 绿 / 3 黄 / 0 红 / 1 顺延，证据完整性 problems 为空。",
+            "3 项黄 = 已裁定的已知局限：低速与侧移不可用（NAV-059 方案 A）、角速率死区、短训练原始 FAIL（保留原样，旁有复判书）。",
+            "1 项顺延 = 候选执行适用性（OI-1）：判定前提未满足（探索噪声未退火），转 NAV-036 出口条件，四项指标（变化率/保持时长/死区占比/侧移）都要复测给数。",
+            "放行条件四条已写进 gate_G3：max_grad_norm=2.5 并记录裁剪占比、候选复测四项给数、λ 平滑优势补一组对照、配置变更必须新版本不许就地改。",
+            "正式训练必须引用的冻结版本：value 1.1.0 / navigation 1.4.0 / budget_comparison 1.1.0。",
+            "短训练产物留在旧契约 1.0.0 尺度下（z0=221.09 J 是绝对值未变），结论仍成立，其中 z_ratio 按 1.0.0 解释——已写进 contract_bump。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/gate_G3.json（26 项、开放项、放行条件、contract_bump、冻结版本清单）",
+            "CaMRA/navigation/config/snapshots/*（三契约 byte 快照）",
+            "CaMRA/navigation/docs/algorithm_implementation.md（D1–D9 差异清单，D9 已标注 resolved）",
+            "11 份重新生成的检查报告"
+          ],
+          "remaining_work": [
+            "NAV-036 预登记必须引用 1.1.0/1.4.0/1.1.0 三个版本号与散列，并把 max_grad_norm=2.5 写进训练配置。",
+            "长训退出条件：候选指令分布复测（四项给数）+ λ 平滑优势对照。",
+            "NAV-036 之后回到 OI-1 的物理侧复查（NAV-060 口径）。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -3933,7 +3985,7 @@
         "G3检查表逐项通过，含双critic及minimization的直接证据。",
         "训练器可复现且无已知数据/终止污染，正式训练配置引用已冻结版本。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS_WITH_CONDITIONS：G3 检查表 26 项，22 绿（含双 critic 与 minimization 的直接证据：network_contract 20/20、minimization_update 12/12、targets_oracle 15/15）、3 黄为用户已裁定的已知执行带宽局限、1 项（候选指令复查）经用户批准转长训出口条件，无红项。训练器可复现性由 rollout_resume_check 24/24 证明（连续/停续/崩续逐位相同、无重复写入）；无已知数据/终止污染（terminated 与 truncated 分开，跨 reset 由 storage 拒绝）。正式训练配置已绑定冻结版本：value_objective 1.1.0、navigation 1.4.0、budget_comparison 1.1.0，三份旧版本 byte 快照留存。差异清单 D1–D9 写入 docs/algorithm_implementation.md，其中 D3（优势构造）与 D9（预算尺度，已解决）按计划交由用户裁定并已有结论。",
       "reference_ids": [
         "R03",
         "R04",
