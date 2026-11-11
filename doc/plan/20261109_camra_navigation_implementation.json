@@ -4519,11 +4519,60 @@
       "id": "NAV-041",
       "phase": "预算与闭环",
       "goal": "在独立预算选择集冻结选择规则",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-040"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-12T00:55:00+08:00",
+          "summary": "NAV-041 收口（git 857f296，status True，47/60）：在独立预算选择集（9 图，seeds 3001–3003）上先冻结选择规则（config/budget_selection_v1.json，sha 491da108…），再按 90 回合配额实测执行。结果：18/18 个 (method, map) 均no_feasible_budget，90 个候选行零可行——两种方法在冻结网格 0.70–1.30 内都选不出可行预算。规则、单位、β 含义、z_ref、配额与复算路径全部落文件，复算零失配。",
+          "actions": [
+            "冻结 config/budget_selection_v1.json（sha 491da108…，先于搜索）：只覆盖 method_selected_budget 模式（common_budget 保留独立分母、不得混用）；网格=契约五个 k；判据=实测终止标签 goal_reached（非 critic，承接 NAV-039 的 O-3 决议）；搜索=从低到高取第一个实测可行 k，禁止插值、禁止非单调时改选更大 k；无解保留在地图分母；配额 9×2×5=90 回合；单位/β（W <= -β，仅登记未使用）/Z_REF_J=550/饱和披露逐条写明。",
+            "actor 绑定：每方法取部署清单中 seed 最小（=0）的候选（与表现无关的索引规则）；90 回合配额使每 (method, map, k) 恰好一次，跨种子离散度不可测——该限制写进配置与报告。actor 权重按部署清单的 actor_sha256 逐位校验后才使用。",
+            "新增 scripts/compute_budget_selection_refs.py：用同一冻结 check_map 路径为 9 张选择集地图算 E_ref（362.5–485.3 J，9/9 准入，几何散列与划分一致）；另存 reports/budget_selection_reference_energy.json，reports/train_map_reference_energy.json 逐字节未动（避免其他任务散列漂移）。",
+            "新增 scripts/run_budget_selection.py（--freeze / 默认执行）与 tests/test_budget_selection.py（22 项：规则层/冻结件层/报告层）。",
+            "执行 90 回合（15 s，墙钟上限 2 h）：18/18 no_feasible_budget，0/90 候选行可行；标签只有 budget_exhausted 与 timeout。",
+            "如实记录的形态：低 k 是油量受限（k=0.70 无校准 9/9 全部预算耗尽、还差 6.95–8.28 m）；k=1.30 时约束从油量转为时间（无校准 3/9、完整方法 8/9 撞 30 s 上限，仍差 3.39–4.73 m / 4.50–9.33 m）——加大预算不再有效。",
+            "单调性：因为没有任何可行点，单调性检查**空真**，报告写明「无正反证据」，不得据此声称网格单调。",
+            "饱和披露：8/90 行 z0 > Z_REF_J（L2 三图在 k≥1.15），观测 z_ratio 被裁到 1.0，逐行标记，网格与 Z_REF 均未改。",
+            "调试：首轮报告 clean=false 纯属 z0 与 E_ref 各自四舍五入到 3 位后再相乘；改为行内全精度后复算零失配。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/budget_selection_v1.json(+.sha256)",
+            "CaMRA/navigation/scripts/run_budget_selection.py、compute_budget_selection_refs.py",
+            "CaMRA/navigation/tests/test_budget_selection.py",
+            "CaMRA/navigation/reports/budget_selection.json（逐行记录 + 逐 (method,map) 选择 + 复算块）",
+            "CaMRA/navigation/reports/budget_selection_rule_check.json（22/22 PASS）",
+            "CaMRA/navigation/reports/budget_selection_reference_energy.json（9 图 E_ref）"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/compute_budget_selection_refs.py --json CaMRA/navigation/reports/budget_selection_reference_energy.json",
+            "python CaMRA/navigation/scripts/run_budget_selection.py --freeze",
+            "python CaMRA/navigation/scripts/run_budget_selection.py --json CaMRA/navigation/reports/budget_selection.json",
+            "python CaMRA/navigation/tests/test_budget_selection.py --json CaMRA/navigation/reports/budget_selection_rule_check.json"
+          ],
+          "results": [
+            "选择记录可复算：报告逐行给出 (method, map, k, z0_J, label)，feasible 由标签复算、所选 k 由「从低到高第一个可行」复算、z0 由 k×E_ref 复算，mismatches=[]。",
+            "两方法同一协议：同一网格、同一判据、同一搜索规则、同一配额；budget_selection 不参与 actor 训练，也不进入正式性能分母（报告中明写其计数不是成功率）。",
+            "无解比例：两方法各 9/9 = 1.0；候选行 45/45 全不可行（每方法）；所选物理 J 与归一化值因 no_feasible_budget 而记 null（未插值、未换更大 k、未换种子）。",
+            "实测形态与共同预算指标分开登记：mode_label=method_selected_budget，not_common_budget 段声明两模式标签/分母/样本不得合并。",
+            "规则测试 22/22：首个实测可行点、全不可行、可行岛（保留首个可行并记录违规）、z_ratio 截断而预算不截断、缺网格点拒绝、冻结件散列/网格/配额/actor 绑定/禁令/beta 单位、报告层 90 行唯一 + 三重复算 + 汇总一致 + 模式标签分离。"
+          ],
+          "evidence": [
+            "config/budget_selection_v1.json(+.sha256)：规则先行冻结（sha 491da108…）",
+            "reports/budget_selection.json：90 行原始记录、18 条选择记录、复算块 clean=true、限制清单（单种子、名义环境无实测能量、饱和行、不得当成功率、danger 不构成不可行）",
+            "reports/budget_selection_rule_check.json（22/22 PASS）",
+            "reports/budget_selection_reference_energy.json（9/9 准入，362.5–485.3 J）",
+            "git 857f296"
+          ],
+          "remaining_work": [
+            "下游影响（须在 NAV-042/043 处理，本任务不擅自改标准）：method_selected_budget 模式在两方法上都无可行预算，因此「各自最小可行预算」的比较无法成立；共同预算模式（common_budget）仍可按契约独立执行，两条模式的结论必须分开陈述。",
+            "若要测跨种子离散度，需新的配额授权（90 → 270 回合）与新的预登记，不在本任务内自行扩额。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "仅使用budget_selection核验搜索区间、阈值、裕量与可行预算规则，评价网络/actor固定。",
         "区分每个初态的预算搜索和全局规则选择；无解不能换用测试结果手填预算，标准改变先询问。",
@@ -4534,7 +4583,7 @@
         "两方法使用同一选择协议，选择集不参与正式性能估计或actor训练。",
         "输出双方所选物理J、归一化值、候选/无解比例与选择证据，并与共同预算指标标签区分。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：选择规则在搜索之前冻结（config/budget_selection_v1.json，sha 491da108…，含网格、判据、搜索/无解/单调性规则、单位、β 含义、Z_REF_J 与配额）；选择记录可复算——报告逐行存 (method, map, k, z0_J, label)，可行性、所选 k 与 z0 三项复算 mismatches=[]，规则测试 22/22；两方法使用同一协议，选择集不参与 actor 训练与正式性能估计（报告显式声明其计数不是成功率），并与 common_budget 标签分离。结果如实为负：18/18 (method, map) no_feasible_budget、0/90 候选可行，所选物理 J 记 null 而非插值或换更大 k；单调性因无可行点而空真，已标注为「无证据」；8/90 行 z0>Z_REF_J 的观测饱和逐行披露，网格与 Z_REF 未改。",
       "reference_ids": [
         "R04",
         "R09",
