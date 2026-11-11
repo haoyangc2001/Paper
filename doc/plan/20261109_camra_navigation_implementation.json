@@ -4317,7 +4317,7 @@
       "id": "NAV-039",
       "phase": "正式名义训练",
       "goal": "通过名义学习及部署G4门禁",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-038"
       ],
@@ -4398,6 +4398,45 @@
           "blockers": [
             "G4 仍 FAIL_WITH_STABILITY；第二轮证伪了油量假设并把根因定位到梯度步数（250 步），修正训练语义（多轮更新）需要新的预登记版本与用户授权，不自动执行。"
           ]
+        },
+        {
+          "timestamp": "2026-11-12T00:25:00+08:00",
+          "summary": "NAV-039 第三轮执行与收口（git 7bff25f，status True，45/60）：用户批准 O-4（多轮小批复用，恢复 clip_eps 本意），预登记 v3 冻结（sha adc7f7d2…），6 个 run 各 250 windows × 32 梯度步 = 8,000 步（第二轮 250 步的 32 倍）。clip_eps 首次真正生效（裁剪占比 5–8%）、熵 4.26→3.7–3.9、晚期窗口碰撞/僵持清零、无校准方法 dev 最近距离 4.1–10.6→2.6–5.7 m——策略确实在学，但成功率仍为 0。按 v3 预登记明文写定的后果接受负结果（O-3）：不再追加训练轮次，下游改用实测预算扫描。G4 判定保持 FAIL_WITH_STABILITY 原样。",
+          "actions": [
+            "冻结 config/formal_training_prereg_v3.json（sha adc7f7d2…）：仅更新语义变化——epochs_per_window=4、minibatch=512（32 步/窗口，共 8000 步）；k_train=1.10 与其余语义不变；预登记明文写死后果分支（仍 0 则 O-3，不追加轮次）。",
+            "train_formal.py 实现多轮小批循环（torch.randperm 洗牌、逐 minibatch 调 updater、统计取均值、日志记录 epochs/minibatch/grad_steps）；冒烟 2 updates 验证（36 样本→4 步/窗口）。",
+            "6 个正式 run（formal_{uncal,full}_k110e4_s{0,1,2}）：250 updates、审计库 108 个全清、墙钟约 25 分钟/轮（6 并行）。",
+            "评估与汇总：6 份 eval 报告 + 两份训练报告（training_{uncalibrated,camra_full}_k110e4.json）。",
+            "收口期间 git 故障处理：多次中断的 git status/add 留下 0 字节 index.lock 与损坏 index；清锁 + git read-tree HEAD 重建；提交 7bff25f 内容核对完整（11 文件、2545 行插入）。",
+            "按 O-3 接受负结果：G4 判定不重写（FAIL_WITH_STABILITY 原样留档），下游（预算选择/最终评估）改用 budget_comparison 的实测扫描协议，不使用 value 搜索；部署候选清单仍为 deployment_candidates_v1.json（round-1 checkpoint，唯一版本）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/formal_training_prereg_v3.json(+.sha256)",
+            "CaMRA/navigation/scripts/train_formal.py（多轮小批更新）",
+            "CaMRA/navigation/reports/training_uncalibrated_k110e4.json、training_camra_full_k110e4.json",
+            "CaMRA/navigation/reports/formal_{uncal,full}_k110e4_s{0,1,2}_eval.json（6 份）"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/train_formal.py --run-id formal_{uncal,full}_k110e4_s{n} --variant {uncalibrated,full} --seed {0,1,2} --prereg-name formal_training_prereg_v3.json",
+            "python CaMRA/navigation/scripts/eval_formal_final.py --run-id formal_*_k110e4_s{n} --json …/formal_*_k110e4_s{n}_eval.json"
+          ],
+          "results": [
+            "机械门全绿：250 updates/run、1,021,500 步、墙钟 < 6 h、108 个审计库零问题。",
+            "学习证据（相对前两轮的新增）：裁剪占比 0 → 5–8%（多轮更新真的在起作用）；熵 4.26 → 3.7–3.9（探索开始收敛）；后期窗口碰撞=0、僵持≈0（学会不撞不停）；无校准 dev 最近距离 4.1–10.6 → 2.6–5.7 m（首次突破到 3 米级）。",
+            "但 goal_reached 仍为 0：所有回合都变成「一直开、油烧完」，说明路线效率不足，在 1.10×E_ref 预算内走不完全程。三轮合计（k=1.0 / k=1.10 / 多轮更新）覆盖 18 个 run、约 16 万回合，成功率恒为 0。",
+            "按 O-3 定案：不再追加训练；下游用实测预算扫描；G4 判定保持 FAIL_WITH_STABILITY；不得声称 PPO 收敛（有限训练、负结果）。"
+          ],
+          "evidence": [
+            "reports/training_uncalibrated_k110e4.json、training_camra_full_k110e4.json",
+            "reports/formal_{uncal,full}_k110e4_s{0,1,2}_eval.json（6 份）",
+            "config/formal_training_prereg_v3.json.sha256（adc7f7d2…）",
+            "reports/gate_G4.json（FAIL_WITH_STABILITY，原样保留）",
+            "git 7bff25f"
+          ],
+          "remaining_work": [
+            "下游任务（预算选择与最终评估）改用实测预算扫描协议；若将来重启训练，需新的资源授权与预登记版本，并引用本记录的三轮证据。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -4408,7 +4447,7 @@
         "G4包含多训练种子的曲线/轨迹/性能、checkpoint规则和actor-critic匹配检查。",
         "候选版本唯一，后续预算搜索只消费该版本，不继续边看最终结果边训练。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS（门禁交付完整，判定如实为 FAIL_WITH_STABILITY 并按用户批准的 O-3 接受）：G4 含多训练种子的曲线/轨迹/性能（三轮 18 个 run 的训练日志与报告）、checkpoint 规则（每 25 updates + 最终取最后更新，无按表现挑选）、actor-critic 匹配检查（NAV-038：复判 6/6 PASS，重拟合后 rel MAE 0.064–0.183）；候选版本唯一（deployment_candidates_v1.json 为唯一部署清单，含散列与修正链）；最终集划分零触碰（D3-no-final-leak 绿）；失败如实记录——成功率 0 经三轮（油量假设 → 梯度步数假设 → 32 倍步数）验证后按预登记接受为负结果，下游不使用 value 搜索、不声称收敛。",
       "reference_ids": [
         "R03",
         "R04",
