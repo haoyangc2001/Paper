@@ -1,0 +1,192 @@
+{
+  "task": "NAV-031",
+  "n_checks": 12,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "config": {
+    "clip_eps": 0.2,
+    "ent_coef": 0.01,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "gamma_cost": 1.0,
+    "gae_lambda": 0.95,
+    "gamma_h_init": 0.999,
+    "gamma_h_final": 0.99999,
+    "beta": 0.0,
+    "z_ref_j": 225.6069087767049,
+    "contract_version": "1.0.0"
+  },
+  "checks": [
+    {
+      "check": "config_loaded_from_contract",
+      "ok": true,
+      "detail": {
+        "config": {
+          "clip_eps": 0.2,
+          "ent_coef": 0.01,
+          "vf_coef": 0.5,
+          "max_grad_norm": 0.5,
+          "gamma_cost": 1.0,
+          "gae_lambda": 0.95,
+          "gamma_h_init": 0.999,
+          "gamma_h_final": 0.99999,
+          "beta": 0.0,
+          "z_ref_j": 225.6069087767049,
+          "contract_version": "1.0.0"
+        },
+        "rejects_frozen_override": true,
+        "note": "γ_c=1（未折扣）、λ=0.95、clip=0.2、beta=0 全部来自契约；覆盖被拒"
+      }
+    },
+    {
+      "check": "policy_gradient_sign_matches_fd",
+      "ok": true,
+      "detail": {
+        "adv_raw": [
+          2.0,
+          -1.0
+        ],
+        "adv_normalized": [
+          0.9999999933333334,
+          -0.9999999933333334
+        ],
+        "autograd": [
+          0.4999999966666667,
+          -0.4999999966666667
+        ],
+        "finite_diff": [
+          0.4999999966559532,
+          -0.4999999966559532
+        ],
+        "reading": "A>0（更贵）⇒ 概率升高会让损失变大 ⇒ 梯度为正；A<0 反之"
+      }
+    },
+    {
+      "check": "zero_advantage_no_gradient",
+      "ok": true,
+      "detail": {
+        "normalized_adv": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "grad": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "note": "全零优势标准化后仍全零（不因 1e-8 变成噪声）"
+      }
+    },
+    {
+      "check": "clip_gradient_inside_and_outside",
+      "ok": true,
+      "detail": {
+        "inside_grad": [
+          0.4999999950000001,
+          -0.4999999950000001
+        ],
+        "inside_expect": [
+          0.4999999950000001,
+          -0.4999999950000001
+        ],
+        "outside_ratio": 2.718281828459045,
+        "outside_grad": [
+          1.3591409006381137,
+          0.0
+        ],
+        "note": "域内=A/B；A<0 越界后梯度为 0（被裁剪）；A>0 越界后梯度仍为 A·ratio/B，因为 max 选的是未裁剪项——与'最小化'语义一致，不是 bug"
+      }
+    },
+    {
+      "check": "entropy_term_increases_entropy",
+      "ok": true,
+      "detail": {
+        "d_loss_d_log_std": [
+          -0.009999999776482582,
+          -0.009999999776482582,
+          -0.009999999776482582
+        ],
+        "note": "loss=−ent_coef·H；最小化它 ⇒ log_std 上升 ⇒ 熵增大（与'最大化奖励'模板同向，但前提是这一项确实带负号）"
+      }
+    },
+    {
+      "check": "value_loss_hand_numbers",
+      "ok": true,
+      "detail": {
+        "loss": 0.7400000095367432,
+        "hand": 0.74,
+        "grad": [
+          0.10000000149011612,
+          0.0
+        ],
+        "clipped_fraction": 0.5,
+        "note": "第 0 点梯度 = vf·(v−t)/B = 0.5·0.4/2 = 0.1；第 1 点裁剪后误差 5.76 > 未裁剪 1.0，max 取裁剪分支 ⇒ 梯度恰为 0"
+      }
+    },
+    {
+      "check": "value_clip_saturates_outside",
+      "ok": true,
+      "detail": {
+        "grad": [
+          0.0
+        ],
+        "hand": "clipped=0.2，err=(3−3.5)²=0.25 但 err_clipped=(0.2−3.5)²=10.89，max 取 10.89 且与 v 无关 ⇒ 梯度 0"
+      }
+    },
+    {
+      "check": "reference_transcription_matches",
+      "ok": true,
+      "detail": {
+        "policy_loss_mine": 0.11787127077259339,
+        "policy_loss_reference": 0.11787127077259334,
+        "value_loss_mine_f32": 0.7400000095367432,
+        "value_loss_mine_f64": 0.74,
+        "value_loss_reference": 0.74,
+        "note": "参考转写独立复算 numpy 版；float64 下逐位一致，float32 的 9.5e-9 差异是舍入而非逻辑"
+      }
+    },
+    {
+      "check": "update_pushes_toward_cheaper_action",
+      "ok": true,
+      "detail": {
+        "mean_vx_before": 8.735927258385345e-05,
+        "mean_vx_after": -0.3157166838645935,
+        "adv_positive_means_costlier": true,
+        "loss_trace_first": -0.04256816953420639,
+        "loss_trace_last": -0.1888572722673416,
+        "note": "优势与动作第 0 维正相关（越正越贵）⇒ 更新后该维均值应下降"
+      }
+    },
+    {
+      "check": "update_touches_only_intended_subnets",
+      "ok": true,
+      "detail": {
+        "changed": {
+          "policy": true,
+          "critic_cost": true,
+          "critic_reach": true
+        },
+        "policy_head_changed": true,
+        "note": "本调用同时更新三个子网（各自独立优化器）；任一子网未被更新即为实现错误"
+      }
+    },
+    {
+      "check": "frozen_v2_untouched_by_update",
+      "ok": true,
+      "detail": {
+        "sha256_before": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4",
+        "sha256_after": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4"
+      }
+    },
+    {
+      "check": "nan_guard_refuses_update",
+      "ok": true,
+      "detail": {
+        "note": "含 NaN 的 batch 直接拒绝，不靠'多训几轮'掩盖"
+      }
+    }
+  ]
+}

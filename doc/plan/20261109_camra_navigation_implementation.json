@@ -3559,11 +3559,51 @@
       "id": "NAV-031",
       "phase": "算法迁移",
       "goal": "实现成本最小化PPO更新",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-030"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T11:48:47+08:00",
+          "summary": "NAV-031 完成：按参考 _ecefppo_update 实现成本最小化 PPO 更新（max 而非 min、熵项负号、直接 optimizer.step），12 项检查全过；梯度方向用有限差分独立验证，端到端更新把策略推离高价动作。",
+          "actions": [
+            "新增 src/camra_navigation/algorithm/ppo.py：PPOConfig 从价值契约显式读取 γ_c=1.0、λ=0.95、clip=0.2、ent=0.01、vf=0.5、max_grad_norm=0.5、beta=0、Z_REF_J，并拒绝覆盖这些冻结量；policy_loss / value_loss / MinimizationUpdater 三件套。",
+            "符号严格按最小化语义：surrogate 用 max(ratio·A, clip(ratio)·A)（不是 min）；总损失 = surrogate.mean() − ent_coef·H；backward 后直接 step，不做梯度上升。代码与文档都写明\"照抄奖励最大化模板会把目标反过来\"。",
+            "价值损失对\"相对旧价值的改动量\"裁剪，取未裁剪与裁剪两段误差的较大者（悲观界），乘 vf_coef·0.5·mean；两个 critic 各用独立优化器。",
+            "动作变换前后 log_prob 语义写明：分布作用于**归一化动作**，裁剪发生在 applied 处（cmd-v1），损失里不重复裁剪。",
+            "新增 tests/test_minimization_update.py：12 项检查，梯度方向一律用中心差分独立验证。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/algorithm/ppo.py",
+            "CaMRA/navigation/tests/test_minimization_update.py",
+            "CaMRA/navigation/reports/minimization_update_check.json"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_minimization_update.py --json CaMRA/navigation/reports/minimization_update_check.json"
+          ],
+          "results": [
+            "verdict PASS，12/12。",
+            "梯度方向：A>0（更贵）时 dL/dlogp = +0.5（增大概率会涨损失），A<0 时 −0.5；autograd 与中心差分一致到 1e-9。",
+            "裁剪：域内梯度 = A/B = ±0.5；A<0 越界（ratio=e）后梯度恰为 0（被裁剪）；A>0 越界后梯度仍为 A·ratio/B = 1.359——因为 max 取未裁剪项，这是最小化语义的正确行为，不是 bug。",
+            "零优势：标准化后仍全零，梯度恰为 0（不会因 1e-8 变成噪声）。",
+            "熵项：dL/dlog_std 全为负（log_std 上升 ⇒ 熵增大），符号与\"最大化熵\"一致。",
+            "价值损失手算：第 0 点（未超 clip）梯度 = vf·(v−t)/B = 0.1；第 1 点（超 clip 且裁剪误差更大）梯度 = 0；整项 0.74 与手算一致。",
+            "参考转写交叉核对：float64 下 policy/value 损失逐位一致（f32 的 9.5e-9 是舍入）。",
+            "端到端：15 步更新后动作第 0 维均值从 8.7e-5 降到 −0.316（优势与该维正相关=越正越贵），策略损失 −0.043 → −0.189；三个子网各自更新、冻结 v2 散列不变。",
+            "NaN 守卫：含 NaN 的 batch 直接抛错拒绝更新。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/minimization_update_check.json（12 项检查与数值）",
+            "CaMRA/navigation/src/camra_navigation/algorithm/ppo.py",
+            "RC-PPO/rl/EFPPO_utils.py（只读参考 _ecefppo_update）"
+          ],
+          "remaining_work": [
+            "下一步按依赖链推进（NAV-032 起）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "沿_ecefppo_update保留最小化的裁剪目标、优势及熵符号；明确动作变换前后log_prob和分布语义。",
         "不套常规奖励最大化模板；检查归一化是否改变max(V_h,V_cost-z)的单位与判据。",
@@ -3573,7 +3613,7 @@
         "正/负优势、裁剪区间内外、零优势及熵项的独立梯度方向测试通过。",
         "与已登记参考小批输入比较loss/gradient/update，NaN或不一致不以扩大训练绕过。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：12/12。按参考实现最小化语义（max 裁剪目标、熵负号、直接下降），梯度方向经中心差分独立验证（autograd 与差分一致 1e-9）；裁剪域内/域外、零优势、熵项方向、价值损失手算与 float64 交叉核对全部通过；端到端 15 步更新把策略推离高价动作且只动上层参数。",
       "reference_ids": [
         "R03"
       ],
