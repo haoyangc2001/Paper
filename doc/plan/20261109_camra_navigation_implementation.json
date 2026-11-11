@@ -4075,6 +4075,42 @@
             "正式训练器 + 预登记（引用 value 1.1.0 / nav 1.4.0 / budget 1.1.0、max_grad_norm=2.5、3 种子、4096×250、checkpoint 每 25 updates）。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-11T18:07:31+08:00",
+          "summary": "路线 A 前半完成：VectorNominalNavEnv 实现并逐位等价验证通过（git 8d7ba2e）。6 个 level/plan 组合、147k+ 比对值零不一致（== 无容差），含终止标签、退化线段、全变体成本模型；聚合吞吐 9424 env-steps/s，是授权配额要求 47.4 的 198 倍。剩余：正式训练器 + 预登记 + 3 个 run。",
+          "actions": [
+            "新增 src/camra_navigation/envs/vector.py：同一地图上 N 个独立回合的锁步批量环境。积分/成本/观测编码/僵持检测/标签全部逐 env 复用与标量环境相同的冻结代码（step_exact、JCostModel、encode_observation），一致性靠构造保证而非论证。两条热点几何路径换成数学上精确的批量等价：①segment 对预膨胀岛的 SAT（膨胀半径全回合为常数，缓存与冻结逐步重算逐位相同；段长为零的退化情形回退到冻结标量谓词，其零长段语义被精确复刻）；②带旋转余量的扫掠足迹 SAT——冻结测试是convex_polygons_intersect(hull(F0,F1)⊕disc(r), obstacle)，r=r_fp·|wrap(Δyaw)|/2；轴集 normals(F0)∪normals(F1)∪normals(obstacle) 对该测试完备（凸包边法向是两端点边法向的子集；圆角多边形与多边形有分离轴时必可取凸包或多边形边法向）。",
+            "新增 tests/test_vector_equivalence.py：逐位门（所有浮点用 == 比较，无容差），6 个案例 = L1/L2/L3 × random/idle+mixed/turn 指令计划 + full 变体 + 纯怠速（30 步必然僵持，覆盖终止标签与 60 个退化步）。比对位姿、成本（功率/名义/模型/成本时钟）、请求/下发指令、z_J/z_ratio、safety_y、danger/internal、goal_distance、margin（None↔NaN 映射）、标签、done、观测 41 维（reset 与每步后）、EpisodeResult。吞吐检查：N=16 在 L3 上聚合 9424 步/s ≥ 47.4（授权配额 102.4 万步/6 h）。",
+            "min_nominal_margin/min_physical_clearance 设为可选（compute_margins，默认 False）：训练管线不消费这两个字段；开启时调用冻结逐 env 函数保持逐位一致。已在模块 docstring 声明消费者义务。",
+            "调试记录：第一版暴露三类记录语义错位（vector 返回递增后的 index、成本时钟未暴露、空地图 margin 用 inf 对标量 None），均为测试侧/记录侧问题，几何与动力学零差异；修正后全过。上一轮原型对照的\"多岛 OR 当单岛\"教训在本轮避免复犯（逐 env 逐字段比对）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/envs/vector.py（新增）",
+            "CaMRA/navigation/tests/test_vector_equivalence.py（新增）",
+            "CaMRA/navigation/reports/vector_equivalence_check.json（新增，verdict=PASS）"
+          ],
+          "commands": [
+            "python CaMRA/navigation/tests/test_vector_equivalence.py --json CaMRA/navigation/reports/vector_equivalence_check.json",
+            "python CaMRA/navigation/tests/test_nominal_env.py（回归，全过）"
+          ],
+          "results": [
+            "等价门 6/6 PASS：L1_random6（6 env × 130 步）、L2/L3_mixed_plans、L1_full_variant、L2_pure_idle（双 env 30 步僵持终止）。比对字段 129,671 + 观测值 77,467，0 不一致。",
+            "退化线段（applied 恰为零的步）覆盖 120 步，含僵持终止情形。",
+            "聚合吞吐 9424 env-steps/s（L3、N=16、随机指令），要求 47.4 —— 余量 198 倍。",
+            "标量环境回归 test_nominal_env 全过（新模块未改动任何已有文件）。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/vector_equivalence_check.json（verdict=PASS，逐案例明细含比对计数、退化步覆盖、终止标签）",
+            "git 8d7ba2e"
+          ],
+          "remaining_work": [
+            "正式训练器（4096 步/update、checkpoint 每 25 updates、最终取最后更新、无早停、训练开始后不许改超参），在批量环境上运行。",
+            "正式训练预登记：引用 value 1.1.0 / navigation 1.4.0 / budget_comparison 1.1.0 三契约版本与散列、max_grad_norm=2.5（NAV-034 整改）、3 种子 [0,1,2]、名义成功率门 0.9 provisional。",
+            "跑 3 个无校准训练 run，出 reports/training_uncalibrated.json。",
+            "修正 resource_budget_v1.authorization_record.formal_training_authorized=false 与 experiment_prereg 已授权记录的矛盾（需用户确认后改）。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
