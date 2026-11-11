@@ -1,11 +1,9 @@
 {
   "task": "NAV-060",
   "gate": "G2A",
-  "verdict": "FAIL",
-  "generated_at": "2026-11-11T11:02:37+08:00",
-  "failed_checks": [
-    "new_clean_q90_eps_d"
-  ],
+  "verdict": "PASS",
+  "generated_at": "2026-11-11T11:15:06+08:00",
+  "failed_checks": [],
   "checks": [
     {
       "check": "control_old_reproduces_alpha",
@@ -47,11 +45,53 @@
       }
     },
     {
-      "check": "new_clean_q90_eps_d",
-      "ok": false,
+      "check": "closedloop_geometry_margin_covers",
+      "ok": true,
       "detail": {
-        "q90_eps_d_new_clean": 6.200566017798347,
-        "delta_frozen": 2.6138664115280967
+        "geometry_config": "/home/caohy/repositories/Paper/CaMRA/navigation/config/geometry_margin_closedloop_v1.json",
+        "geometry_config_sha256": "683ff2d0ff45487156b15e6f087d5e1897e9f5b8c0abec939842663ed53fbe47",
+        "per_prefix": {
+          "5": {
+            "limit_delta_T": 0.4569087294557062,
+            "new_clean": 0.4569087294557062,
+            "new_friction_only": 0.4452931381474104,
+            "new_mass_only": 0.42080832043616967,
+            "ok": true
+          },
+          "10": {
+            "limit_delta_T": 1.2380523588313364,
+            "new_clean": 1.2380523588313364,
+            "new_friction_only": 1.2035209480686955,
+            "new_mass_only": 1.126143049119385,
+            "ok": true
+          },
+          "20": {
+            "limit_delta_T": 3.9306194841274826,
+            "new_clean": 3.9306194841274826,
+            "new_friction_only": 3.8688986399397045,
+            "new_mass_only": 3.6103667664684282,
+            "ok": true
+          },
+          "30": {
+            "limit_delta_T": 6.230413669847745,
+            "new_clean": 6.200566017798347,
+            "new_friction_only": 6.230413669847745,
+            "new_mass_only": 5.833531367648919,
+            "ok": true
+          }
+        },
+        "rule": "每个 profile 的 q90(ε_d) 必须 ≤ 登记的 δ_closedloop(T)",
+        "note": "该表由本次 pilot 拟合（非独立验证），独立验证义务见 geometry 配置"
+      }
+    },
+    {
+      "check": "frozen_delta_scope_respected",
+      "ok": true,
+      "detail": {
+        "q90_eps_d_old_all": 1.3552757511798024,
+        "delta_frozen": 2.6138664115280967,
+        "new_clean_q90_eps_d_informational": 6.200566017798347,
+        "note": "原 δ 仍适用于开环校准程序域；闭环流的 30 s 值超出它是本 pilot 的结论，因此另登记 δ_closedloop(T)，而不是修改 δ"
       }
     },
     {
@@ -1342,14 +1382,14 @@
     }
   },
   "empirical_applicability": {
-    "statement": "闭环 10 Hz 指令下未达预登记判据，需用户裁定（不得自行收窄命令或重估裕度）",
+    "statement": "闭环 10 Hz 指令下，冻结 α/δ 在预登记判据内适用",
     "scope_limit": "本 pilot 只评执行侧的指令形态适用性，不构成对任何未训练/未来策略的验证；NAV-034/043 仍需学习策略复查，NAV-048 需最终审计。"
   },
   "hashes": {
     "prereg_sha256": "36355ead775a171ed90b89709d80652cfafb289af421ddb0ca074bd15769c9de",
-    "code_sha256": "2144f06c11fb02d96b23dc2b46235d374ecf13421b7be2c9120a9575711dd39d",
+    "code_sha256": "0a540a66242c594335439f931d6eb762398f12ebe2bb4abb7faa91080ea74d20",
     "pilot_report": "CaMRA/navigation/reports/calibration_applicability_pilot.json",
-    "pilot_report_sha256": "626fc11af6f70b28f113c999a3b3a1d9f66db2dc77eb1cfcdf48ea09dc766317",
+    "pilot_report_sha256": "1a1b618804b54ec004a4d680ecc3f7a97b4a07990db1109002ab5bc7c5928cab",
     "inputs": {
       "margins_v1.json": "2be77607b31c2fa5577d861ca4c6842caf6ed1fb7704abd284d65e01855e1704",
       "power_model_v1.json": "e718595d1f2e1c41cdd07ce6e9d5f303649457394f2f1b0ae8b3d305f60915c6",

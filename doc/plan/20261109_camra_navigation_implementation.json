@@ -3255,7 +3255,7 @@
       "id": "NAV-060",
       "phase": "底层接通",
       "goal": "完成训练前闭环指令与旧裕度适用性pilot并通过G2A",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-028"
       ],
@@ -3351,6 +3351,46 @@
           "blockers": [
             "G2A 仍未通过，NAV-029 及上层学习不得启动，status 保持 false。"
           ]
+        },
+        {
+          "timestamp": "2026-11-11T11:15:36+08:00",
+          "summary": "按用户裁定 A 登记闭环几何裕度 δ_closedloop(T)（5/10/20/30 s = 0.457/1.238/3.931/6.230 m），G2A 重判 PASS（11/11 检查）。原冻结 δ=2.6139 保留，只适用于开环校准程序域。",
+          "actions": [
+            "新增 config/geometry_margin_closedloop_v1.json（sha256 683ff2d0…）：δ(T) = 三个 profile 在该前缀的 q90(ε_d) 取最大（最差 profile 覆盖），nearest-rank q90，与协议分位口径一致；未乘任何安全系数。",
+            "登记有效范围：T∈[5,30]，表内线性插值；指令域 |vx|≤0.6、vy=0、|wz|≤0.33；明确 not_valid_for：未训练/未来策略、超域或超 30 s 的连续指令、开环校准程序。",
+            "登记生命周期：本次为拟合而非验证（fit_not_validation=true），独立验证义务写入配置的 validation_obligations（NAV-034/043 复查、NAV-048 用 heldout 或独立 pilot 验证）。这与原 α/δ 的处理一致（同样在 calibration split 拟合、heldout 留待审计）。",
+            "门禁判据相应替换：几何项由「闭环 q90(ε_d) ≤ 冻结 δ」改为「每个 profile 每个前缀的 q90(ε_d) ≤ 登记的 δ_closedloop(T)」，并新增 frozen_delta_scope_respected 检查，确认原 δ 对开环域仍成立（old_all q90=1.355 ≤ 2.614）。",
+            "预登记文件保持不可变：amend 记录写在 geometry 配置与计划记录里，不修改 calibration_applicability_prereg_v1.json 的任何阈值。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/geometry_margin_closedloop_v1.json(+.sha256)",
+            "CaMRA/navigation/scripts/check_calibration_applicability.py（新增 --derive-geometry-margin 与几何判据替换）",
+            "CaMRA/navigation/reports/gate_G2A.json（PASS 11/11）",
+            "CaMRA/navigation/reports/calibration_applicability_pilot.json（重聚合）"
+          ],
+          "commands": [
+            "python check_calibration_applicability.py --derive-geometry-margin --inputs reports/calibration_applicability_pilot.json",
+            "python check_calibration_applicability.py --aggregate --inputs <4 runs> --json ... --gate ..."
+          ],
+          "results": [
+            "G2A verdict PASS，11/11 检查通过，failed_checks=[]。",
+            "δ_closedloop(T)：5 s 0.457 / 10 s 1.238 / 20 s 3.931 / 30 s 6.230 m；逐 profile 全部被覆盖。",
+            "成本项 α 仍通过且与时长无关：q90(ε_c) = -0.013/-0.048/-0.061/-0.067（5/10/20/30 s）；对照 old = +0.131/+0.053/+0.093/+0.067。",
+            "对照复现保持：old_all q90(ε_c)=0.1904 vs 冻结 α=0.19050；old_all q90(ε_d)=1.355 ≤ δ=2.6139。",
+            "其余工程项：延迟 1 子步（5 ms）、命令通道 0 次不一致、扰动读回全部 ok、前缀分母分离、记录器无故障。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/geometry_margin_closedloop_v1.json（sha256 683ff2d0…，含推导来源与验证义务）",
+            "CaMRA/navigation/reports/gate_G2A.json（PASS 11/11）",
+            "CaMRA/navigation/reports/calibration_applicability_pilot.json（populations_by_prefix 为表的直接来源）",
+            "CaMRA/navigation/reports/yawrate_deadband.json（执行侧死区实测）"
+          ],
+          "remaining_work": [
+            "NAV-029 起可启动（G2A 已通过）。",
+            "义务延续：NAV-034/NAV-043 复查 δ_closedloop 是否仍适用；NAV-048 最终审计须独立验证该表（当前为拟合，非验证）。",
+            "已知执行局限（不阻断，但规划须考虑）：底层 |wz|<0.2 rad/s 完全不执行、0.3 仅 21%、0.5 为 71%；低速（<0.3 m/s）停滞（NAV-059）；纯侧移无响应（G2）。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -3364,7 +3404,7 @@
         "G2A逐项给工程正确性与经验适用性结论，未通过或科学范围需裁定时保持false并询问；未解除不启动NAV-029及任何上层学习。",
         "写明后续NAV-034/043的学习策略复查及NAV-048最终审计义务；pilot通过不自动继承旧30秒覆盖结论，也不替未来策略背书。"
       ],
-      "verification_result": "pilot 完成但 G2A 未通过：10 项检查 9 过 1 败（new_clean q90(ε_d)=6.467 m > δ=2.6139 m）。成本项 ε_c 全过（clean -0.0723 / friction -0.0744 / mass +0.1905）、对照复现 α（0.1904 vs 0.19050）。失败机制诊断为名义参考漂移（实际路径横向偏移仅 0.15-0.18 m）。按任务约束保持 false 并请求用户裁定。",
+      "verification_result": "PASS：G2A 11/11 检查通过。成本项 α 全过（q90 ε_c −0.013…−0.067 vs 阈值 0.15）；几何项按用户裁定 A 改为登记的 δ_closedloop(T)（5/10/20/30 s = 0.457/1.238/3.931/6.230 m），原冻结 δ=2.6139 m 保留并限定于开环校准程序域；对照复现 α（0.1904 vs 0.19050）。该 δ(T) 为拟合而非独立验证，独立验证义务转 NAV-048；NAV-034/043 需复查。",
       "reference_ids": [
         "R07",
         "R08",

@@ -1003,8 +1003,33 @@ def aggregate(paths: list[str], prereg: dict) -> dict:
         {"q90_eps_c_new_clean": ps.get("q90_eps_c"), "threshold": Q90_EPS_C_MAX,
          "alpha_frozen": alpha, "n": ps.get("n_eps_c"),
          "q90_eps_c_new_all_reference": per_group.get("new_all", {}).get("q90_eps_c")})
-    add("new_clean_q90_eps_d", ps.get("q90_eps_d") is not None and ps["q90_eps_d"] <= delta,
-        {"q90_eps_d_new_clean": ps.get("q90_eps_d"), "delta_frozen": delta})
+    # 几何项：按用户裁定 A，闭环流用登记的 δ_closedloop(T) 判，逐 profile 逐前缀覆盖
+    gm = None
+    if os.path.exists(GEOMETRY_CFG):
+        gm = json.load(open(GEOMETRY_CFG, encoding="utf-8"))
+    geo_cov, geo_detail = True, {}
+    if gm:
+        for T in [str(x) for x in PREFIXES_S]:
+            lim = gm["table_q90_by_prefix_s"][T]
+            vals = {k: per_group_prefix[k][T]["q90_eps_d"] for k in CLOSEDLOOP_PROFILES}
+            ok_T = all(v is not None and v <= lim + 1e-9 for v in vals.values())
+            geo_cov = geo_cov and ok_T
+            geo_detail[T] = {"limit_delta_T": lim, **vals, "ok": ok_T}
+    add("closedloop_geometry_margin_covers",
+        gm is not None and geo_cov,
+        {"geometry_config": GEOMETRY_CFG if gm else None,
+         "geometry_config_sha256": sha256_file(GEOMETRY_CFG) if gm else None,
+         "per_prefix": geo_detail,
+         "rule": "每个 profile 的 q90(ε_d) 必须 ≤ 登记的 δ_closedloop(T)",
+         "note": "该表由本次 pilot 拟合（非独立验证），独立验证义务见 geometry 配置"})
+    add("frozen_delta_scope_respected",
+        per_group.get("old_all", {}).get("q90_eps_d") is not None
+        and per_group["old_all"]["q90_eps_d"] <= delta,
+        {"q90_eps_d_old_all": per_group.get("old_all", {}).get("q90_eps_d"),
+         "delta_frozen": delta,
+         "new_clean_q90_eps_d_informational": ps.get("q90_eps_d"),
+         "note": "原 δ 仍适用于开环校准程序域；闭环流的 30 s 值超出它是本 pilot 的结论，"
+                 "因此另登记 δ_closedloop(T)，而不是修改 δ"})
     add("low_speed_dwell_one_sided", low_shift is not None and low_shift <= LOW_SPEED_SHIFT_MAX,
         {"new_clean_mean": new_low_mean, "old_clean_mean": old_low_mean,
          "shift": low_shift, "threshold": LOW_SPEED_SHIFT_MAX,
@@ -1091,6 +1116,93 @@ def aggregate(paths: list[str], prereg: dict) -> dict:
 
 
 
+
+GEOMETRY_CFG = os.path.join(NAV_ROOT, "config", "geometry_margin_closedloop_v1.json")
+CLOSEDLOOP_PROFILES = ("new_clean", "new_friction_only", "new_mass_only")
+
+
+def derive_geometry_margin(pilot_path: str, prereg: dict) -> dict:
+    """从 pilot 报告推导闭环指令的几何裕度 δ(T)（用户裁定 A）。
+
+    定义：δ_closedloop(T) = max over profiles of q90(ε_d at prefix T)。
+    取最差 profile，保证每个 profile 都被自身数据覆盖；与冻结 δ 一样是 q90 口径，
+    不额外加安全系数（不擅自放宽也不擅自收紧）。
+
+    这是**拟合**而非独立验证：独立验证留给 NAV-048 最终审计（heldout）。
+    与冻结 α/δ 的生命周期一致（α/δ 也是在 calibration split 上拟合、heldout 留待审计）。
+    """
+    if os.path.exists(GEOMETRY_CFG):
+        raise SystemExit(f"拒绝覆盖已登记的几何裕度：{GEOMETRY_CFG}")
+
+    rep = json.load(open(pilot_path, encoding="utf-8"))
+    prefixes = [str(T) for T in PREFIXES_S]
+    per_profile = {}
+    for key in CLOSEDLOOP_PROFILES:
+        per_profile[key] = {T: rep["populations_by_prefix"][key][T]["q90_eps_d"]
+                            for T in prefixes}
+    table = {T: max(per_profile[k][T] for k in CLOSEDLOOP_PROFILES) for T in prefixes}
+
+    # 单调性：指令越长偏差不应变小（实测应如此；不满足说明数据有问题，拒绝登记）
+    seq = [table[T] for T in prefixes]
+    if any(seq[i + 1] < seq[i] - 1e-9 for i in range(len(seq) - 1)):
+        raise SystemExit(f"δ(T) 非单调递增，拒绝登记：{seq}")
+
+    worst = {T: max(CLOSEDLOOP_PROFILES,
+                    key=lambda k: per_profile[k][T]) for T in prefixes}
+
+    cfg = {
+        "schema": "camra.nav.geometry_margin.closedloop.v1",
+        "version": "1.0",
+        "created_at": datetime_now(),
+        "applies_to": "闭环 10 Hz 在线指令（规则反馈导航）在 integration_pilot 三图上的执行偏差",
+        "quantity": "ε_d = max_t ||p_exec(t) - p_nom(t)||，10 Hz 网格，逐回合；q90 across episodes",
+        "table_q90_by_prefix_s": table,
+        "per_profile_q90": per_profile,
+        "worst_profile_by_prefix": worst,
+        "definition": "δ_closedloop(T) = 三个 profile 的 q90(ε_d(T)) 取最大；q90 用 nearest-rank，"
+                      "与协议 statistics.quantile_method 一致",
+        "validity": {
+            "T_range_s": [5, 30],
+            "interpolation": "表内线性插值；<5 s 取 5 s 的值；>30 s 不适用（须重做 pilot）",
+            "command_domain": "与 pilot 相同的闭环指令域：|vx| ≤ 0.6、vy = 0、|wz| ≤ 0.33 rad/s",
+            "not_valid_for": ["未训练/未来策略（须由 NAV-034/043 复查）",
+                              "超出上述指令域或超过 30 s 的连续指令",
+                              "开环校准命令程序（那是冻结 δ=2.6139 的适用范围）"],
+        },
+        "derivation": {
+            "pilot_report": pilot_path,
+            "pilot_report_sha256": sha256_file(pilot_path),
+            "prereg_sha256": prereg["frozen_inputs"]["margins_v1.json"],
+            "n_episodes": sum(rep["populations_by_prefix"][k]["5"]["n_episodes"]
+                              for k in CLOSEDLOOP_PROFILES),
+            "fit_not_validation": True,
+            "figures": "q90 eps_d = " + " / ".join(f"{T}s {table[T]:.3f}" for T in prefixes),
+        },
+        "relation_to_frozen_delta": {
+            "frozen_delta_m": json.load(open(MARGINS_PATH, encoding="utf-8"))["delta"],
+            "still_valid_for": "开环校准命令程序域（每 1.0 s 换目标 + 0.2 s 过渡）",
+            "why_separate": "闭环指令的 ε_d 随指令持续时间增长（对照 30 s 时 1.98 m，闭环 6.20 m），"
+                            "固定 δ 只覆盖约 10-15 s；这不是放宽，而是把适用范围按实测分开登记。",
+        },
+        "amendment": {
+            "ruling": "2026-11-11 用户选择 A：登记随时间前缀变化的 δ(T) 表",
+            "context": "G2A 唯一失败项；C（角速率死区规避）已实测无效，ε_d 仅 6.47→6.20",
+            "not_a_threshold_relaxation": "δ(T) 由实测 q90 生成，未乘任何安全系数；"
+                                          "同时保留原 δ 对开环域的适用性",
+        },
+        "validation_obligations": [
+            "NAV-034 / NAV-043：对学习到的策略复查本表是否仍适用",
+            "NAV-048：最终审计，须用 heldout 或独立 pilot 验证本表（当前为拟合，非验证）",
+        ],
+    }
+    with open(GEOMETRY_CFG, "w", encoding="utf-8") as fh:
+        json.dump(cfg, fh, ensure_ascii=False, indent=2, default=float)
+        fh.write("\n")
+    with open(GEOMETRY_CFG + ".sha256", "w", encoding="utf-8") as fh:
+        fh.write(sha256_file(GEOMETRY_CFG) + "\n")
+    return cfg
+
+
 def gate_summary(report: dict, pilot_path: str) -> dict:
     """G2A 门禁摘要（权威判定），完整数据留在 pilot 报告里。"""
     return {
@@ -1142,6 +1254,8 @@ def main() -> int:
     ap.add_argument("--split", choices=["old", "new"], default="")
     ap.add_argument("--level", default="L1_empty")
     ap.add_argument("--aggregate", action="store_true")
+    ap.add_argument("--derive-geometry-margin", action="store_true",
+                    help="由 pilot 报告推导并登记闭环几何裕度 δ(T)")
     ap.add_argument("--inputs", nargs="*", default=[])
     ap.add_argument("--json", default="")
     ap.add_argument("--gate", default="")
@@ -1156,6 +1270,13 @@ def main() -> int:
         return write_prereg()
 
     prereg = load_prereg_verified()
+
+    if args.derive_geometry_margin:
+        cfg = derive_geometry_margin(args.inputs[0], prereg)
+        print(json.dumps({"geometry_config": GEOMETRY_CFG,
+                          "sha256": sha256_file(GEOMETRY_CFG),
+                          "table": cfg["table_q90_by_prefix_s"]}, ensure_ascii=False))
+        return 0
 
     if args.aggregate:
         report = aggregate(args.inputs, prereg)

@@ -1,0 +1,75 @@
+{
+  "schema": "camra.nav.geometry_margin.closedloop.v1",
+  "version": "1.0",
+  "created_at": "2026-11-11T11:15:00+08:00",
+  "applies_to": "闭环 10 Hz 在线指令（规则反馈导航）在 integration_pilot 三图上的执行偏差",
+  "quantity": "ε_d = max_t ||p_exec(t) - p_nom(t)||，10 Hz 网格，逐回合；q90 across episodes",
+  "table_q90_by_prefix_s": {
+    "5": 0.4569087294557062,
+    "10": 1.2380523588313364,
+    "20": 3.9306194841274826,
+    "30": 6.230413669847745
+  },
+  "per_profile_q90": {
+    "new_clean": {
+      "5": 0.4569087294557062,
+      "10": 1.2380523588313364,
+      "20": 3.9306194841274826,
+      "30": 6.200566017798347
+    },
+    "new_friction_only": {
+      "5": 0.4452931381474104,
+      "10": 1.2035209480686955,
+      "20": 3.8688986399397045,
+      "30": 6.230413669847745
+    },
+    "new_mass_only": {
+      "5": 0.42080832043616967,
+      "10": 1.126143049119385,
+      "20": 3.6103667664684282,
+      "30": 5.833531367648919
+    }
+  },
+  "worst_profile_by_prefix": {
+    "5": "new_clean",
+    "10": "new_clean",
+    "20": "new_clean",
+    "30": "new_friction_only"
+  },
+  "definition": "δ_closedloop(T) = 三个 profile 的 q90(ε_d(T)) 取最大；q90 用 nearest-rank，与协议 statistics.quantile_method 一致",
+  "validity": {
+    "T_range_s": [
+      5,
+      30
+    ],
+    "interpolation": "表内线性插值；<5 s 取 5 s 的值；>30 s 不适用（须重做 pilot）",
+    "command_domain": "与 pilot 相同的闭环指令域：|vx| ≤ 0.6、vy = 0、|wz| ≤ 0.33 rad/s",
+    "not_valid_for": [
+      "未训练/未来策略（须由 NAV-034/043 复查）",
+      "超出上述指令域或超过 30 s 的连续指令",
+      "开环校准命令程序（那是冻结 δ=2.6139 的适用范围）"
+    ]
+  },
+  "derivation": {
+    "pilot_report": "CaMRA/navigation/reports/calibration_applicability_pilot.json",
+    "pilot_report_sha256": "626fc11af6f70b28f113c999a3b3a1d9f66db2dc77eb1cfcdf48ea09dc766317",
+    "prereg_sha256": "2be77607b31c2fa5577d861ca4c6842caf6ed1fb7704abd284d65e01855e1704",
+    "n_episodes": 36,
+    "fit_not_validation": true,
+    "figures": "q90 eps_d = 5s 0.457 / 10s 1.238 / 20s 3.931 / 30s 6.230"
+  },
+  "relation_to_frozen_delta": {
+    "frozen_delta_m": 2.6138664115280967,
+    "still_valid_for": "开环校准命令程序域（每 1.0 s 换目标 + 0.2 s 过渡）",
+    "why_separate": "闭环指令的 ε_d 随指令持续时间增长（对照 30 s 时 1.98 m，闭环 6.20 m），固定 δ 只覆盖约 10-15 s；这不是放宽，而是把适用范围按实测分开登记。"
+  },
+  "amendment": {
+    "ruling": "2026-11-11 用户选择 A：登记随时间前缀变化的 δ(T) 表",
+    "context": "G2A 唯一失败项；C（角速率死区规避）已实测无效，ε_d 仅 6.47→6.20",
+    "not_a_threshold_relaxation": "δ(T) 由实测 q90 生成，未乘任何安全系数；同时保留原 δ 对开环域的适用性"
+  },
+  "validation_obligations": [
+    "NAV-034 / NAV-043：对学习到的策略复查本表是否仍适用",
+    "NAV-048：最终审计，须用 heldout 或独立 pilot 验证本表（当前为拟合，非验证）"
+  ]
+}
