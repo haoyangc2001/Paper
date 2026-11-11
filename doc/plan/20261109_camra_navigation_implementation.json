@@ -4321,7 +4321,44 @@
       "depends_on": [
         "NAV-038"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-11T21:20:00+08:00",
+          "summary": "NAV-039 G4 门禁装配完成（git 06e3770，status False，44/60）：判定 FAIL_WITH_STABILITY——35 项检查 33 绿 2 红，两个红项恰为预登记声明的开发成功率硬判据（两方法 dev 成功率中位数 0 < 0.10）。学习稳定性（D1）与冻结完整性（D3）全绿。任务按约束保持 false，报告给出三个资源内可选处理（O-1 追加训练授权 / O-2 预算语义修正后重训 / O-3 接受负结果改实测预算扫描），等待用户裁定。",
+          "actions": [
+            "冻结门禁预登记 config/gate_g4_prereg_v1.json（sha 7ac8d818…，拼表前冻结）：三维判据 + 显式透明声明（成功率硬判据在已知为 0 的情况下有意保留，门禁必须正式记录失败而不是用结构性指标糊过去）。",
+            "scripts/build_gate_g4.py：G3 模式只读证据拼表——D1 从 6 个 run 的 train_log.jsonl 聚合（损失有限/熵不塌缩/裁剪占比已记录/结构移动方向）；D2 从 eval 报告读 OI-1 指令带、dev 最近距离、dev 成功率；D3 核对 bundle 散列与 work 目录文件逐位一致、amend 链、checkpoint u25..u250+final 齐全、final 划分零泄漏。",
+            "结果：33 绿 2 红。红项=D2-uncalibrated-dev_success_rate、D2-full-dev_success_rate（dev 成功率中位数均 0，预登记声明预期 FAIL）。D1 全绿：损失全有限、熵 4.26 无塌缩、裁剪占比已记录、6 个 run 结构移动方向全部成立（budget_exhausted 份额上升）。",
+            "判定规则修正一次：FAIL_WITH_STABILITY 的条件应为「D2 红项全部是成功率项且 D1/D3 全绿」，初版误写成「D2 全红」，修正后得出 FAIL_WITH_STABILITY。",
+            "报告附三个资源内可选处理，明确不自行选择。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/gate_g4_prereg_v1.json(+.sha256)",
+            "CaMRA/navigation/scripts/build_gate_g4.py",
+            "CaMRA/navigation/reports/gate_G4.json（verdict=FAIL_WITH_STABILITY，35 项）"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/build_gate_g4.py --json CaMRA/navigation/reports/gate_G4.json"
+          ],
+          "results": [
+            "35 项检查：D1 24 项全绿（6 run × 4 判据）、D2 8 项中 6 绿 2 红、D3 7 项全绿。",
+            "D2 绿项：6 候选 OI-1 指令全部落在可执行带（变化率 0.012-0.020 ≤ 0.106、保持 0.78-1.41 s ≥ 0.2、|vy| ≤ 0.3、低速带 ≤ 0.7）；approach 达标（两方法 dev 最近距离中位数 5.5-8.1 m ≤ 11.2 m）。",
+            "红项：dev 成功率中位数 0 < 0.10（两方法各一）。",
+            "D3：bundle 6 候选唯一且源散列逐位核对通过、amend 链完整、54+6 个 checkpoint 文件齐全、final 划分零泄漏。"
+          ],
+          "evidence": [
+            "reports/gate_G4.json（35 项清单 + 判定 + 三选项 + 预登记散列）",
+            "config/gate_g4_prereg_v1.json.sha256（sha 7ac8d818…，拼表前冻结）",
+            "git 06e3770"
+          ],
+          "remaining_work": [
+            "等待用户在 O-1/O-2/O-3 中裁定；裁定后按所选路线执行并把本任务收口。"
+          ],
+          "blockers": [
+            "G4 判定 FAIL_WITH_STABILITY：两方法 dev 成功率 0 < 预登记硬判据 0.10；后续任务依赖本门的走向，按约束不自动选择。"
+          ]
+        }
+      ],
       "constraints_and_notes": [
         "依据开发集和预登记规则判定两方法学习稳定性、可用性及冻结完整性。",
         "不能将有限训练结果称为PPO收敛定理；没达到条件时保留任务false并报告资源内可选处理。"
