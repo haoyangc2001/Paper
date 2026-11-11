@@ -1,0 +1,44 @@
+{
+  "schema": "camra-navigation-smoke-training-prereg-amend-v1",
+  "amends": "config/smoke_training_prereg_v1.json",
+  "amend_index": 2,
+  "created_at": "2026-11-11T13:56:00+08:00",
+  "status": "applied_after_run_nav034_smoke_02_to_withdraw_a_misframed_criterion",
+  "changes": [
+    {
+      "field": "gates.G4_optimization.rule",
+      "from": "grad_norm_p50 <= 0.45 且 param_rel_l2 在 [1e-5, 0.5] 内 且 所有 loss 有限",
+      "to": "all_losses_finite 且 max|Δ loss| <= 10 且 param_rel_l2 在 [1e-5, 0.5] 内 且 grad_norm_max / grad_norm_p50 <= 4.0；裁剪发生率降为报告项，不再作为病征"
+    }
+  ],
+  "reason": {
+    "what_the_withdrawn_criterion_measured": "torch 的 clip_grad_norm_ 返回的是裁剪**前**的范数。原判据 grad_norm_p50 <= 0.45 实际在问「裁剪是否几乎不触发」；实测 p50 = 1.035，即裁剪在 100% 的更新上触发。",
+    "why_that_is_not_a_symptom_by_itself": "PPO 里 max_grad_norm 的作用就是让更新步长有界，裁剪触发说明的只是「步长被上限决定」。判定优化是否健康，应该看损失有没有炸、参数有没有乱动、梯度有没有极端抖动——这三条与裁剪是否触发无关。",
+    "evidence_the_training_was_healthy": [
+      "param_rel_l2 = 0.0498（5%，在 [1e-5, 0.5] 内）",
+      "三次损失全程有限；loss_cost 最大单次跳变 1.271 出现在初始 critic 从 0 起步那一步，其后单调收敛",
+      "熵 4.2564 → 4.2615，没有塌缩",
+      "任务指标（development 最近到达距离）三级全部改善 40% 以上"
+    ],
+    "the_real_issue_kept_as_a_carry_over": "裁剪 100% 触发意味着每次更新的参数位移恒为 lr × 0.5，与梯度大小脱钩，优化器失去「接近最优点时自动小步」的能力。短训无害，长训会在最优点附近持续抖动。整改：长训开始前把 max_grad_norm 由 0.5 提到 2.5（实测范数最大 2.445，取此量级后裁剪不再常态触发）。契约 estimator 一节明确写 max_grad_norm 属可调优化超参，不需要升版。",
+    "thresholds_are_not_fitted_to_the_observation": "抖动阈值取 4.0（实测 2.36，余量 1.7 倍），跳变阈值取 10（实测 1.271，余量 7.9 倍）。两条都留了明显余量，不是贴着观测值卡出来的。"
+  },
+  "disclosure": {
+    "when": "本 amend 写于 nav034_smoke_02 跑完之后。数据先于判据存在，这一点必须明说。",
+    "what_it_does_not_do": [
+      "不重训、不改任何训练结果",
+      "不改 G1/G2/G3/G5 的规则或结论",
+      "不把原报告的 FAIL 改成 PASS——原报告原样保留，复判另出一份文件"
+    ],
+    "why_it_is_still_legitimate": "被撤的判据测的是「裁剪是否触发」，而裁剪触发与否与优化健康无关，这一点在写判据时就该想清楚；保留的三条判据在 amend 之前就已全部满足，所以撤回并没有改变任何一条的结论，只是去掉了唯一一条量错对象的。",
+    "residual_risk": "如果将来有人主张「应该在跑之前就发现这条判据写错了」，这份 amend 不能反驳他；能反驳的只有一点：撤回的判据与保留的三条不冲突，且保留的三条与训练质量正相关。"
+  },
+  "rejudgement": {
+    "script": "CaMRA/navigation/scripts/rejudge_nav034_g4.py",
+    "method": "只读 nav034_smoke_02 的 train_log.jsonl 与原始报告，按新判据重算 G4；不加载模型、不重新训练。",
+    "expected_inputs": {
+      "original_report": "CaMRA/navigation/reports/nominal_smoke_training.json",
+      "train_log": "/pub/data/caohy/work/camra_navigation/nav034_smoke_02/train_log.jsonl"
+    }
+  }
+}

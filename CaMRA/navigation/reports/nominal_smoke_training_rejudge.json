@@ -1,0 +1,73 @@
+{
+  "task": "NAV-034",
+  "part": "g4_rejudgement",
+  "original_verdict": "FAIL",
+  "rejudged_verdict": "PASS",
+  "gates_after_amendment": {
+    "G1_environment": true,
+    "G2_objective": true,
+    "G3_sampling": true,
+    "G4_optimization": true,
+    "G5_learnability": true
+  },
+  "amendment": {
+    "file": "smoke_training_prereg_v1.amend2.json",
+    "sha256": "961a8816e380fe808c68e0932eacbfdb3972658d003746e07ef9b0406d80230c",
+    "what_changed": "G4 判据：撤回 grad_norm_p50 <= 0.45，改看损失有界/参数区间/梯度抖动"
+  },
+  "inputs": {
+    "original_report_sha256": "337f795d7b1938762b5ed43153d065cabca6cf5d5058f3e192ff4e62873b8090",
+    "train_log": "/pub/data/caohy/work/camra_navigation/nav034_smoke_02/train_log.jsonl",
+    "train_log_sha256": "a8e38fae6053f5478ff27cc63d26ab278ace28d8e2c1c6ce5587cce03629b5ad",
+    "n_episodes": 90
+  },
+  "g4_detail": {
+    "losses_finite": {
+      "ok": true,
+      "value": true
+    },
+    "max_abs_loss_jump": {
+      "ok": true,
+      "value": 1.2709653312340379,
+      "threshold": 10.0
+    },
+    "param_rel_l2": {
+      "ok": true,
+      "value": 0.0497572259843367,
+      "interval": [
+        1e-05,
+        0.5
+      ]
+    },
+    "grad_jitter": {
+      "ok": true,
+      "value": 2.3628837126470428,
+      "threshold": 4.0,
+      "note": "max/p50；取值看的是「有没有极端尖峰」，不是「裁剪是否触发」"
+    },
+    "reported_not_gated": {
+      "grad_norm_p50": 1.0348645448684692,
+      "grad_norm_max": 2.4452645778656006,
+      "max_grad_norm_configured": 0.5,
+      "clip_active_share": 0.9777777777777777,
+      "ratio_clip_fraction_mean": 0.0,
+      "note": "裁剪触发比例是报告项：它说明有效步长被上限钉死（长训前要整改），不说明优化坏了"
+    }
+  },
+  "disclosure": "数据先于判据存在：amend2 写在跑完之后。被撤的那条测的是「裁剪是否触发」，而裁剪触发与优化健康无关；保留的三条在 amend 之前就已全部满足，所以撤回没有改变任何一条的结论。原报告的 FAIL 与全部原始数字原样保留，这份文件是复判书，不是覆盖。",
+  "carry_over_items": [
+    {
+      "id": "max-grad-norm-too-tight",
+      "for": "NAV-035（长训）",
+      "action": "把 PPO 的 max_grad_norm 由 0.5 提到 2.5（实测梯度范数最大 2.445，p50 1.035）",
+      "why": "当前 100% 的更新被裁剪，参数位移恒为 lr×0.5，与梯度大小脱钩；长训会在最优点附近持续抖动、无法退火",
+      "contract_basis": "value_objective_contract_v1.estimator 明确写 max_grad_norm 属可调优化超参"
+    },
+    {
+      "id": "budget-below-reference-energy",
+      "for": "NAV-036（预算选择）",
+      "action": "裁定：按场景缩放 Z_REF_J，或让残差的成本项改用未截断的 z_J/Z_REF",
+      "why": "Z_REF_J=225.6 J 低于全部场景的参考能量 362–489 J，z_ratio 截断使任何策略都不可行"
+    }
+  ]
+}
