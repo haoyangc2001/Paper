@@ -12,7 +12,7 @@
       "gae_lambda": 0.95,
       "beta": 0.0,
       "C": 1.0,
-      "Z_REF_J": 225.6069087767049,
+      "Z_REF_J": 550.0,
       "L_REF_m": 15.0,
       "G_INSIDE": -0.001,
       "fail_penalty": 1.0,
@@ -21,10 +21,10 @@
     }
   },
   "runs": {
-    "run_root": "/tmp/nav032_p006yyhi",
-    "continuous": "/tmp/nav032_p006yyhi/cont",
-    "stop_then_resume": "/tmp/nav032_p006yyhi/stopgo",
-    "crash_then_resume": "/tmp/nav032_p006yyhi/crash"
+    "run_root": "/tmp/nav032_31qdx598",
+    "continuous": "/tmp/nav032_31qdx598/cont",
+    "stop_then_resume": "/tmp/nav032_31qdx598/stopgo",
+    "crash_then_resume": "/tmp/nav032_31qdx598/crash"
   },
   "open_items": [
     {
@@ -91,14 +91,14 @@
       "detail": {
         "problems": [],
         "n_chunks": 3,
-        "n_samples": 119,
+        "n_samples": 147,
         "events": {
-          "budget_exhausted": 1,
-          "stagnation": 2
+          "budget_exhausted": 2,
+          "stagnation": 1
         },
         "terminal_kinds": {
-          "failure": 1,
-          "truncation": 2
+          "failure": 2,
+          "truncation": 1
         }
       }
     },
@@ -106,10 +106,10 @@
       "check": "trajectory_index_contiguous",
       "ok": true,
       "detail": {
-        "n_samples": 119,
+        "n_samples": 147,
         "first": 0,
-        "last": 118,
-        "sum_of_chunks": 119
+        "last": 146,
+        "sum_of_chunks": 147
       }
     },
     {
@@ -127,16 +127,16 @@
           {
             "chunk": 1,
             "episode_id": 1,
-            "n_samples": 36,
+            "n_samples": 48,
             "t_first": 0,
-            "t_last": 35
+            "t_last": 47
           },
           {
             "chunk": 2,
             "episode_id": 2,
-            "n_samples": 32,
+            "n_samples": 48,
             "t_first": 0,
-            "t_last": 31
+            "t_last": 47
           }
         ]
       }
@@ -178,10 +178,10 @@
           },
           {
             "chunk": 2,
-            "event": "stagnation",
-            "terminal_kind": "truncation",
-            "terminated_steps": 0,
-            "truncated_steps": 1
+            "event": "budget_exhausted",
+            "terminal_kind": "failure",
+            "terminated_steps": 1,
+            "truncated_steps": 0
           }
         ]
       }
@@ -200,12 +200,12 @@
           {
             "chunk": 1,
             "terminal_kind": "truncation",
-            "n_samples": 36
+            "n_samples": 48
           },
           {
             "chunk": 2,
-            "terminal_kind": "truncation",
-            "n_samples": 32
+            "terminal_kind": "failure",
+            "n_samples": 48
           }
         ]
       }
@@ -227,7 +227,7 @@
             "chunk": 0,
             "terminal_kind": "failure",
             "target_cost_last": 1.0,
-            "cost_last": 0.025209583727298993,
+            "cost_last": 0.010340836252783923,
             "bootstrap_last": 0.0,
             "stop_now_steps": 11,
             "ok": true
@@ -235,19 +235,19 @@
           {
             "chunk": 1,
             "terminal_kind": "truncation",
-            "target_cost_last": 0.8461108458259481,
-            "cost_last": 0.007919992230214416,
-            "bootstrap_last": 0.8381908535957336,
-            "stop_now_steps": 4,
+            "target_cost_last": 0.3925437857099807,
+            "cost_last": 0.009979062218312008,
+            "bootstrap_last": 0.3825647234916687,
+            "stop_now_steps": 7,
             "ok": true
           },
           {
             "chunk": 2,
-            "terminal_kind": "truncation",
-            "target_cost_last": 1.4645181806403105,
-            "cost_last": 0.025524965079397468,
-            "bootstrap_last": 1.438993215560913,
-            "stop_now_steps": 9,
+            "terminal_kind": "failure",
+            "target_cost_last": 1.0,
+            "cost_last": 0.011114576460105368,
+            "bootstrap_last": 0.0,
+            "stop_now_steps": 16,
             "ok": true
           }
         ],
@@ -392,8 +392,8 @@
           "obs_normalization": "none：obs-v2 各字段已由契约归一化（无量纲、有界）",
           "advantage_normalization": "per-minibatch stateless：(A − mean)/(std + 1e-8)",
           "has_stateful_normalizer": false,
-          "last_adv_mean": -0.486228346824646,
-          "last_adv_std": 0.10115910321474075
+          "last_adv_mean": -0.5036636590957642,
+          "last_adv_std": 0.10670838505029678
         },
         "optimizer_roles": [
           "critic_cost",
