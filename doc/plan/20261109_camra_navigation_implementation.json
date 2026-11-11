@@ -4357,6 +4357,47 @@
           "blockers": [
             "G4 判定 FAIL_WITH_STABILITY：两方法 dev 成功率 0 < 预登记硬判据 0.10；后续任务依赖本门的走向，按约束不自动选择。"
           ]
+        },
+        {
+          "timestamp": "2026-11-11T23:35:00+08:00",
+          "summary": "NAV-039 路线 2 执行（git 305c31f，status 仍 False，44/60）：用户批准放宽训练预算锚重训——k_train 1.0→1.10（饱和约束下最大整档，max z0=534.9≤550），新预登记 v2，6 个新 run 各跑满 250 updates × 4086 步、审计库全清。结果：仍 0 次 goal_reached（约 5.5 万回合）、确定性评估成功率 0、最近距离 4.1–10.6 m 与第一轮相同。**油量假设被证伪**；根因定位为梯度步数——策略 log_std 250 次更新后仍 0.965–1.023（初值 1.0），全程仅 250 个 Adam 步，PPO 的 clip_eps 一次都没触发过。",
+          "actions": [
+            "冻结 config/formal_training_prereg_v2.json（sha 6f477afa…）：仅 budget.rule 的 k_train 1.0→1.10，其余训练语义与 v1 逐字相同；记录 supersedes 信息与第一轮产物保留声明；饱和核算：max(E_ref)×1.10=534.9≤550，1.131 为上限、1.15 网格档会饱和。",
+            "train_formal.py 增加 --prereg-name（默认 v1，v2 走同一路径；跑前校验新散列）。",
+            "冒烟（2 updates）确认 z0 范围 398.83–534.91 J 后启动 6 个正式 run（formal_{uncal,full}_k110_s{0,1,2}，并行，各 0.41–0.42 h）。",
+            "逐 run 汇总（含 108 个审计库三重对账）→ reports/training_{uncalibrated,camra_full}_k110.json；6 个 checkpoint 确定性评估 → formal_{uncal,full}_k110_s{0,1,2}_eval.json。",
+            "根因诊断：读取 6 个最终 state.pt 的 policy.log_std，得 std=0.965–1.023（初值 1.0）——探索噪声未收敛；每窗口仅一次梯度更新使全程只有 250 个 Adam 步，契约的 clip_eps=0.2（为多轮更新设计）在本训练中从未被用到（与 NAV-031 记录一致）。",
+            "清理误入 scripts/ 的预登记副本（diff 验证后删除）。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/formal_training_prereg_v2.json(+.sha256)",
+            "CaMRA/navigation/scripts/train_formal.py（--prereg-name）",
+            "CaMRA/navigation/reports/training_uncalibrated_k110.json、training_camra_full_k110.json",
+            "CaMRA/navigation/reports/formal_{uncal,full}_k110_s{0,1,2}_eval.json（6 份）"
+          ],
+          "commands": [
+            "python CaMRA/navigation/scripts/train_formal.py --run-id formal_{uncal,full}_k110_s{n} --variant {uncalibrated,full} --seed {0,1,2} --prereg-name formal_training_prereg_v2.json",
+            "python CaMRA/navigation/scripts/eval_formal_final.py --run-id formal_*_k110_s{n} --json …/formal_*_k110_s{n}_eval.json"
+          ],
+          "results": [
+            "机械门全绿：250 updates、1,021,500 步、墙钟 0.41–0.42 h、108 个审计库零问题。",
+            "6 个 run 合计约 5.5 万回合，goal_reached=0；budget_exhausted 份额 79–87%（第一轮 82–91%，几乎没变）。",
+            "dev 成功率 0；最近距离 4.1–10.6 m，与第一轮（4.3–10.6 m）在噪声范围内相同——多 10% 的油没有带来可测的行为改善。",
+            "根因证据：6 个 checkpoint 的 log_std 为 [-0.036..0.023]（std 0.965–1.023），初值 1.0；250 次更新 × 1 步 = 250 个 Adam 步，比例裁剪从未触发。"
+          ],
+          "evidence": [
+            "reports/training_uncalibrated_k110.json、training_camra_full_k110.json（机械门 + 诚实发现）",
+            "reports/formal_{uncal,full}_k110_s{0,1,2}_eval.json（dev 诊断 + OI-1）",
+            "config/formal_training_prereg_v2.json.sha256（6f477afa…）",
+            "6 个 state.pt 的 policy.log_std 读数（诊断命令输出）",
+            "git 305c31f"
+          ],
+          "remaining_work": [
+            "等待用户在同一门禁记录下的新选项集中裁定：O-4 增加梯度步数（epochs/小批复用，恢复 clip_eps 本意，需 v3 预登记与授权）、O-5 增加训练窗口数（纯线性加预算，需 v3）、或 O-3 接受负结果继续下游。"
+          ],
+          "blockers": [
+            "G4 仍 FAIL_WITH_STABILITY；第二轮证伪了油量假设并把根因定位到梯度步数（250 步），修正训练语义（多轮更新）需要新的预登记版本与用户授权，不自动执行。"
+          ]
         }
       ],
       "constraints_and_notes": [
