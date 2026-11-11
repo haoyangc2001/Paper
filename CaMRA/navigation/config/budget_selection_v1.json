@@ -1,0 +1,243 @@
+{
+  "schema": "camra-budget-selection-v1",
+  "version": "1.0.0",
+  "owner": "NAV-041",
+  "created_at": "2026-11-12T00:37:27+08:00",
+  "status": "frozen_before_search",
+  "task": "NAV-041 在独立预算选择集冻结选择规则",
+  "mode": {
+    "label": "method_selected_budget",
+    "contract": "budget_comparison_contract_v1.modes.method_selected_budget",
+    "not_common_budget": "本文件不覆盖 common_budget 模式：该模式仍需同一契约下独立执行、独立分母；两模式的标签、分母与样本不得合并，也不得互相作为证据",
+    "split_reporting_rule": "budget_selection 只报告可行/无解与搜索诊断；本任务的任何计数都不是导航成功率，也不参与最终对比"
+  },
+  "units": {
+    "budget": "物理焦耳 J：z0 = k · E_ref(map)；E_ref 是 NAV-017 准入路线的名义成本，只由几何与冻结功率模型决定，与策略/裕度/结果无关",
+    "selected_budget": "所选 z*_m(map)，单位 J（正数）",
+    "normalised": "z_ratio = clip(z / Z_REF_J, -1, 1)，Z_REF_J 见 inputs；它只是归一化尺度，不是可达预算，不得当作预算报告",
+    "cost_model_J": "回合内部记账累计 Σ(1+α)·c_nom·0.1 s（uncalibrated α=0；full α=0.19048279965649906）",
+    "not_a_unit": [
+      "z_ratio 不是预算",
+      "c_model 不是实测能量（名义环境无 200 Hz 机械功）",
+      "budget_exhausted 是业务失败标签，与实测超预算不是同一件事"
+    ]
+  },
+  "thresholds": {
+    "beta": {
+      "value": 0.0,
+      "meaning": "value_objective 的可行性阈值：残差判定可行当且仅当 W <= -β；β>0 表示要求留出裕度；它是数值可行性容差，不是安全裕度",
+      "role_here": "只登记含义。本任务用契约的 nominal_env_criterion（终止标签）而不是 β 判据，β 不参与选择，也未改动"
+    },
+    "alpha": {
+      "value": 0.19048279965649906,
+      "role": "full 的成本记账倍数 1+α，只影响内部预算消耗速度"
+    },
+    "delta_m": {
+      "role": "full 的禁入带宽（几何），只影响可行空间"
+    },
+    "feasibility_criterion": "label == goal_reached；单一终止标签已排除 collision / out_of_bounds / stagnation / timeout",
+    "danger_steps_not_disqualifying": "危险步数照实记录，但不构成名义不可行——禁入带由 δ 进入几何，与可行性标签分开"
+  },
+  "inputs": {
+    "split_manifest": {
+      "path": "config/split_manifest_v1.json",
+      "sha256": "17db0f0810f1844c2e663ed33a930d9a47d931fef26acf75bfbe0472675fe0af",
+      "split": "budget_selection",
+      "n_maps": 9,
+      "maps": [
+        {
+          "map_id": "l1_empty-s3001",
+          "level": "L1_empty",
+          "seed": 3001,
+          "e_ref_J": 363.23184833600146,
+          "geometry_hash": "22e4597d8d5f5849ed81a74f07bfc1f768d35f02778d000dee197cc32269a803"
+        },
+        {
+          "map_id": "l1_empty-s3002",
+          "level": "L1_empty",
+          "seed": 3002,
+          "e_ref_J": 362.5705582903373,
+          "geometry_hash": "11701033b79b022c024814322410b8688c825430b182fee279211b01a2e02bd3"
+        },
+        {
+          "map_id": "l1_empty-s3003",
+          "level": "L1_empty",
+          "seed": 3003,
+          "e_ref_J": 362.5430017812395,
+          "geometry_hash": "18869e1ceefe2a95cf53b4da3915818f75cbe9c5093134c6cf731f6d715a5730"
+        },
+        {
+          "map_id": "l2_single_detour-s3001",
+          "level": "L2_single_detour",
+          "seed": 3001,
+          "e_ref_J": 476.7397933166365,
+          "geometry_hash": "1193ab1ae137037d5f82cac846ff4429db19607f1c6cb6d66066e25c89af00cf"
+        },
+        {
+          "map_id": "l2_single_detour-s3002",
+          "level": "L2_single_detour",
+          "seed": 3002,
+          "e_ref_J": 485.32961024650876,
+          "geometry_hash": "53ba7ed0adffc6092216733a25d35b55a8da88f3d2624384d860453a11fbba73"
+        },
+        {
+          "map_id": "l2_single_detour-s3003",
+          "level": "L2_single_detour",
+          "seed": 3003,
+          "e_ref_J": 474.6767291227475,
+          "geometry_hash": "62836ec36dbb1a5acfd07f7f459d676a80a8c72b50454520c6b4f2c71dbd1ae2"
+        },
+        {
+          "map_id": "l3_multi_path-s3001",
+          "level": "L3_multi_path",
+          "seed": 3001,
+          "e_ref_J": 368.132496514682,
+          "geometry_hash": "4381ba78ad24d1130e6b508f21cd79e055f54f3f7372dd55ae6ae5738f56eac8"
+        },
+        {
+          "map_id": "l3_multi_path-s3002",
+          "level": "L3_multi_path",
+          "seed": 3002,
+          "e_ref_J": 367.9399034377057,
+          "geometry_hash": "8401c470fec2f4fb14b1aa647b726eb1729bf47cd4f3818cec9e1c63fb343e4a"
+        },
+        {
+          "map_id": "l3_multi_path-s3003",
+          "level": "L3_multi_path",
+          "seed": 3003,
+          "e_ref_J": 367.69226838599593,
+          "geometry_hash": "c433dd5a5e77f57bbb5556e5e9dc3dff1a5c990a5c0ea80e63e61305b552a21c"
+        }
+      ]
+    },
+    "e_ref_report": {
+      "path": "reports/budget_selection_reference_energy.json",
+      "sha256": "370246572ce7dbf1ea2f08da93c5ce01aad278d6a9684a888235577f5f5a509a",
+      "note": "同一冻结代码路径（maps.feasibility.check_map，resolution 0.15）为预算选择集重算；与 reports/train_map_reference_energy.json 同源不同文件，后者保持逐字节不变以免其他任务的散列漂移"
+    },
+    "deployment_bundle": {
+      "path": "delivery/deployment_candidates_v1.json",
+      "sha256": "c8ffcdd05c91865d9aec17458c224f2f4d52b8e1618749bdbbd34fbc13fea0ed",
+      "n_candidates": 6
+    },
+    "contracts": {
+      "navigation": {
+        "version": "1.4.0",
+        "sha256": "2b78736919cbc50d0a8e869b8f3e8e857d10a37b8320c132ff0ec5500ef69c47"
+      },
+      "budget_comparison": {
+        "version": "1.1.0",
+        "sha256": "a258e3e946a727b6f6fb23e7208a5a4af6d941e327ac80c9b1f2b08374fa36f9"
+      },
+      "value_objective": {
+        "version": "1.2.0",
+        "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+      }
+    },
+    "experiment_prereg": {
+      "path": "config/experiment_prereg_v1.json",
+      "sha256": "2ab864a45277d853102124024a5817ad95f2fa85b27be424fe8c035310f28d78",
+      "selection_block": {
+        "split": "budget_selection（9 张地图）",
+        "per_method_per_map_episodes": 5,
+        "total_episodes": 90,
+        "grid": "budget_comparison_contract_v1 的五个 k 值，不得增删",
+        "search_rule": "从 k=0.70 递增，取第一个满足可行性要求的 k；无可行则记 no_feasible_budget",
+        "wall_clock_cap_hours": 2,
+        "monotonicity": "逐 (method, map) 记录非单调实例；不得据此改选更大的 k"
+      }
+    },
+    "frozen_calibration": {
+      "footprint": "edff8978ff89467b6b532ce9f695603f4aea038df1b57a5393791436d7067726",
+      "margins": "2be77607b31c2fa5577d861ca4c6842caf6ed1fb7704abd284d65e01855e1704",
+      "power_model": "e718595d1f2e1c41cdd07ce6e9d5f303649457394f2f1b0ae8b3d305f60915c6",
+      "geometry_contract": "3a9f2b1d66f430680d4aa5b8272244041bfc46c58c8eda4efd772bcb6e2592e0",
+      "map_design": "43ebb07f3c73237256489d24c0d3848245436d3ceaaf43a7a94697838aecec82"
+    },
+    "z_ref": {
+      "value": 550.0,
+      "owner": "src/camra_navigation/observation.py",
+      "sha256": "e018e76594364bca7be45913933af5bdfcdaf76b53f41735ba78ddd77372ffdd"
+    }
+  },
+  "actor_binding": {
+    "rule": "每种方法取部署清单中 seed 最小（=0）的候选；该选择只由冻结索引规则决定，与任何表现无关",
+    "why_one_seed": "授权配额 90 回合 = 9 图 × 2 方法 × 5 网格点，每 (method, map, k) 恰好一次；三种子需要 270 回合，超出配额",
+    "consequence_limitation": "选择按单一种子报告，跨种子离散度在本配额下不可测；结论只能说「该候选在预算选择集上无可行预算」，不得外推为「该方法在其所有种子上都无解」",
+    "candidates": {
+      "uncalibrated": {
+        "method": "uncalibrated",
+        "candidate_id": "uncalibrated_s0",
+        "seed": 0,
+        "source_run_id": "formal_uncal_s0",
+        "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+        "source_checkpoint_sha256": "6482a185c09f05a28f00e3dae5b28d2c5591b134f48819e483a21ac99301cee0"
+      },
+      "full": {
+        "method": "full",
+        "candidate_id": "full_s0",
+        "seed": 0,
+        "source_run_id": "formal_full_s0",
+        "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+        "source_checkpoint_sha256": "85ce171646b4f69e92f251bf703377a6be3a4e079aa336176bdb20f7d70ff6e4"
+      }
+    },
+    "deterministic_transform": "policy mean（无采样、无噪声）→ action_to_requested → clip_applied",
+    "normalisation": "identity（obs-v2 已归一化）"
+  },
+  "grid": {
+    "k_values": [
+      0.7,
+      0.85,
+      1.0,
+      1.15,
+      1.3
+    ],
+    "rule": "z0 = k · E_ref(map)",
+    "frozen": true,
+    "may_not": [
+      "增删或加密网格点",
+      "为某一方法平移网格",
+      "看最终集结果后改网格"
+    ],
+    "n_points": 5
+  },
+  "feasibility": {
+    "criterion": "label == goal_reached",
+    "identical_for_both_methods": true,
+    "measured_not_critic": "用实测终止标签，不用 critic 的 value 搜索（NAV-039 的 O-3 决议）",
+    "no_retry": "业务失败不重试；同一 (method, map, k) 不因结果重跑"
+  },
+  "search_rule": {
+    "order": "沿 k_values 从 0.70 递增，取第一个满足 feasibility 的 k",
+    "answer_must_be_measured": "所选 k 必须是实际跑过且判为可行的点，禁止插值",
+    "grid_points_all_measured": "五个点全部实测，否则无法检查单调性",
+    "no_solution": "五点全不可行 -> status=no_feasible_budget；保留在地图分母里，禁止换更大 k / 换图 / 换种子 / 看 final 结果手填",
+    "monotonicity": "逐 (method, map) 检查可行集合是否单调；非单调照实记录，不得据此改选更大的 k"
+  },
+  "quota": {
+    "business_episodes": 90,
+    "derivation": "9 图 × 2 方法 × 5 网格点",
+    "authorized_total": 90,
+    "wall_clock_cap_hours": 2.0,
+    "retries": 0
+  },
+  "saturation_disclosure": {
+    "rule": "z0 > Z_REF_J 时观测里的 z_ratio 被裁到 1.0，策略前半程看不到富余；逐行标记 z0_above_z_ref，照实披露，不得据此修改网格或 Z_REF",
+    "affected_k": [
+      1.15,
+      1.3
+    ]
+  },
+  "recompute": {
+    "how": "报告逐行给出 (method, map, k, z0_J, label)；feasible 由 label 复算，所选 k 由「从低到高的第一个 feasible」复算，z_J = k·E_ref 与 z_ratio = z/Z_REF 由输入散列锁定后复算",
+    "locked_by": "本文件 .sha256 + inputs 各散列"
+  },
+  "forbidden": [
+    "用 budget_selection 的数字充当导航成功率或最终对比证据",
+    "在任何 (method, map, k) 上因结果重跑或补跑",
+    "看 final_* 结果后回填或改选预算",
+    "把 z_ratio 当预算、把 c_model 当实测能量、把 budget_exhausted 当实测超预算",
+    "非单调时悄悄改选更大的 k"
+  ]
+}

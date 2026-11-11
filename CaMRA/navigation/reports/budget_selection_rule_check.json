@@ -1,0 +1,252 @@
+{
+ "task": "NAV-041",
+ "schema": "camra-budget-selection-check-v1",
+ "verdict": "PASS",
+ "n_checks": 22,
+ "failed": [],
+ "checks": [
+  {
+   "check": "feasible_only_for_goal_reached",
+   "ok": true,
+   "detail": {
+    "mapping": {
+     "goal_reached": true,
+     "collision": false,
+     "out_of_bounds": false,
+     "stagnation": false,
+     "timeout": false,
+     "budget_exhausted": false,
+     "None": false
+    },
+    "unexpected": []
+   }
+  },
+  {
+   "check": "picks_first_feasible_k",
+   "ok": true,
+   "detail": {
+    "selection": {
+     "status": "found",
+     "k": 1.0,
+     "z_J": 400.0,
+     "z_ratio": 0.7272727272727273,
+     "z_ratio_clipped": 0.7272727272727273,
+     "evidence_label": "goal_reached",
+     "monotonic": true,
+     "note": "selected k is a measured point; budget reported in J separately from E_ref and from z_ratio"
+    }
+   }
+  },
+  {
+   "check": "picks_lowest_grid_point",
+   "ok": true,
+   "detail": {
+    "k": 0.7,
+    "z_J": 280.0
+   }
+  },
+  {
+   "check": "all_infeasible_is_no_feasible_budget",
+   "ok": true,
+   "detail": {
+    "selection": {
+     "status": "no_feasible_budget",
+     "k": null,
+     "z_J": null,
+     "z_ratio": null,
+     "z_ratio_clipped": null,
+     "evidence_label": null,
+     "monotonic": true,
+     "note": "all grid points infeasible; kept in the map denominator, no larger k / other map / other seed substituted"
+    }
+   }
+  },
+  {
+   "check": "non_monotonic_keeps_first_feasible_and_records",
+   "ok": true,
+   "detail": {
+    "selection": {
+     "status": "found",
+     "k": 0.85,
+     "z_J": 340.0,
+     "z_ratio": 0.6181818181818182,
+     "z_ratio_clipped": 0.6181818181818182,
+     "evidence_label": "goal_reached",
+     "monotonic": false,
+     "note": "selected k is a measured point; budget reported in J separately from E_ref and from z_ratio"
+    },
+    "violations": [
+     {
+      "k": 1.0,
+      "z0_J": 400.0,
+      "after_feasible_k": 0.85
+     }
+    ],
+    "note": "契约：非单调必须记录并说明，不得悄悄改选更大的 k"
+   }
+  },
+  {
+   "check": "z_ratio_clipped_but_budget_is_not",
+   "ok": true,
+   "detail": {
+    "z_J": 650.0,
+    "z_ratio": 1.1818181818181819,
+    "z_ratio_clipped": 1.0
+   }
+  },
+  {
+   "check": "missing_grid_point_refused",
+   "ok": true,
+   "detail": {
+    "error": "grid points not measured: [1.15]"
+   }
+  },
+  {
+   "check": "monotonic_helper_matches_rule",
+   "ok": true,
+   "detail": {
+    "note": "可行点之后不得再出现不可行点"
+   }
+  },
+  {
+   "check": "frozen_config_hash_matches_sidecar",
+   "ok": true,
+   "detail": {
+    "sha256": "491da1088020180ef71169b9405c7ef70a07f01ad8f722d1b3f5825428fbf37a",
+    "sidecar": "491da1088020180ef71169b9405c7ef70a07f01ad8f722d1b3f5825428fbf37a"
+   }
+  },
+  {
+   "check": "grid_equals_contract_grid",
+   "ok": true,
+   "detail": {
+    "config": [
+     0.7,
+     0.85,
+     1.0,
+     1.15,
+     1.3
+    ],
+    "contract": [
+     0.7,
+     0.85,
+     1.0,
+     1.15,
+     1.3
+    ]
+   }
+  },
+  {
+   "check": "quota_is_maps_times_methods_times_grid",
+   "ok": true,
+   "detail": {
+    "quota": {
+     "business_episodes": 90,
+     "derivation": "9 图 × 2 方法 × 5 网格点",
+     "authorized_total": 90,
+     "wall_clock_cap_hours": 2.0,
+     "retries": 0
+    },
+    "n_maps": 9
+   }
+  },
+  {
+   "check": "actor_binding_is_lowest_seed_candidate",
+   "ok": true,
+   "detail": {
+    "uncalibrated": "uncalibrated_s0",
+    "full": "full_s0"
+   }
+  },
+  {
+   "check": "mode_label_is_method_selected_budget",
+   "ok": true,
+   "detail": {
+    "label": "method_selected_budget"
+   }
+  },
+  {
+   "check": "forbidden_rules_registered",
+   "ok": true,
+   "detail": {
+    "n_forbidden": 5,
+    "forbidden": [
+     "用 budget_selection 的数字充当导航成功率或最终对比证据",
+     "在任何 (method, map, k) 上因结果重跑或补跑",
+     "看 final_* 结果后回填或改选预算",
+     "把 z_ratio 当预算、把 c_model 当实测能量、把 budget_exhausted 当实测超预算",
+     "非单调时悄悄改选更大的 k"
+    ]
+   }
+  },
+  {
+   "check": "beta_and_units_declared",
+   "ok": true,
+   "detail": {
+    "beta": {
+     "value": 0.0,
+     "meaning": "value_objective 的可行性阈值：残差判定可行当且仅当 W <= -β；β>0 表示要求留出裕度；它是数值可行性容差，不是安全裕度",
+     "role_here": "只登记含义。本任务用契约的 nominal_env_criterion（终止标签）而不是 β 判据，β 不参与选择，也未改动"
+    },
+    "z_ref": 550.0
+   }
+  },
+  {
+   "check": "report_rows_unique_and_complete",
+   "ok": true,
+   "detail": {
+    "n_rows": 90,
+    "n_unique": 90,
+    "n_episodes": 90,
+    "expected": 90
+   }
+  },
+  {
+   "check": "feasibility_recomputes_from_label",
+   "ok": true,
+   "detail": {
+    "n_rows": 90,
+    "mismatches": []
+   }
+  },
+  {
+   "check": "budget_recomputes_from_k_times_e_ref",
+   "ok": true,
+   "detail": {
+    "n_rows": 90,
+    "mismatches": []
+   }
+  },
+  {
+   "check": "report_recompute_block_clean",
+   "ok": true,
+   "detail": {
+    "mismatches": []
+   }
+  },
+  {
+   "check": "selection_recomputes_from_rows",
+   "ok": true,
+   "detail": {
+    "n_pairs": 18,
+    "mismatches": []
+   }
+  },
+  {
+   "check": "summary_counts_match_rows",
+   "ok": true,
+   "detail": {
+    "uncalibrated": 45,
+    "full": 45
+   }
+  },
+  {
+   "check": "report_keeps_mode_label_separate",
+   "ok": true,
+   "detail": {
+    "mode_label": "method_selected_budget",
+    "n_limitations": 5
+   }
+  }
+ ]
+}
