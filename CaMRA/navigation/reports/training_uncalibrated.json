@@ -1,0 +1,471 @@
+{
+ "task": "NAV-036",
+ "schema": "camra-formal-training-report-v1",
+ "prereg": "config/formal_training_prereg_v1.json (sha256 ac5c8c1a7c0420265023bc29cd49a5001ef3ba497e9c33ba43964cf88ba09eae)",
+ "binding_contracts": {
+  "value_objective": "1.2.0",
+  "navigation": "1.4.0",
+  "budget_comparison": "1.1.0"
+ },
+ "method": "uncalibrated (alpha=0, delta=0, frozen footprint r_fp)",
+ "gates": {
+  "updates_run_full_250": true,
+  "env_steps_match_prereg": true,
+  "wall_clock_under_6h": true,
+  "store_audit_clean": true,
+  "losses_finite": true,
+  "grad_clip_fraction_recorded": true,
+  "no_early_stop": true,
+  "no_hyperparam_change": true
+ },
+ "honest_findings": {
+  "training_goal_reached": 0,
+  "note": "三个 run 的全部 29,700 个训练回合（每 run 9,901 个）没有一次 goal_reached；确定性评估（训练图与开发图）成功率均为 0。策略确实在接近目标（dev 最近距离 4.3-5.7 m，起点距离约 14 m），指令分布已显著平滑（变化率 0.012-0.015，低于规则控制器 0.053，远低于重训前候选的 1.18），但 250 次单步更新没有学会在 z0 = E_ref 的紧预算下走完路线——budget_exhausted 占 82%。按预登记：无早停、跑满预算、如实报告，不加跑、不改超参重训。这是负结果，是否重训/调参由后续任务与门禁裁定，本报告不自行决定。"
+ },
+ "runs": {
+  "seed_0": {
+   "run_id": "formal_uncal_s0",
+   "seed": 0,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.382,
+   "prereg_sha256": "ac5c8c1a7c042026...",
+   "grad_norm_policy": {
+    "p10": 0.125,
+    "p50": 0.206,
+    "p90": 0.321,
+    "max": 0.506
+   },
+   "clip_fraction_mean": 0.0,
+   "entropy": {
+    "first25_mean": 4.2584,
+    "last25_mean": 4.2585
+   },
+   "loss_finite": true,
+   "episode_label_counts": {
+    "collision": 1167,
+    "out_of_bounds": 0,
+    "budget_exhausted": 8166,
+    "goal_reached": 0,
+    "stagnation": 568,
+    "timeout": 0
+   },
+   "label_share_first25_updates": {
+    "stagnation": 0.558,
+    "budget_exhausted": 0.442,
+    "collision": 0.0,
+    "out_of_bounds": 0.0,
+    "goal_reached": 0.0,
+    "timeout": 0.0
+   },
+   "label_share_last25_updates": {
+    "budget_exhausted": 0.929,
+    "collision": 0.069,
+    "stagnation": 0.001,
+    "out_of_bounds": 0.0,
+    "goal_reached": 0.0,
+    "timeout": 0.0
+   },
+   "store_chunks": 14361,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "episodes": [
+     {
+      "map_id": "l1_empty-s2001",
+      "label": "budget_exhausted",
+      "n_steps": 94,
+      "min_goal_distance_m": 5.549,
+      "cost_model_J": 362.77,
+      "z0_J": 362.57
+     },
+     {
+      "map_id": "l1_empty-s2002",
+      "label": "budget_exhausted",
+      "n_steps": 95,
+      "min_goal_distance_m": 5.591,
+      "cost_model_J": 363.9,
+      "z0_J": 362.98
+     },
+     {
+      "map_id": "l2_single_detour-s2001",
+      "label": "timeout",
+      "n_steps": 300,
+      "min_goal_distance_m": 5.226,
+      "cost_model_J": 476.34,
+      "z0_J": 486.19
+     },
+     {
+      "map_id": "l2_single_detour-s2002",
+      "label": "timeout",
+      "n_steps": 300,
+      "min_goal_distance_m": 5.252,
+      "cost_model_J": 475.23,
+      "z0_J": 479.93
+     },
+     {
+      "map_id": "l3_multi_path-s2001",
+      "label": "budget_exhausted",
+      "n_steps": 97,
+      "min_goal_distance_m": 5.243,
+      "cost_model_J": 367.89,
+      "z0_J": 367.72
+     },
+     {
+      "map_id": "l3_multi_path-s2002",
+      "label": "budget_exhausted",
+      "n_steps": 100,
+      "min_goal_distance_m": 5.069,
+      "cost_model_J": 371.6,
+      "z0_J": 371.31
+     }
+    ]
+   },
+   "oi1_command_distribution": {
+    "mode": "deterministic mean action, nominal env, 18 train maps",
+    "change_rate_mean": 0.011710695322553333,
+    "hold_mean_s": 0.8153203342618385,
+    "mean_abs": {
+     "vx": 0.5876810240879372,
+     "vy": 0.13835580223006094,
+     "wz": 0.018698292607124953
+    },
+    "low_speed_share": 0.3952852750256235,
+    "pooled_deadband": {
+     "n_points": 2927,
+     "buckets": [
+      {
+       "wz_range": [
+        0.0,
+        0.2
+       ],
+       "share": 1.0
+      },
+      {
+       "wz_range": [
+        0.2,
+        0.3
+       ],
+       "share": 0.0
+      },
+      {
+       "wz_range": [
+        0.3,
+        0.5
+       ],
+       "share": 0.0
+      },
+      {
+       "wz_range": [
+        0.5,
+        1.01
+       ],
+       "share": 0.0
+      }
+     ],
+     "vx_below_0p2_share": 0.3805944653228562,
+     "vx_below_0p31_share": 0.3963102152374445
+    },
+    "n_points": 2927
+   }
+  },
+  "seed_1": {
+   "run_id": "formal_uncal_s1",
+   "seed": 1,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.377,
+   "prereg_sha256": "ac5c8c1a7c042026...",
+   "grad_norm_policy": {
+    "p10": 0.126,
+    "p50": 0.203,
+    "p90": 0.362,
+    "max": 0.671
+   },
+   "clip_fraction_mean": 0.0,
+   "entropy": {
+    "first25_mean": 4.2601,
+    "last25_mean": 4.2561
+   },
+   "loss_finite": true,
+   "episode_label_counts": {
+    "collision": 1696,
+    "out_of_bounds": 0,
+    "budget_exhausted": 7469,
+    "goal_reached": 0,
+    "stagnation": 547,
+    "timeout": 0
+   },
+   "label_share_first25_updates": {
+    "budget_exhausted": 0.51,
+    "stagnation": 0.485,
+    "collision": 0.005,
+    "out_of_bounds": 0.0,
+    "goal_reached": 0.0,
+    "timeout": 0.0
+   },
+   "label_share_last25_updates": {
+    "budget_exhausted": 0.871,
+    "collision": 0.101,
+    "stagnation": 0.029,
+    "out_of_bounds": 0.0,
+    "goal_reached": 0.0,
+    "timeout": 0.0
+   },
+   "store_chunks": 14169,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "episodes": [
+     {
+      "map_id": "l1_empty-s2001",
+      "label": "budget_exhausted",
+      "n_steps": 187,
+      "min_goal_distance_m": 4.638,
+      "cost_model_J": 362.88,
+      "z0_J": 362.57
+     },
+     {
+      "map_id": "l1_empty-s2002",
+      "label": "budget_exhausted",
+      "n_steps": 187,
+      "min_goal_distance_m": 4.671,
+      "cost_model_J": 363.02,
+      "z0_J": 362.98
+     },
+     {
+      "map_id": "l2_single_detour-s2001",
+      "label": "stagnation",
+      "n_steps": 183,
+      "min_goal_distance_m": 5.204,
+      "cost_model_J": 353.69,
+      "z0_J": 486.19
+     },
+     {
+      "map_id": "l2_single_detour-s2002",
+      "label": "stagnation",
+      "n_steps": 182,
+      "min_goal_distance_m": 5.156,
+      "cost_model_J": 348.83,
+      "z0_J": 479.93
+     },
+     {
+      "map_id": "l3_multi_path-s2001",
+      "label": "budget_exhausted",
+      "n_steps": 169,
+      "min_goal_distance_m": 4.285,
+      "cost_model_J": 368.0,
+      "z0_J": 367.72
+     },
+     {
+      "map_id": "l3_multi_path-s2002",
+      "label": "budget_exhausted",
+      "n_steps": 180,
+      "min_goal_distance_m": 4.261,
+      "cost_model_J": 371.49,
+      "z0_J": 371.31
+     }
+    ]
+   },
+   "oi1_command_distribution": {
+    "mode": "deterministic mean action, nominal env, 18 train maps",
+    "change_rate_mean": 0.014822532855962344,
+    "hold_mean_s": 0.8055702917771884,
+    "mean_abs": {
+     "vx": 0.5461700392195787,
+     "vy": 0.05034928634262298,
+     "wz": 0.02778566009763295
+    },
+    "low_speed_share": 0.4069805729338163,
+    "pooled_deadband": {
+     "n_points": 3037,
+     "buckets": [
+      {
+       "wz_range": [
+        0.0,
+        0.2
+       ],
+       "share": 0.9878169245966414
+      },
+      {
+       "wz_range": [
+        0.2,
+        0.3
+       ],
+       "share": 0.011524530786960816
+      },
+      {
+       "wz_range": [
+        0.3,
+        0.5
+       ],
+       "share": 0.0006585446163977609
+      },
+      {
+       "wz_range": [
+        0.5,
+        1.01
+       ],
+       "share": 0.0
+      }
+     ],
+     "vx_below_0p2_share": 0.360882449785973,
+     "vx_below_0p31_share": 0.4102732960158051
+    },
+    "n_points": 3037
+   }
+  },
+  "seed_2": {
+   "run_id": "formal_uncal_s2",
+   "seed": 2,
+   "updates": 250,
+   "env_steps": 1021500,
+   "wall_hours": 0.371,
+   "prereg_sha256": "ac5c8c1a7c042026...",
+   "grad_norm_policy": {
+    "p10": 0.129,
+    "p50": 0.211,
+    "p90": 0.33,
+    "max": 0.643
+   },
+   "clip_fraction_mean": 0.0,
+   "entropy": {
+    "first25_mean": 4.2597,
+    "last25_mean": 4.2471
+   },
+   "loss_finite": true,
+   "episode_label_counts": {
+    "collision": 1729,
+    "out_of_bounds": 0,
+    "budget_exhausted": 7406,
+    "goal_reached": 0,
+    "stagnation": 642,
+    "timeout": 0
+   },
+   "label_share_first25_updates": {
+    "budget_exhausted": 0.51,
+    "stagnation": 0.483,
+    "collision": 0.007,
+    "out_of_bounds": 0.0,
+    "goal_reached": 0.0,
+    "timeout": 0.0
+   },
+   "label_share_last25_updates": {
+    "budget_exhausted": 0.878,
+    "collision": 0.082,
+    "stagnation": 0.039,
+    "out_of_bounds": 0.0,
+    "goal_reached": 0.0,
+    "timeout": 0.0
+   },
+   "store_chunks": 14231,
+   "store_problems": [],
+   "development_diagnostic": {
+    "success_rate": 0.0,
+    "episodes": [
+     {
+      "map_id": "l1_empty-s2001",
+      "label": "budget_exhausted",
+      "n_steps": 205,
+      "min_goal_distance_m": 5.173,
+      "cost_model_J": 362.88,
+      "z0_J": 362.57
+     },
+     {
+      "map_id": "l1_empty-s2002",
+      "label": "budget_exhausted",
+      "n_steps": 205,
+      "min_goal_distance_m": 5.234,
+      "cost_model_J": 363.22,
+      "z0_J": 362.98
+     },
+     {
+      "map_id": "l2_single_detour-s2001",
+      "label": "timeout",
+      "n_steps": 300,
+      "min_goal_distance_m": 5.711,
+      "cost_model_J": 391.97,
+      "z0_J": 486.19
+     },
+     {
+      "map_id": "l2_single_detour-s2002",
+      "label": "timeout",
+      "n_steps": 300,
+      "min_goal_distance_m": 4.757,
+      "cost_model_J": 414.25,
+      "z0_J": 479.93
+     },
+     {
+      "map_id": "l3_multi_path-s2001",
+      "label": "budget_exhausted",
+      "n_steps": 217,
+      "min_goal_distance_m": 5.122,
+      "cost_model_J": 367.8,
+      "z0_J": 367.72
+     },
+     {
+      "map_id": "l3_multi_path-s2002",
+      "label": "budget_exhausted",
+      "n_steps": 225,
+      "min_goal_distance_m": 5.073,
+      "cost_model_J": 371.33,
+      "z0_J": 371.31
+     }
+    ]
+   },
+   "oi1_command_distribution": {
+    "mode": "deterministic mean action, nominal env, 18 train maps",
+    "change_rate_mean": 0.012321148878074431,
+    "hold_mean_s": 0.7792380952380953,
+    "mean_abs": {
+     "vx": 0.419996180021951,
+     "vy": 0.023588312532050675,
+     "wz": 0.0339758095598383
+    },
+    "low_speed_share": 0.5788315815204107,
+    "pooled_deadband": {
+     "n_points": 4091,
+     "buckets": [
+      {
+       "wz_range": [
+        0.0,
+        0.2
+       ],
+       "share": 0.9696895624541677
+      },
+      {
+       "wz_range": [
+        0.2,
+        0.3
+       ],
+       "share": 0.017599608897580055
+      },
+      {
+       "wz_range": [
+        0.3,
+        0.5
+       ],
+       "share": 0.012710828648252261
+      },
+      {
+       "wz_range": [
+        0.5,
+        1.01
+       ],
+       "share": 0.0
+      }
+     ],
+     "vx_below_0p2_share": 0.5336103642141286,
+     "vx_below_0p31_share": 0.5817648496700073
+    },
+    "n_points": 4091
+   }
+  }
+ },
+ "checkpoints": {
+  "seed_0": "/pub/data/caohy/work/camra_navigation/formal_uncal_s0/state.pt",
+  "seed_1": "/pub/data/caohy/work/camra_navigation/formal_uncal_s1/state.pt",
+  "seed_2": "/pub/data/caohy/work/camra_navigation/formal_uncal_s2/state.pt"
+ },
+ "verdict": "COMPLETED_AS_PREREGISTERED"
+}
