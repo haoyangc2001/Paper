@@ -1,0 +1,35 @@
+{
+  "schema": "camra-gate-g4-prereg-v1",
+  "version": "1.0.0",
+  "owner": "NAV-039",
+  "created_at": "2026-11-11T21:05:00+08:00",
+  "status": "frozen_before_gate_assembly",
+  "task": "NAV-039 名义学习及部署 G4 门禁",
+
+  "transparency_note": "本预登记在 NAV-036/037 报告已知『训练/开发成功率 0』之后冻结。成功率门槛被有意保留为硬判据——它预期 FAIL，门禁必须正式记录这个失败而不是用结构性指标把它糊过去。这正是约束『没达到条件时保留任务 false 并报告资源内可选处理』的落地。",
+
+  "dimensions": {
+    "D1_learning_stability": {
+      "per_method_all_3_seeds": [
+        "全部 250 个 update 的 policy/cost/reach 损失有限",
+        "熵不塌缩：last25 窗口均值 >= 0.5 x first25 窗口均值",
+        "梯度裁剪占比已记录（不设数值门槛，NAV-034 整改后为记录义务）",
+        "结构移动方向：3 种子中至少 2 个满足『budget_exhausted 份额(last25-first25) > 0 或碰撞份额下降』"
+      ]
+    },
+    "D2_usability": {
+      "oi1_command_band": "6 个部署候选（确定性指令分布）全部满足：change_rate_mean <= 0.106（规则控制器 0.053 的 2 倍）、hold_mean_s >= 0.2、mean_abs_vy <= 0.3、low_speed_share <= 0.7",
+      "approach": "每方法：三种子『development 6 图最近距离的中位数』的中位数 <= 0.8 x 起点距离 14 m（即 <= 11.2 m）",
+      "dev_success_rate": "每方法：三种子 dev 成功率的中位数 >= 0.10（硬判据，预期 FAIL，如实记录）"
+    },
+    "D3_freeze_integrity": {
+      "bundle": "delivery/deployment_candidates_v1.json 恰好 6 个候选、每个候选六项绑定同版本、amend 链完整、权重散列与 work 目录重拟合状态文件一致",
+      "checkpoint_rule": "6 个 run 的 state_u25/50/.../250 与最终 state.pt 齐全；最终 checkpoint=最后更新（与表现无关）在预登记与报告中留档",
+      "no_final_leak": "budget_selection 与 final_* 划分在所有训练/核验证据中零出现"
+    }
+  },
+
+  "verdict_rule": "任一红项 -> FAIL；D1/D3 全绿且 D2 只有 dev_success_rate 红 -> FAIL_WITH_STABILITY（学习过程健康但可用性未达）；全绿 -> PASS",
+  "fail_consequence": "FAIL / FAIL_WITH_STABILITY 时任务保持 false，报告必须给出资源内的可选处理清单（不自行选择）",
+  "evidence_policy": "门禁表只读证据文件并交叉核对散列与判定；种子曲线从 train_log.jsonl 证据文件聚合，不重算环境"
+}

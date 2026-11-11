@@ -1,0 +1,613 @@
+{
+ "task": "NAV-039",
+ "schema": "camra-gate-g4-v1",
+ "prereg": {
+  "path": "config/gate_g4_prereg_v1.json",
+  "sha256": "7ac8d8181fa5e108d7b6803e82f217118ccf71751e745ce7d8e7545b401000a5"
+ },
+ "n_checks": 35,
+ "n_red": 2,
+ "lights": {
+  "green": 33,
+  "red": 2
+ },
+ "verdict": "FAIL_WITH_STABILITY",
+ "verdict_rule": "任一红项 -> FAIL；D1/D3 全绿且 D2 只有 dev_success_rate 红 -> FAIL_WITH_STABILITY（学习过程健康但可用性未达）；全绿 -> PASS",
+ "options": [
+  {
+   "option": "O-1 追加训练授权",
+   "content": "在现有预登记框架下追加步数/updates（需新的资源授权与新的预登记版本；当前 6 run 授权配额已用满，不得沿用旧配额悄悄加跑）",
+   "cost": "新的授权决策 + 训练时间（向量化环境后每 run 约 23 分钟，成本很低）"
+  },
+  {
+   "option": "O-2 预算语义修正后重训",
+   "content": "把训练预算从 z0 = 1.0xE_ref 改宽（如 k=1.15..1.3 的锚点档，需检查 z_ratio 饱和约束）或按 NAV-036 已登记的预算选择协议走评估分支",
+   "cost": "契约/预登记升版 + 重训 6 run；成功率门的复核只能收紧或维持"
+  },
+  {
+   "option": "O-3 接受负结果继续下游",
+   "content": "以 FAIL_WITH_STABILITY 定案：学习过程健康、指令分布可执行、评价网络匹配部署策略，但成功率未达；下游预算搜索任务对两方法不做 value 搜索，改用预算网格的实测扫描（budget_comparison 协议本身支持）",
+   "cost": "论文叙事改变（『预算约束下的学习可用性』而非『成功策略』）；不得声称 PPO 收敛"
+  }
+ ],
+ "checklist": [
+  {
+   "id": "D1-uncalibrated-s0-losses_finite",
+   "dimension": "D1_learning_stability",
+   "item": "全部 update 损失有限",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s0/train_log.jsonl",
+    "updates": 250
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s0-entropy_no_collapse",
+   "dimension": "D1_learning_stability",
+   "item": "熵不塌缩（last25 >= 0.5 x first25）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s0/train_log.jsonl",
+    "first25_mean": 4.2584,
+    "last25_mean": 4.2585
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s0-clip_recorded",
+   "dimension": "D1_learning_stability",
+   "item": "梯度裁剪占比已记录",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s0/train_log.jsonl",
+    "mean_clip_fraction": 0.0
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s0-structure_direction",
+   "dimension": "D1_learning_stability",
+   "item": "结构移动方向（budget_exhausted 升或 collision 降）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s0/train_log.jsonl",
+    "budget_exhausted_first25": 0.442,
+    "budget_exhausted_last25": 0.929,
+    "collision_first25": 0.0,
+    "collision_last25": 0.069
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s1-losses_finite",
+   "dimension": "D1_learning_stability",
+   "item": "全部 update 损失有限",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s1/train_log.jsonl",
+    "updates": 250
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s1-entropy_no_collapse",
+   "dimension": "D1_learning_stability",
+   "item": "熵不塌缩（last25 >= 0.5 x first25）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s1/train_log.jsonl",
+    "first25_mean": 4.2601,
+    "last25_mean": 4.2561
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s1-clip_recorded",
+   "dimension": "D1_learning_stability",
+   "item": "梯度裁剪占比已记录",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s1/train_log.jsonl",
+    "mean_clip_fraction": 0.0
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s1-structure_direction",
+   "dimension": "D1_learning_stability",
+   "item": "结构移动方向（budget_exhausted 升或 collision 降）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s1/train_log.jsonl",
+    "budget_exhausted_first25": 0.51,
+    "budget_exhausted_last25": 0.871,
+    "collision_first25": 0.005,
+    "collision_last25": 0.101
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s2-losses_finite",
+   "dimension": "D1_learning_stability",
+   "item": "全部 update 损失有限",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s2/train_log.jsonl",
+    "updates": 250
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s2-entropy_no_collapse",
+   "dimension": "D1_learning_stability",
+   "item": "熵不塌缩（last25 >= 0.5 x first25）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s2/train_log.jsonl",
+    "first25_mean": 4.2597,
+    "last25_mean": 4.2471
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s2-clip_recorded",
+   "dimension": "D1_learning_stability",
+   "item": "梯度裁剪占比已记录",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s2/train_log.jsonl",
+    "mean_clip_fraction": 0.0
+   }
+  },
+  {
+   "id": "D1-uncalibrated-s2-structure_direction",
+   "dimension": "D1_learning_stability",
+   "item": "结构移动方向（budget_exhausted 升或 collision 降）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_uncal_s2/train_log.jsonl",
+    "budget_exhausted_first25": 0.51,
+    "budget_exhausted_last25": 0.878,
+    "collision_first25": 0.007,
+    "collision_last25": 0.082
+   }
+  },
+  {
+   "id": "D1-full-s0-losses_finite",
+   "dimension": "D1_learning_stability",
+   "item": "全部 update 损失有限",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s0/train_log.jsonl",
+    "updates": 250
+   }
+  },
+  {
+   "id": "D1-full-s0-entropy_no_collapse",
+   "dimension": "D1_learning_stability",
+   "item": "熵不塌缩（last25 >= 0.5 x first25）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s0/train_log.jsonl",
+    "first25_mean": 4.2576,
+    "last25_mean": 4.24
+   }
+  },
+  {
+   "id": "D1-full-s0-clip_recorded",
+   "dimension": "D1_learning_stability",
+   "item": "梯度裁剪占比已记录",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s0/train_log.jsonl",
+    "mean_clip_fraction": 0.0
+   }
+  },
+  {
+   "id": "D1-full-s0-structure_direction",
+   "dimension": "D1_learning_stability",
+   "item": "结构移动方向（budget_exhausted 升或 collision 降）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s0/train_log.jsonl",
+    "budget_exhausted_first25": 0.51,
+    "budget_exhausted_last25": 0.896,
+    "collision_first25": 0.0,
+    "collision_last25": 0.0
+   }
+  },
+  {
+   "id": "D1-full-s1-losses_finite",
+   "dimension": "D1_learning_stability",
+   "item": "全部 update 损失有限",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s1/train_log.jsonl",
+    "updates": 250
+   }
+  },
+  {
+   "id": "D1-full-s1-entropy_no_collapse",
+   "dimension": "D1_learning_stability",
+   "item": "熵不塌缩（last25 >= 0.5 x first25）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s1/train_log.jsonl",
+    "first25_mean": 4.2607,
+    "last25_mean": 4.2387
+   }
+  },
+  {
+   "id": "D1-full-s1-clip_recorded",
+   "dimension": "D1_learning_stability",
+   "item": "梯度裁剪占比已记录",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s1/train_log.jsonl",
+    "mean_clip_fraction": 0.0
+   }
+  },
+  {
+   "id": "D1-full-s1-structure_direction",
+   "dimension": "D1_learning_stability",
+   "item": "结构移动方向（budget_exhausted 升或 collision 降）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s1/train_log.jsonl",
+    "budget_exhausted_first25": 0.653,
+    "budget_exhausted_last25": 0.91,
+    "collision_first25": 0.0,
+    "collision_last25": 0.0
+   }
+  },
+  {
+   "id": "D1-full-s2-losses_finite",
+   "dimension": "D1_learning_stability",
+   "item": "全部 update 损失有限",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s2/train_log.jsonl",
+    "updates": 250
+   }
+  },
+  {
+   "id": "D1-full-s2-entropy_no_collapse",
+   "dimension": "D1_learning_stability",
+   "item": "熵不塌缩（last25 >= 0.5 x first25）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s2/train_log.jsonl",
+    "first25_mean": 4.2602,
+    "last25_mean": 4.2396
+   }
+  },
+  {
+   "id": "D1-full-s2-clip_recorded",
+   "dimension": "D1_learning_stability",
+   "item": "梯度裁剪占比已记录",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s2/train_log.jsonl",
+    "mean_clip_fraction": 0.0
+   }
+  },
+  {
+   "id": "D1-full-s2-structure_direction",
+   "dimension": "D1_learning_stability",
+   "item": "结构移动方向（budget_exhausted 升或 collision 降）",
+   "light": "green",
+   "evidence": {
+    "evidence": "/pub/data/caohy/work/camra_navigation/formal_full_s2/train_log.jsonl",
+    "budget_exhausted_first25": 0.593,
+    "budget_exhausted_last25": 0.874,
+    "collision_first25": 0.001,
+    "collision_last25": 0.0
+   }
+  },
+  {
+   "id": "D2-uncalibrated-oi1_command_band",
+   "dimension": "D2_usability",
+   "item": "确定性指令分布全部候选落在可执行带内",
+   "light": "green",
+   "evidence": {
+    "evidence": [
+     "reports/formal_uncal_s0_eval.json",
+     "reports/formal_uncal_s1_eval.json",
+     "reports/formal_uncal_s2_eval.json"
+    ],
+    "per_seed": [
+     {
+      "seed": 0,
+      "change_rate_mean": 0.0117,
+      "hold_mean_s": 0.8153,
+      "low_speed_share": 0.3953,
+      "mean_abs_vy": 0.1384,
+      "conditions": {
+       "change_rate_mean": true,
+       "hold_mean_s": true,
+       "mean_abs_vy": true,
+       "low_speed_share": true
+      }
+     },
+     {
+      "seed": 1,
+      "change_rate_mean": 0.0148,
+      "hold_mean_s": 0.8056,
+      "low_speed_share": 0.407,
+      "mean_abs_vy": 0.0503,
+      "conditions": {
+       "change_rate_mean": true,
+       "hold_mean_s": true,
+       "mean_abs_vy": true,
+       "low_speed_share": true
+      }
+     },
+     {
+      "seed": 2,
+      "change_rate_mean": 0.0123,
+      "hold_mean_s": 0.7792,
+      "low_speed_share": 0.5788,
+      "mean_abs_vy": 0.0236,
+      "conditions": {
+       "change_rate_mean": true,
+       "hold_mean_s": true,
+       "mean_abs_vy": true,
+       "low_speed_share": true
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "D2-uncalibrated-approach",
+   "dimension": "D2_usability",
+   "item": "dev 最近距离中位数 <= 11.2 m（起点 14 m 的 0.8）",
+   "light": "green",
+   "evidence": {
+    "evidence": [
+     "reports/formal_uncal_s0_eval.json",
+     "reports/formal_uncal_s1_eval.json",
+     "reports/formal_uncal_s2_eval.json"
+    ],
+    "per_seed_median_min_distance_m": [
+     5.248,
+     4.655,
+     5.147
+    ],
+    "median_of_medians_m": 5.147
+   }
+  },
+  {
+   "id": "D2-uncalibrated-dev_success_rate",
+   "dimension": "D2_usability",
+   "item": "dev 成功率中位数 >= 0.10（硬判据，预登记声明预期 FAIL）",
+   "light": "red",
+   "evidence": {
+    "evidence": [
+     "reports/formal_uncal_s0_eval.json",
+     "reports/formal_uncal_s1_eval.json",
+     "reports/formal_uncal_s2_eval.json"
+    ],
+    "per_seed_success_rate": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "median": 0.0,
+    "note": "本预登记在 NAV-036/037 报告已知『训练/开发成功率 0』之后冻结。成功率门槛被有意保留为硬判据——它预期 FAIL，门禁必须正式记录这个失败而不是用"
+   }
+  },
+  {
+   "id": "D2-full-oi1_command_band",
+   "dimension": "D2_usability",
+   "item": "确定性指令分布全部候选落在可执行带内",
+   "light": "green",
+   "evidence": {
+    "evidence": [
+     "reports/formal_full_s0_eval.json",
+     "reports/formal_full_s1_eval.json",
+     "reports/formal_full_s2_eval.json"
+    ],
+    "per_seed": [
+     {
+      "seed": 0,
+      "change_rate_mean": 0.0118,
+      "hold_mean_s": 1.4069,
+      "low_speed_share": 0.6473,
+      "mean_abs_vy": 0.0561,
+      "conditions": {
+       "change_rate_mean": true,
+       "hold_mean_s": true,
+       "mean_abs_vy": true,
+       "low_speed_share": true
+      }
+     },
+     {
+      "seed": 1,
+      "change_rate_mean": 0.0135,
+      "hold_mean_s": 0.9778,
+      "low_speed_share": 0.6517,
+      "mean_abs_vy": 0.0814,
+      "conditions": {
+       "change_rate_mean": true,
+       "hold_mean_s": true,
+       "mean_abs_vy": true,
+       "low_speed_share": true
+      }
+     },
+     {
+      "seed": 2,
+      "change_rate_mean": 0.0198,
+      "hold_mean_s": 0.8771,
+      "low_speed_share": 0.4096,
+      "mean_abs_vy": 0.0308,
+      "conditions": {
+       "change_rate_mean": true,
+       "hold_mean_s": true,
+       "mean_abs_vy": true,
+       "low_speed_share": true
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "D2-full-approach",
+   "dimension": "D2_usability",
+   "item": "dev 最近距离中位数 <= 11.2 m（起点 14 m 的 0.8）",
+   "light": "green",
+   "evidence": {
+    "evidence": [
+     "reports/formal_full_s0_eval.json",
+     "reports/formal_full_s1_eval.json",
+     "reports/formal_full_s2_eval.json"
+    ],
+    "per_seed_median_min_distance_m": [
+     6.433,
+     6.049,
+     6.846
+    ],
+    "median_of_medians_m": 6.433
+   }
+  },
+  {
+   "id": "D2-full-dev_success_rate",
+   "dimension": "D2_usability",
+   "item": "dev 成功率中位数 >= 0.10（硬判据，预登记声明预期 FAIL）",
+   "light": "red",
+   "evidence": {
+    "evidence": [
+     "reports/formal_full_s0_eval.json",
+     "reports/formal_full_s1_eval.json",
+     "reports/formal_full_s2_eval.json"
+    ],
+    "per_seed_success_rate": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "median": 0.0,
+    "note": "本预登记在 NAV-036/037 报告已知『训练/开发成功率 0』之后冻结。成功率门槛被有意保留为硬判据——它预期 FAIL，门禁必须正式记录这个失败而不是用"
+   }
+  },
+  {
+   "id": "D3-bundle-six-unique",
+   "dimension": "D3_freeze_integrity",
+   "item": "清单恰含 6 个候选且候选 ID 唯一",
+   "light": "green",
+   "evidence": {
+    "evidence": "delivery/deployment_candidates_v1.json",
+    "n_candidates": 6,
+    "candidate_ids": [
+     "full_s0",
+     "full_s1",
+     "full_s2",
+     "uncalibrated_s0",
+     "uncalibrated_s1",
+     "uncalibrated_s2"
+    ]
+   }
+  },
+  {
+   "id": "D3-source-hash-bound",
+   "dimension": "D3_freeze_integrity",
+   "item": "每候选源 checkpoint 散列与 work 目录文件逐位一致",
+   "light": "green",
+   "evidence": {
+    "evidence": "delivery/deployment_candidates_v1.json + work root",
+    "per_candidate": [
+     {
+      "candidate_id": "uncalibrated_s0",
+      "source_hash_verified": true
+     },
+     {
+      "candidate_id": "uncalibrated_s1",
+      "source_hash_verified": true
+     },
+     {
+      "candidate_id": "uncalibrated_s2",
+      "source_hash_verified": true
+     },
+     {
+      "candidate_id": "full_s0",
+      "source_hash_verified": true
+     },
+     {
+      "candidate_id": "full_s1",
+      "source_hash_verified": true
+     },
+     {
+      "candidate_id": "full_s2",
+      "source_hash_verified": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "D3-amend-chain",
+   "dimension": "D3_freeze_integrity",
+   "item": "修正链完整（prereg -> amend1 -> 复判）",
+   "light": "green",
+   "evidence": {
+    "evidence": [
+     "delivery/deployment_candidates_v1.json",
+     "config/deployment_freeze_prereg_v1.amend1.json",
+     "reports/deployment_critic_validation_rejudge.json"
+    ]
+   }
+  },
+  {
+   "id": "D3-checkpoints-complete",
+   "dimension": "D3_freeze_integrity",
+   "item": "6 个 run 的每 25 updates checkpoint 与最终 state.pt 齐全",
+   "light": "green",
+   "evidence": {
+    "evidence": "work root",
+    "per_run": [
+     {
+      "run_id": "formal_uncal_s0",
+      "checkpoints_complete": true,
+      "missing": []
+     },
+     {
+      "run_id": "formal_uncal_s1",
+      "checkpoints_complete": true,
+      "missing": []
+     },
+     {
+      "run_id": "formal_uncal_s2",
+      "checkpoints_complete": true,
+      "missing": []
+     },
+     {
+      "run_id": "formal_full_s0",
+      "checkpoints_complete": true,
+      "missing": []
+     },
+     {
+      "run_id": "formal_full_s1",
+      "checkpoints_complete": true,
+      "missing": []
+     },
+     {
+      "run_id": "formal_full_s2",
+      "checkpoints_complete": true,
+      "missing": []
+     }
+    ],
+    "rule": "最终 checkpoint=最后更新，与表现无关（正式训练预登记 checkpoint_rule）"
+   }
+  },
+  {
+   "id": "D3-no-final-leak",
+   "dimension": "D3_freeze_integrity",
+   "item": "budget_selection / final_* 划分在全部证据中零出现",
+   "light": "green",
+   "evidence": {
+    "evidence": [
+     "reports/formal_uncal_s0_eval.json",
+     "reports/formal_uncal_s1_eval.json",
+     "reports/formal_uncal_s2_eval.json",
+     "reports/formal_full_s0_eval.json",
+     "reports/formal_full_s1_eval.json",
+     "reports/formal_full_s2_eval.json"
+    ],
+    "leaks": []
+   }
+  }
+ ],
+ "evidence_integrity": {
+  "problems": []
+ }
+}
