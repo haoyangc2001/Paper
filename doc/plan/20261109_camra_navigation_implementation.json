@@ -5638,6 +5638,57 @@
             "若第 2 轮证据显示 δ=2.61 的膨胀带使 full 方法在地图设计层面不可行（不是调参问题），按协议 stops.on_semantic_doubt 停止并请示"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-13T00:45:00+08:00",
+          "summary": "NAV-064 四轮训练用尽（任务保持 false）：逐轮 dev SR 中位数 uncal 0.667→0.333→0.0→0.0、full 0.0→0.333→0.333→0.333；关闭档（两方法 SR≥0.10 且预算可选 ≥10/18）未达成——SR 条件只在第 2 轮双方法同时过线，但『到达且预算内』四轮全零（预算响应平坦，超支 1.5-2.5×E_ref）。按协议 stops.rounds_exhausted 停止并报告可选方向；加轮或改动作概率契约须用户授权。",
+          "actions": [
+            "第 2 轮（r2，git a93bae8 预登记）：热启动自 r1c + ent 0.02（协议上限）；6 run 全部完成（墙钟 1.16-1.23 h）",
+            "第 3 轮（r3，git 775f0fd 预登记）：单变量回退 ent→0.01 + 热启动自 r2；6 run 完成（1.2-1.3 h）；期间发现生成脚本把冻结的 r3 预登记覆盖成 r4 内容，从 git 775f0fd 逐字节恢复（sha 0c6c6050 与第 3 轮实际运行一致）",
+            "第 4 轮（r4，git 792fdac 预登记）：lr_policy 减半 1e-4 + 热启动自 r3；6 个 run 在第 566-584 个更新处异常退出（exit 1、无 traceback），未到 600、无最终 checkpoint；以最后保存的 u550 checkpoint 评估并在报告中注明",
+            "评估：scripts/eval_training_round.py 增加 --ckpt-name；每轮只在 development 6 图上判定（k=1.0 主判据 + 0.7-1.3 预算响应诊断）",
+            "scripts/make_rounds_ledger.py 重建 reports/training_loop_rounds.json（四轮台账 + 熵链发现 + 被排除假设 + 用户可选项）"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/training_loop_prereg_r2.json(+.sha256)",
+            "CaMRA/navigation/config/training_loop_prereg_r3.json(+.sha256)",
+            "CaMRA/navigation/config/training_loop_prereg_r4.json(+.sha256)",
+            "CaMRA/navigation/scripts/train_formal.py（--init-from 与带内 ent_coef）",
+            "CaMRA/navigation/scripts/eval_training_round.py（--ckpt-name）",
+            "CaMRA/navigation/scripts/make_rounds_ledger.py",
+            "CaMRA/navigation/reports/training_round_r{2,3,4}.json",
+            "CaMRA/navigation/reports/training_loop_rounds.json"
+          ],
+          "commands": [
+            "tmux 会话 nav064r2/nav064r4：每轮 6 进程并行（20:29 与 23:35 起）",
+            "<py311> scripts/eval_training_round.py --round {2,3,4} --prereg training_loop_prereg_r{2,3,4}.json --run-ids nav064_r{2,3,4}_* --out reports/training_round_r{2,3,4}.json（r4 加 --ckpt-name state_u550.pt）",
+            "<py311> scripts/make_rounds_ledger.py",
+            "python3 /tmp/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+          ],
+          "results": [
+            "逐轮 dev SR 中位数（uncal / full，三种子）：r1 0.667/0.0 → r2 0.333/0.333 → r3 0.0/0.333 → r4(u550) 0.0/0.333",
+            "『到达且 z_end>=0』：四轮、六 run、k 网格全部为 0；z_end @k=1.0 从 r1 的 -130~-360 J 恶化到 r3/r4 的 -370~-1400 J",
+            "预算响应平坦：k=0.7→1.3 的 SR 变化 ≤0.17 且无单调趋势——超支与路线成本成正比，不是预算大小问题",
+            "熵链发现（四轮共性）：log_std 单调无界增长——uncal_s0 链 4.7→8.4→17.9→21.8→26.5，full_s0 链 4.7→10.2→21.8→26.1→30.5；r4 六个 run 全部在 566-584 更新处无 traceback 退出。机制：优势≈0 的样本上损失只剩 −ent_coef·H，最小化单调推高 std；full 的安全饱和区（63-64% 步 h≥1）与链后期都处于该区",
+            "被排除的假设：①熵 0.02 是 uncal 退化的主因（r3 回退仍崩）②full 必须语义级处理才能离开停滞盆地（r3/r4 常规训练即保持 0.333-0.667）③lr 减半能在剩余窗口内救回 uncal（r4 死亡前未达标）",
+            "数据访问审计：训练只用 train 18 图（run_start.map_ids），判定只用 development 6 图；budget_selection 与 final_* 无加载路径；热启动来源（r1c/r2 state.pt）已写入各轮预登记",
+            "资源对账：4 轮 × 6 run = 24 run 全部登记（含 r1/r1b 两次崩溃尝试）；日历墙钟 ~4.6 h（每轮 6 进程并行）≤ 12 h 上限"
+          ],
+          "evidence": [
+            "reports/training_loop_rounds.json（四轮台账：逐轮 SR、预算内最大值、熵链表、被排除假设、可选方向）",
+            "reports/training_round_r{1..4}.json（逐 run 逐图结果与预算响应）",
+            "config/training_loop_prereg_r{1..4}.json(+.sha256)（每轮先冻结后执行；r3 曾被生成脚本覆盖、已从 git 逐字节恢复）",
+            "run 目录 nav064_r1/r1b/r1c/r2/r3/r4_*（全部 attempt 保留，含两次崩溃与 r4 的 6 次异常退出）",
+            "git：053d474、fe30047、03bedae、a93bae8、775f0fd、792fdac 及本轮收尾提交"
+          ],
+          "remaining_work": [
+            "等待用户裁定（reports/training_loop_rounds.json 的 remaining_options_for_user）：A 授权动作概率契约 v2（log_std 钳位或熵衰减）+ 第 5 轮；B 停止循环用现有候选走 065/066 正式预算判定并按负结果记录；C 回到 NAV-061 修订 C·y 扩展的平坦代价语义",
+            "若裁定 A/C：先走 uncertainty_policy 的契约修订流程，再重开循环（旧 run 保留，新链用新 run id）",
+            "若裁定 B：NAV-064 保持 false 结案（rounds_exhausted），NAV-065 的候选来源须先明确（用哪一轮的哪个 run——按协议『最后更新』默认是 r4 的 u550，但它不是最佳）"
+          ],
+          "blockers": [
+            "关闭档未达成：SR 条件仅在 r2 双方法同时过线且随即回退；预算条件（预算内到达）四轮全零——在获得用户对上述三个方向的裁定前，循环不能再消耗额度"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

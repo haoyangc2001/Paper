@@ -105,6 +105,10 @@ def main() -> int:
     ap.add_argument("--run-ids", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--work-root", default=WORK_ROOT)
+    ap.add_argument("--ckpt-name", default="state.pt",
+                    help="checkpoint file inside each run dir; a round whose runs "
+                         "died before the final update is evaluated at its last "
+                         "saved checkpoint and the report must say so")
     args = ap.parse_args()
 
     prereg_path = os.path.join(NAV, "config", args.prereg)
@@ -125,7 +129,7 @@ def main() -> int:
     for rid in args.run_ids.split(","):
         variant = "uncalibrated" if "uncalibrated" in rid else "full"
         run_dir = os.path.join(args.work_root, rid)
-        state_path = os.path.join(run_dir, "state.pt")
+        state_path = os.path.join(run_dir, args.ckpt_name)
         state = torch.load(state_path, map_location="cpu", weights_only=False)
         net = NW.build(nav)
         net.load_state_dict(state["model"])
@@ -167,6 +171,7 @@ def main() -> int:
             "variant": variant,
             "seed": state.get("seed"),
             "state_sha256": sha(state_path),
+            "checkpoint": args.ckpt_name,
             "updates": len(updates),
             "wall_hours": end.get("wall_hours"),
             "budget_rule": start.get("budget_rule"),
