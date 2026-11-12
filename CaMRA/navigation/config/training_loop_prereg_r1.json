@@ -1,0 +1,198 @@
+{
+  "schema": "camra-training-loop-prereg-v1",
+  "version": "r1.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-12T18:05:00+08:00",
+  "status": "frozen_before_round_1",
+  "round": 1,
+  "task": "NAV-064 第 1 轮：在 NAV-063 原理门禁通过后，用新语义（逐回合预算、预算不终止、共享停止、三套 λ 平滑估计器）跑满 6 个 run",
+  "binding": {
+    "plan": {
+      "path": "doc/plan/20261109_camra_navigation_implementation.json",
+      "version": "1.3.1"
+    },
+    "loop_protocol": {
+      "path": "config/training_loop_protocol_v1_1.json",
+      "sha256": "34d4bd6ecb56ad4f8ebfd9326f617934f6621d07e56ea6a057e296c840bd8231"
+    },
+    "value_objective": {
+      "path": "config/value_objective_contract_v1.json",
+      "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+    },
+    "navigation": {
+      "path": "config/navigation_contract_v1.json",
+      "sha256": "ec0f3e53267ee557eb62afc8f5c5658673541124eaa5c43b20768e78bdd832f5"
+    },
+    "alignment": {
+      "path": "config/rcppo_alignment_contract_v1.json",
+      "sha256": "9ba5925bc74eb86155e96b5a2ce9319bdda7ff1a0ed487d67cb14c9f881e0bf3"
+    },
+    "alignment_amendment": {
+      "path": "config/rcppo_alignment_contract_v1.amend1.json",
+      "sha256": "c6c29017041a245a03643e5e598c48eef42cce2d17748576a3f6b44b2b9463e2"
+    },
+    "gate_g3_alignment_v2": {
+      "path": "reports/gate_G3_alignment_v2.json",
+      "sha256": "49bdda53a7aa4421b7b8a6b154ee9d9d12149c1544164cd7774fafa75bf75166",
+      "verdict": "PASS"
+    },
+    "split_manifest": {
+      "path": "config/split_manifest_v1.json",
+      "sha256": "17db0f0810f1844c2e663ed33a930d9a47d931fef26acf75bfbe0472675fe0af"
+    }
+  },
+  "config_delta_vs_round0": [
+    {
+      "item": "预算",
+      "before": "固定 k_train = 1.10",
+      "after": "每回合 k ~ U(0.6, 1.3)，z0 = k·E_ref(map)",
+      "hypothesis": "旧设置让 82–91% 的失败步停在『油没了』（NAV-039/NAV-041），训练从未见过低预算后半程；逐回合抽样让训练分布覆盖评测网格"
+    },
+    {
+      "item": "终止",
+      "before": "z_J <= 0 即终止并给 budget_exhausted",
+      "after": "z<=0 不终止；预算内到达由独立字段判定",
+      "hypothesis": "旧回合在 8–17 s 被掐断，后半程样本根本不存在；取消后同样的步数能看到完整路线"
+    },
+    {
+      "item": "观测",
+      "before": "obs-v2，z_ratio 裁到 ±1.0",
+      "after": "obs-v3，裁到 ±1.5",
+      "hypothesis": "k=1.3 时比值 1.158 被旧上限编码成『耗尽』，策略看不见富余"
+    },
+    {
+      "item": "成本目标",
+      "before": "整回合 suffix",
+      "after": "到共同停止 τ* 的实测成本（+[τ*=T]V_c）",
+      "hypothesis": "旧目标把停止之后的成本也算进去，与 W 的停止语义不一致（NAV-063 M6）"
+    },
+    {
+      "item": "reach 目标",
+      "before": "未掩码的 min 型 DP 值",
+      "after": "min 型 DP 值上的 λ-return（同一 done）",
+      "hypothesis": "未掩码时 τ* 之后的步仍进入 reach 目标"
+    },
+    {
+      "item": "策略优势",
+      "before": "W_sel − V_total（一次性差，无 λ）",
+      "after": "g=max(h,−z) 上的 λ-return − V_total",
+      "hypothesis": "一次性差方差大且没有用上中间步的信息；参考实现对 g 做 GAE"
+    },
+    {
+      "item": "每窗口梯度步",
+      "before": "4 epochs × 512 = 32 步/窗口",
+      "after": "10 epochs × 512 = 80 步/窗口",
+      "hypothesis": "第 3 轮实测 clip_fraction 5–8% 才刚进入有效区间；协议目标 4.8 万梯度步/run 对应 80 步/窗口"
+    },
+    {
+      "item": "窗口数",
+      "before": "250",
+      "after": "600",
+      "hypothesis": "协议规定 600 窗口 × 4086 步 = 2.45M 环境步，约参考实现 2e6 的量级；旧 1.02M 步只有一半"
+    }
+  ],
+  "method": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "runs": 6,
+    "note": "两方法共用同一预登记；除 variant/α/δ 外一切训练语义相同"
+  },
+  "environment": {
+    "implementation": "camra_navigation.envs.vector.VectorNominalNavEnv（逐位等价门 6/6）",
+    "maps": "split_manifest train 18 张，每张一个 env，18 路锁步",
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5,
+    "determinism": "jitter=0，无环境随机；随机性只来自策略采样与逐回合预算抽样"
+  },
+  "budget": {
+    "sampling": {
+      "kind": "uniform",
+      "k_low": 0.6,
+      "k_high": 1.3
+    },
+    "e_ref_source": "reports/train_map_reference_energy.json",
+    "z0_cap": "clip(obs-v3)=1.5 × Z_REF_J=550 = 825 J；1.3 × 489.4 = 636 J，留余量",
+    "why_this_range": "与 budget_selection 的五档网格（0.7/0.85/1.0/1.15/1.3）同域且略宽，训练分布覆盖评测点；协议允许 0.5–1.4 内逐轮调整"
+  },
+  "algorithm": {
+    "network": "camra_navigation.algorithm.networks（256×2 tanh，log_std 可学习）",
+    "update": "MinimizationUpdater + PPOConfig.from_contract（clip_eps 0.2、ent_coef 0.01、vf_coef 0.5、γ_c=1、λ=0.95、max_grad_norm 2.5）",
+    "objective": "storage.compute_objectives（NAV-063：共享 τ* 的成本/reach/联合三套 λ 平滑目标）",
+    "gamma_joint": 1.0,
+    "lr_policy": 0.0003,
+    "lr_critic": 0.001,
+    "epochs_per_window": 10,
+    "minibatch_size": 512,
+    "advantage_normalization": "每 minibatch 标准化；old_log_prob 固定为采集值"
+  },
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600,
+    "truncation_at_boundary": "窗口末未完成回合按 truncation 计目标并 bootstrap；环境侧继续"
+  },
+  "checkpoints": {
+    "save_every_updates": 50,
+    "final_checkpoint": "最后一个更新，不按表现挑选"
+  },
+  "round_acceptance": {
+    "closing_tier_source": "development 6 图 × 3 种子，确定性均值动作，k=1.0（E_ref 预算）",
+    "dev_success_rate_median": 0.1,
+    "per_method": "两方法都必须 >= 0.10 才允许进入关闭判定",
+    "budget_response_on_dev": {
+      "grid_k": [
+        0.7,
+        0.85,
+        1.0,
+        1.15,
+        1.3
+      ],
+      "maps": "development 6 图",
+      "purpose": "诊断：dev 上预算响应是否单调、是否出现可行点；不参与关闭判定（budget_selection 与 final_* 均不得用于本循环）"
+    },
+    "stability": "3 个种子的 SR 逐种子报告，给出中位数与极差",
+    "ideal_tier": {
+      "sr": 0.9,
+      "collision_rate": 0.0,
+      "blocking": false
+    }
+  },
+  "resource": {
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 12.0,
+    "max_rounds": 4,
+    "runs_this_round": 6,
+    "note": "超 3 h 即停当前 run 并记账；本轮不延长"
+  },
+  "data_access": {
+    "train": "训练取样（18 图，18 路锁步）",
+    "development": "唯一判定来源（6 图）",
+    "budget_selection": "本循环禁止使用（仅登记 NAV-041 的暴露事实）",
+    "final_nominal/final_clean/final_perturbed": "封存，不加载",
+    "audit": "收尾给出实际加载路径清单与 split hash"
+  },
+  "stops": {
+    "met": "立刻停止，进入 NAV-065 候选冻结",
+    "rounds_exhausted": "停止并报告，任务保持 false",
+    "wall_clock": "立刻停止当前 run，不延长",
+    "infrastructure": "换 run id 重跑，与原 attempt 一并报告",
+    "semantic_doubt": "停止并按 uncertainty_policy 询问，不在循环里改语义"
+  },
+  "reporting": "每轮独立报告（reports/training_round_r1.json），失败也写；不合并多轮数字",
+  "frozen_this_round": [
+    "方法目标与语义（rcppo_alignment_contract_v1 + amend1）",
+    "closing_tier / ideal_tier 阈值（0.10 / 0.90 / CR=0）",
+    "指标定义（SR、CR、BVR、实测能量、内部预算）",
+    "地图划分与种子族（train 18 / development 6 / budget_selection 9 / final 封存）",
+    "动作概率契约、checkpoint 选取规则、数据隔离"
+  ]
+}
