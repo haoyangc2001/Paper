@@ -237,15 +237,21 @@ def check_two_step_hand_calculation() -> None:
 
     base = _syn([0.5, 0.1], [0.1, -0.3])
     out_base = S.compute_objectives(base, c, terminal_kind="truncation")
-    moved = []
     arrays_next = _syn([0.5, 0.1], [-0.2, -0.6])
     out_next = S.compute_objectives(arrays_next, c, terminal_kind="truncation")
-    for key in out_base:
-        if not np.allclose(out_base[key], out_next[key], rtol=0.0, atol=0.0):
-            moved.append(key)
-    check("next_budget_does_not_pollute_current_value", not moved,
-          {"changed": moved, "W_base": out_base["obj_target_total"].tolist(),
-           "W_next": out_next["obj_target_total"].tolist()})
+    # obj_g_terminal 属于终端状态 x_T，本来就该随 z_T 变；其余"当前状态"的量不许动
+    x_t_fields = ("obj_h", "obj_target_cost", "obj_target_reach", "obj_total_value")
+    moved = [k for k in x_t_fields
+             if not np.allclose(out_base[k], out_next[k], rtol=0.0, atol=0.0)]
+    g_terminal_moved = not np.allclose(out_base["obj_g_terminal"],
+                                       out_next["obj_g_terminal"], rtol=0.0, atol=0.0)
+    check("next_budget_does_not_pollute_current_value",
+          not moved and g_terminal_moved,
+          {"changed_x_t_fields": moved,
+           "g_terminal_moved": g_terminal_moved,
+           "W_base": out_base["obj_target_total"].tolist(),
+           "W_next": out_next["obj_target_total"].tolist(),
+           "note": "只有终端量跟 z_T 变，x_t 侧目标逐位不变"})
 
     arrays_cur = _syn([0.2, -0.2], [0.1, -0.3])
     out_cur = S.compute_objectives(arrays_cur, c, terminal_kind="truncation")
@@ -272,8 +278,10 @@ def check_single_step_arrival_and_failure() -> None:
     arr_s = dict(arrays)
     arr_s["terminated"][-1] = True
     out_s = S.compute_objectives(arr_s, c, terminal_kind="success")
+    # NAV-063：到达步的最优停止就是"现在停"，成本目标因此是 0（不再继续付费）
     ok_success = (
-        abs(float(out_s["obj_target_cost"][-1]) - last.cost.cost_model_J / obs.Z_REF_J) < 1e-12
+        abs(float(out_s["obj_target_cost"][-1])) < 1e-12
+        and bool(out_s["obj_stop_now"][-1])
         and abs(float(out_s["obj_h_terminal"][0])
                 - max(c.G_INSIDE if last.goal_distance_m <= c.r_goal_m
                       else (last.goal_distance_m - c.r_goal_m) / c.L_REF_m,
@@ -281,7 +289,9 @@ def check_single_step_arrival_and_failure() -> None:
     )
     check("single_step_arrival_target", label == "goal_reached" and ok_success,
           {"label": label, "target_cost": float(out_s["obj_target_cost"][-1]),
-           "h_T": float(out_s["obj_h_terminal"][0])})
+           "stop_now": bool(out_s["obj_stop_now"][-1]),
+           "h_T": float(out_s["obj_h_terminal"][0]),
+           "note": "到达即停止：成本目标 0，安全目标仍是 h_T"})
 
     # forward happens to point at the goal on this map, so the failure probe
     # drives backwards into the rear wall instead of "hoping" to fail
@@ -565,6 +575,19 @@ def check_budget_sampler() -> None:
     check("budget_distribution_is_uniform_and_not_fixed_k", ok,
           {"min": min(draws), "max": max(draws), "mean": float(np.mean(draws)),
            "distinct": len(set(round(k, 6) for k in draws)), "z_max_J": z_max})
+
+    # 初始预算越界必须在这里拒绝（段级守卫已移除：窗口切片段的 z[0] 本来就是负的）
+    too_big = mod.BudgetSampler(seed=1, n_envs=1, low=1.3, high=1.3,
+                                e_ref={"m": 700.0}, z_ref_J=obs.Z_REF_J,
+                                clip=obs.z_ratio_clip())
+    rejected = False
+    try:
+        too_big.draw(0, "m")
+    except SystemExit:
+        rejected = True
+    check("oversized_z0_rejected_at_the_sampler", rejected,
+          {"z0_J": 1.3 * 700.0, "z_max_J": z_max,
+           "note": "z0 > clip*Z_REF 时采样器直接拒绝，不等到 compute_objectives"})
 
     # the formal trainer must offer the structured rule and the legacy fallback
     prereg = json.load(open(PREREG, encoding="utf-8"))

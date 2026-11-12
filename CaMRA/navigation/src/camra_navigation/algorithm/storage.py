@@ -157,6 +157,7 @@ def obj_fields() -> tuple[FieldSpec, ...]:
         FieldSpec("obj_stop_residual", "<f8"),
         FieldSpec("obj_stop_now", "?"),
         FieldSpec("obj_feasible", "?"),
+        FieldSpec("obj_z_saturated", "?"),
         FieldSpec("obj_cost_return", "<f8"),
     )
 
@@ -294,13 +295,14 @@ def compute_objectives(
         raise StorageError("最后一步同时标记 terminated 与 truncated")
     if not (bool(term[-1]) or bool(trunc[-1])):
         raise StorageError("最后一步既未终止也未截断：chunk 不是完整回合")
+    # 预算在段内越负是正常业务事实（预算耗尽不再终止回合），而**段首**也不一定
+    # 是回合起点：窗口切片会给仍在跑的回合开新段，此时 z[0] 已经是负的。
+    # 因此"z 必须落在观测编码范围内"不能作为段级硬错误——初始预算的检查放在
+    # 知道 z0 的地方（train_formal.BudgetSampler 对 z0 > clip*Z_REF 直接拒绝）。
+    # 段内饱和只作诊断记录：观测在 ±clip 处饱和，W 用的是未裁剪 z_norm，可加性
+    # 不受影响（NAV-064 实测：满预算跑到 30 s 时 z_norm 可达 −1.6）。
     z_clip = float(obs_z_ratio_clip())
-    if float(np.abs(z).max()) > z_clip:
-        raise StorageError(
-            f"未裁剪的 z_norm={float(np.abs(z).max()):.4f} 超出观测编码范围 ±{z_clip}："
-            "W 需要未裁减值，而观测已饱和；初始预算须满足 z0_J <= "
-            f"{z_clip}*Z_REF_J={z_clip * cfg.Z_REF_J:.1f} J"
-        )
+    z_saturated = np.abs(z) > z_clip
 
     # --- t 侧：h_t = max(g_norm(x_t), C·y_t) ----------------------------
     g = g_norm_from_distance(goal_d, cfg)
@@ -390,6 +392,7 @@ def compute_objectives(
         "obj_stop_residual": stop_residual,
         "obj_stop_now": np.asarray(stop_now, dtype=bool),
         "obj_feasible": np.asarray(T.is_feasible(stop_residual, cfg.beta), dtype=bool),
+        "obj_z_saturated": np.asarray(z_saturated, dtype=bool),
         "obj_cost_return": target_cost,
     }
 
