@@ -5030,7 +5030,7 @@
       "id": "NAV-061",
       "phase": "预算与闭环",
       "goal": "冻结RC-PPO原理对齐契约、回修清单和有限训练验证协议",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-042"
       ],
@@ -5051,13 +5051,78 @@
         "数据访问表明确train/development、旧选择集暴露、新选择用途及final_*锁；NAV-064不得依赖NAV-066结果决定是否达标。",
         "NAV-062–067及043资源可逐项对账；明确90回合预算验证仅覆盖预先指定的单种子/方法，不能声称覆盖六候选。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：两份冻结文件在训练前落盘并附 .sha256——training_loop_protocol_v1.json 给出关闭档（dev SR 中位数 ≥0.10 且预算可选 ≥10/18，两方法同时满足）、理想档（0.90/CR=0，不阻塞）、每轮与总轮次/墙钟/GPU 上限、6-run 配额、开发评估/重拟合/预算查询/物理 pilot/诊断的次数与总账、五类停止规则、跨轮冻结项与可改项（互斥）及数据访问表（旧 budget_selection 暴露登记、final_* 封存、90 回合仅覆盖单种子/方法的范围声明），无影响评分或预算的空值；rcppo_alignment_contract_v1.json 给出 12 项差异/回修矩阵（含证据、原版本 hash、责任任务、重验门禁与待决点）、8 行事件真值表（安全历史/目标内/边界/负预算/大预算/失败/超时/窗口切片，附手算预期与本轮允许的适配）、样本配对与三套估计器的目标语义，并把 4 项待裁定显式登记；docs/algorithm_implementation.md 追加的原理对应与数值依据可追到具体文件与散列；旧报告、旧判定与历史记录全部保留未改，本项未修改任何源码。",
       "planned_outputs": [
         "config/training_loop_protocol_v1.json及.sha256",
         "config/新版导航与价值/采样契约（保留旧版及hash）",
         "docs/algorithm_implementation.md：原理对应、回修矩阵与决策依据"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-12T14:10:00+08:00",
+          "summary": "开工对齐简报（按 execution_alignment_policy.preflight 要求）：任务 NAV-061，计划 1.3.1，依赖 NAV-042 已完成；本项只冻结语义/回修/资源协议，不改源码、不训练。",
+          "actions": [
+            "重读 AGENTS.md 全文（含 2026-11-12 新增的开工/收尾五条与固定 v2 硬约束），重读计划 1.3.1 的 execution_alignment_policy、global_constraints、upstream_correction_policy、uncertainty_policy 与 NAV-061 全文。",
+            "读导航交接 docs/implementation_handoff.md 的当前段落（2026-11-12 修订）与 docs/algorithm_implementation.md。",
+            "只读核对当前源码：targets.py（停止与残差）、storage.py（目标组装）、ppo.py（更新）、nominal.py（终止语义）、physical.py（在线环）、observation.py（z_ratio）、costs.py（预算）、train_formal.py（训练入口）；记录冻结时刻散列。",
+            "只读核对 RC-PPO 参考：rl/EC-EFPPO.py 的三套 GAE 调用与 V_total/g 构造、rl/gae.py 的 calculate_indexs3 / calculate_gae_reach4、env/reach_avoid/pendulum_constraint.py 的 reset_env 能量抽样与 is_terminal。"
+          ],
+          "files_changed": [],
+          "commands": [
+            "ssh tiger11: sed -n 1,60p AGENTS.md",
+            "python /tmp/r61.py（打印 NAV-061 全文与 upstream_correction_policy）",
+            "sha256sum src/camra_navigation/{algorithm,envs}/*.py scripts/train_formal.py config/*.json",
+            "grep calculate_indexs3 / calculate_gae_reach4 / reset_env in RC-PPO/"
+          ],
+          "results": [
+            "本项对总目标的作用：把『RC-PPO 原理是否被完整保留』从口头承诺变成可核验的契约 + 回修分工，后续 062–067 的每一次改动都要落在这张矩阵上。",
+            "上游证据与版本：commit 699efb2；targets.py b3292d43、storage.py acc0a1fe、ppo.py ce3b510a、nominal.py a150451b、physical.py 49a6cbc3、observation.py e018e765、costs.py 8c6cd377、train_formal.py 8abe50f6；契约 navigation 2b787369 / value d6c4648c / budget a258e3e9。",
+            "已知局限：参考实现的 avoid 语义由 reach 值承担、没有独立 y；我们的 C·y 是刻意扩展。γ_c=1 下的停止时刻等价只在 4 离散动作玩具上证过，连续情形未证。",
+            "允许修改：仅导航模块内的实现，且必须按回修政策保留旧版本与 hash。不改：冻结 v2 整套配置、功率/足迹/α/δ、RC-PPO 与论文、旧数据锁与旧判定。",
+            "本次验收证据：契约、协议、docs 章节与散列；下游交付给 NAV-062（时序/预算/终止）与 NAV-063（三估计器/共同停止的数值门禁）。",
+            "未解决阻塞：无。但矩阵里 M1/M5/M7/M8/M12 的裁定需 062/063 的数值证据，本项只登记待决。"
+          ],
+          "evidence": [],
+          "remaining_work": [],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-12T14:40:00+08:00",
+          "summary": "NAV-061 完成（git 待提交，status True，49/67）：冻结 RC-PPO 原理对齐契约、12 项回修矩阵、事件真值表、数据访问表与训练循环协议（关闭档/理想档、轮次与算力、资源总账、停止规则）。未改任何源码，未训练，未跑仿真。",
+          "actions": [
+            "写 config/rcppo_alignment_contract_v1.json：五元原理与实现位置对应；样本配对规则（价值在 x_t 只配 z_t/y_t）；预算语义（内部 z 不裁剪可为负、z_ratio 仅观测裁剪、预算耗尽不再终止、抽样 0.6–1.3）；安全历史（y 单调、h=max(g,C·y)、到达不得清零 y、max(·,0) 使干净到达残差恰为 0 故判据为 W<=-β）；共同停止定义与参考 calculate_indexs3 的对照；三套估计器（reach/cost/joint，γ、λ 单列）；终端与截断表（成功/失败/停滞/超时/窗口切片/负预算仍在跑）；动作概率与裁剪已知缺陷；部署搜索必须回到双 critic 的 W 判据；8 行事件真值表含手算预期；12 项回修矩阵；3 个未决点；源码散列锚点。",
+            "写 config/training_loop_protocol_v1.json：关闭档（dev SR 中位数 ≥0.10 且预算可选 ≥10/18，两方法都要满足）、理想档（名义 SR ≥0.90 且 CR=0，不阻塞）、每轮 6 run × 600 窗口 × 4086 步、10 epochs × 512 小批（4.8 万梯度步）、每轮 3 h 与总 12 h 上限、资源总账（训练 run/开发评估/critic 重拟合/预算查询/物理 pilot/诊断）、五类停止规则、跨轮冻结项与可改项（互斥）、数据访问表（含旧 budget_selection 暴露登记与 final_* 封存）。",
+            "在 docs/algorithm_implementation.md 追加『原理对齐契约、回修矩阵与训练循环协议』章节，含五元对应表、12 项矩阵、数值依据、未决点、与旧结论的关系（旧报告按旧语义解释，不回填）。",
+            "两份契约各生成 .sha256，冻结于 699efb2 的源码状态。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/rcppo_alignment_contract_v1.json(+.sha256)",
+            "CaMRA/navigation/config/training_loop_protocol_v1.json(+.sha256)",
+            "CaMRA/navigation/docs/algorithm_implementation.md（追加章节）"
+          ],
+          "commands": [
+            "sha256sum config/{rcppo_alignment_contract_v1,training_loop_protocol_v1}.json",
+            "cat /tmp/nav061_docs.md >> CaMRA/navigation/docs/algorithm_implementation.md"
+          ],
+          "results": [
+            "契约散列：rcppo_alignment_contract_v1.json = 9ba5925bc74eb861…（15004 B）；training_loop_protocol_v1.json = 7abb6e1f201a5308…（8901 B）。",
+            "回修矩阵判定分布：缺陷 4（M1 疑似、M2、M3、M6、M10 中的 5 项含疑似）、刻意偏离 1（M4）、待数值裁定 4（M5/M7/M8/M12）、基本一致 1（M9）、已存在需保留 1（M11）。",
+            "协议数值依据逐条可追：0.10 来自 G4 预登记，10/18 为本轮新提出的操作性判据（已标注不是既有契约），4.8 万梯度步对齐参考的 2e6 步/约 5 万步，3 h/12 h 为估算上限并允许 v1.1.0 校准。",
+            "明确否定了两条旧做法：以实测标签扫描代替价值预算搜索（M10）与『接受负结果自动走 O-3』（协议 data_access + 全局约束）；90 回合的覆盖范围限制（单种子/单方法）已写进资源总账。"
+          ],
+          "evidence": [
+            "config/rcppo_alignment_contract_v1.json + .sha256（remediation_matrix / event_truth_table / open_adjudications）",
+            "config/training_loop_protocol_v1.json + .sha256（targets / rounds / resource_ledger / stops / data_access）",
+            "docs/algorithm_implementation.md 新增章节（五元对应 + 12 项矩阵 + 数值依据 + 未决点）",
+            "本记录上一条的开工对齐简报（含源码与参考实现的只读核对清单及散列）"
+          ],
+          "remaining_work": [
+            "M1/M5/M7/M8/M12 的裁定与修复由 NAV-062/063 承担；M2/M3/M9 与 z_ratio 裁剪放宽由 NAV-062 实施并升契约；M10 由 NAV-066 把预算搜索接回双 critic 的 W 判据。",
+            "停滞归类、z_ratio 裁剪上限、动作顶格处理三个未决点已在契约 open_adjudications 登记，由 062/063 在首次实现前定死，不得在训练中改。"
+          ],
+          "blockers": []
+        }
+      ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
       "reference_ids": [
         "R01",

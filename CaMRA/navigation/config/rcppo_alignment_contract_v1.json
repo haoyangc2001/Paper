@@ -1,0 +1,149 @@
+{
+  "schema": "camra-rcppo-alignment-contract-v1",
+  "version": "1.0.0",
+  "owner": "NAV-061",
+  "created_at": "2026-11-12T14:25:00+08:00",
+  "status": "frozen_target_semantics",
+  "frozen_at_commit": "699efb2",
+  "plan_reference": {
+    "plan_version": "1.3.1",
+    "governs": ["NAV-062", "NAV-063", "NAV-064", "NAV-065", "NAV-066", "NAV-067"],
+    "reference_repository": "RC-PPO/（只读）",
+    "reference_entry": "rl/EC-EFPPO.py, rl/gae.py, model/actorcritic.py"
+  },
+  "authority": {
+    "basis": "计划 1.3.1 的 execution_alignment_policy.global_goal_card + 2026-11-12 新增全局约束（原理对齐、采样记录、数值门禁、数据隔离、价值预算搜索）",
+    "not_authorized": [
+      "替换核心学习目标（奖励塑形、额外惩罚、经验扫描替代价值搜索）",
+      "改动冻结 v2、功率模型、足迹、α/δ、旧数据锁",
+      "改写历史记录与旧判定"
+    ],
+    "change_rule": "条款变更须新版本号（v1.1.0 起）并写明依据；不得就地改写后继续训练"
+  },
+
+  "principle": {
+    "one_chain": "预算增广状态 → 不可逆安全历史 → 共同停止时刻 → 双 critic（reach / cost）与联合优势 → 最小化 PPO → 部署价值预算搜索，必须形成同一条链",
+    "adaptations_allowed": ["Go2 状态与观测编码", "机身系速度动作 [vx,vy,yaw_rate]", "焦耳单位", "PyTorch 组织与实现", "地图几何与障碍表示"],
+    "adaptations_not_allowed": ["把联合优势换成一次性 max 差（无 λ 平滑）而不作对照", "用标签扫描替代 critic 价值搜索", "用额外惩罚项替代预算增广", "按结果放宽可行性判据"]
+  },
+
+  "sample_contract": {
+    "fields": ["x_t (obs)", "y_t (safety history)", "z_t (budget at decision time)", "u_t (action)", "c_t (step cost)", "x_{t+1}", "y_{t+1}", "z_{t+1}"],
+    "pairing_rule": "价值在 x_t 处计算，只能搭配 z_t 与 y_t；z_{t+1} 只允许出现在 x_{t+1} 的输入里，不得回填到 x_t 的价值配对",
+    "cost_link": "c_t 由 u_t（applied 命令）产生，连接 x_t 与 x_{t+1}；同一 applied 命令同时喂运动、成本、低层观测与日志",
+    "terminal_append": "终态只追加一次：h_T 由终态标签决定，不得在 bootstrap 与终态惩罚里重复计入",
+    "bootstrap_rule": "只有截断（窗口边界、30 s 上限）才 bootstrap；成功与失败都不 bootstrap",
+    "current_state": "storage.compute_objectives 目前用步后 goal_distance 与步后 y 组装 h，存在 t/t+1 混配嫌疑，由 NAV-062 的两步手算用例裁定"
+  },
+
+  "budget_semantics": {
+    "internal_z": "z_J = z0 - Σ(1+α)·c_nom，不裁剪、可为负；负值表示已超支",
+    "observation_z_ratio": "z_ratio = clip(z_J / Z_REF_J, -1, 1) 只用于观测编码；Z_REF_J=550",
+    "saturation_defect": "训练时 z0 固定为单档（1.0 或 1.10 × E_ref），评测扫 0.7–1.3；z0>550 时观测饱和，策略看不见富余。本轮修正：抽 0.6–1.3 且把裁剪上限放宽到 ±1.5",
+    "no_termination": "预算耗尽不再是终止条件；回合跑到到达/碰撞/越界/停滞/30 s 之一。『是否在预算内到达』改为独立判据字段",
+    "why": "旧设置在 8–17 s 就掐断回合，训练里从未见过低预算后半程；且 budget_exhausted 占 82–91% 会把失败样本几乎全部削掉"
+  },
+
+  "safety_history": {
+    "definition": "y_t ∈ {0,1}，y_t = max(y_{t-1}, danger_t)，不可逆",
+    "entry": "h = max(g_norm, C·y)，C=1.0；y=1 表示曾在禁入带内，之后恒为 1",
+    "arrival_rule": "到达不得清零 y（『到达后 y 被清零』必须由反例证明不会发生）",
+    "max_zero_caveat": "h 内的 max(·,0) 会把目标内的 g_norm=-0.001 抹平为 0，因此干净到达的残差恰为 0，可行判据必须是 W <= -β（β=0）而不是严格小于",
+    "relation_to_reference": "参考实现的 g=max(reach, -energy) 用能量作成本项，没有独立 y；我们保留 y 是 execution_alignment_policy 明确要求的『不可逆安全历史』，属刻意偏离，必须单独列出并有反例"
+  },
+
+  "stop_rule": {
+    "definition": "W(t,τ) = max(h_τ, spent(t,τ) + 1[τ=T]·V_c(x_T) - z_t)，τ* = argmin_τ W，可行 iff W(t,τ*) <= -β",
+    "common_stop": "同一个 τ* 同时用于两个 critic 的目标与联合优势；不得各算各的停止时刻",
+    "gamma_c": "cost 折扣 γ_c = 1（契约已钉死）；γ_c=1 时 τ* 与 t 无关（NAV-033 用受限小例子证明过），因此『每步重取』与『全局 argmin』等价",
+    "reference_form": "参考实现 calculate_indexs3 反向扫描后缀，取 V_total = max(V - energy, V_h) 的 argmin，产出 done 掩码供三套 GAE 共用",
+    "equivalence_status": "等价性只在 4 离散动作的玩具问题上验证过；连续动作、有限时域下的等价必须由 NAV-063 的数值门禁重新证明，不得直接引用旧结论"
+  },
+
+  "estimators": {
+    "three_targets": [
+      {"name": "reach", "head": "V_h", "target": "h 序列（安全/到达值）", "gamma": "γ_reach（参考 init 0.999 → final 0.99999）", "lambda": 0.95},
+      {"name": "cost", "head": "V_c", "target": "折扣累积成本（γ_c=1）", "gamma": 1.0, "lambda": 0.95},
+      {"name": "joint", "head": "V_total", "target": "g = max(h, -能量/预算项) 的 GAE", "gamma": "γ_reach_init", "lambda": 0.95}
+    ],
+    "current_deviation": "我们用 W_sel - V_total 直接作为策略优势，没有在 g 序列上做 λ 平滑 GAE；这是本轮必须修正的主要语义缺口（M6）",
+    "sign_convention": "契约 sign_conventions 曾写『A>0 = 成本更低』，但 policy_loss 为 max 形式最小化，dL/dlogp ∝ A，故 A>0 必须是『更贵』；按代数落地，契约措辞待升版",
+    "beta": {"value": 0.0, "meaning": "可行性阈值：W <= -β；β>0 表示要求裕度；不是安全裕度", "role": "只用于可行性判定，不参与优势"}
+  },
+
+  "terminal_and_truncation": {
+    "table": [
+      {"case": "success", "h_T": "g_T（实测距离对应值）", "cost_tail": "不加 bootstrap", "note": "成功不 bootstrap"},
+      {"case": "failure（collision/out_of_bounds）", "h_T": "FAIL_PENALTY = 1.0", "cost_tail": "不加 bootstrap", "note": "失败只追加一次惩罚"},
+      {"case": "stagnation", "h_T": "实测 h_T", "cost_tail": "按截断处理 + V_c(x_T)", "note": "停滞不是物理失败，但也不能当成功"},
+      {"case": "timeout（30 s 上限）", "h_T": "实测 h_T", "cost_tail": "+ V_c(x_T)", "note": "有限任务时限不等于外部切片"},
+      {"case": "rollout 窗口边界", "h_T": "实测 h_T", "cost_tail": "+ V_c(x_T)", "note": "窗口切片必须显式 bootstrap，且不能把 30 s 当外部切片"},
+      {"case": "z < 0 但仍在跑", "h_T": "照常", "cost_tail": "照常", "note": "本轮修正后不再终止；超支只体现在判据"}
+    ],
+    "forbidden": "把有限任务时限直接当作外部切片 bootstrap；或在终态既加惩罚又 bootstrap"
+  },
+
+  "action_probability": {
+    "distribution": "对角高斯，均值来自策略头，log_std 可学习",
+    "domain": "网络输出未裁剪；action_to_requested 把 a 裁到 [-1,1] 后乘 COMMAND_MAX=(1.0,0.4,1.0)",
+    "known_defect": "裁剪处梯度为 0，策略长期顶格（物理 pilot 50.1% 步被裁）；本轮需给出可学信号或如实登记为未处理",
+    "clip_eps": 0.2,
+    "old_log_prob": "采集时固定；多轮小批更新必须使用固定值，否则比例裁剪失效"
+  },
+
+  "deployment_search": {
+    "primary": "用同一部署 actor 与双 critic 的 W 判据做最小可行预算搜索（budget/search.py 的接口）",
+    "secondary": "实测标签扫描只作独立验证与诊断，不能替代主判据",
+    "current_state": "NAV-041 的 90 回合是实测标签扫描，且全部无解；它不是价值搜索，不能作为本轮预算结论"
+  },
+
+  "event_truth_table": [
+    {"case": "干净到达（y=0, d<=r_goal）", "hand_value": "g_norm=max(·,0) → 0.0；h=0.0；W=max(0, spent+z... ) 在预算内 → W<=0 → 可行", "status": "已由 NAV-033 玩具用例覆盖，需 063 在生产入口复算"},
+    {"case": "危险后到达（y=1, d<=r_goal）", "hand_value": "h=max(0, 1.0)=1.0 → W>=1.0 > 0 → 不可行", "status": "同上"},
+    {"case": "目标内但曾危险", "hand_value": "h=1.0（y 未清零）；若到达清零 y 则 h=0 —— 这是必须被反例拦住的错误", "status": "待 062/063 反例"},
+    {"case": "负预算但未到达（z=-50）", "hand_value": "cost 项 = spent - z0 = 50 > 0 → W>=50 → 不可行；回合继续", "status": "待 062 用例"},
+    {"case": "大预算（z0=1.3×E_ref=632 J）", "hand_value": "内部 z 未裁；z_ratio 应达 1.15 而非被裁到 1.0；判据不受影响", "status": "待 062 边界用例"},
+    {"case": "碰撞失败", "hand_value": "h_T=1.0 → 不可行；不 bootstrap", "status": "待 063 终端用例"},
+    {"case": "30 s 超时", "hand_value": "h_T 实测；cost 尾项加 V_c(x_T)", "status": "待 063 截断用例"},
+    {"case": "rollout 窗口切片", "hand_value": "同上，但切片时刻由窗口决定，不由 30 s 决定", "status": "待 063 切片等价用例"}
+  ],
+
+  "remediation_matrix": [
+    {"id": "M1", "topic": "样本配对 t/t+1", "reference": "gae.py 的三套 GAE 都在 x_t 处取 z_t 与 y_t", "current": "algorithm/storage.py compute_objectives 用步后 goal_distance 与步后 y 组装 h（hash acc0a1fe）", "verdict": "疑似缺陷", "responsible": "NAV-062", "gate": "training_semantics_v2.json 的两步手算", "pending": "需两步手算确认末步成本是否重复/漏计"},
+    {"id": "M2", "topic": "预算抽样与观测饱和", "reference": "reset_env 每回合从 [-400,800] 均匀抽初始能量并直接进观测", "current": "train_formal.py 固定 k_train（8abe50f6）；observation.py z_ratio 裁到 ±1（e018e765）", "verdict": "缺陷", "responsible": "NAV-062", "gate": "预算分布直方图 + 边界用例", "pending": "裁剪上限放宽到 ±1.5 需契约升版"},
+    {"id": "M3", "topic": "预算耗尽即终止", "reference": "is_terminal 只看时间；能量只作成本项", "current": "nominal.py 在 z_J<=0 时结束回合（a150451b）", "verdict": "缺陷", "responsible": "NAV-062", "gate": "z<0 继续采样用例", "pending": "旧报告的解释需标注为旧语义"},
+    {"id": "M4", "topic": "y 符号与不可逆", "reference": "无独立 y；avoid 由 reach 值承担", "current": "costs/geometry 的 update_safety_history 单调；h=max(g_norm, C·y), C=1.0", "verdict": "刻意偏离（有理由）", "responsible": "NAV-062/063", "gate": "到达不清零 y 的反例", "pending": "需在差异清单里写明不是参考原语"},
+    {"id": "M5", "topic": "共同停止时刻", "reference": "calculate_indexs3 反向 argmin 后缀，产出 done 掩码共用", "current": "targets.py select_stop 每步重取 argmin（b3292d43）", "verdict": "待数值裁定", "responsible": "NAV-063", "gate": "gate_G3_alignment_v2.json", "pending": "γ_c=1 的等价只在玩具上验过"},
+    {"id": "M6", "topic": "联合优势构造", "reference": "g=max(h,-energy) 上做 GAE(γ_reach_init, λ=0.95)", "current": "W_sel - V_total 一次性差，无 λ 平滑（storage/ppo, ce3b510a）", "verdict": "缺陷（主要缺口）", "responsible": "NAV-063", "gate": "τ/终点/偏好差异用例", "pending": "需保留旧实现以便对照"},
+    {"id": "M7", "topic": "终端与失败尾项", "reference": "done 掩码截断 + last_val 单次 bootstrap", "current": "failure→FAIL_PENALTY、success→不 bootstrap、truncation→+V_c(x_T)", "verdict": "待数值裁定", "responsible": "NAV-063", "gate": "终端用例（成功/失败/停滞/超时/切片）", "pending": "停滞归入截断还是失败需定"},
+    {"id": "M8", "topic": "rollout 切片", "reference": "NUM_STEPS=199 截断，用 last_val bootstrap", "current": "窗口边界截断已实现，但与 30 s 上限共用同一分支", "verdict": "待数值裁定", "responsible": "NAV-062/063", "gate": "切片重接等价用例", "pending": "必须区分『窗口切片』与『任务时限』"},
+    {"id": "M9", "topic": "动作概率", "reference": "高斯，可学习 std", "current": "Gaussian + log_std 可学习，action_to_requested 裁剪", "verdict": "基本一致", "responsible": "NAV-063", "gate": "ratio/裁剪触发率统计", "pending": "顶格问题的处理方式尚未定"},
+    {"id": "M10", "topic": "部署预算搜索", "reference": "value-based 搜索（W 判据）", "current": "NAV-041 实测标签扫描，90 回合全无解", "verdict": "缺陷", "responsible": "NAV-066", "gate": "budget_selection_v2.json + 端到端调用证据", "pending": "搜索需接双 critic，且不得用标签结果反推"},
+    {"id": "M11", "topic": "多轮小批更新", "reference": "UPDATE_EPOCHS=10, NUM_MINIBATCHES=8", "current": "已实现（NAV-039 第三轮 4×512）", "verdict": "已存在，需复核保留", "responsible": "NAV-063", "gate": "old_log_prob 固定 + 裁剪触发率", "pending": "不得再声称『该机制缺失』"},
+    {"id": "M12", "topic": "生产调用链", "reference": "训练主循环直接调用三套估计器", "current": "train_formal.py 调用 storage/ppo；是否存在未被调用的旁路实现待查", "verdict": "待核", "responsible": "NAV-063", "gate": "gate_G3_alignment_v2.json 的调用链证据", "pending": "需证明不是只在单测里正确"}
+  ],
+
+  "open_adjudications": [
+    {"item": "停滞（stagnation）算失败还是截断", "affects": "M7", "owner": "NAV-063", "note": "影响 h_T 与是否 bootstrap，必须一次定死"},
+    {"item": "z_ratio 裁剪上限放宽到 ±1.5 是否升 navigation 契约", "affects": "M2", "owner": "NAV-062", "note": "涉及观测语义，需新版本 + 快照"},
+    {"item": "动作顶格的处理方式", "affects": "M9", "owner": "NAV-062", "note": "改动作映射=改契约；不改则需说明残余风险"}
+  ],
+
+  "evidence_anchors": {
+    "commit": "699efb2",
+    "files_sha256_prefix": {
+      "src/camra_navigation/algorithm/targets.py": "b3292d4372be9a55",
+      "src/camra_navigation/algorithm/storage.py": "acc0a1fe68a28820",
+      "src/camra_navigation/algorithm/ppo.py": "ce3b510af80501a0",
+      "src/camra_navigation/envs/nominal.py": "a150451beec056bd",
+      "src/camra_navigation/envs/physical.py": "49a6cbc320e9d586",
+      "src/camra_navigation/observation.py": "e018e76594364bca",
+      "src/camra_navigation/costs.py": "8c6cd377a3a85e5e",
+      "scripts/train_formal.py": "8abe50f6dfe17300",
+      "config/navigation_contract_v1.json": "2b78736919cbc50d",
+      "config/value_objective_contract_v1.json": "d6c4648cac3f1d67",
+      "config/budget_comparison_contract_v1.json": "a258e3e946a727b6"
+    },
+    "note": "散列取冻结时刻（未修改任何源码）；NAV-062 修改后必须给出新旧对照与新 hash"
+  }
+}

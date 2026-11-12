@@ -1,0 +1,140 @@
+{
+  "schema": "camra-training-loop-protocol-v1",
+  "version": "1.0.0",
+  "owner": "NAV-061",
+  "created_at": "2026-11-12T14:20:00+08:00",
+  "status": "frozen_before_any_round",
+  "plan_reference": {
+    "plan": "doc/plan/20261109_camra_navigation_implementation.json",
+    "plan_version": "1.3.1",
+    "tasks_this_file_governs": ["NAV-064"],
+    "consumed_by": ["NAV-064", "NAV-065", "NAV-066", "NAV-067"]
+  },
+  "authority": {
+    "user_decision_2026_11_12": "结合仓库情况给出推荐值；后续可按真实训练情况调整。训练可以花更长的时间以保证收敛。",
+    "adjustment_rule": "本文件的任何数值只能以新版本（v1.1.0 起）替换，并写明触发原因与依据；不得就地改写，不得按某一轮的结果临时放宽。",
+    "what_this_is_not": "不是方法目标本身。方法目标与语义见 config/rcppo_alignment_contract_v1.json；本文件只规定验收阈值、轮次与资源、冻结/可改边界、停止规则与数据访问。"
+  },
+  "targets": {
+    "closing_tier": {
+      "rule": "两个方法都必须同时满足下面两条，循环才允许关闭",
+      "development_success_rate_median": {
+        "value": 0.10,
+        "definition": "每方法 3 个种子的 development 6 图确定性回合成功率，取 3 个种子的中位数",
+        "basis": "G4 预登记（config/gate_g4_prereg_v1.json）的硬判据 dev SR >= 0.10；该阈值在看本轮结果之前就已登记"
+      },
+      "budget_selectable_pairs": {
+        "min_pairs": 10,
+        "of": 18,
+        "definition": "budget_selection 上 9 图 x 2 方法，能在冻结五档网格（0.7/0.85/1.0/1.15/1.3）内选出可行 k 的组合数",
+        "basis": "至少一半地图能走通；低于此值说明不是个别地图困难，而是策略整体不足"
+      },
+      "why_two_conditions": "只看 dev SR 会在 6 张图上过拟合；只看预算可选会奖励『勉强走完但极费油』。两条同时要求才说明『在预算内到达』真的成立"
+    },
+    "ideal_tier": {
+      "nominal_success_rate": 0.90,
+      "collision_rate": 0.0,
+      "basis": "NAV-021 登记的 G1（provisional）",
+      "blocking": false,
+      "note": "达到即报告；未达不阻塞关闭，也不阻塞 NAV-065。不得用理想档未达来否定关闭档结果，反之亦然"
+    },
+    "forbidden": [
+      "按任何一轮的结果修改上表阈值",
+      "用 budget_selection 或 final_* 的结果决定循环是否达标",
+      "把训练集成功率当作达标证据（训练集见过，不算）",
+      "用「油量加到走通」替代「在冻结预算内走通」"
+    ]
+  },
+  "rounds": {
+    "max_rounds": 4,
+    "per_round": {
+      "runs": 6,
+      "methods": ["uncalibrated", "full"],
+      "seeds": [0, 1, 2],
+      "windows_per_run": 600,
+      "steps_per_window": 4086,
+      "env_steps_per_run": 2451600,
+      "epochs_per_window": 10,
+      "minibatch_size": 512,
+      "grad_steps_per_window": 80,
+      "grad_steps_per_run": 48000
+    },
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 12.0,
+    "gpu_count": 1,
+    "grad_steps_basis": "参考实现为 2e6 环境步、约 5 万梯度步（TOTAL_TIMESTEPS=2e6, NUM_ENVS=16, NUM_STEPS=199, UPDATE_EPOCHS=10, NUM_MINIBATCHES=8）。本轮 4.8 万梯度步与之同量级；旧第三轮只有 8000 步，是 1/6",
+    "wall_clock_basis": "按第 1 轮第一个 run 实测校准后写入该轮预登记；实测超过 3 h 即按上限停止并记账，不静默延长",
+    "multi_epoch_note": "多轮小批更新已经在 scripts/train_formal.py 实现（epochs_per_window / minibatch_size，NAV-039 第三轮使用过 4 x 512）。本协议复核并保留该实现，不宣称它仍然缺失；NAV-063 需验证 old_log_prob 固定、比例裁剪真的触发"
+  },
+  "resource_ledger": {
+    "note": "逐项写出上限与分母，NAV-062–067 与 NAV-043 按此对账；任何新增额度须先取用户授权",
+    "training_runs": {"per_round": 6, "rounds": 4, "total": 24, "wall_clock_cap_h": 12.0},
+    "development_evaluations": {"per_round_per_method_per_seed": 6, "total": 4 * 6 * 6},
+    "critic_refit": {"allowed": true, "rounds_per_candidate": 3, "grad_steps_per_round": 30, "applies_to": "NAV-065 候选核验"},
+    "budget_queries": {
+      "value_search_queries_per_pair": "按搜索模块实际评估次数记录，上限 8 个探测点 + 60 次二分",
+      "measured_label_episodes": 90,
+      "scope_warning": "90 回合是单种子/单方法的经验标签扫描（NAV-041 已用掉），只覆盖预先指定的组合，不能声称覆盖六个候选"
+    },
+    "physical_pilot": {"clean_6_episodes": 6, "repeatability_note": "同配置重复测量需要独立额度；NAV-067 的 6 回合不得暗中包含额外重复"},
+    "diagnostics": {
+      "cap_hours": 8,
+      "items": ["NAV-059 五档速度", "NAV-060 死区", "NAV-034/043 候选复查"]
+    }
+  },
+  "stops": {
+    "on_closing_tier_met": "立即停止训练，进入 NAV-065 冻结候选；不因为『还能再好』而加轮",
+    "on_rounds_exhausted": "停止并报告：逐轮结果、差距、已排除的假设、剩余可选方向；任务保持 false，加轮须用户授权",
+    "on_wall_clock_exceeded": "立刻停止当前 run 并记录，不延长；已消耗额度照实记账",
+    "on_infrastructure_failure": "换新 run id 重跑并与原 attempt 一并报告；不计入业务失败，也不删除",
+    "on_semantic_doubt": "若某轮证据显示契约本身有问题（不是调参问题），停止并按 uncertainty_policy 询问，不在循环里改语义"
+  },
+  "frozen_across_rounds": [
+    "方法目标与语义（config/rcppo_alignment_contract_v1.json 的全部条款）",
+    "本文件的 closing_tier / ideal_tier 阈值",
+    "指标定义（SR、CR、BVR、实测能量、内部预算）",
+    "地图划分与种子族（train 18 / development 6 / budget_selection 9 / final_* 封存）",
+    "动作概率契约（高斯、可学习 log_std、动作域与裁剪规则）",
+    "checkpoint 选取规则（最后更新，不按表现挑）",
+    "数据隔离（训练只用 train；判定只用 development）"
+  ],
+  "editable_per_round": [
+    "预算抽样分布（在契约允许范围内；默认 0.6–1.3 x E_ref，逐轮可在 0.5–1.4 内调整并记录理由）",
+    "epochs_per_window / minibatch_size（1–10 / 256–1024）",
+    "学习率（策略与两个 critic 分开记录）",
+    "网络宽度（256–512，两隐藏层固定）",
+    "动作超限的处理方式（若在契约授权范围内）",
+    "熵系数（0–0.02）"
+  ],
+  "editable_rule": "每条改动必须写进该轮预登记的 config_delta，并给出假设（『上一轮哪个数字指向它』）；没有假设的改动视为随机搜索，不允许",
+  "data_access": {
+    "train": {"use": "训练取样", "leak": false},
+    "development": {"use": "达标判定与诊断（唯一判定来源）", "leak": false},
+    "budget_selection": {
+      "use": "不得用于本循环的调参或判定",
+      "exposure_registered": "该 split 已被 NAV-041 以 90 回合实测标签扫描查看过（全部无解），暴露事实已登记，不得声称『从未看过』",
+      "who_may_use_it": "只在 NAV-066 用独立选择协议查询，且其结果不得回流 NAV-064"
+    },
+    "final_nominal / final_clean / final_perturbed": {
+      "use": "封存，直到 NAV-044 冻结评估数据锁之后",
+      "leak": false,
+      "audit": "NAV-064 收尾须给出实际加载路径与 split/hash 审计，不能只靠『日志里没搜到 final 字样』"
+    }
+  },
+  "per_round_evidence": [
+    "预登记文件（协议 hash + config_delta + 假设）及其 .sha256",
+    "6 个 run 的 run id、步数、墙钟、审计库对账结果",
+    "两个估计器与共同停止的生产版本 hash（哪个 commit、哪个函数）",
+    "预算抽样经验分布（直方图、样本数、负预算样本数）",
+    "动作饱和率、熵、KL、比例裁剪触发率、梯度范数与更新步数",
+    "development 逐图结果（SR、最近距离、标签分布）与 3 种子中位数",
+    "budget_selectable_pairs（10/18 判据）的实测计数",
+    "本轮判定（达成/未达成 + 差距）与下一轮假设"
+  ],
+  "reporting_rule": "每轮都写一条完整记录，不因为失败而省略；不得只保留成功那一次，也不得把多轮结果合并成一个数字",
+  "open_items": [
+    "closing_tier 的 0.10 是 G4 既有判据；若用户希望更严（例如 0.30），需以 v1.1.0 修改并说明",
+    "budget_selectable_pairs 的 10/18 是本轮新提出的操作性判据，依据是『过半地图』，不是既有契约条款",
+    "per_round_wall_clock_cap_h=3.0 是估算值，第 1 轮实测后可能需要在 v1.1.0 校准（不改变总额 12 h 的上限性质）"
+  ]
+}
