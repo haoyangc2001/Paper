@@ -4598,11 +4598,60 @@
       "id": "NAV-042",
       "phase": "预算与闭环",
       "goal": "实现由实际状态反馈的在线导航闭环",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-041"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-12T09:20:00+08:00",
+          "summary": "NAV-042 收口（git 01a9ba5，status True，48/60）：实现在线闭环导航并跑通 6 回合integration_pilot（3 关 × 2 方法 × 1 回合，正好用完该 split 的 6 回合配额）。10/50/200 Hz 结构、命令新鲜度、预算/实测能量分离、独立名义参考、终止与无可行预算路径全部有直接证据；标签 budget_exhausted 3 / stagnation 3，0 碰撞 0 摔倒，记录器 0 问题，命令最大偏差 1.19e-8（float32 分辨率）。",
+          "actions": [
+            "新增 src/camra_navigation/envs/physical.py：导航层本体。每 0.1 s = 真实位姿 → obs-v2 → 确定性策略 → 单次裁剪 → 写入 applied 命令 → 5 个 0.02 s 策略步（重新观测→重新推理→下发→4 个 0.005 s 物理子步）→ 再读真实位姿。三组语义分开：内部预算 (1+α)c_nom vs 200 Hz 实测机械功；实际状态 vs 从回合起点独立积分的名义孪生（不按实际位置重贴）；名义危险标志 vs 物理碰撞指标。",
+            "新增 scripts/evaluate_navigation.py：Isaac Lab 适配器（真实 base 位姿/速度、ExternalCommandWrapper 命令锁、200 Hz NavEnergyRecorder 钩子）+ 运行器。每进程一关、两方法、各 1 回合。",
+            "预算口径：z0 = 1.0 × E_ref(map)（共同预算锚点），报告与提交信息都写明「不是 NAV-041 的选择结果」——NAV-041 在两方法上都是 no_feasible_budget，本 pilot 用锚点只为把环路跑起来，不得当作所选预算或可行性结论。",
+            "新增 tests/test_physical_loop.py（18 项，低层为标称积分器桩）：5×4 结构与时间片平铺、每策略步命令新鲜、预算与实测分离、参考不被重贴（零指令时孪生不动而漂移的实际状态在动）、终止优先级、结束回合拒绝再步、新回合换 ID 且不混串、safety_y 不可逆、无可行预算被记录而非编造、仿真时钟跳变被拒、子步事件终止回合、失败掩码完整且一致。",
+            "实跑修正四处：①新鲜度检查拿 float32 命令通道按 1e-9 比，把表示噪声当成「命令过期」（改为 1e-6 并记录最大偏差，实测 1.19e-8）；②回合汇总把「最后一步成本」当回合总量（改为 sum 并新增 measured_over_nominal）；③记录器无 reset，改为每回合新建；④热身应在回合时钟开启前完成（原来热身后的位姿与 trace 起点不一致）。",
+            "环境踩坑（记录备查）：Isaac 启动必须带 OMNI_KIT_ACCEPT_EULA 与 /pub/data/caohy/v2_navigation.env 里的 fake HOME/缓存变量，并把 locomotion source 放进 PYTHONPATH；用 env_isaaclab（isaaclab 0.54.2）+ CUDA_VISIBLE_DEVICES=3。",
+            "如实保留：修正前那次 L1 运行产生的 2 份 trace 未删，在合并报告里标为 superseded 且不计入 6 回合。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/envs/physical.py（新增）",
+            "CaMRA/navigation/scripts/evaluate_navigation.py（新增）",
+            "CaMRA/navigation/tests/test_physical_loop.py（新增）",
+            "CaMRA/navigation/reports/nav042_{L1_empty,L2_single_detour,L3_multi_path}.json",
+            "CaMRA/navigation/reports/nav042_online_loop.json（6 回合合并 + trace 散列 + 限制）",
+            "CaMRA/navigation/reports/physical_loop_check.json（18/18 PASS）",
+            "完整逐步 trace（6 份）：/pub/data/caohy/work/camra_navigation/nav042_traces/"
+          ],
+          "commands": [
+            "CUDA_VISIBLE_DEVICES=3 env_isaaclab/bin/python -u CaMRA/navigation/scripts/evaluate_navigation.py --level <L> --methods uncalibrated,full --k 1.0 --device cuda:0 --run-id nav042_<L> --trace-dir .../nav042_traces --json .../nav042_<L>.json",
+            "python CaMRA/navigation/tests/test_physical_loop.py --json CaMRA/navigation/reports/physical_loop_check.json"
+          ],
+          "results": [
+            "验收 1（trace 链路）：每步记录 pose_before/pose_after/state_after、budget(z_J,z_ratio)、action/requested/applied、5 个策略步的 command_written/command_seen/obs_fingerprint、episode_id/nav_index 与 0.1 s 时间片；6 回合全部 episode_ids_consistent / nav_clock_on_the_dt_grid / five_policy_steps_x4_substeps / command_current_every_policy_step = true，命令最大偏差 1.19e-8。",
+            "验收 2（事件/掩码/无解/终止）：子步事件可终止回合（离线用例 label=fall 且失败掩码置位）；失败掩码六项完备且与终止标签一致；reset(z0_J=None) 记 no_feasible_budget、不仿真、不编预算、step() 拒绝；结束回合再步抛 EpisodeOverError；新回合 episode_id+1 且不与旧回合混串；仿真时钟跳变被 PhysicalEnvError 拦住。",
+            "实跑结果：6 回合标签 budget_exhausted 3 / stagnation 3；0 碰撞、0 摔倒；记录器 problems 全空。",
+            "实测与名义：measured/nominal = 0.762–0.808（同一批步数下，冻结功率模型高估实测机械功 24–31%），因此内部预算先于实测能量耗尽；两个单位分列，互不作为代理。",
+            "执行偏差：名义孪生与真机在 8.5–16.8 s 内偏离 0.891–1.864 m（未重贴，属真实模型/执行差）。",
+            "指令饱和：50.1% 的步被裁剪，策略在 vx 上限长期饱和（原始输出可达 2.5，超出 [-1,1]）。",
+            "L2/full 有 55 步进入名义危险带但无物理碰撞——名义约束与碰撞指标确实分开记录。"
+          ],
+          "evidence": [
+            "reports/nav042_online_loop.json（6 回合合并、结构校验、trace 散列、诚实发现与限制）",
+            "reports/nav042_{L1_empty,L2_single_detour,L3_multi_path}.json（逐关报告）",
+            "reports/physical_loop_check.json（18/18 PASS）",
+            "完整 trace：/pub/data/caohy/work/camra_navigation/nav042_traces/*.json（6 份计入）",
+            "tmux 会话 nav042（窗口 run），日志 /tmp/nav042_batch.log 与 /tmp/nav042_<L>.log",
+            "git 01a9ba5"
+          ],
+          "remaining_work": [
+            "NAV-043 需在正式物理评估前复查实际候选的指令分布（本 pilot 已暴露 50.1% 步被裁剪、与 NAV-041 的 no_feasible_budget 一致，但 pilot 不入性能分母）。",
+            "若要在物理侧判定可行性，需按积分口径另立任务（本 pilot 只证明接线）。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "每0.1秒从真实位姿构造上层观测并调用确定性策略，底层继续50Hz闭环，y/z按同一契约更新。",
         "维护实际能量、内部预算和独立名义参考；不每步重置预算或将参考轨迹重新贴合实际位置。"
@@ -4611,7 +4660,7 @@
         "在线trace串联状态→预算→动作→applied→低层观测→物理状态，所有ID/时间一致。",
         "子步事件、失败掩码、无可行预算和回合终止正常；不会把下一回合或别的env接入轨迹。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：在线 trace 把状态→预算→动作→applied→低层观测→物理状态串成一条链，6 个回合全部通过四项结构校验（episode_id 一致、导航时钟落在 0.1 s 网格、每步 5×4 子步、每个策略步命令新鲜，最大偏差 1.19e-8 = float32 分辨率），逐步记录同时携带真实位姿、内部预算、实测累计功与名义孪生位姿。子步事件可终止回合、失败掩码六项完备且与终止标签一致、无可行预算被记录而非编造（step() 拒绝）、结束回合拒绝再步、新回合 ID 递增且不与旧回合或别的 env 混串、仿真时钟跳变被拒。6 回合 0 碰撞 0 摔倒、记录器 0 问题；实测/名义 0.762–0.808、孪生偏离 0.891–1.864 m、50.1% 步被裁剪均如实入报告；预算用共同预算锚点 k=1.0 并明确声明不是选择结果。",
       "reference_ids": [
         "R05",
         "R07",
