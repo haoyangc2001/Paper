@@ -1,0 +1,164 @@
+{
+  "schema": "camra-training-loop-prereg-v1",
+  "version": "r2.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-12T20:16:00+08:00",
+  "status": "frozen_before_round_2",
+  "round": 2,
+  "task": "NAV-064 第 2 轮：在第 1 轮『到达已学会、但 full 的安全历史饱和区优势恒为零』的证据上，用协议允许的两个旋钮（熵系数、热启动）继续训练",
+  "binding": {
+    "plan": {
+      "path": "doc/plan/20261109_camra_navigation_implementation.json",
+      "version": "1.3.1"
+    },
+    "loop_protocol": {
+      "path": "config/training_loop_protocol_v1_1.json",
+      "sha256": "34d4bd6ecb56ad4f8ebfd9326f617934f6621d07e56ea6a057e296c840bd8231"
+    },
+    "round_1_prereg": {
+      "path": "config/training_loop_prereg_r1.json",
+      "sha256": "49c56f93b0a3408ec3b0beea366e8c16617897beb85bb3dcb959d3f08a7bbf43"
+    },
+    "round_1_report": {
+      "path": "reports/training_round_r1.json",
+      "sha256": "32c56adf19786fcc95a2d6cfbbe563aecb83549e4214babc0156a065549f1357"
+    },
+    "value_objective": {
+      "path": "config/value_objective_contract_v1.json",
+      "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+    },
+    "navigation": {
+      "path": "config/navigation_contract_v1.json",
+      "sha256": "ec0f3e53267ee557eb62afc8f5c5658673541124eaa5c43b20768e78bdd832f5"
+    },
+    "alignment_amendment": {
+      "path": "config/rcppo_alignment_contract_v1.amend1.json",
+      "sha256": "c6c29017041a245a03643e5e598c48eef42cce2d17748576a3f6b44b2b9463e2"
+    },
+    "split_manifest": {
+      "path": "config/split_manifest_v1.json",
+      "sha256": "17db0f0810f1844c2e663ed33a930d9a47d931fef26acf75bfbe0472675fe0af"
+    }
+  },
+  "round_1_evidence_used": [
+    "full 的 63-64% 训练步 h>=1.0（安全历史饱和），平均|优势|=0.048；uncalibrated 仅 1%、0.123——饱和区的联合目标对动作恒定（g=max(h,−z)=1.0 与行为无关），λ-return 恒等于 1.0，优势≈0，唯一出路是探索",
+    "uncalibrated 已学会到达（dev SR 0.667/0.667/1.0）但全部超预算（z_end −130~−360 J @ k=1.0）；预算响应对 k 平坦——超支与路线成本成正比，h 未降到 0 之前能量项在 max 里不绑定",
+    "full 两个种子 SR=0，训练窗口内 stagnation 占 24-29/30"
+  ],
+  "config_delta_vs_round1": [
+    {
+      "item": "熵系数",
+      "before": "0.01（契约默认）",
+      "after": "0.02（协议允许带上限）",
+      "hypothesis": "饱和区的策略优势恒为 0（见 round_1_evidence_used），梯度只来自熵项；提高熵下限让策略继续采样非危险轨迹，那些轨迹上有真实优势信号，收敛到无危险盆地"
+    },
+    {
+      "item": "热启动",
+      "before": "随机初始化",
+      "after": "从第 1 轮同名 (variant,seed) 的最终 checkpoint 加载 model/optimizer/torch RNG",
+      "hypothesis": "uncalibrated 已建立的到达行为直接可用；丢弃它等于把 245 万步重来一遍。协议 authority 明文『训练可以花更长的时间以保证收敛』；checkpoint 选取规则（最后更新、不按表现挑）不与之冲突"
+    }
+  ],
+  "unchanged_vs_round1": [
+    "预算抽样 U(0.6,1.3)、600 窗口×4086 步、10 epochs×512、lr 3e-4/1e-3、网络 256×2、obs-v3、共享停止与三套 λ 平滑估计器"
+  ],
+  "method": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "runs": 6
+  },
+  "environment": {
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5
+  },
+  "budget": {
+    "sampling": {
+      "kind": "uniform",
+      "k_low": 0.6,
+      "k_high": 1.3
+    }
+  },
+  "algorithm": {
+    "lr_policy": 0.0003,
+    "lr_critic": 0.001,
+    "epochs_per_window": 10,
+    "minibatch_size": 512,
+    "ent_coef": 0.02,
+    "warm_start": {
+      "nav064_r1c_uncalibrated_s0": "/pub/data/caohy/work/camra_navigation/nav064_r1c_uncalibrated_s0/state.pt",
+      "nav064_r1c_uncalibrated_s1": "/pub/data/caohy/work/camra_navigation/nav064_r1c_uncalibrated_s1/state.pt",
+      "nav064_r1c_uncalibrated_s2": "/pub/data/caohy/work/camra_navigation/nav064_r1c_uncalibrated_s2/state.pt",
+      "nav064_r1c_full_s0": "/pub/data/caohy/work/camra_navigation/nav064_r1c_full_s0/state.pt",
+      "nav064_r1c_full_s1": "/pub/data/caohy/work/camra_navigation/nav064_r1c_full_s1/state.pt",
+      "nav064_r1c_full_s2": "/pub/data/caohy/work/camra_navigation/nav064_r1c_full_s2/state.pt"
+    }
+  },
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600
+  },
+  "checkpoints": {
+    "save_every_updates": 50,
+    "final_checkpoint": "最后一个更新"
+  },
+  "round_acceptance": {
+    "closing_tier_source": "development 6 图 × 3 种子，确定性均值动作，k=1.0",
+    "dev_success_rate_median": 0.1,
+    "per_method": "两方法都必须 >= 0.10",
+    "budget_response_on_dev": {
+      "grid_k": [
+        0.7,
+        0.85,
+        1.0,
+        1.15,
+        1.3
+      ],
+      "purpose": "诊断，不参与关闭判定"
+    },
+    "primary_questions_this_round": [
+      "full 的熵+热启动能否把 SR 从 0 拉起来（≥2 个种子 SR>0）",
+      "uncalibrated 的 SR 是否保持 ≥0.667",
+      "z_end 是否开始改善（能量项开始绑定）"
+    ],
+    "ideal_tier": {
+      "sr": 0.9,
+      "collision_rate": 0.0,
+      "blocking": false
+    }
+  },
+  "resource": {
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 12.0,
+    "max_rounds": 4,
+    "runs_this_round": 6,
+    "used_so_far": {
+      "rounds": 1,
+      "wall_hours": 8.4
+    }
+  },
+  "data_access": {
+    "train": "训练取样（18 图）",
+    "development": "唯一判定来源",
+    "budget_selection": "本循环禁止使用",
+    "final_*": "封存",
+    "audit": "收尾给出实际加载路径清单（含热启动来源）与 split hash"
+  },
+  "stops": {
+    "met": "立刻停止，进入 NAV-065 候选冻结",
+    "rounds_exhausted": "停止并报告，任务保持 false",
+    "wall_clock": "立刻停止当前 run，不延长",
+    "infrastructure": "换 run id 重跑，与原 attempt 一并报告",
+    "semantic_doubt": "若第 2 轮证明 δ=2.61 的饱和是任务设计问题而非调参问题，停止并按 uncertainty_policy 询问"
+  },
+  "reporting": "独立报告 reports/training_round_r2.json + 台账更新"
+}

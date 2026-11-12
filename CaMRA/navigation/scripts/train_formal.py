@@ -257,6 +257,10 @@ def main() -> int:
     ap.add_argument("--smoke-updates", type=int, default=0,
                     help="mechanical test only: N updates with 2 calls per window; "
                          "never for a formal run")
+    ap.add_argument("--init-from", default=None,
+                    help="warm start: load model/optimizers/torch RNG from a previous "
+                         "round's state.pt (loop protocol allows continuing training; "
+                         "must be declared in the round prereg)")
     args = ap.parse_args()
 
     prereg, prereg_sha = verify_prereg(args.prereg_name)
@@ -313,12 +317,30 @@ def main() -> int:
     cfg = P.PPOConfig.from_contract(VALUE_CONTRACT)
     assert abs(cfg.max_grad_norm - 2.5) < 1e-12, (
         f"contract max_grad_norm={cfg.max_grad_norm}; prereg pins 2.5")
+    # 熵系数是价值契约明文的"优化超参"（可由训练任务调整），且训练循环协议
+    # 把每轮可调范围钉在 0-0.02；from_contract 的守卫针对的是语义量，这里按
+    # 预登记显式放行并做带内校验，越界直接退出。
+    import dataclasses as _dc
+    ent = prereg["algorithm"].get("ent_coef")
+    if ent is not None:
+        ent = float(ent)
+        if not (0.0 <= ent <= 0.02):
+            raise SystemExit(f"ent_coef {ent} outside the loop protocol band [0, 0.02]")
+        cfg = _dc.replace(cfg, ent_coef=ent)
     updater = P.MinimizationUpdater(
         net, cfg,
         lr_policy=float(prereg["algorithm"]["lr_policy"]),
         lr_critic=float(prereg["algorithm"]["lr_critic"]),
     )
     obj_cfg = S.ObjectiveConfig.from_contracts(VALUE_CONTRACT, r_goal_m=0.5)
+
+    if args.init_from:
+        prev = S.atomic_load(args.init_from)
+        net.load_state_dict(prev["model"])
+        for k, v in updater.optimizers.items():
+            v.load_state_dict(prev["optimizers"][k])
+        torch.set_rng_state(prev["torch_rng"])
+        print(f"[WARMSTART] model/optimizers/rng loaded from {args.init_from}", flush=True)
 
     calls_per_window = 2 if smoke else int(prereg["window_semantics"]["calls_per_update"])
     max_updates = args.smoke_updates if smoke else int(prereg["window_semantics"]["max_updates"])
