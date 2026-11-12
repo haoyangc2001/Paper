@@ -1,0 +1,327 @@
+{
+ "task": "NAV-042",
+ "schema": "camra-online-navigation-report-v1",
+ "verdict": "WIRING_VERIFIED",
+ "split": "integration_pilot",
+ "quota": {
+  "business_episodes": 6,
+  "authorised": 6,
+  "note": "exactly the integration_pilot quota; these episodes never enter a performance denominator and are not a navigation success rate"
+ },
+ "rate_structure": {
+  "nav_hz": 10,
+  "policy_hz": 50,
+  "physics_hz": 200,
+  "policy_steps_per_nav": 5,
+  "substeps_per_policy": 4,
+  "check": "every episode has 5*n nav policy steps and 4 substeps each"
+ },
+ "budget_anchor": {
+  "L1_empty": {
+   "rule": "z0 = k * E_ref(map), common-budget anchor",
+   "k": 1.0,
+   "e_ref_J": 363.23184833600146,
+   "z0_J": 363.232,
+   "not_a_selection_result": "NAV-041 recorded no_feasible_budget for both methods on the budget_selection split; this pilot uses the common-budget anchor purely to exercise the loop and must not be read as a selected budget"
+  },
+  "L2_single_detour": {
+   "rule": "z0 = k * E_ref(map), common-budget anchor",
+   "k": 1.0,
+   "e_ref_J": 476.7397933166365,
+   "z0_J": 476.74,
+   "not_a_selection_result": "NAV-041 recorded no_feasible_budget for both methods on the budget_selection split; this pilot uses the common-budget anchor purely to exercise the loop and must not be read as a selected budget"
+  },
+  "L3_multi_path": {
+   "rule": "z0 = k * E_ref(map), common-budget anchor",
+   "k": 1.0,
+   "e_ref_J": 368.132496514682,
+   "z0_J": 368.132,
+   "not_a_selection_result": "NAV-041 recorded no_feasible_budget for both methods on the budget_selection split; this pilot uses the common-budget anchor purely to exercise the loop and must not be read as a selected budget"
+  }
+ },
+ "episodes": [
+  {
+   "level": "L1_empty",
+   "map_id": "l1_empty-s3001",
+   "method": "uncalibrated",
+   "candidate_id": "uncalibrated_s0",
+   "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+   "label": "budget_exhausted",
+   "n_steps": 85,
+   "t_s": 8.5,
+   "min_goal_distance_m": 6.444,
+   "measured_J": 280.653,
+   "total_cost_nom_J": 364.62,
+   "measured_over_nominal": 0.7697,
+   "final_deviation_m": 1.284,
+   "clipped_steps": 77,
+   "invalid_steps": 0,
+   "policy_steps": 425,
+   "danger_steps": 0,
+   "collision_steps": 0,
+   "z0_J": 363.232,
+   "trace_checks": {
+    "episode_ids_consistent": true,
+    "nav_clock_on_the_dt_grid": true,
+    "five_policy_steps_x4_substeps": true,
+    "command_current_every_policy_step": true,
+    "max_command_diff": 1.1920928966180355e-08
+   },
+   "recorder_problems": [],
+   "wall_seconds": 15.7,
+   "trace_path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L1_empty_uncalibrated_l1_empty-s3001.json"
+  },
+  {
+   "level": "L1_empty",
+   "map_id": "l1_empty-s3001",
+   "method": "full",
+   "candidate_id": "full_s0",
+   "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+   "label": "budget_exhausted",
+   "n_steps": 117,
+   "t_s": 11.7,
+   "min_goal_distance_m": 6.339,
+   "measured_J": 246.589,
+   "total_cost_nom_J": 305.325,
+   "measured_over_nominal": 0.8076,
+   "final_deviation_m": 1.211,
+   "clipped_steps": 53,
+   "invalid_steps": 0,
+   "policy_steps": 585,
+   "danger_steps": 0,
+   "collision_steps": 0,
+   "z0_J": 363.232,
+   "trace_checks": {
+    "episode_ids_consistent": true,
+    "nav_clock_on_the_dt_grid": true,
+    "five_policy_steps_x4_substeps": true,
+    "command_current_every_policy_step": true,
+    "max_command_diff": 2.980232241545089e-09
+   },
+   "recorder_problems": [],
+   "wall_seconds": 21.7,
+   "trace_path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L1_empty_full_l1_empty-s3001.json"
+  },
+  {
+   "level": "L2_single_detour",
+   "map_id": "l2_single_detour-s3001",
+   "method": "uncalibrated",
+   "candidate_id": "uncalibrated_s0",
+   "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+   "label": "stagnation",
+   "n_steps": 143,
+   "t_s": 14.3,
+   "min_goal_distance_m": 5.624,
+   "measured_J": 332.224,
+   "total_cost_nom_J": 436.077,
+   "measured_over_nominal": 0.7618,
+   "final_deviation_m": 1.864,
+   "clipped_steps": 85,
+   "invalid_steps": 0,
+   "policy_steps": 715,
+   "danger_steps": 0,
+   "collision_steps": 0,
+   "z0_J": 476.74,
+   "trace_checks": {
+    "episode_ids_consistent": true,
+    "nav_clock_on_the_dt_grid": true,
+    "five_policy_steps_x4_substeps": true,
+    "command_current_every_policy_step": true,
+    "max_command_diff": 1.1920928966180355e-08
+   },
+   "recorder_problems": [],
+   "wall_seconds": 30.0,
+   "trace_path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L2_single_detour_uncalibrated_l2_single_detour-s3001.json"
+  },
+  {
+   "level": "L2_single_detour",
+   "map_id": "l2_single_detour-s3001",
+   "method": "full",
+   "candidate_id": "full_s0",
+   "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+   "label": "stagnation",
+   "n_steps": 102,
+   "t_s": 10.2,
+   "min_goal_distance_m": 10.456,
+   "measured_J": 112.598,
+   "total_cost_nom_J": 144.903,
+   "measured_over_nominal": 0.7771,
+   "final_deviation_m": 0.891,
+   "clipped_steps": 13,
+   "invalid_steps": 0,
+   "policy_steps": 510,
+   "danger_steps": 55,
+   "collision_steps": 0,
+   "z0_J": 476.74,
+   "trace_checks": {
+    "episode_ids_consistent": true,
+    "nav_clock_on_the_dt_grid": true,
+    "five_policy_steps_x4_substeps": true,
+    "command_current_every_policy_step": true,
+    "max_command_diff": 2.980232241545089e-09
+   },
+   "recorder_problems": [],
+   "wall_seconds": 21.3,
+   "trace_path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L2_single_detour_full_l2_single_detour-s3001.json"
+  },
+  {
+   "level": "L3_multi_path",
+   "map_id": "l3_multi_path-s3001",
+   "method": "uncalibrated",
+   "candidate_id": "uncalibrated_s0",
+   "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+   "label": "budget_exhausted",
+   "n_steps": 87,
+   "t_s": 8.7,
+   "min_goal_distance_m": 6.292,
+   "measured_J": 283.838,
+   "total_cost_nom_J": 368.593,
+   "measured_over_nominal": 0.7701,
+   "final_deviation_m": 1.319,
+   "clipped_steps": 77,
+   "invalid_steps": 0,
+   "policy_steps": 435,
+   "danger_steps": 0,
+   "collision_steps": 0,
+   "z0_J": 368.132,
+   "trace_checks": {
+    "episode_ids_consistent": true,
+    "nav_clock_on_the_dt_grid": true,
+    "five_policy_steps_x4_substeps": true,
+    "command_current_every_policy_step": true,
+    "max_command_diff": 1.1920928966180355e-08
+   },
+   "recorder_problems": [],
+   "wall_seconds": 20.2,
+   "trace_path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L3_multi_path_uncalibrated_l3_multi_path-s3001.json"
+  },
+  {
+   "level": "L3_multi_path",
+   "map_id": "l3_multi_path-s3001",
+   "method": "full",
+   "candidate_id": "full_s0",
+   "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+   "label": "stagnation",
+   "n_steps": 168,
+   "t_s": 16.8,
+   "min_goal_distance_m": 7.366,
+   "measured_J": 225.073,
+   "total_cost_nom_J": 291.385,
+   "measured_over_nominal": 0.7724,
+   "final_deviation_m": 1.322,
+   "clipped_steps": 47,
+   "invalid_steps": 0,
+   "policy_steps": 840,
+   "danger_steps": 0,
+   "collision_steps": 0,
+   "z0_J": 368.132,
+   "trace_checks": {
+    "episode_ids_consistent": true,
+    "nav_clock_on_the_dt_grid": true,
+    "five_policy_steps_x4_substeps": true,
+    "command_current_every_policy_step": true,
+    "max_command_diff": 2.980232241545089e-09
+   },
+   "recorder_problems": [],
+   "wall_seconds": 38.7,
+   "trace_path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L3_multi_path_full_l3_multi_path-s3001.json"
+  }
+ ],
+ "aggregate": {
+  "n_episodes": 6,
+  "labels": {
+   "budget_exhausted": 3,
+   "stagnation": 3
+  },
+  "all_trace_checks_pass": true,
+  "max_command_diff": 1.1920928966180355e-08,
+  "collisions": 0,
+  "danger_steps": 55,
+  "recorder_problems": 0,
+  "measured_over_nominal_range": [
+   0.7618,
+   0.8076
+  ],
+  "clipped_step_fraction": 0.501,
+  "deviation_range_m": [
+   0.891,
+   1.864
+  ]
+ },
+ "per_episode_steps": {
+  "L1_empty/uncalibrated": 85,
+  "L1_empty/full": 117,
+  "L2_single_detour/uncalibrated": 143,
+  "L2_single_detour/full": 102,
+  "L3_multi_path/uncalibrated": 87,
+  "L3_multi_path/full": 168
+ },
+ "no_feasible_budget_path": {
+  "status": "implemented and covered offline",
+  "where": "tests/test_physical_loop.py::no_feasible_budget_is_recorded_not_invented",
+  "why_not_in_this_pilot": "the pilot needs a budget to exercise the loop; NAV-041 recorded no_feasible_budget for both methods on the budget_selection split, so the pilot uses the common-budget anchor k=1.0 and states it as such",
+  "behaviour": "reset(z0_J=None) records status/label=no_feasible_budget, simulates nothing, invents no budget, and step() refuses"
+ },
+ "honest_findings": [
+  "Measured mechanical work is 0.762-0.808 of the frozen power model's nominal cost over the same steps: in this regime the model over-predicts real work by 24-31%, so the internal budget runs out earlier than the measured energy would suggest. Both units are reported; neither is used as a proxy for the other.",
+  "The nominal twin drifts 0.89-1.86 m from the actual robot in 8.5-16.8 s; the reference is never re-anchored, so this is real execution/model deviation, not a definitional zero.",
+  "13-85 of every episode's steps are command-clipped: the learned policy saturates at the top of the vx domain, so its effective command is constant while its raw output varies.",
+  "One episode (L2/full) crossed the nominal danger band for 55 steps without a physical collision: the nominal safety flag and the collision metric are separate, as the contract requires.",
+  "All episodes end by budget_exhausted or stagnation within 8.5-16.8 s; no episode reached the goal at k=1.0. That is consistent with NAV-041's no_feasible_budget at k<=1.30 on the selection split, but this pilot is not a feasibility test."
+ ],
+ "limitations": [
+  "one seed per method (deployment list lowest seed), one map instance per level",
+  "no perturbation profile; clean-physics only",
+  "single k (common-budget anchor 1.0), not a selected budget",
+  "integration_pilot: wiring evidence only"
+ ],
+ "sources": {
+  "nav042_L1_empty.json": "21d91486a51ba5397f49ed0e57cc6164c5bc7c81690cd71c76b64610cda21907",
+  "nav042_L2_single_detour.json": "7b19e3e7064138cffc8751b030531527ba57daff5ae5484d267f52c9369887a3",
+  "nav042_L3_multi_path.json": "91670b609b7510573a2cd109b1e0d56f3456932846663151ece6ae410927f249"
+ },
+ "trace_files": [
+  {
+   "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L1_empty_uncalibrated_l1_empty-s3001.json",
+   "sha256": "73c000884beace2373ac332998e0aff7d7defd6d827c08a9ffc41e3b2b577cba",
+   "bytes": 205778
+  },
+  {
+   "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L1_empty_full_l1_empty-s3001.json",
+   "sha256": "15fb767bfeae5c9106504289dcfece0822428b103911e2e947a122bf758d382e",
+   "bytes": 284144
+  },
+  {
+   "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L2_single_detour_uncalibrated_l2_single_detour-s3001.json",
+   "sha256": "81691cc51c3eda5e9e4352936c289e751f15cd916a053d38f0782feb47f82111",
+   "bytes": 350622
+  },
+  {
+   "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L2_single_detour_full_l2_single_detour-s3001.json",
+   "sha256": "ab97675bf322e5f2c32f2508c32f121b100c80deb83953d18a5b474a19dafe6f",
+   "bytes": 252230
+  },
+  {
+   "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L3_multi_path_uncalibrated_l3_multi_path-s3001.json",
+   "sha256": "c89fe9f730f0fb0a8fe5b0d240e512f88abcd66e05e42dc356c26e7649291925",
+   "bytes": 211350
+  },
+  {
+   "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L3_multi_path_full_l3_multi_path-s3001.json",
+   "sha256": "d2ab46e8eb087bb8ab92164b28e0139be1f2ec12590d2232d628f614600c60e2",
+   "bytes": 412456
+  }
+ ],
+ "superseded_artifacts": [
+  {
+   "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L1_full_l1_empty-s3001.json",
+   "sha256": "3702d26688ac0398fb2233fd83ebb92ef479c4d65fff46a9cda293939195db45",
+   "why_not_counted": "produced by the run before the float32 freshness tolerance fix (run_id nav042_L1); kept as an artifact, not part of the six counted episodes"
+  },
+  {
+   "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L1_uncalibrated_l1_empty-s3001.json",
+   "sha256": "1510596ea44f77ee5d19ce6c504ccb34af590eae67654953d63450233fafb528",
+   "why_not_counted": "produced by the run before the float32 freshness tolerance fix (run_id nav042_L1); kept as an artifact, not part of the six counted episodes"
+  }
+ ]
+}

@@ -1,0 +1,107 @@
+{
+ "task": "NAV-042",
+ "schema": "camra-online-navigation-pilot-v1",
+ "run_id": "nav042_L3_multi_path",
+ "level": "L3_multi_path",
+ "map_id": "l3_multi_path-s3001",
+ "split": "integration_pilot",
+ "budget_anchor": {
+  "rule": "z0 = k * E_ref(map), common-budget anchor",
+  "k": 1.0,
+  "e_ref_J": 368.132496514682,
+  "z0_J": 368.132,
+  "not_a_selection_result": "NAV-041 recorded no_feasible_budget for both methods on the budget_selection split; this pilot uses the common-budget anchor purely to exercise the loop and must not be read as a selected budget"
+ },
+ "rate_structure": {
+  "nav_hz": 10,
+  "policy_hz": 50,
+  "physics_hz": 200,
+  "policy_steps_per_nav": 5,
+  "substeps_per_policy": 4,
+  "physics_dt_s": 0.005
+ },
+ "reporting": "integration_pilot: wiring evidence, never a performance denominator",
+ "episodes": [
+  {
+   "method": "uncalibrated",
+   "candidate_id": "uncalibrated_s0",
+   "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+   "map_id": "l3_multi_path-s3001",
+   "z0_J": 368.132,
+   "summary": {
+    "episode_id": 0,
+    "env_id": 0,
+    "candidate_id": "uncalibrated_s0",
+    "map_id": "l3_multi_path-s3001",
+    "z0_J": 368.132,
+    "status": "finished",
+    "label": "budget_exhausted",
+    "n_steps": 87,
+    "t_s": 8.7,
+    "min_goal_distance_m": 6.292,
+    "measured_J": 283.838,
+    "total_cost_nom_J": 368.593,
+    "total_cost_model_J": 368.593,
+    "clipped_steps": 77,
+    "invalid_steps": 0,
+    "policy_steps": 435,
+    "measured_over_nominal": 0.7701,
+    "final_deviation_m": 1.319,
+    "danger_steps": 0,
+    "collision_steps": 0,
+    "max_budget_overspend_J": 0.46
+   },
+   "trace_checks": {
+    "episode_ids_consistent": true,
+    "nav_clock_on_the_dt_grid": true,
+    "five_policy_steps_x4_substeps": true,
+    "command_current_every_policy_step": true,
+    "max_command_diff": 1.1920928966180355e-08
+   },
+   "recorder_problems": [],
+   "measured_J": 283.8383764739123,
+   "wall_seconds": 20.2
+  },
+  {
+   "method": "full",
+   "candidate_id": "full_s0",
+   "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+   "map_id": "l3_multi_path-s3001",
+   "z0_J": 368.132,
+   "summary": {
+    "episode_id": 0,
+    "env_id": 0,
+    "candidate_id": "full_s0",
+    "map_id": "l3_multi_path-s3001",
+    "z0_J": 368.132,
+    "status": "finished",
+    "label": "stagnation",
+    "n_steps": 168,
+    "t_s": 16.8,
+    "min_goal_distance_m": 7.366,
+    "measured_J": 225.073,
+    "total_cost_nom_J": 291.385,
+    "total_cost_model_J": 346.889,
+    "clipped_steps": 47,
+    "invalid_steps": 0,
+    "policy_steps": 840,
+    "measured_over_nominal": 0.7724,
+    "final_deviation_m": 1.322,
+    "danger_steps": 0,
+    "collision_steps": 0,
+    "max_budget_overspend_J": 0.0
+   },
+   "trace_checks": {
+    "episode_ids_consistent": true,
+    "nav_clock_on_the_dt_grid": true,
+    "five_policy_steps_x4_substeps": true,
+    "command_current_every_policy_step": true,
+    "max_command_diff": 2.980232241545089e-09
+   },
+   "recorder_problems": [],
+   "measured_J": 225.073498114098,
+   "wall_seconds": 38.7
+  }
+ ],
+ "wall_seconds_total": 62.4
+}
