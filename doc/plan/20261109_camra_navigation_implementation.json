@@ -5527,7 +5527,119 @@
         "reports/training_round_r1.json及各轮独立版本",
         "真实训练/开发日志与checkpoint索引"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-12T18:04:00+08:00",
+          "summary": "NAV-064 开工对齐简报（execution_alignment_policy.preflight）：计划 1.3.1，依赖 NAV-063 已完成（51/67）；本项按训练循环协议跑有限轮次训练，只用 train/development 判定。开工核对时发现协议 v1.0.0 不是合法 JSON。",
+          "actions": [
+            "重读根 AGENTS.md、计划 1.3.1 的 global_constraints（33 条）、execution_alignment_policy、uncertainty_policy、upstream_correction_policy 与 G4/G5 条目",
+            "读 NAV-064 的 goal/constraints/acceptance/planned_outputs；确认关闭判定只允许 train/development（acceptance 明确『无 budget_selection 判定依赖』）",
+            "读 config/training_loop_protocol_v1.json 全文（closing_tier 0.10、ideal_tier 0.90/CR=0、4 轮 × 6 run × 600 窗口 × 4086 步、每轮 3 h 总 12 h、逐轮可改项与冻结项、数据访问表）",
+            "读 config/formal_training_prereg_v3.json 作为上一轮基线（k_train=1.10、4 epochs×512、250 窗口、1.02M 步）",
+            "核对 train_formal.py 读取的键：budget.sampling / environment / algorithm / window_semantics / checkpoints；确认 NAV-062/063 的改动已在其生产路径上"
+          ],
+          "files_changed": [],
+          "commands": [
+            "ssh 192.168.20.11 'cd CaMRA/navigation && python3 -c \"json.load(open(config/training_loop_protocol_v1.json))\"'",
+            "ssh 192.168.20.11 'python3 扫描 config/*.json 的 JSON 合法性'",
+            "ssh 192.168.20.11 'uptime; nvidia-smi'"
+          ],
+          "results": [
+            "本项对总目标的作用：五元链的最后一环是『在预算内安全到达』能否学到。062/063 修好了数据与目标，但如果这一轮仍学不出东西，就要在协议允许的旋钮内诊断，而不是回到旧目标或放宽阈值。",
+            "依赖状态：NAV-062 status=True（50/67）、NAV-063 status=True（51/67）；gate_G3_alignment_v2 verdict=PASS（22/22）。",
+            "上游证据散列：targets b00bf3626fed9179、storage ba523a389c17b8a4、ppo ce3b510af80501a0、gate G3 报告 49bdda53a7aa4421、价值契约 d6c4648cac3f1d67、导航契约 ec0f3e53267ee557。",
+            "允许修改：config 下新增本轮预登记与协议修订版、reports 下新增本轮报告、CaMRA/navigation 内训练器/评估脚本的缺陷修复。不改：方法目标与语义、阈值、地图/种子族、数据划分、checkpoint 规则、冻结 v2 与论文。",
+            "【发现的缺陷】config/training_loop_protocol_v1.json 第 72 行 `\"total\": 4 * 6 * 6` 是表达式不是 JSON 字面量，json.load 直接失败：NAV-061 交付的这份『冻结协议』没有任何消费方读得动。config/*.json 全量扫描只有这一处。",
+            "【处置】按 upstream_correction_policy：v1.0.0 原样保留（记录了旧 sha），另立 config/training_loop_protocol_v1_1.json（version 1.1.0，唯一改动 development_evaluations.total = 144），并在 revision 块写明原因、旧 hash 与未改字段；本轮预登记绑定 v1.1 的 hash。",
+            "【口径冲突的裁定】协议 closing_tier 的第二个条件写『budget_selection 上 9 图×2 方法选得出可行 k』，但同文件 forbidden 与 data_access 禁止在循环里用 budget_selection 判定，NAV-064 的 acceptance 又明确『无 budget_selection 判定依赖』。按 acceptance 与 global_constraints #28 取：本轮只用 development 判定；预算响应改在 development 6 图上按 {0.7,0.85,1.0,1.15,1.3} 做诊断；budget_selection 只在 NAV-066 用独立协议查询。此裁定写入本轮预登记，若 dev 达标而第二条件仍需签署，届时按 uncertainty_policy 请示。",
+            "验收证据规划：config/training_loop_prereg_r1.json（+sha）→ 6 个 run 的日志与审计库 → development 18 图（6 图×3 种子）确定性回合 → reports/training_round_r1.json → reports/training_loop_rounds.json 累计台账。"
+          ],
+          "evidence": [
+            "协议 v1.0.0 解析失败的实际报错（Expecting ',' delimiter: line 72 column 80）",
+            "config/*.json 合法性扫描：1 处非法（仅该文件）",
+            "机器状态：load average 28.5/384 逻辑核，GPU 空闲，可并行 6 个单线程训练进程"
+          ],
+          "remaining_work": [
+            "协议 v1.1 与本轮预登记落盘并冻结散列",
+            "启动 6 个 run（2 方法 × 3 种子，600 窗口）",
+            "development 18 图确定性评估 + 预算响应诊断",
+            "本轮报告与记录，判定是否达到关闭档"
+          ],
+          "blockers": [],
+          "correction": {
+            "correction_id": "NAV-064-C1",
+            "discovered_in_task": "NAV-064",
+            "upstream_task_ids": [
+              "NAV-061"
+            ],
+            "problem_and_evidence": "training_loop_protocol_v1.json 的 resource_ledger.development_evaluations.total 写成表达式 4 * 6 * 6；json.load 报 Expecting ',' delimiter（line 72 col 80）。该文件被声明为 frozen 且被 064–067 消费",
+            "original_artifact_references": [
+              "config/training_loop_protocol_v1.json（v1.0.0，sha256 见其 .sha256）"
+            ],
+            "affected_task_ids": [
+              "NAV-064",
+              "NAV-065",
+              "NAV-066",
+              "NAV-067"
+            ],
+            "affected_gate_ids": [],
+            "authorization_basis": "upstream_correction_policy：实现/产物缺陷、语义不变、不覆盖旧文件；协议自身的 adjustment_rule 要求另立新版",
+            "changes_and_versions": [
+              "config/training_loop_protocol_v1_1.json（1.1.0，total=144，唯一改动）"
+            ],
+            "revalidation_evidence": [
+              "新文件 json.load 通过；本轮预登记绑定其 sha256；关闭档阈值与轮次未变"
+            ],
+            "status_changes": [],
+            "downstream_disposition": "继续：064–067 一律读 v1.1；v1.0 仅作历史证据",
+            "closure_state": "validated"
+          }
+        },
+        {
+          "timestamp": "2026-11-12T20:10:00+08:00",
+          "summary": "NAV-064 第 1 轮完成（任务保持 false）：6 个 run（r1c，2 方法×3 种子）在修正后的新语义下跑满 600 窗口，墙钟 1.35–1.43 h/个，全部退出码 0。开发集（6 图，确定性，k=1.0）：uncalibrated SR 中位数 0.667、full 0.0——关闭档要求两方法同时 ≥0.10，未达成。且所有到达都超预算（SR 预算内全为 0）。",
+          "actions": [
+            "开工对齐（上一条记录）后修复协议 v1.0.0 的非法 JSON（另立 v1.1，唯一改动 total=144）",
+            "冻结 config/training_loop_prereg_r1.json（+sha256，git 053d474，先于任何 run）",
+            "启动 6 个 run：第 1、2 次尝试（nav064_r1_*、nav064_r1b_*）因 NAV-062 的段级预算守卫崩溃（|z_norm|=1.53 / z[0]=-1.62），修复后以 nav064_r1c_* 重跑（git fe30047）",
+            "训练完成：scripts/eval_training_round.py 只在 development 6 图上评估（k=1.0 主判据 + 0.7–1.3 预算响应诊断）",
+            "scripts/make_round_report.py 汇编 reports/training_round_r1.json 与 reports/training_loop_rounds.json（含尝试历史与机制统计）"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/training_loop_protocol_v1_1.json(+.sha256)",
+            "CaMRA/navigation/config/training_loop_prereg_r1.json(+.sha256)",
+            "CaMRA/navigation/scripts/eval_training_round.py",
+            "CaMRA/navigation/scripts/make_round_report.py",
+            "CaMRA/navigation/reports/training_round_r1.json",
+            "CaMRA/navigation/reports/training_loop_rounds.json"
+          ],
+          "commands": [
+            "tmux 会话 nav064c：bash /tmp/nav064_round1c.sh（18:31–20:00，6 进程并行）",
+            "<py311> scripts/eval_training_round.py --round 1 --prereg training_loop_prereg_r1.json --run-ids nav064_r1c_* --out reports/training_round_r1.json",
+            "<py311> scripts/make_round_report.py"
+          ],
+          "results": [
+            "development SR（label==goal_reached）：uncalibrated 0.667/0.667/1.0（中位 0.667）；full 0/0/0.667（中位 0.0）",
+            "development『到达且 z_end>=0』：六个 run 全部 0.0——所有到达都超预算（k=1.0 时 z_end 约 -130 ~ -360 J）",
+            "预算响应（dev，k=0.7→1.3）：SR 对 k 几乎不敏感（uncalibrated 在 0.67-1.0 波动）——加大预算救不了，超支与路线成本成正比，瓶颈是路线效率而非预算大小",
+            "机制统计：clip_fraction 平均 0.053-0.065（裁剪在起作用）；墙钟 1.35-1.43 h（< 3 h 上限）；exit code 全 0",
+            "full 的两个种子 SR=0，且训练窗口内 stagnation 占 24-29/30 回合——δ=2.61 m 的膨胀带使危险历史早早置 1，h 恒为 1.0 后 reach 项失去区分度，预算项主导 → 停着不动最省",
+            "尝试历史：r1（6 崩溃）、r1b（3 崩溃 3 手动停止）全部保留在 run 目录，未删除"
+          ],
+          "evidence": [
+            "reports/training_round_r1.json（含每 run 的 dev 逐图结果、预算响应逐格、机制统计、尝试历史、数据访问清单）",
+            "reports/training_loop_rounds.json（累计台账：round 1 closing_tier_met=false）",
+            "run 目录 /pub/data/caohy/work/camra_navigation/nav064_r1{,b,c}_*（日志、checkpoint、审计库）",
+            "git 053d474（预登记）、fe30047（守卫修复）"
+          ],
+          "remaining_work": [
+            "第 2 轮：在协议可改项内改（候选：熵系数、lr、预算抽样范围下限、full 的动作上限处理），每条改动须写 config_delta + 假设；full 的『危险历史饱和 → 停滞』机制需要在第 2 轮里验证是调参问题还是任务设计问题",
+            "『到达即超支 ~1.5-2 倍 E_ref』是当前主要缺口：关闭档的第二条件（预算可选 ≥10/18）按此趋势无法满足，且按 acceptance 不能在循环里用 budget_selection 判定",
+            "若第 2 轮证据显示 δ=2.61 的膨胀带使 full 方法在地图设计层面不可行（不是调参问题），按协议 stops.on_semantic_doubt 停止并请示"
+          ],
+          "blockers": []
+        }
+      ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
       "reference_ids": [
         "R03",
