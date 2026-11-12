@@ -36,6 +36,8 @@ from .frames import body_to_world_vector, heading_from_quat, world_to_body_vecto
 
 __all__ = [
     "OBS_VERSION",
+    "SUPPORTED_OBS_VERSIONS",
+    "Z_RATIO_CLIP_BY_VERSION",
     "COMMAND_VERSION",
     "N_OBSTACLE_BINS",
     "OBSTACLE_CAPACITY",
@@ -61,6 +63,8 @@ __all__ = [
     "encode_observation",
     "encode_from_physical",
     "surface_distance",
+    "z_ratio_value",
+    "z_ratio_clip",
     "action_to_requested",
     "clip_applied",
     "command_from_action",
@@ -74,7 +78,24 @@ __all__ = [
 #: convex polygons.  The layout, dimension and every constant are unchanged;
 #: only the accepted primitive set grew, which is why the 28 obs-v1 checks still
 #: hold bit-for-bit on circle maps.
-OBS_VERSION = "obs-v2"
+#:
+#: ``obs-v3`` (NAV-062) changes exactly one constant: the ``z_ratio`` clip widens
+#: from +-1.0 to :data:`Z_RATIO_CLIP` (1.5).  Reason, measured rather than
+#: assumed: the training budget used to be a single k_train, while the evaluated
+#: and sampled budgets span 0.6-1.3 x ``E_ref``; with ``E_ref`` up to 489.4 J the
+#: ratio reaches 1.16 > 1.0, so the observation reported "no budget left" while
+#: the internal budget was still positive, and ``W`` (built on the clipped value)
+#: stopped being additive.  Widening the clip fixes the encoding; the internal
+#: budget stays unclipped and is what the objective uses.
+#:
+#: Legacy encodings stay reconstructible: :func:`encode_observation` takes
+#: ``version=`` and every version keeps its own clip, so ``obs-v2`` can be
+#: replayed bit-for-bit on the same state.
+OBS_VERSION = "obs-v3"
+#: Observation versions this module can still encode (old reports stay checkable).
+SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3")
+#: ``|z_ratio|`` upper bound per observation version.  Not a budget: a scale.
+Z_RATIO_CLIP_BY_VERSION: dict[str, float] = {"obs-v2": 1.0, "obs-v3": 1.5}
 #: Version of the action/normalisation mapping.
 COMMAND_VERSION = "cmd-v1"
 
@@ -349,6 +370,27 @@ def _finite(x: float, default: float = 0.0) -> float:
     return float(x) if math.isfinite(float(x)) else default
 
 
+def z_ratio_clip(version: str | None = None) -> float:
+    """``|z_ratio|`` bound of one observation version (default: current)."""
+    v = OBS_VERSION if version is None else str(version)
+    if v not in Z_RATIO_CLIP_BY_VERSION:
+        raise ValueError(
+            f"unknown observation version {v!r}; supported: {SUPPORTED_OBS_VERSIONS}")
+    return Z_RATIO_CLIP_BY_VERSION[v]
+
+
+def z_ratio_value(z_J: float, z_ref_J: float = Z_REF_J, *,
+                  version: str | None = None) -> float:
+    """The encoded ``z_ratio`` of a signed budget (clip is version-specific).
+
+    Single implementation for the encoder, the environment records and the
+    training buffer.  The *internal* budget is never clipped; only this encoded
+    number is, and the objective must use the unclipped quotient instead.
+    """
+    lim = z_ratio_clip(version)
+    return _clip(_finite(z_J) / float(z_ref_J), -lim, lim)
+
+
 # --- encoder ----------------------------------------------------------------
 def encode_observation(
     ego: EgoState,
@@ -357,11 +399,16 @@ def encode_observation(
     task: TaskState,
     *,
     z_ref_J: float = Z_REF_J,
+    version: str | None = None,
 ) -> list[float]:
-    """Encode one state into the frozen ``obs-v1`` vector.
+    """Encode one state into the frozen observation vector.
 
     The same function is called by the nominal environment and by the Isaac Lab
     environment.  Order of ``obstacles`` does not affect the result.
+
+    ``version`` selects the observation version (default :data:`OBS_VERSION`);
+    the only thing it changes today is the ``z_ratio`` clip
+    (:func:`z_ratio_clip`), so an ``obs-v2`` vector can be reproduced exactly.
     """
     sin_yaw = math.sin(ego.yaw)
     cos_yaw = math.cos(ego.yaw)
@@ -419,7 +466,7 @@ def encode_observation(
     )
 
     safety_y = 1.0 if float(task.safety_y) >= 0.5 else 0.0
-    z_ratio = _clip(_finite(task.z_J) / z_ref_J, -1.0, 1.0)
+    z_ratio = z_ratio_value(task.z_J, z_ref_J, version=version)
     t_rem_n = _clip(_finite(task.time_remaining_s) / T_MAX_S, 0.0, 1.0)
 
     vec = (
@@ -444,6 +491,7 @@ def encode_from_physical(
     extent: MapExtent,
     task: TaskState,
     z_ref_J: float = Z_REF_J,
+    version: str | None = None,
 ) -> list[float]:
     """Encode from raw simulator quantities through the same encoder.
 
@@ -460,7 +508,8 @@ def encode_from_physical(
         vy_body=float(lin_vel_body[1]),
         wz_body=float(ang_vel_body[2]),
     )
-    return encode_observation(ego, obstacles, extent, task, z_ref_J=z_ref_J)
+    return encode_observation(ego, obstacles, extent, task, z_ref_J=z_ref_J,
+                              version=version)
 
 
 # --- action pipeline --------------------------------------------------------

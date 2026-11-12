@@ -119,15 +119,27 @@ def z_ratio_slice() -> slice:
 
 
 # ----------------------------------------------------------- pure rule layer
-def feasible_from_label(label: str | None) -> bool:
-    """Contract criterion: the episode reached the goal.
+def feasible_from_label(label: str | None, within_budget: bool | None = None) -> bool:
+    """Contract criterion: the episode reached the goal **inside the budget**.
 
-    A single terminal label already excludes collision / out_of_bounds /
-    stagnation / timeout, so ``label == goal_reached`` *is* the conjunction the
-    contract asks for.  Danger exposure is recorded but is not a nominal
-    disqualifier: the forbidden band is δ's job, not the feasibility label's.
+    Before NAV-062 ``z <= 0`` was itself a terminal, so ``label == goal_reached``
+    already implied "arrived first".  Budget exhaustion no longer ends an
+    episode (the reference implementation's ``is_terminal`` only looks at the
+    horizon), so the arrival label alone can no longer carry that meaning: an
+    episode may arrive *after* overspending.  The conjunction is therefore
+    explicit, and a call that omits ``within_budget`` is a programming error
+    rather than a silently relaxed criterion.
+
+    Danger exposure stays recorded but is not a nominal disqualifier: the
+    forbidden band is δ's job, not the feasibility label's.
     """
-    return label == FEASIBLE_LABEL
+    if label != FEASIBLE_LABEL:
+        return False
+    if within_budget is None:
+        raise ValueError(
+            "within_budget is required: arrival alone is not feasibility since "
+            "budget exhaustion stopped being terminal (NAV-062)")
+    return bool(within_budget)
 
 
 def monotonic_violations(rows: Sequence[dict]) -> list[dict]:
@@ -166,7 +178,8 @@ def select_on_grid(
                 "k": float(k),
                 "z_J": z,
                 "z_ratio": z / float(z_ref_J),
-                "z_ratio_clipped": float(np.clip(z / float(z_ref_J), -1.0, 1.0)),
+                "z_ratio_clipped": float(np.clip(
+                    z / float(z_ref_J), -OBS.z_ratio_clip(), OBS.z_ratio_clip())),
                 "evidence_label": row["label"],
                 "monotonic": not violations,
                 "monotonicity_violations": violations,
@@ -267,7 +280,7 @@ def build_config() -> dict:
             "alpha": {"value": 0.19048279965649906,
                       "role": "full 的成本记账倍数 1+α，只影响内部预算消耗速度"},
             "delta_m": {"role": "full 的禁入带宽（几何），只影响可行空间"},
-            "feasibility_criterion": "label == goal_reached；单一终止标签已排除 "
+            "feasibility_criterion": "label == goal_reached AND within_budget；单一终止标签已排除 "
                                      "collision / out_of_bounds / stagnation / timeout",
             "danger_steps_not_disqualifying": "危险步数照实记录，但不构成名义不可行——"
                                               "禁入带由 δ 进入几何，与可行性标签分开",
@@ -329,7 +342,7 @@ def build_config() -> dict:
             "n_points": len(grid),
         },
         "feasibility": {
-            "criterion": "label == goal_reached",
+            "criterion": "label == goal_reached AND z_J >= 0 at the end",
             "identical_for_both_methods": True,
             "measured_not_critic": "用实测终止标签，不用 critic 的 value 搜索"
                                    "（NAV-039 的 O-3 决议）",
@@ -456,6 +469,8 @@ def rollout(net, spec, geometry, cm, z0_J: float) -> dict:
     label = env._label[0] or "cap_step"
     return {
         "label": label,
+        "within_budget": bool(res.within_budget),
+        "over_budget_J": round(float(res.over_budget_J), 3),
         "n_steps": steps,
         "t_s": round(float(res.t_s), 3),
         "cost_model_J": round(float(res.cost_model_J), 3),
@@ -519,9 +534,12 @@ def main() -> int:
                     # independently would fake a mismatch of ~1e-3
                     "z0_J": z0,
                     "z_ratio": z0 / z_ref,
+                    # saturation guard: the encoded z_ratio is clipped at
+                    # clip*Z_REF (obs-v3: 1.5), not at Z_REF
                     "z0_above_z_ref": bool(z0 > z_ref),
+                    "z0_above_clip": bool(z0 > z_ref * OBS.z_ratio_clip()),
                     "e_ref_J": float(m["e_ref_J"]),
-                    "feasible": feasible_from_label(out["label"]),
+                    "feasible": feasible_from_label(out["label"], out["within_budget"]),
                     **out,
                 })
         print(f"  {m['map_id']} done", flush=True)
@@ -581,7 +599,7 @@ def main() -> int:
         if again["status"] != p["selection"]["status"] or again["k"] != p["selection"]["k"]:
             mismatches.append(f"{p['method']}/{p['map_id']}")
         for r in sub:
-            if r["feasible"] != feasible_from_label(r["label"]):
+            if r["feasible"] != feasible_from_label(r["label"], r["within_budget"]):
                 mismatches.append(f"{p['method']}/{p['map_id']}/k={r['k']}: label")
             if abs(r["z0_J"] - r["k"] * r["e_ref_J"]) > 1e-6:
                 mismatches.append(f"{p['method']}/{p['map_id']}/k={r['k']}: z0")

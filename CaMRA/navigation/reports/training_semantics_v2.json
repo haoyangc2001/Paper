@@ -1,0 +1,606 @@
+{
+  "schema": "camra-navigation-training-semantics-v2",
+  "task": "NAV-062",
+  "created_at": "2026-11-12T14:52:04+08:00",
+  "plan_version": "1.3.1",
+  "git_head_at_run": "7d95a53",
+  "verdict": "PASS",
+  "n_checks": 24,
+  "n_failed": 0,
+  "obs_version": "obs-v3",
+  "buffer_schema": "camra-navigation-rollout-v2",
+  "z_ratio_clip": 1.5,
+  "inputs_sha256": {
+    "src/camra_navigation/observation.py": "abde9c838a67aa0f2ae31508900167fd86a18296d76341053fc4d5a9347f0812",
+    "src/camra_navigation/costs.py": "e8fb432fdf116fd83e4a948e7c950cad573062ad5a87c7af0cedf6aae2a9b323",
+    "src/camra_navigation/envs/nominal.py": "b9080625b000d9bd11c22abcc21a46374412077c8d1158e1323d79d3b6c41e51",
+    "src/camra_navigation/envs/vector.py": "ad9529b7454292aa1f0304bf24e9d76080b65d118b7f2b121f93e6b814a3fb39",
+    "src/camra_navigation/envs/physical.py": "dd08b512e264ca55df2086f9738793f4ab9139fc0eb4fda48fa100d43c83db2c",
+    "src/camra_navigation/algorithm/storage.py": "b4811a7a4c3b5467fef48dcfdf254c91fe0e1e328fb9567e67e7b789c1bc85c3",
+    "src/camra_navigation/algorithm/targets.py": "aba3e49ff3c9c1bb6ff9c37b1fb1193836a18b02196cbc431f8e085fe4b240f5",
+    "scripts/train_formal.py": "fc4e289cadfeb39897b3ba260b9ab17d9591dfea8335f27599dffa2ffa1ebd56",
+    "scripts/train_nominal.py": "778ae95ddbefd999e1f95b99698b6af2a3ff02f31bb6cc11cf3a13dc6b65816e",
+    "scripts/freeze_deployment.py": "c0c97f72c048b3ff4ad06b6b0ca44e9c706f2a62f926d9fa9b5aeed764c5ac4f",
+    "scripts/eval_formal_final.py": "5c3bb739b52775df68c094ff5d8ad4b975ab1a8fc68baf9b41e508bf75a5dfc0",
+    "scripts/run_budget_selection.py": "87bb41a8d5a580a134601161e5ebd4cd264a71ecee9de6546b6e24d17abefbb8",
+    "config/navigation_contract_v1.json": "ec0f3e53267ee557eb62afc8f5c5658673541124eaa5c43b20768e78bdd832f5",
+    "tests/test_training_semantics.py": "730f4f2ad7c276827e91437cdd3493845b7b103ad69c320c397c2b7396067e05"
+  },
+  "semantics": {
+    "sample_pairing": {
+      "fields_at_t": [
+        "obs",
+        "value_cost",
+        "value_reach",
+        "z_j",
+        "z_norm",
+        "z_ratio",
+        "safety_y",
+        "goal_distance_m"
+      ],
+      "fields_at_t1": [
+        "next_obs",
+        "z_norm_next",
+        "z_ratio_next",
+        "safety_y_next",
+        "goal_distance_m_next"
+      ],
+      "transition": [
+        "cost_norm (c_t from the applied command)",
+        "action_raw (u_t raw)",
+        "action_applied (u_t applied)"
+      ],
+      "rule": "V(x_t) 只与 z_norm/safety_y/goal_distance_m 配；*_next 只出现在 x_{t+1} 的输入里",
+      "was": "v1 用步后的 goal_distance_m 与 safety_y 组装 h_t，并在末尾重复补一次 h[-1]",
+      "evidence": {
+        "obj_h": [
+          0.9000525260471114,
+          0.896721046322125
+        ],
+        "h_hand": [
+          0.9000525260471114,
+          0.896721046322125
+        ],
+        "h_T": 0.8933901943345415,
+        "h_T_hand": 0.8933901943345415,
+        "target_cost": [
+          0.2557520634732936,
+          0.2528786187370734
+        ],
+        "spent": [
+          0.005752063473293619,
+          0.002878618737073393
+        ],
+        "W0": 0.8933901943345415,
+        "W_hand": [
+          0.9000525260471114,
+          0.896721046322125,
+          0.8933901943345415
+        ]
+      },
+      "isolation": {
+        "changed": [],
+        "W_base": [
+          0.020000000000000004,
+          0.020000000000000004
+        ],
+        "W_next": [
+          0.020000000000000004,
+          0.020000000000000004
+        ]
+      }
+    },
+    "terminal_kinds": {
+      "failure": [
+        "collision",
+        "out_of_bounds"
+      ],
+      "success": [
+        "goal_reached"
+      ],
+      "truncation": [
+        "stagnation",
+        "timeout",
+        "window slice"
+      ],
+      "h_T": {
+        "failure": "FAIL_PENALTY = 1.0",
+        "success": "max(g_norm(x_T), C*y_T)",
+        "truncation": "max(g_norm(x_T), C*y_T)"
+      },
+      "adjudication": "契约 terminal 表把 success 写成 h_T=g_T；但 safety_history.arrival_rule 与事件真值表都要求『危险后到达 h=1.0→不可行』。若在到达处丢掉 C·y，等于让到达清零 y。本项按不可逆安全历史实现 h_T=max(g_T, C·y_T)，success 与 truncation 的差别只在成本终端项（成功不 bootstrap）",
+      "evidence": {
+        "clean_h_T": 0.0,
+        "clean_W": 0.0,
+        "danger_h_T": 1.0,
+        "danger_W": 0.02666666666666667,
+        "danger_early_W": 1.0
+      }
+    },
+    "budget": {
+      "sampling": "每回合 k ~ Uniform(0.6, 1.3)，z0 = k * E_ref(map)，逐 env 独立 Generator",
+      "z0_cap": "z0 <= z_ratio_clip * Z_REF_J = 825 J（观测饱和上限，不是任务预算）",
+      "z_ratio_clip": 1.5,
+      "internal_budget": "未裁剪 z_J 与 z_J/Z_REF_J；W 用未裁剪值",
+      "no_termination": "z_J <= 0 不终止回合、不产生标签；回合跑到到达/碰撞/越界/停滞/30 s",
+      "feasibility": "arrived_within_budget = (label == goal_reached AND z_J_end >= 0)",
+      "evidence": {
+        "distribution": {
+          "min": 0.6004100414298915,
+          "max": 1.2991617413426813,
+          "mean": 0.9431314785373324,
+          "distinct": 1998,
+          "z_max_J": 825.0
+        },
+        "negative_budget": {
+          "first_negative": -0.04966898638066075,
+          "steps_after_negative": 231,
+          "final_label": "goal_reached",
+          "labels_seen": [
+            "goal_reached"
+          ]
+        },
+        "over_budget_arrival": {
+          "poor": {
+            "map_id": "l1_empty-s11",
+            "level": "L1_empty",
+            "seed": 11,
+            "label": "goal_reached",
+            "done": true,
+            "n_steps": 169,
+            "t_s": 16.89999999999997,
+            "travelled_m": 13.519999583361226,
+            "goal_distance_m": 0.4808910232306351,
+            "cost_nom_J": 456.1916578830083,
+            "cost_model_J": 543.088322056504,
+            "z0_J": 1.0,
+            "z_J": -542.088322056504,
+            "safety_y": 0.0,
+            "danger_steps": 0,
+            "internal_violation_steps": 0,
+            "alpha": 0.19048279965649906,
+            "variant": "full",
+            "physical_status": "not_measured",
+            "within_budget": false,
+            "arrived_within_budget": false,
+            "over_budget_J": 542.088322056504
+          },
+          "rich": {
+            "map_id": "l1_empty-s11",
+            "level": "L1_empty",
+            "seed": 11,
+            "label": "goal_reached",
+            "done": true,
+            "n_steps": 169,
+            "t_s": 16.89999999999997,
+            "travelled_m": 13.519999583361226,
+            "goal_distance_m": 0.4808910232306351,
+            "cost_nom_J": 456.1916578830083,
+            "cost_model_J": 543.088322056504,
+            "z0_J": 800.0,
+            "z_J": 256.911677943496,
+            "safety_y": 0.0,
+            "danger_steps": 0,
+            "internal_violation_steps": 0,
+            "alpha": 0.19048279965649906,
+            "variant": "full",
+            "physical_status": "not_measured",
+            "within_budget": true,
+            "arrived_within_budget": true,
+            "over_budget_J": 0.0
+          }
+        }
+      }
+    },
+    "action": {
+      "mapping": "u_req = clip(a, -1, 1) * COMMAND_MAX=(1.0, 0.4, 1.0)；部署与采样同一变换",
+      "probability_space": "raw 对角高斯（log_prob/entropy 在 raw 空间计算）",
+      "decision": "保留参考实现的有界裁剪映射，不改动作分布族；残余风险量化登记",
+      "measured": {
+        "raw_abs_mean": 2.0168960094451904,
+        "policy_std": 1.0,
+        "applied_at_limit": 64,
+        "unique_applied_vx": 2,
+        "note": "硬裁剪：applied 顶格，多个 raw 值映到同一命令（可辨识性下降）"
+      },
+      "gradient": {
+        "max_abs_param_grad": 3.754761219024658,
+        "n_params_with_grad": 7,
+        "note": "似然比梯度在 raw 空间，裁剪不切断 dlogp/dmu；路径梯度 dapplied/draw 在裁剪区为 0，这正是不能要求环境路径可导的原因"
+      },
+      "mean_move": {
+        "mean_vx_before": 0.0006444168975576758,
+        "mean_vx_after": -0.13930478692054749,
+        "note": "A>0 = 更贵；最小化 max(ratio·A) 应降低这些动作的概率，即把均值推离它们（不是推不动）"
+      },
+      "residual_risk": [
+        "多个 raw 值映到同一 applied 命令：可辨识性下降（同一条命令对应多个 log_prob）",
+        "路径梯度 dapplied/draw 在裁剪区为 0；似然比梯度不受影响（已用参数梯度与均值位移验证）",
+        "若循环训练后顶格比例仍高，改动作参数化属新契约版本（v2），不在本项静默替换"
+      ]
+    },
+    "slice_vs_horizon": {
+      "window_slice": "truncation + env_done=False + V_c(x_T) bootstrap",
+      "timeout_30s": "truncation + env_done=True + V_c(x_T) bootstrap（有限时限，不是外部切片）",
+      "evidence": {
+        "env_label": "timeout",
+        "slice_T": 5,
+        "horizon_T": 300,
+        "slice_cost_last": 0.12572368747533505,
+        "horizon_cost_last": 0.12572368747533505,
+        "note": "窗口切片 env_done=False、时限 env_done=True（见 train_formal.close_segment）"
+      }
+    },
+    "contracts": {
+      "navigation_contract": "1.5.0（obs-v3、z_ratio ±1.5、budget_exhausted 非终止）",
+      "observation": "obs-v3 / cmd-v1（obs-v2 仍可按版本重建）",
+      "value_contract": "1.2.0（未改；beta/C/Z_REF/γ 不变）",
+      "prereg": "formal_training_prereg_v1–v3 保持可跑（k_train 单档）；循环训练用新的 sampling 块，由 NAV-064 冻结"
+    }
+  },
+  "limitations": [
+    "本报告是控制用例 + 单回合回归，不是训练结果；不构成任何导航性能结论",
+    "动力学与成本仍用名义模型；物理侧只做了接口改动（见 NAV-067 的 clean 复验）",
+    "Window-slice 与 30 s 的区分在 metadata 与 bootstrap 来源上成立；切片重接的逐位等价由 NAV-063 的门禁重验",
+    "动作参数的残余风险按量化登记，未改分布族；顶格是否影响学习需 NAV-064 的循环结果回答",
+    "旧 v1 chunk/旧报告按旧语义保留，不能与新 chunk 混用（storage 会拒绝缺配对字段的 chunk）"
+  ],
+  "checks": [
+    {
+      "check": "contract_matches_implementation",
+      "ok": true,
+      "detail": {
+        "obs_version": "obs-v3",
+        "clip": 1.5,
+        "contract_version": "1.5.0",
+        "labels": [
+          "fall",
+          "collision",
+          "out_of_bounds",
+          "goal_reached",
+          "stagnation",
+          "timeout"
+        ]
+      }
+    },
+    {
+      "check": "schema_v2_carries_both_ends",
+      "ok": true,
+      "detail": {
+        "schema": "camra-navigation-rollout-v2",
+        "missing": []
+      }
+    },
+    {
+      "check": "v1_chunk_refused_with_reason",
+      "ok": true,
+      "detail": {
+        "message": "样本缺少 t/t+1 配对字段 ['z_norm', 'z_ratio_next', 'safety_y_next', 'goal_distance_m_next']：这是 schema v1 的旧 chunk，不能用于训练；请用 NAV-062 之后写入的 chunk"
+      }
+    },
+    {
+      "check": "two_step_hand_calculation",
+      "ok": true,
+      "detail": {
+        "obj_h": [
+          0.9000525260471114,
+          0.896721046322125
+        ],
+        "h_hand": [
+          0.9000525260471114,
+          0.896721046322125
+        ],
+        "h_T": 0.8933901943345415,
+        "h_T_hand": 0.8933901943345415,
+        "target_cost": [
+          0.2557520634732936,
+          0.2528786187370734
+        ],
+        "spent": [
+          0.005752063473293619,
+          0.002878618737073393
+        ],
+        "W0": 0.8933901943345415,
+        "W_hand": [
+          0.9000525260471114,
+          0.896721046322125,
+          0.8933901943345415
+        ]
+      }
+    },
+    {
+      "check": "next_budget_does_not_pollute_current_value",
+      "ok": true,
+      "detail": {
+        "changed": [],
+        "W_base": [
+          0.020000000000000004,
+          0.020000000000000004
+        ],
+        "W_next": [
+          0.020000000000000004,
+          0.020000000000000004
+        ]
+      }
+    },
+    {
+      "check": "current_budget_moves_W",
+      "ok": true,
+      "detail": {
+        "max_abs_delta_W": 0.18,
+        "binding_term_base": 0.30000000000000004,
+        "W_base": [
+          0.020000000000000004,
+          0.020000000000000004
+        ],
+        "W_cur": [
+          0.03333333333333333,
+          0.2
+        ]
+      }
+    },
+    {
+      "check": "single_step_arrival_target",
+      "ok": true,
+      "detail": {
+        "label": "goal_reached",
+        "target_cost": 0.005842762066751505,
+        "h_T": 0.0
+      }
+    },
+    {
+      "check": "single_step_failure_uses_penalty",
+      "ok": true,
+      "detail": {
+        "label": "collision",
+        "target_cost": 1.0
+      }
+    },
+    {
+      "check": "negative_budget_keeps_stepping",
+      "ok": true,
+      "detail": {
+        "first_negative": -0.04966898638066075,
+        "steps_after_negative": 231,
+        "final_label": "goal_reached",
+        "labels_seen": [
+          "goal_reached"
+        ]
+      }
+    },
+    {
+      "check": "no_budget_exhausted_label_in_new_episodes",
+      "ok": true,
+      "detail": {
+        "map_id": "l1_empty-s11",
+        "level": "L1_empty",
+        "seed": 11,
+        "label": "goal_reached",
+        "done": true,
+        "n_steps": 231,
+        "t_s": 23.10000000000006,
+        "travelled_m": 13.860000000000046,
+        "goal_distance_m": 0.48463115598455214,
+        "cost_nom_J": 397.71556211526115,
+        "cost_model_J": 473.47353585393137,
+        "z0_J": 2.0,
+        "z_J": -471.47353585393137,
+        "safety_y": 0.0,
+        "danger_steps": 0,
+        "internal_violation_steps": 0,
+        "alpha": 0.19048279965649906,
+        "variant": "full",
+        "physical_status": "not_measured",
+        "within_budget": false,
+        "arrived_within_budget": false,
+        "over_budget_J": 471.47353585393137
+      }
+    },
+    {
+      "check": "over_budget_arrival_is_not_feasible",
+      "ok": true,
+      "detail": {
+        "poor": {
+          "map_id": "l1_empty-s11",
+          "level": "L1_empty",
+          "seed": 11,
+          "label": "goal_reached",
+          "done": true,
+          "n_steps": 169,
+          "t_s": 16.89999999999997,
+          "travelled_m": 13.519999583361226,
+          "goal_distance_m": 0.4808910232306351,
+          "cost_nom_J": 456.1916578830083,
+          "cost_model_J": 543.088322056504,
+          "z0_J": 1.0,
+          "z_J": -542.088322056504,
+          "safety_y": 0.0,
+          "danger_steps": 0,
+          "internal_violation_steps": 0,
+          "alpha": 0.19048279965649906,
+          "variant": "full",
+          "physical_status": "not_measured",
+          "within_budget": false,
+          "arrived_within_budget": false,
+          "over_budget_J": 542.088322056504
+        },
+        "rich": {
+          "map_id": "l1_empty-s11",
+          "level": "L1_empty",
+          "seed": 11,
+          "label": "goal_reached",
+          "done": true,
+          "n_steps": 169,
+          "t_s": 16.89999999999997,
+          "travelled_m": 13.519999583361226,
+          "goal_distance_m": 0.4808910232306351,
+          "cost_nom_J": 456.1916578830083,
+          "cost_model_J": 543.088322056504,
+          "z0_J": 800.0,
+          "z_J": 256.911677943496,
+          "safety_y": 0.0,
+          "danger_steps": 0,
+          "internal_violation_steps": 0,
+          "alpha": 0.19048279965649906,
+          "variant": "full",
+          "physical_status": "not_measured",
+          "within_budget": true,
+          "arrived_within_budget": true,
+          "over_budget_J": 0.0
+        }
+      }
+    },
+    {
+      "check": "over_budget_arrival_W_positive",
+      "ok": true,
+      "detail": {
+        "W_last": 0.9797723689450739
+      }
+    },
+    {
+      "check": "danger_then_arrival_not_feasible",
+      "ok": true,
+      "detail": {
+        "clean_h_T": 0.0,
+        "clean_W": 0.0,
+        "danger_h_T": 1.0,
+        "danger_W": 0.02666666666666667,
+        "danger_early_W": 1.0
+      }
+    },
+    {
+      "check": "slice_and_horizon_both_bootstrap_but_differ_in_extent",
+      "ok": true,
+      "detail": {
+        "env_label": "timeout",
+        "slice_T": 5,
+        "horizon_T": 300,
+        "slice_cost_last": 0.12572368747533505,
+        "horizon_cost_last": 0.12572368747533505,
+        "note": "窗口切片 env_done=False、时限 env_done=True（见 train_formal.close_segment）"
+      }
+    },
+    {
+      "check": "action_saturation_statistics",
+      "ok": true,
+      "detail": {
+        "raw_abs_mean": 2.0168960094451904,
+        "policy_std": 1.0,
+        "applied_at_limit": 64,
+        "unique_applied_vx": 2,
+        "note": "硬裁剪：applied 顶格，多个 raw 值映到同一命令（可辨识性下降）"
+      }
+    },
+    {
+      "check": "saturated_actions_still_give_policy_gradient",
+      "ok": true,
+      "detail": {
+        "max_abs_param_grad": 3.754761219024658,
+        "n_params_with_grad": 7,
+        "note": "似然比梯度在 raw 空间，裁剪不切断 dlogp/dmu；路径梯度 dapplied/draw 在裁剪区为 0，这正是不能要求环境路径可导的原因"
+      }
+    },
+    {
+      "check": "positive_advantage_pushes_mean_away_from_expensive_actions",
+      "ok": true,
+      "detail": {
+        "mean_vx_before": 0.0006444168975576758,
+        "mean_vx_after": -0.13930478692054749,
+        "note": "A>0 = 更贵；最小化 max(ratio·A) 应降低这些动作的概率，即把均值推离它们（不是推不动）"
+      }
+    },
+    {
+      "check": "deployment_and_sampling_share_the_transform",
+      "ok": true,
+      "detail": {
+        "applied": [
+          -0.20259687304496765,
+          -0.062162172794342045,
+          -0.20172151923179626
+        ],
+        "requested": [
+          -0.20259687304496765,
+          -0.062162172794342045,
+          -0.20172151923179626
+        ]
+      }
+    },
+    {
+      "check": "same_seed_same_budget_sequence",
+      "ok": true,
+      "detail": {
+        "first_five": [
+          263.982,
+          373.093,
+          306.307,
+          424.818,
+          464.357
+        ]
+      }
+    },
+    {
+      "check": "resume_continues_the_same_stream",
+      "ok": true,
+      "detail": {
+        "n": 40,
+        "joined_head": [
+          263.981767,
+          373.093034,
+          306.306942
+        ],
+        "straight_head": [
+          263.981767,
+          373.093034,
+          306.306942
+        ]
+      }
+    },
+    {
+      "check": "budget_distribution_is_uniform_and_not_fixed_k",
+      "ok": true,
+      "detail": {
+        "min": 0.6004100414298915,
+        "max": 1.2991617413426813,
+        "mean": 0.9431314785373324,
+        "distinct": 1998,
+        "z_max_J": 825.0
+      }
+    },
+    {
+      "check": "budget_rule_forms",
+      "ok": true,
+      "detail": {
+        "legacy": {
+          "kind": "fixed",
+          "k": 1.1
+        },
+        "structured": {
+          "kind": "uniform",
+          "k_low": 0.6,
+          "k_high": 1.3
+        },
+        "prereg": "formal_training_prereg_v3.json"
+      }
+    },
+    {
+      "check": "production_trainer_writes_paired_chunks",
+      "ok": true,
+      "detail": {
+        "returncode": 0,
+        "stderr": "",
+        "keys_missing": [],
+        "manifest_schema": "camra-navigation-rollout-v2",
+        "chunks": [
+          "chunk_00000.npz"
+        ]
+      }
+    },
+    {
+      "check": "critic_refit_entry_builds_v2_arrays",
+      "ok": true,
+      "detail": {
+        "n_keys": 33
+      }
+    }
+  ]
+}

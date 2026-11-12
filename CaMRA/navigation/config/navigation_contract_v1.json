@@ -1,15 +1,16 @@
 {
   "schema": "camra-navigation-contract-v1",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "created_at": "2026-11-10T10:22:00+08:00",
   "owner_tasks": [
     "NAV-055",
     "NAV-012",
     "NAV-013",
-    "NAV-056"
+    "NAV-056",
+    "NAV-062"
   ],
   "status": "partial",
-  "status_note": "v1.3.0：NAV-018 组装名义环境时发现 NAV-016 冻结的地图图元是矩形岛，而 obs-v1 只接受圆形。按 map_encoding.extension_rule 的要求扩展几何核并升版本到 obs-v2，未静默复用 radius。布局、维度（41）与全部常数不变，仅图元集合从 circle 扩为 circle|convex_polygon，故圆形地图的编码逐位不变。",
+  "status_note": "v1.3.0：NAV-018 组装名义环境时发现 NAV-016 冻结的地图图元是矩形岛，而 obs-v1 只接受圆形。按 map_encoding.extension_rule 的要求扩展几何核并升版本到 obs-v2，未静默复用 radius。布局、维度（41）与全部常数不变，仅图元集合从 circle 扩为 circle|convex_polygon，故圆形地图的编码逐位不变。 v1.5.0（NAV-062）：观测升 obs-v3 —— z_ratio 裁剪上限从 ±1.0 放宽到 ±1.5，因为采样预算 k∈[0.6,1.3]×E_ref 在 E_ref≈489 J 时比值达 1.16，旧上限把『还剩预算』编码成『预算耗尽』，且 W 用裁剪值后不再可加；布局、维度（41）与其余常数不变，obs-v2 仍可按版本重建。同时把 budget_exhausted 从终止事件改为非终止诊断事实：参考实现 is_terminal 只看时限，预算是成本项；『预算内到达』改由独立字段判定。旧报告、旧数据锁与旧判定不变。",
   "controller": {
     "id": "camra_go2_velocity_it2999_v2",
     "bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
@@ -207,15 +208,17 @@
         "priority": 5,
         "criterion": "d_xy <= r_goal（且 dwell 满足，首轮 dwell=0）",
         "outcome": "success",
-        "note": "若同一步内 budget_exhausted 也成立，到达优先（成本已含该步，任务目标已实现）"
+        "note": "同一步预算越过 0 不影响到达判定（该步成本已计入），但『预算内到达』必须由独立字段 within_budget / arrived_within_budget 给出（NAV-062）"
       },
       {
         "id": "budget_exhausted",
         "priority": 6,
-        "criterion": "remaining_budget_J <= 0",
-        "outcome": "business_failure",
-        "zero_case": "恰好等于 0 判为耗尽（不再有可用预算继续）",
-        "negative_case": "变负同样判为耗尽，但记录 overshoot_J 供诊断"
+        "criterion": "remaining_budget_J <= 0（记录的诊断事实，不终止回合）",
+        "outcome": "diagnostic",
+        "zero_case": "恰好等于 0 记为 on_budget，仍不终止",
+        "negative_case": "变负记 overshoot_J 供诊断，回合继续到到达/碰撞/越界/停滞/时限",
+        "terminal": false,
+        "note": "NAV-062 起不再是终止事件：参考实现的 is_terminal 只看时限，预算是成本项；旧 v1 轨迹里的 budget_exhausted 标签只作历史证据，不得再作为可行性判据"
       },
       {
         "id": "stagnation",
@@ -223,7 +226,8 @@
         "criterion": "连续 3.0 s 内 base 平面位移 < 0.05 m",
         "outcome": "business_failure",
         "basis": "v2 已知低速死区在 <=0.2 m/s；阈值取明显停滞量级，不用它替代底层验收",
-        "provisional": true
+        "provisional": true,
+        "note": "（NAV-062：按截断处理，bootstrap 到 V_c(x_T)，CFG 见表 rcppo_alignment_contract_v1.event_truth_table）"
       },
       {
         "id": "timeout",
@@ -298,6 +302,12 @@
         "source": "训练期由价值最小化选出的最优停止时刻",
         "meaning": "RC-PPO 的 min over T，仅存在于训练",
         "used_by": "仅训练；评估不得使用"
+      },
+      {
+        "name": "budget_state",
+        "source": "SignedBudget.z_J / z_ratio",
+        "meaning": "有符号剩余预算（成本账），不是终止、不是测量结束",
+        "used_by": "目标 W、观测 z_ratio、报告 within_budget"
       }
     ],
     "rule": "三者在代码、日志与报告中必须用不同字段名；任何一处复用会导致 GAE 截断与停止语义同时被破坏",
@@ -310,6 +320,17 @@
       "criterion": "预算搜索找不到满足可行性条件的初始预算",
       "outcome": "unresolved，单独计入分母，不得剔除，也不得静默按最大试验预算执行",
       "note": "若实际执行时预算为 0 或无可行解，该回合记 no_feasible_budget，不参与 SR 分子"
+    },
+    "budget_not_terminal": {
+      "rule": "z_J <= 0 不终止回合，也不产生终止标签；『是否在预算内到达』由独立字段计算",
+      "field_names": [
+        "within_budget",
+        "arrived_within_budget",
+        "over_budget_J"
+      ],
+      "feasibility": "arrived_within_budget == (label == goal_reached AND z_J_end >= 0)",
+      "why": "旧设置在预算耗尽时立刻结束回合：训练里从未见过低预算后半程，且 budget_exhausted 占失败样本的 82-91%，把真正要学的情形削掉了",
+      "old_semantics": "v1 轨迹与 v1 报告仍按旧语义解读，保留不改"
     }
   },
   "cost_settlement": {
@@ -420,7 +441,7 @@
       "confirm_by": "NAV-031 算法迁移时与 PPO 动作分布一并确认"
     }
   ],
-  "observation_version": "obs-v2",
+  "observation_version": "obs-v3",
   "action_version": "cmd-v1",
   "frames_and_conventions": {
     "world_frame": {
@@ -463,7 +484,7 @@
     "wrap_rule": "只在比较与显示时用 wrap_angle 折到 (-pi, pi]；轨迹与状态本身不折"
   },
   "observation_spec": {
-    "version": "obs-v2",
+    "version": "obs-v3",
     "total_dim": 41,
     "concatenate": true,
     "layout": [
@@ -720,13 +741,17 @@
         "dim": 1,
         "unit": "无量纲（J ÷ 550.0）",
         "range": [
-          -1.0,
-          1.0
+          -1.5,
+          1.5
         ],
         "update_time": "每 0.1 s",
         "source_nominal": "z_J（有符号剩余预算）÷ Z_REF_J",
         "source_physical": "同一累计口径",
-        "note": "负值表示超预算；尺度归 NAV-056 所有"
+        "note": "负值表示超预算；尺度归 NAV-056 所有。裁剪上限随观测版本：obs-v2 ±1.0、obs-v3 ±1.5（NAV-062）。目标 W 用未裁剪的 z_J/Z_REF_J，观测裁剪只是编码。",
+        "clip_by_version": {
+          "obs-v2": 1.0,
+          "obs-v3": 1.5
+        }
       },
       {
         "name": "time_remaining_n",

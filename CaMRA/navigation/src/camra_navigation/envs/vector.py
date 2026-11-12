@@ -182,18 +182,27 @@ class BatchStepRecord:
     power_W: np.ndarray              # (N,) float
     cost_nom_J: np.ndarray           # (N,) float
     cost_model_J: np.ndarray         # (N,) float
-    z_J: np.ndarray                  # (N,) float
-    z_ratio: np.ndarray              # (N,) float
-    safety_y: np.ndarray             # (N,) float
+    z_J: np.ndarray                  # (N,) float, signed budget AFTER this step
+    z_ratio: np.ndarray              # (N,) float, encoded (clipped) ratio AFTER
+    safety_y: np.ndarray             # (N,) float, safety history AFTER this step
     danger_violation: np.ndarray     # (N,) bool
     internal_violation: np.ndarray   # (N,) bool
-    goal_distance_m: np.ndarray      # (N,) float
+    goal_distance_m: np.ndarray      # (N,) float, distance AFTER this step
     min_nominal_margin_m: np.ndarray | None
     min_physical_clearance_m: np.ndarray | None
     dropped_obstacles: int
     label: tuple[str | None, ...]    # (N,)
     done: np.ndarray                 # (N,) bool, state *after* this step
     obs: np.ndarray                  # (N, OBS_DIM) float64, post-step observation
+    # --- the t side of the same transitions (NAV-062) ---------------------
+    #: Signed budget / encoded ratio / safety history / goal distance at the
+    #: decision time ``t`` (the state ``obs`` and the critics were evaluated at).
+    z_J_before: np.ndarray = None  # type: ignore[assignment]
+    z_ratio_before: np.ndarray = None  # type: ignore[assignment]
+    safety_y_before: np.ndarray = None  # type: ignore[assignment]
+    goal_distance_before: np.ndarray = None  # type: ignore[assignment]
+    #: ``z_J_before >= 0`` per env: over-budget is reported, never terminal.
+    within_budget: np.ndarray = None  # type: ignore[assignment]
 
 
 # ---------------------------------------------------------------------- env
@@ -271,17 +280,37 @@ class VectorNominalNavEnv:
         ]
 
         self._seeds: list[int | None] = [None] * self.n_envs
+        #: Per-env initial budget, joules.  ``z0_J`` in the constructor is the
+        #: default; :meth:`reset` may set one value per env (NAV-062: budgets are
+        #: sampled per episode, so two episodes on one map may differ).
+        self._z0 = np.full(self.n_envs, float(z0_J), dtype=np.float64)
         self.reset()
 
     # ---- lifecycle ----
-    def reset(self, seeds: Sequence[int | None] | None = None) -> np.ndarray:
-        """Start fresh episodes; the only way to start them, never implicit."""
+    def reset(self, seeds: Sequence[int | None] | None = None,
+              z0_J: float | Sequence[float] | None = None) -> np.ndarray:
+        """Start fresh episodes; the only way to start them, never implicit.
+
+        ``z0_J`` may be one scalar (applied to all envs) or one value per env.
+        Passing it changes what the *next* episode runs with and is recorded in
+        the step records, so a trace always states its own budget.
+        """
         if seeds is None:
             seeds = [None] * self.n_envs
         if len(seeds) != self.n_envs:
             raise NominalEnvError(
                 f"seeds must have length n_envs={self.n_envs}, got {len(seeds)}"
             )
+        if z0_J is not None:
+            arr = np.asarray(z0_J, dtype=np.float64).reshape(-1)
+            if arr.size == 1:
+                arr = np.full(self.n_envs, float(arr[0]), dtype=np.float64)
+            if arr.size != self.n_envs:
+                raise NominalEnvError(
+                    f"z0_J must be one value or n_envs={self.n_envs} values, got {arr.size}")
+            if not np.isfinite(arr).all() or (arr <= 0.0).any():
+                raise NominalEnvError(f"z0_J must be positive and finite, got {arr}")
+            self._z0 = arr.copy()
         self._seeds = [None if s is None else int(s) for s in seeds]
         n = self.n_envs
         self._pose = np.zeros((n, 3), dtype=np.float64)
@@ -333,7 +362,7 @@ class VectorNominalNavEnv:
         return self._obs.copy()
 
     def z_J(self, i: int) -> float:
-        return self.z0_J - self._spent_J[i]
+        return float(self._z0[i] - self._spent_J[i])
 
     def _refresh_obs(self) -> None:
         for i in range(self.n_envs):
@@ -347,7 +376,7 @@ class VectorNominalNavEnv:
             task = obs.TaskState(
                 goal_x=float(self.spec.goal[0]), goal_y=float(self.spec.goal[1]),
                 safety_y=float(self._safety_y[i]),
-                z_J=self.z0_J - self._spent_J[i],
+                z_J=float(self._z0[i] - self._spent_J[i]),
                 time_remaining_s=max(0.0, self.t_max_s - float(self._t_s[i])),
             )
             self._obs[i] = obs.encode_observation(
@@ -431,13 +460,18 @@ class VectorNominalNavEnv:
         power_W = np.zeros(n, dtype=np.float64)
         cost_nom = np.zeros(n, dtype=np.float64)
         cost_model = np.zeros(n, dtype=np.float64)
-        z_after = np.array([self.z0_J - self._spent_J[i] for i in range(n)])
+        z_after = np.array([self._z0[i] - self._spent_J[i] for i in range(n)])
         safety_after = self._safety_y.copy()
         goal_dist = np.array([
             math.hypot(float(self.spec.goal[0]) - float(self._pose[i, 0]),
                        float(self.spec.goal[1]) - float(self._pose[i, 1]))
             for i in range(n)
         ])
+        # the t side of these transitions, captured before anything moves
+        z_before = z_after.copy()
+        z_ratio_before = np.array([obs.z_ratio_value(float(z)) for z in z_before])
+        safety_before = self._safety_y.copy()
+        goal_dist_before = goal_dist.copy()
         danger_out = np.zeros(n, dtype=bool)
         internal_out = np.zeros(n, dtype=bool)
         margins_nom = np.full(n, np.nan) if self.compute_margins else None
@@ -479,7 +513,7 @@ class VectorNominalNavEnv:
                 cost_model[i] = rec.cost_model_J
                 # budget.charge, replicated (one float add per step, in order)
                 self._spent_J[i] += float(rec.cost_model_J)
-                z_after[i] = self.z0_J - self._spent_J[i]
+                z_after[i] = self._z0[i] - self._spent_J[i]
 
             # --- geometry, batched (the only hot spot) ---
             danger, collision = self._danger_and_collision(p0, yaw0, p1, yaw1)
@@ -535,8 +569,9 @@ class VectorNominalNavEnv:
                     label = "out_of_bounds"
                 elif gd <= self.r_goal_m:
                     label = "goal_reached"
-                elif (self.z0_J - self._spent_J[i]) <= 0.0:
-                    label = "budget_exhausted"
+                # No budget branch (NAV-062): z <= 0 is reported through
+                # `within_budget`, exactly like the scalar env and the reference
+                # implementation, whose `is_terminal` only looks at the horizon.
                 elif self._stagnated(i):
                     label = "stagnation"
                 elif float(self._t_s[i]) >= self.t_max_s - 1e-12:
@@ -575,10 +610,15 @@ class VectorNominalNavEnv:
             label=tuple(self._label),
             done=self._done.copy(),
             obs=self._obs.copy(),
+            z_J_before=z_before,
+            z_ratio_before=z_ratio_before,
+            safety_y_before=safety_before,
+            goal_distance_before=goal_dist_before,
+            within_budget=z_before >= 0.0,
         )
 
     def _z_ratio_of(self, z: float) -> float:
-        return max(-1.0, min(1.0, float(z) / obs.Z_REF_J))
+        return obs.z_ratio_value(float(z))
 
     def _stagnated(self, i: int) -> bool:
         """Frozen scalar procedure, per env."""
@@ -620,11 +660,16 @@ class VectorNominalNavEnv:
             ),
             cost_nom_J=float("nan"),  # not accumulated; see docstring
             cost_model_J=float(self._spent_J[i]),
-            z0_J=self.z0_J,
-            z_J=self.z0_J - self._spent_J[i],
+            z0_J=float(self._z0[i]),
+            z_J=float(self._z0[i] - self._spent_J[i]),
             safety_y=float(self._safety_y[i]),
             danger_steps=self._danger_steps[i],
             internal_violation_steps=self._internal_steps[i],
             alpha=self._cost_models[i].alpha,
             variant=self._cost_models[i].variant,
+            within_budget=bool(self._z0[i] - self._spent_J[i] >= 0.0),
+            arrived_within_budget=bool(
+                self._label[i] == "goal_reached"
+                and self._z0[i] - self._spent_J[i] >= 0.0),
+            over_budget_J=max(0.0, float(-(self._z0[i] - self._spent_J[i]))),
         )

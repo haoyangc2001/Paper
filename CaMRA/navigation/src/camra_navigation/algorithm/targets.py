@@ -20,7 +20,8 @@
         · τ=T 时 spent 只累计到 T−1 再加一次 V_c(T)，不重复计尾段
 
 符号约定（与契约 sign_conventions 一致）：成本为正；V_c >= 0；V_h <= 0 表示可安全到达；
-z_ratio = clip(z_J / Z_REF_J, −1, 1)；beta = 0.0。
+z_ratio = clip(z_J / Z_REF_J, ±Z_RATIO_CLIP) 只用于观测（obs-v3 上限 1.5），
+W 用未裁剪的 z_J / Z_REF_J；beta = 0.0。
 """
 
 from __future__ import annotations
@@ -71,15 +72,17 @@ def spent_between(cost_norm: np.ndarray, gamma: float = 1.0) -> np.ndarray:
     return np.where(tau >= own, spent, 0.0)
 
 
-def stop_residual(cost_norm: np.ndarray, z_ratio: np.ndarray, reach: np.ndarray,
+def stop_residual(cost_norm: np.ndarray, z_norm: np.ndarray, reach: np.ndarray,
                   vc_terminal: float = 0.0, gamma: float = 1.0) -> np.ndarray:
     """``W(t, τ)`` 完整矩阵 (T, T+1)，τ<t 处为 +inf（不可选）。
 
+    ``z_norm`` 是**未裁剪**的有符号比值 ``z_J / Z_REF_J``（NAV-062 起参数名写明）。
+    传观测里的裁剪值会让 ``W`` 在饱和处不再可加——那不是尺度问题，是定义错误。
     ``reach`` 可以是逐安全代价 h（参考行为）或到达评价 V_h（契约写法），长度 T+1。
     τ=T 时加上 ``vc_terminal``（截断 bootstrap；真失败应另行给终止代价，不在此处混用）。
     """
     c = np.asarray(cost_norm, dtype=np.float64)
-    z = np.asarray(z_ratio, dtype=np.float64).reshape(-1)
+    z = np.asarray(z_norm, dtype=np.float64).reshape(-1)
     r = np.asarray(reach, dtype=np.float64).reshape(-1)
     T = c.shape[0]
     if z.shape[0] != T:
@@ -94,15 +97,16 @@ def stop_residual(cost_norm: np.ndarray, z_ratio: np.ndarray, reach: np.ndarray,
     return np.where(tau >= own, W, np.inf)
 
 
-def select_stop(cost_norm: np.ndarray, z_ratio: np.ndarray, reach: np.ndarray,
+def select_stop(cost_norm: np.ndarray, z_norm: np.ndarray, reach: np.ndarray,
                 vc_terminal: float = 0.0, gamma: float = 1.0
                 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """逐时刻在**尾段**重新取最优停止：返回 (index, W_selected, done)。
 
+    ``z_norm`` 为未裁剪的有符号比值（见 :func:`stop_residual`）。
     ``index[t] = argmin_τ W(t,τ)``（首个最小值），``done[t] = 1[index[t] == t]``。
     契约明确要求"每步对尾段重新取最优"，不是一次性全局 argmin。
     """
-    W = stop_residual(cost_norm, z_ratio, reach, vc_terminal, gamma)
+    W = stop_residual(cost_norm, z_norm, reach, vc_terminal, gamma)
     index = np.argmin(W, axis=1)
     W_sel = W[np.arange(W.shape[0]), index]
     done = (index == np.arange(W.shape[0])).astype(np.int64)
@@ -288,9 +292,11 @@ def step_cost_j(power_w: Sequence[float], dt: float = 0.1, alpha: float = 0.0,
 
 
 def z_ratio_from_budget(z_j: np.ndarray, z_ref_j: float | None = None) -> np.ndarray:
-    """``clip(z_J / Z_REF_J, −1, 1)``，与 obs-v2 的 z_ratio 同式同值。"""
+    """``clip(z_J / Z_REF_J, ±Z_RATIO_CLIP)``，与当前观测版本同式同值。"""
+    from ..observation import z_ratio_clip
     zref = load_objective()["Z_REF_J"] if z_ref_j is None else float(z_ref_j)
-    return np.clip(np.asarray(z_j, dtype=np.float64) / zref, -1.0, 1.0)
+    lim = z_ratio_clip()
+    return np.clip(np.asarray(z_j, dtype=np.float64) / zref, -lim, lim)
 
 
 def safety_step(g_norm: np.ndarray, y: np.ndarray, C: float | None = None) -> np.ndarray:

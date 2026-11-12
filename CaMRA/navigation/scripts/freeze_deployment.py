@@ -65,7 +65,9 @@ SPLIT = os.path.join(NAV_ROOT, "config", "split_manifest_v1.json")
 E_REF_REPORT = os.path.join(NAV_ROOT, "reports", "train_map_reference_energy.json")
 WORK_ROOT = "/pub/data/caohy/work/camra_navigation"
 
-FAILURE_LABELS = ("collision", "out_of_bounds", "budget_exhausted")
+FAILURE_LABELS = ("collision", "out_of_bounds")
+#: only reachable in v1 traces; budget exhaustion is not terminal since NAV-062
+LEGACY_LABELS = ("budget_exhausted",)
 SUCCESS_LABELS = ("goal_reached",)
 TRUNCATION_LABELS = ("stagnation", "timeout")
 
@@ -125,15 +127,25 @@ def load_net(ctx: Ctx, run_id: str) -> tuple[Any, dict]:
 
 def step_row(obs_i: np.ndarray, vc: float, vh: float, rec_cost_J: float,
              rec) -> dict:
-    """One per-step record for the objective machinery."""
+    """One per-step record for the objective machinery.
+
+    Both ends are recorded (NAV-062): ``value_*`` and ``obs`` belong to ``x_t``,
+    so they pair with the ``*_before`` quantities; the step's ``*_next`` values
+    are the state the transition arrived at.
+    """
     return {
         "obs": obs_i.copy(),
         "value_cost": float(vc),
         "value_reach": float(vh),
         "cost_norm": float(rec_cost_J) / obs.Z_REF_J,
-        "z_ratio": float(rec.z_ratio[0]),
-        "safety_y": float(rec.safety_y[0]),
-        "goal_distance_m": float(rec.goal_distance_m[0]),
+        "z_norm": float(rec.z_J_before[0]) / obs.Z_REF_J,
+        "z_ratio": float(rec.z_ratio_before[0]),
+        "safety_y": float(rec.safety_y_before[0]),
+        "goal_distance_m": float(rec.goal_distance_before[0]),
+        "z_norm_next": float(rec.z_J[0]) / obs.Z_REF_J,
+        "z_ratio_next": float(rec.z_ratio[0]),
+        "safety_y_next": float(rec.safety_y[0]),
+        "goal_distance_m_next": float(rec.goal_distance_m[0]),
     }
 
 
@@ -145,9 +157,15 @@ def arrays_from_steps(steps: list[dict], kind: str, bvc: float, bvh: float,
         "value_cost": np.asarray([s["value_cost"] for s in steps], dtype=np.float64),
         "value_reach": np.asarray([s["value_reach"] for s in steps], dtype=np.float64),
         "cost_norm": np.asarray([s["cost_norm"] for s in steps], dtype=np.float64),
+        "z_norm": np.asarray([s["z_norm"] for s in steps], dtype=np.float64),
         "z_ratio": np.asarray([s["z_ratio"] for s in steps], dtype=np.float64),
         "safety_y": np.asarray([s["safety_y"] for s in steps], dtype=np.float64),
         "goal_distance_m": np.asarray([s["goal_distance_m"] for s in steps], dtype=np.float64),
+        "z_norm_next": np.asarray([s["z_norm_next"] for s in steps], dtype=np.float64),
+        "z_ratio_next": np.asarray([s["z_ratio_next"] for s in steps], dtype=np.float64),
+        "safety_y_next": np.asarray([s["safety_y_next"] for s in steps], dtype=np.float64),
+        "goal_distance_m_next": np.asarray(
+            [s["goal_distance_m_next"] for s in steps], dtype=np.float64),
         "terminated": np.zeros(T, dtype=bool),
         "truncated": np.zeros(T, dtype=bool),
         "bootstrap_value_cost": np.zeros(T, dtype=np.float64),
@@ -182,8 +200,9 @@ def collect_complete_episodes(ctx: Ctx, net: Any) -> tuple[dict[str, np.ndarray]
             with torch.no_grad():
                 a, _, _ = net.act(o, deterministic=True)
                 vc, vh = net.values(o)
+            obs_pre = env.observation[0]        # x_t, the state vc/vh belong to
             rec = env.step(a.numpy())
-            steps.append(step_row(env.observation[0], float(vc[0]), float(vh[0]),
+            steps.append(step_row(obs_pre, float(vc[0]), float(vh[0]),
                                   float(rec.cost_model_J[0]), rec))
             n += 1
         label = env._label[0] or "cap_300"

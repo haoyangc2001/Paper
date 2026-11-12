@@ -76,24 +76,29 @@ def brute_force_objectives(arrays: dict[str, np.ndarray], cfg: S.ObjectiveConfig
                            terminal_kind: str) -> dict[str, np.ndarray]:
     """手写 O(T²) 版本：不调用 targets 的任何矩阵函数。"""
     c = np.asarray(arrays["cost_norm"], dtype=np.float64)
-    z = np.asarray(arrays["z_ratio"], dtype=np.float64)
+    z = np.asarray(arrays["z_norm"], dtype=np.float64)          # unclipped (v2)
     vc = np.asarray(arrays["value_cost"], dtype=np.float64)
     vh = np.asarray(arrays["value_reach"], dtype=np.float64)
-    y = np.asarray(arrays["safety_y"], dtype=np.float64)
-    d = np.asarray(arrays["goal_distance_m"], dtype=np.float64)
+    y = np.asarray(arrays["safety_y"], dtype=np.float64)        # y_t
+    d = np.asarray(arrays["goal_distance_m"], dtype=np.float64)  # x_t
+    y_next = np.asarray(arrays["safety_y_next"], dtype=np.float64)
+    d_next = np.asarray(arrays["goal_distance_m_next"], dtype=np.float64)
     Tn = c.shape[0]
+
+    def _g(dist: float) -> float:
+        return cfg.G_INSIDE if dist <= cfg.r_goal_m else (dist - cfg.r_goal_m) / cfg.L_REF_m
 
     g = np.empty(Tn)
     for t in range(Tn):
-        g[t] = cfg.G_INSIDE if d[t] <= cfg.r_goal_m else (d[t] - cfg.r_goal_m) / cfg.L_REF_m
+        g[t] = _g(d[t])
     h = np.empty(Tn)
     for t in range(Tn):
         h[t] = max(g[t], cfg.C * y[t])
+    # 终态：只补一次，取 x_T 实测（成功也保留不可逆 C·y，见 storage 的裁定）
+    h_T = max(_g(d_next[Tn - 1]), cfg.C * y_next[Tn - 1])
     if terminal_kind == "failure":
-        h[Tn - 1] = cfg.fail_penalty
-    elif terminal_kind == "success":
-        h[Tn - 1] = g[Tn - 1]
-    h_ext = np.concatenate([h, [h[Tn - 1]]])
+        h_T = cfg.fail_penalty
+    h_ext = np.concatenate([h, [h_T]])
 
     # 成本目标：显式双层求和
     term = float(np.asarray(arrays["bootstrap_value_cost"])[-1]) if terminal_kind == "truncation" else 0.0
@@ -127,6 +132,8 @@ def brute_force_objectives(arrays: dict[str, np.ndarray], cfg: S.ObjectiveConfig
     return {
         "obj_g_norm": g,
         "obj_h": h,
+        "obj_h_terminal": np.full(Tn, h_T),
+        "obj_z_norm": z,
         "obj_target_cost": target_cost,
         "obj_target_reach": vdp[:Tn],
         "obj_stop_index": stop_index,
@@ -400,11 +407,16 @@ def main() -> int:
     # 同一组数，只改终止性质，用来验"success 不给 bootstrap"和"成功步的 V_h 取 g_norm"。
     syn = {
         "cost_norm": np.full(4, 0.01),
+        "z_norm": np.linspace(0.5, 0.4, 4),
         "z_ratio": np.linspace(0.5, 0.4, 4),
         "value_cost": np.zeros(4),
         "value_reach": np.zeros(4),
         "safety_y": np.array([0.0, 0.0, 0.0, 1.0]),
         "goal_distance_m": np.array([1.5, 0.9, 0.45, 0.2]),
+        "z_norm_next": np.linspace(0.49, 0.39, 4),
+        "z_ratio_next": np.linspace(0.49, 0.39, 4),
+        "safety_y_next": np.array([0.0, 0.0, 1.0, 1.0]),
+        "goal_distance_m_next": np.array([0.9, 0.45, 0.2, 0.2]),
         "terminated": np.array([False, False, False, True]),
         "truncated": np.array([False, False, False, False]),
         "bootstrap_value_cost": np.array([0.0, 0.0, 0.0, 0.7]),
@@ -416,26 +428,53 @@ def main() -> int:
     ok_trunc = S.compute_objectives(trunc_syn, cfg, terminal_kind="truncation")
     check("success_branch_ignores_bootstrap",
           abs(ok_succ["obj_target_cost"][-1] - 0.01) < 1e-12
-          and abs(ok_succ["obj_target_reach"][-1] - cfg.G_INSIDE) < 1e-12
-          and abs(ok_succ["obj_h"][-1] - cfg.G_INSIDE) < 1e-12
+          and abs(ok_succ["obj_h_terminal"][-1] - 1.0) < 1e-12
+          and abs(ok_succ["obj_target_reach"][-1] - 1.0) < 1e-12
           and abs(ok_trunc["obj_target_cost"][-1] - 0.71) < 1e-12,
           {"success_target_cost_last": float(ok_succ["obj_target_cost"][-1]),
+           "success_h_terminal": float(ok_succ["obj_h_terminal"][-1]),
            "success_target_reach_last": float(ok_succ["obj_target_reach"][-1]),
-           "success_h_last": float(ok_succ["obj_h"][-1]),
-           "y_last": 1.0,
            "truncation_target_cost_last": float(ok_trunc["obj_target_cost"][-1]),
            "note": "同样 0.01 成本 + 0.7 bootstrap：success 用 0.01，truncation 用 0.71；"
-                   "成功步即使 y=1 也取 g_norm 而非 C·y"})
+                   "到达时 y=1 仍取 C·y=1.0（到达不清零安全历史）"})
+
+    # 危险后到达必须不可行；干净到达必须可行（事件真值表两行的手算版）
+    clean = dict(syn)
+    clean["safety_y"] = np.zeros(4)
+    clean["safety_y_next"] = np.zeros(4)
+    ok_clean = S.compute_objectives(clean, cfg, terminal_kind="success")
+    ok_danger = S.compute_objectives(syn, cfg, terminal_kind="success")
+    check("danger_then_arrival_not_feasible",
+          bool(ok_clean["obj_feasible"][-1]) and not bool(ok_danger["obj_feasible"][-1])
+          and abs(float(ok_clean["obj_stop_residual"][-1])) < 1e-3
+          and float(ok_danger["obj_stop_residual"][-1]) >= 1.0,
+          {"clean_W_last": float(ok_clean["obj_stop_residual"][-1]),
+           "clean_feasible": bool(ok_clean["obj_feasible"][-1]),
+           "danger_W_last": float(ok_danger["obj_stop_residual"][-1]),
+           "danger_feasible": bool(ok_danger["obj_feasible"][-1])})
+
+    # 超预算到达：成本项压过安全项，判据仍是不可行（预算不再终止回合之后
+    # 这是唯一能区分"到了"和"预算内到了"的地方）
+    over = dict(clean)
+    over["z_norm"] = np.array([0.05, 0.02, 0.0, -0.10])
+    over["z_ratio"] = over["z_norm"].copy()
+    ok_over = S.compute_objectives(over, cfg, terminal_kind="success")
+    check("over_budget_arrival_not_feasible",
+          not bool(ok_over["obj_feasible"][-1])
+          and float(ok_over["obj_stop_residual"][-1]) > 0.0,
+          {"W_last": float(ok_over["obj_stop_residual"][-1]),
+           "z_norm_last": float(over["z_norm"][-1])})
 
     saturated = dict(syn)
-    saturated["z_ratio"] = np.ones(4)
+    saturated["z_norm"] = np.full(4, 1.6)
+    saturated["z_ratio"] = np.full(4, 1.5)
     guard_raised = False
     try:
         S.compute_objectives(saturated, cfg, terminal_kind="success")
     except S.StorageError as exc:
-        guard_raised = "饱和" in str(exc)
-    check("saturated_z_ratio_refused", guard_raised,
-          {"note": "z_ratio 触到 ±1 时 W 定义在截断量上，直接拒算而不是给个看着像数的结果"})
+        guard_raised = "编码范围" in str(exc) or "饱和" in str(exc)
+    check("saturated_z_norm_refused", guard_raised,
+          {"note": "未裁剪 z_norm 超出观测编码范围时 W 不再可加，直接拒算"})
 
     # ================= 二、中断-恢复等价于连续跑 =================
     state_a = checkpoint_state(run_a)

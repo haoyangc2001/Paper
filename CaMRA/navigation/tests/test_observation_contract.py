@@ -245,9 +245,11 @@ def main() -> int:
     )
 
     # 7. Negative budget and remaining time ---------------------------------
+    # NAV-062：obs-v3 把 z_ratio 裁剪上限从 ±1.0 放宽到 ±1.5（k∈[0.6,1.3] 时
+    # 比值可达 1.16，旧上限把"还有预算"编码成"耗尽"）。两个版本都要能重建：
+    # v2 的 ±1 断言原样保留在 v2_cases 里，v3 断言新的 ±1.5。
+    lim = obs.z_ratio_clip()
     z_cases = []
-    # NAV-035：Z_REF_J 由 225.6069 重定为 550.0，这里换成能把两端都压到 ±1 的取值，
-    # 否则"截断"这条根本没被覆盖（-500/550 = -0.909 不会饱和）
     for z in (-1000.0, -50.0, 0.0, 120.0, 1000.0):
         vec = obs.encode_observation(
             ego, [], extent, obs.TaskState(1.0, 1.0, 0.0, z, 10.0)
@@ -255,11 +257,32 @@ def main() -> int:
         z_cases.append({"z_J": z, "z_ratio": vec[slices["z_ratio"].start]})
     check(
         "z_ratio_signed_and_bounded",
-        all(-1.0 <= c["z_ratio"] <= 1.0 for c in z_cases)
-        and z_cases[0]["z_ratio"] == -1.0
+        lim == 1.5
+        and all(-lim <= c["z_ratio"] <= lim for c in z_cases)
+        and z_cases[0]["z_ratio"] == -lim
         and z_cases[3]["z_ratio"] > 0.0
-        and z_cases[4]["z_ratio"] == 1.0,
-        z_cases,
+        and z_cases[4]["z_ratio"] == lim,
+        {"clip": lim, "cases": z_cases},
+    )
+    v2_cases = []
+    for z in (-1000.0, -50.0, 0.0, 120.0, 1000.0):
+        vec = obs.encode_observation(
+            ego, [], extent, obs.TaskState(1.0, 1.0, 0.0, z, 10.0), version="obs-v2"
+        )
+        v2_cases.append({"z_J": z, "z_ratio": vec[slices["z_ratio"].start]})
+    v3_vec = obs.encode_observation(ego, [], extent, obs.TaskState(1.0, 1.0, 0.0, 700.0, 10.0))
+    v2_vec = obs.encode_observation(
+        ego, [], extent, obs.TaskState(1.0, 1.0, 0.0, 700.0, 10.0), version="obs-v2")
+    check(
+        "obs_v2_still_reconstructible",
+        all(-1.0 <= c["z_ratio"] <= 1.0 for c in v2_cases)
+        and v2_cases[0]["z_ratio"] == -1.0
+        and v2_cases[4]["z_ratio"] == 1.0
+        # 700 J: v2 饱和在 1.0，v3 仍然看得见富余（1.2727）
+        and v2_vec[slices["z_ratio"].start] == 1.0
+        and abs(v3_vec[slices["z_ratio"].start] - 700.0 / obs.Z_REF_J) < 1e-12,
+        {"v2_cases": v2_cases, "v2_at_700": v2_vec[slices["z_ratio"].start],
+         "v3_at_700": v3_vec[slices["z_ratio"].start]},
     )
     t_cases = []
     for t in (-5.0, 0.0, 15.0, 30.0, 45.0):

@@ -35,7 +35,7 @@ import math
 from dataclasses import dataclass
 from typing import Iterable, Sequence
 
-from .observation import Z_REF_J
+from .observation import Z_REF_J, z_ratio_clip, z_ratio_value
 
 __all__ = [
     "COST_UNIT",
@@ -161,8 +161,13 @@ class SignedBudget:
 
     @property
     def z_ratio(self) -> float:
-        """Clipped signed ratio, identical to the ``obs-v1`` observation field."""
-        return max(-1.0, min(1.0, self.z_J / self.z_ref_J))
+        """Clipped signed ratio, identical to the current observation field.
+
+        The clip is *version-specific* (:func:`camra_navigation.observation.z_ratio_clip`);
+        this property follows the current observation version so the ledger and
+        the encoder cannot disagree.  It is a scale, not a budget.
+        """
+        return z_ratio_value(self.z_J, self.z_ref_J)
 
     # ---- mutation ----
     def charge(self, cost_J: float) -> float:
@@ -187,14 +192,16 @@ class SignedBudget:
 
     # ---- reversible normalisation ----
     def to_ratio(self, z_J: float) -> float:
-        return max(-1.0, min(1.0, float(z_J) / self.z_ref_J))
+        """``z_J / z_ref`` clipped exactly like the observation (same version)."""
+        return z_ratio_value(z_J, self.z_ref_J)
 
     def from_ratio(self, ratio: float) -> float:
-        """Inverse of :meth:`to_ratio`, exact only inside ``[-1, 1]``."""
+        """Inverse of :meth:`to_ratio`, exact only inside the clip range."""
         r = float(ratio)
-        if not -1.0 <= r <= 1.0:
+        lim = z_ratio_clip()
+        if not -lim <= r <= lim:
             raise CostAdapterError(
-                f"ratio must lie in [-1, 1] to be invertible, got {r} "
+                f"ratio must lie in [-{lim}, {lim}] to be invertible, got {r} "
                 "(outside it the value was clipped and the inverse is not unique)"
             )
         return r * self.z_ref_J

@@ -39,9 +39,13 @@ from typing import Any, Mapping, MutableMapping
 import numpy as np
 
 from . import targets as T
+from ..observation import z_ratio_clip as obs_z_ratio_clip
 
 # ---------------------------------------------------------------- schema
-SCHEMA_BUFFER = "camra-navigation-rollout-v1"
+#: ``v2`` (NAV-062) 显式存 ``t`` 与 ``t+1`` 两侧的量。``v1`` 的 ``z_ratio``/
+#: ``safety_y``/``goal_distance_m`` 语义是"步后"，被当作 ``h_t`` 用，属 t/t+1 混配；
+#: 旧 chunk 按 v1 读，新 chunk 按 v2 写，两者都保留。
+SCHEMA_BUFFER = "camra-navigation-rollout-v2"
 SCHEMA_CHECKPOINT = "camra-navigation-checkpoint-v1"
 
 #: 事件码。0 表示"该步未结束回合"，其余与名义环境 ``StepRecord.label`` 同名。
@@ -60,18 +64,20 @@ EVENT_NAMES: dict[int, str] = {v: k for k, v in EVENT_CODES.items()}
 #: ``failure`` 无 bootstrap 且给 FAIL_PENALTY；``success`` 无 bootstrap、目标取实际值；
 #: ``truncation`` 用 ``x_T`` 的价值 bootstrap。
 #:
-#: 归类理由：
-#:   collision / out_of_bounds  —— 任务失败，终止事件
+#: 归类理由（NAV-062 按 NAV-061 事件真值表定死）：
+#:   collision / out_of_bounds  —— 任务失败，吸收态，终止事件
 #:   goal_reached              —— 任务成功，终止事件
-#:   budget_exhausted          —— 预算是 MDP 的一部分，耗尽即终结（不是外部截断）
-#:   stagnation / timeout      —— 外部计时/检测器判停，属截断，必须 bootstrap
+#:   stagnation / timeout      —— 检测器/时限判停，属截断，必须 bootstrap
+#:
+#: ``budget_exhausted`` **不再是终止事件**（参考实现的 ``is_terminal`` 只看时间）。
+#: 该键只为 ``v1`` 旧 chunk 保留解析能力，新代码不会产生它。
 TERMINAL_KIND: dict[str, str] = {
     "collision": "failure",
     "out_of_bounds": "failure",
-    "budget_exhausted": "failure",
     "goal_reached": "success",
     "stagnation": "truncation",
     "timeout": "truncation",
+    "budget_exhausted": "failure",  # legacy v1 chunks only
 }
 
 
@@ -88,7 +94,13 @@ class FieldSpec:
 
 
 def raw_fields(obs_dim: int, action_dim: int = 3) -> tuple[FieldSpec, ...]:
-    """逐样本原始字段。顺序即 npz 内的键序（``content_hash`` 依赖它，不要重排）。"""
+    """逐样本原始字段。顺序即 npz 内的键序（``content_hash`` 依赖它，不要重排）。
+
+    ``schema v2``（NAV-062）把两侧写全，命名规则固定：
+    无后缀 = 决策时刻 ``t``；``*_next`` = 下一时刻 ``t+1``。
+    因此 ``value_*(x_t)`` 只能与 ``z_ratio``/``safety_y``/``goal_distance_m`` 配，
+    ``z_ratio_next`` 只允许出现在 ``x_{t+1}`` 的输入里。
+    """
     return (
         FieldSpec("global_step", "<i8"),
         FieldSpec("episode_id", "<i8"),
@@ -103,9 +115,15 @@ def raw_fields(obs_dim: int, action_dim: int = 3) -> tuple[FieldSpec, ...]:
         FieldSpec("cost_j", "<f8"),
         FieldSpec("cost_norm", "<f8"),
         FieldSpec("z_j", "<f8"),
+        #: 未裁剪的有符号比值 ``z_J / Z_REF_J``：目标用它（可加），观测不用它。
+        FieldSpec("z_norm", "<f8"),
         FieldSpec("z_ratio", "<f4"),
         FieldSpec("safety_y", "<f4"),
         FieldSpec("goal_distance_m", "<f4"),
+        FieldSpec("z_norm_next", "<f8"),
+        FieldSpec("z_ratio_next", "<f4"),
+        FieldSpec("safety_y_next", "<f4"),
+        FieldSpec("goal_distance_m_next", "<f4"),
         FieldSpec("terminated", "?"),
         FieldSpec("truncated", "?"),
         FieldSpec("event_code", "i1"),
@@ -122,6 +140,8 @@ def obj_fields() -> tuple[FieldSpec, ...]:
     return (
         FieldSpec("obj_g_norm", "<f8"),
         FieldSpec("obj_h", "<f8"),
+        FieldSpec("obj_h_terminal", "<f8"),
+        FieldSpec("obj_z_norm", "<f8"),
         FieldSpec("obj_spent", "<f8"),
         FieldSpec("obj_target_cost", "<f8"),
         FieldSpec("obj_adv_cost", "<f8"),
@@ -193,27 +213,47 @@ def compute_objectives(
 ) -> dict[str, np.ndarray]:
     """从一个回合的**原始字段**重算全部目标；返回长度 T（``h`` 为 T+1）。
 
-    记号沿用契约：``c_t`` 为归一化成本，``z_t = z_ratio``，``h_t = max(g_norm, C·y)``。
+    记号沿用契约：``c_t`` 为归一化成本，``z_t`` 为**未裁剪**的有符号比值，
+    ``h_t = max(g_norm(x_t), C·y_t)``。
 
-    终端处理（契约 ``bootstrap`` 表，逐条落地）：
+    **两侧严格分开（NAV-062 修正 t/t+1 混配）**：无后缀字段是决策时刻 ``t`` 的量
+    （``obs``/``value_*`` 就在这个状态上算的），``*_next`` 是 ``t+1``。旧实现用
+    ``goal_distance_m``（步后）与 ``safety_y``（步后）组装 ``h_t``，等于把
+    ``h_{t+1}`` 配给了 ``V(x_t)``，再在末尾重复补一次 ``h[-1]``。现在：
+
+      ``h_t``      t=0..T-1，由 ``goal_distance_m``/``safety_y`` 直接算；
+      ``h_T``      由 ``goal_distance_m_next[-1]``/``safety_y_next[-1]`` 算，**只补一次**；
+      ``h_ext``    长度 T+1，供 W(t,T) 与 min 型递推收尾。
+
+    终端处理（契约 ``terminal_and_truncation`` 表，逐条落地）：
 
       failure     ``V_c`` 目标在失败步**严格等于** FAIL_PENALTY（不叠加该步成本），
-                  ``h`` 在该步与终点都取 FAIL_PENALTY；无 bootstrap。
+                  ``h_T = FAIL_PENALTY``；无 bootstrap。
       success     ``V_c`` 目标 = 尾段实际成本（终端值 0），``h_T = g_norm(x_T)``；
                   无 bootstrap。
       truncation  ``V_c`` 目标 = 尾段成本 + ``V_c(x_T)``（采集时存下的 critic 值），
-                  ``h_T`` 用实测 ``g_norm(x_T)``；这是截断必须 bootstrap 的落地形式。
+                  ``h_T`` 用实测 ``max(g_norm(x_T), C·y_T)``。
 
     ``W`` 用 :func:`camra_navigation.algorithm.targets.select_stop` 逐时刻在尾段重取
-    停止（共享同一 τ*），``V_total = max(V_h, V_c − z)``，policy 目标
-    ``W_sel − V_total``（见模块文档第 2 条差异）。
+    停止（共享同一 τ*），``V_total = max(V_h, V_c − z_t)``，policy 目标
+    ``W_sel − V_total``（见模块文档第 2 条差异）。``W`` 的 ``z`` 用**未裁剪**比值：
+    观测里的截断值只是编码，不能进目标，否则 ``W`` 不再可加。
     """
     c = np.asarray(arrays["cost_norm"], dtype=np.float64).reshape(-1)
-    z = np.asarray(arrays["z_ratio"], dtype=np.float64).reshape(-1)
+    missing = [k for k in ("z_norm", "z_ratio_next", "safety_y_next",
+                           "goal_distance_m_next") if k not in arrays]
+    if missing:
+        raise StorageError(
+            f"样本缺少 t/t+1 配对字段 {missing}：这是 schema v1 的旧 chunk，"
+            "不能用于训练；请用 NAV-062 之后写入的 chunk"
+        )
+    z = np.asarray(arrays["z_norm"], dtype=np.float64).reshape(-1)
     vc = np.asarray(arrays["value_cost"], dtype=np.float64).reshape(-1)
     vh = np.asarray(arrays["value_reach"], dtype=np.float64).reshape(-1)
     y = np.asarray(arrays["safety_y"], dtype=np.float64).reshape(-1)
     goal_d = np.asarray(arrays["goal_distance_m"], dtype=np.float64).reshape(-1)
+    y_next = np.asarray(arrays["safety_y_next"], dtype=np.float64).reshape(-1)
+    goal_d_next = np.asarray(arrays["goal_distance_m_next"], dtype=np.float64).reshape(-1)
     term = np.asarray(arrays["terminated"], dtype=bool).reshape(-1)
     trunc = np.asarray(arrays["truncated"], dtype=bool).reshape(-1)
     b_c = np.asarray(arrays["bootstrap_value_cost"], dtype=np.float64).reshape(-1)
@@ -221,9 +261,11 @@ def compute_objectives(
     Tn = c.shape[0]
     if Tn == 0:
         raise StorageError("空回合无法计算目标")
-    for name, arr in (("z_ratio", z), ("value_cost", vc), ("value_reach", vh),
-                      ("safety_y", y), ("goal_distance_m", goal_d), ("terminated", term),
-                      ("truncated", trunc), ("bootstrap_value_cost", b_c)):
+    for name, arr in (("z_norm", z), ("value_cost", vc), ("value_reach", vh),
+                      ("safety_y", y), ("goal_distance_m", goal_d),
+                      ("safety_y_next", y_next), ("goal_distance_m_next", goal_d_next),
+                      ("terminated", term), ("truncated", trunc),
+                      ("bootstrap_value_cost", b_c)):
         if arr.shape[0] != Tn:
             raise StorageError(f"{name} 长度 {arr.shape[0]} ≠ T={Tn}")
     if terminal_kind not in ("failure", "success", "truncation"):
@@ -234,25 +276,31 @@ def compute_objectives(
         raise StorageError("最后一步同时标记 terminated 与 truncated")
     if not (bool(term[-1]) or bool(trunc[-1])):
         raise StorageError("最后一步既未终止也未截断：chunk 不是完整回合")
-    if abs(float(z.max())) >= 1.0 or abs(float(z.min())) >= 1.0:
+    z_clip = float(obs_z_ratio_clip())
+    if float(np.abs(z).max()) > z_clip:
         raise StorageError(
-            "z_ratio 触到 ±1 的饱和边界，W 定义在截断量上不再可加；"
-            "初始预算须满足 z0_J <= Z_REF_J"
+            f"未裁剪的 z_norm={float(np.abs(z).max()):.4f} 超出观测编码范围 ±{z_clip}："
+            "W 需要未裁减值，而观测已饱和；初始预算须满足 z0_J <= "
+            f"{z_clip}*Z_REF_J={z_clip * cfg.Z_REF_J:.1f} J"
         )
 
+    # --- t 侧：h_t = max(g_norm(x_t), C·y_t) ----------------------------
     g = g_norm_from_distance(goal_d, cfg)
-    h = np.asarray(T.safety_step(g, y, cfg.C), dtype=np.float64).copy()
-    # 索引对齐：``c_t`` 是第 t 步的成本，``h_t`` 是第 t 步**结束时**状态的安全代价
-    # （``goal_distance_m`` 记录的正是该步结束后的距离）。回合终点状态的 h 就是 h[-1]，
-    # 因此尾序列在最末端再补一个 h[-1]（长度 T+1），供 W(t,T) 与 min 型递推收尾。
+    h_t = np.asarray(T.safety_step(g, y, cfg.C), dtype=np.float64)
+    # --- T 侧：终态只补一次 -------------------------------------------------
+    g_T = float(g_norm_from_distance(goal_d_next[-1:], cfg)[0])
+    h_T_measured = float(max(g_T, cfg.C * float(y_next[-1])))
     if terminal_kind == "failure":
-        # 契约：失败步的 V_c / V_h 目标都是 FAIL_PENALTY，该步状态直接取惩罚值
-        h[-1] = cfg.fail_penalty
-    elif terminal_kind == "success":
-        # 契约：成功步的 V_h 目标取该时刻的 g_norm（不再叠加 C·y）
-        h[-1] = float(g[-1])
-    h_term = float(h[-1])
-    h_ext = np.concatenate([h, [h_term]])
+        h_T = float(cfg.fail_penalty)
+    else:
+        # success 与 truncation 都用实测值。契约 terminal 表把 success 写成
+        # "h_T = g_T"，但 safety_history.arrival_rule 与事件真值表都要求
+        # "危险后到达"h=1.0→不可行；若在到达处丢掉 C·y，等于让到达清零 y，
+        # 正是契约要求用反例拦住的那件事。故此处以不可逆安全历史为准：
+        # h_T = max(g_T, C·y_T)，success 与 truncation 的差别只在成本终端项
+        # （success 不 bootstrap，truncation 加 V_c(x_T)）。
+        h_T = h_T_measured
+    h_ext = np.concatenate([h_t, [h_T]])
 
     # --- 成本目标：尾段累计 + 终端项 (gamma_c = 1，未折扣，与目标定义一致) ---
     suffix = np.cumsum(c[::-1])[::-1]
@@ -280,7 +328,9 @@ def compute_objectives(
 
     return {
         "obj_g_norm": g,
-        "obj_h": h,
+        "obj_h": h_t,
+        "obj_h_terminal": np.full(Tn, h_T, dtype=np.float64),
+        "obj_z_norm": z,
         "obj_spent": suffix,
         "obj_target_cost": target_cost,
         "obj_adv_cost": adv_cost,

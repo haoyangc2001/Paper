@@ -180,3 +180,49 @@ D3 / D8 / D9 都会触及"评分语义"，按计划必须先问再过，所以�
 ### 与旧结论的关系
 
 旧三轮训练、`gate_G4` 的 `FAIL_WITH_STABILITY`、NAV-041 的 90 回合全无解、NAV-042 的 6 回合接线，全部按**旧语义**解释并保留原样；本契约不为它们背书，也不据此断言新算法或新物理模式已经通过。
+
+## NAV-062：样本时序、预算与终止接口（2026-11-12）
+
+本项把 NAV-061 登记的三项待裁定落地，并把 M1/M2/M3/M8 的判定从"疑似"变成有数值依据的结论。证据：`tests/test_training_semantics.py`（24 项，PASS）与 `reports/training_semantics_v2.json`。
+
+### 一、样本时序：两侧显式命名
+
+每条转移按 `(x_t, y_t, z_t, u_t, c_t, x_{t+1}, y_{t+1}, z_{t+1})` 存全，命名规则固定为**无后缀 = t，`*_next` = t+1**：
+
+| 时刻 | 字段 |
+|---|---|
+| t | `obs`, `value_cost`, `value_reach`, `z_j`, `z_norm`, `z_ratio`, `safety_y`, `goal_distance_m` |
+| 转移 | `cost_norm`（由 applied 命令产生）, `action_raw`, `action_applied`, `log_prob` |
+| t+1 | `next_obs`, `z_norm_next`, `z_ratio_next`, `safety_y_next`, `goal_distance_m_next` |
+
+修正前的实现（storage `acc0a1fe`）用**步后**的 `goal_distance_m` 与 `safety_y` 组装 `h_t`，再在末尾重复补一次 `h[-1]`：等于把 `h_{t+1}` 配给 `V(x_t)`，且终点安全代价被算了两遍。现改为 `h_t` 由 t 侧字段直接算、`h_T` 由 `*_next` 的末元素算且**只补一次**；两步手算用例逐项对比 `h_t`、`h_T`、`obj_spent`、`W`，并做单侧变异（只改 `z_norm_next` 时任何派生量都不许动，只改 `z_norm` 时 `W` 必须动）。
+
+缓冲区 schema 升为 `camra-navigation-rollout-v2`：缺配对字段的 v1 chunk 直接被拒绝（报错文案点名缺哪几个），不做静默重解释。旧 chunk 与旧报告按 v1 语义保留。
+
+### 二、预算：抽样、未裁剪、不终止
+
+- 每回合 `k ~ U(0.6, 1.3)`、`z0 = k · E_ref(map)`，逐 env 独立 `Generator`；状态随 checkpoint 保存，同 seed 与"中断-恢复"都得到同一序列（已用 40 抽样的前缀/续接对比验证）。参考实现每回合 `uniform(min_energy, max_energy)`；旧实现固定单档 `k_train`，与评测扫 0.7–1.3 不匹配。
+- `z0` 上限是**观测编码上限** `z_ratio_clip · Z_REF_J = 825 J`，不是任务预算。`z_ratio` 从 ±1.0 放宽到 ±1.5（obs-v3，导航契约 1.5.0）：1.3 × 489.4 J 的比值是 1.158，旧上限会把"还有预算"编码成"耗尽"。obs-v2 仍可按 `version=` 逐位重建。
+- 目标 `W` 用**未裁剪**的 `z_J / Z_REF_J`（`z_norm`）；观测里的裁剪值只是编码。两者混用会让 `W` 在饱和处不可加——这是 M2 的实质，不是尺度问题。
+- `z_J <= 0` 不再终止回合、不再产生标签（M3）。回合只跑到到达/碰撞/越界/停滞/30 s。参考实现的 `is_terminal` 只看时限，能量是成本项；旧设置让 82–91% 的失败步停在"油没了"，训练从未见过低预算后半程。
+- "预算内到达"改为独立字段：`within_budget`、`arrived_within_budget`、`over_budget_J`。评估与预算选择的判据同步改为 `label == goal_reached AND z_J_end >= 0`；`run_budget_selection.feasible_from_label` 现在缺 `within_budget` 会直接抛错，不会退化成只看标签。
+
+### 三、三项待裁定的落定
+
+1. **停滞归类**：按 `terminal_and_truncation` 表判为**截断**（`h_T` 实测、成本尾项加 `V_c(x_T)`）。理由：停滞不是物理失败（没有接触、没有越界），但也绝不能当成功；`bootstrap` 让 critic 学会"从这里还能走到哪"。
+2. **z_ratio 裁剪上限**：放宽到 ±1.5，**升 navigation 契约到 1.5.0** 并保留 `clip_by_version`；`observation.py`、`costs.SignedBudget.z_ratio`、`targets.z_ratio_from_budget`、`budget/search.py` 的换算全部改读同一个 `z_ratio_clip()`，不再各处硬编码 1.0。
+3. **动作顶格**：保留参考实现的有界裁剪映射 `u = clip(a, ±1)·COMMAND_MAX`，不改分布族。量化登记（实测，64 个顶格样本）：
+   - 所有 `|a|>1` 的样本 `applied` 顶格，`vx` 上只有极少数不同取值——多个 raw 动作映到同一命令，可辨识性下降；
+   - **似然比梯度不受影响**：策略参数梯度非零，且一步 SGD 后均值被推离这些"更贵"的动作（`mean_vx` 下降）；路径梯度 `dapplied/draw` 在裁剪区为 0，这正是不能要求环境路径处处可导的原因；
+   - 若循环训练后顶格比例仍高，改动作参数化属新契约版本（v2），不在本项静默替换。
+
+### 四、对下游的影响
+
+- NAV-063 的数值门禁读修正后的配对字段；`obj_h`/`obj_h_terminal`/`obj_z_norm` 已随目标一起落盘，便于逐位重算。
+- NAV-064 的循环训练用新预算抽样与终止语义；旧 `formal_training_prereg_v1–v3` 仍可原样重跑（走 `k_train` 分支），但不是新语义的证据。
+- NAV-066 的预算搜索判据改为预算内到达；NAV-067 的 clean 与 200 Hz 事件沿用同一终止口径。
+- `freeze_deployment.py`（critic 重拟合入口）与 `train_nominal.py`（冒烟训练入口）已同步写 v2 字段；本项用一个真实回合的产物核对了落盘 schema。
+
+### 五、边界
+
+名义/向量/物理三侧的接口都已改，但**没有**重跑训练、没有重跑物理 pilot，也没有重签任何门禁。旧三轮训练、G4 的 `FAIL_WITH_STABILITY`、NAV-041 的 90 回合全无解仍是旧语义下的记录，不能当作新版本的通过依据。

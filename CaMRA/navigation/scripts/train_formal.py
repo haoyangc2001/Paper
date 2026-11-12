@@ -71,10 +71,62 @@ POWER = os.path.join(CALIB, "config", "power_model_v1.json")
 SPLIT = os.path.join(NAV_ROOT, "config", "split_manifest_v1.json")
 E_REF_REPORT = os.path.join(NAV_ROOT, "reports", "train_map_reference_energy.json")
 
-FAILURE_LABELS = ("collision", "out_of_bounds", "budget_exhausted")
+FAILURE_LABELS = ("collision", "out_of_bounds")
 SUCCESS_LABELS = ("goal_reached",)
 TRUNCATION_LABELS = ("stagnation", "timeout")
 ALL_LABELS = FAILURE_LABELS + SUCCESS_LABELS + TRUNCATION_LABELS
+#: A v1 run could still produce this label; it is never terminal any more
+#: (NAV-062), so it only appears in old logs and is counted separately.
+LEGACY_LABELS = ("budget_exhausted",)
+
+
+class BudgetSampler:
+    """Per-episode initial budget, reproducible and resumable (NAV-062).
+
+    The reference implementation draws ``uniform(min_energy, max_energy)`` per
+    episode; a single ``k_train`` taught the policy one budget only, while every
+    evaluation spans ``k`` 0.7-1.3.  Here each episode gets
+
+        ``z0_J = k * E_ref(map)``,  ``k ~ Uniform(low, high)``
+
+    from a per-env ``numpy`` generator, so (a) the sequence depends only on the
+    run seed and env index, (b) an interrupted run resumes the *same* sequence
+    (the generator state is checkpointed), and (c) the drawn value is written
+    into the segment meta and the run log, never inferred afterwards.
+
+    ``z0`` is capped at ``z_ratio_clip * Z_REF_J`` because beyond that the
+    encoded ``z_ratio`` saturates and ``W`` stops being additive; the cap is a
+    guard, not a redesign of the requested range.
+    """
+
+    def __init__(self, *, seed: int, n_envs: int, low: float, high: float,
+                 e_ref: dict[str, float], z_ref_J: float, clip: float) -> None:
+        if not (0.0 < low <= high):
+            raise SystemExit(f"budget sampling range must satisfy 0 < low <= high, got {(low, high)}")
+        self.low, self.high = float(low), float(high)
+        self.e_ref = dict(e_ref)
+        self.z_max = float(clip) * float(z_ref_J)
+        self.gens = [np.random.default_rng([int(seed), int(i)]) for i in range(n_envs)]
+
+    def draw(self, env_index: int, map_id: str) -> dict[str, float]:
+        if map_id not in self.e_ref:
+            raise SystemExit(f"no E_ref for map {map_id!r}")
+        k = float(self.gens[env_index].uniform(self.low, self.high))
+        z0 = k * float(self.e_ref[map_id])
+        if z0 > self.z_max:
+            raise SystemExit(
+                f"sampled z0={z0:.2f} J > clip*Z_REF={self.z_max:.2f} J for {map_id}; "
+                "the requested budget range does not fit the observation encoding")
+        return {"k": k, "z0_J": z0, "map_id": map_id}
+
+    def state(self) -> list[dict]:
+        return [dict(g.bit_generator.state) for g in self.gens]
+
+    def load(self, state: list[dict]) -> None:
+        if len(state) != len(self.gens):
+            raise SystemExit(f"budget RNG state has {len(state)} entries, expected {len(self.gens)}")
+        for g, s in zip(self.gens, state):
+            g.bit_generator.state = dict(s)
 
 
 def verify_prereg(name: str) -> tuple[dict, str]:
@@ -89,8 +141,32 @@ def verify_prereg(name: str) -> tuple[dict, str]:
     return json.loads(payload.decode("utf-8")), actual
 
 
+def budget_rules(prereg: dict) -> dict:
+    """Budget sampling rule of this preregistration.
+
+    Two accepted forms:
+
+    * structured (NAV-062 and later):
+      ``budget.sampling = {"kind": "uniform", "k_low": 0.6, "k_high": 1.3}``
+    * legacy: ``budget.rule`` containing ``k_train = <float>`` -- a single k for
+      every episode, kept so v1/v2/v3 preregs stay runnable and their old runs
+      stay reproducible.  A legacy prereg is *not* evidence for the new loop.
+    """
+    b = prereg.get("budget", {})
+    s = b.get("sampling")
+    if isinstance(s, dict):
+        if str(s.get("kind")) != "uniform":
+            raise SystemExit(f"unsupported budget sampling kind {s.get('kind')!r}")
+        return {"kind": "uniform", "k_low": float(s["k_low"]), "k_high": float(s["k_high"])}
+    rule = str(b.get("rule", ""))
+    if "k_train = " not in rule:
+        raise SystemExit("prereg does not state a budget rule (sampling or k_train)")
+    k = float(rule.split("k_train = ")[1].split("（")[0].split(")")[0])
+    return {"kind": "fixed", "k": k}
+
+
 def build_envs(prereg: dict, variant: str):
-    """18 vector envs, one per train map, z0 = k_train * E_ref(map)."""
+    """18 vector envs, one per train map; z0 is sampled per episode later."""
     design = M.load_design(DESIGN)
     geometry = SafetyGeometry.from_frozen(FOOTPRINT, MARGINS, GEOM_CONTRACT)
     if variant == "uncalibrated":
@@ -109,16 +185,14 @@ def build_envs(prereg: dict, variant: str):
 
     split = json.load(open(SPLIT, encoding="utf-8"))
     train_maps = split["splits"]["train"]["maps"]
-    # prereg pins k_train = 1.0 inside budget.rule ("k_train = 1.0")
-    rule = prereg["budget"]["rule"]
-    k_train = float(rule.split("k_train = ")[1].split("（")[0].split(")")[0])
-    envs, z0s = [], []
+    z_max = obs.z_ratio_clip() * obs.Z_REF_J
+    envs, map_ids = [], []
     for idx, m in enumerate(train_maps):
         spec = M.build(m["level"], m["seed"], design)
-        z0 = k_train * e_ref[m["map_id"]]
-        if not (0.0 < z0 <= obs.Z_REF_J):
+        z0 = float(e_ref[m["map_id"]])          # placeholder; reset() sets the real one
+        if not (0.0 < z0 <= z_max):
             raise SystemExit(
-                f"z0={z0:.2f} for {m['map_id']} outside (0, Z_REF_J={obs.Z_REF_J}); "
+                f"E_ref={z0:.2f} for {m['map_id']} outside (0, clip*Z_REF={z_max:.1f}); "
                 "z_ratio would saturate"
             )
         envs.append(VectorNominalNavEnv(
@@ -126,20 +200,24 @@ def build_envs(prereg: dict, variant: str):
             t_max_s=float(prereg["environment"]["t_max_s"]),
             r_goal_m=float(prereg["environment"]["r_goal_m"]),
         ))
-        z0s.append(z0)
-    return envs, z0s, [m["map_id"] for m in train_maps]
+        map_ids.append(m["map_id"])
+    return envs, e_ref, map_ids
 
 
 class EpisodeState:
     """Per-env: current training segment + step counters."""
 
-    def __init__(self, env_index: int, map_id: str, map_seed: int, obs_dim: int):
+    def __init__(self, env_index: int, map_id: str, map_seed: int, obs_dim: int,
+                 episode_z0: dict | None = None):
         self.env_index = env_index
         self.map_id = map_id
         self.map_seed = int(map_seed)
         self.obs_dim = obs_dim
         self.episode_counter = 0
         self.global_step = 0
+        #: ``{"k", "z0_J", "map_id"}`` of the episode being collected.  Written
+        #: into the chunk meta so a chunk always states its own budget.
+        self.episode_z0 = dict(episode_z0 or {})
         self.new_segment()
 
     def new_segment(self) -> None:
@@ -199,8 +277,23 @@ def main() -> int:
 
     nav_contract = json.load(open(NAV_CONTRACT, encoding="utf-8"))
     obs_dim = int(nav_contract["observation_spec"]["total_dim"])
-    envs, z0s, map_ids = build_envs(prereg, args.variant)
+    envs, e_ref, map_ids = build_envs(prereg, args.variant)
     n_envs = len(envs)
+    rules = budget_rules(prereg)
+    if rules["kind"] == "uniform":
+        sampler = BudgetSampler(
+            seed=int(args.seed), n_envs=n_envs,
+            low=rules["k_low"], high=rules["k_high"], e_ref=e_ref,
+            z_ref_J=obs.Z_REF_J, clip=obs.z_ratio_clip())
+        budget_draws = [sampler.draw(i, map_ids[i]) for i in range(n_envs)]
+    else:
+        sampler = None
+        budget_draws = [{"k": rules["k"], "z0_J": rules["k"] * e_ref[m], "map_id": m}
+                        for m in map_ids]
+    envs = [envs[i] for i in range(n_envs)]
+    for i in range(n_envs):
+        envs[i].reset(z0_J=float(budget_draws[i]["z0_J"]))
+    z0s = [float(b["z0_J"]) for b in budget_draws]
     # NAV-037 traceability: the calibration values and frozen-file hashes the
     # cost/geometry actually used, logged before the first update
     provenance = {
@@ -231,7 +324,8 @@ def main() -> int:
     max_updates = args.smoke_updates if smoke else int(prereg["window_semantics"]["max_updates"])
     ckpt_every = int(prereg["checkpoints"]["save_every_updates"])
 
-    states = [EpisodeState(i, map_ids[i], envs[i].spec.seed, obs_dim)
+    states = [EpisodeState(i, map_ids[i], envs[i].spec.seed, obs_dim,
+                          episode_z0=budget_draws[i])
               for i in range(n_envs)]
     stores = [S.RolloutStore(run_dir, f"rollout_env{i}", obs_dim=obs_dim)
               for i in range(n_envs)]
@@ -250,6 +344,9 @@ def main() -> int:
     log({"kind": "run_start", "run_id": args.run_id, "variant": args.variant,
          "seed": args.seed, "prereg_sha256": prereg_sha,
          "n_envs": n_envs, "z0_J_range": [round(min(z0s), 2), round(max(z0s), 2)],
+         "budget_rule": rules, "z0_J_initial": [round(z, 3) for z in z0s],
+         "z_ratio_clip": obs.z_ratio_clip(), "obs_version": obs.OBS_VERSION,
+         "schema": S.SCHEMA_BUFFER,
          "calls_per_window": calls_per_window, "max_updates": max_updates,
          "smoke": smoke, "provenance": provenance})
 
@@ -285,10 +382,17 @@ def main() -> int:
                     value_reach=float(vh[i]),
                     cost_j=float(r.cost_model_J[0]),
                     cost_norm=float(r.cost_model_J[0]) / obs.Z_REF_J,
-                    z_j=float(r.z_J[0]),
-                    z_ratio=float(r.z_ratio[0]),
-                    safety_y=float(r.safety_y[0]),
-                    goal_distance_m=float(r.goal_distance_m[0]),
+                    # t side: the state the critics and `obs` were evaluated at
+                    z_j=float(r.z_J_before[0]),
+                    z_norm=float(r.z_J_before[0]) / obs.Z_REF_J,
+                    z_ratio=float(r.z_ratio_before[0]),
+                    safety_y=float(r.safety_y_before[0]),
+                    goal_distance_m=float(r.goal_distance_before[0]),
+                    # t+1 side: what this transition actually arrived at
+                    z_norm_next=float(r.z_J[0]) / obs.Z_REF_J,
+                    z_ratio_next=float(r.z_ratio[0]),
+                    safety_y_next=float(r.safety_y[0]),
+                    goal_distance_m_next=float(r.goal_distance_m[0]),
                     terminated=bool(done_i and label_i in (FAILURE_LABELS + SUCCESS_LABELS)),
                     truncated=bool(done_i and label_i in TRUNCATION_LABELS),
                     event_code=S.EVENT_CODES[label_i or "none"],
@@ -321,7 +425,14 @@ def main() -> int:
                         env_done=True, label=label_i)
                     window_segments.append((st, kind_used, arrays, True))
                     episode_labels.append(label_i)
-                    envs[i].reset()
+                    # a new episode draws its own budget (NAV-062); the draw is
+                    # logged so the episode's z0 never has to be inferred
+                    if sampler is not None:
+                        draw = sampler.draw(st.env_index, st.map_id)
+                        envs[i].reset(z0_J=float(draw["z0_J"]))
+                        st.episode_z0 = draw
+                    else:
+                        envs[i].reset()
                     st.reset_episode()
                     next_obs[i] = envs[i].observation[0]
             obs_np = next_obs
@@ -393,6 +504,9 @@ def main() -> int:
                 "map_id": st.map_id,
                 "map_seed": st.map_seed,
                 "n_samples": int(len(arrays["t"])),
+                "episode_z0_J": st.episode_z0.get("z0_J"),
+                "episode_k": st.episode_z0.get("k"),
+                "schema": S.SCHEMA_BUFFER,
             }
             stores[st.env_index].write_chunk(arrays, meta)
 
@@ -423,6 +537,11 @@ def main() -> int:
                 "calls_per_window": calls_per_window,
                 "z0_J": [round(z, 3) for z in z0s],
                 "map_ids": map_ids,
+                # NAV-062: the per-episode budget stream must be resumable, so
+                # its generator states travel with the weights
+                "budget_rule": rules,
+                "budget_rng": None if sampler is None else sampler.state(),
+                "episode_z0": [st.episode_z0 for st in states],
             }, os.path.join(run_dir, f"state_u{update_idx + 1}.pt"))
 
     wall = time.time() - t_start
@@ -437,6 +556,7 @@ def main() -> int:
     }, os.path.join(run_dir, "state.pt"))
     log({"kind": "run_end", "wall_hours": round(wall / 3600.0, 3),
          "updates": max_updates,
+         "budget_rule": rules,
          "episode_label_counts": {name: sum(1 for x in episode_labels if x == name)
                                   for name in ALL_LABELS}})
     log_f.close()

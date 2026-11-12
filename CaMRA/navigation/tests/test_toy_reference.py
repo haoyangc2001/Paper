@@ -415,14 +415,21 @@ def main() -> int:
     for p, kind, expect in ((goal_path, "success", MOVE_COST),
                             (collision_path, "failure", k["fail_penalty"])):
         Tn = len(p["cells"]) - 1
+        z_seq = 0.45 - MOVE_COST * np.arange(Tn)
+        dist = [CELL_M * math.hypot(c[0] - 4, c[1] - 0) for c in p["cells"]]
         arr = {
             "cost_norm": np.full(Tn, MOVE_COST),
-            "z_ratio": 0.45 - MOVE_COST * np.arange(Tn),
+            # schema v2 (NAV-062): no suffix = x_t, *_next = x_{t+1}
+            "z_norm": z_seq,
+            "z_ratio": z_seq.copy(),
             "value_cost": np.zeros(Tn),
             "value_reach": np.zeros(Tn),
-            "safety_y": np.asarray(p["ys"][1:], dtype=np.float64),
-            "goal_distance_m": np.array([
-                CELL_M * math.hypot(c[0] - 4, c[1] - 0) for c in p["cells"][1:]]),
+            "safety_y": np.asarray(p["ys"][:-1], dtype=np.float64),
+            "goal_distance_m": np.array(dist[:-1]),
+            "z_norm_next": z_seq - MOVE_COST,
+            "z_ratio_next": z_seq - MOVE_COST,
+            "safety_y_next": np.asarray(p["ys"][1:], dtype=np.float64),
+            "goal_distance_m_next": np.array(dist[1:]),
             "terminated": np.array([False] * (Tn - 1) + [True]),
             "truncated": np.array([False] * Tn),
             "bootstrap_value_cost": np.zeros(Tn),
@@ -437,11 +444,16 @@ def main() -> int:
     Tn = 3
     arr_tr = {
         "cost_norm": np.full(Tn, MOVE_COST),
+        "z_norm": np.array([0.45, 0.35, 0.25]),
         "z_ratio": np.array([0.45, 0.35, 0.25]),
         "value_cost": np.zeros(Tn),
         "value_reach": np.zeros(Tn),
         "safety_y": np.zeros(Tn),
-        "goal_distance_m": np.array([10.0, 7.5, 5.0]),
+        "goal_distance_m": np.array([12.5, 10.0, 7.5]),
+        "z_norm_next": np.array([0.35, 0.25, 0.15]),
+        "z_ratio_next": np.array([0.35, 0.25, 0.15]),
+        "safety_y_next": np.zeros(Tn),
+        "goal_distance_m_next": np.array([10.0, 7.5, 5.0]),
         "terminated": np.array([False, False, False]),
         "truncated": np.array([False, False, True]),
         "bootstrap_value_cost": np.array([0.0, 0.0, 0.7]),

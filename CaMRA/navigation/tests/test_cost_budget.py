@@ -170,24 +170,26 @@ def main() -> int:
     )
     big = C.SignedBudget(z0_J=10.0)
     big.charge(1e6)
+    clip = C.z_ratio_clip()
     check(
         "z_ratio_clipped_but_z_J_not",
-        big.z_ratio == -1.0 and big.z_J < -1e5,
-        {"z_ratio": big.z_ratio, "z_J": big.z_J,
-         "note": "ratio 截到 -1 供观测；z_J 保留真实超支，供诊断与报告"},
+        big.z_ratio == -clip and big.z_J < -1e5,
+        {"z_ratio": big.z_ratio, "clip": clip, "z_J": big.z_J,
+         "note": "ratio 截到 -clip 供观测（obs-v3 为 -1.5）；z_J 保留真实超支"},
     )
 
     # --- 7. reversible normalisation --------------------------------------
     rnd = C.SignedBudget(z0_J=200.0)
-    zs = [-Z_REF_J, -50.0, 0.0, 75.0, Z_REF_J]
+    lim = C.z_ratio_clip()
+    zs = [-lim * Z_REF_J, -50.0, 0.0, 75.0, lim * Z_REF_J]
     rt = [rnd.from_ratio(rnd.to_ratio(z)) for z in zs]
     worst_rt = max(abs(a - z) for a, z in zip(rt, zs))
-    ok3, msg3 = raises(rnd.from_ratio, 1.5)
+    ok3, msg3 = raises(rnd.from_ratio, lim + 0.25)
     check(
         "normalisation_invertible_inside_range",
         worst_rt < 1e-9 and ok3,
         {"z_values": zs, "round_trip": rt, "max_abs_dev": worst_rt,
-         "outside_range": msg3},
+         "clip": lim, "outside_range": msg3},
     )
 
     # --- 8. unit mix-up is detectable by magnitude ------------------------

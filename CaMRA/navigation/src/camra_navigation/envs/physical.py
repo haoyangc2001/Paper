@@ -1,7 +1,7 @@
 """Online closed-loop navigation driven by the *actual* simulator state (NAV-042).
 
 Structure of one navigation step (0.1 s):
-``true pose`` -> ``obs-v2`` -> deterministic policy -> ``[vx, vy, wz]`` ->
+``true pose`` -> ``obs-v3`` -> deterministic policy -> ``[vx, vy, wz]`` ->
 clip once -> the applied command is written into the low-level command store ->
 **5 policy steps of 0.02 s** (each: re-observe -> re-infer -> apply -> 4 physics
 substeps of 0.005 s) -> ``true pose`` again.
@@ -11,8 +11,9 @@ Three things this module keeps apart on purpose:
 1. **Internal budget vs measured energy.**  ``z`` is charged every nav step with
    ``(1+alpha) * c_nom`` from the frozen power model; the measured mechanical
    work arrives from the 200 Hz recorder and is stored beside it, never mixed.
-   ``budget_exhausted`` (a business label) and "measured work over z0" (BVR) are
-   different facts and are recorded separately.
+   "over the internal budget" (``budget_z_J < 0``) and "measured work over z0"
+   (BVR) are different facts and are recorded separately.  Neither ends the
+   episode: since NAV-062 ``z <= 0`` is a reported fact, not a terminal.
 2. **Actual state vs nominal reference.**  The reference is a twin integrated
    from the *initial* pose with the applied command sequence.  It is never
    re-anchored to the actual pose, so ``deviation_m`` measures real
@@ -195,6 +196,11 @@ class NavStepRecord:
     out_of_bounds: bool
     goal_distance_m: float
     safety_y: float
+    z_J_before: float = 0.0
+    z_ratio_before: float = 0.0
+    safety_y_before: float = 0.0
+    goal_distance_before: float = 0.0
+    within_budget: bool = True
     policy_steps: list[PolicyStepEvidence] = field(default_factory=list)
     label: str | None = None
     done: bool = False
@@ -206,7 +212,9 @@ class NavStepRecord:
             "internal_violation": self.internal,
             "collision": self.collision,
             "out_of_bounds": self.out_of_bounds,
-            "budget_exhausted": self.label == "budget_exhausted",
+            # kept for trace compatibility; a label is never budget_exhausted
+            # any more (NAV-062), the budget fact lives in `within_budget`
+            "budget_exhausted": self.budget_z_J < 0.0,
             "fall": self.label == "fall",
         }
 
@@ -241,6 +249,11 @@ class NavStepRecord:
             "failure_mask": self.failure_mask,
             "goal_distance_m": round(self.goal_distance_m, 6),
             "safety_y": round(self.safety_y, 6),
+            "t_side": {"z_J": round(self.z_J_before, 6),
+                       "z_ratio": round(self.z_ratio_before, 6),
+                       "safety_y": round(self.safety_y_before, 6),
+                       "goal_distance_m": round(self.goal_distance_before, 6),
+                       "within_budget": self.within_budget},
             "policy_steps": [p.as_dict() for p in self.policy_steps],
             "label": self.label,
             "done": self.done,
@@ -268,6 +281,8 @@ class EpisodeTrace:
             "z0_J": None if self.z0_J is None else round(self.z0_J, 6),
             "status": self.status,
             "label": self.label,
+            "obs_version": obs.OBS_VERSION,
+            "z_ratio_clip": obs.z_ratio_clip(),
             "n_steps": len(self.records),
             "notes": list(self.notes),
             "steps": [r.as_dict() for r in self.records] if include_steps else [],
@@ -301,6 +316,11 @@ class EpisodeTrace:
             "collision_steps": sum(1 for r in self.records if r.collision),
             "max_budget_overspend_J": round(
                 max((max(0.0, -r.budget_z_J) for r in self.records), default=0.0), 3),
+            # NAV-062: arrival and budget are separate facts; a late arrival is
+            # never a feasible arrival just because the label says goal_reached
+            "arrived_within_budget": bool(
+                self.label == "goal_reached" and last is not None
+                and last.budget_z_J >= 0.0),
         }
 
 
@@ -496,6 +516,12 @@ class PhysicalNavEnv:
             p0, y0, yaw0 = self._pose[i]
             s = self.low.true_state(i)
             p1, y1, yaw1 = float(s[0]), float(s[1]), float(s[2])
+            # the t side, before anything is charged or updated (NAV-062)
+            z_before = float(self._budgets[i].z_J)
+            z_ratio_before = float(self._budgets[i].z_ratio)
+            safety_before = float(self.safety_y[i])
+            goal_d_before = math.hypot(float(self.spec.goal[0]) - p0,
+                                       float(self.spec.goal[1]) - y0)
             cost = self._cost_models[i].step(applied_rows[i], budget=self._budgets[i])
 
             danger = any(
@@ -542,8 +568,7 @@ class PhysicalNavEnv:
                     label = "out_of_bounds"
                 elif goal_d <= self.cfg.r_goal_m:
                     label = "goal_reached"
-                elif self._budgets[i].z_J <= 0.0:
-                    label = "budget_exhausted"
+                # no budget branch: z <= 0 never ends the episode (NAV-062)
                 elif self._stagnated(i):
                     label = "stagnation"
                 elif self.t_s[i] >= self.cfg.t_max_s - 1e-12:
@@ -559,7 +584,9 @@ class PhysicalNavEnv:
                 t_start_s=self.t_s[i] - DT_NAV_S, t_end_s=self.t_s[i],
                 pose_before=(p0, y0, yaw0), pose_after=(p1, y1, yaw1),
                 state_after=(float(s[3]), float(s[4]), float(s[5])),
-                # obs-v2 tail order is [safety_y, z_ratio, time_remaining_n]
+                # tail order is [safety_y, z_ratio, time_remaining_n] in every
+                # observation version so far; the version is recorded in the
+                # trace header so a future reorder cannot go unnoticed
                 obs_z_ratio=float(vec[-2]), obs_safety_y=float(vec[-3]),
                 obs_time_remaining=float(vec[-1]),
                 action=actions[i], requested=cmd.requested, applied=cmd.applied,
@@ -574,6 +601,10 @@ class PhysicalNavEnv:
                 danger=bool(danger), internal=bool(danger),
                 collision=bool(hit), out_of_bounds=bool(outside),
                 goal_distance_m=goal_d, safety_y=float(self.safety_y[i]),
+                z_J_before=z_before, z_ratio_before=z_ratio_before,
+                safety_y_before=safety_before,
+                goal_distance_before=goal_d_before,
+                within_budget=bool(z_before >= 0.0),
                 policy_steps=evidence, label=label, done=self.done[i])
             out.append(rec)
             self.index[i] += 1

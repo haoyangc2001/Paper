@@ -1,0 +1,74 @@
+{
+  "schema": "camra-rcppo-alignment-contract-v1-amendment",
+  "version": "1.0.0",
+  "amends": "config/rcppo_alignment_contract_v1.json",
+  "amended_by_task": "NAV-062",
+  "created_at": "2026-11-12T15:05:00+08:00",
+  "rule": "原契约文件不改写（NAV-061 冻结，散列见其 evidence_anchors）；本文件只登记裁定结果与新证据，条款冲突处以本文件为准并从下一版契约吸收",
+  "resolved_adjudications": [
+    {
+      "item": "停滞（stagnation）算失败还是截断",
+      "affects": "M7",
+      "owner": "NAV-063",
+      "decided_by": "NAV-062（按 terminal_and_truncation 表落地掩码）",
+      "decision": "truncation",
+      "basis": "停滞没有物理接触或越界，不是吸收失败；但也不能当成功。按截断处理：h_T 取实测 max(g_T, C·y_T)，成本尾项加 V_c(x_T)",
+      "evidence": "tests/test_training_semantics.py::slice_and_horizon_both_bootstrap_but_differ_in_extent；storage.TERMINAL_KIND",
+      "residual": "数值等价（切片重接、三估计器）仍由 NAV-063 的 gate_G3_alignment_v2 证明"
+    },
+    {
+      "item": "z_ratio 裁剪上限放宽到 ±1.5 是否升 navigation 契约",
+      "affects": "M2",
+      "owner": "NAV-062",
+      "decision": "升版：navigation_contract_v1 1.4.0 → 1.5.0；observation 升 obs-v3，Z_RATIO_CLIP=1.5；obs-v2 保留可重建",
+      "basis": "采样预算 k∈[0.6,1.3]×E_ref，E_ref 最大 489.4 J → 比值 1.158 > 1.0；旧上限把『还有预算』编码成『耗尽』，且 W 用裁剪值后不可加",
+      "evidence": "config/navigation_contract_v1.json (1.5.0, sha ec0f3e53267ee557…)；tests/test_observation_contract.py::z_ratio_signed_and_bounded / obs_v2_still_reconstructible",
+      "residual": "z_J 未裁剪进目标；z0 上限 825 J 由 storage 的守卫强制"
+    },
+    {
+      "item": "动作顶格的处理方式",
+      "affects": "M9",
+      "owner": "NAV-062",
+      "decision": "保留参考实现的有界裁剪映射 u=clip(a,±1)·COMMAND_MAX，不改分布族；残余风险量化登记",
+      "basis": "似然比梯度在 raw 空间，裁剪不切断 dlogp/dμ：顶格样本上策略参数梯度非零，一步 SGD 后均值被推离更贵的动作；路径梯度 dapplied/draw 在裁剪区为 0，因此不能要求环境路径处处可导",
+      "evidence": "reports/training_semantics_v2.json → semantics.action.measured / gradient / mean_move",
+      "residual": "多个 raw 值映到同一命令导致可辨识性下降；若循环训练后顶格比例仍高，改参数化须另立契约版本（v2），本项不得静默替换"
+    }
+  ],
+  "additional_rulings": [
+    {
+      "topic": "success 的 h_T 是否包含 C·y",
+      "conflict": "terminal_and_truncation 表写 success → h_T = g_T；safety_history.arrival_rule 与 event_truth_table 都要求『危险后到达 h=1.0 → 不可行』",
+      "ruling": "h_T = max(g_T, C·y_T)（成功与截断同式）；success 与 truncation 的差别只在成本终端项",
+      "reason": "若在到达处丢掉 C·y，等于让到达清零不可逆安全历史，正是契约要求用反例拦住的那件事",
+      "evidence": "tests/test_training_semantics.py::danger_then_arrival_not_feasible；tests/test_rollout_resume.py::success_branch_ignores_bootstrap",
+      "next_contract_version": "v1.1.0 需把 terminal 表的 success 行改为 max(g_T, C·y_T)"
+    },
+    {
+      "topic": "budget_exhausted 的归属",
+      "ruling": "非终止诊断事实；标签不再产生，旧 v1 轨迹保留解析能力（storage.LEGACY_LABELS）",
+      "evidence": "navigation_contract 1.5.0 event_table + termination_semantics.budget_not_terminal"
+    }
+  ],
+  "remediation_matrix_status": {
+    "M1": {"verdict_before": "疑似缺陷", "verdict_after": "缺陷（已修）", "changed": "storage.compute_objectives 的 h_t 全部改用 t 侧字段；h_T 只补一次；raw_fields 增 5 个配对字段", "evidence": "两步手算 + 单侧变异"},
+    "M2": {"verdict_before": "缺陷", "verdict_after": "缺陷（已修）", "changed": "每回合 k~U(0.6,1.3) 抽样；z_ratio 升 obs-v3 ±1.5；W 用未裁剪 z_norm", "evidence": "分布检查（2000 抽样）+ 可复现/可恢复 + 边界用例"},
+    "M3": {"verdict_before": "缺陷", "verdict_after": "缺陷（已修）", "changed": "名义/向量/物理三侧取消预算终止；within_budget / arrived_within_budget / over_budget_J 独立字段", "evidence": "z<0 继续步进 231 步后到达；超预算到达判不可行"},
+    "M8": {"verdict_before": "待数值裁定", "verdict_after": "缺陷（已修）", "changed": "窗口切片与 30 s 时限分别标记（env_done=False/True），都 bootstrap 但 extent 与来源不同", "evidence": "slice_and_horizon_both_bootstrap_but_differ_in_extent"},
+    "M4": {"verdict_before": "刻意偏离（有理由）", "verdict_after": "刻意偏离（保留）", "changed": "到达不再清零 y：h_T 含 C·y", "evidence": "danger_then_arrival_not_feasible"},
+    "M5": {"verdict_before": "待数值裁定", "verdict_after": "未变（NAV-063）"},
+    "M6": {"verdict_before": "缺陷（主要缺口）", "verdict_after": "未变（NAV-063）"},
+    "M7": {"verdict_before": "待数值裁定", "verdict_after": "部分裁定（停滞=截断；数值等价待 063）"},
+    "M9": {"verdict_before": "基本一致", "verdict_after": "保留 + 量化残余风险（NAV-062 裁定，063 复验 ratio/裁剪触发率）"},
+    "M10": {"verdict_before": "缺陷", "verdict_after": "未变（NAV-066）"},
+    "M11": {"verdict_before": "已存在，需复核保留", "verdict_after": "未变（NAV-063）"},
+    "M12": {"verdict_before": "待核", "verdict_after": "部分证据（train_nominal 真实产物 + freeze_deployment 入口构造）；完整调用链由 063 的门禁签"}
+  },
+  "new_contract_versions": {
+    "navigation_contract_v1": "1.5.0",
+    "observation": "obs-v3",
+    "buffer_schema": "camra-navigation-rollout-v2",
+    "value_objective_contract_v1": "1.2.0（未改）"
+  },
+  "evidence_report": "reports/training_semantics_v2.json"
+}

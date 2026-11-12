@@ -116,6 +116,9 @@ def main() -> int:
         return {
             "map_id": spec.map_id, "level": spec.level, "seed": spec.seed,
             "z0_J": round(z0, 2), "label": label, "n_steps": steps,
+            "within_budget": bool(res.within_budget),
+            "arrived_within_budget": bool(res.arrived_within_budget),
+            "over_budget_J": round(res.over_budget_J, 2),
             "final_goal_distance_m": round(res.goal_distance_m, 3),
             "min_goal_distance_m": round(min_d, 3),
             "cost_model_J": round(cost_J, 2),
@@ -147,8 +150,17 @@ def main() -> int:
         "pooled_deadband": deadband_profile(pooled),
     }
 
-    dev_sr = sum(1 for r in dev_rows if r["label"] == "goal_reached") / len(dev_rows)
-    train_sr = sum(1 for r in train_rows if r["label"] == "goal_reached") / len(train_rows)
+    def _sr(rows: list[dict]) -> float:
+        return sum(1 for r in rows if r["label"] == "goal_reached") / len(rows)
+
+    def _sr_within(rows: list[dict]) -> float:
+        """Arrival *and* non-negative internal budget (NAV-062 feasibility)."""
+        return sum(1 for r in rows if r["arrived_within_budget"]) / len(rows)
+
+    dev_sr = _sr(dev_rows)
+    train_sr = _sr(train_rows)
+    dev_sr_within = _sr_within(dev_rows)
+    train_sr_within = _sr_within(train_rows)
     report = {
         "task": "NAV-036",
         "run_id": args.run_id,
@@ -158,10 +170,12 @@ def main() -> int:
         "development_diagnostic": {
             "reporting": "diagnostic only; never a final number (experiment_prereg)",
             "success_rate": dev_sr,
+            "success_rate_within_budget": dev_sr_within,
             "episodes": dev_rows,
         },
         "train_maps_deterministic": {
             "success_rate": train_sr,
+            "success_rate_within_budget": train_sr_within,
             "episodes": train_rows,
         },
         "oi1_command_distribution": oi1,

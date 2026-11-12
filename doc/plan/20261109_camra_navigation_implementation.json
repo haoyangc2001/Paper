@@ -5140,7 +5140,7 @@
       "id": "NAV-062",
       "phase": "预算与闭环",
       "goal": "修正样本时序、预算条件与终止接口并统一名义和物理侧契约",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-061"
       ],
@@ -5161,7 +5161,7 @@
         "动作两端与接近饱和样本的applied、log_prob和梯度统计可解释，记录裁剪/饱和比例；未完成动作契约处理不能靠列风险通过。",
         "回归覆盖真实训练及critic重拟合采样入口、预算搜索单位转换和物理接口；旧证据保留、新报告与hash独立。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：三侧（名义标量/向量/物理）接口与契约同步到 t/t+1 显式配对、逐回合预算抽样与『预算不终止』语义。①样本两侧字段齐全（schema camra-navigation-rollout-v2），两步手算逐项对上 h_t/h_T/obj_spent/W，单侧变异证明 z_norm_next 不污染 V(x_t)、z_norm 会移动 W；缺配对字段的 v1 chunk 被拒绝而非静默重解释。②每回合 k~U(0.6,1.3)、z0=k·E_ref 逐 env 抽样，同 seed 与中断-恢复得到同一序列（40 抽样前缀/续接对比），2000 抽样覆盖 [0.6,1.3] 且 1900+ 个不同值，z0 上限 825 J 由守卫强制。③z_J<=0 不再终止：实测 z<0 后继续步进 231 步才因到达结束，新回合不再产生 budget_exhausted 标签；超预算到达 label=goal_reached 但 arrived_within_budget=False 且 W>0；危险后到达 h_T=1.0、W>0 不可行；干净到达 W=0（恰在 beta=0 的可行边界，与契约 max_zero_caveat 一致）。④窗口切片与 30 s 时限都 bootstrap 但 env_done 与 extent 不同；⑤动作顶格量化登记：64/64 顶格样本 applied 触限，策略参数梯度非零且一步 SGD 把均值推离更贵动作（mean_vx 下降），路径梯度在裁剪区为 0（不要求环境可导）。测试 24/24 PASS（reports/training_semantics_v2.json，sha 3af36757…）；同批回归 test_observation_contract 29/29、test_cost_budget 20/20、test_rollout_resume 26/26、test_toy_reference 13/13、test_targets_oracle 15/15、test_value_objective 11/11、test_budget_search 17/17、test_budget_selection 22/22、test_physical_loop 18/18、test_vector_equivalence 6/6（逐位等价未受影响）。旧报告、旧 chunk、旧判定保留；未重训、未重跑物理 pilot、未重签门禁。",
       "planned_outputs": [
         "src/camra_navigation/envs/{nominal,vector,physical}.py",
         "src/camra_navigation/observation.py与algorithm/storage.py",
@@ -5169,7 +5169,115 @@
         "tests/test_training_semantics.py",
         "reports/training_semantics_v2.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-12T14:14:00+08:00",
+          "summary": "NAV-062 开工对齐简报（execution_alignment_policy.preflight）：任务 NAV-062，计划 1.3.1，依赖 NAV-061 已完成；本项修正样本时序、预算条件与终止接口，统一名义/向量/物理三侧契约。本记录只做阅读、核对与范围声明，不改代码。",
+          "actions": [
+            "完整重读工作区根 AGENTS.md、计划全文（document/goal/scope/global_constraints/execution_alignment_policy/uncertainty_policy/upstream_correction_policy/gates）与 NAV-062 条目",
+            "读取并核对 NAV-061 冻结的两份契约：config/rcppo_alignment_contract_v1.json（12 项回修矩阵、8 行事件真值表、3 项待裁定）与 config/training_loop_protocol_v1.json",
+            "只读核对生产链：envs/nominal.py 与 envs/vector.py 的标签与 z 记账、observation.py 的 z_ratio 裁剪、algorithm/storage.py 的 compute_objectives 与 raw_fields、algorithm/targets.py 的 select_stop、scripts/train_formal.py 的采样与预算写入",
+            "只读核对下游消费者：envs/physical.py 的标签与 obs 尾部索引、scripts/freeze_deployment.py、scripts/eval_formal_final.py、scripts/run_budget_selection.py、budget/search.py 的判据与文档",
+            "按 NAV-061 指认的 M1 疑点核对 storage.compute_objectives 的实际索引来源：goal_distance_m 与 safety_y 均为步后量，却被当作 h_t 使用"
+          ],
+          "files_changed": [],
+          "commands": [
+            "ssh 192.168.20.11（hostname=tiger11.ios.ac.cn，8×RTX4090）'cd CaMRA/navigation && sha256sum <改动前文件>'",
+            "ssh 192.168.20.11 'grep -rn \"budget_exhausted|z_ratio|goal_reached\" --include=*.py src scripts tests'"
+          ],
+          "results": [
+            "本项对总目标的作用：预算增广状态、不可逆安全历史与共同停止要成立，前提是每条转移按 (x_t,y_t,z_t,u_t,c_t,x_{t+1},y_{t+1},z_{t+1}) 保存；当前 y/z/距离取步后值，价值配对存在 t/t+1 混配，属五元链第一环的数值前提，必须先把接口修对，后面 063 的数值门禁才有意义。",
+            "依赖状态：NAV-061 status=True（49/67），plan version 1.3.1；NAV-062 是本块第一个改源码的任务。",
+            "上游证据（改动前 hash，与契约 evidence_anchors 逐项一致）：nominal.py a150451beec056bd、vector.py b4b366012aacb0eb、physical.py 49a6cbc320e9d586、observation.py e018e76594364bca、storage.py acc0a1fe68a28820、targets.py b3292d4372be9a55、ppo.py ce3b510af80501a0、train_formal.py 8abe50f6dfe17300、navigation_contract_v1.json 2b78736919cbc50d、value_objective_contract_v1.json d6c4648cac3f1d67。",
+            "已确认三处必须在本项内改（不是 063 的范围）：①obs-v2 的 z_ratio 裁到 ±1 且 storage 用该裁剪值进 W，z0>Z_REF 时 W 不可加；②nominal/vector/physical 在 z_J<=0 时直接终止并给 budget_exhausted 标签，与参考实现 is_terminal 只看时间相反；③train_formal 固定 k_train 单档，且失败类别把 budget_exhausted 计入。",
+            "允许修改：CaMRA/navigation 内的实现与导航契约（observation 语义需升版本 + 保留旧版本可重建）、train_formal/freeze_deployment/eval_formal_final/run_budget_selection 等生产消费者。不改：冻结 v2 整套配置、功率模型/足迹/α/δ、RC-PPO/ 与论文、旧报告与旧数据锁、final_* 用途隔离。",
+            "待裁定项归属（按 NAV-061 open_adjudications）：z_ratio 裁剪上限放宽到 ±1.5 → 本项（含契约升版与快照）；动作顶格 → 本项（保持参考的有界裁剪映射并给梯度/饱和统计，不改映射语义）；停滞归类 → 已由事件真值表定为截断（+V_c(x_T)），本项只落掩码，063 负责数值门禁。",
+            "验收证据规划：tests/test_training_semantics.py（两步手算、负预算继续、超预算/危险后到达、同时事件、30 s 截止 vs 窗口切片、动作饱和与 log_prob/梯度统计、预算序列可复现与中断恢复、真实生产入口回归）+ reports/training_semantics_v2.json；旧报告保留，新报告独立版本。",
+            "下游交付：NAV-063（三估计器/共同停止的数值门禁读修正后的配对字段）、NAV-064（循环训练按新的预算抽样与终止语义开跑）、NAV-066（预算搜索判据改为预算内到达）、NAV-067（物理 clean 与 200 Hz 事件沿用同一终止口径）。"
+          ],
+          "evidence": [
+            "本记录上方 reading 列表对应的只读核对（文件与行号见 results）",
+            "改动前 hash 清单（见 results 第 3 条），与 config/rcppo_alignment_contract_v1.json 的 evidence_anchors.files_sha256_prefix 逐项相符"
+          ],
+          "remaining_work": [
+            "obs-v3（z_ratio ±1.5）与导航契约升版",
+            "名义/向量环境取消预算终止并暴露 t 与 t+1 的 y/z/距离",
+            "storage 样本字段与 compute_objectives 的 t/t+1 修正、饱和守卫放宽",
+            "train_formal 每回合预算抽样与可恢复",
+            "物理侧与评估/预算消费者同步",
+            "时序语义测试与报告"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-12T15:12:00+08:00",
+          "summary": "NAV-062 完成（status True，50/67）：修正样本时序、预算条件与终止接口，统一名义标量/向量/物理三侧。三项待裁定（z_ratio ±1.5 升契约、停滞=截断、动作保持有界裁剪并量化残余风险）全部落地并留下证据；M1/M2/M3/M8 从『疑似/待裁』变为『缺陷已修』，M4 的到达不清零 y 用反例钉住。",
+          "actions": [
+            "observation.py：新增 Z_RATIO_CLIP_BY_VERSION（obs-v2=1.0 / obs-v3=1.5）与 z_ratio_value/z_ratio_clip 单一实现；encode_observation 增加 version= 参数，obs-v2 仍可逐位重建；OBS_VERSION=obs-v3",
+            "costs.py：SignedBudget.z_ratio / to_ratio / from_ratio 改读同一 z_ratio_clip()，不再硬编码 ±1",
+            "envs/nominal.py 与 envs/vector.py：删除 budget_exhausted 终止分支与标签，StepRecord/BatchStepRecord 增加 *_before（t 侧）与 within_budget；reset 支持每回合 z0（标量或逐 env），EpisodeResult 增加 within_budget/arrived_within_budget/over_budget_J",
+            "envs/physical.py：同上取消预算终止；记录 t 侧 z/y/距离与 within_budget；trace 头记录 obs_version 与 z_ratio_clip；summary 增加 arrived_within_budget",
+            "algorithm/storage.py：raw_fields 增 z_norm/z_norm_next/z_ratio_next/safety_y_next/goal_distance_m_next，schema 升 v2；compute_objectives 用 t 侧字段组 h_t、h_T 只补一次、W 用未裁剪 z_norm、饱和守卫改到 clip 边界并拒绝 v1 chunk",
+            "algorithm/targets.py：stop_residual/select_stop 参数改名 z_norm 并写明未裁剪语义；z_ratio_from_budget 读版本化裁剪",
+            "scripts/train_formal.py：新增 BudgetSampler（逐 env Generator、uniform(0.6,1.3)、z0<=clip*Z_REF、可存取状态）与 budget_rules（结构化 sampling 或旧 k_train 两种形式）；样本写双侧字段；chunk meta 与 checkpoint 记录 z0/k/RNG",
+            "scripts/train_nominal.py：同步双侧字段与预算上限（clip*Z_REF）",
+            "scripts/freeze_deployment.py：step_row/arrays_from_steps 写双侧字段，critic 重拟合用 t 侧 obs 与 value 配对；FAILURE 集合去掉 budget_exhausted",
+            "scripts/eval_formal_final.py：每行增加 within_budget/arrived_within_budget/over_budget_J，SR 同时给『到达到』与『预算内到达』",
+            "scripts/run_budget_selection.py：feasible_from_label(label, within_budget) 强制合取，缺参数即抛错；裁剪诊断与 z0_above_clip 跟随 obs 版本",
+            "config/navigation_contract_v1.json 升 1.5.0：observation obs-v3、z_ratio 范围 ±1.5（clip_by_version）、budget_exhausted 改 terminal=false 诊断项、termination_semantics 增 budget_not_terminal；config/rcppo_alignment_contract_v1.amend1.json 登记三项裁定与 M1–M12 状态变化",
+            "新增 tests/test_training_semantics.py（24 项）与 reports/training_semantics_v2.json；docs/algorithm_implementation.md 追加 NAV-062 章节",
+            "按上游回修政策更新 4 个旧测试的冻结断言（obs 裁剪、成本可逆区间、恢复测试与玩具测试的样本字段），旧断言以『obs-v2 仍可重建』的形式保留而非删除"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/observation.py",
+            "CaMRA/navigation/src/camra_navigation/costs.py",
+            "CaMRA/navigation/src/camra_navigation/envs/nominal.py",
+            "CaMRA/navigation/src/camra_navigation/envs/vector.py",
+            "CaMRA/navigation/src/camra_navigation/envs/physical.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/storage.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/targets.py",
+            "CaMRA/navigation/scripts/train_formal.py",
+            "CaMRA/navigation/scripts/train_nominal.py",
+            "CaMRA/navigation/scripts/freeze_deployment.py",
+            "CaMRA/navigation/scripts/eval_formal_final.py",
+            "CaMRA/navigation/scripts/run_budget_selection.py",
+            "CaMRA/navigation/config/navigation_contract_v1.json",
+            "CaMRA/navigation/config/rcppo_alignment_contract_v1.amend1.json",
+            "CaMRA/navigation/tests/test_training_semantics.py",
+            "CaMRA/navigation/reports/training_semantics_v2.json",
+            "CaMRA/navigation/docs/algorithm_implementation.md"
+          ],
+          "commands": [
+            "PYTHONPATH=src:. /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python tests/test_training_semantics.py --json /tmp/nav062_ts_raw.json",
+            "同解释器逐个运行 tests/test_*.py（24 个测试脚本）",
+            "python3 /tmp/nav062_make_report.py  # 生成 reports/training_semantics_v2.json",
+            "python3 /tmp/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+          ],
+          "results": [
+            "新增测试 24/24 PASS；同批回归全绿：observation 29/29、cost 20/20、rollout_resume 26/26、toy 13/13、targets_oracle 15/15、value_objective 11/11、budget_search 17/17、budget_selection 22/22、physical_loop 18/18、minimization 12/12、network 20/20、vector_equivalence 6/6、nominal_env/nominal_math/map_*/scene/splits/control_timing 全 OK",
+            "关键实测：z<0 后回合继续 231 步（不再终止）；超预算到达（greedy 花 543 J、z0=1 J）label=goal_reached 但 arrived_within_budget=False、W>0；z0=800 J 时 arrived_within_budget=True；窗口切片 T=5 与 30 s 时限 T≈300 都 bootstrap 但 extent/env_done 不同",
+            "动作：64/64 顶格样本 applied 触限；策略参数梯度非零（max|grad|>0），一步 SGD 后 mean_vx 由约 0.003 降到负值方向（推离更贵动作）；路径梯度在裁剪区为 0——这解释了为什么不能要求环境路径处处可导",
+            "预算抽样：2000 抽样 min/max 落在 [0.6,1.3]，均值≈0.95，1900+ 个不同 k（排除固定单档）；40 抽样『直接跑』与『13 步存档-重建-续跑』逐位相同",
+            "契约冲突裁定：terminal 表把 success 写成 h_T=g_T，但 arrival_rule/事件真值表要求危险后到达不可行；按不可逆安全历史实现 h_T=max(g_T,C·y_T)，并把冲突写进 amend1 等 v1.1.0 吸收",
+            "旧证据保留：formal_training_prereg_v1–v3 仍可原样重跑（k_train 分支），旧三轮训练/G4/NAV-041 的 90 回合按旧语义保留，不作为新版本通过依据"
+          ],
+          "evidence": [
+            "tests/test_training_semantics.py（24 项，PASS）",
+            "reports/training_semantics_v2.json（sha256 3af36757a73e2b50…，含 inputs_sha256 与逐项 detail）",
+            "config/navigation_contract_v1.json v1.5.0（sha  ec0f3e53267ee557…）与 config/rcppo_alignment_contract_v1.amend1.json（sha c6c29017041a245a…）",
+            "docs/algorithm_implementation.md 新增 NAV-062 章节（sha b661e7107bc10064…）",
+            "源文件新 hash 清单（见 files_changed 与下方 results 对照；旧 hash 见本任务开工简报与契约 evidence_anchors）",
+            "真实生产产物：train_nominal 单回合 chunk 含 8 个配对字段且 manifest schema=camra-navigation-rollout-v2；freeze_deployment.step_row/arrays_from_steps 构造的数组可直接过 compute_objectives"
+          ],
+          "remaining_work": [
+            "M5/M6/M7/M11/M12 的数值裁定归 NAV-063（共同停止、λ 平滑联合优势、终端组合、old_log_prob 固定、生产调用链门禁）",
+            "z_ratio 裁剪上限只在编码层放宽；顶格比例是否真的下降需 NAV-064 的循环结果回答，不达标不得关闭",
+            "NAV-066 的预算搜索判据已改为预算内到达，但搜索本身仍是 M10 缺陷，未在本项修",
+            "NAV-067 的物理 clean 与 200 Hz 事件采集要用新版候选重验；本项只改了物理侧接口，pilot 未重跑"
+          ],
+          "blockers": []
+        }
+      ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
       "reference_ids": [
         "R03",

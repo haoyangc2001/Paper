@@ -50,6 +50,7 @@ from camra_navigation.algorithm import networks as NW  # noqa: E402
 from camra_navigation.algorithm import ppo as P  # noqa: E402
 from camra_navigation.algorithm import storage as S  # noqa: E402
 from camra_navigation.costs import JCostModel, Z_REF_J  # noqa: E402
+from camra_navigation.observation import z_ratio_clip  # noqa: E402
 from camra_navigation.envs.nominal import NominalNavEnv  # noqa: E402
 from camra_navigation.maps import generator as M  # noqa: E402
 from camra_navigation.maps.geometry import SafetyGeometry  # noqa: E402
@@ -122,10 +123,13 @@ class Trainer:
         if abs(self.obj_cfg.Z_REF_J - Z_REF_J) > 1e-9:
             raise SystemExit(
                 f"契约 Z_REF_J={self.obj_cfg.Z_REF_J} 与 costs.Z_REF_J={Z_REF_J} 不一致")
-        if not (0.0 < args.z0_j <= self.obj_cfg.Z_REF_J):
+        # NAV-062: the guard is the *observation clip* (obs-v3: 1.5 * Z_REF),
+        # not Z_REF itself; W still uses the unclipped ratio.
+        z_max = self.obj_cfg.Z_REF_J * z_ratio_clip()
+        if not (0.0 < args.z0_j <= z_max):
             raise SystemExit(
-                f"z0_J={args.z0_j} 必须落在 (0, Z_REF_J={self.obj_cfg.Z_REF_J}]，"
-                "否则 z_ratio 在初始时刻就饱和，W 定义在截断量上不再可加")
+                f"z0_J={args.z0_j} 必须落在 (0, clip*Z_REF={z_max}]，"
+                "否则观测的 z_ratio 在初始时刻就饱和，W 与编码不一致")
         self.updater = P.MinimizationUpdater(
             self.net, self.ppo_cfg, lr_policy=args.lr_policy, lr_critic=args.lr_critic)
 
@@ -235,10 +239,16 @@ class Trainer:
             value_reach=float(vh[0]),
             cost_j=float(rec.cost.cost_model_J),
             cost_norm=float(rec.cost.cost_model_J) / self.obj_cfg.Z_REF_J,
-            z_j=float(rec.z_J),
-            z_ratio=float(rec.z_ratio),
-            safety_y=float(rec.safety_y),
-            goal_distance_m=float(rec.goal_distance_m),
+            # t side (the state obs/value were evaluated at) and t+1 side
+            z_j=float(rec.z_J_before),
+            z_norm=float(rec.z_J_before) / self.obj_cfg.Z_REF_J,
+            z_ratio=float(rec.z_ratio_before),
+            safety_y=float(rec.safety_y_before),
+            goal_distance_m=float(rec.goal_distance_before),
+            z_norm_next=float(rec.z_J) / self.obj_cfg.Z_REF_J,
+            z_ratio_next=float(rec.z_ratio),
+            safety_y_next=float(rec.safety_y),
+            goal_distance_m_next=float(rec.goal_distance_m),
             terminated=bool(kind in ("failure", "success")),
             truncated=bool(kind == "truncation"),
             event_code=S.EVENT_CODES["none" if rec.label is None else str(rec.label)],

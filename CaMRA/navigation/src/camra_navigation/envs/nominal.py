@@ -49,15 +49,27 @@ except Exception as exc:  # pragma: no cover - import guard
     _FROZEN_INTEGRATOR = f"unavailable: {exc}"
 
 #: Terminal labels, in the frozen priority order (contract ``event_table``).
+#:
+#: NAV-062 removed ``budget_exhausted`` from this list.  The reference
+#: implementation's ``is_terminal`` only looks at the time limit, and the energy
+#: is a *cost*, never a stopping condition; making z <= 0 terminal truncated
+#: 82-91 % of the old training episodes before the low-budget half of the route
+#: was ever seen.  Whether an arrival happened *within* the budget is now a
+#: separate reported fact (``EpisodeResult.arrived_within_budget``), not a label.
+#: Old traces still carry the string, so :data:`LEGACY_LABELS` keeps it parseable.
 LABELS: tuple[str, ...] = (
     "fall",
     "collision",
     "out_of_bounds",
     "goal_reached",
-    "budget_exhausted",
     "stagnation",
     "timeout",
 )
+
+#: Labels that only appear in traces recorded before NAV-062.  They are not
+#: produced any more and must not be used to gate anything; they exist so old
+#: ledgers keep parsing instead of being silently re-labelled.
+LEGACY_LABELS: tuple[str, ...] = ("budget_exhausted",)
 
 #: Labels this environment can actually produce.  ``fall`` needs physics
 #: (base contact, bad orientation) and is unreachable in a planar model, so it is
@@ -111,7 +123,21 @@ def integrate(px: float, py: float, yaw: float, command: Sequence[float], dt: fl
 # ------------------------------------------------------------------- records
 @dataclass(frozen=True)
 class StepRecord:
-    """Everything one 0.1 s interval produced.  Frozen; never mutated in place."""
+    """Everything one 0.1 s interval produced.  Frozen; never mutated in place.
+
+    **Two ends, explicit names.**  A transition is ``(x_t, u_t, c_t, x_{t+1})``,
+    so the safety flag, the signed budget and the goal distance exist in two
+    versions per record and must never be confused:
+
+    ``*_before``   state at the decision time ``t`` (the state ``obs`` was built
+                   from) -- these are the ones a value at ``x_t`` may pair with;
+    the unsuffixed fields
+                   state *after* the step, i.e. ``t+1``.
+
+    The unsuffixed names are kept because every existing trace and test reads
+    them as "post-step"; ``compute_objectives`` now uses ``*_before`` for the
+    ``h_t`` sequence and the ``next_*`` buffer fields for ``h_T``.
+    """
 
     index: int
     t_s: float
@@ -131,6 +157,13 @@ class StepRecord:
     dropped_obstacles: int
     label: str | None
     done: bool
+    # --- the t side of the same transition (NAV-062) -----------------------
+    z_J_before: float = 0.0
+    z_ratio_before: float = 0.0
+    safety_y_before: float = 0.0
+    goal_distance_before: float = 0.0
+    #: ``z_J_before >= 0``: over-budget is a reported fact now, not a terminal.
+    within_budget: bool = True
 
     def as_dict(self) -> dict:
         return {
@@ -155,6 +188,11 @@ class StepRecord:
             "dropped_obstacles": self.dropped_obstacles,
             "label": self.label,
             "done": self.done,
+            "z_J_before": self.z_J_before,
+            "z_ratio_before": self.z_ratio_before,
+            "safety_y_before": self.safety_y_before,
+            "goal_distance_before": self.goal_distance_before,
+            "within_budget": self.within_budget,
         }
 
 
@@ -181,6 +219,13 @@ class EpisodeResult:
     alpha: float
     variant: str
     physical_status: str = "not_measured"
+    #: ``z_J >= 0`` at the end *and* the episode arrived with a non-negative
+    #: budget path -- the two facts are reported even when the label is not
+    #: ``goal_reached``, so "arrived but over budget" cannot masquerade as
+    #: feasible (NAV-062 acceptance).
+    within_budget: bool = True
+    arrived_within_budget: bool = False
+    over_budget_J: float = 0.0
 
     def as_dict(self) -> dict:
         return {
@@ -203,6 +248,9 @@ class EpisodeResult:
             "alpha": self.alpha,
             "variant": self.variant,
             "physical_status": self.physical_status,
+            "within_budget": self.within_budget,
+            "arrived_within_budget": self.arrived_within_budget,
+            "over_budget_J": self.over_budget_J,
         }
 
 
@@ -253,8 +301,18 @@ class NominalNavEnv:
         self.reset()
 
     # ---- episode lifecycle ----
-    def reset(self, *, seed: int | None = None) -> list[float]:
-        """Start a fresh episode.  The only way to start one; never implicit."""
+    def reset(self, *, seed: int | None = None, z0_J: float | None = None) -> list[float]:
+        """Start a fresh episode.  The only way to start one; never implicit.
+
+        ``z0_J`` overrides the construction-time budget for this episode only
+        (NAV-062: budgets are sampled per episode, not fixed per map).  The
+        value is stored, so the trace always says which budget it ran under.
+        """
+        if z0_J is not None:
+            z0 = float(z0_J)
+            if not math.isfinite(z0) or z0 <= 0.0:
+                raise NominalEnvError(f"z0_J must be positive and finite, got {z0_J}")
+            self.z0_J = z0
         self._seed = None if seed is None else int(seed)
         self._rng = np.random.default_rng(self._seed)
         jitter = self.initial_pose_jitter_m
@@ -335,6 +393,12 @@ class NominalNavEnv:
         command = obs.command_from_action(act)
         p0, y0 = self._pose[0], self._pose[1]
         yaw0 = self._pose[2]
+        # --- the t side of this transition, captured before anything moves --
+        z_before = float(self.budget.z_J)
+        z_ratio_before = float(self.budget.z_ratio)
+        safety_before = float(self.safety_y)
+        goal_d_before = math.hypot(
+            float(self.spec.goal[0]) - p0, float(self.spec.goal[1]) - y0)
         nxt = integrate(p0, self._pose[1], yaw0, command.applied, DT_NAV_S)
         p1, y1 = float(nxt.px), float(nxt.py)
         # The frozen integrator accumulates yaw without folding it, so a long
@@ -405,8 +469,10 @@ class NominalNavEnv:
             label = "out_of_bounds"
         elif goal_d <= self.r_goal_m:
             label = "goal_reached"
-        elif self.budget.z_J <= 0.0:
-            label = "budget_exhausted"
+        # No budget branch: z <= 0 is a reported fact (`within_budget`), not a
+        # stopping condition.  The episode ends on arrival / collision / leaving
+        # the map / stagnation / the 30 s limit, exactly like the reference
+        # implementation whose `is_terminal` only looks at the horizon.
         elif self._stagnated():
             label = "stagnation"
         elif self.t_s >= self.t_max_s - 1e-12:
@@ -435,6 +501,11 @@ class NominalNavEnv:
             dropped_obstacles=max(0, len(self._obstacle_obs) - obs.OBSTACLE_CAPACITY),
             label=label,
             done=self.done,
+            z_J_before=z_before,
+            z_ratio_before=z_ratio_before,
+            safety_y_before=safety_before,
+            goal_distance_before=goal_d_before,
+            within_budget=bool(z_before >= 0.0),
         )
         self._records.append(record)
         self.index += 1
@@ -457,6 +528,7 @@ class NominalNavEnv:
 
     # ---- reporting ----
     def result(self) -> EpisodeResult:
+        over = max(0.0, -float(self.budget.z_J))
         return EpisodeResult(
             map_id=self.spec.map_id,
             level=self.spec.level,
@@ -479,6 +551,10 @@ class NominalNavEnv:
             internal_violation_steps=self.internal_violation_steps,
             alpha=self.cost_model.alpha,
             variant=self.cost_model.variant,
+            within_budget=bool(self.budget.z_J >= 0.0),
+            arrived_within_budget=bool(
+                self.label == "goal_reached" and self.budget.z_J >= 0.0),
+            over_budget_J=over,
         )
 
     def trace(self) -> dict:
