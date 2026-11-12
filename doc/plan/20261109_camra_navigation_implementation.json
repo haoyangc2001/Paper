@@ -5161,7 +5161,7 @@
         "动作两端与接近饱和样本的applied、log_prob和梯度统计可解释，记录裁剪/饱和比例；未完成动作契约处理不能靠列风险通过。",
         "回归覆盖真实训练及critic重拟合采样入口、预算搜索单位转换和物理接口；旧证据保留、新报告与hash独立。"
       ],
-      "verification_result": "PASS：三侧（名义标量/向量/物理）接口与契约同步到 t/t+1 显式配对、逐回合预算抽样与『预算不终止』语义。①样本两侧字段齐全（schema camra-navigation-rollout-v2），两步手算逐项对上 h_t/h_T/obj_spent/W，单侧变异证明 z_norm_next 不污染 V(x_t)、z_norm 会移动 W；缺配对字段的 v1 chunk 被拒绝而非静默重解释。②每回合 k~U(0.6,1.3)、z0=k·E_ref 逐 env 抽样，同 seed 与中断-恢复得到同一序列（40 抽样前缀/续接对比），2000 抽样覆盖 [0.6,1.3] 且 1900+ 个不同值，z0 上限 825 J 由守卫强制。③z_J<=0 不再终止：实测 z<0 后继续步进 231 步才因到达结束，新回合不再产生 budget_exhausted 标签；超预算到达 label=goal_reached 但 arrived_within_budget=False 且 W>0；危险后到达 h_T=1.0、W>0 不可行；干净到达 W=0（恰在 beta=0 的可行边界，与契约 max_zero_caveat 一致）。④窗口切片与 30 s 时限都 bootstrap 但 env_done 与 extent 不同；⑤动作顶格量化登记：64/64 顶格样本 applied 触限，策略参数梯度非零且一步 SGD 把均值推离更贵动作（mean_vx 下降），路径梯度在裁剪区为 0（不要求环境可导）。测试 24/24 PASS（reports/training_semantics_v2.json，sha 3af36757…）；同批回归 test_observation_contract 29/29、test_cost_budget 20/20、test_rollout_resume 26/26、test_toy_reference 13/13、test_targets_oracle 15/15、test_value_objective 11/11、test_budget_search 17/17、test_budget_selection 22/22、test_physical_loop 18/18、test_vector_equivalence 6/6（逐位等价未受影响）。旧报告、旧 chunk、旧判定保留；未重训、未重跑物理 pilot、未重签门禁。",
+      "verification_result": "PASS：三侧（名义标量/向量/物理）接口与契约同步到 t/t+1 显式配对、逐回合预算抽样与『预算不终止』语义。①样本两侧字段齐全（schema camra-navigation-rollout-v2），两步手算逐项对上 h_t/h_T/obj_spent/W，单侧变异证明 z_norm_next 不污染 V(x_t)、z_norm 会移动 W；缺配对字段的 v1 chunk 被拒绝而非静默重解释。②每回合 k~U(0.6,1.3)、z0=k·E_ref 逐 env 抽样，同 seed 与中断-恢复得到同一序列（40 抽样前缀/续接对比），2000 抽样覆盖 [0.6,1.3] 且 1900+ 个不同值，z0 上限 825 J 由守卫强制。③z_J<=0 不再终止：实测 z<0 后继续步进 231 步才因到达结束，新回合不再产生 budget_exhausted 标签；超预算到达 label=goal_reached 但 arrived_within_budget=False 且 W>0；危险后到达 h_T=1.0、W>0 不可行；干净到达 W=0（恰在 beta=0 的可行边界，与契约 max_zero_caveat 一致）。④窗口切片与 30 s 时限都 bootstrap 但 env_done 与 extent 不同；⑤动作顶格量化登记：64/64 顶格样本 applied 触限，策略参数梯度非零且一步 SGD 把均值推离更贵动作（mean_vx 下降），路径梯度在裁剪区为 0（不要求环境可导）。测试 24/24 PASS（reports/training_semantics_v2.json，sha 46815bbf…）；同批回归 test_observation_contract 29/29、test_cost_budget 20/20、test_rollout_resume 26/26、test_toy_reference 13/13、test_targets_oracle 15/15、test_value_objective 11/11、test_budget_search 17/17、test_budget_selection 22/22、test_physical_loop 18/18、test_vector_equivalence 6/6（逐位等价未受影响）。旧报告、旧 chunk、旧判定保留；未重训、未重跑物理 pilot、未重签门禁。",
       "planned_outputs": [
         "src/camra_navigation/envs/{nominal,vector,physical}.py",
         "src/camra_navigation/observation.py与algorithm/storage.py",
@@ -5276,6 +5276,77 @@
             "NAV-067 的物理 clean 与 200 Hz 事件采集要用新版候选重验；本项只改了物理侧接口，pilot 未重跑"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-12T15:26:00+08:00",
+          "summary": "NAV-062 收尾补充：提交后发现 13 个文件被本地文本模式编辑写成了 CRLF（内容未变，逐行 diff），已统一换回 LF 并单独提交（d74bacd，+6752/−6752 纯换行）；随后用 LF 版本重跑测试与重建报告，刷新本任务的文件散列。",
+          "actions": [
+            "用二进制读写把 13 个 CRLF 文件换回 LF，未改任何字符内容",
+            "git commit d74bacd（style: normalise line endings ...），并在 HEAD~2..HEAD 范围内复查无残留 CRLF",
+            "LF 版本重跑 tests/test_training_semantics.py（24/24）与 test_observation_contract（29/29）、test_cost_budget（20/20）",
+            "用 LF 版本重新生成 reports/training_semantics_v2.json（inputs_sha256 已更新）"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/observation.py",
+            "CaMRA/navigation/src/camra_navigation/costs.py",
+            "CaMRA/navigation/src/camra_navigation/envs/nominal.py",
+            "CaMRA/navigation/src/camra_navigation/envs/vector.py",
+            "CaMRA/navigation/src/camra_navigation/envs/physical.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/storage.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/targets.py",
+            "CaMRA/navigation/scripts/train_formal.py",
+            "CaMRA/navigation/scripts/train_nominal.py",
+            "CaMRA/navigation/scripts/freeze_deployment.py",
+            "CaMRA/navigation/scripts/eval_formal_final.py",
+            "CaMRA/navigation/scripts/run_budget_selection.py",
+            "CaMRA/navigation/config/navigation_contract_v1.json",
+            "CaMRA/navigation/config/rcppo_alignment_contract_v1.amend1.json",
+            "CaMRA/navigation/tests/test_training_semantics.py",
+            "CaMRA/navigation/reports/training_semantics_v2.json",
+            "CaMRA/navigation/docs/algorithm_implementation.md"
+          ],
+          "commands": [
+            "python3 - <<EOF  # 在远端按 git diff --name-only HEAD~1 HEAD 逐文件 b.replace(b'\\r\\n', b'\\n')",
+            "git add -u CaMRA/navigation && git commit -m 'style: normalise line endings ...'",
+            "PYTHONPATH=src:. <py311> tests/test_training_semantics.py",
+            "<py311> /tmp/nav062_make_report.py"
+          ],
+          "results": [
+            "13 个文件：eval_formal_final / freeze_deployment / run_budget_selection / train_formal / train_nominal / targets / physical / vector / test_cost_budget / test_observation_contract / test_rollout_resume / test_toy_reference / test_training_semantics",
+            "换行规范化提交为纯换行 diff（6752 增 6752 删），HEAD~2..HEAD 范围复查无残留 CRLF",
+            "测试结果与规范化前一致（24/24、29/29、20/20），说明行为未受影响；报告重建后 sha 46815bbf…"
+          ],
+          "evidence": [
+            "git d74bacd --stat：13 files changed, 6752 insertions(+), 6752 deletions(-)",
+            "reports/training_semantics_v2.json（sha 46815bbf7cf4e1f4…，inputs_sha256 为 LF 版本散列）",
+            "刷新后的源文件散列（见 files_changed 对应清单）"
+          ],
+          "remaining_work": [],
+          "blockers": [],
+          "correction": {
+            "correction_id": "NAV-062-C1",
+            "discovered_in_task": "NAV-062",
+            "upstream_task_ids": [],
+            "problem_and_evidence": "本地以文本模式跑 Python 编辑脚本，Windows 下写出 CRLF；scp 按字节传输，远端随之变成 CRLF，git 显示整文件改写（如 vector.py 1305 行、train_nominal 1102 行）",
+            "original_artifact_references": [
+              "26e6f35（NAV-062 主提交，含 CRLF）"
+            ],
+            "affected_task_ids": [
+              "NAV-062"
+            ],
+            "affected_gate_ids": [],
+            "authorization_basis": "upstream_correction_policy：实现缺陷、目标不变、不改既有结论，可在当前任务内修复并保留记录",
+            "changes_and_versions": [
+              "d74bacd：13 个文件 CRLF→LF，内容不变"
+            ],
+            "revalidation_evidence": [
+              "重跑 tests/test_training_semantics.py 24/24、test_observation_contract 29/29、test_cost_budget 20/20",
+              "报告 inputs_sha256 已刷新"
+            ],
+            "status_changes": [],
+            "downstream_disposition": "继续：行为与判定均未变化，后续任务读 LF 版本",
+            "closure_state": "validated"
+          }
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

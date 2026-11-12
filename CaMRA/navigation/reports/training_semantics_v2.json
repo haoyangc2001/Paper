@@ -1,9 +1,9 @@
 {
   "schema": "camra-navigation-training-semantics-v2",
   "task": "NAV-062",
-  "created_at": "2026-11-12T14:52:04+08:00",
+  "created_at": "2026-11-12T14:57:41+08:00",
   "plan_version": "1.3.1",
-  "git_head_at_run": "7d95a53",
+  "git_head_at_run": "d74bacd",
   "verdict": "PASS",
   "n_checks": 24,
   "n_failed": 0,
@@ -14,17 +14,17 @@
     "src/camra_navigation/observation.py": "abde9c838a67aa0f2ae31508900167fd86a18296d76341053fc4d5a9347f0812",
     "src/camra_navigation/costs.py": "e8fb432fdf116fd83e4a948e7c950cad573062ad5a87c7af0cedf6aae2a9b323",
     "src/camra_navigation/envs/nominal.py": "b9080625b000d9bd11c22abcc21a46374412077c8d1158e1323d79d3b6c41e51",
-    "src/camra_navigation/envs/vector.py": "ad9529b7454292aa1f0304bf24e9d76080b65d118b7f2b121f93e6b814a3fb39",
-    "src/camra_navigation/envs/physical.py": "dd08b512e264ca55df2086f9738793f4ab9139fc0eb4fda48fa100d43c83db2c",
+    "src/camra_navigation/envs/vector.py": "eeb798ab0469f708bd54eede2ca73eb041c3408852364da8dff5ef0a0dfc8ed7",
+    "src/camra_navigation/envs/physical.py": "4bd32e74d7584dc612c2cb40ff39941be8f914d80f4ebff70fc0d866678abbea",
     "src/camra_navigation/algorithm/storage.py": "b4811a7a4c3b5467fef48dcfdf254c91fe0e1e328fb9567e67e7b789c1bc85c3",
-    "src/camra_navigation/algorithm/targets.py": "aba3e49ff3c9c1bb6ff9c37b1fb1193836a18b02196cbc431f8e085fe4b240f5",
-    "scripts/train_formal.py": "fc4e289cadfeb39897b3ba260b9ab17d9591dfea8335f27599dffa2ffa1ebd56",
-    "scripts/train_nominal.py": "778ae95ddbefd999e1f95b99698b6af2a3ff02f31bb6cc11cf3a13dc6b65816e",
-    "scripts/freeze_deployment.py": "c0c97f72c048b3ff4ad06b6b0ca44e9c706f2a62f926d9fa9b5aeed764c5ac4f",
-    "scripts/eval_formal_final.py": "5c3bb739b52775df68c094ff5d8ad4b975ab1a8fc68baf9b41e508bf75a5dfc0",
-    "scripts/run_budget_selection.py": "87bb41a8d5a580a134601161e5ebd4cd264a71ecee9de6546b6e24d17abefbb8",
+    "src/camra_navigation/algorithm/targets.py": "24f54ebe4f3bb5240a28ef0def0c413a99970e5d800e4d16a08933045fc66f9a",
+    "scripts/train_formal.py": "b31b8dccfebd35f247519f4b6a8b928cc5701445238dbe4eed5a7b41894f6d2b",
+    "scripts/train_nominal.py": "ddb7274a262a8e4fd816b98add6c16847f630bf2a597b7f9cf8c0cd5f7912c9a",
+    "scripts/freeze_deployment.py": "8e1457c497cbe6462ca639ff8ab8bbf0ac5c38b0e63937bd9b496f1f71ab0759",
+    "scripts/eval_formal_final.py": "5e297a68a111f3b0b9989b2517715c657a7d80eeb5ed90c10a35641c2ddae14a",
+    "scripts/run_budget_selection.py": "794a7fbff5b93b85ec990ef0ee2fdb02b40d41cfcca69e1f56a118d1e9783e81",
     "config/navigation_contract_v1.json": "ec0f3e53267ee557eb62afc8f5c5658673541124eaa5c43b20768e78bdd832f5",
-    "tests/test_training_semantics.py": "730f4f2ad7c276827e91437cdd3493845b7b103ad69c320c397c2b7396067e05"
+    "tests/test_training_semantics.py": "4f44b8035f1755ad9a90cdcf3d95d934412b634e600e95bddc2d5f68c7d18bb4"
   },
   "semantics": {
     "sample_pairing": {
@@ -204,13 +204,13 @@
         "note": "硬裁剪：applied 顶格，多个 raw 值映到同一命令（可辨识性下降）"
       },
       "gradient": {
-        "max_abs_param_grad": 3.754761219024658,
+        "max_abs_param_grad": 3.757387638092041,
         "n_params_with_grad": 7,
         "note": "似然比梯度在 raw 空间，裁剪不切断 dlogp/dmu；路径梯度 dapplied/draw 在裁剪区为 0，这正是不能要求环境路径可导的原因"
       },
       "mean_move": {
-        "mean_vx_before": 0.0006444168975576758,
-        "mean_vx_after": -0.13930478692054749,
+        "mean_vx_before": 6.522655894514173e-06,
+        "mean_vx_after": -0.14006845653057098,
         "note": "A>0 = 更贵；最小化 max(ratio·A) 应降低这些动作的概率，即把均值推离它们（不是推不动）"
       },
       "residual_risk": [
@@ -495,7 +495,7 @@
       "check": "saturated_actions_still_give_policy_gradient",
       "ok": true,
       "detail": {
-        "max_abs_param_grad": 3.754761219024658,
+        "max_abs_param_grad": 3.757387638092041,
         "n_params_with_grad": 7,
         "note": "似然比梯度在 raw 空间，裁剪不切断 dlogp/dmu；路径梯度 dapplied/draw 在裁剪区为 0，这正是不能要求环境路径可导的原因"
       }
@@ -504,8 +504,8 @@
       "check": "positive_advantage_pushes_mean_away_from_expensive_actions",
       "ok": true,
       "detail": {
-        "mean_vx_before": 0.0006444168975576758,
-        "mean_vx_after": -0.13930478692054749,
+        "mean_vx_before": 6.522655894514173e-06,
+        "mean_vx_after": -0.14006845653057098,
         "note": "A>0 = 更贵；最小化 max(ratio·A) 应降低这些动作的概率，即把均值推离它们（不是推不动）"
       }
     },
@@ -514,14 +514,14 @@
       "ok": true,
       "detail": {
         "applied": [
-          -0.20259687304496765,
-          -0.062162172794342045,
-          -0.20172151923179626
+          -0.19334682822227478,
+          -0.06202170848846436,
+          -0.19924964010715485
         ],
         "requested": [
-          -0.20259687304496765,
-          -0.062162172794342045,
-          -0.20172151923179626
+          -0.19334682822227478,
+          -0.06202170848846436,
+          -0.19924964010715485
         ]
       }
     },
