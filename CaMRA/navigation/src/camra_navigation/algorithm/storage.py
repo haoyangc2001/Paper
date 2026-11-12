@@ -17,9 +17,10 @@
   * 参考在一个定长 rollout 里自动复位，环境 done 与停止分段混用同一个 ``done``，
     跨 reset 的样本会被当成旧回合的后续；这里每个 chunk 只装一个回合，环境终止
     由 ``terminated`` / ``truncated`` 两个独立字段表达（NAV-030 的要求）。
-  * 参考的 policy 优势 = 对"停止即走的残差" g 做 λ 平滑的 GAE；这里用
-    ``W_sel − V_total``（残差的一阶差），因为 ``W_sel`` 已含整条尾段信息，
-    再做 λ 平滑会把 τ* 之后的步混进来，与"按 τ* 截断、其后不计入优势"冲突。
+  * 参考的联合策略目标是 ``g=max(reach,−energy)`` 上的 GAE(γ_reach_init, λ)；
+    这里同样在 ``g=max(h,−z)`` 上做 λ-return，但 γ 取 **1**（``gamma_joint=γ_c``），
+    因为契约的目标是未折扣 J，且 W 定义在未折扣量上。NAV-063 之前这里用
+    ``W_sel − V_total`` 一次性差（无 λ 平滑），是 M6 的主要缺口。
   * 参考的 reach 目标用 critic 的 ``last_val_h`` 当尾部；这里用实测的
     ``h_T = max(g_norm(x_T), C·y)``，理由与参考一致：x_T 之后无观测，
     用被训练的同一个网络给自己造目标会把误差固化成目标。
@@ -142,6 +143,8 @@ def obj_fields() -> tuple[FieldSpec, ...]:
         FieldSpec("obj_h", "<f8"),
         FieldSpec("obj_h_terminal", "<f8"),
         FieldSpec("obj_z_norm", "<f8"),
+        FieldSpec("obj_g", "<f8"),
+        FieldSpec("obj_g_terminal", "<f8"),
         FieldSpec("obj_spent", "<f8"),
         FieldSpec("obj_target_cost", "<f8"),
         FieldSpec("obj_adv_cost", "<f8"),
@@ -174,6 +177,11 @@ class ObjectiveConfig:
     fail_penalty: float
     r_goal_m: float
     n_actions: int = 3
+    #: γ of the joint λ-return (the policy target).  Contract: the objective is
+    #: undiscounted J and W is defined on undiscounted quantities, so this is
+    #: γ_c = 1, not the reference's ``GAMMA_REACH_INIT`` (0.999).  Kept explicit
+    #: so the deviation is visible and testable instead of implicit.
+    gamma_joint: float | None = None
 
     @classmethod
     def from_contracts(cls, value_contract_path: str, *, r_goal_m: float) -> "ObjectiveConfig":
@@ -192,6 +200,7 @@ class ObjectiveConfig:
             G_INSIDE=float(q["g_norm"]["G_INSIDE"]),
             fail_penalty=float(fail["value"]),
             r_goal_m=float(r_goal_m),
+            gamma_joint=float(est["gamma_cost"]),
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -234,10 +243,17 @@ def compute_objectives(
       truncation  ``V_c`` 目标 = 尾段成本 + ``V_c(x_T)``（采集时存下的 critic 值），
                   ``h_T`` 用实测 ``max(g_norm(x_T), C·y_T)``。
 
-    ``W`` 用 :func:`camra_navigation.algorithm.targets.select_stop` 逐时刻在尾段重取
-    停止（共享同一 τ*），``V_total = max(V_h, V_c − z_t)``，policy 目标
-    ``W_sel − V_total``（见模块文档第 2 条差异）。``W`` 的 ``z`` 用**未裁剪**比值：
-    观测里的截断值只是编码，不能进目标，否则 ``W`` 不再可加。
+    **三套估计器共用同一个停止掩码（NAV-063）**：
+    :func:`targets.select_stop` 逐时刻在尾段取 τ*，``done[t]=1[τ*(t)=t]`` 同时喂给
+
+      ① 成本：``cost_to_stop`` —— 到 τ* 的实测成本，仅 τ*=T 加 ``V_c(x_T)``；
+      ② reach：``lambda_return`` 作用在 min 型 DP 值 ``V_h`` 上；
+      ③ 联合策略：``lambda_return`` 作用在 ``g=max(h,−z)`` 上，减去
+         ``V_total=max(V_h, V_c−z)``。
+
+    旧实现里成本取整回合 suffix、reach 取未掩码的最小值、policy 用
+    ``W_sel − V_total`` 一次性差，三者各自隐含一个不同的终点（M6）。
+    ``W`` 的 ``z`` 用**未裁剪**比值：观测里的截断值只是编码，不能进目标。
     """
     c = np.asarray(arrays["cost_norm"], dtype=np.float64).reshape(-1)
     missing = [k for k in ("z_norm", "z_ratio_next", "safety_y_next",
@@ -248,6 +264,7 @@ def compute_objectives(
             "不能用于训练；请用 NAV-062 之后写入的 chunk"
         )
     z = np.asarray(arrays["z_norm"], dtype=np.float64).reshape(-1)
+    z_next = np.asarray(arrays["z_norm_next"], dtype=np.float64).reshape(-1)
     vc = np.asarray(arrays["value_cost"], dtype=np.float64).reshape(-1)
     vh = np.asarray(arrays["value_reach"], dtype=np.float64).reshape(-1)
     y = np.asarray(arrays["safety_y"], dtype=np.float64).reshape(-1)
@@ -263,6 +280,7 @@ def compute_objectives(
         raise StorageError("空回合无法计算目标")
     for name, arr in (("z_norm", z), ("value_cost", vc), ("value_reach", vh),
                       ("safety_y", y), ("goal_distance_m", goal_d),
+                      ("z_norm_next", z_next),
                       ("safety_y_next", y_next), ("goal_distance_m_next", goal_d_next),
                       ("terminated", term), ("truncated", trunc),
                       ("bootstrap_value_cost", b_c)):
@@ -302,48 +320,77 @@ def compute_objectives(
         h_T = h_T_measured
     h_ext = np.concatenate([h_t, [h_T]])
 
-    # --- 成本目标：尾段累计 + 终端项 (gamma_c = 1，未折扣，与目标定义一致) ---
-    suffix = np.cumsum(c[::-1])[::-1]
-    if terminal_kind == "failure":
-        term_cost = 0.0                     # 失败步单独按 FAIL_PENALTY 覆盖
-    elif terminal_kind == "success":
-        term_cost = 0.0                     # 无 bootstrap，终端价值为 0
+    # --- 终端成本项：只有截断才 bootstrap --------------------------------
+    if terminal_kind == "truncation":
+        term_cost = float(b_c[-1])           # x_T 的 V_c，采集时存下
     else:
-        term_cost = float(b_c[-1])           # 截断：x_T 的 V_c，采集时存下
-    target_cost = suffix + term_cost
+        term_cost = 0.0                      # 成功与失败都不 bootstrap
+
+    # --- 共同停止：三套估计器共用同一个 τ* 与 done ----------------------
+    gamma_joint = cfg.gamma_cost if cfg.gamma_joint is None else float(cfg.gamma_joint)
+    stop_index, stop_residual, stop_now = T.select_stop(
+        c, z, h_ext, vc_terminal=term_cost, gamma=cfg.gamma_cost)
     if terminal_kind == "failure":
+        # 失败是吸收态：回合在 T 处以 FAIL_PENALTY 结束，agent 不能"提前声明停止"
+        # 来回避它。若不强制，预算宽松时 argmin 会选一个更早的 τ*，联合目标就
+        # 只剩 0.1 量级的安全价差，失败惩罚根本没进前序目标（契约明确要求
+        # 失败惩罚传播到全部相关目标）。因此失败回合的停止点固定为 T。
+        stop_index = np.full(Tn, Tn, dtype=np.int64)
+        stop_now = np.zeros(Tn, dtype=bool)
+        W = T.stop_residual(c, z, h_ext, vc_terminal=term_cost, gamma=cfg.gamma_cost)
+        stop_residual = W[np.arange(Tn), stop_index]
+    done_ext = np.concatenate([np.asarray(stop_now, dtype=np.int64), [1]])
+    g_ext = T.joint_sequence(h_t, z, h_T, z_T=float(z_next[-1]),
+                             vc_terminal=term_cost)
+
+    # --- ① 成本估计器：**到停止**的实测成本 + 仅 τ*=T 的 bootstrap -------
+    # 旧实现取整回合 suffix，停止之后的成本会污染 τ*<T 的目标（且与"到停止"
+    # 的语义不符）。这里与 W 共用 spent 矩阵的同一列，末步成本不漏不重。
+    target_cost = T.cost_to_stop(c, stop_index, vc_terminal=term_cost,
+                                 gamma=cfg.gamma_cost)
+    if terminal_kind == "failure":
+        # 契约：失败步的 V_c 目标严格等于 FAIL_PENALTY（不叠加该步成本）
         target_cost = target_cost.copy()
         target_cost[-1] = cfg.fail_penalty
     adv_cost = target_cost - vc
 
-    # --- reach 目标：实测 h 序列上的 min 型 Bellman 不动点 ---
-    target_reach = T.reach_values(h_ext, cfg.gamma_h)[:Tn]
+    # --- ② reach 估计器：min 型 DP 值序列上的 λ-return（同一 done） ------
+    # 序列长度 T+1（含终端），done_ext 的末项固定为 1（终端即停止）
+    vdp_ext = np.asarray(T.reach_values(h_ext, cfg.gamma_h), dtype=np.float64)
+    target_reach = T.lambda_return(vdp_ext, done_ext, cfg.gae_lambda)[:Tn]
     adv_reach = target_reach - vh
 
-    # --- 停止分段（共享 τ*），policy 用残差一阶差 ---
-    stop_index, stop_residual, stop_now = T.select_stop(
-        c, z, h_ext, vc_terminal=term_cost, gamma=cfg.gamma_cost)
+    # --- ③ 联合策略估计器：g = max(h, −z) 上的 λ-return（同一 done） -----
+    # 参考实现在 g_append 上做 GAE(γ_reach_init, λ=0.95)；本实现的 γ 取
+    # cfg.gamma_joint = γ_c = 1（契约的目标是未折扣 J，W 也定义在未折扣量上，
+    # 用 γ<1 会偷偷给后发生的成本打折，见 value 契约 gamma_cost_rationale）。
+    # 这是与参考的**有意偏离**，差异量在 reports/rcppo_alignment.json 里单列。
+    target_total = T.lambda_return(g_ext, done_ext, cfg.gae_lambda)[:Tn]
     total_value = np.maximum(vh, vc - z)
-    adv_total = stop_residual - total_value
+    adv_total = target_total - total_value
+    # 诊断用"到停止的成本"由同一目标减掉终端项得到，不重复计算
+    spent_to_stop = target_cost - np.where(stop_index == Tn, term_cost, 0.0)
 
     return {
         "obj_g_norm": g,
         "obj_h": h_t,
         "obj_h_terminal": np.full(Tn, h_T, dtype=np.float64),
         "obj_z_norm": z,
-        "obj_spent": suffix,
+        "obj_spent": spent_to_stop,
+        "obj_g": g_ext[:Tn],
+        "obj_g_terminal": np.full(Tn, float(g_ext[Tn]), dtype=np.float64),
         "obj_target_cost": target_cost,
         "obj_adv_cost": adv_cost,
         "obj_target_reach": target_reach,
         "obj_adv_reach": adv_reach,
         "obj_total_value": total_value,
-        "obj_target_total": stop_residual,
+        "obj_target_total": target_total,
         "obj_adv_total": adv_total,
         "obj_stop_index": stop_index.astype(np.int32),
         "obj_stop_residual": stop_residual,
         "obj_stop_now": np.asarray(stop_now, dtype=bool),
         "obj_feasible": np.asarray(T.is_feasible(stop_residual, cfg.beta), dtype=bool),
-        "obj_cost_return": suffix + term_cost,
+        "obj_cost_return": target_cost,
     }
 
 

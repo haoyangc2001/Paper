@@ -5363,7 +5363,7 @@
       "id": "NAV-063",
       "phase": "预算与闭环",
       "goal": "修正共同停止与三套估计器，并以实际训练调用链完成原理对齐验收",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-062"
       ],
@@ -5384,7 +5384,7 @@
         "固定old_log_prob的多epoch受控测试验证最小化梯度方向、熵符号、裁剪正负分支及更新次数；真实训练短探针可逐字段离线复算原始转移到三种target/advantage。",
         "重验受影响G1/G3目标与数据契约，新报告明确旧证据适用范围；全部语义缺口关闭才允许NAV-064，不能只提交差异文档就通过。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS：三套估计器改为共用同一停止掩码，并以实际训练调用链验收（gate_G3_alignment_v2，22/22）。①共同停止：τ*(t)=argmin W，done[t]=1[τ*=t]；成本目标改为『到停止』的实测成本(+仅 τ*=T 的 V_c)，reach 目标改为 min 型 DP 值上的 λ-return，联合策略目标改为 g=max(h,−z) 上的 λ-return 减 V_total；compute_objectives 内部的调用被计数（cost_to_stop×1、lambda_return×2、joint_sequence×1），两次 λ-return 的 done 逐元素相同。②手算：τ*=t 时成本 0/联合 g_t；τ*=T 时段内成本+bootstrap 且联合为嵌套 λ-return；同总 J 不同时刻成本目标相同、而 γ=0.99 时会不同；两 critic 偏好不同终点时三套目标服从同一 τ*；停止之后把成本改成 5.0，τ*≤停止点的目标逐位不变。③失败回合强制 τ*=T：前序每步联合目标都含 FAIL_PENALTY（逐步手算 λ-return 对齐），失败末步成本=1.0。④边界：危险后到达 W≥1、负预算 g>0 且不可行、λ/γ_h 改变确实移动生产目标、切片+正确 bootstrap 的成本目标等于完整轨迹。⑤PPO：A±×ratio 四格裁剪值为 1.6 / 0.8 / −1.2 / −0.5（max 悲观侧），熵项符号为负，多 epoch 重放 old_log_prob 固定（更新次数 3×4=12，各 mb 的 ratio≠1）。⑥真实产物：train_nominal 一个回合的每个 chunk 由原始字段重算全部派生目标，逐位一致。对齐报告 10 行矩阵覆盖样本时序/y/预算/共同停止/三估计器/终端/动作概率/PPO/搜索 value，逐行给参考与当前的路径+行号+hash、单位/维度/符号、差异类型与修复证据；三处有意偏离量化登记（联合 γ=1.0 vs 参考 0.999，30 步常值 g 上 ΔG=0.0148；失败强制停在 T；reach 尾部用实测 h_T）。回归：targets_oracle 15、value 11、toy 13、minimization 12、network 20、observation 29、cost 20、training_semantics 24、physical 18、budget_search 17、budget_selection 23、rollout 27、vector_equivalence 6 全绿。旧 G3(NAV-035)、旧三轮训练与旧报告保留原样，不因本项通过而改写。",
       "planned_outputs": [
         "src/camra_navigation/algorithm/{targets,storage,ppo}.py及实际消费者",
         "tests/test_rcppo_alignment.py与既有targets/oracle/update回归",
@@ -5392,7 +5392,101 @@
         "docs/algorithm_implementation.md：新版本结论与旧版差异",
         "reports/gate_G3_alignment_v2.json"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-12T15:06:00+08:00",
+          "summary": "NAV-063 开工对齐简报（execution_alignment_policy.preflight）：计划 1.3.1，依赖 NAV-062 已完成（50/67）；本项修正共同停止与三套估计器，并以实际训练调用链完成原理对齐验收。本记录只做阅读、核对与范围声明，不改代码。",
+          "actions": [
+            "重读工作区根 AGENTS.md、计划版本 1.3.1 的 global_constraints（33 条）、execution_alignment_policy、uncertainty_policy、upstream_correction_policy 与 G3 门禁条目",
+            "读 NAV-063 的 goal/constraints/acceptance/planned_outputs 全文；确认它是 G3 重验的唯一入口（gate_G3_alignment_v2）",
+            "只读精读 RC-PPO 参考实现：rl/EC-EFPPO.py 的 _train 段（indexs/done 由 calculate_indexs3 产出，三套估计器共用同一 done）与 rl/gae.py 的 calculate_indexs3 / calculate_gae2 / calculate_gae_reach4 / calculate_gae3",
+            "只读核对 CaMRA 当前实现：targets.select_stop（逐时刻 argmin，返回 stop_now）、storage.compute_objectives（target_cost 取整回合 suffix、reach 用未掩码的 min 型 Bellman、policy 用 W_sel−V_total 一次性差）、ppo.policy_loss（max 形式最小化）",
+            "核对 NAV-062 已修的前置：样本两侧配对、预算不终止、obs-v3；确认本项不再改这些语义，只在它们之上对齐估计器"
+          ],
+          "files_changed": [],
+          "commands": [
+            "ssh 192.168.20.11 'cd RC-PPO && sed -n 40,110p rl/EC-EFPPO.py; sed -n 330,430p rl/gae.py'",
+            "ssh 192.168.20.11 'cd CaMRA/navigation && sha256sum 相关文件'"
+          ],
+          "results": [
+            "本项对总目标的作用：五元链的第四、五环（双 critic 的联合优势、最小化 PPO）目前不合格——共同停止只被记录、没有控制两个 critic 的有效区间，policy 优势没有 λ 平滑；不修则 NAV-064 学的是另一个目标。",
+            "参考接线（只读证据）：reach_append/V_reach_append/energy_append/V_append 各 T+1；V_total_append=max(V_reach, V−energy)；g_append=max(reach,−energy)；calculate_indexs3 用 reward/energy 与末端两个 critic 值产出 indexs 与 done；随后 calculate_gae_reach4(γ_reach, λ, reach, V_reach, done)、calculate_gae2(γ_E=1, λ, ..., done, last_val)、calculate_gae_reach4(γ_reach_init, λ, g, V_total, done) 共用同一 done。",
+            "参考散列（只读基线）：rl/gae.py 02bd0adfa8b13bdb、rl/EC-EFPPO.py b5987a2227d589bd、rl/EFPPO_utils.py 5f9eac80dc0d4b66、rl/arguments.py 64759e0af659b65d。",
+            "本项上游散列：targets.py 24f54ebe4f3bb524、storage.py b4811a7a4c3b5467、ppo.py ce3b510af80501a0、networks.py f4b65385d59c5798、train_nominal.py ddb7274a262a8e4f、train_formal.py b31b8dccfebd35f2、freeze_deployment.py 8e1457c497cbe646、value 契约 d6c4648cac3f1d67。",
+            "已确认三处必须改（当前实现的实质缺口）：①compute_objectives 的 target_cost 用整回合 suffix，未按 τ* 截断；②target_reach 用未掩码的 reach_values，等于把 τ* 之后的步也算进 reach 目标；③policy 优势 = W_sel − max(V_h, V_c − z) 是一次性差，没有 λ 平滑，与参考在 g 上做 GAE 不同（M6）。",
+            "允许修改：CaMRA/navigation 内的 targets/storage/ppo 及其生产消费者（train_nominal/train_formal/freeze_deployment/eval/budget 选择）；不改：冻结 v2 整套配置、功率/足迹/α/δ、RC-PPO/ 与论文、旧报告与旧判定、NAV-062 刚定的样本配对与预算终止语义。",
+            "待决的数值口径（本项内定并留证，不改契约）：共同停止的 done 掩码取 1[τ*(t)=t]；成本目标=到停止的实测成本+[τ*=T]·bootstrap；reach 目标=min 型 DP 值上的 λ-return（γ_h 退火）；联合策略目标=g=max(h,−z) 上的 λ-return，γ 取 1.0（契约 γ_c=1 与 W 未折扣；参考用 GAMMA_REACH_INIT=0.999 属另一口径，按『分别报告』处理，不静默沿用）。",
+            "验收证据规划：tests/test_rcppo_alignment.py（手算/枚举 oracle、τ=t 与 τ=T、同总 J 不同时刻、两 critic 偏好不同终点、停止后高成本/失败、目标内负值、危险后到达、负预算、两步索引反例、λ/γ 敏感性、切片重接、PPO 受控更新、真实短训练探针离线复算）+ reports/rcppo_alignment.json + reports/gate_G3_alignment_v2.json（预登记容差）。",
+            "下游交付：NAV-064 只有本项门禁通过才能开跑；NAV-065 的双 critic 重验读同一估计器口径；NAV-066 的价值预算搜索用 V_total=max(V_h,V_c−z)。"
+          ],
+          "evidence": [
+            "参考实现只读核对（EC-EFPPO.py:64-76 的接线、gae.py:331-371 的 calculate_indexs3、gae.py:184-229 的 calculate_gae_reach4）",
+            "改动前 hash 清单（见 results 第 4 条）"
+          ],
+          "remaining_work": [
+            "在 targets 中把共同停止落成 done 掩码并新增三套 λ-smoothed 目标",
+            "在 storage.compute_objectives 中用同一 done 重算 cost/reach/joint 目标与优势",
+            "核对 ppo 的最小化形式、old_log_prob 固定与多 epoch 更新未被破坏",
+            "独立 oracle 测试 + 生产调用链证据 + 门禁报告与文档"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-12T15:52:00+08:00",
+          "summary": "NAV-063 完成（status True，51/67）：共同停止从『被记录』变成『约束三套目标』，三套估计器改为共享 done 的 λ 平滑版本，G3 以新口径重验通过（gate_G3_alignment_v2，22/22）。",
+          "actions": [
+            "targets.py 新增 joint_sequence（g=max(h,−z)，含 τ=T 的 bootstrap 项）、cost_to_stop（到停止的实测成本，[τ*=T] 才加 V_c）、lambda_return（被 done 截断的 λ-return，递推与闭式恒等）",
+            "storage.compute_objectives 重写目标段：一次 select_stop 取得 τ* 与 done；done_ext 末项固定为 1；成本/reach/联合三套目标全部由同一 done 生成；失败回合强制 τ*=T 并把 FAIL_PENALTY 传播到前序联合目标；新增 obj_g / obj_g_terminal 派生字段；ObjectiveConfig 增 gamma_joint（=γ_c）",
+            "修正 3 个旧测试的冻结断言（不是删除）：toy 的成本目标改为『到停止+bootstrap 仅在 τ*=T』；rollout 的独立 oracle 重写为三套 λ 平滑目标并补『success 不加 bootstrap / truncation 加』对照；budget_selection 的可行性判据改为『到达且预算非负』的合取并补『缺 within_budget 必须抛错』",
+            "新增 tests/test_rcppo_alignment.py（22 项）：调用链计数 + done 同源、τ=t/τ=T 手算、同总 J 不同时刻、两 critic 不同终点、停止后高成本、失败惩罚传播、危险后到达、负预算、λ/γ 敏感性、切片重接、PPO 四格裁剪与熵符号、多 epoch 固定 old_log_prob、真实训练探针离线复算",
+            "新增 config/gate_g3_alignment_v2_prereg.json（+ .sha256，冻结容差与 22 条判据）与 scripts/build_gate_g3_alignment_v2.py（先验散列，再由测试输出生成门禁，不手改判定）",
+            "新增 scripts/make_alignment_report.py 生成 reports/rcppo_alignment.json（哈希与行号由磁盘现算，偏差量由同一函数现算）",
+            "docs/algorithm_implementation.md 追加 NAV-063 章节（三套定义、三处有意偏离与量化、验收覆盖、边界）"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/algorithm/targets.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/storage.py",
+            "CaMRA/navigation/src/camra_navigation/algorithm/ppo.py",
+            "CaMRA/navigation/tests/test_rcppo_alignment.py",
+            "CaMRA/navigation/tests/test_toy_reference.py",
+            "CaMRA/navigation/tests/test_rollout_resume.py",
+            "CaMRA/navigation/tests/test_budget_selection.py",
+            "CaMRA/navigation/config/gate_g3_alignment_v2_prereg.json",
+            "CaMRA/navigation/reports/rcppo_alignment.json",
+            "CaMRA/navigation/reports/gate_G3_alignment_v2.json",
+            "CaMRA/navigation/docs/algorithm_implementation.md",
+            "CaMRA/navigation/scripts/build_gate_g3_alignment_v2.py",
+            "CaMRA/navigation/scripts/make_alignment_report.py"
+          ],
+          "commands": [
+            "PYTHONPATH=src:. <py311> tests/test_rcppo_alignment.py --json /tmp/g3a.json",
+            "<py311> scripts/make_alignment_report.py",
+            "<py311> scripts/build_gate_g3_alignment_v2.py",
+            "同解释器逐个运行 13 个既有测试脚本做回归",
+            "python3 /tmp/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+          ],
+          "results": [
+            "门禁 G3_alignment_v2：PASS，22/22，预登记 sha 7693cf1f…（先冻结后执行）",
+            "关键数值：联合 γ 偏离在 30 步常值 g 上 ΔG=0.0148；失败回合前序联合目标 0.88/0.92/0.96（逐步手算一致）；停止后成本改 5.0 时 τ* 与之前目标逐位不变；切片重接成本目标 0.15 与完整轨迹相等",
+            "PPO 四格：A+ 高 ratio 走未裁剪（1.6）、A+ 低 ratio 走裁剪（0.8）、A− 高 ratio 走裁剪（−1.2）、A− 低 ratio 走未裁剪（−0.5），裁剪比例均 1.0；多 epoch 12 次更新、ratio 均 ≠1",
+            "真实产物：train_nominal（L2_single_detour, 1 回合）的每个 chunk 派生目标可由原始字段逐位重算（0 处不一致）",
+            "回归全绿（13 个脚本）：targets 15/15、value 11/11、toy 13/13、minimization 12/12、network 20/20、observation 29/29、cost 20/20、training_semantics 24/24、physical 18/18、budget_search 17/17、budget_selection 23/23、rollout 27/27、vector_equivalence 6/6",
+            "ppo.py 未改动：最小化形式、熵符号、old_log_prob 固定与多 epoch 机制在本项只用受控用例复核，保持原状"
+          ],
+          "evidence": [
+            "reports/gate_G3_alignment_v2.json（sha 49bdda53…，含 22 条判据、预登记散列、输入散列、not_claimed）",
+            "reports/rcppo_alignment.json（sha ba400077…，10 行矩阵 + 参考/当前 hash + 三处偏离量化）",
+            "tests/test_rcppo_alignment.py（22 项 PASS）与既有 13 个测试的回归输出",
+            "config/gate_g3_alignment_v2_prereg.json + .sha256（7693cf1f…，在执行前冻结）"
+          ],
+          "remaining_work": [
+            "M12 的预算搜索端到端调用链（双 critic 价值搜索）归 NAV-066；本项只固定 V_total 的口径",
+            "物理侧 200 Hz 子步下的同一终止/掩码口径复验归 NAV-067",
+            "与参考的逐位等价未证明也不要求；D1/D2/D3 三处偏离若将来要贴参考，必须整链一起改并另立版本"
+          ],
+          "blockers": []
+        }
+      ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
       "reference_ids": [
         "R02",

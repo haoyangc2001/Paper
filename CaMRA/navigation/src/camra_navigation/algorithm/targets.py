@@ -119,6 +119,68 @@ def is_feasible(residual: np.ndarray, beta: float | None = None) -> np.ndarray:
     return np.asarray(residual, dtype=np.float64) <= -b
 
 
+# ======================================================================
+# (1b) 共同停止掩码与三套 λ 平滑估计器（NAV-063）
+# ======================================================================
+#: 为什么 g 与 W 是同一个量：γ_c = 1 时 ``spent(t,τ) − z_t = −z_τ``（预算只在
+#: 转移上扣费），所以 ``W(t,τ) = max(h_τ, spent(t,τ) + [τ=T]·V_c − z_t)``
+#: 与 ``g_τ = max(h_τ, −z_τ)`` 只差 τ=T 的 bootstrap 项。参考实现同样把
+#: ``g_append = max(reach, −energy)`` 直接喂给联合 λ-return。
+def joint_sequence(h_t: np.ndarray, z_norm: np.ndarray, h_T: float, z_T: float,
+                   vc_terminal: float = 0.0) -> np.ndarray:
+    """联合即时成本 ``g_τ``，长度 T+1（``g_T`` 含截断 bootstrap，只加一次）。"""
+    h = np.asarray(h_t, dtype=np.float64).reshape(-1)
+    z = np.asarray(z_norm, dtype=np.float64).reshape(-1)
+    if h.shape[0] != z.shape[0]:
+        raise ValueError(f"h_t 长度 {h.shape[0]} ≠ z_norm 长度 {z.shape[0]}")
+    g_t = np.maximum(h, -z)
+    g_T = float(max(float(h_T), float(vc_terminal) - float(z_T)))
+    return np.concatenate([g_t, [g_T]])
+
+
+def cost_to_stop(cost_norm: np.ndarray, stop_index: np.ndarray,
+                 vc_terminal: float = 0.0, gamma: float = 1.0) -> np.ndarray:
+    """成本目标：**到停止时刻**的实测成本，加 ``[τ*=T]·V_c(x_T)``。
+
+    旧实现用整回合 suffix，停止之后的成本会污染 τ*<T 的目标；这里按同一
+    ``stop_index`` 截断，与 ``stop_residual`` 的 spent 矩阵共用一列，不会漏计
+    或重复计入末步成本。
+    """
+    c = np.asarray(cost_norm, dtype=np.float64).reshape(-1)
+    idx = np.asarray(stop_index, dtype=np.int64).reshape(-1)
+    T = c.shape[0]
+    if idx.shape[0] != T:
+        raise ValueError(f"stop_index 长度 {idx.shape[0]} ≠ T={T}")
+    spent = spent_between(c, gamma)
+    target = spent[np.arange(T), idx].copy()
+    target[idx == T] += float(vc_terminal)
+    return target
+
+
+def lambda_return(values: np.ndarray, done: np.ndarray, lam: float) -> np.ndarray:
+    """被共同停止截断的 λ-return：``G_t = (1−λ)Σ_{k<n} λ^k v_{t+k} + λ^n v_{τ*}(t)``。
+
+    ``done[t] = 1[τ*(t) == t]`` 是 :func:`select_stop` 给出的**同一个**掩码：
+    三套估计器（成本、reach、联合策略）必须共用它，不能各取各的最优终点。
+    递推 ``G_t = (1−λ)v_t + λG_{t+1}``（``done_t=1`` 时 ``G_t=v_t``）与上式恒等；
+    ``γ_c=1`` 下 ``τ*(t)`` 随 t 单调不减，所以 ``G_{t+1}`` 的停止点就是 ``τ*(t)``。
+    """
+    if not (0.0 < lam <= 1.0):
+        raise ValueError(f"lambda 必须在 (0,1] 内，got {lam}")
+    v = np.asarray(values, dtype=np.float64).reshape(-1)
+    d = np.asarray(done).reshape(-1)
+    if v.shape[0] != d.shape[0]:
+        raise ValueError(f"values 长度 {v.shape[0]} ≠ done 长度 {d.shape[0]}")
+    T = v.shape[0]
+    out = np.empty(T, dtype=np.float64)
+    for t in range(T - 1, -1, -1):
+        if bool(d[t]) or t == T - 1:
+            out[t] = v[t]
+        else:
+            out[t] = (1.0 - lam) * v[t] + lam * out[t + 1]
+    return out
+
+
 def reach_values(h: np.ndarray, gamma_h: float) -> np.ndarray:
     """契约的 min 型 Bellman 递推：V_h(t) = min(h_t, (1−γ)·h_t + γ·V_h(t+1))。
 

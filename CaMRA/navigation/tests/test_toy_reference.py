@@ -458,12 +458,26 @@ def main() -> int:
         "truncated": np.array([False, False, True]),
         "bootstrap_value_cost": np.array([0.0, 0.0, 0.7]),
     }
-    tr_last = float(S.compute_objectives(arr_tr, cfg, terminal_kind="truncation")["obj_target_cost"][-1])
-    pipe_ok &= abs(tr_last - (MOVE_COST + 0.7)) < 1e-12
-    rows_pipe.append({"kind": "truncation", "target_cost_last": tr_last,
-                      "expected": MOVE_COST + 0.7})
+    tr = S.compute_objectives(arr_tr, cfg, terminal_kind="truncation")
+    tr_target = np.asarray(tr["obj_target_cost"])
+    g_term = float(tr["obj_g_terminal"][0])
+    pipe_ok &= (np.allclose(tr_target, [0.2, 0.1, 0.0], rtol=0.0, atol=1e-12)
+                and int(tr["obj_stop_index"][-1]) == 2
+                and abs(g_term - 0.55) < 1e-12)
+    rows_pipe.append({"kind": "truncation", "target_cost": tr_target.tolist(),
+                      "stop_index": tr["obj_stop_index"].tolist(),
+                      "g_terminal": g_term,
+                      "expected": [0.2, 0.1, 0.0]})
     check("toy_targets_go_through_storage_pipeline", pipe_ok, {"rows": rows_pipe,
-          "note": "success → 实际成本；failure → FAIL_PENALTY；truncation → 成本 + V_c(x_T)"})
+          "note": "success → 到停止的实测成本；failure → FAIL_PENALTY；"
+                  "truncation → 到停止的成本，仅 τ*=T 加 V_c(x_T)；"
+                  "停止步的 target=0 与参考的 done 掩码一致"})
+
+    # NAV-063 起成本目标是"到共同停止的成本"，不是整回合 suffix：
+    # 这三步的 W 依次是 0.633/0.4667/0.3（预算约 0.45，成本项还没压过到达项），
+    # 唯一最小值在 τ=2，所以 target_cost = [0.2, 0.1, 0.0]；τ*=T 才加 bootstrap，
+    # 这里没有 τ*=T，0.7 的 bootstrap 不出现。参考实现在 done 步同样给 target=0
+    # （delta=(c+γV(1−next_done))(1−done)−V 在 done 处直接为 −V）。
 
     # ---- gamma_c = 1 时 τ*(t) 与 t 无关 ----
     # 用预算紧到让成本项压过到达项的预算（0.1），否则两边都被 h 压住、看不出折扣的影响

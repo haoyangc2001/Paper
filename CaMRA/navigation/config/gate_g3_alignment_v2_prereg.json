@@ -1,0 +1,158 @@
+{
+  "schema": "camra-gate-prereg-v1",
+  "gate": "G3",
+  "version": "alignment_v2",
+  "owner_task": "NAV-063",
+  "created_at": "2026-11-12T15:35:00+08:00",
+  "status": "frozen_before_execution",
+  "purpose": "在 NAV-064 学习之前，用数值门禁证明三套估计器、共同停止与边界口径与 NAV-061 契约一致，且生产调用链确实使用它们",
+  "inputs": {
+    "test": "tests/test_rcppo_alignment.py",
+    "alignment_report": "reports/rcppo_alignment.json",
+    "value_contract": "config/value_objective_contract_v1.json",
+    "navigation_contract": "config/navigation_contract_v1.json",
+    "alignment_contract": "config/rcppo_alignment_contract_v1.json",
+    "alignment_amendment": "config/rcppo_alignment_contract_v1.amend1.json"
+  },
+  "criteria": [
+    {
+      "id": "G3A-01",
+      "check": "production_uses_three_estimators_with_one_mask",
+      "requirement": "compute_objectives 必须调用 cost_to_stop / lambda_return（两次）/ joint_sequence，且两次 λ-return 的 done 完全一致",
+      "tolerance": "精确（计数与数组相等）"
+    },
+    {
+      "id": "G3A-02",
+      "check": "done_mask_is_stop_now",
+      "requirement": "done[t] = 1[τ*(t)=t]，且 λ-return 的 done_ext 末项为 1",
+      "tolerance": "精确"
+    },
+    {
+      "id": "G3A-03",
+      "check": "lambda_from_contract",
+      "requirement": "λ 取自价值契约（0.95），不是硬编码",
+      "tolerance": "1e-12"
+    },
+    {
+      "id": "G3A-04",
+      "check": "tau_equals_t_stop_now",
+      "requirement": "τ*=t 时成本目标为 0、联合目标为 g_t，且不加 bootstrap",
+      "tolerance": "1e-12"
+    },
+    {
+      "id": "G3A-05",
+      "check": "tau_equals_T_and_bootstrap",
+      "requirement": "τ*=T 时成本目标=段内成本+bootstrap，联合目标=嵌套 λ-return（手算）",
+      "tolerance": "1e-12"
+    },
+    {
+      "id": "G3A-06",
+      "check": "same_total_cost_same_cost_target",
+      "requirement": "γ_c=1：同总 J 不同发生时刻给出相同成本目标",
+      "tolerance": "1e-15"
+    },
+    {
+      "id": "G3A-07",
+      "check": "discounted_cost_would_differ",
+      "requirement": "反例：γ=0.99 时同总 J 的目标会不同（说明 γ_c=1 是必须的）",
+      "tolerance": "差值 > 1e-9"
+    },
+    {
+      "id": "G3A-08",
+      "check": "shared_stop_overrides_each_critic_own_endpoint",
+      "requirement": "两个 critic 偏好不同终点时，三套目标都服从共享 W 选出的 τ*",
+      "tolerance": "1e-12"
+    },
+    {
+      "id": "G3A-09",
+      "check": "post_stop_cost_does_not_pollute",
+      "requirement": "停止之后的成本改变不得移动 τ*≤停止点的目标",
+      "tolerance": "精确（逐位不变）"
+    },
+    {
+      "id": "G3A-10",
+      "check": "failure_penalty_propagates",
+      "requirement": "失败回合强制 τ*=T，前序每步联合目标都含 FAIL_PENALTY",
+      "tolerance": "1e-12"
+    },
+    {
+      "id": "G3A-11",
+      "check": "danger_then_arrival_infeasible",
+      "requirement": "危险后到达 h_T=1.0、W>=1.0、不可行",
+      "tolerance": "1e-12"
+    },
+    {
+      "id": "G3A-12",
+      "check": "negative_budget_joint_cost_positive",
+      "requirement": "负预算即正成本（g=max(h,−z)>0）、不可行",
+      "tolerance": "1e-12"
+    },
+    {
+      "id": "G3A-13",
+      "check": "lambda_and_gamma_change_targets",
+      "requirement": "λ 与 γ_h 的变化必须实际改变生产目标",
+      "tolerance": "> 1e-9"
+    },
+    {
+      "id": "G3A-14",
+      "check": "gamma_cost_undiscounted",
+      "requirement": "γ_c=1 且 γ_joint=γ_c（联合目标不打折）",
+      "tolerance": "1e-15"
+    },
+    {
+      "id": "G3A-15",
+      "check": "slice_rejoin_matches_full_cost_target",
+      "requirement": "窗口切片+正确 bootstrap 的成本目标等于完整轨迹",
+      "tolerance": "1e-12"
+    },
+    {
+      "id": "G3A-16",
+      "check": "positive_advantage_penalises_higher_probability",
+      "requirement": "A>0 时提高概率必须让最小化损失变大",
+      "tolerance": "严格不等"
+    },
+    {
+      "id": "G3A-17",
+      "check": "negative_advantage_rewards_higher_probability",
+      "requirement": "A<0 时提高概率让损失变小",
+      "tolerance": "严格不等"
+    },
+    {
+      "id": "G3A-18",
+      "check": "entropy_sign_is_negative",
+      "requirement": "熵项符号为负（提高熵降低损失）",
+      "tolerance": "严格不等"
+    },
+    {
+      "id": "G3A-19",
+      "check": "clip_branches_four_cells",
+      "requirement": "A±/ratio 高低四格都落在 max 悲观侧：1.6 / 0.8 / −1.2 / −0.5，裁剪比例均为 1",
+      "tolerance": "1e-6"
+    },
+    {
+      "id": "G3A-20",
+      "check": "multi_epoch_fixed_old_log_prob",
+      "requirement": "多 epoch 重放时 old_log_prob 固定，更新次数 = epochs×minibatches",
+      "tolerance": "精确"
+    },
+    {
+      "id": "G3A-21",
+      "check": "production_probe_runs",
+      "requirement": "真实训练入口（train_nominal）能产出 chunk",
+      "tolerance": "退出码 0"
+    },
+    {
+      "id": "G3A-22",
+      "check": "production_chunks_recompute_from_raw",
+      "requirement": "真实产物的每个派生目标都能由原始字段逐位重算",
+      "tolerance": "逐位相等"
+    }
+  ],
+  "verdict_rule": "全部 22 条必须 PASS；任何一条 FAIL 即门禁 FAIL，且 NAV-064 不得开始",
+  "not_claimed": [
+    "不声称策略已学到东西（学习效果归 NAV-064）",
+    "不声称与参考实现逐位等价：联合 λ-return 的 γ 是有意偏离（1.0 vs 0.999），差异量见 reports/rcppo_alignment.json",
+    "不声称物理侧时序已验证（归 NAV-067）",
+    "不重签旧 G3（NAV-035）：旧门禁保留原状，本门禁只覆盖新目标口径"
+  ]
+}

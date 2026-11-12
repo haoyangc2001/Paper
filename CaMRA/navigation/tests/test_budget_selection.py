@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.join(NAV_ROOT, "src"))
 sys.path.insert(0, os.path.join(CALIB, "src"))
 sys.path.insert(0, NAV_ROOT)
 
+from camra_navigation import observation as OBS  # noqa: E402
 from scripts.run_budget_selection import (  # noqa: E402
     feasible_from_label,
     monotonic_violations,
@@ -59,7 +60,11 @@ def check(name: str, ok: bool, detail: dict) -> None:
 
 
 def rows_with(flags: dict[float, bool], e_ref: float = E_REF) -> list[dict]:
-    return [{"k": k, "z0_J": k * e_ref, "label": "goal_reached" if flags[k] else "budget_exhausted",
+    # 不可行行用 timeout（到达之外的真实终止标签）；budget_exhausted 在
+    # NAV-062 之后不再是终止标签，只能作诊断
+    return [{"k": k, "z0_J": k * e_ref,
+             "label": "goal_reached" if flags[k] else "timeout",
+             "within_budget": True,
              "feasible": bool(flags[k])} for k in GRID]
 
 
@@ -69,13 +74,24 @@ def main() -> int:
     args = ap.parse_args()
 
     # ---------------- 1. rule layer ----------------
-    labels = {"goal_reached": True, "collision": False, "out_of_bounds": False,
-              "stagnation": False, "timeout": False, "budget_exhausted": False, None: False}
-    bad = {k: feasible_from_label(k) for k in labels
-           if feasible_from_label(k) != labels[k]}
-    check("feasible_only_for_goal_reached", not bad,
-          {"mapping": {str(k): feasible_from_label(k) for k in labels},
-           "unexpected": [str(k) for k in bad]})
+    # NAV-062 起判据是合取：到达 **且** 预算非负。budget_exhausted 已不是终止标签，
+    # 但旧报告里可能仍有它，规则层必须给出 False 而不是抛错。
+    cases = {("goal_reached", True): True, ("goal_reached", False): False,
+             ("collision", True): False, ("out_of_bounds", True): False,
+             ("stagnation", True): False, ("timeout", True): False,
+             ("budget_exhausted", True): False, (None, True): False}
+    bad = {str(k): feasible_from_label(*k) for k in cases
+           if feasible_from_label(*k) != cases[k]}
+    check("feasible_requires_arrival_and_budget", not bad,
+          {"mapping": {f"{k[0]}/{k[1]}": feasible_from_label(*k) for k in cases},
+           "unexpected": list(bad)})
+    raised = False
+    try:
+        feasible_from_label("goal_reached")          # 缺 within_budget 必须报错
+    except ValueError:
+        raised = True
+    check("missing_budget_is_an_error_not_a_default", raised,
+          {"note": "少了预算字段就抛错，避免悄悄退回只看标签的旧判据"})
 
     # first measured feasible wins on a monotone grid
     sel = select_on_grid(rows_with({0.7: False, 0.85: False, 1.0: True, 1.15: True, 1.3: True}),
@@ -112,12 +128,22 @@ def main() -> int:
     # clipping of the normalised value above Z_REF, but z_J itself is never clipped
     hi = select_on_grid(rows_with({0.7: False, 0.85: False, 1.0: False, 1.15: False, 1.3: True}),
                         grid=GRID, e_ref_J=500.0, z_ref_J=Z_REF)
+    # obs-v3 的裁剪上限是 ±1.5（NAV-062）；650 J 的比值 1.1818 已不再饱和，
+    # 所以这里同时验"未裁剪值保留"和"超过 1.5 才饱和"
+    clip = OBS.z_ratio_clip()
+    saturated = select_on_grid(
+        rows_with({0.7: False, 0.85: False, 1.0: False, 1.15: False, 1.3: True}),
+        grid=GRID, e_ref_J=1000.0, z_ref_J=Z_REF)
     check("z_ratio_clipped_but_budget_is_not",
           hi["status"] == "found" and abs(hi["z_J"] - 650.0) < 1e-9
           and abs(hi["z_ratio"] - 650.0 / 550.0) < 1e-12
-          and hi["z_ratio_clipped"] == 1.0,
-          {"z_J": hi["z_J"], "z_ratio": hi["z_ratio"],
-           "z_ratio_clipped": hi["z_ratio_clipped"]})
+          and abs(hi["z_ratio_clipped"] - min(650.0 / 550.0, clip)) < 1e-12
+          and abs(saturated["z_ratio_clipped"] - clip) < 1e-12
+          and abs(saturated["z_ratio"] - 1300.0 / 550.0) < 1e-12,
+          {"clip": clip, "z_J": hi["z_J"], "z_ratio": hi["z_ratio"],
+           "z_ratio_clipped": hi["z_ratio_clipped"],
+           "saturated_ratio": saturated["z_ratio"],
+           "saturated_clipped": saturated["z_ratio_clipped"]})
 
     # missing grid point must be refused rather than silently skipped
     partial = [r for r in rows_with({k: True for k in GRID}) if r["k"] != 1.15]
@@ -201,10 +227,15 @@ def main() -> int:
               == cfg["quota"]["business_episodes"],
               {"n_rows": len(rows), "n_unique": len(set(keys)),
                "n_episodes": rep["n_episodes"], "expected": expected_rows})
+        # 旧 v1 报告没有 within_budget 字段（那时预算耗尽还是终止标签），
+        # 只能对带该字段的行复算；旧报告本身按旧语义保留，不改写
+        scoped = [r for r in rows if "within_budget" in r]
         bad_feas = [f"{r['method']}/{r['map_id']}/k={r['k']}"
-                    for r in rows if r["feasible"] != feasible_from_label(r["label"])]
-        check("feasibility_recomputes_from_label", not bad_feas,
-              {"n_rows": len(rows), "mismatches": bad_feas[:5]})
+                    for r in scoped
+                    if r["feasible"] != feasible_from_label(r["label"], r["within_budget"])]
+        check("feasibility_recomputes_from_label_and_budget", not bad_feas,
+              {"n_rows": len(rows), "n_scoped": len(scoped), "mismatches": bad_feas[:5],
+               "note": "v1 报告无 within_budget，按旧语义只作历史证据"})
         bad_z = [f"{r['method']}/{r['map_id']}/k={r['k']}"
                  for r in rows if abs(r["z0_J"] - r["k"] * r["e_ref_J"]) > 1e-6]
         check("budget_recomputes_from_k_times_e_ref", not bad_z,

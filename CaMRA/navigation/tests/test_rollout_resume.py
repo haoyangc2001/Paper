@@ -100,21 +100,9 @@ def brute_force_objectives(arrays: dict[str, np.ndarray], cfg: S.ObjectiveConfig
         h_T = cfg.fail_penalty
     h_ext = np.concatenate([h, [h_T]])
 
-    # 成本目标：显式双层求和
     term = float(np.asarray(arrays["bootstrap_value_cost"])[-1]) if terminal_kind == "truncation" else 0.0
-    target_cost = np.empty(Tn)
-    for t in range(Tn):
-        target_cost[t] = sum(c[s] for s in range(t, Tn)) + term
-    if terminal_kind == "failure":
-        target_cost[Tn - 1] = cfg.fail_penalty
 
-    # reach 目标：min 型 Bellman 的朴素反向递推
-    vdp = np.empty(Tn + 1)
-    vdp[Tn] = h_ext[Tn]
-    for t in range(Tn - 1, -1, -1):
-        vdp[t] = min(h_ext[t], (1.0 - cfg.gamma_h) * h_ext[t] + cfg.gamma_h * vdp[t + 1])
-
-    # 停止分段：完整 W 矩阵，逐行取首个最小
+    # 停止分段：完整 W 矩阵，逐行取首个最小（与 production 相同的定义）
     stop_index = np.empty(Tn, dtype=np.int64)
     stop_residual = np.empty(Tn)
     for t in range(Tn):
@@ -128,21 +116,61 @@ def brute_force_objectives(arrays: dict[str, np.ndarray], cfg: S.ObjectiveConfig
                 best_val, best_tau = w, tau
         stop_index[t] = best_tau
         stop_residual[t] = best_val
+    done = (stop_index == np.arange(Tn))
+
+    # NAV-063：成本目标是"到停止"的实测成本，仅 τ*=T 加 bootstrap
+    target_cost = np.empty(Tn)
+    spent_to_stop = np.empty(Tn)
+    for t in range(Tn):
+        s_stop = sum(c[s] for s in range(t, stop_index[t]))
+        spent_to_stop[t] = s_stop
+        target_cost[t] = s_stop + (term if stop_index[t] == Tn else 0.0)
+    if terminal_kind == "failure":
+        target_cost[Tn - 1] = cfg.fail_penalty
+
+    # reach 目标：min 型 Bellman 的朴素反向递推
+    vdp = np.empty(Tn + 1)
+    vdp[Tn] = h_ext[Tn]
+    for t in range(Tn - 1, -1, -1):
+        vdp[t] = min(h_ext[t], (1.0 - cfg.gamma_h) * h_ext[t] + cfg.gamma_h * vdp[t + 1])
+
+    # NAV-063：两套 λ-return（reach 与联合），都按同一 done 截断
+    def _lam_ret(vals: np.ndarray) -> np.ndarray:
+        out = np.empty(Tn)
+        for t in range(Tn - 1, -1, -1):
+            if done[t] or t == Tn - 1:
+                out[t] = vals[t]
+            else:
+                out[t] = (1.0 - cfg.gae_lambda) * vals[t] + cfg.gae_lambda * out[t + 1]
+        return out
+
+    target_reach = _lam_ret(vdp[:Tn])
+
+    # 联合即时成本 g_τ = max(h_τ, −z_τ)，τ=T 时含 bootstrap
+    z_T = float(np.asarray(arrays["z_norm_next"])[-1])
+    g_ext = np.empty(Tn + 1)
+    for t in range(Tn):
+        g_ext[t] = max(h_ext[t], -z[t])
+    g_ext[Tn] = max(h_ext[Tn], term - z_T)
+    target_total = _lam_ret(g_ext[:Tn])
 
     return {
         "obj_g_norm": g,
         "obj_h": h,
         "obj_h_terminal": np.full(Tn, h_T),
         "obj_z_norm": z,
+        "obj_spent": spent_to_stop,
+        "obj_g": g_ext[:Tn],
+        "obj_g_terminal": np.full(Tn, g_ext[Tn]),
         "obj_target_cost": target_cost,
-        "obj_target_reach": vdp[:Tn],
+        "obj_target_reach": target_reach,
         "obj_stop_index": stop_index,
         "obj_stop_residual": stop_residual,
-        "obj_stop_now": (stop_index == np.arange(Tn)),
+        "obj_stop_now": done,
         "obj_total_value": np.maximum(vh, vc - z),
         "obj_adv_cost": target_cost - vc,
-        "obj_adv_reach": vdp[:Tn] - vh,
-        "obj_adv_total": stop_residual - np.maximum(vh, vc - z),
+        "obj_adv_reach": target_reach - vh,
+        "obj_adv_total": target_total - np.maximum(vh, vc - z),
         "obj_feasible": stop_residual <= -cfg.beta,
     }
 
@@ -384,27 +412,29 @@ def main() -> int:
         kind = store_a.entries[i]["terminal_kind"]
         c_arr = np.asarray(c["cost_norm"], dtype=np.float64)
         tc = np.asarray(c["obj_target_cost"], dtype=np.float64)
-        if kind == "truncation":
-            want_last = float(np.asarray(c["bootstrap_value_cost"])[-1])
-            ok = abs(tc[-1] - (c_arr[-1] + want_last)) < 1e-12
-        elif kind == "failure":
-            ok = abs(tc[-1] - cfg.fail_penalty) < 1e-12
-        else:
-            ok = abs(tc[-1] - c_arr[-1]) < 1e-12
-        stop_now = int(np.asarray(c["obj_stop_now"]).sum())
         idx = np.asarray(c["obj_stop_index"], dtype=np.int64)
+        term = (float(np.asarray(c["bootstrap_value_cost"])[-1])
+                if kind == "truncation" else 0.0)
+        # 定义式：到停止的实测成本 + [τ*=T]·终端项（失败末步按 FAIL_PENALTY 覆盖）
+        want = np.array([sum(c_arr[t:idx[t]]) + (term if idx[t] == len(c_arr) else 0.0)
+                         for t in range(len(c_arr))])
+        if kind == "failure":
+            want[-1] = cfg.fail_penalty
+        ok = bool(np.allclose(tc, want, rtol=0.0, atol=1e-12))
         ok &= bool((idx >= np.arange(len(idx))).all())
         sem_ok &= bool(ok)
         sem.append({"chunk": i, "terminal_kind": kind,
-                    "target_cost_last": float(tc[-1]),
-                    "cost_last": float(c_arr[-1]),
+                    "target_cost_last": float(tc[-1]), "want_last": float(want[-1]),
+                    "stop_index_last": int(idx[-1]),
                     "bootstrap_last": float(np.asarray(c["bootstrap_value_cost"])[-1]),
-                    "stop_now_steps": stop_now, "ok": bool(ok)})
+                    "stop_now_steps": int(np.asarray(c["obj_stop_now"]).sum()),
+                    "ok": bool(ok)})
     check("terminal_bootstrap_semantics", sem_ok, {"rows": sem,
-          "note": "failure 末步目标=FAIL_PENALTY；truncation 末步=成本+V_c(x_T)；success=成本"})
+          "note": "成本目标=到共同停止的成本；仅 τ*=T 加 V_c(x_T)；failure 末步=FAIL_PENALTY"})
 
-    # 成功分支真实回合里没出现（随机策略三回合都没到目标），单独造一段：
-    # 同一组数，只改终止性质，用来验"success 不给 bootstrap"和"成功步的 V_h 取 g_norm"。
+    # 成功分支真实回合里没出现（随机策略三回合都没到目标），单独造两段：
+    #  (A) h_T=1.0（到达前已危险）→ τ*=2，成本目标为 [0.02,0.01,0,0]
+    #  (B) 干净到达、h_T 最小 → τ*=T，success 不加 bootstrap、truncation 加
     syn = {
         "cost_norm": np.full(4, 0.01),
         "z_norm": np.linspace(0.5, 0.4, 4),
@@ -426,17 +456,50 @@ def main() -> int:
     trunc_syn["terminated"] = np.array([False, False, False, False])
     trunc_syn["truncated"] = np.array([False, False, False, True])
     ok_trunc = S.compute_objectives(trunc_syn, cfg, terminal_kind="truncation")
-    check("success_branch_ignores_bootstrap",
-          abs(ok_succ["obj_target_cost"][-1] - 0.01) < 1e-12
-          and abs(ok_succ["obj_h_terminal"][-1] - 1.0) < 1e-12
-          and abs(ok_succ["obj_target_reach"][-1] - 1.0) < 1e-12
-          and abs(ok_trunc["obj_target_cost"][-1] - 0.71) < 1e-12,
-          {"success_target_cost_last": float(ok_succ["obj_target_cost"][-1]),
-           "success_h_terminal": float(ok_succ["obj_h_terminal"][-1]),
-           "success_target_reach_last": float(ok_succ["obj_target_reach"][-1]),
-           "truncation_target_cost_last": float(ok_trunc["obj_target_cost"][-1]),
-           "note": "同样 0.01 成本 + 0.7 bootstrap：success 用 0.01，truncation 用 0.71；"
-                   "到达时 y=1 仍取 C·y=1.0（到达不清零安全历史）"})
+    check("shared_stop_truncates_cost_target",
+          np.allclose(ok_succ["obj_target_cost"], [0.02, 0.01, 0.0, 0.0],
+                      rtol=0.0, atol=1e-12)
+          and int(ok_succ["obj_stop_index"][0]) == 2
+          and abs(float(ok_succ["obj_h_terminal"][0]) - 1.0) < 1e-12
+          and abs(float(ok_trunc["obj_target_cost"][0]) - 0.02) < 1e-12,
+          {"success_target_cost": ok_succ["obj_target_cost"].tolist(),
+           "success_stop_index": ok_succ["obj_stop_index"].tolist(),
+           "success_h_terminal": float(ok_succ["obj_h_terminal"][0]),
+           "note": "τ*=2：在 2 处停止，成本只到 2；τ*=T 的 0.7 不出现"})
+
+    # 干净到达：只有最后一步进目标圈（h 严格递减、仅 h_T=0），τ*=T；
+    # bootstrap 用很小的 0.001，否则"付 0.7 才到 T"会让最优停止提前，测不到终端项
+    clean = {
+        "cost_norm": np.full(4, 0.01),
+        "z_norm": np.array([0.5, 0.45, 0.4, 0.35]),
+        "z_ratio": np.array([0.5, 0.45, 0.4, 0.35]),
+        "value_cost": np.zeros(4),
+        "value_reach": np.zeros(4),
+        "safety_y": np.zeros(4),
+        "goal_distance_m": np.array([3.0, 2.0, 1.0, 0.6]),
+        "z_norm_next": np.array([0.45, 0.4, 0.35, 0.3]),
+        "z_ratio_next": np.array([0.45, 0.4, 0.35, 0.3]),
+        "safety_y_next": np.zeros(4),
+        "goal_distance_m_next": np.array([2.0, 1.0, 0.6, 0.2]),
+        "terminated": np.array([False, False, False, True]),
+        "truncated": np.array([False, False, False, False]),
+        "bootstrap_value_cost": np.array([0.0, 0.0, 0.0, 0.001]),
+    }
+    clean_tr = dict(clean)
+    clean_tr["terminated"] = np.array([False, False, False, False])
+    clean_tr["truncated"] = np.array([False, False, False, True])
+    out_s = S.compute_objectives(clean, cfg, terminal_kind="success")
+    out_t = S.compute_objectives(clean_tr, cfg, terminal_kind="truncation")
+    check("success_ignores_bootstrap_truncation_adds_it",
+          int(out_s["obj_stop_index"][0]) == 4
+          and np.allclose(out_s["obj_target_cost"], [0.04, 0.03, 0.02, 0.01],
+                          rtol=0.0, atol=1e-12)
+          and np.allclose(out_t["obj_target_cost"], [0.041, 0.031, 0.021, 0.011],
+                          rtol=0.0, atol=1e-12),
+          {"success": out_s["obj_target_cost"].tolist(),
+           "truncation": out_t["obj_target_cost"].tolist(),
+           "note": "同一组数、同一 τ*=T，只差终端项：success 用实际成本，"
+                   "truncation 加 V_c(x_T)=0.001"})
 
     # 危险后到达必须不可行；干净到达必须可行（事件真值表两行的手算版）
     clean = dict(syn)

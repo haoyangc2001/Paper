@@ -226,3 +226,48 @@ D3 / D8 / D9 都会触及"评分语义"，按计划必须先问再过，所以�
 ### 五、边界
 
 名义/向量/物理三侧的接口都已改，但**没有**重跑训练、没有重跑物理 pilot，也没有重签任何门禁。旧三轮训练、G4 的 `FAIL_WITH_STABILITY`、NAV-041 的 90 回合全无解仍是旧语义下的记录，不能当作新版本的通过依据。
+
+## NAV-063：共同停止与三套估计器（2026-11-12）
+
+本项把"记录停止时刻"变成"停止时刻控制三套目标"，并把 M5/M6/M7/M11/M12 的裁定落到生产调用链。证据：`tests/test_rcppo_alignment.py`（22 项，PASS）、`reports/rcppo_alignment.json`、`reports/gate_G3_alignment_v2.json`（预登记 sha `7693cf1f…`，PASS）。
+
+### 一、为什么原来的三套估计器不是同一目标
+
+NAV-063 之前：成本目标取**整回合** suffix、reach 目标取**未掩码**的 min 型 Bellman 值、policy 优势用 `W_sel − V_total` 一次性差。三者各自隐含一个终点，停止点只被记录、没有约束任何目标。参考实现（`RC-PPO/rl/EC-EFPPO.py:64-76`）不是这样：`calculate_indexs3` 产出一个 `done`，`calculate_gae2`、`calculate_gae_reach4`、以及 `g=max(reach,−energy)` 上的 `calculate_gae_reach4` 全部共用它。
+
+现在 CaMRA 的定义（γ_c=1，故 `spent(t,τ) − z_t = −z_τ`）：
+
+| 量 | 定义 | 实现 |
+|---|---|---|
+| 共同停止 | `τ*(t)=argmin_{τ≥t} W(t,τ)`，`W=max(h_τ, spent(t,τ)+[τ=T]V_c(x_T)−z_t)` | `targets.select_stop` |
+| 停止掩码 | `done[t]=1[τ*(t)=t]`；λ-return 的 `done_ext` 末项固定为 1 | `storage.compute_objectives` |
+| ① 成本 | `Σ_{s=t}^{τ*(t)−1} c_s + 1[τ*=T]·V_c(x_T)` | `targets.cost_to_stop` |
+| ② reach | min 型 DP 值序列上的 `λ-return`（γ_h 退火） | `targets.lambda_return` |
+| ③ 联合策略 | `g_τ=max(h_τ,−z_τ)` 上的 `λ-return`，减 `V_total=max(V_h,V_c−z)` | 同上 |
+
+`λ-return` 的递推 `G_t=(1−λ)v_t+λG_{t+1}`（`done_t=1` 时 `G_t=v_t`）与 `(1−λ)Σ_{k<n}λ^k v_{t+k} + λ^n v_{τ*}` 恒等；`γ_c=1` 下 `τ*(t)` 随 t 单调不减，所以递推里 `G_{t+1}` 的停止点就是 `τ*(t)`，递归合法。
+
+### 二、三处有意偏离（都量化登记）
+
+1. **联合 λ-return 的 γ = 1.0**（参考 `GAMMA_REACH_INIT=0.999`）。理由是契约：目标是未折扣 J，`W` 也定义在未折扣量上；用 0.999 等于给后发生的成本打折。30 步常值 `g` 上两种口径的差 `ΔG=0.0148`。若将来要贴参考，必须连同"成本目标是否也打折"一起改，不能只改一处。
+2. **失败回合强制 `τ*=T`**。参考只做 argmin；但失败是吸收态，agent 不能"提前声明停止"来回避它。不强制时，预算宽松的失败样本会把停止点选在失败之前，前序联合目标里根本没有那 1.0 的惩罚——契约明确要求失败惩罚传播到全部相关目标。
+3. **reach 的尾部用实测 `h_T=max(g_norm(x_T),C·y_T)`**（参考的环境 reach 无独立 y）。这是 M4 的不可逆安全历史，`danger_then_arrival` 用例把它钉住。
+
+### 三、验收覆盖
+
+- 生产调用链：`compute_objectives` 内部对 `cost_to_stop`/`lambda_return`（两次）/`joint_sequence` 的调用被计数，且两次 λ-return 的 `done` 逐元素相同；`done` 必须等于 `1[τ*=t]`；λ 必须来自契约。
+- 手算：`τ*=t`（成本 0、联合 `g_t`）与 `τ*=T`（段内成本+bootstrap、嵌套 λ-return）；同总 J 不同时刻成本目标相同、而 γ=0.99 时会不同。
+- 冲突与污染：两个 critic 偏好不同终点时三套目标服从同一 `τ*`；停止之后把成本改成 5.0 不影响 `τ*` 及之前的目标（逐位相等）。
+- 边界：失败惩罚逐步传播（手算 λ-return）、危险后到达不可行、负预算即正成本、λ/γ_h 变化确实改变生产目标、切片+正确 bootstrap 的成本目标等于完整轨迹。
+- PPO：A± 与 ratio 高低四格的裁剪值（1.6 / 0.8 / −1.2 / −0.5）、熵符号、多 epoch 固定 `old_log_prob`（更新次数 = 3×4，ratio 不为 1）。
+- 真实产物：`train_nominal` 跑一个回合，逐 chunk 由原始字段重算全部派生目标，逐位一致。
+
+### 四、对下游
+
+- NAV-064 只能用这套口径训练；门禁 `gate_G3_alignment_v2` 未 PASS 前不得开始（本项 PASS）。
+- NAV-065 的双 critic 重验读同一 `V_c/V_h` 目标；NAV-066 的价值预算搜索用同一 `V_total=max(V_h,V_c−z)`。
+- 旧的 G3（NAV-035）与旧三轮训练保留原样，不因本项通过而被改写。
+
+### 五、边界
+
+没有训练、没有重跑物理 pilot、没有改冻结 v2/功率模型/论文。与参考的逐位等价**未证明也不要求**：上表三处偏离是契约驱动的，差异量登记在 `reports/rcppo_alignment.json` 的 `deviations`。

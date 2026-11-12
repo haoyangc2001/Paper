@@ -1,0 +1,443 @@
+{
+  "schema": "camra-gate-report-v1",
+  "gate": "G3",
+  "version": "alignment_v2",
+  "task": "NAV-063",
+  "prereg": "config/gate_g3_alignment_v2_prereg.json",
+  "prereg_sha256": "7693cf1f8fd4d2c9ba9768b268ce1f30f6855a0f1526ff73b86718ecce62a822",
+  "verdict": "PASS",
+  "n_criteria": 22,
+  "n_failed": 0,
+  "criteria": [
+    {
+      "criterion": "G3A-01",
+      "check": "production_uses_three_estimators_with_one_mask",
+      "requirement": "compute_objectives 必须调用 cost_to_stop / lambda_return（两次）/ joint_sequence，且两次 λ-return 的 done 完全一致",
+      "tolerance": "精确（计数与数组相等）",
+      "status": "PASS",
+      "detail": {
+        "lambda_return_calls": 2,
+        "done_equal": true,
+        "cost_to_stop": 1,
+        "joint_sequence": 1
+      }
+    },
+    {
+      "criterion": "G3A-02",
+      "check": "done_mask_is_stop_now",
+      "requirement": "done[t] = 1[τ*(t)=t]，且 λ-return 的 done_ext 末项为 1",
+      "tolerance": "精确",
+      "status": "PASS",
+      "detail": {
+        "stop_index": [
+          3,
+          3,
+          3
+        ],
+        "done": [
+          false,
+          false,
+          false
+        ],
+        "lambda_done": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "note": "λ-return 的序列含终端，故 done_ext 末尾固定为 1"
+      }
+    },
+    {
+      "criterion": "G3A-03",
+      "check": "lambda_from_contract",
+      "requirement": "λ 取自价值契约（0.95），不是硬编码",
+      "tolerance": "1e-12",
+      "status": "PASS",
+      "detail": {
+        "lambda_seen": [
+          0.95
+        ],
+        "contract": 0.95,
+        "gamma_joint": 1.0,
+        "gamma_cost": 1.0,
+        "gamma_h": 0.999
+      }
+    },
+    {
+      "criterion": "G3A-04",
+      "check": "tau_equals_t_stop_now",
+      "requirement": "τ*=t 时成本目标为 0、联合目标为 g_t，且不加 bootstrap",
+      "tolerance": "1e-12",
+      "status": "PASS",
+      "detail": {
+        "target_cost": [
+          0.0,
+          0.0
+        ],
+        "target_total": [
+          0.03333333333333333,
+          0.03333333333333333
+        ],
+        "g0": 0.03333333333333333
+      }
+    },
+    {
+      "criterion": "G3A-05",
+      "check": "tau_equals_T_and_bootstrap",
+      "requirement": "τ*=T 时成本目标=段内成本+bootstrap，联合目标=嵌套 λ-return（手算）",
+      "tolerance": "1e-12",
+      "status": "PASS",
+      "detail": {
+        "stop_index": [
+          2,
+          2
+        ],
+        "target_cost": [
+          0.30000000000000004,
+          0.25
+        ],
+        "target_total": [
+          0.05377500000000002,
+          0.047833333333333346
+        ],
+        "g_terminal": 0.05000000000000002
+      }
+    },
+    {
+      "criterion": "G3A-06",
+      "check": "same_total_cost_same_cost_target",
+      "requirement": "γ_c=1：同总 J 不同发生时刻给出相同成本目标",
+      "tolerance": "1e-15",
+      "status": "PASS",
+      "detail": {
+        "early": 0.1,
+        "late": 0.1,
+        "note": "γ_c=1：成本目标只看到停止时的累计 J，与发生时刻无关"
+      }
+    },
+    {
+      "criterion": "G3A-07",
+      "check": "discounted_cost_would_differ",
+      "requirement": "反例：γ=0.99 时同总 J 的目标会不同（说明 γ_c=1 是必须的）",
+      "tolerance": "差值 > 1e-9",
+      "status": "PASS",
+      "detail": {
+        "early_discounted": 0.1,
+        "late_discounted": 0.099,
+        "note": "这正是不把 γ_c 改成 0.99 的理由：它会把目标偷换成折扣成本"
+      }
+    },
+    {
+      "criterion": "G3A-08",
+      "check": "shared_stop_overrides_each_critic_own_endpoint",
+      "requirement": "两个 critic 偏好不同终点时，三套目标都服从共享 W 选出的 τ*",
+      "tolerance": "1e-12",
+      "status": "PASS",
+      "detail": {
+        "stop_index": [
+          1,
+          1
+        ],
+        "reach_only_argmin": 2,
+        "h_all": [
+          0.3,
+          0.05,
+          0.0
+        ],
+        "target_cost_0": 0.6,
+        "W_0": 0.05,
+        "note": "三套估计器都用 τ*=1：成本只到 1（0.6），联合残差是 0.05"
+      }
+    },
+    {
+      "criterion": "G3A-09",
+      "check": "post_stop_cost_does_not_pollute",
+      "requirement": "停止之后的成本改变不得移动 τ*≤停止点的目标",
+      "tolerance": "精确（逐位不变）",
+      "status": "PASS",
+      "detail": {
+        "stop": 4,
+        "cost_before": [
+          0.2,
+          0.15000000000000002,
+          0.1,
+          0.04999999999999999
+        ],
+        "cost_after_perturbation": [
+          0.2,
+          0.15000000000000002,
+          0.1,
+          0.04999999999999999
+        ],
+        "joint_before": [
+          0.014873291666666679,
+          0.006884166666666672,
+          0.0019833333333333348,
+          0.00033333333333333354
+        ],
+        "joint_after": [
+          0.014873291666666679,
+          0.006884166666666672,
+          0.0019833333333333348,
+          0.00033333333333333354
+        ]
+      }
+    },
+    {
+      "criterion": "G3A-10",
+      "check": "failure_penalty_propagates",
+      "requirement": "失败回合强制 τ*=T，前序每步联合目标都含 FAIL_PENALTY",
+      "tolerance": "1e-12",
+      "status": "PASS",
+      "detail": {
+        "g_terminal": 1.0,
+        "stop_index": [
+          3,
+          3,
+          3
+        ],
+        "target_total": [
+          0.8814708333333332,
+          0.9155833333333332,
+          0.955
+        ],
+        "want": [
+          0.8814708333333332,
+          0.9155833333333332,
+          0.955
+        ],
+        "target_cost": [
+          0.15000000000000002,
+          0.10000000000000002,
+          1.0
+        ],
+        "note": "失败回合强制 τ*=T：前序每一步的联合目标都含 1.0 的失败惩罚"
+      }
+    },
+    {
+      "criterion": "G3A-11",
+      "check": "danger_then_arrival_infeasible",
+      "requirement": "危险后到达 h_T=1.0、W>=1.0、不可行",
+      "tolerance": "1e-12",
+      "status": "PASS",
+      "detail": {
+        "W_last": 1.0,
+        "h_terminal": 1.0
+      }
+    },
+    {
+      "criterion": "G3A-12",
+      "check": "negative_budget_joint_cost_positive",
+      "requirement": "负预算即正成本（g=max(h,−z)>0）、不可行",
+      "tolerance": "1e-12",
+      "status": "PASS",
+      "detail": {
+        "W_last": 0.5,
+        "g0": 0.1,
+        "note": "g=max(h,−z)=0.1：超支本身就是正成本"
+      }
+    },
+    {
+      "criterion": "G3A-13",
+      "check": "lambda_and_gamma_change_targets",
+      "requirement": "λ 与 γ_h 的变化必须实际改变生产目标",
+      "tolerance": "> 1e-9",
+      "status": "PASS",
+      "detail": {
+        "max_delta_lambda1_reach": 4.215608833333341e-05,
+        "max_delta_lambda05_total": 0.1467375,
+        "max_delta_gamma_h_reach": 0.01590159391166668,
+        "note": "λ 是估计器参数、γ_h 是 reach 的收缩率；两者都必须真的进入目标"
+      }
+    },
+    {
+      "criterion": "G3A-14",
+      "check": "gamma_cost_undiscounted",
+      "requirement": "γ_c=1 且 γ_joint=γ_c（联合目标不打折）",
+      "tolerance": "1e-15",
+      "status": "PASS",
+      "detail": {
+        "gamma_cost": 1.0,
+        "gamma_joint": 1.0
+      }
+    },
+    {
+      "criterion": "G3A-15",
+      "check": "slice_rejoin_matches_full_cost_target",
+      "requirement": "窗口切片+正确 bootstrap 的成本目标等于完整轨迹",
+      "tolerance": "1e-12",
+      "status": "PASS",
+      "detail": {
+        "head": 0.2,
+        "full": 0.2,
+        "bootstrap": 0.1,
+        "note": "切片目标 = 段内成本 + 完整尾段成本（bootstrap 由采集时的 critic 给出）"
+      }
+    },
+    {
+      "criterion": "G3A-16",
+      "check": "positive_advantage_penalises_higher_probability",
+      "requirement": "A>0 时提高概率必须让最小化损失变大",
+      "tolerance": "严格不等",
+      "status": "PASS",
+      "detail": {
+        "loss_a": 0.9574318528175354,
+        "loss_b": 1.0087029933929443,
+        "note": "A>0 = 更贵；概率升高必须让损失变大（最小化方向）"
+      }
+    },
+    {
+      "criterion": "G3A-17",
+      "check": "negative_advantage_rewards_higher_probability",
+      "requirement": "A<0 时提高概率让损失变小",
+      "tolerance": "严格不等",
+      "status": "PASS",
+      "detail": {
+        "loss_a": -1.0425682067871094,
+        "loss_b": -1.093839406967163
+      }
+    },
+    {
+      "criterion": "G3A-18",
+      "check": "entropy_sign_is_negative",
+      "requirement": "熵项符号为负（提高熵降低损失）",
+      "tolerance": "严格不等",
+      "status": "PASS",
+      "detail": {
+        "with_entropy": 0.9474318623542786,
+        "without": 1.0,
+        "ent_coef": 0.01
+      }
+    },
+    {
+      "criterion": "G3A-19",
+      "check": "clip_branches_four_cells",
+      "requirement": "A±/ratio 高低四格都落在 max 悲观侧：1.6 / 0.8 / −1.2 / −0.5，裁剪比例均为 1",
+      "tolerance": "1e-6",
+      "status": "PASS",
+      "detail": {
+        "A+_hi": {
+          "loss": 1.6,
+          "clipped": 1.0
+        },
+        "A+_lo": {
+          "loss": 0.8,
+          "clipped": 1.0
+        },
+        "A-_hi": {
+          "loss": -1.2,
+          "clipped": 1.0
+        },
+        "A-_lo": {
+          "loss": -0.5,
+          "clipped": 1.0
+        }
+      }
+    },
+    {
+      "criterion": "G3A-20",
+      "check": "multi_epoch_fixed_old_log_prob",
+      "requirement": "多 epoch 重放时 old_log_prob 固定，更新次数 = epochs×minibatches",
+      "tolerance": "精确",
+      "status": "PASS",
+      "detail": {
+        "grad_steps": 12,
+        "expected": 12,
+        "ratios": [
+          1.00059,
+          0.998109,
+          1.009378,
+          0.998667,
+          0.994579,
+          0.993012,
+          1.027273,
+          1.006818,
+          0.996083,
+          1.016771,
+          1.008727,
+          1.006026
+        ],
+        "note": "old_log_prob 由采集时固定：多 epoch 重放时 ratio 相对它计算，不会退回 1（否则裁剪失效）"
+      }
+    },
+    {
+      "criterion": "G3A-21",
+      "check": "production_probe_runs",
+      "requirement": "真实训练入口（train_nominal）能产出 chunk",
+      "tolerance": "退出码 0",
+      "status": "PASS",
+      "detail": {
+        "run_json": true
+      }
+    },
+    {
+      "criterion": "G3A-22",
+      "check": "production_chunks_recompute_from_raw",
+      "requirement": "真实产物的每个派生目标都能由原始字段逐位重算",
+      "tolerance": "逐位相等",
+      "status": "PASS",
+      "detail": {
+        "problems": [],
+        "chunks": [
+          {
+            "chunk": 0,
+            "kind": "truncation",
+            "T": 31,
+            "stop_now_fraction": 0.06451612903225806,
+            "adv_total_mean": 0.8406184563559134
+          }
+        ],
+        "note": "真实训练产物的每个派生目标都能由原始字段逐位重算"
+      }
+    }
+  ],
+  "alignment_report": {
+    "path": "reports/rcppo_alignment.json",
+    "sha256": "ba4000772c95af1b5b876010115ad6f466b3d39760b5c2228f1167339d2c7ccc",
+    "verdict": "aligned_with_documented_deviations",
+    "deviations": [
+      {
+        "id": "D1",
+        "topic": "联合 λ-return 的 γ",
+        "ours": 1.0,
+        "reference": 0.999,
+        "quantified": "30 步常值 g 上 ΔG=0.014762",
+        "why": "契约 γ_c=1 且 W 未折扣；改 0.999 会让 100 J 成本在 10 步后少算约 1 J",
+        "accepted_by": "NAV-061 契约 gamma_cost=1.0 + 本任务"
+      },
+      {
+        "id": "D2",
+        "topic": "失败回合强制停止在 T",
+        "ours": "τ*=T（所有 t）",
+        "reference": "argmin 可能选更早的 τ",
+        "quantified": "预算宽松失败样本上，不强制时前序联合目标不含 1.0 惩罚",
+        "why": "契约要求失败惩罚传播到全部前序目标",
+        "accepted_by": "NAV-063（本报告 failure_penalty_propagates）"
+      },
+      {
+        "id": "D3",
+        "topic": "reach 目标的尾部",
+        "ours": "实测 h_T=max(g_norm(x_T), C·y_T)",
+        "reference": "环境给的 reach_append 末项",
+        "quantified": "同式；差别只在参考不区分 y（无独立 y）",
+        "why": "不可逆安全历史（M4）",
+        "accepted_by": "NAV-061 契约 safety_history"
+      }
+    ]
+  },
+  "inputs_sha256": {
+    "tests/test_rcppo_alignment.py": "8ef31f76aba323d95d1623d85c4f555e54fdb1f792378a19a0c891f0e197921c",
+    "src/camra_navigation/algorithm/targets.py": "b00bf3626fed9179036a768eddca267e0cd198b3f0754aa1c5af9633937bb913",
+    "src/camra_navigation/algorithm/storage.py": "ba523a389c17b8a4d6e3c028c9e57a591648a41faf10c26e177fb5afe8294519",
+    "src/camra_navigation/algorithm/ppo.py": "ce3b510af80501a09bae661e2945a862dfe56e3c41f040486bd84b91cddeb4f7",
+    "config/value_objective_contract_v1.json": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+  },
+  "not_claimed": [
+    "不声称策略已学到东西（学习效果归 NAV-064）",
+    "不声称与参考实现逐位等价：联合 λ-return 的 γ 是有意偏离（1.0 vs 0.999），差异量见 reports/rcppo_alignment.json",
+    "不声称物理侧时序已验证（归 NAV-067）",
+    "不重签旧 G3（NAV-035）：旧门禁保留原状，本门禁只覆盖新目标口径"
+  ],
+  "next_gate": "NAV-064 只能在本门禁 PASS 后开始学习；NAV-065 产出 gate_G4_alignment_v2"
+}
