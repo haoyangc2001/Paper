@@ -4,21 +4,23 @@
 
 ## 当前范围与状态
 
-当前在 Isaac Lab 中逐步复现系统。`camra_go2_velocity_it2999_v2` 已冻结，校准工具及其历史结果已建立；HiRA 预训练底层策略也已完成接入、独立校准和交接。继续训练或调参不作为默认任务，真机通信、sim2real 与实机实验留待后续。
+当前在 Isaac Lab 中逐步复现系统。`camra_go2_velocity_it2999_v2` 已冻结，校准工具及其历史结果已建立；HiRA 预训练底层策略也已完成接入、独立校准和交接。底层不默认继续训练或更换；当前工作是上层原理对齐、有限名义训练与闭环重验，真机通信、sim2real 与实机实验留待后续。
 
-当前实施入口为[60项上层导航计划](../doc/plan/20261109_camra_navigation_implementation.json)，版本 **1.2.0**，**0/60项完成**，首项 **NAV-001**。先学习背景并核验 tiger11 环境，再按依赖实现名义环境、接通 v2、验证算法、训练上层及完成闭环评估；本次仍仅维护说明与计划。
+当前实施入口为[67项上层导航计划](../doc/plan/20261109_camra_navigation_implementation.json)，版本 **1.3.1**，**48/67项记录完成**，下一项 **NAV-061**。名义环境、三网络训练、预算工具和物理接入已存在，但旧三轮开发集成功率为0、G4为 `FAIL_WITH_STABILITY`；历史结案不等于性能通过。
+
+本轮只原位修订计划及文档：NAV-061–063先恢复来源、修正时序/预算/终止与共同停止目标，NAV-064–066有限训练、重验部署actor/双critic并做独立价值预算搜索，NAV-067修正clean参数和200 Hz事件后重验接线，再进入正式评估。任务数、旧记录和状态保留，没有启动新实验。
 
 历史 [40项 HiRA 计划](../doc/plan/20261105_camra_hira_policy_calibration.json)已记录 **40/40 项完成**。`locomotion/adapters/hira_go2/` 与 `calibration/experiments/hira_go2_18500/` 均已建立：前者 13 个模块，后者含配置、七清单、冻结包、报告与交付索引；运行入口与复现步骤见该实验 `docs/reproduction.md`。
 
 **后续开发固定使用 `camra_go2_velocity_it2999_v2`（用户2026-11-09确认，硬性约束）。** 底层、校准和导航均绑定 v2 的模型、资产、执行契约及配套功率模型、足迹、α/δ和数据锁；未经用户明确授权，不切换到 HiRA 或其他 checkpoint，不重新训练替换 v2。HiRA 仅保留为历史参考/对照，完整约束见[根 AGENTS](../AGENTS.md)。
 
-[控制器选择与复核记录](calibration/docs/controller_comparison_status_20261109.md)保留历史 HiRA 问题；它们不默认构成 v2 开发前置任务，涉及共享代码时核查对 v2 的影响。正式导航前核验 v2 资源、接口与校准适用性，本次不启动训练。
+[控制器选择与复核记录](calibration/docs/controller_comparison_status_20261109.md)保留历史 HiRA 问题；它们不默认构成 v2 开发前置任务，涉及共享代码时核查对 v2 的影响。新版部署策略在正式物理评估前重新核验v2资源、接口与校准适用性，本次不启动训练。
 
 | 模块 | 责任 | 输入 → 产物 | 状态 |
 | --- | --- | --- | --- |
 | [locomotion](locomotion/README.md) | 速度跟踪与稳定运动 | 机身速度指令、本体状态 → 12 维关节位置偏移 | v2 已冻结；HiRA 已接入并冻结（`3c32fe31`） |
 | [calibration](calibration/README.md) | 能量与位置误差校准、独立检验 | 固定控制器、独立基线及配对轨迹 → 功率模型、α、δ与检验报告 | v2 与 HiRA 双套已建立；HiRA 完成检验/近障/审计/复现包 |
-| [navigation](navigation/README.md) | 安全、到达与成本决策 | 地图/目标/状态、预算及裕度 → 三维速度指令 | 代码待实现；60项导航计划已准备，尚未执行 |
+| [navigation](navigation/README.md) | 安全、到达与成本决策 | 地图/目标/状态、预算及裕度 → 三维速度指令 | 已有实现；48/67项记录完成，从NAV-061回修与重验 |
 
 底层补充复测的历史结论仍为 `overall_pass=False`，低速扫描也发现起步死区。当前决定是在保留这些边界的前提下推进研究；详细数值和证据统一见 [底层说明](locomotion/README.md#当前状态与已知边界)。
 
@@ -54,7 +56,7 @@ v2 执行参数以其冻结包 `params/deploy.yaml`、`params/export_manifest.js
 
 - [底层 README](locomotion/README.md)：冻结包、已知边界、环境与运行命令。
 - [校准 README](calibration/README.md)：现有数据链路、新候选隔离及裕度检验。
-- [当前导航计划](../doc/plan/20261109_camra_navigation_implementation.json)：60项任务、前置对齐核查、门禁和回修规则；当前0/60项完成。
+- [当前导航计划](../doc/plan/20261109_camra_navigation_implementation.json)：67项任务、原理对齐、门禁和回修规则；当前48/67项记录完成。
 - [历史 HiRA 计划](../doc/plan/20261105_camra_hira_policy_calibration.json)：已完成的接入、校准与逐项记录。
 - [原 v2 校准计划](../doc/plan/20261103_camra_calibration_implementation.json)：历史32项任务与证据，不作为本轮起点。
 - [导航 README](navigation/README.md)：上层结构及与校准、底层的连接。

@@ -4,7 +4,11 @@
 
 ## 当前进展与下一步
 
-当前实施入口为 [固定 v2 的上层导航计划](doc/plan/20261109_camra_navigation_implementation.json)，版本 **1.2.0**，共 **60项**、当前 **0/60完成**。本轮仅修订计划，尚未实现导航。新增核查按依赖插入：先确定命令域、目标尺度、姿态几何和预算比较规则，再做低速与闭环裕度适用性检查，之后才进入上层学习；执行以计划数组顺序为准。
+当前实施入口为 [固定 v2 的上层导航计划](doc/plan/20261109_camra_navigation_implementation.json)，版本 **1.3.1**，共 **67项**、当前 **48/67项记录完成**，下一项 **NAV-061**。已有名义环境、三网络训练、预算工具及v2物理接入；旧三轮训练开发集成功率仍为0，G4为 `FAIL_WITH_STABILITY`。任务结案不表示导航已经达标。
+
+本轮将原理对齐和工程修正融入已有NAV-061–067及后续验收，未新增任务、未改变历史状态。先修正样本时序、预算/终止、安全符号、共同停止和三套估计器，再有限训练、重验部署双critic、做独立价值预算搜索及clean子步接线检查。本次只改计划与文档，没有执行新实验。
+
+旧90回合是单种子经验标签扫描且全无解，旧6回合仅为接线pilot。它们不证明价值搜索或clean性能；当前问题和恢复入口见[导航说明](CaMRA/navigation/README.md)及[交接](CaMRA/navigation/docs/implementation_handoff.md)。训练调参只用train/development，独立选择与最终评估保持隔离。
 
 计划允许在既定范围回修前置实现：原记录和证据保留，修正过程追加到发现问题的当前任务，受影响的验收重验后再继续。完整规则见计划 `upstream_correction_policy`。
 
@@ -22,9 +26,9 @@
 | --- | --- | --- |
 | [locomotion](CaMRA/locomotion/README.md) | v2 已冻结；HiRA 历史包保留 | 后续固定使用 v2，不替换模型与执行契约 |
 | [calibration](CaMRA/calibration/README.md) | v2 与 HiRA 双套历史校准均已建立 | 主线使用 v2 配套校准，HiRA 复核独立保留；稿件由作者修改 |
-| [navigation](CaMRA/navigation/README.md) | 代码待实现；60项计划已创建并校验，0/60完成 | 从 NAV-001 学习背景，按依赖实现并验证 |
+| [navigation](CaMRA/navigation/README.md) | 已有实现和负结果；67项中48项记录完成 | 从NAV-061按原理回修、重训及闭环重验 |
 
-本阶段仅做 Isaac Lab 仿真，执行主机固定 tiger11（192.168.20.11），终端任务使用 tmux。先验证确定性名义环境和 v2 接口，再训练上层，最后固定策略做 clean 与扰动检验。运行前按计划核验环境、模型和资产；Agent 接手先读 [AGENTS.md](AGENTS.md)。
+本阶段仅做 Isaac Lab 仿真，执行主机固定 tiger11（192.168.20.11），终端任务使用 tmux。先完成原理与生产调用链重验，再有限训练、独立预算选择和clean复验，最后固定策略做正式clean与扰动检验。运行前按计划核验环境、模型和资产；Agent 接手先读 [AGENTS.md](AGENTS.md)。
 
 ## 目录与阅读入口
 
@@ -45,7 +49,7 @@ paper/
 
 - [CaMRA 系统说明](CaMRA/README.md)：方法、模块关系和统一接口。
 - [AGENTS.md](AGENTS.md)：接手任务时的最短阅读路径、配置依据与工作边界。
-- [当前导航计划](doc/plan/20261109_camra_navigation_implementation.json)：60项任务、前置对齐核查、依赖与验收标准；尚未执行。
+- [当前导航计划](doc/plan/20261109_camra_navigation_implementation.json)：67项任务、48项历史结案及待执行回修，含依赖、资源和验收标准。
 - [历史 HiRA 计划](doc/plan/20261105_camra_hira_policy_calibration.json)：40项任务、接入门禁、依赖与验收记录。
 - [原 v2 校准计划](doc/plan/20261103_camra_calibration_implementation.json)：历史32项任务与执行证据。
 - [文档索引](doc/README.md)：当前任务阶段及历史计划、执行证据入口。
