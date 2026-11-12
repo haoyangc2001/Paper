@@ -118,7 +118,8 @@ def main() -> int:
     refs = json.load(open(E_REF, encoding="utf-8"))
     e_ref = {r["map_id"]: float(r["e_ref_J"]) for r in refs["maps"]}
     dev_maps = split["splits"]["development"]["maps"]
-    grid = prereg["round_acceptance"]["budget_response_on_dev"]["grid_k"]
+    grid = prereg["round_acceptance"].get("budget_response_on_dev", {}).get(
+        "grid_k", [0.7, 0.85, 1.0, 1.15, 1.3])
 
     runs = []
     for rid in args.run_ids.split(","):
@@ -198,8 +199,10 @@ def main() -> int:
         "schema": "camra-training-round-report-v1",
         "task": "NAV-064",
         "round": args.round,
+        "prereg_version": prereg.get("version"),
         "prereg": {"path": os.path.relpath(prereg_path, NAV), "sha256": pinned},
-        "gate_g3_alignment_v2": prereg["binding"]["gate_g3_alignment_v2"],
+        "gate_g3_alignment_v2": prereg["binding"].get("gate_g3_alignment_v2"),
+        "warm_start": prereg["algorithm"].get("warm_start"),
         "closing_tier": {
             "criterion": f"development SR median >= {threshold} for both methods",
             "threshold": threshold,

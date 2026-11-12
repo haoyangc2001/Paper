@@ -1,0 +1,164 @@
+{
+  "schema": "camra-training-loop-prereg-v1",
+  "version": "r3.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-12T21:45:00+08:00",
+  "status": "frozen_before_round_3",
+  "round": 3,
+  "task": "NAV-064 第 3 轮：单变量回退验证——第 2 轮唯一行为学改动是熵系数 0.02，uncalibrated 随之退化（0.667→0.333）、超支恶化；本轮把熵退回 0.01 并从第 2 轮权重继续，用来区分『熵过头』与『full 需要语义级处理』",
+  "binding": {
+    "plan": {
+      "path": "doc/plan/20261109_camra_navigation_implementation.json",
+      "version": "1.3.1"
+    },
+    "loop_protocol": {
+      "path": "config/training_loop_protocol_v1_1.json",
+      "sha256": "34d4bd6ecb56ad4f8ebfd9326f617934f6621d07e56ea6a057e296c840bd8231"
+    },
+    "round_2_prereg": {
+      "path": "config/training_loop_prereg_r2.json",
+      "sha256": "623c10836a66da7483357ae69d0af7eba82513d379ec9facc26b8ce014b99e96"
+    },
+    "round_2_report": {
+      "path": "reports/training_round_r2.json",
+      "sha256": "c7bad7f55d524bc91327e7735524c392557c9be03c5bb448e9162d7244dc9a45"
+    },
+    "value_objective": {
+      "path": "config/value_objective_contract_v1.json",
+      "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+    },
+    "navigation": {
+      "path": "config/navigation_contract_v1.json",
+      "sha256": "ec0f3e53267ee557eb62afc8f5c5658673541124eaa5c43b20768e78bdd832f5"
+    },
+    "split_manifest": {
+      "path": "config/split_manifest_v1.json",
+      "sha256": "17db0f0810f1844c2e663ed33a930d9a47d931fef26acf75bfbe0472675fe0af"
+    }
+  },
+  "round_2_evidence_used": [
+    "dev SR：uncalibrated 0/0.333/0.667（中位 0.333，第 1 轮 0.667）、full 0.5/0.333/0.333（中位 0.333，第 1 轮 0）",
+    "『到达且 z_end>=0』全部为 0，且超支比第 1 轮更大（z_end −370 ~ −1400 J @ k=1.0）",
+    "clip_fraction 0.016–0.034（第 1 轮 0.053–0.065，熵 0.02 探索更多）",
+    "uncalibrated_s0 退到 SR=0 且停滞为主——高熵把已学会的到达行为搅散",
+    "full 在第 2 轮首次全线 SR>0（热启动+熵把策略拉出饱和盆地）"
+  ],
+  "config_delta_vs_round2": [
+    {
+      "item": "熵系数",
+      "before": "0.02（协议上限）",
+      "after": "0.01（回到契约默认）",
+      "hypothesis": "第 2 轮唯一行为学改动是熵 0.02：uncalibrated 退化、超支恶化、碰撞出现；full 改善。退回 0.01 预期 uncalibrated 恢复 ≥0.5、超支回落；full 不退回停滞盆地。若 full 退回停滞，则说明 full 需要的不是熵而是语义级处理，按 stops.semantic_doubt 停止询问"
+    },
+    {
+      "item": "热启动来源",
+      "before": "第 1 轮最终 checkpoint",
+      "after": "第 2 轮最终 checkpoint（同名 variant+seed）",
+      "hypothesis": "保持连续性：两方法在第 2 轮末都处于有到达行为的盆地，从那里继续比回到第 1 轮更接近关闭档"
+    }
+  ],
+  "unchanged_vs_round2": [
+    "预算抽样 U(0.6,1.3)、600 窗口×4086 步、10 epochs×512、lr 3e-4/1e-3、网络 256×2、obs-v3、共享停止与三套 λ 平滑估计器"
+  ],
+  "method": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "runs": 6
+  },
+  "environment": {
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5
+  },
+  "budget": {
+    "sampling": {
+      "kind": "uniform",
+      "k_low": 0.6,
+      "k_high": 1.3
+    }
+  },
+  "algorithm": {
+    "lr_policy": 0.0003,
+    "lr_critic": 0.001,
+    "epochs_per_window": 10,
+    "minibatch_size": 512,
+    "ent_coef": 0.01,
+    "warm_start": {
+      "nav064_r2_uncalibrated_s0": "/pub/data/caohy/work/camra_navigation/nav064_r2_uncalibrated_s0/state.pt",
+      "nav064_r2_uncalibrated_s1": "/pub/data/caohy/work/camra_navigation/nav064_r2_uncalibrated_s1/state.pt",
+      "nav064_r2_uncalibrated_s2": "/pub/data/caohy/work/camra_navigation/nav064_r2_uncalibrated_s2/state.pt",
+      "nav064_r2_full_s0": "/pub/data/caohy/work/camra_navigation/nav064_r2_full_s0/state.pt",
+      "nav064_r2_full_s1": "/pub/data/caohy/work/camra_navigation/nav064_r2_full_s1/state.pt",
+      "nav064_r2_full_s2": "/pub/data/caohy/work/camra_navigation/nav064_r2_full_s2/state.pt"
+    }
+  },
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600
+  },
+  "checkpoints": {
+    "save_every_updates": 50,
+    "final_checkpoint": "最后一个更新"
+  },
+  "round_acceptance": {
+    "closing_tier_source": "development 6 图 × 3 种子，确定性均值动作，k=1.0",
+    "dev_success_rate_median": 0.1,
+    "per_method": "两方法都必须 >= 0.10（SR 条件）；预算条件在 development 上的『预算内到达』诊断继续记录，正式判定归 NAV-066",
+    "budget_response_on_dev": {
+      "grid_k": [
+        0.7,
+        0.85,
+        1.0,
+        1.15,
+        1.3
+      ],
+      "purpose": "诊断：预算内到达是否出现"
+    },
+    "primary_questions_this_round": [
+      "uncalibrated 是否恢复 ≥0.5（熵回退的判定）",
+      "full 是否保持 ≥0.333（不退回停滞盆地）",
+      "『到达且预算内』是否首次出现非零"
+    ],
+    "ideal_tier": {
+      "sr": 0.9,
+      "collision_rate": 0.0,
+      "blocking": false
+    }
+  },
+  "resource": {
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 12.0,
+    "max_rounds": 4,
+    "runs_this_round": 6,
+    "used_so_far": {
+      "rounds": 2,
+      "calendar_hours": 2.7,
+      "note": "12 h 上限按整个循环的日历时间理解（每轮 6 run 并行共享墙钟）；若按 run 小时累加则与 rounds=4 矛盾"
+    },
+    "runs_used_total": 12
+  },
+  "data_access": {
+    "train": "训练取样（18 图）",
+    "development": "唯一判定来源",
+    "budget_selection": "本循环禁止使用",
+    "final_*": "封存",
+    "audit": "收尾给出实际加载路径清单（含热启动来源）与 split hash"
+  },
+  "stops": {
+    "met": "立刻停止，进入 NAV-065 候选冻结",
+    "rounds_exhausted": "停止并报告，任务保持 false",
+    "wall_clock": "立刻停止当前 run，不延长",
+    "infrastructure": "换 run id 重跑，与原 attempt 一并报告",
+    "semantic_doubt": "若本轮证明 full 的饱和问题是语义/任务设计层面，停止并按 uncertainty_policy 询问"
+  },
+  "reporting": "独立报告 reports/training_round_r3.json + 台账更新"
+}
