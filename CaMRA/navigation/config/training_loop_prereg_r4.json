@@ -1,0 +1,163 @@
+{
+  "schema": "camra-training-loop-prereg-v1",
+  "version": "r4.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-12T23:15:00+08:00",
+  "status": "frozen_before_round_4_final",
+  "round": 4,
+  "task": "NAV-064 第 4 轮（最后一轮）：第 3 轮证明熵回退不足以稳定 uncalibrated（三种子 0.667/0/0，中位 0.0），而 full 在 0.333 站稳；本轮用最后一个未用旋钮——学习率减半 + 从第 3 轮权重继续——检验『跨种子崩溃源于更新步长过大』",
+  "binding": {
+    "plan": {
+      "path": "doc/plan/20261109_camra_navigation_implementation.json",
+      "version": "1.3.1"
+    },
+    "loop_protocol": {
+      "path": "config/training_loop_protocol_v1_1.json",
+      "sha256": "34d4bd6ecb56ad4f8ebfd9326f617934f6621d07e56ea6a057e296c840bd8231"
+    },
+    "round_3_prereg": {
+      "path": "config/training_loop_prereg_r3.json",
+      "sha256": "0c6c60503966adcbe93e6621976fb08a6c3ae10f8ab956bf61e5498c8032c8c8"
+    },
+    "round_3_report": {
+      "path": "reports/training_round_r3.json",
+      "sha256": "1aeba4cc29244116e35aeaa15d86a37a1868aa63d00c6060c125f4879f7dea67"
+    },
+    "value_objective": {
+      "path": "config/value_objective_contract_v1.json",
+      "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+    },
+    "navigation": {
+      "path": "config/navigation_contract_v1.json",
+      "sha256": "ec0f3e53267ee557eb62afc8f5c5658673541124eaa5c43b20768e78bdd832f5"
+    },
+    "split_manifest": {
+      "path": "config/split_manifest_v1.json",
+      "sha256": "17db0f0810f1844c2e663ed33a930d9a47d931fef26acf75bfbe0472675fe0af"
+    }
+  },
+  "round_3_evidence_used": [
+    "dev SR：uncalibrated 0.667/0/0（中位 0.0，第 2 轮 0.333，第 1 轮 0.667）——同族种子逐轮大幅震荡",
+    "full 0.333/0.667/0.333（中位 0.333，与第 2 轮持平，未退回停滞盆地）",
+    "『到达且 z_end>=0』仍全部为 0（六个 run、k 网格全部 0）",
+    "第 3 轮熵已回到 0.01：说明 uncalibrated 的震荡不是（只是）熵造成的"
+  ],
+  "config_delta_vs_round3": [
+    {
+      "item": "学习率（策略）",
+      "before": "3e-4",
+      "after": "1e-4（critic 不变）",
+      "hypothesis": "uncalibrated 三轮中位 0.667→0.333→0.0：同一链上后期更新把已学会的到达行为破坏掉，是步长过大导致的震荡而非信号缺失（第 1 轮 600 窗口曾稳定到 0.667）。步长减半 + 热启动预期稳定在 ≥0.5"
+    },
+    {
+      "item": "热启动来源",
+      "before": "第 2 轮最终 checkpoint",
+      "after": "第 3 轮最终 checkpoint（同名 variant+seed）",
+      "hypothesis": "连续性：full 已在 0.333 站稳，uncal 的第 3 轮 s0 仍有 0.667 的能力存在"
+    }
+  ],
+  "unchanged_vs_round3": [
+    "预算抽样 U(0.6,1.3)、600 窗口×4086 步、10 epochs×512、lr 3e-4/1e-3、网络 256×2、obs-v3、共享停止与三套 λ 平滑估计器"
+  ],
+  "method": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "runs": 6
+  },
+  "environment": {
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5
+  },
+  "budget": {
+    "sampling": {
+      "kind": "uniform",
+      "k_low": 0.6,
+      "k_high": 1.3
+    }
+  },
+  "algorithm": {
+    "lr_policy": 0.0001,
+    "lr_critic": 0.001,
+    "epochs_per_window": 10,
+    "minibatch_size": 512,
+    "ent_coef": 0.01,
+    "warm_start": {
+      "nav064_r2_uncalibrated_s0": "/pub/data/caohy/work/camra_navigation/nav064_r2_uncalibrated_s0/state.pt",
+      "nav064_r2_uncalibrated_s1": "/pub/data/caohy/work/camra_navigation/nav064_r2_uncalibrated_s1/state.pt",
+      "nav064_r2_uncalibrated_s2": "/pub/data/caohy/work/camra_navigation/nav064_r2_uncalibrated_s2/state.pt",
+      "nav064_r2_full_s0": "/pub/data/caohy/work/camra_navigation/nav064_r2_full_s0/state.pt",
+      "nav064_r2_full_s1": "/pub/data/caohy/work/camra_navigation/nav064_r2_full_s1/state.pt",
+      "nav064_r2_full_s2": "/pub/data/caohy/work/camra_navigation/nav064_r2_full_s2/state.pt"
+    }
+  },
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600
+  },
+  "checkpoints": {
+    "save_every_updates": 50,
+    "final_checkpoint": "最后一个更新"
+  },
+  "round_acceptance": {
+    "closing_tier_source": "development 6 图 × 3 种子，确定性均值动作，k=1.0",
+    "dev_success_rate_median": 0.1,
+    "per_method": "两方法都必须 >= 0.10（SR 条件）；预算条件在 development 上的『预算内到达』诊断继续记录，正式判定归 NAV-066",
+    "budget_response_on_dev": {
+      "grid_k": [
+        0.7,
+        0.85,
+        1.0,
+        1.15,
+        1.3
+      ],
+      "purpose": "诊断：预算内到达是否出现"
+    },
+    "primary_questions_this_round": [
+      "lr 减半能否把 uncalibrated 稳定在 >=0.5（震荡假设的判定）",
+      "full 是否保持 >=0.333",
+      "『到达且预算内』是否首次出现非零"
+    ],
+    "ideal_tier": {
+      "sr": 0.9,
+      "collision_rate": 0.0,
+      "blocking": false
+    }
+  },
+  "resource": {
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 12.0,
+    "max_rounds": 4,
+    "runs_this_round": 6,
+    "used_so_far": {
+      "rounds": 3,
+      "calendar_hours": 4.0,
+      "note": "12 h 上限按整个循环的日历时间理解（每轮 6 run 并行共享墙钟）；若按 run 小时累加则与 rounds=4 矛盾"
+    },
+    "runs_used_total": 18
+  },
+  "data_access": {
+    "train": "训练取样（18 图）",
+    "development": "唯一判定来源",
+    "budget_selection": "本循环禁止使用",
+    "final_*": "封存",
+    "audit": "收尾给出实际加载路径清单（含热启动来源）与 split hash"
+  },
+  "stops": {
+    "met": "立刻停止，进入 NAV-065 候选冻结",
+    "rounds_exhausted": "停止并报告，任务保持 false",
+    "wall_clock": "立刻停止当前 run，不延长",
+    "infrastructure": "换 run id 重跑，与原 attempt 一并报告",
+    "semantic_doubt": "若本轮证明 full 的饱和问题是语义/任务设计层面，停止并按 uncertainty_policy 询问"
+  },
+  "reporting": "独立报告 reports/training_round_r4.json + 台账更新；这是最后一轮，无论结果如何 NAV-064 都进入收尾（达标→065，未达标→按 rounds_exhausted 报告并保持 false）"
+}
