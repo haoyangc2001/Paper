@@ -193,6 +193,14 @@ def _head(in_dim: int, out_dim: int, gain: float) -> nn.Linear:
 
 
 # ---------------------------------------------------------------- 网络
+#: rcppo_alignment_contract_v1.amend2（v1.1.0，2026-11-13 用户批准）：log_std
+#: 的可学习范围。上界 1.0（std≈2.72）阻断四轮训练实测的失效模式——优势≈0 的
+#: 样本上损失只剩 −ent_coef·H，普通最小化单调推高 std（实测熵 4.7→32、run 死
+#: 亡）；下界 −5.0（std≈0.007）保底防止探索完全塌缩。初值 0（std=1）在范围内。
+LOG_STD_MIN = -5.0
+LOG_STD_MAX = 1.0
+
+
 class PolicyNetwork(nn.Module):
     """obs -> Independent(Normal(mean, std))，作用在归一化动作上。"""
 
@@ -202,14 +210,21 @@ class PolicyNetwork(nn.Module):
         self.layout = layout
         self.body = _mlp(cfg.obs_dim, cfg.hidden, cfg.activation, cfg.hidden_gain)
         self.head = _head(cfg.hidden[-1], cfg.action_dim, cfg.policy_head_gain)
-        # 与参考实现一致：log_std 是独立参数、初值 0（std=1），不随状态变化
+        # 与参考实现一致：log_std 是独立参数、初值 0（std=1），不随状态变化。
+        # 可学习范围见上方 LOG_STD_MIN/LOG_STD_MAX（amend2）。
         self.log_std = nn.Parameter(torch.full((cfg.action_dim,), float(cfg.log_std_init)))
+
+    def clamp_log_std(self) -> None:
+        """把 log_std 参数钳回契约范围；训练器在每个梯度步后调用。"""
+        with torch.no_grad():
+            self.log_std.clamp_(LOG_STD_MIN, LOG_STD_MAX)
 
     def forward(self, obs: torch.Tensor) -> Independent:
         if obs.shape[-1] != self.cfg.obs_dim:
             raise ValueError(f"obs 最后一维应为 {self.cfg.obs_dim}，得到 {tuple(obs.shape)}")
         mean = self.head(self.body(obs))
-        std = self.log_std.exp().expand_as(mean)
+        # forward 侧防御性钳位（与 clamp_log_std 双保险；边界处梯度为 0）
+        std = self.log_std.clamp(LOG_STD_MIN, LOG_STD_MAX).exp().expand_as(mean)
         return Independent(Normal(mean, std), 1)
 
     def act(self, obs: torch.Tensor, deterministic: bool = False

@@ -1,0 +1,57 @@
+{
+  "schema": "camra-rcppo-alignment-contract-v1-amendment",
+  "version": "1.1.0",
+  "amends": {
+    "path": "config/rcppo_alignment_contract_v1.json",
+    "sha256_16": "9ba5925bc74eb861"
+  },
+  "previous_amendment": {
+    "path": "config/rcppo_alignment_contract_v1.amend1.json",
+    "sha256_16": "c6c29017041a245a",
+    "relation": "amend1 (h_T 含 C·y) 不变，本修订只触及 action_probability 的可学习参数范围"
+  },
+  "amended_by_task": "NAV-064 (round 5)",
+  "created_at": "2026-11-13T09:45:00+08:00",
+  "authority": {
+    "decision": "用户于 2026-11-13 批准选项 A：修订动作概率契约（钳位 log_std）并授权第 5 轮（超出协议 4 轮额度）",
+    "why_this_is_not_a_silent_change": "动作概率契约自 NAV-030 起冻结（跨轮不变是协议明文）；四轮数据证明其存在未预见的失效模式，属『评分语义变化』级授权点"
+  },
+  "rule": {
+    "target_section": "action_probability",
+    "change": "在『对角高斯，log_std 可学习』之上增加可学习范围约束：log_std ∈ [-5.0, 1.0]",
+    "implementation_points": [
+      "networks.PolicyNetwork.forward：std = log_std.clamp(LOG_STD_MIN, LOG_STD_MAX).exp()（防御性，clamp 边界处梯度为 0）",
+      "networks.PolicyNetwork.clamp_log_std()：就地钳位参数本身，训练器在每个梯度步后调用",
+      "train_formal --init-from：加载权重后把 log_std 重置回契约初值 0 再钳位——r1-r4 热启动链上该参数已发散到 4.5-7.7（熵 17.9-27.5），钳位上界 1.0 对它们是截断而非恢复；重置让第 5 轮从可学习范围的起点重新估计探索幅度，均值头与 critic 保留已学行为"
+    ],
+    "scope": [
+      "仅约束 log_std 这一个参数；均值头、critic、clip_eps、old_log_prob 固定语义均不动",
+      "对采集/训练/评估三处同一生效（同一 forward）",
+      "对部署冻结无影响：部署用确定性均值动作，不用 std"
+    ]
+  },
+  "evidence_why": {
+    "failure_mode": "四轮热启动链上熵 4.7→32（log_std 每维 4.5-7.7），第 4 轮 6 个 run 在 566-584/600 更新处无 traceback 死亡",
+    "mechanism": "损失 = max(ratio·A, clip·A) − ent_coef·H。安全饱和区（full 变体 63-64% 步 h≥1）优势恒 0，归一化后仍有噪声，此时损失只剩 −ent_coef·H，最小化它单调推高 std；std 越大优势越趋 0，正反馈",
+    "round_data": [
+      {"round": 1, "entropy_range": "4.7 → 15+（链起点）"},
+      {"round": 3, "entropy_range": "17.9-22.4（uncal）/ 21.8-27.5（full），600 更新后仍增长"},
+      {"round": 4, "entropy_range": "发散至 32，run 死亡"}
+    ],
+    "why_clamp_and_not_entropy_decay": "熵系数是价值契约明文『优化超参』（协议内 0-0.02 可调），衰减到 0 能止增长但饱和区将完全无梯度、策略停在原地；钳位把 std 限制在可探索范围（初值 1.0，上界 e≈2.72），熵项继续提供恢复信号。两者可叠加，本轮单变量只上钳位"
+  },
+  "excluded_alternatives": [
+    {"option": "熵系数衰减到 0", "reason": "协议内可调，不属契约变更；但饱和区将无任何梯度。留作第 5 轮若仍不足时的下一步（仍需新授权加轮）"},
+    {"option": "log_std 下界 -5.0 之外再加 std 衰减正则", "reason": "引入新损失项=第二处语义变化，违反单变量纪律"}
+  ],
+  "round5_binding": {
+    "prereg": "config/training_loop_prereg_r5.json",
+    "warm_start": "第 3 轮最终 checkpoint（r4 半途死亡且熵已发散，不用）",
+    "log_std_at_load": "重置为 0（见 implementation_points）",
+    "ent_coef": 0.01,
+    "lr_policy": "3e-4（契约默认；r4 的 1e-4 假设未完成检验，第 5 轮单一变量=钳位）"
+  },
+  "remediation_matrix_status": [
+    {"id": "M9", "update": "log_std 可学习范围 [-5,1] 由 amend2 钉入；顶格裁剪的路径梯度为 0 问题维持 NAV-062 登记，不在本修订范围"}
+  ]
+}

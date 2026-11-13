@@ -518,11 +518,62 @@ def check_production_probe() -> None:
            "note": "真实训练产物的每个派生目标都能由原始字段逐位重算"})
 
 
+def check_log_std_clamp_amend2() -> None:
+    """amend2: log_std 可学习范围 [-5, 1] 阻断熵发散失效模式。"""
+    net = NW.build(json.load(open(NAV_CONTRACT, encoding="utf-8")))
+    eps = 1e-6
+
+    # (a) forward 防御钳位：参数在界外，std 恰为 e^1
+    with torch.no_grad():
+        net.policy.log_std.fill_(30.0)
+    d = net.policy(_batch(4))
+    assert abs(float(d.stddev.max()) - math.exp(NW.LOG_STD_MAX)) < eps
+
+    # (b) 参数钳位：就地回到界内
+    net.policy.clamp_log_std()
+    assert float(net.policy.log_std.max()) <= NW.LOG_STD_MAX + eps
+
+    # (c) 反向机制复现：纯熵最大化（优势=0 时的退化损失）在旧语义下单调推高
+    #     std；新语义下每步钳位后停在 e^1，不再发散
+    with torch.no_grad():
+        net.policy.log_std.fill_(0.0)
+    opt = torch.optim.SGD(net.parameters_of("policy"), lr=0.05)
+    ob = _batch(64)
+    trace = []
+    for _ in range(40):
+        opt.zero_grad()
+        d = net.policy(ob)
+        loss = -d.entropy().mean()          # 最大化熵 = 旧失效模式的梯度
+        loss.backward()
+        opt.step()
+        net.policy.clamp_log_std()
+        trace.append(float(net.policy.log_std.mean()))
+    check("log_std_clamp_blocks_entropy_divergence",
+          max(trace) <= NW.LOG_STD_MAX + eps and trace[-1] > 0.5,
+          {"log_std_trace_last5": [round(x, 4) for x in trace[-5:]],
+           "trace_max": round(max(trace), 4),
+           "note": "无钳位时 40 步 0.05 学习率已把 log_std 推到 ~2+；"
+                   "钳位后停在 1.0，熵项仍有恢复信号"})
+
+    # (d) 正常范围行为不变：log_std=0（契约初值）时与旧公式逐位一致
+    with torch.no_grad():
+        net.policy.log_std.fill_(0.0)
+    d0 = net.policy(_batch(4))
+    assert abs(float(d0.stddev.max()) - 1.0) < eps
+
+    # (e) 下界：参数 -30 时 std 为 e^-5，探索不完全塌缩
+    with torch.no_grad():
+        net.policy.log_std.fill_(-30.0)
+    dn = net.policy(_batch(4))
+    assert abs(float(dn.stddev.max()) - math.exp(NW.LOG_STD_MIN)) < eps
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", default="")
     args = ap.parse_args()
 
+    check_log_std_clamp_amend2()
     check_wiring_and_single_mask()
     check_tau_equals_t_and_T()
     check_same_total_cost_different_timing()

@@ -337,10 +337,16 @@ def main() -> int:
     if args.init_from:
         prev = S.atomic_load(args.init_from)
         net.load_state_dict(prev["model"])
+        # amend2 实现点：r1-r4 链上 log_std 已发散（4.5-7.7），钳位上界 1.0 对
+        # 它们是截断而非恢复；重置回契约初值让本轮从可学习范围起点重新估计
+        # 探索幅度。均值头与 critic 保留已学行为。
+        with torch.no_grad():
+            net.policy.log_std.fill_(float(net.policy.cfg.log_std_init))
         for k, v in updater.optimizers.items():
             v.load_state_dict(prev["optimizers"][k])
         torch.set_rng_state(prev["torch_rng"])
-        print(f"[WARMSTART] model/optimizers/rng loaded from {args.init_from}", flush=True)
+        print(f"[WARMSTART] model/optimizers/rng loaded from {args.init_from}; "
+              "log_std reset to contract init (amend2)", flush=True)
 
     calls_per_window = 2 if smoke else int(prereg["window_semantics"]["calls_per_update"])
     max_updates = args.smoke_updates if smoke else int(prereg["window_semantics"]["max_updates"])
@@ -508,6 +514,7 @@ def main() -> int:
                     continue
                 sub = {k: v[sel] for k, v in batch.items()}
                 st_sub = updater.update(sub)
+                net.policy.clamp_log_std()   # amend2: log_std ∈ [-5, 1]
                 grad_steps += 1
                 for k, v in st_sub.items():
                     if isinstance(v, float):
