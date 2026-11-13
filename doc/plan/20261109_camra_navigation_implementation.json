@@ -5866,6 +5866,63 @@
             "r6 的 full 0.667 是当前最好候选，但属 development 结果，不得据此宣告完成或进入 final_*"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-13T17:43:08+08:00",
+          "summary": "用户 17:08 批准 A+B 同时实施、否决 C。已落地：A 统一预算账本口径（新增 accounting 模块 + 24 图派生报告，不覆盖 NAV-036 冻结报告）；B 网络层 SquashedNormal（tanh + 雅可比修正，默认关闭）。两个开关从先冻结的预登记读取，默认逐位回归。验收 7/7 PASS、G3 门禁 PASS、17 个既有脚本全绿、冒烟确认开关生效。任务保持 false：本轮不跑训练，第 7 轮需新授权且必须重置策略头。",
+          "actions": [
+            "只读诊断坐实两条独立根因：A 是 E_ref 用名义功率算而扣费用 (1+alpha) 算（full alpha=0.190483，19% 先天差；uncalibrated alpha=0 不受影响）；B 是策略均值头无界（r6 action_raw |a| 中位 92/61，100% 被裁剪，每步名义功率 41.5~47.3 W vs 参考速度 12 W）",
+            "冻结 config/budget_action_fix_prereg_v1.json（7 条判据），首轮验收暴露 3 个判据设错后按先证伪再报绿修订到 v1.1.0 并重冻（a42cd8410d34）：AB3 拆分、AB5 统一 RNG 状态、AB6 承认 A 对 uncalibrated 无影响、顶格阈值收紧到 1-1e-6",
+            "A：新增 src/camra_navigation/budget/accounting.py 与 reports/reference_energy_consistent_v1.json（24 图三列）；训练器 build_envs 与评估器从预登记读 budget_accounting，默认 nominal；原冻结报告 sha 21116f5bc91fc65a 未变",
+            "B：新增 networks.SquashedNormal（u~Normal, a=tanh(u), log_prob 带 log(1-a^2) 雅可比，熵用可导单样本估计）；build()/容器/PolicyNetwork 传 action_bounded，默认 False；训练器与评估器从预登记读取",
+            "config/rcppo_alignment_contract_v1.amend4.json：R3/R4/R5 裁定 + D6/D7 偏离；对齐报告补 D6/D7；docs/algorithm_implementation.md 追加修正章节；台账登记",
+            "全量回归 17 个脚本、G3 门禁、开关开启路径冒烟（BUDGET-ACCT consistent / ACTION-BOUNDED True / OBJ-FIX w=50）"
+          ],
+          "files_changed": [
+            "config/budget_action_fix_prereg_v1.json(+.sha256)",
+            "config/rcppo_alignment_contract_v1.amend4.json(+.sha256)",
+            "src/camra_navigation/budget/accounting.py",
+            "src/camra_navigation/algorithm/networks.py",
+            "scripts/train_formal.py",
+            "scripts/eval_training_round.py",
+            "scripts/make_alignment_report.py",
+            "scripts/make_rounds_ledger.py",
+            "tests/test_budget_action_fix.py",
+            "reports/reference_energy_consistent_v1.json",
+            "reports/budget_action_fix.json",
+            "reports/rcppo_alignment.json",
+            "reports/gate_G3_alignment_v2.json",
+            "reports/training_loop_rounds.json",
+            "docs/algorithm_implementation.md"
+          ],
+          "commands": [
+            "tests/test_budget_action_fix.py: 7/7 PASS",
+            "build_gate_g3_alignment_v2.py: PASS, n_failed=0",
+            "全量回归 17 个既有测试脚本全绿",
+            "train_formal.py --smoke-updates 2（三个开关同时开启）：三个标记均打印生效值",
+            "validate_worklog.py --mode update"
+          ],
+          "results": [
+            "口径闭合：14 m 参考路线，uncalibrated 名义/扣费都是 363 J；full 名义 363 J、扣费 432 J。修后 full 的 k=1.0 预算 432 J 与扣费恰在 W=0 边界（修口径，不是放宽阈值）",
+            "B 机制验证：新初始化权重顶格率 31.7%→0%、动作严格 <1、log_prob 数值积分 1.0014、熵有限；关闭时与旧路径逐位相同",
+            "重要限制：B 对已发散的 r6 权重无效（|mean| 中位 120~154 使 tanh 饱和，顶格率仍 98.7%~99.3%）。B 是训练期结构性修复，第 7 轮必须重新初始化策略头，不得热启动 r6 权重",
+            "AB6 证明 A+B 时参考路线在 k>=1.0 定义上可达（full W: +69.08→0；uncalibrated 逐位不变），不宣称现状网络能走出",
+            "两个开关默认关闭时，既有门禁与全部既有测试逐位不变；价值契约、功率模型、Z_REF_J、z_ratio 裁剪、W 判据、NAV-036 冻结报告均未改"
+          ],
+          "evidence": [
+            "reports/budget_action_fix.json（7/7，含每条判据的 detail）",
+            "config/budget_action_fix_prereg_v1.json.sha256（v1.1.0 先冻结）",
+            "config/rcppo_alignment_contract_v1.amend4.json.sha256",
+            "reports/reference_energy_consistent_v1.json（source_sha256 指向未改的原报告）",
+            "reports/gate_G3_alignment_v2.json（PASS）",
+            "reports/training_loop_rounds.json（budget_action_fix 字段）"
+          ],
+          "remaining_work": [
+            "第 7 轮训练需用户当次授权；授权后预登记须显式声明 budget_accounting=consistent、action_bounded=True，并从随机初始化权重开始（禁用 r6 热启动）",
+            "按用户裁定，负结果 C 只有在第 7 轮训练完成且预算内到达仍全 0 之后才可写入",
+            "NAV-064 保持未完成：关闭档未达成，成功率和预算内到达在 A+B 行为层均未验证"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

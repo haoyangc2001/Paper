@@ -1,0 +1,73 @@
+{
+  "schema": "camra-rcppo-alignment-contract-v1-amendment",
+  "version": "1.4.0",
+  "amends": {"path": "config/rcppo_alignment_contract_v1.json", "sha256_16": "9ba5925bc74eb861"},
+  "previous_amendments": [
+    {"path": "config/rcppo_alignment_contract_v1.amend1.json", "sha256_16": "c6c29017041a245a", "topic": "success 的 h_T 必须含 C·y"},
+    {"path": "config/rcppo_alignment_contract_v1.amend2.json", "sha256_16": "3929168a152a", "topic": "log_std 可学习范围 [-5,1]"},
+    {"path": "config/rcppo_alignment_contract_v1.amend3.json", "sha256_16": "3543252726b9", "topic": "成本信号 D4/D5"}
+  ],
+  "amended_by_task": "NAV-064（A+B 修正）",
+  "created_at": "2026-11-13T17:40:00+08:00",
+  "authority": {
+    "decision": "用户 2026-11-13 17:08 批准 A（统一预算账本口径）与 B（让策略能输出非顶格动作）同时实施，明确否决提前宣布负结果的 C",
+    "prereg": {"path": "config/budget_action_fix_prereg_v1.json", "sha256_16": "a42cd8410d34", "version": "1.1.0"}
+  },
+  "rulings": [
+    {
+      "id": "R3",
+      "topic": "A：预算基准与扣费同口径",
+      "finding": "maps.generator.route_energy 用名义功率 sum P_nom(u)*dt 生成 E_ref；costs.JCostModel.step 扣费用 (1+alpha)*P_nom*dt。alpha(full)=0.190483，uncalibrated=0。14 m 参考路线 v=0.465 m/s：名义 363 J、full 实扣 432 J，k=1.0 预算 363 J 使 full 的『预算内到达』在定义上不可能",
+      "rule": "新增 camra_navigation.budget.accounting.consistent_e_ref(nominal, variant) = nominal*(1+alpha(variant))；派生报告 reports/reference_energy_consistent_v1.json 给出 24 张图两列；训练器与评估器从预登记读 budget_accounting 开关，默认 nominal（旧语义逐位回归）",
+      "guards": [
+        "不覆盖、不重生成 NAV-036 冻结的 reports/train_map_reference_energy.json（原 sha 21116f5bc91fc65a 保持不变）",
+        "不改功率模型、扣费公式、Z_REF_J、z_ratio 裁剪、W<=0 判据",
+        "uncalibrated 的 alpha=0，A 对它无影响是预期而非缺陷；六轮全 0 在该变体上完全由 B 的顶格速度造成"
+      ]
+    },
+    {
+      "id": "R4",
+      "topic": "B：网络层有界动作分布",
+      "finding": "PolicyNetwork 的 mean=head(body(obs)) 无界。r6 真实 chunk 的 action_raw |a| 中位 92（uncal）/61（full），逐维 std 22~112，而 log_std 被钳在 [-5,1]（std<=2.72）——发散的是均值头本身。100% 动作被 action_to_requested 裁剪，applied 顶格 66.4%~66.5%，每步名义功率 41.5~47.3 W（参考速度只需 12 W）。环境对 |a|>1 无反馈，策略可无代价把均值推远压低 log_prob，属于对损失函数的规避",
+      "rule": "新增 networks.SquashedNormal：u~Normal(mu,std)、a=tanh(u)、log_prob 带 log(1-a^2) 雅可比修正；由预登记 action_bounded 开关控制，默认 False",
+      "why_this_layer": "契约 action_probability.known_defect 已登记『裁剪处梯度为 0，策略长期顶格；本轮需给出可学信号或如实登记为未处理』；observation.action_to_requested 注释明确『有界化是网络层职责，不是本契约职责』。因此不改映射（保持仿射、低速段精确可达）、不改功率模型，只在网络层解决",
+      "verified": "新初始化权重上顶格率 31.7%→0%、动作严格 <1、log_prob 数值积分 1.0014（归一化）、熵有限；关闭时与旧路径逐位相同",
+      "important_limit": "B 对已发散的 r6 权重无效：|mean| 中位 120~154 时 tanh 直接饱和，顶格率仍 98.7%~99.3%。B 是训练期结构性修复，不是热补丁；第 7 轮必须重新初始化策略头，不得热启动 r6 权重",
+      "deviation": "D6（见下）"
+    },
+    {
+      "id": "R5",
+      "topic": "不提前宣布负结果",
+      "rule": "用户明确否决 C。『预算内到达』的负结果只有在 A+B 都实施、第 7 轮训练完成且仍全 0 之后才可写入正式结论；此前不得把设定/实现缺陷包装成任务不可行"
+    }
+  ],
+  "deviations_new": [
+    {
+      "id": "D6",
+      "topic": "动作分布的可选有界形式",
+      "ours": "action_bounded=True 时 SquashedNormal(tanh + 雅可比)；默认 False 用原对角高斯",
+      "reference": "对角高斯 + 有界裁剪映射",
+      "quantified": "新初始化顶格率 31.7%→0%；已发散权重上 B 无效（98.7%~99.3%）",
+      "why": "契约 known_defect 要求给出可学信号；映射层注释把有界化划归网络层",
+      "status": "optional_implementation_default_off",
+      "tests": ["tests/test_budget_action_fix.py::ab3a", "::ab3b", "::ab4", "::ab5"]
+    },
+    {
+      "id": "D7",
+      "topic": "预算基准的可选一致口径",
+      "ours": "budget_accounting=consistent 时 z0=k*E_ref*(1+alpha(variant))；默认 nominal",
+      "reference": "RC-PPO 的 a.u. 预算，无对应的名义/实扣口径之分",
+      "quantified": "full 的 k=1.0 预算 363→432 J，与参考路线扣费 432 J 恰好在 W=0 边界；uncalibrated 不变",
+      "why": "同一预算量必须用同一把尺子；不是阈值放宽（修后参考路线恰好在边界，不是留余量）",
+      "status": "optional_implementation_default_off",
+      "tests": ["tests/test_budget_action_fix.py::ab1", "::ab2", "::ab6"]
+    }
+  ],
+  "acceptance": {"report": "reports/budget_action_fix.json", "verdict": "PASS 7/7",
+                 "regression": "两个开关都关闭时既有门禁与全部既有测试逐位不变"},
+  "not_claimed": [
+    "本轮不跑训练，不宣称成功率提升或预算内到达出现",
+    "AB6 只证明定义上可达（参考路线 + 参考速度），不宣称现状网络能走出该路线",
+    "第 7 轮训练需用户当次授权"
+  ]
+}

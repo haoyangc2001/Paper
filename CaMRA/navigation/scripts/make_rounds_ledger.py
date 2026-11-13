@@ -75,6 +75,18 @@ ledger = {
         "closing_tier_met": False,
         "task_status": "false",
     },
+    "budget_action_fix": {
+        "date": "2026-11-13",
+        "user_decision": "用户 17:08 批准 A+B 同时实施，明确否决 C（提前宣布负结果）",
+        "prereg": "config/budget_action_fix_prereg_v1.json v1.1.0 (sha a42cd8410d34)",
+        "amendment": "config/rcppo_alignment_contract_v1.amend4.json (D6/D7)",
+        "root_cause_A": "E_ref 用名义功率算、扣费用 (1+alpha) 算；full 的 alpha=0.190483 造成 19% 先天差，k=1.0 预算 363 J < 参考路线扣费 432 J，定义上不可能预算内到达；uncalibrated alpha=0 不受影响",
+        "root_cause_B": "策略均值头无界，r6 真实 chunk 的 action_raw |a| 中位 92（uncal）/61（full），100% 被裁剪、applied 顶格 66.4%~66.5%，每步名义功率 41.5~47.3 W（参考速度只需 12 W）。环境对 |a|>1 无反馈，策略可无代价推远均值压低 log_prob",
+        "implementation": "A: budget.accounting.consistent_e_ref + 24 图派生报告（不覆盖 NAV-036 冻结报告）；B: networks.SquashedNormal（tanh + 雅可比）；两者默认关闭、从预登记读取，默认路径逐位回归",
+        "verification": "reports/budget_action_fix.json 7/7 PASS；G3_alignment_v2 PASS；17 个既有测试脚本全绿；冒烟确认三个开关在生产训练器里生效",
+        "key_constraint": "B 对已发散的 r6 权重无效（tanh 直接饱和），第 7 轮必须重新初始化策略头，不得热启动 r6 权重",
+        "not_claimed": "本轮不跑训练；定义上可达 != 行为上可达；第 7 轮需新授权",
+    },
     "objective_signal_fix": {
         "date": "2026-11-13",
         "user_decision": "批准诊断建议 ①+②：把逐步成本信号接回策略梯度；联合估计器补登记参考 min 型递推",
@@ -90,8 +102,9 @@ ledger = {
         "C 仍可选：C·y/δ 语义层修订（NAV-061），处理危险饱和区的平坦代价根因",
         "D 新选项：再加轮（每次均需授权）；r5 显示 uncal 的种子级不稳定需要更深的训练量或种子级干预（如按种子早停保留最优）",
         "E（已执行，r6 已证伪）：第 6 轮用 w=50 训练完成，成本信号进梯度但预算内到达仍为 0、超支略增；不再重复加轮",
-        "C（现为首选）：回到 NAV-061 语义层，重审 C·y 不可逆饱和代价与 δ=2.61 m 膨胀带——六轮数据表明『预算内到达』在当前任务定义下近乎不可达（超支恒为预算的 1.0-1.2 倍），而非学习信号缺失",
-        "B（次选）：停止循环，用 r6 full 的 0.667 与 r1/r6 uncal 的候选走 NAV-065/066，把『预算内到达不可行』作为正式负结果",
+        "A+B（用户 2026-11-13 已批准并实施）：统一预算账本口径 + 网络层有界动作；第 7 轮训练需新授权，且必须重置策略头",
+        "C（语义层，A+B 之后仍需要时）：回 NAV-061 重审 C·y 不可逆饱和代价与 δ=2.61 m 膨胀带",
+        "B（正式负结果，用户明确否决提前采用）：只有 A+B 实施且第 7 轮训练完成仍全 0 之后才可写入",
     ],
 }
 out = os.path.join(NAV, "reports", "training_loop_rounds.json")

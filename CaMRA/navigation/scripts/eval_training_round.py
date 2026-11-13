@@ -120,7 +120,16 @@ def main() -> int:
     nav = json.load(open(NAV_CONTRACT, encoding="utf-8"))
     split = json.load(open(SPLIT, encoding="utf-8"))
     refs = json.load(open(E_REF, encoding="utf-8"))
-    e_ref = {r["map_id"]: float(r["e_ref_J"]) for r in refs["maps"]}
+    e_ref_nominal = {r["map_id"]: float(r["e_ref_J"]) for r in refs["maps"]}
+    # 与训练器同一开关：评估预算口径必须与训练一致，否则 SR/预算内判定失真
+    acct = str(prereg.get("budget_accounting", "nominal"))
+    if acct == "consistent":
+        from camra_navigation.budget import accounting as ACC
+        e_ref_full = {m: ACC.consistent_e_ref(e, "full") for m, e in e_ref_nominal.items()}
+    elif acct == "nominal":
+        e_ref_full = dict(e_ref_nominal)
+    else:
+        raise SystemExit(f"unknown budget_accounting={acct!r}")
     dev_maps = split["splits"]["development"]["maps"]
     grid = prereg["round_acceptance"].get("budget_response_on_dev", {}).get(
         "grid_k", [0.7, 0.85, 1.0, 1.15, 1.3])
@@ -131,10 +140,11 @@ def main() -> int:
         run_dir = os.path.join(args.work_root, rid)
         state_path = os.path.join(run_dir, args.ckpt_name)
         state = torch.load(state_path, map_location="cpu", weights_only=False)
-        net = NW.build(nav)
+        net = NW.build(nav, action_bounded=bool(prereg.get("action_bounded", False)))
         net.load_state_dict(state["model"])
         net.eval()
         ctx = build_rollout_ctx(variant)
+        e_ref = e_ref_full if (acct == "consistent" and variant == "full") else e_ref_nominal
 
         # --- primary: k = 1.0 on the 6 development maps -------------------
         rows = []
@@ -210,6 +220,8 @@ def main() -> int:
                                  or prereg["binding"].get("gate_g3")),
         "warm_start": prereg["algorithm"].get("warm_start"),
         "objective_signal_fix": prereg.get("objective_signal_fix"),
+        "budget_accounting": acct,
+        "action_bounded": bool(prereg.get("action_bounded", False)),
         "closing_tier": {
             "criterion": f"development SR median >= {threshold} for both methods",
             "threshold": threshold,

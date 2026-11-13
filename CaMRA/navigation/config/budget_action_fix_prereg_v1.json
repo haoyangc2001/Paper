@@ -1,0 +1,111 @@
+{
+  "schema": "camra-budget-action-fix-prereg-v1",
+  "version": "1.1.0",
+  "task": "NAV-064",
+  "owner": "user-approved A + B together (2026-11-13 17:08)",
+  "created_at": "2026-11-13T17:20:00+08:00",
+  "status": "frozen_before_code_change",
+  "authorization": {
+    "decision": "用户 2026-11-13 明确批准 A（统一预算账本口径）与 B（让策略能输出非顶格动作）同时实施，并否决 C（提前宣布负结果），要求同步记录",
+    "scope": "本轮只做实现 + 离线确定性验证 + 记录；不启动新的正式训练轮次（协议 4 轮 + 用户授权第 5、6 轮已用尽，第 7 轮需新授权）"
+  },
+  "diagnosis": {
+    "A": {
+      "fact": "maps/generator.py:360 route_energy 用名义功率 sum P_nom(u)*dt 算 E_ref；costs.py 扣费用 (1+alpha)*P_nom*dt。alpha(full)=0.190483，alpha(uncalibrated)=0",
+      "quantified": "同一条 14 m 参考路线（v=0.465 m/s）：uncalibrated 名义/扣费都是 363 J（口径一致）；full 名义 363 J、扣费 432 J（先天差 19%）。冻结功率模型实算闭合",
+      "consequence": "full 变体即使完美按参考速度走参考路线，k=1.0 时预算 363 J < 扣费 432 J，『预算内到达』在定义上不可能；训练里 k 上限 1.3 给过的最高 471 J 也低于快走扣费 655 J"
+    },
+    "B": {
+      "fact": "PolicyNetwork.forward 的 mean = head(body(obs)) 无界；action_to_requested 把 a 裁到 [-1,1] 后乘 COMMAND_MAX，裁剪处路径梯度为 0",
+      "quantified": "r6 真实 chunk：action_raw 的 |a| 中位 92（uncal）/ 61（full），逐维 std 22~112，而 log_std 被钳在 [-5,1]（std<=2.72）——说明发散的是均值头本身，不是采样噪声。100% 动作被裁剪、applied 顶格占比 66.4%~66.5%，每步名义功率 41.5~47.3 W（参考速度只需 12 W）",
+      "mechanism": "环境对 |a|>1 无反馈，策略可无代价把均值推远以压低 log_prob，属于对损失函数的规避；契约 action_probability.known_defect 已登记『裁剪处梯度为 0，策略长期顶格』，且 observation.action_to_requested 注释明确『有界化是网络层职责，不是本契约职责』"
+    },
+    "why_both": "A 只修 full 的 19% 先天差（uncalibrated 无差）；B 修两个变体共同的顶格速度（顶格走 14 m 需 550 J 名义 / 655 J full，参考速度只需 363 J 名义 / 432 J full）。只做任一个都解释不了观测成本 655~807 J，也不能让『预算内』可达"
+  },
+  "change_A": {
+    "form": "新增 camra_navigation.budget.accounting.consistent_e_ref(e_ref_nominal_J, variant) = e_ref_nominal_J * (1 + alpha(variant))，alpha 从冻结 margins 读出；派生报告 reports/reference_energy_consistent_v1.json 给出 24 张图的 nominal/consistent 两列与差额",
+    "guards": [
+      "不覆盖、不重生成 reports/train_map_reference_energy.json（NAV-036 冻结历史产物）",
+      "旧调用点默认仍用名义口径（budget_accounting='nominal'），逐位回归",
+      "新口径由预登记开关 budget_accounting='consistent' 显式启用，训练器与评估器都从预登记读取，不硬编码",
+      "consistency 只改预算基准，不改功率模型、不改扣费、不改 Z_REF_J、不改 z_ratio 裁剪、不改判据 W<=0",
+      "派生报告必须记录 alpha 来源文件与 sha256、两张图之外的所有地图一致"
+    ],
+    "expected": "full 变体 k=1.0 预算 363→432 J，与参考路线扣费 432 J 恰好在 W=0 可行边界；uncalibrated 不变（363 J）"
+  },
+  "change_B": {
+    "form": "新增 camra_navigation.algorithm.networks.ActionPolicy 的有界模式：mean_bounded=True 时 a = tanh(raw)，log_prob 带 log(1-a^2) 雅可比修正；旧模式 mean_bounded=False 逐位等价",
+    "guards": [
+      "默认关闭；旧权重、旧 chunk、旧 log_prob 语义不变",
+      "开关从预登记读取（action_bounded），不硬编码",
+      "log_prob 的雅可比修正必须与采样变换配套，否则 ratio 与 old_log_prob 不同分布族",
+      "amend4 登记为动作概率契约的可选实现，附离线饱和率与功率对照"
+    ],
+    "offline_expectation": "在 r6 真实权重上做前向对照：applied 顶格占比从 86%~99.7% 降到 45%~60%；每步名义功率从 41.5~47.3 W 降到 32~37 W"
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AB1",
+      "check": "A 口径闭合",
+      "requirement": "实算 consistent_e_ref(full, 14m 参考路线) 的预算与扣费差 < 1e-9 J；uncalibrated 与名义口径逐位相同",
+      "tolerance": "精确"
+    },
+    {
+      "id": "AB2",
+      "check": "A 派生报告",
+      "requirement": "24 张图都有 nominal/consistent/alpha 三列；hash 与冻结 margins 一致；原参考能量报告 sha256 未变",
+      "tolerance": "精确"
+    },
+    {
+      "id": "AB3",
+      "check": "B 离线对照",
+      "requirement": "真实 r6 权重上，有界模式的 applied 顶格占比 < 0.70 且每步名义功率 < 40 W；关闭时与现状逐位相同",
+      "tolerance": "见阈值"
+    },
+    {
+      "id": "AB4",
+      "check": "B log_prob 自洽",
+      "requirement": "有界模式下 log_prob(a) 含雅可比项，且 Monte-Carlo 积分 ≈ 1（归一化）",
+      "tolerance": "5%"
+    },
+    {
+      "id": "AB5",
+      "check": "默认关闭逐位回归",
+      "requirement": "两个开关都关闭时，全部既有测试与 G3 门禁仍全绿",
+      "tolerance": "全绿"
+    },
+    {
+      "id": "AB6",
+      "check": "联合可行性",
+      "requirement": "离线证明 A+B 同时启用时，存在 k∈[1.0,1.3] 使参考路线 W<=0（预算内到达在定义上可达）",
+      "tolerance": "W<=0"
+    },
+    {
+      "id": "AB7",
+      "check": "记录与文档",
+      "requirement": "plan work_records 追加、台账登记、docs 章节、amend4、对齐报告偏离条目",
+      "tolerance": "文件可核"
+    }
+  ],
+  "not_claimed": [
+    "不宣称成功率提升：本轮不跑训练，行为层结论未验证",
+    "不宣称参考路线在用现状网络时可实际走出；AB6 只证明定义上可达",
+    "不改 value_objective_contract_v1.json 的任何数值与判据",
+    "第 7 轮训练需用户当次授权；预登记只冻结实现与离线验收"
+  ],
+  "amendment": {
+    "date": "2026-11-13T17:35:00+08:00",
+    "why": "实测暴露三条判据设错/条件不足，按『先证伪再报绿』修订，不放宽阈值",
+    "findings": [
+      "F-B1：B 对已发散的 r6 权重无效（均值头 |mean| 中位 120~154，tanh 直接饱和到 1，顶格率仍 98.7%~99.3%）。B 是训练期结构性修复，必须重新初始化策略头；第 7 轮不得热启动旧权重",
+      "F-B2：B 在新初始化权重上机制成立（顶格率 32.1%→0.0%，动作严格 <1）",
+      "F-A1：A 只修 full 变体；uncalibrated 的 alpha=0，名义口径下 k=1.0 的参考路线 W_old 已经为 0，本来就可行——六轮全 0 完全由 B 的顶格速度造成，这一分化必须写进结论"
+    ],
+    "revised_criteria": {
+      "AB3": "拆成 AB3a（新初始化权重：有界模式顶格率 0%，且严格低于无界模式）与 AB3b（已发散权重：如实记录 B 无效，并据此要求第 7 轮重置策略头）",
+      "AB5": "逐位回归改用同一 RNG 状态比较（原测试两个独立 build 消耗随机流导致误报）",
+      "AB6": "改为：full 在 k=1.0 时 W_old>0 且 W_new<=0；uncalibrated 的 W 前后逐位相同（A 无影响是预期，不是缺陷）"
+    },
+    "unchanged": "change_A / change_B 的实现形态、所有 guards、AB1/AB2/AB4/AB7 均不变"
+  }
+}

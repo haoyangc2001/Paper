@@ -339,3 +339,70 @@ target_total = λ-return(g_train, done), adv_total = target_total − V_total
 ### 边界
 
 本修正不含新训练轮次。协议 4 轮 + 用户授权第 5 轮已用尽，第 6 轮需新授权；因此"成功率是否提升"尚未验证，不得宣称。
+
+## NAV-064 修正 A+B：预算账本口径与有界动作（2026-11-13）
+
+用户 17:08 批准 A+B 同时实施，明确否决 C（提前宣布负结果）。预登记
+`config/budget_action_fix_prereg_v1.json` v1.1.0（先冻结，sha `a42cd8410d34…`）；
+偏离登记 `config/rcppo_alignment_contract_v1.amend4.json`（D6/D7）；
+验收 `reports/budget_action_fix.json`，`tests/test_budget_action_fix.py` 7/7 PASS。
+
+### 为什么必须一起做：两条独立的账
+
+只读诊断（冻结功率模型实算 14 m 参考路线）给出完整闭合：
+
+| 变体 | 参考速度 0.465 m/s | 顶格速度 1.0 m/s | 名义 E_ref | k=1.0 预算 |
+|---|---|---|---|---|
+| uncalibrated（alpha=0） | 363 J | 550 J | 363 J | 363 J |
+| full（alpha=0.190483） | 432 J | 655 J | 363 J | 363 J |
+
+- **A 的缺口**：`maps.generator.route_energy` 用名义功率 `sum P_nom(u)*dt` 生成 E_ref；`costs.JCostModel.step` 扣费用 `(1+alpha)*P_nom*dt`。full 天生差 19%，即使完美按参考速度走参考路线，k=1.0 也必然超支 69 J。uncalibrated 的 alpha=0，口径本来就一致。
+- **B 的缺口**：`action_to_requested` 把 a 裁到 [-1,1]，裁剪处路径梯度为 0。r6 真实 chunk 里 `action_raw` 的 `|a|` 中位 92（uncal）/ 61（full），逐维 std 22~112，而 `log_std` 被钳在 [-5,1]（std≤2.72）——**发散的是均值头本身，不是采样噪声**。100% 动作被裁剪，`applied` 顶格 66.4%~66.5%，每步名义功率 41.5~47.3 W（参考速度只需 12 W）。环境对 `|a|>1` 无反馈，策略可无代价把均值推远来压低 `log_prob`，属于对损失函数的规避。
+
+所以 uncalibrated 的六轮全 0 完全由 B 造成，full 还多一层 A 的 19% 先天差。观测实际成本 655~807 J 与"顶格速度 + alpha"完全吻合，无需额外假设。
+
+### A：统一账本口径（已实施，默认关闭）
+
+新增 `camra_navigation.budget.accounting`：
+
+```
+consistent_e_ref(nominal, variant) = nominal * (1 + alpha(variant))
+budget_J(k, nominal, variant, accounting)  # nominal=旧语义 / consistent=修正
+```
+
+- 派生报告 `reports/reference_energy_consistent_v1.json`：24 张图的 nominal / consistent / delta 三列，记录 margins 的 sha256。**NAV-036 冻结的 `train_map_reference_energy.json` 未改写**（原 sha `21116f5bc91fc65a` 保持不变）。
+- 训练器 `build_envs` 与评估器都从预登记读 `budget_accounting`，默认 `nominal`（逐位回归），不硬编码。
+- 不改功率模型、扣费公式、`Z_REF_J`、`z_ratio` 裁剪、`W<=-beta` 判据。
+- 修后 full 的 k=1.0 预算 432 J 与参考路线扣费 432 J 恰好在 `W=0` 边界——**这是修口径，不是放宽阈值**（没有留余量）。
+
+### B：网络层有界动作（已实施，默认关闭）
+
+新增 `networks.SquashedNormal`：`u~Normal(mu,std)`、`a=tanh(u)`、`log_prob` 带 `log(1-a²)` 雅可比修正；熵用 `H(mu)+E[log(1-tanh(u)²)]` 的单样本可导估计。由预登记 `action_bounded` 开关控制，默认 `False`。
+
+选在这一层的依据是契约自身：`action_probability.known_defect` 写着"裁剪处梯度为 0，策略长期顶格；本轮需给出可学信号或如实登记为未处理"，`observation.action_to_requested` 的注释写着"有界化是网络层职责，不是本契约职责"。因此**映射层保持仿射不变**（低速段 0.2–0.31 m/s 仍精确可达），只改网络层。
+
+实测：
+
+| 权重 | 无界顶格率 | 有界顶格率 |
+|---|---|---|
+| 新初始化 | 31.7% | **0%**（动作严格 <1） |
+| r6 已发散权重 | 99.8% | 98.7%~99.3%（**B 无效**） |
+
+`log_prob` 数值积分 1.0014（归一化成立），熵有限；关闭时与旧路径逐位相同。
+
+**重要限制**：`|mean|` 中位 120~154 时 `tanh` 直接饱和到 1，B 救不回已发散的权重。B 是训练期结构性修复，不是热补丁——**第 7 轮必须重新初始化策略头，不得热启动 r6 权重**。这一条已写进预登记修订与 amend4。
+
+### 预登记判据修订（v1.1.0）
+
+首轮 7 条判据跑出 3 个失败，全部是判据设错或条件不足，按"先证伪再报绿"修订而非放宽：
+
+- AB3 拆成 AB3a（新初始化权重验证 B 的机制）与 AB3b（如实记录 B 对已发散权重无效，并据此要求重置策略头）；
+- AB5 逐位回归改用同一 RNG 状态比较（原测试两个独立 build 消耗随机流导致误报）；
+- AB6 改为"full 在 k=1.0 时 W_old>0 且 W_new=0；uncalibrated 的 W 前后逐位相同"——A 对 uncalibrated 无影响是预期，不是缺陷；
+- 顶格阈值统一为 `1-1e-6`（物理意义：下发命令与 `COMMAND_MAX` 差 <1e-6），把 `tanh` 的浮点边界效应与真饱和区分开；这是**收紧并统一口径**，不是放宽。
+
+### 验收与边界
+
+`reports/budget_action_fix.json` 7/7 PASS；两个开关都关闭时既有门禁与全部既有测试逐位不变。
+
+本轮**不跑训练**：协议 4 轮 + 用户授权第 5、6 轮已用尽，第 7 轮需新授权。因此不宣称成功率提升、不宣称预算内到达出现；AB6 只证明"定义上可达（参考路线 + 参考速度）"，不宣称现状网络能走出该路线。按用户裁定，负结果 C 只有在 A+B 实施且第 7 轮训练完成仍全 0 之后才可写入正式结论。

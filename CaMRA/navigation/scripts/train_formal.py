@@ -55,6 +55,7 @@ from camra_navigation import observation as obs  # noqa: E402
 from camra_navigation.algorithm import networks as NW  # noqa: E402
 from camra_navigation.algorithm import ppo as P  # noqa: E402
 from camra_navigation.algorithm import storage as S  # noqa: E402
+from camra_navigation.budget import accounting as ACC  # noqa: E402
 from camra_navigation.costs import JCostModel  # noqa: E402
 from camra_navigation.envs.vector import VectorNominalNavEnv  # noqa: E402
 from camra_navigation.maps import generator as M  # noqa: E402
@@ -181,7 +182,19 @@ def build_envs(prereg: dict, variant: str):
     refs = json.load(open(E_REF_REPORT, encoding="utf-8"))
     if refs["verdict"] != "PASS":
         raise SystemExit("train-map reference-energy report is not PASS")
-    e_ref = {r["map_id"]: float(r["e_ref_J"]) for r in refs["maps"]}
+    e_ref_nominal = {r["map_id"]: float(r["e_ref_J"]) for r in refs["maps"]}
+    # NAV-064 修正 A：预算基准与扣费同口径。默认 nominal（旧语义逐位回归），
+    # 只有预登记显式声明 consistent 才启用；alpha 属于 full 变体。
+    acct = str(prereg.get("budget_accounting", "nominal"))
+    if acct == "consistent":
+        e_ref = {m: ACC.consistent_e_ref(e, variant) for m, e in e_ref_nominal.items()}
+    elif acct == "nominal":
+        e_ref = e_ref_nominal
+    else:
+        raise SystemExit(f"unknown budget_accounting={acct!r}")
+    print(f"[BUDGET-ACCT] {acct} | alpha={ACC.alpha_for_variant(variant):.6f} "
+          f"| E_ref[0] {list(e_ref_nominal.values())[0]:.1f} -> "
+          f"{list(e_ref.values())[0]:.1f} J", flush=True)
 
     split = json.load(open(SPLIT, encoding="utf-8"))
     train_maps = split["splits"]["train"]["maps"]
@@ -313,7 +326,10 @@ def main() -> int:
         "geometry_contract_sha256": S.file_sha256(GEOM_CONTRACT),
     }
 
-    net = NW.build(nav_contract)
+    # NAV-064 修正 B：从先冻结的预登记读取，默认 False（逐位回归）
+    bounded = bool(prereg.get("action_bounded", False))
+    net = NW.build(nav_contract, action_bounded=bounded)
+    print(f"[ACTION-BOUNDED] {bounded}", flush=True)
     cfg = P.PPOConfig.from_contract(VALUE_CONTRACT)
     assert abs(cfg.max_grad_norm - 2.5) < 1e-12, (
         f"contract max_grad_norm={cfg.max_grad_norm}; prereg pins 2.5")
@@ -392,7 +408,9 @@ def main() -> int:
          "calls_per_window": calls_per_window, "max_updates": max_updates,
          "smoke": smoke, "provenance": provenance,
          "objective_signal_fix": {"joint_cost_weight": w,
-                                  "joint_min_recursion": use_min}})
+                                  "joint_min_recursion": use_min},
+         "budget_accounting": str(prereg.get("budget_accounting", "nominal")),
+         "action_bounded": bool(prereg.get("action_bounded", False))})
 
     for update_idx in range(max_updates):
         t_win = time.time()

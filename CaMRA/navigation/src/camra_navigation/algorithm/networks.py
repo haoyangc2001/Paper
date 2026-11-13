@@ -201,13 +201,72 @@ LOG_STD_MIN = -5.0
 LOG_STD_MAX = 1.0
 
 
+class SquashedNormal(torch.distributions.Distribution):
+    """网络层有界动作分布（NAV-064 修正 B，默认不启用）。
+
+    ``u ~ Normal(mu, std)``，``a = tanh(u)``，所以动作天然落在 (-1, 1)，
+    不再依赖 ``action_to_requested`` 的硬裁剪。密度按变量替换修正：
+
+        ``log pi(a) = log mu(u) - sum log(1 - a^2 + eps)``,  ``u = atanh(a)``
+
+    契约 ``action_probability`` 的 ``known_defect`` 登记了"裁剪处梯度为 0、
+    策略长期顶格"；``observation.action_to_requested`` 的注释也明确写了
+    "有界化是网络层职责"。本类只在该层解决，不改映射、不改功率模型、
+    不改 W / 判据。
+
+    与 SAC 的标准做法一致；熵用 ``H(mu) + E[log(1 - tanh(u)^2)]`` 的
+    单样本可导估计（squashed 熵 <= 原高斯熵）。
+    """
+    arg_constraints: dict = {}
+    has_rsample = True
+
+    def __init__(self, loc: torch.Tensor, scale: torch.Tensor, eps: float = 1e-6) -> None:
+        super().__init__(batch_shape=loc.shape[:-1], event_shape=loc.shape[-1:])
+        self.base = torch.distributions.Independent(
+            torch.distributions.Normal(loc, scale), 1)
+        self.eps = float(eps)
+
+    def _atanh(self, a: torch.Tensor) -> torch.Tensor:
+        lim = 1.0 - self.eps
+        c = a.clamp(-lim, lim)
+        return 0.5 * (torch.log1p(c) - torch.log1p(-c))
+
+    def log_prob(self, value: torch.Tensor) -> torch.Tensor:
+        u = self._atanh(value)
+        corr = torch.log1p(-value.square() + self.eps).sum(-1)
+        return self.base.log_prob(u) - torch.clamp(corr, min=-50.0)
+
+    def sample(self, sample_shape: torch.Size = torch.Size()) -> torch.Tensor:
+        with torch.no_grad():
+            return torch.tanh(self.base.sample(sample_shape))
+
+    def rsample(self, sample_shape: torch.Size = torch.Size()) -> torch.Tensor:
+        return torch.tanh(self.base.rsample(sample_shape))
+
+    def entropy(self) -> torch.Tensor:
+        u = self.base.rsample()
+        return self.base.entropy() + torch.log1p(-torch.tanh(u).square() + self.eps).sum(-1)
+
+    @property
+    def mean(self) -> torch.Tensor:
+        return torch.tanh(self.base.base_dist.loc)
+
+    @property
+    def stddev(self) -> torch.Tensor:
+        """变换前的尺度（诊断用；变换后无闭式 std）。"""
+        return self.base.base_dist.scale
+
+
 class PolicyNetwork(nn.Module):
     """obs -> Independent(Normal(mean, std))，作用在归一化动作上。"""
 
-    def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None) -> None:
+    def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None,
+                 action_bounded: bool = False) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
+        #: NAV-064 修正 B 的开关；默认 False => 与改动前逐位等价。
+        self.action_bounded = bool(action_bounded)
         self.body = _mlp(cfg.obs_dim, cfg.hidden, cfg.activation, cfg.hidden_gain)
         self.head = _head(cfg.hidden[-1], cfg.action_dim, cfg.policy_head_gain)
         # 与参考实现一致：log_std 是独立参数、初值 0（std=1），不随状态变化。
@@ -225,6 +284,8 @@ class PolicyNetwork(nn.Module):
         mean = self.head(self.body(obs))
         # forward 侧防御性钳位（与 clamp_log_std 双保险；边界处梯度为 0）
         std = self.log_std.clamp(LOG_STD_MIN, LOG_STD_MAX).exp().expand_as(mean)
+        if self.action_bounded:
+            return SquashedNormal(mean, std)
         return Independent(Normal(mean, std), 1)
 
     def act(self, obs: torch.Tensor, deterministic: bool = False
@@ -256,11 +317,12 @@ class BudgetConditionedNetworks(nn.Module):
 
     ROLES = ("policy", "critic_cost", "critic_reach")
 
-    def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None) -> None:
+    def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None,
+                 action_bounded: bool = False) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
-        self.policy = PolicyNetwork(cfg, layout)
+        self.policy = PolicyNetwork(cfg, layout, action_bounded=action_bounded)
         self.critic_cost = ValueNetwork(cfg, layout)
         self.critic_reach = ValueNetwork(cfg, layout)
 
@@ -303,7 +365,8 @@ def normalized_to_command(action: torch.Tensor,
 
 
 def build(nav_contract: dict[str, Any] | None = None,
-          cfg: NetworkConfig | None = None) -> BudgetConditionedNetworks:
+          cfg: NetworkConfig | None = None,
+          action_bounded: bool = False) -> BudgetConditionedNetworks:
     """按契约构造三个网络，并在构造时校验配置。"""
     if nav_contract is None:
         nav_contract, _ = load_contracts()
@@ -312,4 +375,4 @@ def build(nav_contract: dict[str, Any] | None = None,
     if not report["ok"]:
         raise ValueError("网络配置与契约不符：" + "; ".join(report["problems"]))
     layout = ObservationLayout.from_contract(nav_contract)
-    return BudgetConditionedNetworks(cfg, layout)
+    return BudgetConditionedNetworks(cfg, layout, action_bounded=action_bounded)

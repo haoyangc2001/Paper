@@ -1,7 +1,7 @@
 {
   "schema": "camra-rcppo-alignment-report-v1",
   "task": "NAV-063",
-  "git_head_at_run": "dfac467",
+  "git_head_at_run": "aae8fb3",
   "plan_version": "1.3.1",
   "reference_repository": "RC-PPO/（只读）",
   "verdict": "aligned_with_documented_deviations",
@@ -17,7 +17,7 @@
     "nominal": "b9080625b000d9bd11c22abcc21a46374412077c8d1158e1323d79d3b6c41e51",
     "observation": "abde9c838a67aa0f2ae31508900167fd86a18296d76341053fc4d5a9347f0812",
     "train_nominal": "ddb7274a262a8e4fd816b98add6c16847f630bf2a597b7f9cf8c0cd5f7912c9a",
-    "train_formal": "ebcb702d65d7a6a77cf115ceb2c37e67591b1cccbab97b3367ad9758abb85d65",
+    "train_formal": "1fd7f00174b5a45b8e11aed94a71bb0fae8f21629d2c772c011d15f9759662c8",
     "freeze": "8e1457c497cbe6462ca639ff8ab8bbf0ac5c38b0e63937bd9b496f1f71ab0759",
     "search": "9277418b2d4669a8e1f8a8faac3b8f8b251ea787872829561bfcc97b993b14af",
     "value_contract": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a",
@@ -82,6 +82,24 @@
       "quantified": "w=50 时 corr(成本,优势) 中位数 r5_full 0.000→+0.544、r5_uncal +0.079→+0.170、r1c_uncal +0.033→+0.345；r5_uncal 到达信号 0.944→0.942",
       "why": "参考 reach×100、energy −400~800 同量级；本仓库 c≈0.009 而 h∈[0,1]，差约 100 倍需显式补偿。属契约 objective（最小累计机械功）的落地，非语义改写",
       "accepted_by": "config/objective_signal_fix_prereg_v1.json（先冻结）"
+    },
+    {
+      "id": "D6",
+      "topic": "动作分布的可选有界形式（NAV-064 修正 B）",
+      "ours": "action_bounded=True 时 SquashedNormal（tanh + 雅可比修正）；默认 False 用原对角高斯",
+      "reference": "对角高斯 + 有界裁剪映射",
+      "quantified": "新初始化权重顶格率 31.7%→0%、log_prob 数值积分 1.0014；已发散的 r6 权重上 B 无效（98.7%~99.3%），故第 7 轮须重置策略头",
+      "why": "契约 known_defect 要求给出可学信号；映射层注释把有界化划归网络层。映射保持仿射、低速段精确可达",
+      "accepted_by": "config/rcppo_alignment_contract_v1.amend4.json（用户 2026-11-13 批准 B）"
+    },
+    {
+      "id": "D7",
+      "topic": "预算基准的可选一致口径（NAV-064 修正 A）",
+      "ours": "budget_accounting=consistent 时 z0=k*E_ref*(1+alpha(variant))；默认 nominal",
+      "reference": "RC-PPO 的 a.u. 预算，无名义/实扣口径之分",
+      "quantified": "full 的 k=1.0 预算 363→432 J，与参考路线扣费 432 J 恰在 W=0 边界；uncalibrated 的 alpha=0，A 无影响",
+      "why": "同一预算量须用同一把尺子；修后参考路线恰在边界，不是阈值放宽。冻结 E_ref 报告未改写",
+      "accepted_by": "config/budget_action_fix_prereg_v1.json v1.1.0（先冻结）"
     }
   ],
   "matrix": [
