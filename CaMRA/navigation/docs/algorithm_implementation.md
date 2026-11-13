@@ -271,3 +271,67 @@ NAV-063 之前：成本目标取**整回合** suffix、reach 目标取**未掩�
 ### 五、边界
 
 没有训练、没有重跑物理 pilot、没有改冻结 v2/功率模型/论文。与参考的逐位等价**未证明也不要求**：上表三处偏离是契约驱动的，差异量登记在 `reports/rcppo_alignment.json` 的 `deviations`。
+
+## NAV-064 目标信号修正（2026-11-13，用户批准 ① + ②）
+
+预登记：`config/objective_signal_fix_prereg_v1.json`（先冻结，sha `acfc34263329…`）。
+偏离登记：`config/rcppo_alignment_contract_v1.amend3.json`（D4 / D5）。
+验收报告：`reports/objective_signal_fix.json`，`tests/test_objective_signal_fix.py` 7/7 PASS。
+
+### 问题：五轮训练里"预算内到达"始终为 0 的机制
+
+不是训练量不足，也不是超参。`scripts/train_formal.py` 只用 `obj_adv_total` 更新策略，而它来自
+
+```
+g_t = max(h_t, −z_t)          # h = 离终点的归一化距离 / 安全代价
+target_total = λ-return(g)     # 同一 done 掩码
+adv_total = target_total − V_total，V_total = max(V_h, V_c − z)
+```
+
+`g` 装的是**剩余预算 z 这个存量**，不是"这一步花了多少"这个**流量**。逐层削弱：
+
+| 断点 | 实测（r1c / r5 chunk） |
+|---|---|
+| `max` 让预算项在超支前被距离项盖住 | 离终点 >5 m 时 `g` 里预算分支只占 0.1%–7.6%；预算项平均到回合 37%–77% 才首次压过距离项 |
+| z 变负时已接近终点 | 首次 z<0 时离终点平均 6.1–6.7 m；成功回合 z_T 平均 −0.56 ~ −0.74（超支 300–400 J） |
+| baseline 含 −z，把波动抵消 | corr(target, V_total) = 0.33（uncal）/ 0.95（full） |
+| full 的 h 饱和 + 停止视野归零 | 91.3% 步 h=1；92% 步 τ*=t（视野 0 步），长程信用传不回来 |
+
+结果：`corr(每步成本, 优势)` 中位数 r5_full **0.000**、r5_uncal **+0.079**、r1c_uncal **+0.033** —— 省不省油对策略梯度几乎无影响。
+
+### ① 逐步成本进入策略用的即时代价（已启用）
+
+```
+g_train,t = max(h_t, −z_t) + w · c_t      w = 50（预登记冻结）
+g_train,T = g_T                           # 终态无动作，不加成本项
+target_total = λ-return(g_train, done), adv_total = target_total − V_total
+```
+
+- `targets.joint_training_sequence()` 是纯函数；`ObjectiveConfig.joint_cost_weight` 默认 **0**，训练器从**先冻结的预登记**读 50 并做 [0,100] 带内校验，不硬编码。
+- 四条护栏：`W` / `stop_index` / `stop_now` / `obj_feasible` / `target_cost` / `target_reach` **一律不动**（它们由 `select_stop(c, z, h_ext)` 决定，与 `g_train` 无关）；`obj_g` 保留 W 等价量语义，新增 `obj_g_train`；`w=0` 时输出逐位等价；价值契约一字未改。
+- 权重来自真实 chunk 扫描（90 chunks × 3 runs）：`w=0/10/25/50/100` 下 `corr(成本,优势)` 中位数 r5_full `0.000/0.153/0.322/0.544/0.785`，r5_uncal `0.079/0.122/0.142/0.170/0.226`，r1c_uncal `0.033/0.173/0.287/0.345/0.371`。`w=100` 把 r1c 的优势 std 从 0.049 抬到 0.169（3.5×，有爆震风险），`w=50` 只到 0.108 且到达信号保持（r5_uncal `corr(h,adv)` 0.944→0.942）。
+
+### ② 参考 min 型递推：实装 + 登记偏离，默认不启用
+
+参考 `RC-PPO/rl/EC-EFPPO.py:76` 把 `g_append=max(reach,−energy)` 送进 `calculate_gae_reach4`（min 型 Bellman + 归一化 GAE 系数）。`targets.joint_min_return()` **直接复用项目里现成的逐行转写 `_ref_gae_reach4`**（保留 roll / mask / 归一化系数 / pre_done 原样），由 `ObjectiveConfig.joint_min_recursion` 控制，**预登记冻结为 False，训练器遇到 True 直接拒绝启动**。
+
+不启用的理由是确定性数值反例，不是偏好：
+
+| 形态（按 run 聚合中位数） | r5_uncal `corr(h,adv)` | r1c_uncal `corr(h,adv)` | r5_full `corr(h,adv)` |
+|---|---|---|---|
+| 现状（λ-return + ①） | +0.9464 | +0.3862 | 0.0000 |
+| 严格参考 GAE（② 开启） | **−0.9347** | **−0.7435** | +0.4408 |
+
+3 个 run 中 2 个到达信号翻负（鼓励远离终点），第 3 个从「无信号」变成错误的正信号。早期用简化 minDP+λ 形态做诊断时得到 r5_uncal +0.944→−0.405、r1c_uncal +0.313→−0.411；两种形态数值不同但方向一致，最终实现以严格转写为准。根因是**符号体系不兼容**：参考环境 `reach_append` 到达时取 `−3.0×100 = −300`（大负数），min 型递推把"未来更好"向前传播；本仓库 `h=max(g_norm, C·y)` 里的 `max(·,0)` 把到达时的 `G_INSIDE=−0.001` 抹成 0，其余时刻为正，min 递推把全程压平并反转方向。这条登记为偏离 **D4**；想把 min 型递推真正启用，必须先改 `h` 的符号体系，属契约语义变更和新授权点。
+
+### 与参考的量级对照（偏离 D5）
+
+参考环境 `reach` 放大 ×100（到达 −300、避障 600–800），`energy` 范围 −400~800，每步 `reward = u²×8`；两边同量级，所以 `−energy` 的逐步递减在 `max` 里始终可见。本仓库 `h∈[0,1]`、`c≈0.009`（约 5 J/步），差约两个数量级，需要 `w` 显式补偿。① 是契约 `objective`（"最小未折扣累计机械功"）的落地，不是语义改写。
+
+### 验收（`reports/objective_signal_fix.json`，7/7）
+
+`w=0` 逐位回归、成本信号真实 chunk 阈值、到达信号不翻转、`g_train` 代数关系、可行性判据逐位不变、min 型反例、纯函数良定义。既有 `gate_G3_alignment_v2` 与全部既有测试在默认 `w=0` 下保持全绿。
+
+### 边界
+
+本修正不含新训练轮次。协议 4 轮 + 用户授权第 5 轮已用尽，第 6 轮需新授权；因此"成功率是否提升"尚未验证，不得宣称。

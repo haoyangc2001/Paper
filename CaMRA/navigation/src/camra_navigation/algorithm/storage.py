@@ -144,6 +144,7 @@ def obj_fields() -> tuple[FieldSpec, ...]:
         FieldSpec("obj_h_terminal", "<f8"),
         FieldSpec("obj_z_norm", "<f8"),
         FieldSpec("obj_g", "<f8"),
+        FieldSpec("obj_g_train", "<f8"),
         FieldSpec("obj_g_terminal", "<f8"),
         FieldSpec("obj_spent", "<f8"),
         FieldSpec("obj_target_cost", "<f8"),
@@ -183,6 +184,14 @@ class ObjectiveConfig:
     #: γ_c = 1, not the reference's ``GAMMA_REACH_INIT`` (0.999).  Kept explicit
     #: so the deviation is visible and testable instead of implicit.
     gamma_joint: float | None = None
+    #: NAV-064 修正 ①（预登记 config/objective_signal_fix_prereg_v1.json）：
+    #: 训练用即时代价里逐步成本项 ``w·c_t`` 的权重。0 = 关闭（与改动前逐位等价）。
+    #: 只影响策略用的 obj_target_total / obj_adv_total，不影响 W / τ* / 可行性判据。
+    joint_cost_weight: float = 0.0
+    #: NAV-064 修正 ②：是否启用参考的 min 型联合递推。默认 False——参考环境
+    #: 的 reach 到达时为大负数，本仓库 h 被 max(·,0) 抹平，启用会翻转到达梯度
+    #: （见 amend3 的三条数值反例）。保留可调用实现供对照与反例测试。
+    joint_min_recursion: bool = False
 
     @classmethod
     def from_contracts(cls, value_contract_path: str, *, r_goal_m: float) -> "ObjectiveConfig":
@@ -249,8 +258,10 @@ def compute_objectives(
 
       ① 成本：``cost_to_stop`` —— 到 τ* 的实测成本，仅 τ*=T 加 ``V_c(x_T)``；
       ② reach：``lambda_return`` 作用在 min 型 DP 值 ``V_h`` 上；
-      ③ 联合策略：``lambda_return`` 作用在 ``g=max(h,−z)`` 上，减去
-         ``V_total=max(V_h, V_c−z)``。
+      ③ 联合策略：``lambda_return`` 作用在训练用即时代价
+         ``g_train=max(h,−z)+w·c`` 上，减去 ``V_total=max(V_h, V_c−z)``。
+         NAV-064 起 w 由 ``ObjectiveConfig.joint_cost_weight`` 控制（默认 0，
+         训练预登记冻结为 50）；只改策略梯度，不改 W / τ* / 可行性判据。
 
     旧实现里成本取整回合 suffix、reach 取未掩码的最小值、policy 用
     ``W_sel − V_total`` 一次性差，三者各自隐含一个不同的终点（M6）。
@@ -367,8 +378,17 @@ def compute_objectives(
     # cfg.gamma_joint = γ_c = 1（契约的目标是未折扣 J，W 也定义在未折扣量上，
     # 用 γ<1 会偷偷给后发生的成本打折，见 value 契约 gamma_cost_rationale）。
     # 这是与参考的**有意偏离**，差异量在 reports/rcppo_alignment.json 里单列。
-    target_total = T.lambda_return(g_ext, done_ext, cfg.gae_lambda)[:Tn]
+    # NAV-064 修正 ①：把逐步成本以权重 w 加进即时代价，让「这一步花了多少」
+    # 真正进入策略梯度。g_train 与 g_ext 只差前 T 项的 w·c_t；终端无动作，不变。
+    # w=0 时 g_train 是 g_ext 的副本，下面逐位等价于改动前（回归保护）。
+    g_train = T.joint_training_sequence(g_ext, c, cfg.joint_cost_weight)
     total_value = np.maximum(vh, vc - z)
+    if cfg.joint_min_recursion:
+        # 严格参考形态：_ref_gae_reach4 已减过 baseline，Q 直接就是目标
+        target_total = T.joint_min_return(g_train, total_value, done_ext,
+                                          cfg.gamma_h, cfg.gae_lambda)
+    else:
+        target_total = T.lambda_return(g_train, done_ext, cfg.gae_lambda)[:Tn]
     adv_total = target_total - total_value
     # 诊断用"到停止的成本"由同一目标减掉终端项得到，不重复计算
     spent_to_stop = target_cost - np.where(stop_index == Tn, term_cost, 0.0)
@@ -380,6 +400,7 @@ def compute_objectives(
         "obj_z_norm": z,
         "obj_spent": spent_to_stop,
         "obj_g": g_ext[:Tn],
+        "obj_g_train": g_train[:Tn],
         "obj_g_terminal": np.full(Tn, float(g_ext[Tn]), dtype=np.float64),
         "obj_target_cost": target_cost,
         "obj_adv_cost": adv_cost,

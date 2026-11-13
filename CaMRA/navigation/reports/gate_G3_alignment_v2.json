@@ -394,7 +394,7 @@
   ],
   "alignment_report": {
     "path": "reports/rcppo_alignment.json",
-    "sha256": "ba4000772c95af1b5b876010115ad6f466b3d39760b5c2228f1167339d2c7ccc",
+    "sha256": "7be981e66d09919ac418233b3a97b603b7f5962d46b5e5d165481db31476b5ab",
     "verdict": "aligned_with_documented_deviations",
     "deviations": [
       {
@@ -423,13 +423,31 @@
         "quantified": "同式；差别只在参考不区分 y（无独立 y）",
         "why": "不可逆安全历史（M4）",
         "accepted_by": "NAV-061 契约 safety_history"
+      },
+      {
+        "id": "D4",
+        "topic": "联合估计器的递推形态（NAV-064 补登记）",
+        "ours": "g_train 上的普通 λ-return（γ_c=1，λ=0.95）减 V_total",
+        "reference": "g_append=max(reach,−energy) 上的 calculate_gae_reach4（min 型 Bellman + 归一化 GAE 系数）",
+        "quantified": "严格参考形态按 run 聚合：r5_uncal corr(h,adv) +0.9464→−0.9347；r1c_uncal +0.3862→−0.7435；r5_full 0.0000→+0.4408（3 run 中 2 个翻负）",
+        "why": "本仓库 h=max(g_norm,C·y) 的 max(·,0) 抹掉了参考 reach 到达时 −300 的负奖励锚点，min 递推失去传播对象并反转梯度方向；joint_min_return() 已实装但默认关闭，训练器拒绝启用",
+        "accepted_by": "config/rcppo_alignment_contract_v1.amend3.json（用户 2026-11-13 批准 ②）"
+      },
+      {
+        "id": "D5",
+        "topic": "策略即时代价里的逐步成本项（NAV-064 修正 ①）",
+        "ours": "g_train = max(h,−z) + 50·c（终端不加）",
+        "reference": "g_append = max(reach,−energy)，每步成本通过 energy 递减间接进入",
+        "quantified": "w=50 时 corr(成本,优势) 中位数 r5_full 0.000→+0.544、r5_uncal +0.079→+0.170、r1c_uncal +0.033→+0.345；r5_uncal 到达信号 0.944→0.942",
+        "why": "参考 reach×100、energy −400~800 同量级；本仓库 c≈0.009 而 h∈[0,1]，差约 100 倍需显式补偿。属契约 objective（最小累计机械功）的落地，非语义改写",
+        "accepted_by": "config/objective_signal_fix_prereg_v1.json（先冻结）"
       }
     ]
   },
   "inputs_sha256": {
-    "tests/test_rcppo_alignment.py": "8ef31f76aba323d95d1623d85c4f555e54fdb1f792378a19a0c891f0e197921c",
-    "src/camra_navigation/algorithm/targets.py": "b00bf3626fed9179036a768eddca267e0cd198b3f0754aa1c5af9633937bb913",
-    "src/camra_navigation/algorithm/storage.py": "ba523a389c17b8a4d6e3c028c9e57a591648a41faf10c26e177fb5afe8294519",
+    "tests/test_rcppo_alignment.py": "816fa36741c329019fa714774df1af4d5010dcd049187a8498251e61a3d67226",
+    "src/camra_navigation/algorithm/targets.py": "fe87886de30ba0c381e38be0604c2db8d1306cb3e61715782ddb433bb356ae0e",
+    "src/camra_navigation/algorithm/storage.py": "4940d8c1f9fa5b615c8f1c0019bfb5d1a4bcd51d754e832083d25c3250e15df3",
     "src/camra_navigation/algorithm/ppo.py": "ce3b510af80501a09bae661e2945a862dfe56e3c41f040486bd84b91cddeb4f7",
     "config/value_objective_contract_v1.json": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
   },

@@ -138,6 +138,58 @@ def joint_sequence(h_t: np.ndarray, z_norm: np.ndarray, h_T: float, z_T: float,
     return np.concatenate([g_t, [g_T]])
 
 
+def joint_training_sequence(g_ext: np.ndarray, cost_norm: np.ndarray,
+                            weight: float = 0.0) -> np.ndarray:
+    """训练用联合即时代价：``g_train,t = g_t + w·c_t``，``g_T`` 不变。
+
+    NAV-064 修正 ①：``g_t=max(h_t,−z_t)`` 只装了「剩余预算」这个存量，
+    `max` 又把预算项在超支前盖住，导致每步成本这个「流量」从未进入策略
+    梯度（实测 corr(每步成本, 优势) ≈ 0）。这里把逐步成本以权重 w 显式
+    加进即时代价；终端态没有动作，不加成本项。
+
+    ``weight=0`` 返回 ``g_ext`` 的副本（逐位等价），作为回归保护。
+    本函数只改策略用的即时代价；W / τ* / 可行性判据一律不动。
+    """
+    g = np.asarray(g_ext, dtype=np.float64).reshape(-1)
+    c = np.asarray(cost_norm, dtype=np.float64).reshape(-1)
+    if g.shape[0] != c.shape[0] + 1:
+        raise ValueError(f"g_ext 长度应为 T+1={c.shape[0]+1}，得到 {g.shape[0]}")
+    w = float(weight)
+    if w == 0.0:
+        return g.copy()
+    out = g.copy()
+    out[:-1] += w * c
+    return out
+
+
+def joint_min_return(values: np.ndarray, baseline: np.ndarray,
+                     done: np.ndarray, gamma: float, lam: float) -> np.ndarray:
+    """参考 ``calculate_gae_reach4`` 的**严格**形态，返回长度 T 的联合目标。
+
+    直接复用本文件的逐行转写 :func:`_ref_gae_reach4`（保留其 roll / mask /
+    归一化 GAE 系数 / pre_done 原样），不再自写简化式。参考的
+    ``V_total_append`` 对应这里的 ``baseline``；返回的 Q 即策略目标，
+    调用方再减同一个 baseline 得优势。
+
+    本仓库默认**不启用**，原因见
+    ``config/rcppo_alignment_contract_v1.amend3.json``：参考环境的
+    ``reach_append`` 到达时取 −300 这种大负数，而本仓库 ``h=max(g_norm,C·y)``
+    被契约的 ``max(·,0)`` 抹平（到达时为 0、其余为正），min 递推会把到达
+    梯度方向翻转。保留可调用实现 + 反例测试，避免将来有人误开。
+    """
+    g = np.asarray(values, dtype=np.float64).reshape(-1)
+    v = np.asarray(baseline, dtype=np.float64).reshape(-1)
+    d = np.asarray(done).reshape(-1)
+    Tn = v.shape[0]
+    if g.shape[0] != Tn + 1:
+        raise ValueError(f"values 长度应为 T+1={Tn + 1}，得到 {g.shape[0]}")
+    if d.shape[0] < Tn:
+        raise ValueError(f"done 长度 {d.shape[0]} < T={Tn}")
+    vh_all = np.concatenate([v, [v[-1]]])[:, None]      # (T+1, 1)
+    _, q = _ref_gae_reach4(float(gamma), float(lam), g[:, None], vh_all, d[:Tn])
+    return q[:, 0]
+
+
 def cost_to_stop(cost_norm: np.ndarray, stop_index: np.ndarray,
                  vc_terminal: float = 0.0, gamma: float = 1.0) -> np.ndarray:
     """成本目标：**到停止时刻**的实测成本，加 ``[τ*=T]·V_c(x_T)``。

@@ -333,6 +333,20 @@ def main() -> int:
         lr_critic=float(prereg["algorithm"]["lr_critic"]),
     )
     obj_cfg = S.ObjectiveConfig.from_contracts(VALUE_CONTRACT, r_goal_m=0.5)
+    # NAV-064 修正 ①/②：权重与开关一律从**先冻结的**预登记读取，不硬编码。
+    # 默认 0/False 保证旧预登记（r1-r5）的语义逐位不变；新预登记必须显式声明。
+    import dataclasses as _dc
+    fix = prereg.get("objective_signal_fix", {})
+    w = float(fix.get("joint_cost_weight", 0.0))
+    if not (0.0 <= w <= 100.0):
+        raise SystemExit(f"joint_cost_weight={w} 超出预登记允许范围 [0,100]")
+    use_min = bool(fix.get("joint_min_recursion", False))
+    if use_min:
+        # 实测会翻转到达梯度（amend3 三条数值反例）；只允许测试显式开启
+        raise SystemExit("joint_min_recursion=True 会翻转到达梯度，训练器拒绝启用；"
+                         "见 config/rcppo_alignment_contract_v1.amend3.json")
+    obj_cfg = _dc.replace(obj_cfg, joint_cost_weight=w, joint_min_recursion=use_min)
+    print(f"[OBJ-FIX] joint_cost_weight={w} joint_min_recursion={use_min}", flush=True)
 
     if args.init_from:
         prev = S.atomic_load(args.init_from)
@@ -376,7 +390,9 @@ def main() -> int:
          "z_ratio_clip": obs.z_ratio_clip(), "obs_version": obs.OBS_VERSION,
          "schema": S.SCHEMA_BUFFER,
          "calls_per_window": calls_per_window, "max_updates": max_updates,
-         "smoke": smoke, "provenance": provenance})
+         "smoke": smoke, "provenance": provenance,
+         "objective_signal_fix": {"joint_cost_weight": w,
+                                  "joint_min_recursion": use_min}})
 
     for update_idx in range(max_updates):
         t_win = time.time()

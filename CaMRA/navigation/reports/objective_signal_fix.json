@@ -1,0 +1,151 @@
+{
+  "task": "NAV-064-objective-signal-fix",
+  "n_checks": 7,
+  "n_failed": 0,
+  "verdict": "PASS",
+  "prereg_sha256": "acfc342633296d18",
+  "checks": [
+    {
+      "name": "f1_zero_weight_is_bit_identical",
+      "ok": true,
+      "detail": {
+        "g_equals_g_train": true,
+        "max_abs_delta_target": 0.0
+      }
+    },
+    {
+      "name": "f2_f3_cost_signal_up_without_flipping_arrival",
+      "ok": true,
+      "detail": {
+        "rows": [
+          {
+            "run": "nav064_r5_full_s0",
+            "chunks": 60,
+            "threshold": 0.4,
+            "med_w0": 0.0,
+            "med_w50": 0.4872,
+            "corr_h_w0": 0.0,
+            "corr_h_w50": 0.0,
+            "pass": true
+          },
+          {
+            "run": "nav064_r5_uncalibrated_s0",
+            "chunks": 60,
+            "threshold": 0.12,
+            "med_w0": 0.0796,
+            "med_w50": 0.1816,
+            "corr_h_w0": 0.9422,
+            "corr_h_w50": 0.9464,
+            "pass": true
+          },
+          {
+            "run": "nav064_r1c_uncalibrated_s0",
+            "chunks": 60,
+            "threshold": 0.25,
+            "med_w0": 0.0219,
+            "med_w50": 0.3176,
+            "corr_h_w0": 0.1621,
+            "corr_h_w50": 0.3862,
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "f2_g_train_differs_only_by_weighted_step_cost",
+      "ok": true,
+      "detail": {
+        "max_abs_delta": 2.220446049250313e-16
+      }
+    },
+    {
+      "name": "f4_feasibility_and_other_targets_unchanged",
+      "ok": true,
+      "detail": {
+        "changed": []
+      }
+    },
+    {
+      "name": "f5_min_recursion_would_invert_arrival_gradient",
+      "ok": true,
+      "detail": {
+        "default_off": true,
+        "n_runs": 3,
+        "n_inversions": 2,
+        "rows": [
+          {
+            "run": "nav064_r5_full_s0",
+            "chunks": 60,
+            "med_h_off": 0.0,
+            "med_h_on": 0.4408,
+            "inverted": false
+          },
+          {
+            "run": "nav064_r5_uncalibrated_s0",
+            "chunks": 60,
+            "med_h_off": 0.9464,
+            "med_h_on": -0.9347,
+            "inverted": true
+          },
+          {
+            "run": "nav064_r1c_uncalibrated_s0",
+            "chunks": 60,
+            "med_h_off": 0.3862,
+            "med_h_on": -0.7435,
+            "inverted": true
+          }
+        ],
+        "note": "参考 reach 到达时为 -300；本仓库 h 被 max(·,0) 抹平，min 递推把到达方向翻转，见 amend3"
+      }
+    },
+    {
+      "name": "f5_joint_min_return_is_well_defined",
+      "ok": true,
+      "detail": {
+        "shape": [
+          11
+        ],
+        "v_head": [
+          0.00012,
+          0.00032,
+          0.00058,
+          0.00086
+        ],
+        "value_range": [
+          9.1e-05,
+          0.001336
+        ],
+        "note": "参考 min 型目标恒在 [min(g), max(g)] 内且有限；归一化 GAE 系数是倒序滚动的，不要求单调"
+      }
+    },
+    {
+      "name": "f6_real_chunk_thresholds",
+      "ok": true,
+      "detail": {
+        "rows": [
+          {
+            "run": "nav064_r5_full_s0",
+            "chunks": 60,
+            "threshold": 0.4,
+            "median": 0.4872,
+            "pass": true
+          },
+          {
+            "run": "nav064_r5_uncalibrated_s0",
+            "chunks": 60,
+            "threshold": 0.12,
+            "median": 0.1816,
+            "pass": true
+          },
+          {
+            "run": "nav064_r1c_uncalibrated_s0",
+            "chunks": 60,
+            "threshold": 0.25,
+            "median": 0.3176,
+            "pass": true
+          }
+        ]
+      }
+    }
+  ]
+}

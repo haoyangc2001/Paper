@@ -5734,6 +5734,57 @@
             "NAV-064 保持 false：关闭档未达成，候选冻结与正式预算判定归 NAV-065/066，走向待用户在台账 remaining_options（B/C/D）中裁定"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-13T12:59:15+08:00",
+          "summary": "用户批准建议①+②：修正『预算没学』的根因。①逐步成本以权重 50 进入策略用的即时代价 g_train（真实 chunk 上 corr(成本,优势) 中位数 r5_full 0.000→+0.487、r5_uncal +0.080→+0.182、r1c +0.033→+0.318，到达信号 0.942→0.946 未退化）；②严格复刻参考 min 型递推并补登记为 D4 偏离，默认关闭——实测开启会把到达信号翻负（r5_uncal +0.946→−0.935、r1c +0.386→−0.744）。验收 7/7 PASS、G3 门禁 PASS、既有 14+ 测试全绿、冒烟训练开关生效。任务保持 false：未跑新训练轮次，成功率是否提升未验证。",
+          "actions": [
+            "先冻结 config/objective_signal_fix_prereg_v1.json（sha acfc34263329…）：写清根因、权重扫描依据、7 条验收判据、scope_guard 与 not_claimed",
+            "targets.py：新增 joint_training_sequence()（g_train=max(h,−z)+w·c，终端不加成本项）与 joint_min_return()（直接复用现成的严格参考逐行转写 _ref_gae_reach4）",
+            "storage.py：ObjectiveConfig 增 joint_cost_weight(默认0)/joint_min_recursion(默认False)；compute_objectives 用 g_train 算 target_total；新增 obj_g_train 诊断字段；W/τ*/obj_feasible/target_cost/target_reach 一律不动",
+            "train_formal.py：权重与开关从先冻结的预登记读取（[0,100] 带内校验），不硬编码；joint_min_recursion=True 直接拒绝启动；run_start 日志带修正参数",
+            "新增 tests/test_objective_signal_fix.py（7 条：w=0 逐位回归、真实 chunk 成本信号阈值、到达信号不翻转、代数关系、可行性判据逐位不变、min 型反例、纯函数良定义）",
+            "config/rcppo_alignment_contract_v1.amend3.json：R1/R2 裁定 + D4/D5 偏离登记；reports/rcppo_alignment.json 补 D4/D5；docs/algorithm_implementation.md 追加修正章节",
+            "冒烟训练验证 [OBJ-FIX] joint_cost_weight=50.0 生效且 chunk 含 obj_g_train；重跑 G3_alignment_v2 门禁 PASS"
+          ],
+          "files_changed": [
+            "config/objective_signal_fix_prereg_v1.json(+.sha256)",
+            "config/rcppo_alignment_contract_v1.amend3.json(+.sha256)",
+            "src/camra_navigation/algorithm/targets.py",
+            "src/camra_navigation/algorithm/storage.py",
+            "scripts/train_formal.py",
+            "scripts/make_alignment_report.py",
+            "tests/test_objective_signal_fix.py",
+            "reports/objective_signal_fix.json",
+            "reports/rcppo_alignment.json",
+            "reports/gate_G3_alignment_v2.json",
+            "docs/algorithm_implementation.md"
+          ],
+          "commands": [
+            "tests/test_objective_signal_fix.py --json reports/objective_signal_fix.json: 7/7 PASS",
+            "scripts/build_gate_g3_alignment_v2.py: PASS, n_failed=0",
+            "train_formal.py --smoke-updates 2 --prereg-name ..._smoke_objfix.json: [OBJ-FIX] w=50, chunk 含 obj_g_train",
+            "全量回归 16 个既有测试脚本"
+          ],
+          "results": [
+            "根因确认：训练器只用 obj_adv_total，它来自 g=max(h,−z) 的 λ-return 减 V_total；g 装的是剩余预算（存量）而非每步成本（流量），max 让预算项在超支前被距离项盖住（离终点>5m 时预算分支仅 0.1%-1.4%），baseline 含 −z 再抵消（相关 0.33/0.95）",
+            "① 权重定标：真实 chunk 扫描 w=0/10/25/50/100，w=100 会把 r1c 优势 std 从 0.049 抬到 0.169（爆震风险），w=50 只到 0.108 且到达信号保持",
+            "② 被发现并如实登记：直接照搬参考 min 型递推会翻转到达梯度，根因是参考 reach 到达时取 −300 而本仓库 h 被 max(·,0) 抹平，符号体系不兼容。改为实装+登记偏离+反例钉住，默认不启用",
+            "范围护栏全部满足：可行性判据等 11 个字段 w=0 与 w=50 逐位相同；价值契约一字未改；w=0 时输出与改动前逐位等价"
+          ],
+          "evidence": [
+            "reports/objective_signal_fix.json（7/7 PASS，含三个真实 run 各 60 chunk 的中位数）",
+            "reports/gate_G3_alignment_v2.json（PASS，n_failed=0）",
+            "config/objective_signal_fix_prereg_v1.json.sha256（先冻结后执行）",
+            "config/rcppo_alignment_contract_v1.amend3.json.sha256",
+            "docs/algorithm_implementation.md 的 NAV-064 目标信号修正章节"
+          ],
+          "remaining_work": [
+            "本修正不含新训练轮次；协议 4 轮 + 用户授权第 5 轮已用尽，第 6 轮需新授权",
+            "『预算内到达』是否出现、成功率是否提升尚未验证，不得宣称",
+            "NAV-064 保持 false；NAV-065/066 的正式判定仍需按协议推进"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

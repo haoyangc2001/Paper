@@ -1,0 +1,57 @@
+{
+  "schema": "camra-objective-signal-fix-prereg-v1",
+  "version": "1.0.0",
+  "task": "NAV-064",
+  "owner": "user-approved option ① + ② (2026-11-13)",
+  "created_at": "2026-11-13T12:35:00+08:00",
+  "status": "frozen_before_code_change",
+  "decision": "用户 2026-11-13 批准『把逐步成本信号接回策略梯度(①) + 联合估计器补登记/实现参考 min 型递推(②)』，并要求更新文档后按计划推进",
+  "diagnosis": {
+    "root_cause": "训练器只用 obj_adv_total，它来自 g=max(h,-z) 的 λ-return 减 baseline。g 装的是剩余预算 z（存量），不是每步花了多少（流量）；max 又让预算项在超支前被距离项盖住，baseline V_total=max(V_h,V_c−z) 含 −z 再把波动抵消。实测 corr(每步成本, 优势)：r5 uncal +0.079 / r5 full 0.000 / r1c uncal +0.033（应显著为正）",
+    "evidence_files": ["src/camra_navigation/algorithm/storage.py", "src/camra_navigation/algorithm/targets.py", "RC-PPO/rl/EC-EFPPO.py:64-76", "RC-PPO/rl/gae.py:195-248,334-376", "docs/algorithm_implementation.md:236-254"],
+    "quantified": {
+      "budget_branch_share_far_from_goal": "0.1%-1.4%（r5），预算项平均到回合 60%-77% 才首次压过距离项",
+      "z_negative_at": "首次变负时离终点平均 6.1-6.7 m",
+      "success_episode_z_T": "-0.56 ~ -0.74（全部超支 300-400 J）",
+      "baseline_target_correlation": "0.33 (uncal) / 0.95 (full)",
+      "full_saturated_h": "91.3% 步 h=1；92% 步 τ*=t（停止视野 0 步）"
+    }
+  },
+  "change_1_cost_signal": {
+    "form": "训练用即时代价 g_train,t = max(h_t, -z_t) + w * c_t；g_T 不含成本项（终态无动作）。target_total 在 g_train 上做同一 λ-return，减同一 V_total baseline。",
+    "weight": 50.0,
+    "weight_rationale": "真实 chunk 权重扫描（90 chunks/run × 3 runs）：w=0/10/25/50/100 下 corr(成本,优势) 中位数 r5_full 0.000/0.153/0.322/0.544/0.785；r5_uncal 0.079/0.122/0.142/0.170/0.226；r1c_uncal 0.033/0.173/0.287/0.345/0.371。w=100 在 r1c 上把优势 std 从 0.049 抬到 0.169（3.5×，有梯度爆震风险），w=50 只到 0.108 且到达信号保持（r5_uncal corr(h,adv) 0.944→0.942）",
+    "scope_guard": [
+      "只改策略用的即时代价；W / stop_index / stop_now / obj_feasible / target_cost / target_reach 一律不动（它们由 select_stop(c,z,h_ext) 决定，与 g_train 无关）",
+      "obj_g 字段保持 W 等价量语义不变，新增 obj_g_train 表示训练用即时代价",
+      "w=0 时 compute_objectives 输出与改动前逐位一致（回归保护）",
+      "不动 value_objective_contract_v1.json：契约 objective 明文要求『最小未折扣累计机械功』，本改动只是把它落进策略梯度"
+    ]
+  },
+  "change_2_min_recursion": {
+    "finding": "严格逐行复刻参考 calculate_gae_reach4（项目内 _ref_gae_reach4）后实测：直接替换联合 λ-return 会把到达信号方向翻转。r5_uncal corr(h,adv) +0.947→−0.955；r1c_uncal +0.292→−0.773；r5_full 优势 std 0.009→0.123。等价的 minDP+λ 形态同样翻转（+0.944→−0.405）",
+    "root_cause": "参考环境 reach_append 在到达时取 −3.0×100=−300（大负数），min 型 Bellman 把这个『好结果』向前传播；本仓库 h=max(g_norm,C·y) 被契约的 max(·,0) 抹平，到达时是 0、其余为正，min 递推把全程压平并反转梯度。属符号体系不兼容，不是实现缺陷",
+    "landing": [
+      "targets.joint_min_return()：参考 min 型递推的生产级纯函数实现（可调用、可测），由 ObjectiveConfig.joint_min_recursion 开关控制，预登记冻结为 false",
+      "rcppo_alignment_contract_v1.amend3.json：把『联合估计器递推形态』补登记为 D4 偏离，附三条数值反例与不启用理由",
+      "tests：新增反例用例钉住『启用会翻转到达信号』，防止将来有人误开",
+      "保持 ① 的修正效果不被 ② 抵消：默认路径仍是 λ-return"
+    ],
+    "why_not_enabled": "启用会鼓励远离终点，与契约 objective 的到达条件直接冲突；需启用必须先改 h 的符号体系（契约语义变更），属新的授权点"
+  },
+  "acceptance_criteria": [
+    {"id": "F1", "check": "w=0 逐位回归", "requirement": "compute_objectives 在 joint_cost_weight=0 且 joint_min_recursion=false 时，全部返回字段与改动前相同", "tolerance": "精确"},
+    {"id": "F2", "check": "成本信号进入优势", "requirement": "w=50 时 corr(每步成本, obj_adv_total) 中位数：r5_full_s0 >= +0.40；r5_uncal_s0 >= +0.12；r1c_uncal_s0 >= +0.25", "tolerance": "见阈值"},
+    {"id": "F3", "check": "到达信号方向不变", "requirement": "r5_uncal_s0 corr(h, adv) 仍 >= +0.90；r1c_uncal_s0 仍为正且不翻转", "tolerance": "见阈值"},
+    {"id": "F4", "check": "可行性判据不动", "requirement": "w=50 与 w=0 的 obj_stop_index / obj_stop_residual / obj_feasible / obj_target_cost / obj_target_reach 逐位相同", "tolerance": "精确"},
+    {"id": "F5", "check": "min 型反例", "requirement": "开启 joint_min_recursion 时，测试能复现到达信号翻转，且默认关闭", "tolerance": "方向判定"},
+    {"id": "F6", "check": "门禁与回归", "requirement": "gate_G3_alignment_v2 22/22 PASS；全部既有测试全绿；计划校验器 VALID", "tolerance": "全绿"},
+    {"id": "F7", "check": "文档与登记", "requirement": "docs/algorithm_implementation.md 追加修正章节；amend3 登记 D4；对齐报告 deviations 追加", "tolerance": "文件存在且内容可核"}
+  ],
+  "data_access": {"train": "仅用已有 r1c/r5 的 rollout chunk 做离线数值验证", "development": "本预登记不做新的开发集评估", "final_*": "封存"},
+  "not_claimed": [
+    "本预登记不跑新的完整训练轮次（协议 4 轮 + 用户授权第 5 轮已用尽；第 6 轮需新授权）",
+    "不宣称成功率提升；只验证成本信号进入策略梯度且到达信号不退化",
+    "不改 value_objective_contract_v1.json 的任何数值与判据"
+  ]
+}
