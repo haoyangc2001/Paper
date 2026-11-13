@@ -5823,6 +5823,49 @@
             "若第 6 轮预算内到达仍全 0 且超支未收窄，按预登记 falsification 回到 C·y/δ 语义层（原选项 C）"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-13T16:36:42+08:00",
+          "summary": "用户授权第 6 轮（2026-11-13 15:00『可以 按照要求推进』）。6/6 run 完整跑完 600 更新、退出码全 0。结果：full 的 dev SR 中位数 0.333→0.667（六轮最高），但主判据『到达且预算内』仍为 0（6 run × 5 个 k 全 0），超支反而从 374.5 J 增至 444.1 J（预算抽样基本一致：365.4→367.7 J）。预登记 r6 的 falsification 条款成立：成本信号确实进入生产梯度（corr +0.116~+0.917），但瓶颈不在策略梯度信号。关闭档未达成，任务保持 false。",
+          "actions": [
+            "启动前核对发现并修复会毁掉整轮的字段错位：r6 预登记把 objective_signal_fix 放在 algorithm 内，而 train_formal.py:339 从顶层 prereg.get 读取；直接启动会退回 w=0。按预登记 launch_preconditions 第 4 条，授权后把 status 改为 frozen_before_round_6、记录授权来源、把该块统一提到顶层、重算 sha256（69c843f99fb34037）；数值/判据/地图/种子/预算/热启动一律未变",
+            "核验前置条件：objective_signal_fix 7/7 PASS、G3_alignment_v2 PASS、16 个既有脚本全绿、6 个热启动 state.pt 齐全",
+            "冒烟确认 [OBJ-FIX] joint_cost_weight=50.0 生效后才启动 6 个 run",
+            "第 6 轮训练完成（1.24-1.40 h/run）；生产 chunk 逐位验证 g_train = g + 50c 成立",
+            "按冻结判据评估 reports/training_round_r6.json；量化 r5→r6 的 z0 / 实际成本 / 超支 / 步数 / 每步成本",
+            "台账登记 r6 结果与证伪结论（保留全部 6 轮历史），评估与台账脚本扩展到 r6"
+          ],
+          "files_changed": [
+            "config/training_loop_prereg_r6.json(+.sha256)",
+            "scripts/eval_training_round.py",
+            "scripts/make_rounds_ledger.py",
+            "reports/training_round_r6.json",
+            "reports/training_loop_rounds.json"
+          ],
+          "commands": [
+            "train_formal.py --prereg-name training_loop_prereg_r6.json × 6：exit 0 全 600 更新",
+            "eval_training_round.py --round 6 --prereg training_loop_prereg_r6.json --out reports/training_round_r6.json",
+            "validate_worklog.py --mode update"
+          ],
+          "results": [
+            "dev SR 中位数：uncalibrated 0.0（1.0/0/0，跨种子不稳未改善）、full 0.667（0.167/1.0/0.667，六轮最高，r5 为 0.333）",
+            "『到达且预算内』六轮累计全 0；r6 的 6 run × k=0.7/0.85/1.0/1.15/1.3 全 0；成功回合 z_J_end 区间 −218.4 ~ −582.6 J",
+            "量化对比 r5→r6：z0 中位 365.4→367.7 J（抽样一致）、实际成本 748.3→807.1 J、超支 374.5→444.1 J、超支/预算 1.03→1.14；步数中位 135.5→136、每步成本 5.60→5.53 J（几乎不变）。超支加深不是抽样假象",
+            "成本信号进梯度得到生产验证：6 run 的 corr(每步成本, obj_adv_total) 为 +0.116~+0.917；full_s0 的 corr(距离,优势) −0.505 经核查是 h 方差仅 0.041、91.3% 恒为 1 的低方差伪相关，不作翻转证据",
+            "触发预登记 r6 falsification：瓶颈不在策略梯度信号，需回到 C·y 平坦代价 / δ=2.61 m 的语义层（原选项 C），或改任务可达性设定"
+          ],
+          "evidence": [
+            "reports/training_round_r6.json（逐图逐格明细、k 网格、checkpoint）",
+            "reports/training_loop_rounds.json（6 轮台账 + r6 证伪结论）",
+            "config/training_loop_prereg_r6.json.sha256（授权后重冻结 69c843f99fb34037）",
+            "/pub/data/caohy/work/camra_navigation/nav064_r6/exit_codes.txt（6×0）"
+          ],
+          "remaining_work": [
+            "NAV-064 保持 false：关闭档要求两方法 SR 中位数 >= 0.10 且预算内可行，uncalibrated 中位 0.0 未达标",
+            "走向待用户裁定：C（回 NAV-061 语义层重审 C·y/δ，台账现列首选）/ B（用现有候选走 NAV-065/066 出正式负结果）。不再重复加轮",
+            "r6 的 full 0.667 是当前最好候选，但属 development 结果，不得据此宣告完成或进入 final_*"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

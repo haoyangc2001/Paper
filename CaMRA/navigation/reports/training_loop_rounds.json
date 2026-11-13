@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "rounds_exhausted_r5_user_authorized",
+  "status": "rounds_exhausted_r6_user_authorized",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -234,6 +234,52 @@
       "closing_tier_met": false,
       "checkpoint": "state.pt",
       "report": "reports/training_round_r5.json"
+    },
+    {
+      "round": 6,
+      "prereg": {
+        "path": "config/training_loop_prereg_r6.json",
+        "sha256": "69c843f99fb3403794095920d86f391763cae98e9df725f9a99016a8bfe9da38"
+      },
+      "config_delta": "r6.0.0",
+      "closing_tier": {
+        "uncalibrated": {
+          "seeds": [
+            0,
+            1,
+            2
+          ],
+          "sr_by_seed": {
+            "0": 1.0,
+            "1": 0.0,
+            "2": 0.0
+          },
+          "sr_median": 0.0,
+          "sr_min": 0.0,
+          "sr_max": 1.0,
+          "n_runs": 3
+        },
+        "full": {
+          "seeds": [
+            0,
+            1,
+            2
+          ],
+          "sr_by_seed": {
+            "0": 0.16666666666666666,
+            "1": 1.0,
+            "2": 0.6666666666666666
+          },
+          "sr_median": 0.6666666666666666,
+          "sr_min": 0.16666666666666666,
+          "sr_max": 1.0,
+          "n_runs": 3
+        }
+      },
+      "sr_within_budget_max": 0.0,
+      "closing_tier_met": false,
+      "checkpoint": "state.pt",
+      "report": "reports/training_round_r6.json"
     }
   ],
   "chain_finding_entropy": {
@@ -257,6 +303,55 @@
     "H(r5) 仅钳位即可稳定 uncalibrated：部分成立——不再发散、run 完整、s0 达 1.0，但种子间仍 1.0/0/0（中位 0.0），链外的种子级方差是残余因素"
   ],
   "user_decision_r5": "A（2026-11-13）：修订动作概率契约（amend2 log_std ∈ [-5,1]）+ 授权第 5 轮；选项 B（停止循环走负结果）与 C（C·y 语义层修订）未被选择",
+  "round_6_result": {
+    "date": "2026-11-13",
+    "authorization": "用户 2026-11-13 15:00 回复『可以 按照要求推进』；r6 预登记 status 改为 frozen_before_round_6 并记录授权来源",
+    "prereg_sha16": "69c843f99fb34037",
+    "note_field_fix": "授权后重冻结：原预登记把 objective_signal_fix 放在 algorithm 内，而 train_formal.py 从顶层读取；直接启动会退回 w=0。已统一提到顶层并重算 sha，数值/判据/热启动未变",
+    "runs": "6/6 完整跑完 600 更新，退出码全 0，1.24-1.40 h/run",
+    "dev_sr_median": {
+      "uncalibrated": 0.0,
+      "full": 0.6666666666666666
+    },
+    "full_by_seed": [
+      0.16666666666666666,
+      1.0,
+      0.6666666666666666
+    ],
+    "primary_criterion": "『到达且预算内』仍为 0（6 run × 5 个 k 网格全 0）；六轮累计全 0",
+    "verdict": "假设被否：成本信号确实进入生产梯度（6 run 的 corr(每步成本,优势) +0.116~+0.917），但预算内到达未出现，且超支略增",
+    "quantified": {
+      "z0_median_J": [
+        365.4,
+        367.7
+      ],
+      "actual_cost_median_J": [
+        748.3,
+        807.1
+      ],
+      "overspend_median_J": [
+        374.5,
+        444.1
+      ],
+      "overspend_ratio": [
+        1.03,
+        1.14
+      ],
+      "steps_median": [
+        135.5,
+        136.0
+      ],
+      "cost_per_step_J": [
+        5.6,
+        5.53
+      ],
+      "note": "r5→r6：预算抽样基本一致、步数与每步成本几乎不变，实际成本上升导致超支加深，不是抽样假象"
+    },
+    "real_gain": "full 的 dev SR 中位数 0.333→0.667（六轮最高；三种子 0.167/1.0/0.667），uncalibrated 仍 1.0/0/0 跨种子不稳",
+    "falsification_triggered": "预登记 r6 的 falsification 条款成立：瓶颈不在策略梯度信号，需回到 C·y 平坦代价 / δ=2.61 m 的语义层（原选项 C），或改任务可达性设定",
+    "closing_tier_met": false,
+    "task_status": "false"
+  },
   "objective_signal_fix": {
     "date": "2026-11-13",
     "user_decision": "批准诊断建议 ①+②：把逐步成本信号接回策略梯度；联合估计器补登记参考 min 型递推",
@@ -271,6 +366,8 @@
     "B 仍可选：停止循环，用现有最好候选（r1 uncal s0-s2、r5 full s1）走 NAV-065/066 正式预算判定",
     "C 仍可选：C·y/δ 语义层修订（NAV-061），处理危险饱和区的平坦代价根因",
     "D 新选项：再加轮（每次均需授权）；r5 显示 uncal 的种子级不稳定需要更深的训练量或种子级干预（如按种子早停保留最优）",
-    "E（2026-11-13 已完成实现层，尚未验证行为）：第 6 轮用 w=50 的新目标训练，验证『成本信号进梯度』能否带来预算内到达；需用户单独授权加轮"
+    "E（已执行，r6 已证伪）：第 6 轮用 w=50 训练完成，成本信号进梯度但预算内到达仍为 0、超支略增；不再重复加轮",
+    "C（现为首选）：回到 NAV-061 语义层，重审 C·y 不可逆饱和代价与 δ=2.61 m 膨胀带——六轮数据表明『预算内到达』在当前任务定义下近乎不可达（超支恒为预算的 1.0-1.2 倍），而非学习信号缺失",
+    "B（次选）：停止循环，用 r6 full 的 0.667 与 r1/r6 uncal 的候选走 NAV-065/066，把『预算内到达不可行』作为正式负结果"
   ]
 }

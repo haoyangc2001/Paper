@@ -206,8 +206,10 @@ def main() -> int:
         "round": args.round,
         "prereg_version": prereg.get("version"),
         "prereg": {"path": os.path.relpath(prereg_path, NAV), "sha256": pinned},
-        "gate_g3_alignment_v2": prereg["binding"].get("gate_g3_alignment_v2"),
+        "gate_g3_alignment_v2": (prereg["binding"].get("gate_g3_alignment_v2")
+                                 or prereg["binding"].get("gate_g3")),
         "warm_start": prereg["algorithm"].get("warm_start"),
+        "objective_signal_fix": prereg.get("objective_signal_fix"),
         "closing_tier": {
             "criterion": f"development SR median >= {threshold} for both methods",
             "threshold": threshold,
