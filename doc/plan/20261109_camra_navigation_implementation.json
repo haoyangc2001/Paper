@@ -6050,6 +6050,46 @@
           "blockers": [
             "下一步属预登记未覆盖的分支，且涉及改变训练目标或正式试验次数，按 uncertainty_policy 必须暂停等用户明确选择，不自行决定"
           ]
+        },
+        {
+          "timestamp": "2026-11-13T23:25:00+08:00",
+          "summary": "第 7 轮补充只读诊断：量化下发速度（r6 80.8~427.7 → r7 0.0507~0.1607，30 秒仅前进 1.5~4.8 m，参考需 0.465 m/s），并用动作放大 1/2/3/4/6 倍做反事实验证。未校准变体放大后能重新到达（最高 4/6），完整变体全倍率仍 0 到达，且放大推高耗电与碰撞。结论：幅度不足是直接原因之一，但事后乘系数不是修复；完整变体另有独立问题。未改任何 checkpoint/预登记/正式报告，NAV-064 保持 false。",
+          "actions": [
+            "读 networks.py 的 SquashedNormal / PolicyNetwork 与 targets.py 的 joint_training_sequence，确认 tanh 压缩与成本权重的实现位置",
+            "t_diag_action_r7.py：复用 eval_training_round.py 的开发集环境，记录 12 个 r6/r7 checkpoint 的确定性动作幅度与 policy.log_std",
+            "t_diag_action_scale_r7.py：对 6 个 r7 checkpoint 的动作乘 1/2/3/4/6 倍，在开发集 6 图上统计到达数、结局标签与成本",
+            "docs 追加只读诊断章节、台账追加 round_7_readonly_diagnostics 块、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python /tmp/t_diag_action_r7.py（tiger11）",
+            "python /tmp/t_diag_action_scale_r7.py（tiger11）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "r7 的平均前进速度只有参考速度的 1/9~1/3，物理上无法在 30 秒时限内走完 14 m 路线；log_std −2.89/−2.20/−1.49 说明探索尺度同步塌缩",
+            "放大动作后未校准变体 s0 得 2/6、s2 得 4/6 到达，证明幅度不足是「训练期 0 到达」的直接原因之一",
+            "但放大同时把平均成本从约 145 J 推到 233~590 J、碰撞增加；完整变体 3 个 run 全倍率 0 到达，未校准 s1 全倍率 0 到达且 6 倍全碰撞",
+            "networks.py 与动作映射契约的注释早已写明 tanh 会系统性压低指令值、低速段 0.2–0.31 m/s 必须精确可达；改动作层的量级目标应是平均 0.465 m/s，不是越大越好"
+          ],
+          "evidence": [
+            "t_diag_action_r7.py 输出：12 个 run 的 |vx| 均值/中位/最大与 30 秒推算距离",
+            "t_diag_action_scale_r7.py 输出：6 个 r7 run × 5 个倍率的到达数、结局标签、平均成本",
+            "远程 torch.load 读取 policy.log_std = [-2.894, -2.197, -1.486]",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "按 uncertainty_policy 等用户裁定方向后再动手；任何改动都要重冻预登记、重跑 G3 门禁、重新初始化训练",
+            "若改动作层：先定「平均前进速度回到 0.465 m/s 附近」这一可验收目标，并同时盯住耗电、碰撞与完整变体",
+            "若改训练目标：需回 NAV-061~063 重验数学目标"
+          ],
+          "blockers": [
+            "下一步涉及改变动作概率契约或训练数学目标，按 uncertainty_policy 必须等用户明确选择，本轮未自行改动任何实现"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

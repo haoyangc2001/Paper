@@ -517,5 +517,63 @@
         "不宣称 C·y/δ 语义层是根因"
       ]
     }
+  },
+  "round_7_readonly_diagnostics": {
+    "date": "2026-11-13T23:25:00+08:00",
+    "kind": "read-only counterfactual, NOT a formal evaluation",
+    "scripts": [
+      "t_diag_action_r7.py",
+      "t_diag_action_scale_r7.py",
+      "t_diag_train_r7.py"
+    ],
+    "guards": "不改 checkpoint / 预登记 / 正式评估报告；复用 eval_training_round.py 的开发集环境构造",
+    "command_magnitude": {
+      "r6_abs_vx_mean": [
+        80.8,
+        427.7
+      ],
+      "r7_abs_vx_mean": [
+        0.0507,
+        0.1607
+      ],
+      "r7_implied_30s_distance_m": [
+        1.5,
+        4.8
+      ],
+      "reference_speed_m_per_s": 0.465,
+      "r7_policy_log_std": [
+        -2.894,
+        -2.197,
+        -1.486
+      ],
+      "r7_policy_std": [
+        0.055,
+        0.226
+      ]
+    },
+    "action_scale_experiment": {
+      "scales": [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        6.0
+      ],
+      "uncalibrated_s0": "3~6x: 2/6 到达",
+      "uncalibrated_s1": "全倍率 0 到达；6x 时 6/6 碰撞",
+      "uncalibrated_s2": "3x: 2/6；4x: 4/6 到达",
+      "full_all_3_runs": "全倍率 0 到达",
+      "cost_mean_J": "约 145 J -> 233~590 J"
+    },
+    "conclusions": [
+      "幅度不足是抹掉『到达』的直接原因之一：未校准变体放大动作后能重新到达",
+      "事后乘系数不是修复：耗电与碰撞同步回升，且完整变体放大仍无效，完整变体存在独立第二层问题",
+      "networks.py 与动作映射契约早已注明 tanh 会系统性压低指令值、低速段需精确可达；改动作层应把平均前进速度拉回 0.465 m/s 附近而非越大越好"
+    ],
+    "not_claimed": [
+      "不把反事实放大结果当作正式成功率",
+      "不据此断定 C·y/δ 语义层是完整变体的根因",
+      "不宣称已有可用修复方案"
+    ]
   }
 }
