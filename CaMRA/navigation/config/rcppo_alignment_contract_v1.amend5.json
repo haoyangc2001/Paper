@@ -1,0 +1,36 @@
+{
+  "schema": "rcppo-alignment-contract-amendment",
+  "amendment_id": "amend5",
+  "version": "1.0.0",
+  "date": "2026-11-14T00:30:00+08:00",
+  "task": "NAV-064",
+  "topic": "策略初始化与探索下限（可选实现，默认关闭）",
+  "decision_id": "D8",
+  "decision": "有界模式新增可选初始化：均值头第一维偏置设为 atanh(0.465)，使初始确定性前进速度等于冻结功率模型的参考速度；同时把该模式的 log_std 下限由 -5 抬到 -1.5。目的是让训练早期出现『到达』正例，打断 r7 的无正例自锁。",
+  "reference": "参考实现未规定策略初始化；本项属 Go2 工程适配，不改数学目标与评分语义",
+  "authorization": {
+    "granted_by": "用户 2026-11-13 23:55『@skill:create-plan-worklog 可以，那就按照分析要求开始改动吧』",
+    "prereg": {
+      "path": "config/action_init_fix_prereg_v1.json",
+      "sha256": "f460412d92cc3dbdecb5dd01467b0c99e57108f88a8a341f8744c5fa9ba58911",
+      "version": "1.1.0"
+    }
+  },
+  "guards": [
+    "默认关闭，旧权重/旧 chunk/旧 log_prob 语义逐位不变",
+    "开关与数值从预登记读取，训练器与评估器不硬编码",
+    "只改 loc 初值与 std 下限，不改分布形态、log_prob 雅可比、熵公式",
+    "不改 g_train、w=50、成本项、W 判据、功率模型、地图/种子族/30 s 时限",
+    "本轮不启动训练"
+  ],
+  "evidence": {
+    "feasibility": "不学习的固定速度控制器在参考速度下开发集 2/6（直行）或 4/6（朝目标）到达，两变体一致且预算内",
+    "AI5": "开启后新初始化策略 2/6 到达、平均 |vx|=0.4637；关闭时 0/6 全部停滞",
+    "tests": "tests/test_action_init_fix.py 13/13 PASS；G3 PASS；全量回归 24 PASS / 1 既有 FAIL（test_nominal_env.py，与本改动无关）"
+  },
+  "not_claimed": [
+    "不宣称训练后能学会绕障",
+    "不宣称成功率提升",
+    "不宣称预算内到达在正式训练里出现"
+  ]
+}

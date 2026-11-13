@@ -6131,6 +6131,62 @@
             "用户授权的『改动作层』方案前提被确定性证据证伪；继续照做属于明知不对症仍改实现，会白跑一轮约 1.2 h 训练",
             "对症方案（改训练目标）属于改变数学目标，按 uncertainty_policy / global_constraints 需用户明确裁定后方可执行，不得自行扩大授权范围"
           ]
+        },
+        {
+          "timestamp": "2026-11-14T00:30:00+08:00",
+          "summary": "按 23:55 授权落地只读分析的首选根治项：先冻结 action_init_fix 预登记 v1.1.0，再给有界策略加初始前进尺度（0.465 m/s）与探索下限（-1.5），默认关闭逐位回归。离线验收 AI1~AI7 全部 PASS，关键判据 AI5 证明新初始化策略开发集 2/6 到达（关闭时 0/6 全停滞），即打断无正例自锁的必要条件成立。未启动训练，NAV-064 保持 false。",
+          "actions": [
+            "开工对齐：重读根 AGENTS.md 与 execution-rules.md；拉取最新计划并运行 validate_worklog.py --mode update（VALID，51/67，首个可执行任务 NAV-064，13 条记录、2 条 blockers）",
+            "只读可行性验证 t_diag_reachability.py：0.465 m/s 固定控制器开发集直行 2/6、朝目标 4/6 到达，两变体一致且预算内（z_end +119~+146 J）；证明环境与预算允许到达、完整变体无独立语义层根因",
+            "冻结 config/action_init_fix_prereg_v1.json（7 条判据）后改代码：networks.py 的 PolicyNetwork / BudgetConditionedNetworks / build 逐层透传；train_formal.py 与 eval_training_round.py 从预登记读取同一开关",
+            "首轮 AI2 判据设错（隐含零化观测下 body 输出为 0），按先证伪再报绿修订到 v1.1.0 并重冻 sha f460412d92cc3dbd；旧 sha 3b7b437b3e33b85a 保留在 amendment 块",
+            "新增 tests/test_action_init_fix.py（13/13 PASS）、t_verify_init_fix.py（AI2/AI3/AI4/AI5）、docs 章节、台账块、amend5、本计划记录"
+          ],
+          "files_changed": [
+            "config/action_init_fix_prereg_v1.json(+.sha256)",
+            "config/rcppo_alignment_contract_v1.amend5.json",
+            "src/camra_navigation/algorithm/networks.py",
+            "scripts/train_formal.py",
+            "scripts/eval_training_round.py",
+            "tests/test_action_init_fix.py",
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "reports/gate_G3_alignment_v2.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python t_build_init_fix_prereg.py / t_amend_init_fix_prereg.py / t_patch_init_fix.py",
+            "python -m py_compile networks.py train_formal.py eval_training_round.py",
+            "python tests/test_action_init_fix.py（13/13 PASS）",
+            "python /tmp/t_verify_init_fix.py（tiger11，AI2/AI3/AI4/AI5）",
+            "全量回归 tests/test_*.py：24 PASS / 1 既有 FAIL",
+            "python scripts/build_gate_g3_alignment_v2.py（verdict=PASS n_failed=0）",
+            "train_formal.py --smoke-updates 2（默认关闭路径，exit 0）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "解除 23:40 的 2 条 blockers：本次改动是不同形态（初始化偏置 + 探索下限），由新证据支持，不依赖被证伪的『换有界写法』前提",
+            "AI5 关键结果：开启后新初始化策略在开发集 6 图 2/6 到达、平均 |vx|=0.4637 m/s；关闭时 0/6 全部 stagnation —— 训练早期出现到达正例的必要条件成立",
+            "AI1 默认关闭逐位回归；AI2 tanh(bias)=0.46500000；AI3 log_std 从 -4 钳到 -1.5；AI4 log_prob 有限、动作严格 <1；AI6 四个开关冒烟齐全",
+            "全量回归 24 PASS / 1 既有 FAIL：test_nominal_env.py 期望 obs-v2 与旧标签优先级，脚本不导入本次改动模块，与本改动无关，如实记为既有失败",
+            "G3 重跑 verdict=PASS，同步了 D6/D7 偏离条目与 alignment_report sha256（19 行新增），一并提交",
+            "NAV-064 status 保持 false；未启动训练、未推送"
+          ],
+          "evidence": [
+            "config/action_init_fix_prereg_v1.json v1.1.0 + .sha256（f460412d92cc3dbd…）",
+            "t_diag_reachability.py 输出（直行 2/6、朝目标 4/6、z_end 全为正）",
+            "tests/test_action_init_fix.py 输出 13/13 PASS、TEST_RC=0",
+            "t_verify_init_fix.py 输出（AI2/AI3/AI4 PASS、AI5 ON 2/6 vs OFF 0/6）",
+            "冒烟日志 /tmp/initfix_smoke.log 四个开关打印、SMOKE_RC=0",
+            "G3 输出 verdict=PASS n_failed=0；全量回归统计 24 PASS / 1 FAIL",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "第 8 轮训练需用户单独当次授权：须重新初始化策略头、启用 action_init_fix，并验证训练早期是否真的出现到达正例、到达分支梯度是否恢复",
+            "若训练后仍无预算内到达，再按预登记 falsification 条款如实记录，不加第 9 轮回避、不放宽阈值",
+            "训练完成后回填台账、生成 reports/training_round_r8.json 并判定 NAV-064 是否可关闭"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

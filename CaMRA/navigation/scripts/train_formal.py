@@ -328,8 +328,20 @@ def main() -> int:
 
     # NAV-064 修正 B：从先冻结的预登记读取，默认 False（逐位回归）
     bounded = bool(prereg.get("action_bounded", False))
-    net = NW.build(nav_contract, action_bounded=bounded)
+    # NAV-064 初始化修正：一律从先冻结的预登记读取，默认关闭（逐位回归）
+    init_fix = prereg.get("action_init_fix", {})
+    init_on = bool(init_fix.get("enabled", False))
+    init_speed = float(init_fix.get("initial_forward_speed", 0.0)) if init_on else 0.0
+    init_std_min = init_fix.get("log_std_min") if init_on else None
+    if init_std_min is not None:
+        init_std_min = float(init_std_min)
+    if not (0.0 <= init_speed < 1.0):
+        raise SystemExit(f"initial_forward_speed={init_speed} 超出 [0,1)")
+    net = NW.build(nav_contract, action_bounded=bounded,
+                   initial_forward_speed=init_speed, log_std_min=init_std_min)
     print(f"[ACTION-BOUNDED] {bounded}", flush=True)
+    print(f"[ACTION-INIT] enabled={init_on} v0={init_speed} "
+          f"log_std_min={init_std_min}", flush=True)
     cfg = P.PPOConfig.from_contract(VALUE_CONTRACT)
     assert abs(cfg.max_grad_norm - 2.5) < 1e-12, (
         f"contract max_grad_norm={cfg.max_grad_norm}; prereg pins 2.5")
@@ -410,7 +422,10 @@ def main() -> int:
          "objective_signal_fix": {"joint_cost_weight": w,
                                   "joint_min_recursion": use_min},
          "budget_accounting": str(prereg.get("budget_accounting", "nominal")),
-         "action_bounded": bool(prereg.get("action_bounded", False))})
+         "action_bounded": bool(prereg.get("action_bounded", False)),
+         "action_init_fix": {"enabled": init_on,
+                             "initial_forward_speed": init_speed,
+                             "log_std_min": init_std_min}})
 
     for update_idx in range(max_updates):
         t_win = time.time()

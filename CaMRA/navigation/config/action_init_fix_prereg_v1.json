@@ -1,0 +1,93 @@
+{
+  "schema": "camra-action-init-fix-prereg-v1",
+  "version": "1.1.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-14T00:10:00+08:00",
+  "status": "frozen_before_code_change",
+  "authorization": {
+    "granted_by": "用户 2026-11-13 23:55 回复『@skill:create-plan-worklog 可以，那就按照分析要求开始改动吧』",
+    "scope": "只落地只读分析给出的首选根治项：给策略一个能产生到达正例的初始行为 + 抬高探索下限；不改训练数学目标、不改评分语义、不启动训练",
+    "precedent": "23:40 的阻塞记录已解除：该阻塞针对『换不压中段的有界写法』，其前提已被压缩比 0.9905~0.9986 证伪；本次改动是不同形态（初始化偏置 + 探索下限），且由新证据支持"
+  },
+  "diagnosis": {
+    "observed": "r7 训练期 6 个 run 的到达次数全为 0；到达分支梯度均值 0.091(r6)→0.016(r7)，成本/到达梯度比 0.744→1.350，优势方差 0.145→0.047，熵 5.60→−0.89，策略损失 −0.052→+0.003",
+    "root_cause": "初始策略在 30 s 内到不了终点 → 训练里没有『到达』正例 → 到达分支无可学信号、梯度趋零 → 只剩 g_train=max(h,−z)+50·c 的成本项有梯度且方向为少动 → 均值与探索尺度塌缩 → 更不可能到达，自锁。压缩比 0.9905~0.9986 证明不是 tanh 压低指令",
+    "feasibility_check": "t_diag_reachability.py：完全不学习的固定速度控制器（0.465 m/s，冻结功率模型给出的参考速度）在开发集 6 图上，纯直行 2/6 到达、朝目标转向 4/6 到达；uncalibrated 与 full 结果一致；平均成本 282~341 J、回合末剩余预算 +119~+146 J，均预算内。失败的两张是需要绕障的 l2_single_detour",
+    "implication": "环境与预算都允许到达，缺的只是策略的初始行为。给一个持续前进的起点即可在训练早期产生到达正例，打断自锁，无需改数学目标、无需降 w、无需回 NAV-061~063 重验",
+    "confound_resolved": "两个变体可达性一致，说明 r7 完整变体放大动作仍 0 到达不是 δ 膨胀带或环境不可达，而是策略不会绕行；绕行能力需要有到达正例之后才学得到"
+  },
+  "change": {
+    "form": "新增可选开关 action_init_fix（默认关闭）：有界模式下给策略均值头第一维设初始偏置，使初始确定性前进速度≈0.465 m/s；并把该模式下的 log_std 下限由 −5 抬到 −1.5，防止探索塌缩",
+    "parameters": {
+      "initial_forward_speed": 0.465,
+      "log_std_min": -1.5
+    },
+    "guards": [
+      "默认关闭；旧权重、旧 chunk、旧 log_prob 语义逐位不变",
+      "开关与两个数值一律从本预登记读取，训练器与评估器都不硬编码",
+      "只改 loc 的初值与 std 的下限，不改 SquashedNormal 分布形态、log_prob 雅可比与熵公式",
+      "不改训练数学目标、w=50、成本项、评分语义、W 判据、功率模型、地图/种子族/30 s 时限",
+      "训练器与评估器读取同一开关，保证训练与评估口径一致",
+      "本轮不启动任何训练"
+    ]
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AI1",
+      "check": "默认关闭逐位回归",
+      "requirement": "action_init_fix 缺省/关闭时，全网参数、前向输出、log_prob 与改动前逐位相同；既有测试脚本与 G3 门禁全绿"
+    },
+    {
+      "id": "AI2",
+      "check": "初始速度标定（v1.1.0 判据表述修正）",
+      "requirement": "开启时 head.bias 第一维经 tanh 变换 = 0.465±1e-6（数学标定）；且新初始化策略在开发集 rollout 的平均前进速度 ∈ [0.40,0.55] m/s；关闭时该 bias 初值仍为 0。"
+    },
+    {
+      "id": "AI3",
+      "check": "探索下限生效",
+      "requirement": "开启时把 log_std 设为 −4 后调用 clamp，结果不低于 −1.5；关闭时仍允许 −5"
+    },
+    {
+      "id": "AI4",
+      "check": "分布自洽",
+      "requirement": "开启时 log_prob 蒙特卡洛积分 ≈1（±5%）、动作严格 <1、熵有限"
+    },
+    {
+      "id": "AI5",
+      "check": "产生到达正例（关键判据）",
+      "requirement": "开启后新初始化策略在开发集 6 图上用确定性动作 rollout，到达数 >= 2（纯直行基线为 2/6）；关闭时为 0"
+    },
+    {
+      "id": "AI6",
+      "check": "不破坏既有成果",
+      "requirement": "budget_accounting=consistent 与 action_bounded=true 仍生效；参考速度下的预算内到达判据不变"
+    },
+    {
+      "id": "AI7",
+      "check": "记录与文档",
+      "requirement": "计划 work_records 追加、台账登记、docs 章节、契约偏离登记"
+    }
+  ],
+  "falsification": "若开启后新初始化策略在开发集 6 图到达数为 0，则『给起点即可打断自锁』不成立，如实记录并停止，不硬凑参数、不放宽判据",
+  "not_claimed": [
+    "不宣称训练后能学会绕障",
+    "不宣称成功率提升或预算内到达在正式训练里出现",
+    "不宣称已根治无正例自锁——须重新训练验证",
+    "不宣称完整变体存在独立的语义层根因"
+  ],
+  "launch_preconditions": [
+    "本预登记先冻结并生成 sha256",
+    "AI1~AI7 全部 PASS",
+    "第 8 轮训练仍需单独当次授权，本预登记不授权启动训练"
+  ],
+  "amendment": {
+    "date": "2026-11-14T00:20:00+08:00",
+    "previous_sha256": "3b7b437b3e33b85a1f602fb87d5430d0fb7759ab39863b6f120920c73719b6db",
+    "why": "AI2 原判据假设『零化观测下 body 输出为 0，确定性动作等于 bias 标定值』；MLP 的 body 含偏置与激活，该等式不成立。按先证伪再报绿的原则修正判据表述，不放宽阈值、不掩盖失败",
+    "changes": {
+      "AI2": "改为：head.bias 第一维经 tanh 变换 = 0.465±1e-6（数学标定，实测 0.46500000）；且新初始化策略在开发集 rollout 的平均前进速度 ∈ [0.40,0.55] m/s（实测 0.4637）；关闭时 bias 初值仍为 0"
+    },
+    "unchanged": "change.form / change.parameters / guards / AI1 / AI3~AI7 / falsification / not_claimed / launch_preconditions 全部不变",
+    "evidence": "t_verify_init_fix.py 输出：bias_on=0.50367188, tanh=0.46500000, bias_off=0.0；AI5 ON 两变体 mean|vx|=0.4637"
+  }
+}

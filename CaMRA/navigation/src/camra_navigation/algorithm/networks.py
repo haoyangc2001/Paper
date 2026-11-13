@@ -261,29 +261,41 @@ class PolicyNetwork(nn.Module):
     """obs -> Independent(Normal(mean, std))，作用在归一化动作上。"""
 
     def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None,
-                 action_bounded: bool = False) -> None:
+                 action_bounded: bool = False,
+                 initial_forward_speed: float = 0.0,
+                 log_std_min: float | None = None) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
         #: NAV-064 修正 B 的开关；默认 False => 与改动前逐位等价。
         self.action_bounded = bool(action_bounded)
+        #: NAV-064 初始化修正（action_init_fix，默认关闭）：只在该模式下给
+        #: 第一维动作一个能持续前进的初值，并抬高探索尺度下限。
+        self.initial_forward_speed = float(initial_forward_speed)
+        self.log_std_min = float(LOG_STD_MIN if log_std_min is None else log_std_min)
         self.body = _mlp(cfg.obs_dim, cfg.hidden, cfg.activation, cfg.hidden_gain)
         self.head = _head(cfg.hidden[-1], cfg.action_dim, cfg.policy_head_gain)
         # 与参考实现一致：log_std 是独立参数、初值 0（std=1），不随状态变化。
         # 可学习范围见上方 LOG_STD_MIN/LOG_STD_MAX（amend2）。
         self.log_std = nn.Parameter(torch.full((cfg.action_dim,), float(cfg.log_std_init)))
+        if self.initial_forward_speed > 0.0 and self.action_bounded:
+            # a = tanh(loc)：令零化 body 输出时的确定性前进速度等于参考速度。
+            # 只改 bias 的一个分量；不改分布形态、log_prob 雅可比或熵公式。
+            v = min(max(self.initial_forward_speed, 0.0), 1.0 - 1e-6)
+            with torch.no_grad():
+                self.head.bias.data[0] = math.atanh(v)
 
     def clamp_log_std(self) -> None:
         """把 log_std 参数钳回契约范围；训练器在每个梯度步后调用。"""
         with torch.no_grad():
-            self.log_std.clamp_(LOG_STD_MIN, LOG_STD_MAX)
+            self.log_std.clamp_(self.log_std_min, LOG_STD_MAX)
 
     def forward(self, obs: torch.Tensor) -> Independent:
         if obs.shape[-1] != self.cfg.obs_dim:
             raise ValueError(f"obs 最后一维应为 {self.cfg.obs_dim}，得到 {tuple(obs.shape)}")
         mean = self.head(self.body(obs))
         # forward 侧防御性钳位（与 clamp_log_std 双保险；边界处梯度为 0）
-        std = self.log_std.clamp(LOG_STD_MIN, LOG_STD_MAX).exp().expand_as(mean)
+        std = self.log_std.clamp(self.log_std_min, LOG_STD_MAX).exp().expand_as(mean)
         if self.action_bounded:
             return SquashedNormal(mean, std)
         return Independent(Normal(mean, std), 1)
@@ -318,11 +330,15 @@ class BudgetConditionedNetworks(nn.Module):
     ROLES = ("policy", "critic_cost", "critic_reach")
 
     def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None,
-                 action_bounded: bool = False) -> None:
+                 action_bounded: bool = False,
+                 initial_forward_speed: float = 0.0,
+                 log_std_min: float | None = None) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
-        self.policy = PolicyNetwork(cfg, layout, action_bounded=action_bounded)
+        self.policy = PolicyNetwork(cfg, layout, action_bounded=action_bounded,
+                                    initial_forward_speed=initial_forward_speed,
+                                    log_std_min=log_std_min)
         self.critic_cost = ValueNetwork(cfg, layout)
         self.critic_reach = ValueNetwork(cfg, layout)
 
@@ -366,7 +382,9 @@ def normalized_to_command(action: torch.Tensor,
 
 def build(nav_contract: dict[str, Any] | None = None,
           cfg: NetworkConfig | None = None,
-          action_bounded: bool = False) -> BudgetConditionedNetworks:
+          action_bounded: bool = False,
+          initial_forward_speed: float = 0.0,
+          log_std_min: float | None = None) -> BudgetConditionedNetworks:
     """按契约构造三个网络，并在构造时校验配置。"""
     if nav_contract is None:
         nav_contract, _ = load_contracts()
@@ -375,4 +393,6 @@ def build(nav_contract: dict[str, Any] | None = None,
     if not report["ok"]:
         raise ValueError("网络配置与契约不符：" + "; ".join(report["problems"]))
     layout = ObservationLayout.from_contract(nav_contract)
-    return BudgetConditionedNetworks(cfg, layout, action_bounded=action_bounded)
+    return BudgetConditionedNetworks(cfg, layout, action_bounded=action_bounded,
+                                     initial_forward_speed=initial_forward_speed,
+                                     log_std_min=log_std_min)

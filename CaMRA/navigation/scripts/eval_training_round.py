@@ -140,7 +140,15 @@ def main() -> int:
         run_dir = os.path.join(args.work_root, rid)
         state_path = os.path.join(run_dir, args.ckpt_name)
         state = torch.load(state_path, map_location="cpu", weights_only=False)
-        net = NW.build(nav, action_bounded=bool(prereg.get("action_bounded", False)))
+        init_fix = prereg.get("action_init_fix", {})
+        init_on = bool(init_fix.get("enabled", False))
+        net = NW.build(
+            nav,
+            action_bounded=bool(prereg.get("action_bounded", False)),
+            initial_forward_speed=(float(init_fix.get("initial_forward_speed", 0.0))
+                                   if init_on else 0.0),
+            log_std_min=(float(init_fix["log_std_min"])
+                         if init_on and "log_std_min" in init_fix else None))
         net.load_state_dict(state["model"])
         net.eval()
         ctx = build_rollout_ctx(variant)
@@ -222,6 +230,7 @@ def main() -> int:
         "objective_signal_fix": prereg.get("objective_signal_fix"),
         "budget_accounting": acct,
         "action_bounded": bool(prereg.get("action_bounded", False)),
+        "action_init_fix": prereg.get("action_init_fix", {}),
         "closing_tier": {
             "criterion": f"development SR median >= {threshold} for both methods",
             "threshold": threshold,
