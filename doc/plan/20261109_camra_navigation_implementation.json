@@ -6090,6 +6090,47 @@
           "blockers": [
             "下一步涉及改变动作概率契约或训练数学目标，按 uncertainty_policy 必须等用户明确选择，本轮未自行改动任何实现"
           ]
+        },
+        {
+          "timestamp": "2026-11-13T23:40:00+08:00",
+          "summary": "开工对齐阶段用确定性诊断证伪了本轮授权方案的技术前提：r7 小动作来自均值头被训练推到 0.05~0.16，tanh 压缩比 0.9905~0.9986 几乎不压缩。按执行规则第 4 节与 uncertainty_policy 停止，未改任何实现文件、未启动训练，NAV-064 保持 false，等用户在新证据下重新选方案。",
+          "actions": [
+            "重新完整读取根 AGENTS.md（164 行）、execution-rules.md；从 tiger11 拉取最新计划全文；validate_worklog.py --mode update 输出 VALID，确认 51/67、首个可执行任务 NAV-064、已有 12 条工作记录、status=false",
+            "核对远程工作树干净（1cf1a24）、无训练进程、契约修订仅到 amend4",
+            "写并运行 t_diag_loc_vs_action.py：复用 eval_training_round.py 的开发集环境，对 6 个 r7 权重逐步记录压缩前 loc 与压缩后 tanh(loc)",
+            "docs 追加『修改方案前提被证伪』章节、台账追加 scheme_premise_check 块、本计划追加本条记录（含 blockers）"
+          ],
+          "files_changed": [
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "scp 192.168.20.11:doc/plan/20261109_camra_navigation_implementation.json nav064/plan_snapshot.json",
+            "python validate_worklog.py plan_snapshot.json --mode update",
+            "python /tmp/t_diag_loc_vs_action.py（tiger11）"
+          ],
+          "results": [
+            "压缩前 |loc| 均值 uncal 0.1443/0.1444/0.1624、full 0.1079/0.0509/0.0741；压缩后 0.1429/0.1431/0.1607、0.1075/0.0507/0.0738；压缩比 0.9905~0.9986",
+            "tanh 在 |u|<0.17 近线性，未系统性压低指令；上一轮『换不压中段的有界写法』属归因错误，照做不能把训练后动作幅度拉回 0.465 m/s",
+            "证据指向训练目标：训练期 6 run 到达次数全 0，g_train=max(h,−z)+50·c 中只剩每步成本项有稳定梯度且方向为少动，均值与 log_std 同步塌缩",
+            "log_std 实测 −2.894/−2.197/−1.486，抬高探索下限仍是一个独立、可离线验收的机制修复，不随本次证伪失效"
+          ],
+          "evidence": [
+            "t_diag_loc_vs_action.py 在 tiger11 的 6 行输出（含压缩比列）",
+            "validate_worklog.py --mode update 输出 VALID；计划统计 51/67、NAV-064 status=false",
+            "远程 git status 干净、git log 1cf1a24、train_formal.py 进程数 0"
+          ],
+          "remaining_work": [
+            "等用户在新证据下选择方案：①改训练目标（降 w / 超支才罚 / 分阶段）②仍改动作层（抬高探索下限 + 初始化偏置）③按原裁定写正式负结果结案",
+            "若选①：回 NAV-061~063 重验数学目标，重冻预登记 + 重跑 G3 + 重新初始化 + 加轮需当次授权",
+            "若选②：先冻结预登记，默认关闭逐位回归，离线验收新初始化网络平均前进速度 0.4~0.55 m/s、log_std 下限生效、log_prob 归一化",
+            "若选③：回填台账并决定 NAV-064 是否关闭"
+          ],
+          "blockers": [
+            "用户授权的『改动作层』方案前提被确定性证据证伪；继续照做属于明知不对症仍改实现，会白跑一轮约 1.2 h 训练",
+            "对症方案（改训练目标）属于改变数学目标，按 uncertainty_policy / global_constraints 需用户明确裁定后方可执行，不得自行扩大授权范围"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
