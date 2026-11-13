@@ -332,6 +332,10 @@ target_total = λ-return(g_train, done), adv_total = target_total − V_total
 
 `w=0` 逐位回归、成本信号真实 chunk 阈值、到达信号不翻转、`g_train` 代数关系、可行性判据逐位不变、min 型反例、纯函数良定义。既有 `gate_G3_alignment_v2` 与全部既有测试在默认 `w=0` 下保持全绿。
 
+### 消费者口径
+
+`scripts/train_formal.py` 从预登记读 `w=50`；`scripts/freeze_deployment.py` 与 `scripts/train_nominal.py` 用 `ObjectiveConfig` 默认值 `w=0`。这是**有意的**：冻结脚本只做确定性均值动作的开发/物理评估与审计字段落盘，不参与策略更新；SR 判定读 `label`/`within_budget`，不读训练目标。F4 已证 `W` / `τ*` / `obj_feasible` / `target_cost` / `target_reach` 与 w 逐位无关，因此冻结报告里的可行性结论不受影响；唯一差别是冻结产出的 `obj_g_train` 恒等于 `obj_g`。若将来需要冻结产物与训练目标逐位一致，须在冻结预登记里显式声明同一个 `objective_signal_fix` 块（属新的配置变更，本轮未做）。
+
 ### 边界
 
 本修正不含新训练轮次。协议 4 轮 + 用户授权第 5 轮已用尽，第 6 轮需新授权；因此"成功率是否提升"尚未验证，不得宣称。

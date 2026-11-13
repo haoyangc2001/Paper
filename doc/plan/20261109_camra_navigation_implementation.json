@@ -5785,6 +5785,44 @@
             "NAV-064 保持 false；NAV-065/066 的正式判定仍需按协议推进"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-13T13:05:34+08:00",
+          "summary": "按计划纪律推进：补消费者口径说明（冻结脚本 w=0 与训练器 w=50 的差别及为何不影响 SR/可行性），并先冻结第 6 轮预登记但**不启动训练**——协议 4 轮 + 用户授权第 5 轮已用尽，加轮需当次授权。",
+          "actions": [
+            "docs/algorithm_implementation.md 追加『消费者口径』段：freeze_deployment / train_nominal 用默认 w=0，只做确定性评估与审计，SR 不读训练目标；F4 已证 W/τ*/obj_feasible 与 w 逐位无关",
+            "新增 config/training_loop_prereg_r6.json(+.sha256)：status=frozen_pending_user_authorization_to_launch；w=50、热启动第 5 轮 6 个 state.pt、主判据『预算内到达是否首次非零』、明确的证伪条件",
+            "生成脚本显式断言目标文件不存在（r4 覆盖事故教训），并校验 objective_signal_fix 报告为 PASS 才允许冻结",
+            "台账 reports/training_loop_rounds.json 登记实现修正与选项 E",
+            "兼容性复核：旧 chunk 离线重算 3/3 通过；test_rollout_resume 27/27 覆盖真实写入路径；下游消费者为字典合并不受新字段影响"
+          ],
+          "files_changed": [
+            "config/training_loop_prereg_r6.json(+.sha256)",
+            "docs/algorithm_implementation.md",
+            "scripts/make_rounds_ledger.py",
+            "reports/training_loop_rounds.json"
+          ],
+          "commands": [
+            "python3 /tmp/build_prereg_r6.py -> prereg r6 sha 237613004c1d",
+            "全量回归 16 个脚本（含 test_physical_loop 18/18）全绿",
+            "validate_worklog.py --mode update -> VALID"
+          ],
+          "results": [
+            "本轮授权范围（①+② 实现、文档、按计划推进）已全部完成并验收",
+            "第 6 轮预登记已先冻结后待授权，未消耗任何训练机时",
+            "NAV-064 保持 false：关闭档未达成，成功率与预算内到达在 w=50 下尚未验证"
+          ],
+          "evidence": [
+            "reports/objective_signal_fix.json（7/7 PASS）",
+            "reports/gate_G3_alignment_v2.json（PASS）",
+            "config/training_loop_prereg_r6.json.sha256（先冻结）",
+            "reports/training_loop_rounds.json（objective_signal_fix 字段）"
+          ],
+          "remaining_work": [
+            "第 6 轮训练需用户当次授权；授权后把 r6 status 改为 frozen_before_round_6 并记录授权来源，再按预登记执行",
+            "若第 6 轮预算内到达仍全 0 且超支未收窄，按预登记 falsification 回到 C·y/δ 语义层（原选项 C）"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
