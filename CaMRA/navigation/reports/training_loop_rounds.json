@@ -257,10 +257,20 @@
     "H(r5) 仅钳位即可稳定 uncalibrated：部分成立——不再发散、run 完整、s0 达 1.0，但种子间仍 1.0/0/0（中位 0.0），链外的种子级方差是残余因素"
   ],
   "user_decision_r5": "A（2026-11-13）：修订动作概率契约（amend2 log_std ∈ [-5,1]）+ 授权第 5 轮；选项 B（停止循环走负结果）与 C（C·y 语义层修订）未被选择",
+  "objective_signal_fix": {
+    "date": "2026-11-13",
+    "user_decision": "批准诊断建议 ①+②：把逐步成本信号接回策略梯度；联合估计器补登记参考 min 型递推",
+    "prereg": "config/objective_signal_fix_prereg_v1.json (sha acfc34263329)",
+    "amendment": "config/rcppo_alignment_contract_v1.amend3.json",
+    "result": "① 已启用（w=50，由冻结预登记驱动）：corr(每步成本,优势) 中位数 r5_full 0.000→+0.487、r5_uncal +0.080→+0.182、r1c +0.033→+0.318；到达信号 0.942→0.946。② 实装但默认关闭：严格参考形态会把到达梯度翻负（r5_uncal +0.946→−0.935、r1c +0.386→−0.744），登记为 D4 并用反例钉住",
+    "verification": "reports/objective_signal_fix.json 7/7 PASS；G3_alignment_v2 PASS；16 个既有测试脚本全绿；冒烟训练确认开关生效",
+    "not_claimed": "未跑新训练轮次，成功率/预算内到达均未验证；第 6 轮需新授权"
+  },
   "remaining_options_for_user": [
     "A 已执行：钳位 + 第 5 轮完成，关闭档仍未达成（uncal 中位 0.0，full 0.333）",
     "B 仍可选：停止循环，用现有最好候选（r1 uncal s0-s2、r5 full s1）走 NAV-065/066 正式预算判定",
     "C 仍可选：C·y/δ 语义层修订（NAV-061），处理危险饱和区的平坦代价根因",
-    "D 新选项：再加轮（每次均需授权）；r5 显示 uncal 的种子级不稳定需要更深的训练量或种子级干预（如按种子早停保留最优）"
+    "D 新选项：再加轮（每次均需授权）；r5 显示 uncal 的种子级不稳定需要更深的训练量或种子级干预（如按种子早停保留最优）",
+    "E（2026-11-13 已完成实现层，尚未验证行为）：第 6 轮用 w=50 的新目标训练，验证『成本信号进梯度』能否带来预算内到达；需用户单独授权加轮"
   ]
 }
