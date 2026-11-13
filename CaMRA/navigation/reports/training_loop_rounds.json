@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "rounds_exhausted_r6_user_authorized",
+  "status": "round_7_launched_pending_result",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -381,6 +381,51 @@
     "E（已执行，r6 已证伪）：第 6 轮用 w=50 训练完成，成本信号进梯度但预算内到达仍为 0、超支略增；不再重复加轮",
     "A+B（用户 2026-11-13 已批准并实施）：统一预算账本口径 + 网络层有界动作；第 7 轮训练需新授权，且必须重置策略头",
     "C（语义层，A+B 之后仍需要时）：回 NAV-061 重审 C·y 不可逆饱和代价与 δ=2.61 m 膨胀带",
-    "B（正式负结果，用户明确否决提前采用）：只有 A+B 实施且第 7 轮训练完成仍全 0 之后才可写入"
-  ]
+    "B（正式负结果，用户明确否决提前采用）：只有 A+B 实施且第 7 轮训练完成仍全 0 之后才可写入",
+    "第 7 轮（用户 20:18 授权）已于 20:30 启动，6 run 在跑；B（正式负结果）仍须等训练完成且主判据仍全 0 才可写入"
+  ],
+  "round_7_preregistration": {
+    "date": "2026-11-13",
+    "authorization": "用户 20:18 回复『可以 那就按照要求继续推进吧』；与第 6 轮 15:00 同口径的当次加轮授权",
+    "prereg": {
+      "path": "config/training_loop_prereg_r7.json",
+      "sha256": "2c0c5c8b671f1c70e509ae86cfd272d1175ca87df4ea55b290b45ce187089c55"
+    },
+    "status": "frozen_before_round_7_launched",
+    "switches": {
+      "budget_accounting": "consistent",
+      "action_bounded": true,
+      "objective_signal_fix": {
+        "joint_cost_weight": 50.0,
+        "joint_min_recursion": false
+      }
+    },
+    "fresh_init": "6 个 run 全部不传 --init-from；策略头/critic/优化器/RNG 从零初始化，不复用 r1~r6 任何 state.pt",
+    "why_fresh_init": "budget_action_fix_prereg_v1.json v1.1.0 的 F-B1：r6 权重 |mean| 中位 120~154 使 tanh 饱和，B 对已发散权重无效",
+    "readback_evidence": "train_formal.verify_prereg 真实回读三个顶层开关（READBACK_VERDICT PASS）+ eval_training_round.py:125/143 消费路径断言（EVAL_CONSUMER_PATH PASS）",
+    "smoke_evidence": "--smoke-updates 2 exit 0；[BUDGET-ACCT] consistent alpha=0.190483 E_ref 363.0->432.1 J、[ACTION-BOUNDED] True、[OBJ-FIX] w=50.0，无 WARMSTART 行",
+    "launch": {
+      "tmux_session": "nav064-r7",
+      "started_at": "2026-11-13T20:30:46+08:00",
+      "runs": 6,
+      "proc_count_at_check": 6,
+      "all_three_switches_printed_in_all_6_logs": true,
+      "uncalibrated_alpha": 0.0,
+      "full_alpha": 0.190483
+    },
+    "primary_criterion": "『到达且 z_end>=0』是否首次非零（前六轮累计全 0）",
+    "secondary": [
+      "applied 顶格率与每步名义功率相对 r6 是否下降（B 在训练期是否成立）",
+      "full 变体 k=1.0 预算 432 J 是否等于参考路线扣费（A 是否成立）",
+      "两方法 dev SR 中位数是否 >= 0.10",
+      "6 个 run 是否全部完整跑完 600 更新"
+    ],
+    "falsification": "若主判据仍全 0 且顶格率/功率未改善，按用户 17:08 裁定转正式负结果 C；不加第 8 轮、不放宽阈值",
+    "not_claimed": [
+      "训练结果未产生，不宣称成功率提升",
+      "不宣称预算内到达出现",
+      "不宣称 A+B 已被行为层验证",
+      "本轮不写正式负结果 C"
+    ]
+  }
 }

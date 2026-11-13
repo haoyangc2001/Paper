@@ -406,3 +406,46 @@ budget_J(k, nominal, variant, accounting)  # nominal=旧语义 / consistent=修�
 `reports/budget_action_fix.json` 7/7 PASS；两个开关都关闭时既有门禁与全部既有测试逐位不变。
 
 本轮**不跑训练**：协议 4 轮 + 用户授权第 5、6 轮已用尽，第 7 轮需新授权。因此不宣称成功率提升、不宣称预算内到达出现；AB6 只证明"定义上可达（参考路线 + 参考速度）"，不宣称现状网络能走出该路线。按用户裁定，负结果 C 只有在 A+B 实施且第 7 轮训练完成仍全 0 之后才可写入正式结论。
+
+
+## NAV-064 第 7 轮：A+B 修正后的验证轮（2026-11-13）
+
+用户 20:18 按既有加轮口径授权第 7 轮。预登记 `config/training_loop_prereg_r7.json`
+v1.0.0 先冻结（sha `2c0c5c8b671f1c70…`），本轮是 A+B 两处修正落地后的第一次行为层检验。
+
+### 为什么这一轮必须从头训练
+
+A+B 已在离线证明「预算内到达」在定义上可达（full 的 `k=1.0` 预算与参考路线扣费
+同在 `W=0` 边界），但 `budget_action_fix_prereg_v1.json` v1.1.0 的 F-B1 已坐实：
+r6 权重 `|mean|` 中位 120~154，`tanh` 直接饱和，顶格率仍 98.7%~99.3%，B 对已发散
+权重无效。因此 6 个 run **全部不传 `--init-from`**，策略头、critic、优化器与 RNG
+从零初始化，不复用 r1~r6 任何 `state.pt`。代价是六轮积累的参数全部作废，且
+`uncalibrated` 种子间 1.0/0/0 的方差没有单独修复，可能仍在。
+
+### 三个开关（全部置于顶层）
+
+| 开关 | 值 | 消费位置 | 6 个 run 日志实测 |
+|---|---|---|---|
+| `budget_accounting` | `consistent` | `train_formal.py:188`、`eval_training_round.py:125` | `[BUDGET-ACCT] consistent`；full `alpha=0.190483`、E_ref 363.0→432.1 J；uncalibrated `alpha=0`、363.0→363.0 J |
+| `action_bounded` | `True` | `train_formal.py:330`、`eval_training_round.py:143` | `[ACTION-BOUNDED] True` |
+| `objective_signal_fix.joint_cost_weight` | `50.0` | `train_formal.py:355` | `[OBJ-FIX] joint_cost_weight=50.0 joint_min_recursion=False` |
+
+r6 曾把 `objective_signal_fix` 放进 `algorithm`，消费脚本从顶层读不到而退回
+`w=0`，差点毁掉整轮。本轮冻结后用 `train_formal.verify_prereg` 真实回读一遍
+（`READBACK_VERDICT PASS`、`EVAL_CONSUMER_PATH PASS`），再跑 2 更新冒烟确认三处
+打印，最后才启动。uncalibrated 的 `alpha=0`、E_ref 前后相同是 A 的预期行为，
+不是开关失效。
+
+### 启动与判据
+
+`tmux` 会话 `nav064-r7` 于 20:30:46 启动 6 个 run（2 变体 × 3 种子），检查时
+6 个进程均在、6 份日志都打印了三个开关、没有 `WARMSTART` 行。主判据是
+「到达且 `z_end>=0`」是否首次非零（前六轮累计全 0）；同时记录 applied 顶格率、
+每步名义功率、实际成本、超支、dev SR 与更新数，与 r6 逐项对比。若主判据仍全 0
+且顶格率/功率未改善，按用户 17:08 裁定转入正式负结果 C，不加第 8 轮、
+不放宽阈值。
+
+### 边界
+
+训练结果在本章节写入时**尚未产生**：不宣称成功率提升、不宣称预算内到达出现、
+不宣称 A+B 已被行为层验证。评估报告、台账判定与 NAV-064 结案留待训练完成后处理。
