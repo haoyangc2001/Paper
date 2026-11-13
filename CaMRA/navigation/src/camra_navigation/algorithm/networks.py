@@ -263,7 +263,8 @@ class PolicyNetwork(nn.Module):
     def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None,
                  action_bounded: bool = False,
                  initial_forward_speed: float = 0.0,
-                 log_std_min: float | None = None) -> None:
+                 log_std_min: float | None = None,
+                 log_std_init: float | None = None) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
@@ -273,11 +274,13 @@ class PolicyNetwork(nn.Module):
         #: 第一维动作一个能持续前进的初值，并抬高探索尺度下限。
         self.initial_forward_speed = float(initial_forward_speed)
         self.log_std_min = float(LOG_STD_MIN if log_std_min is None else log_std_min)
+        self.log_std_init = float(
+            cfg.log_std_init if log_std_init is None else log_std_init)
         self.body = _mlp(cfg.obs_dim, cfg.hidden, cfg.activation, cfg.hidden_gain)
         self.head = _head(cfg.hidden[-1], cfg.action_dim, cfg.policy_head_gain)
         # 与参考实现一致：log_std 是独立参数、初值 0（std=1），不随状态变化。
         # 可学习范围见上方 LOG_STD_MIN/LOG_STD_MAX（amend2）。
-        self.log_std = nn.Parameter(torch.full((cfg.action_dim,), float(cfg.log_std_init)))
+        self.log_std = nn.Parameter(torch.full((cfg.action_dim,), self.log_std_init))
         if self.initial_forward_speed > 0.0 and self.action_bounded:
             # a = tanh(loc)：令零化 body 输出时的确定性前进速度等于参考速度。
             # 只改 bias 的一个分量；不改分布形态、log_prob 雅可比或熵公式。
@@ -332,13 +335,15 @@ class BudgetConditionedNetworks(nn.Module):
     def __init__(self, cfg: NetworkConfig, layout: ObservationLayout | None = None,
                  action_bounded: bool = False,
                  initial_forward_speed: float = 0.0,
-                 log_std_min: float | None = None) -> None:
+                 log_std_min: float | None = None,
+                 log_std_init: float | None = None) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
         self.policy = PolicyNetwork(cfg, layout, action_bounded=action_bounded,
                                     initial_forward_speed=initial_forward_speed,
-                                    log_std_min=log_std_min)
+                                    log_std_min=log_std_min,
+                                    log_std_init=log_std_init)
         self.critic_cost = ValueNetwork(cfg, layout)
         self.critic_reach = ValueNetwork(cfg, layout)
 
@@ -384,7 +389,8 @@ def build(nav_contract: dict[str, Any] | None = None,
           cfg: NetworkConfig | None = None,
           action_bounded: bool = False,
           initial_forward_speed: float = 0.0,
-          log_std_min: float | None = None) -> BudgetConditionedNetworks:
+          log_std_min: float | None = None,
+          log_std_init: float | None = None) -> BudgetConditionedNetworks:
     """按契约构造三个网络，并在构造时校验配置。"""
     if nav_contract is None:
         nav_contract, _ = load_contracts()
@@ -395,4 +401,5 @@ def build(nav_contract: dict[str, Any] | None = None,
     layout = ObservationLayout.from_contract(nav_contract)
     return BudgetConditionedNetworks(cfg, layout, action_bounded=action_bounded,
                                      initial_forward_speed=initial_forward_speed,
-                                     log_std_min=log_std_min)
+                                     log_std_min=log_std_min,
+                                     log_std_init=log_std_init)

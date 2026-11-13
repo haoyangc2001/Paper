@@ -42,7 +42,7 @@ def main() -> int:
     actual = hashlib.sha256(open(PREREG, "rb").read()).hexdigest()
     check("prereg_sha256_matches_pin", actual == pinned, actual[:16])
     p = prereg["change"]["parameters"]
-    check("prereg_version", prereg["version"] == "1.1.0", prereg["version"])
+    check("prereg_version", prereg["version"] == "1.2.1", prereg["version"])
 
     # AI1: default-off is bitwise identical to the old signature
     torch.manual_seed(7)
@@ -66,18 +66,26 @@ def main() -> int:
     torch.manual_seed(0)
     on = NW.build(nav, action_bounded=True,
                   initial_forward_speed=p["initial_forward_speed"],
-                  log_std_min=p["log_std_min"])
+                  log_std_min=p["log_std_min"],
+                  log_std_init=p["log_std_init"])
     b0 = float(on.policy.head.bias.data[0])
     check("AI2_bias_calibration", abs(math.tanh(b0) - 0.465) < 1e-6,
           f"tanh(bias)={math.tanh(b0):.8f}")
     check("AI2_default_bias_unchanged",
           abs(float(NW.build(nav, action_bounded=True).policy.head.bias.data[0])) < 1e-9)
+    # v1.2.0: initial exploration scale must match the prereg (round 8 failed
+    # because std=1 destroyed the arrival examples that the mean action had)
+    check("AI2b_initial_log_std", abs(float(on.policy.log_std.mean())
+                                      - float(p["log_std_init"])) < 1e-9,
+          f"log_std={float(on.policy.log_std.mean()):.3f} target={p['log_std_init']}")
+    check("AI2b_default_log_std_zero",
+          abs(float(NW.build(nav, action_bounded=True).policy.log_std.mean())) < 1e-9)
 
     # AI3: exploration floor
     with torch.no_grad():
         on.policy.log_std.fill_(-4.0)
     on.policy.clamp_log_std()
-    check("AI3_floor_enforced", float(on.policy.log_std.min()) >= p["log_std_min"] - 1e-6,
+    check("AI3_floor_not_tightened", float(on.policy.log_std.min()) >= p["log_std_min"] - 1e-6,
           f"min={float(on.policy.log_std.min()):.4f}")
     with torch.no_grad():
         a.policy.log_std.fill_(-4.0)

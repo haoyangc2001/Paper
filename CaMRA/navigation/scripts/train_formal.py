@@ -335,13 +335,17 @@ def main() -> int:
     init_std_min = init_fix.get("log_std_min") if init_on else None
     if init_std_min is not None:
         init_std_min = float(init_std_min)
+    init_std_init = init_fix.get("log_std_init") if init_on else None
+    if init_std_init is not None:
+        init_std_init = float(init_std_init)
     if not (0.0 <= init_speed < 1.0):
         raise SystemExit(f"initial_forward_speed={init_speed} 超出 [0,1)")
     net = NW.build(nav_contract, action_bounded=bounded,
-                   initial_forward_speed=init_speed, log_std_min=init_std_min)
+                   initial_forward_speed=init_speed, log_std_min=init_std_min,
+                   log_std_init=init_std_init)
     print(f"[ACTION-BOUNDED] {bounded}", flush=True)
     print(f"[ACTION-INIT] enabled={init_on} v0={init_speed} "
-          f"log_std_min={init_std_min}", flush=True)
+          f"log_std_min={init_std_min} log_std_init={init_std_init}", flush=True)
     cfg = P.PPOConfig.from_contract(VALUE_CONTRACT)
     assert abs(cfg.max_grad_norm - 2.5) < 1e-12, (
         f"contract max_grad_norm={cfg.max_grad_norm}; prereg pins 2.5")
@@ -425,7 +429,8 @@ def main() -> int:
          "action_bounded": bool(prereg.get("action_bounded", False)),
          "action_init_fix": {"enabled": init_on,
                              "initial_forward_speed": init_speed,
-                             "log_std_min": init_std_min}})
+                             "log_std_min": init_std_min,
+                             "log_std_init": init_std_init}})
 
     for update_idx in range(max_updates):
         t_win = time.time()

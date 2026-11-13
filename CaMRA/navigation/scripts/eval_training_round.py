@@ -148,7 +148,9 @@ def main() -> int:
             initial_forward_speed=(float(init_fix.get("initial_forward_speed", 0.0))
                                    if init_on else 0.0),
             log_std_min=(float(init_fix["log_std_min"])
-                         if init_on and "log_std_min" in init_fix else None))
+                         if init_on and "log_std_min" in init_fix else None),
+            log_std_init=(float(init_fix["log_std_init"])
+                          if init_on and "log_std_init" in init_fix else None))
         net.load_state_dict(state["model"])
         net.eval()
         ctx = build_rollout_ctx(variant)

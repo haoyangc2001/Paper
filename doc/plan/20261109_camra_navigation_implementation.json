@@ -6235,6 +6235,66 @@
             "按 extra_round_policy 判定是否加第 9 轮（条件：预算内到达 > 0 或两方法 dev 中位 >= 0.10；上限第 9 轮、总墙钟 12 h）"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T02:55:00+08:00",
+          "summary": "第 8 轮训练与评估完成：6/6 run 完整 600 更新，训练期 goal_reached 仍为 0、开发集成功率 0.0/0.0，主判据仍全 0，触发预登记 falsification。根因是验收 AI5 用确定性动作（8/18 到达）而训练用采样动作（std=1，0/18）。已把 log_std_init=-3.0 纳入修正并把下限改回 -5，采样动作下训练集 6/18 到达；新测试 15/15 PASS、G3 PASS。按条款不自动加第 9 轮，NAV-064 保持 false。",
+          "actions": [
+            "核对 ROUND8_DONE/exit_codes/6 份 train_log：600 更新、exit 0、1.29~1.33 h",
+            "tmux 跑 eval_training_round.py --round 8 生成 reports/training_round_r8.json（EVAL_RC=0）",
+            "对比 r7/r8：训练期到达 0 vs 0、SR 0.0/0.0、成本 144.6/148.1→157.9/158.5、距离 9.51/11.13→8.87/10.37、熵 -1.05~-3.19→-0.19~-0.49",
+            "写 t_diag_train_reach.py 验证训练集 18 图可达性：直行 8/18、朝目标 12/18，排除『训练图不可达』",
+            "写 t_diag_sample_vs_det.py 定位根因：确定性 8/18 vs 采样 0/18（mean|a| 0.155→0.567）",
+            "写 t_diag_std_sweep.py 扫描噪声：std=1→0/18、0.22→0~1/18、0.05→6/18、0.007→8/18",
+            "扩展代码：PolicyNetwork/容器/build 增加 log_std_init 参数，训练器与评估器从预登记读取；预登记重冻 v1.2.1（log_std_init=-3.0、log_std_min 回 -5.0）",
+            "更新 tests/test_action_init_fix.py（版本 1.2.1、加 AI2b 初值检查、AI3 改为不收紧）；15/15 PASS",
+            "docs 追加第 8 轮结果章节、台账 round_8_result 与 v1_2_1 块、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "config/action_init_fix_prereg_v1.json(+.sha256)",
+            "src/camra_navigation/algorithm/networks.py",
+            "scripts/train_formal.py",
+            "scripts/eval_training_round.py",
+            "tests/test_action_init_fix.py",
+            "reports/training_round_r8.json",
+            "reports/training_loop_rounds.json",
+            "reports/gate_G3_alignment_v2.json",
+            "docs/algorithm_implementation.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "eval_training_round.py --round 8 --prereg training_loop_prereg_r8.json --run-ids <6> --out reports/training_round_r8.json",
+            "t_diag_r8.py / t_diag_train_reach.py / t_diag_sample_vs_det.py / t_diag_std_sweep.py（tiger11 只读）",
+            "python t_patch_logstd_init.py；python -m py_compile 三个文件",
+            "tests/test_action_init_fix.py（15/15 PASS）",
+            "全量回归 tests/test_*.py（25 PASS / 1 既有 FAIL）",
+            "build_gate_g3_alignment_v2.py（verdict=PASS n_failed=0）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "第 8 轮主判据仍全 0：训练期 goal_reached=0，两方法 dev SR 0.0/0.0，closing_tier_met=false",
+            "根因坐实：确定性动作 8/18 到达、采样动作（std=1）0/18，mean|a| 0.155→0.567；AI5 判据只覆盖确定性动作",
+            "训练集 18 图本身可达（直行 8/18、朝目标 12/18），排除环境/地图不可达",
+            "修复：log_std_init=-3.0（std≈0.05）+ 下限回 -5.0；采样动作下训练集 6/18 到达，满足修订后的 AI5（>=4）",
+            "新测试 15/15 PASS、G3 PASS、全量回归 25 PASS / 1 既有 FAIL（test_nominal_env.py 历史口径，与本改动无关）",
+            "预登记 falsification 触发 → 不自动加第 9 轮；第 8 轮实际四开关按预登记生效、6 run 均 fresh init"
+          ],
+          "evidence": [
+            "reports/training_round_r8.json（closing_tier、6 run dev 与 budget_response）",
+            "t_diag_sample_vs_det.py 输出：DET 8/18、SAMPLE 0/18",
+            "t_diag_std_sweep.py 输出：std 1.0/0.22/0.05/0.007 → 0/0~1/6/8（/18）",
+            "t_diag_train_reach.py 输出：straight 8/18、seek 12/18",
+            "tests/test_action_init_fix.py 15/15 PASS 与 prereg v1.2.1 sha a6d30570",
+            "G3 verdict=PASS；回归统计 25 PASS / 1 FAIL"
+          ],
+          "remaining_work": [
+            "第 9 轮需用户单独授权：启用 action_init_fix v1.2.1（log_std_init=-3.0）、重新初始化、6 run",
+            "验证训练早期是否出现到达正例、到达分支梯度是否恢复到 >=0.04、dev 上预算内到达是否非零",
+            "若第 9 轮仍 0 到达，按 uncertainty_policy 停下，不再加轮、不放宽判据"
+          ],
+          "blockers": [
+            "预登记 falsification 条款已触发（训练全程无到达正例），第 9 轮属新的正式试验轮次，需用户当次授权，不得自动启动"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

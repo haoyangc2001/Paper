@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "round_8_launched_pending_result",
+  "status": "round_8_complete_falsification_pending_user_decision",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -432,7 +432,8 @@
     "第 7 轮结果：预算内到达仍全 0，但耗电降 82%、预算由超支转为剩余；新失败模式是『几乎不动』（训练期 0 次到达）。证伪条款未触发，下一步属预登记未覆盖分支，等用户裁定",
     "23:40 方案前提被证伪：tanh 压缩比 0.99~1.00，小动作来自均值被训练推到 0；改动作层不对症，对症的是训练目标。等用户重新选择：改训练目标／仍改动作层防塌缩＋初始化偏置／按原裁定结案",
     "初始化修正已落地并离线验收（新初始化策略 2/6 到达 vs 关闭 0/6）；第 8 轮训练需当次授权方可验证自锁是否被打破",
-    "第 8 轮（用户 00:22 授权）已于 00:25:22 启动，四开关全开、6 run 从零初始化；结果出来后按 extra_round_policy 判断是否加第 9 轮"
+    "第 8 轮（用户 00:22 授权）已于 00:25:22 启动，四开关全开、6 run 从零初始化；结果出来后按 extra_round_policy 判断是否加第 9 轮",
+    "第 8 轮失败触发证伪条款：训练期 0 到达。根因是验收用确定性动作、训练用采样动作；已修（log_std_init=-3，采样 6/18 到达）。第 9 轮需单独授权"
   ],
   "round_7_preregistration": {
     "date": "2026-11-13",
@@ -627,8 +628,8 @@
     "date": "2026-11-14T00:30:00+08:00",
     "prereg": {
       "path": "config/action_init_fix_prereg_v1.json",
-      "sha256": "f460412d92cc3dbdecb5dd01467b0c99e57108f88a8a341f8744c5fa9ba58911",
-      "version": "1.1.0"
+      "sha256": "a6d305707fce245b136013d6b20890ba8f984dc55664105601f298f712c1e4b5",
+      "version": "1.2.1"
     },
     "status": "implemented_and_offline_verified_no_training",
     "why": "r7 训练期 6 run 到达次数全 0 → 到达分支梯度趋零 → 成本项主导 → 均值/探索塌缩 → 无正例自锁",
@@ -651,7 +652,14 @@
       "不宣称预算内到达在正式训练里出现",
       "本轮不启动训练"
     ],
-    "next": "第 8 轮训练需单独当次授权；须重新初始化策略头并启用 action_init_fix"
+    "next": "第 8 轮训练需单独当次授权；须重新初始化策略头并启用 action_init_fix",
+    "v1_2_1": {
+      "change": "log_std_init=-3.0（std≈0.05）；log_std_min 由 -1.5 改回契约值 -5.0",
+      "why": "-1.5 会把 -3.0 钳回 -1.5，噪声降不下来；低噪声需要宽松下限",
+      "evidence": "采样动作训练集 6/18 到达（两变体一致），确定性基线 8/18",
+      "tests": "tests/test_action_init_fix.py 15/15 PASS；G3 PASS；回归 25 PASS/1 既有 FAIL",
+      "AI5_revised": "改为采样动作下训练集 18 图到达数 >= 4"
+    }
   },
   "round_8_preregistration": {
     "date": "2026-11-14",
@@ -661,7 +669,7 @@
       "sha256": "109d9abd4f69314df227b915664a8f26981d6521f3da88f7a30635889a4b567c",
       "version": "r8.0.0"
     },
-    "status": "frozen_before_round_8_launched",
+    "status": "complete_primary_criterion_not_met",
     "switches": {
       "budget_accounting": "consistent",
       "action_bounded": true,
@@ -700,6 +708,92 @@
       "训练结果未产生，不宣称成功率提升",
       "不宣称预算内到达出现",
       "不宣称自锁已被打破"
-    ]
+    ],
+    "result": {
+      "date": "2026-11-14",
+      "runs": "6/6 完整 600 更新，exit 0，1.29~1.33 h，00:25:22→约 01:40",
+      "closing_tier": {
+        "uncalibrated": 0.0,
+        "full": 0.0
+      },
+      "sr_within_budget_max": 0.0,
+      "closing_tier_met": false,
+      "training_goal_reached_total": 0,
+      "cost_mean_J": {
+        "uncalibrated": 157.9,
+        "full": 158.5
+      },
+      "min_goal_distance_m": {
+        "uncalibrated": 8.87,
+        "full": 10.37
+      },
+      "reach_grad_last50": {
+        "uncalibrated": [
+          0.0291,
+          0.048
+        ],
+        "full": [
+          0.0164,
+          0.0174
+        ]
+      },
+      "entropy_last50": {
+        "uncalibrated": [
+          -0.31,
+          -0.19
+        ],
+        "full": [
+          -0.49,
+          -0.46
+        ]
+      },
+      "verdict": "初始化修正只改了均值，探索噪声（std=1）把动作从 0.155 推到 0.567，训练期 0 到达；自锁未被打破",
+      "root_cause": "验收 AI5 用确定性动作（8/18 到达），训练用采样动作（0/18）；判据未覆盖训练实际动作模式",
+      "falsification_triggered": true,
+      "decision": "按预登记停下，不自动加第 9 轮；修复已落地并离线验证（采样 6/18）"
+    }
+  },
+  "round_8_result": {
+    "date": "2026-11-14",
+    "runs": "6/6 完整 600 更新，exit 0，1.29~1.33 h，00:25:22→约 01:40",
+    "closing_tier": {
+      "uncalibrated": 0.0,
+      "full": 0.0
+    },
+    "sr_within_budget_max": 0.0,
+    "closing_tier_met": false,
+    "training_goal_reached_total": 0,
+    "cost_mean_J": {
+      "uncalibrated": 157.9,
+      "full": 158.5
+    },
+    "min_goal_distance_m": {
+      "uncalibrated": 8.87,
+      "full": 10.37
+    },
+    "reach_grad_last50": {
+      "uncalibrated": [
+        0.0291,
+        0.048
+      ],
+      "full": [
+        0.0164,
+        0.0174
+      ]
+    },
+    "entropy_last50": {
+      "uncalibrated": [
+        -0.31,
+        -0.19
+      ],
+      "full": [
+        -0.49,
+        -0.46
+      ]
+    },
+    "verdict": "初始化修正只改了均值，探索噪声（std=1）把动作从 0.155 推到 0.567，训练期 0 到达；自锁未被打破",
+    "root_cause": "验收 AI5 用确定性动作（8/18 到达），训练用采样动作（0/18）；判据未覆盖训练实际动作模式",
+    "falsification_triggered": true,
+    "decision": "按预登记停下，不自动加第 9 轮；修复已落地并离线验证（采样 6/18）"
   }
 }
