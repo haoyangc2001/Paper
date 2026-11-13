@@ -1,14 +1,13 @@
-"""Rebuild reports/training_loop_rounds.json from the four round reports."""
+"""Rebuild reports/training_loop_rounds.json from all round reports (r1-r5)."""
 from __future__ import annotations
 
 import json
 import os
-import statistics
 
 NAV = os.getcwd()
 
 rounds = []
-for n in (1, 2, 3, 4):
+for n in (1, 2, 3, 4, 5):
     p = os.path.join(NAV, "reports", f"training_round_r{n}.json")
     if not os.path.exists(p):
         continue
@@ -21,6 +20,7 @@ for n in (1, 2, 3, 4):
         "sr_within_budget_max": max(
             r["dev"]["sr_within_budget"] for r in d["runs"]),
         "closing_tier_met": d["closing_tier"]["closing_tier_met"],
+        "checkpoint": d["runs"][0].get("checkpoint", "state.pt"),
         "report": f"reports/training_round_r{n}.json",
     })
 
@@ -28,30 +28,34 @@ ledger = {
     "schema": "camra-training-loop-ledger-v1",
     "task": "NAV-064",
     "protocol": "config/training_loop_protocol_v1_1.json",
-    "status": "rounds_exhausted",
+    "status": "rounds_exhausted_r5_user_authorized",
     "closing_tier_met": any(r["closing_tier_met"] and r["sr_within_budget_max"] > 0
                             for r in rounds),
     "rounds": rounds,
     "chain_finding_entropy": {
-        "topic": "log_std 无界增长（跨轮热启动链）",
+        "topic": "log_std 无界增长（跨轮热启动链）与 amend2 钳位",
         "observed": {
             "r1": "4.7 -> 4.8（无热启动链，单轮内稳定）",
             "r2_uncal_s0": "8.4 -> 17.9", "r2_full_s0": "10.2 -> 21.8",
             "r3_uncal_s0": "17.9 -> 21.8", "r3_full_s0": "21.8 -> 26.1",
             "r4": "21.8-27.5 -> 25.9-32.2（6 个 run 在第 566-584 个更新处退出，未到 600）",
+            "r5": "4.3（重置）-> 6.4-7.3 稳定：钳位生效，6/6 run 完整跑完 600 更新，无死亡",
         },
         "mechanism": "损失 = max(ratio·A, clip(ratio)·A) − ent_coef·H：优势接近零的样本上熵项恒为 −ent_coef·H，最小化它单调推高 H=log_std；只有优势方差能把它压回来。full 的安全饱和区（63-64% 步 h≥1）优势≈0，热启动链上的 uncal 也进入低优势区 → std 无界增长 → 动作近似纯噪声 → 训练在 ~570/600 更新处死亡",
-        "why_not_fixed_in_loop": "动作概率契约（对角高斯、可学习 log_std、无界）在协议 frozen_across_rounds 里；钳位/衰减 = 契约变更，须用户授权",
+        "fix": "rcppo_alignment_contract_v1.amend2（v1.1.0，用户 2026-11-13 批准）：log_std 可学习范围 [-5,1]，forward 防御钳位 + 每梯度步参数钳位；warm start 时重置回契约初值 0",
     },
     "excluded_hypotheses": [
         "H(r2) 熵 0.02 导致 uncalibrated 退化：部分成立——r3 熵回退 0.01 后仍崩（0.667/0/0），说明主因是链上的 std 增长而非本轮熵系数",
-        "H(r3) full 需要语义级处理才能离开停滞盆地：被否——full 在 r3/r4 保持 0.333-0.667，盆地可以靠常规训练离开",
+        "H(r3) full 需要语义级处理才能离开停滞盆地：被否——full 在 r3/r4/r5 保持 0.333-0.667，盆地可以靠常规训练离开",
         "H(r4) 学习率减半能稳定 uncalibrated：被否——r4 未达标且 run 在 566-584 更新处死亡",
+        "H(r5) 仅钳位即可稳定 uncalibrated：部分成立——不再发散、run 完整、s0 达 1.0，但种子间仍 1.0/0/0（中位 0.0），链外的种子级方差是残余因素",
     ],
+    "user_decision_r5": "A（2026-11-13）：修订动作概率契约（amend2 log_std ∈ [-5,1]）+ 授权第 5 轮；选项 B（停止循环走负结果）与 C（C·y 语义层修订）未被选择",
     "remaining_options_for_user": [
-        "A. 授权动作概率契约 v2（log_std 上限钳位或熵系数随训练衰减）并授权第 5 轮（超出协议 4 轮）",
-        "B. 停止循环，用现有最好候选（r2/r3 的 full 与 r1 的 uncalibrated）走 NAV-065/066 正式预算判定，把『预算内到达不可行』按负结果记录",
-        "C. 语义层裁定：C·y 扩展在危险饱和区造成平坦代价（协议允许的刻意偏离 M4），δ=2.61 m 下 full 的可行地图有限——回到 NAV-061 契约修订",
+        "A 已执行：钳位 + 第 5 轮完成，关闭档仍未达成（uncal 中位 0.0，full 0.333）",
+        "B 仍可选：停止循环，用现有最好候选（r1 uncal s0-s2、r5 full s1）走 NAV-065/066 正式预算判定",
+        "C 仍可选：C·y/δ 语义层修订（NAV-061），处理危险饱和区的平坦代价根因",
+        "D 新选项：再加轮（每次均需授权）；r5 显示 uncal 的种子级不稳定需要更深的训练量或种子级干预（如按种子早停保留最优）",
     ],
 }
 out = os.path.join(NAV, "reports", "training_loop_rounds.json")
