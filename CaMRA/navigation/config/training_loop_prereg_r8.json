@@ -1,0 +1,178 @@
+{
+  "schema": "camra-training-loop-prereg-v1",
+  "version": "r8.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-14T00:28:00+08:00",
+  "status": "frozen_before_round_8",
+  "round": 8,
+  "task": "初始化修正后的首个训练轮：四个开关全开、策略头重新初始化，检验训练早期是否出现到达正例、『到达且预算内』是否首次非零。",
+  "authorization": {
+    "needed": true,
+    "why": "协议 max_rounds=4；第 5~7 轮均为用户单独授权加轮。第 8 轮需新的当次授权",
+    "granted_by": "用户 2026-11-14 00:22 回复『开始训练，如果初始效果好的话可以多添加一些训练轮次』",
+    "granted_at": "2026-11-14T00:22:00+08:00",
+    "scope": "授权启动第 8 轮 6 个正式 run；并授权在『初始效果好』时追加轮次，上限见 extra_round_policy",
+    "extra_round_policy": {
+      "trigger": "第 8 轮完成后，若『到达且预算内』> 0，或两方法 dev 成功率中位数 >= 0.10，则追加第 9 轮",
+      "cap": "最多追加到第 9 轮；协议 total_wall_clock_cap_h=12.0 仍生效，若追加会超限则不追加",
+      "no_trigger": "若主判据仍全 0 且两方法 dev 中位 < 0.10，则不追加，直接进入 NAV-064 收尾判定",
+      "infrastructure": "基础设施失败换 run id 重跑，不计作业务轮次，也不触发追加"
+    }
+  },
+  "binding": {
+    "loop_protocol": {
+      "path": "config/training_loop_protocol_v1_1.json",
+      "sha256": "34d4bd6ecb56ad4f8ebfd9326f617934f6621d07e56ea6a057e296c840bd8231"
+    },
+    "round_7_prereg": {
+      "path": "config/training_loop_prereg_r7.json",
+      "sha256": "2c0c5c8b671f1c70e509ae86cfd272d1175ca87df4ea55b290b45ce187089c55"
+    },
+    "round_7_report": {
+      "path": "reports/training_round_r7.json",
+      "sha256": "f6ac4bee054af145723925033d46a049706b790efb6b6a127e64da29114e4cbf"
+    },
+    "action_init_fix_prereg": {
+      "path": "config/action_init_fix_prereg_v1.json",
+      "sha256": "f460412d92cc3dbdecb5dd01467b0c99e57108f88a8a341f8744c5fa9ba58911"
+    },
+    "budget_action_fix_prereg": {
+      "path": "config/budget_action_fix_prereg_v1.json",
+      "sha256": "a42cd8410d347f67c4cba855e4a24219ab54e678263794caa337f6c7585516f0"
+    },
+    "amend5": {
+      "path": "config/rcppo_alignment_contract_v1.amend5.json",
+      "sha256": "0269ff3b9ffd267cabae00da20c0f85dd02f6e8ab1912b23237c1def06b840ff"
+    },
+    "gate_g3": {
+      "path": "reports/gate_G3_alignment_v2.json",
+      "sha256": "8dffc1c98d1b26648c6c30b1a696c1b3f9119d2cc2139f260f49d6d02dcfcffc"
+    },
+    "value_objective": {
+      "path": "config/value_objective_contract_v1.json",
+      "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+    }
+  },
+  "launch_preconditions": [
+    "action_init_fix 预登记 v1.1.0 已冻结且 AI1~AI7 PASS（离线：新初始化策略 2/6 到达，关闭时 0/6）",
+    "用 train_formal.py 的真实消费路径回读本文件，四个开关同时打印生效",
+    "6 个 run 均不传 --init-from；run 目录与日志目录不存在；无残留 train_formal.py 进程",
+    "用户当次授权已记录于 authorization.granted_by"
+  ],
+  "hypothesis": "第 7 轮失速的根因是训练期从未出现到达正例（到达分支梯度 0.091→0.016，成本/到达梯度比 0.744→1.350，熵 5.60→−0.89）。初始化修正让新策略以 0.465 m/s 起步且探索下限抬到 −1.5，离线已使新初始化策略在开发集 2/6 到达。若假设成立，第 8 轮训练早期应首次出现到达正例、到达分支梯度恢复，并在 dev 上出现非零的『到达且预算内』或至少 dev SR 明显高于第 7 轮的 0.0。",
+  "falsification": "若第 8 轮训练日志在全程仍无任何到达正例（goal_reached 累计为 0），说明初始化修正未能打断自锁；按 uncertainty_policy 停下询问，不自动加第 9 轮、不放宽时限或判据。",
+  "method": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "runs": 6
+  },
+  "environment": {
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5
+  },
+  "budget": {
+    "sampling": {
+      "kind": "uniform",
+      "k_low": 0.6,
+      "k_high": 1.3
+    }
+  },
+  "algorithm": {
+    "lr_policy": 0.0003,
+    "lr_critic": 0.001,
+    "epochs_per_window": 10,
+    "minibatch_size": 512,
+    "ent_coef": 0.01,
+    "log_std_learnable_range": [
+      -5.0,
+      1.0
+    ],
+    "warm_start": {},
+    "fresh_init": true,
+    "fresh_init_reason": "第 7 轮权重在无正例自锁下收敛到近零动作（|loc| 0.05~0.16），且其 log_std 已塌到 −2.89~−1.49；本轮必须从零初始化才能让新的初始偏置与探索下限生效。"
+  },
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600
+  },
+  "checkpoints": {
+    "save_every_updates": 50,
+    "final_checkpoint": "最后一个更新"
+  },
+  "round_acceptance": {
+    "closing_tier_source": "development 6 图 × 3 种子，确定性均值动作，k=1.0",
+    "dev_success_rate_median": 0.1,
+    "per_method": "两方法都必须 >= 0.10（SR 条件）；『预算内到达』为主判据，正式判定归 NAV-066",
+    "budget_response_on_dev": {
+      "grid_k": [
+        0.7,
+        0.85,
+        1.0,
+        1.15,
+        1.3
+      ],
+      "purpose": "诊断：预算内到达是否首次出现非零"
+    },
+    "primary_questions_this_round": [
+      "『到达且 z_end>=0』是否首次出现非零（主判据）",
+      "训练日志中 goal_reached 累计是否首次大于 0（自锁是否被打破的直接证据）",
+      "到达分支梯度是否从第 7 轮的 0.016 恢复（>=0.04 视为恢复）",
+      "两方法 dev SR 中位数是否 >= 0.10",
+      "6 个 run 是否全部完整跑完 600 更新"
+    ],
+    "ideal_tier": {
+      "sr": 0.9,
+      "collision_rate": 0.0,
+      "blocking": false
+    }
+  },
+  "resource": {
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 12.0,
+    "max_rounds": 4,
+    "runs_this_round": 6,
+    "used_so_far": {
+      "rounds": 7,
+      "calendar_hours": 9.5
+    },
+    "runs_used_total": 42,
+    "note": "第 5~8 轮均为用户当次授权加轮；第 8 轮预计 +1.2 h。extra_round_policy 的追加须同时满足效果条件与 12 h 总上限，不得暗中超额。"
+  },
+  "data_access": {
+    "train": "训练取样（18 图）",
+    "development": "唯一判定来源",
+    "budget_selection": "本循环禁止使用",
+    "final_*": "封存",
+    "audit": "收尾给出实际加载路径清单与 split hash；本轮 6 个 run 均为 fresh_init，须明确记录"
+  },
+  "stops": {
+    "met": "立刻停止，进入 NAV-065 候选冻结",
+    "rounds_exhausted": "第 9 轮（若触发追加）后无论结果如何 NAV-064 收尾",
+    "wall_clock": "立刻停止当前 run，不延长",
+    "infrastructure": "换 run id 重跑，与原 attempt 一并报告",
+    "semantic_doubt": "若训练全程仍无到达正例，按 uncertainty_policy 停下询问，不自动加轮"
+  },
+  "reporting": "reports/training_round_r8.json + 台账更新；报告须与第 7 轮逐项对比（到达正例数、到达分支梯度、顶格率、每步功率、实际成本、超支、预算内到达、SR）",
+  "objective_signal_fix": {
+    "joint_cost_weight": 50.0,
+    "joint_min_recursion": false
+  },
+  "budget_accounting": "consistent",
+  "action_bounded": true,
+  "action_init_fix": {
+    "enabled": true,
+    "initial_forward_speed": 0.465,
+    "log_std_min": -1.5
+  },
+  "field_placement_note": "四个开关全部置于顶层：train_formal.py 的 188/330/332/355 行与 eval_training_round.py 的 125/143 行都从顶层 prereg.get 读取。冻结后必须用消费脚本实际回读一遍再启动。"
+}

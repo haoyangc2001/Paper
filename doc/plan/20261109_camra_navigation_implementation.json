@@ -6187,6 +6187,54 @@
             "训练完成后回填台账、生成 reports/training_round_r8.json 并判定 NAV-064 是否可关闭"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T00:40:00+08:00",
+          "summary": "按用户 00:22 授权启动第 8 轮：先冻结 training_loop_prereg_r8.json（四开关全开、6 run 从零初始化），用真实消费函数回读并冒烟，再在 tmux nav064-r8 启动 6 个 run。NAV-064 保持 false，训练结果未产生，不宣称任何提升。",
+          "actions": [
+            "开工对齐：重读 execution-rules.md；拉取最新计划并 validate_worklog.py --mode update（VALID、51/67、首个可执行任务 NAV-064、14 条记录）",
+            "核对远程：git 干净（794cef4）、无训练进程、无 nav064_r8* 目录、GPU 空闲、action_init_fix 预登记 v1.1.0 在位",
+            "冻结 config/training_loop_prereg_r8.json（sha 109d9abd4f69314d）并写 .sha256；绑定 r7 预登记/报告、action_init_fix 预登记、budget_action_fix 预登记、amend5、G3、价值契约的真实散列",
+            "用 train_formal.verify_prereg 真实回读：四开关 + fresh_init 全部正确（READBACK_VERDICT PASS）",
+            "冒烟 --smoke-updates 2：exit 0，[BUDGET-ACCT] consistent / [ACTION-BOUNDED] True / [ACTION-INIT] enabled=True v0=0.465 log_std_min=-1.5 / [OBJ-FIX] w=50，无 WARMSTART",
+            "部署 /tmp/nav064_round8.sh（6 run、不传 --init-from、r8 命名），tmux nav064-r8 于 00:25:22 启动",
+            "docs 追加第 8 轮章节、台账追加 round_8_preregistration、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "config/training_loop_prereg_r8.json(+.sha256)",
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python t_build_r8_prereg.py（本地生成+自检，先断言目标不存在）",
+            "python /tmp/t_readback_r8.py（tiger11，真实消费函数回读）",
+            "train_formal.py --run-id nav064_r8_smoke --prereg-name training_loop_prereg_r8.json --smoke-updates 2",
+            "tmux new-session -d -s nav064-r8 \"bash /tmp/nav064_round8.sh\"",
+            "ps -eo pid,args | grep '[t]rain_formal.py'（6 个进程）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "6 个 run 全部从零初始化、四开关全开；第 7 轮权重未被热启动",
+            "6 份日志均打印 [BUDGET-ACCT] consistent、[ACTION-BOUNDED] True、[ACTION-INIT] enabled=True、[OBJ-FIX] w=50，且无 WARMSTART",
+            "启动时刻 00:25:22，检查时 6 个进程在跑；预计约 1.2 h 完成",
+            "NAV-064 保持 false；未推送"
+          ],
+          "evidence": [
+            "config/training_loop_prereg_r8.json + .sha256（109d9abd4f69314d…，PIN_OK）",
+            "READBACK_VERDICT PASS（四开关 + fresh_init）",
+            "/tmp/r8_smoke.log：SMOKE_RC=0 与四行开关打印",
+            "nav064_r8/round8_start.txt：start 2026-11-14T00:25:22+08:00 launched 6 runs",
+            "6 份 run 日志的开关打印；ps 计数 6",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "等 ROUND8_DONE 与 exit_codes.txt，检查 6 run 是否完整 600 更新",
+            "统计训练日志 goal_reached 累计是否首次 > 0、到达分支梯度是否从 0.016 恢复到 >= 0.04",
+            "用 eval_training_round.py --round 8 生成 reports/training_round_r8.json，与 r7 逐项对比",
+            "按 extra_round_policy 判定是否加第 9 轮（条件：预算内到达 > 0 或两方法 dev 中位 >= 0.10；上限第 9 轮、总墙钟 12 h）"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

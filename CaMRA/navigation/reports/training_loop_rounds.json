@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "round_7_complete_primary_criterion_not_met_pending_user_decision",
+  "status": "round_8_launched_pending_result",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -431,7 +431,8 @@
     "第 7 轮（用户 20:18 授权）已于 20:30 启动，6 run 在跑；B（正式负结果）仍须等训练完成且主判据仍全 0 才可写入",
     "第 7 轮结果：预算内到达仍全 0，但耗电降 82%、预算由超支转为剩余；新失败模式是『几乎不动』（训练期 0 次到达）。证伪条款未触发，下一步属预登记未覆盖分支，等用户裁定",
     "23:40 方案前提被证伪：tanh 压缩比 0.99~1.00，小动作来自均值被训练推到 0；改动作层不对症，对症的是训练目标。等用户重新选择：改训练目标／仍改动作层防塌缩＋初始化偏置／按原裁定结案",
-    "初始化修正已落地并离线验收（新初始化策略 2/6 到达 vs 关闭 0/6）；第 8 轮训练需当次授权方可验证自锁是否被打破"
+    "初始化修正已落地并离线验收（新初始化策略 2/6 到达 vs 关闭 0/6）；第 8 轮训练需当次授权方可验证自锁是否被打破",
+    "第 8 轮（用户 00:22 授权）已于 00:25:22 启动，四开关全开、6 run 从零初始化；结果出来后按 extra_round_policy 判断是否加第 9 轮"
   ],
   "round_7_preregistration": {
     "date": "2026-11-13",
@@ -651,5 +652,54 @@
       "本轮不启动训练"
     ],
     "next": "第 8 轮训练需单独当次授权；须重新初始化策略头并启用 action_init_fix"
+  },
+  "round_8_preregistration": {
+    "date": "2026-11-14",
+    "authorization": "用户 00:22『开始训练，如果初始效果好的话可以多添加一些训练轮次』",
+    "prereg": {
+      "path": "config/training_loop_prereg_r8.json",
+      "sha256": "109d9abd4f69314df227b915664a8f26981d6521f3da88f7a30635889a4b567c",
+      "version": "r8.0.0"
+    },
+    "status": "frozen_before_round_8_launched",
+    "switches": {
+      "budget_accounting": "consistent",
+      "action_bounded": true,
+      "action_init_fix": {
+        "enabled": true,
+        "initial_forward_speed": 0.465,
+        "log_std_min": -1.5
+      },
+      "objective_signal_fix": {
+        "joint_cost_weight": 50.0,
+        "joint_min_recursion": false
+      }
+    },
+    "fresh_init": "6 个 run 全部不传 --init-from；第 7 轮权重锁定在近零动作解，不得热启动",
+    "readback": "train_formal.verify_prereg 回读四开关，READBACK_VERDICT PASS",
+    "smoke": "--smoke-updates 2 exit 0；四个开关打印齐全、无 WARMSTART",
+    "launch": {
+      "tmux_session": "nav064-r8",
+      "started_at": "2026-11-14T00:25:22+08:00",
+      "runs": 6,
+      "proc_count_at_check": 6,
+      "all_four_switches_printed_in_all_6_logs": true
+    },
+    "primary_criterion": "『到达且 z_end>=0』是否首次非零",
+    "self_lock_evidence_to_check": [
+      "训练日志 goal_reached 累计是否首次 > 0",
+      "到达分支梯度是否从 r7 的 0.016 恢复到 >= 0.04"
+    ],
+    "extra_round_policy": {
+      "trigger": "第 8 轮完成后『到达且预算内』> 0 或两方法 dev SR 中位 >= 0.10",
+      "cap": "最多加第 9 轮；12 h 总墙钟上限仍生效",
+      "no_trigger": "主判据仍 0 且 dev 中位 < 0.10 则不加轮，进入收尾"
+    },
+    "falsification": "若训练全程仍无任何到达正例，说明初始化修正未打断自锁，停下询问，不自动加轮、不放宽判据",
+    "not_claimed": [
+      "训练结果未产生，不宣称成功率提升",
+      "不宣称预算内到达出现",
+      "不宣称自锁已被打破"
+    ]
   }
 }

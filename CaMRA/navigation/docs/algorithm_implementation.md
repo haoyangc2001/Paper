@@ -644,3 +644,41 @@ log_std_min  : -5  ->  -1.5      # 仅该模式生效，防止探索尺度塌缩
 本轮**不启动训练**。上面只证明「新初始化策略能产生到达正例」这一打断自锁的
 必要条件，不宣称训练后能学会绕障、不宣称成功率提升、不宣称预算内到达在正式
 训练里出现。第 8 轮训练仍需单独当次授权。
+
+
+## NAV-064 第 8 轮启动：初始化修正后的首个训练（2026-11-14）
+
+用户 00:22 授权『开始训练，如果初始效果好的话可以多添加一些训练轮次』。
+预登记 `config/training_loop_prereg_r8.json`（sha `109d9abd4f69314d…`）先冻结，
+四个开关全部置于顶层，6 个 run **全部不传 `--init-from`**：
+
+| 开关 | 值 | 6 份日志实测 |
+|---|---|---|
+| `budget_accounting` | `consistent` | full `alpha=0.190483`、E_ref 363.0→432.1 J；uncalibrated `alpha=0`、363.0→363.0 J |
+| `action_bounded` | `true` | `[ACTION-BOUNDED] True` |
+| `action_init_fix` | `enabled=true`、`v0=0.465`、`log_std_min=-1.5` | `[ACTION-INIT] enabled=True v0=0.465 log_std_min=-1.5` |
+| `objective_signal_fix.joint_cost_weight` | `50.0` | `[OBJ-FIX] joint_cost_weight=50.0 joint_min_recursion=False` |
+
+启动前用 `train_formal.verify_prereg` 真实回读（`READBACK_VERDICT PASS`），并跑
+2 更新冒烟（exit 0、四个开关齐全、无 `WARMSTART`）。`tmux` 会话 `nav064-r8`
+于 00:25:22 启动 6 个 run，检查时 6 个进程均在、6 份日志都打印了四个开关。
+
+### 本轮要回答的问题
+
+主判据仍是「到达且 `z_end>=0`」是否首次非零；同时直接看两件与自锁有关的证据：
+训练日志里 `goal_reached` 累计是否首次大于 0、到达分支梯度是否从第 7 轮的
+0.016 恢复（≥0.04 视为恢复）。若训练全程仍无任何到达正例，说明初始化修正
+未能打断自锁，按 `uncertainty_policy` 停下询问，**不自动加第 9 轮**。
+
+### 追加轮次的条件（用户 00:22 授权，有界）
+
+第 8 轮完成后，若「到达且预算内」> 0 或两方法 dev 成功率中位数 ≥ 0.10，则追加
+第 9 轮；**第 9 轮为上限**，且协议 `total_wall_clock_cap_h=12.0` 仍生效（第 8 轮
+后累计约 10.7 h，第 9 轮后约 11.9 h）。未触发效果条件则不加轮，直接进入
+NAV-064 收尾判定。基础设施失败换 run id 重跑，不计作业务轮次，也不触发追加。
+
+### 边界
+
+训练结果在本章节写入时尚未产生：不宣称成功率提升、不宣称预算内到达出现、
+不宣称自锁已被打破。预登记、回读、冒烟与启动记录已落盘，评估与判定留待
+训练完成后处理。
