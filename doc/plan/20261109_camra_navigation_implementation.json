@@ -6003,6 +6003,53 @@
             "台账回填 closing_tier / sr_within_budget_max / report，并决定是否关闭 NAV-064"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-13T23:10:00+08:00",
+          "summary": "第 7 轮训练与开发集评估完成：6/6 run 完整 600 更新，主判据『到达且预算内』仍全 0（七轮累计全 0），两方法 dev SR 中位 0.0（full 由 r6 的 0.667 降到 0）。A+B 在数值层面生效（耗电降 82%、预算由超支约 400 J 转为剩 260~334 J），但策略收敛到几乎不动、训练期 6 个 run 的到达次数全为 0。证伪条款未触发，NAV-064 保持 false，下一步等用户裁定。",
+          "actions": [
+            "核对 ROUND7_DONE / exit_codes.txt（6×0）/ 6 份 train_log.jsonl（各 600 更新、无 WARMSTART）/ 20:30:46→21:43:16 墙钟",
+            "在 tmux 会话 nav064-r7-eval 中运行 eval_training_round.py --round 7，生成 reports/training_round_r7.json（EVAL_RC=0）",
+            "用确定性脚本对 r6/r7 报告逐项对比（成功率、预算内到达、成本、z_end、离终点距离、步数、结局标签、k 网格）",
+            "统计 r6/r7 全部训练日志的 goal_reached / timeout / 熵，确认 r7 训练期从未出现到达",
+            "docs 追加结果章节、台账追加第 7 轮条目与结果块、本计划追加本条记录；校验器 VALID"
+          ],
+          "files_changed": [
+            "reports/training_round_r7.json",
+            "reports/training_loop_rounds.json",
+            "docs/algorithm_implementation.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "cat /pub/data/caohy/work/camra_navigation/nav064_r7/ROUND7_DONE / exit_codes.txt",
+            "eval_training_round.py --round 7 --prereg training_loop_prereg_r7.json --run-ids <6 runs> --out reports/training_round_r7.json",
+            "python t_analyze_r7.py；python t_diag_train_r7.py（tiger11）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "主判据未达成：两方法 × 5 个 k 网格的『到达且预算内』全 0；七轮累计全 0",
+            "dev SR 中位：uncalibrated 0.0→0.0、full 0.667→0.0；closing_tier_met=false",
+            "A 生效：full 参考能量 363.0→432.1 J、z0 均值 405.1→482.3 J；B 生效：每回合成本 806.9/806.2→144.6/148.1 J（降约 82%）、z_end −401.7/−401.1→+260.5/+334.2 J",
+            "新失败模式：36 个 dev 回合 0 次到达、34 timeout + 2 stagnation，跑满 300 步仍离终点 9.51/11.13 m；训练期 6 个 run 的 goal_reached 累计全 0（r6 有 4 个 run 出现 20~24251 次）",
+            "熵由 2.008 降到 −1.0~−3.2，策略趋于确定性的小动作；没有到达正例时梯度里只剩 w=50 的成本项，形成不动自锁",
+            "证伪条款未触发：条款要求主判据仍全 0 且顶格率/每步功率无改善，实测第二个条件不成立；不能自动转正式负结果 C"
+          ],
+          "evidence": [
+            "reports/training_round_r7.json（closing_tier、6 个 run 的 dev 与 budget_response）",
+            "t_analyze_r7.py 输出的 r6/r7 逐项对比表",
+            "t_diag_train_r7.py 在 tiger11 输出的 12 个 run 训练期到达次数与熵",
+            "tmux nav064-r7-eval 日志 /tmp/nav064_eval_r7.log（EVAL_RC=0）",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "按 uncertainty_policy 请用户裁定下一步：受控诊断『不动陷阱』（动作尺度/初始化/w 敏感度，不启动新训练）／调整训练目标后重冻预登记再加轮／明确接受正式负结果并结案",
+            "若选诊断：从 r7 checkpoint 量化动作幅度分布、30 s 时限内可达速度、w 与到达项的相对量级，先拆分 fresh_init/A/B 三处混杂",
+            "若选加轮：需重冻预登记、重跑 G3 门禁与当次授权；不加第 8 轮回避",
+            "若选结案：写入正式负结果、回填台账并决定 NAV-064 是否关闭"
+          ],
+          "blockers": [
+            "下一步属预登记未覆盖的分支，且涉及改变训练目标或正式试验次数，按 uncertainty_policy 必须暂停等用户明确选择，不自行决定"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

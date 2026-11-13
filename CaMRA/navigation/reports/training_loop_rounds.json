@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "round_7_launched_pending_result",
+  "status": "round_7_complete_primary_criterion_not_met_pending_user_decision",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -280,6 +280,52 @@
       "closing_tier_met": false,
       "checkpoint": "state.pt",
       "report": "reports/training_round_r6.json"
+    },
+    {
+      "round": 7,
+      "prereg": {
+        "path": "config/training_loop_prereg_r7.json",
+        "sha256": "2c0c5c8b671f1c70e509ae86cfd272d1175ca87df4ea55b290b45ce187089c55"
+      },
+      "config_delta": "r7.0.0: budget_accounting=consistent, action_bounded=true, w=50, fresh_init (no --init-from)",
+      "closing_tier": {
+        "uncalibrated": {
+          "seeds": [
+            0,
+            1,
+            2
+          ],
+          "sr_by_seed": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0
+          },
+          "sr_median": 0.0,
+          "sr_min": 0.0,
+          "sr_max": 0.0,
+          "n_runs": 3
+        },
+        "full": {
+          "seeds": [
+            0,
+            1,
+            2
+          ],
+          "sr_by_seed": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0
+          },
+          "sr_median": 0.0,
+          "sr_min": 0.0,
+          "sr_max": 0.0,
+          "n_runs": 3
+        }
+      },
+      "sr_within_budget_max": 0.0,
+      "closing_tier_met": false,
+      "checkpoint": "state.pt",
+      "report": "reports/training_round_r7.json"
     }
   ],
   "chain_finding_entropy": {
@@ -382,7 +428,8 @@
     "A+B（用户 2026-11-13 已批准并实施）：统一预算账本口径 + 网络层有界动作；第 7 轮训练需新授权，且必须重置策略头",
     "C（语义层，A+B 之后仍需要时）：回 NAV-061 重审 C·y 不可逆饱和代价与 δ=2.61 m 膨胀带",
     "B（正式负结果，用户明确否决提前采用）：只有 A+B 实施且第 7 轮训练完成仍全 0 之后才可写入",
-    "第 7 轮（用户 20:18 授权）已于 20:30 启动，6 run 在跑；B（正式负结果）仍须等训练完成且主判据仍全 0 才可写入"
+    "第 7 轮（用户 20:18 授权）已于 20:30 启动，6 run 在跑；B（正式负结果）仍须等训练完成且主判据仍全 0 才可写入",
+    "第 7 轮结果：预算内到达仍全 0，但耗电降 82%、预算由超支转为剩余；新失败模式是『几乎不动』（训练期 0 次到达）。证伪条款未触发，下一步属预登记未覆盖分支，等用户裁定"
   ],
   "round_7_preregistration": {
     "date": "2026-11-13",
@@ -391,7 +438,7 @@
       "path": "config/training_loop_prereg_r7.json",
       "sha256": "2c0c5c8b671f1c70e509ae86cfd272d1175ca87df4ea55b290b45ce187089c55"
     },
-    "status": "frozen_before_round_7_launched",
+    "status": "complete_primary_criterion_not_met",
     "switches": {
       "budget_accounting": "consistent",
       "action_bounded": true,
@@ -426,6 +473,49 @@
       "不宣称预算内到达出现",
       "不宣称 A+B 已被行为层验证",
       "本轮不写正式负结果 C"
-    ]
+    ],
+    "result": {
+      "runs": "6/6 完整 600 更新，exit 0，1.152~1.185 h/run，20:30:46→21:43:16",
+      "primary_criterion": "『到达且预算内』仍全 0（两方法 × 5 个 k 网格全 0）；七轮累计全 0",
+      "dev_sr_median": {
+        "uncalibrated": 0.0,
+        "full": 0.0
+      },
+      "dev_sr_median_r6": {
+        "uncalibrated": 0.0,
+        "full": 0.6666666666666666
+      },
+      "cost_model_J_mean": {
+        "uncalibrated": 144.6,
+        "full": 148.1
+      },
+      "cost_model_J_mean_r6": {
+        "uncalibrated": 806.9,
+        "full": 806.2
+      },
+      "z_end_J_mean": {
+        "uncalibrated": 260.5,
+        "full": 334.2
+      },
+      "z_end_J_mean_r6": {
+        "uncalibrated": -401.7,
+        "full": -401.1
+      },
+      "min_goal_distance_m_mean": {
+        "uncalibrated": 9.51,
+        "full": 11.13
+      },
+      "episode_labels": "36 回合：0 到达、34 timeout、2 stagnation（r6 为 17 到达）",
+      "training_goal_reached_total": "6 个 run 全部为 0（r6 有 4 个 run 出现 20~24251 次）",
+      "verdict": "A 与 B 在数值层面生效（full z0 405.1→482.3 J；耗电降约 82%、预算由超支约 400 J 转为剩 260~334 J），但策略收敛到几乎不动：30 s 跑满 300 步仍离终点 9.5~11.1 m，训练期从未出现一次到达，到达分支无正例。",
+      "falsification_clause": "未触发：条款要求『主判据仍全 0 且 顶格率/每步功率无实质改善』，实测第二个条件不成立（成本降 82%），故不能自动转正式负结果 C；也不能宣称 A+B 已被证伪。",
+      "confound": "r6→r7 同时改变 fresh_init / budget_accounting / action_bounded 三项，SR 0.667→0 不能单独归因给 B，需受控诊断拆分。",
+      "not_claimed": [
+        "不宣称成功率提升",
+        "不宣称预算内到达出现",
+        "不宣称 A+B 无效或已被证伪",
+        "不宣称 C·y/δ 语义层是根因"
+      ]
+    }
   }
 }
