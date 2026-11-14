@@ -6827,6 +6827,57 @@
       "r11 预登记已冻结「本轮后无论结果如何 NAV-064 收尾」「不加第 12 轮」，且资源累计 15.1 h 超 12 h 上限 26%；任何新的训练（含短训验证）须先由用户批准修改协议与资源上限，agent 不得自取",
       "下一步杠杆至少有两类，触及面不同：策略层（身体权重/优势结构，需仪器化短训）与环境层（区分「进入保守裕度」与「真碰撞」，改安全语义、需重跑 G2A/G3、历史 11 轮标为旧语义）"
      ]
+    },
+    {
+     "timestamp": "2026-11-14T23:40:00+08:00",
+     "summary": "按用户 23:17 授权完成策略层：新增默认关闭的 policy_grad_decomp（把策略梯度拆成优势项/熵项两路并记录动作均值与转向幅度），PD1-PD6 全 PASS、11 套件 rc=0、G3 22/22 PASS、冒烟退出码 0；并用冻结的 r11 样本 + 五个检查点做完策略层 X 光。结论：熵项只占 0.9%-1.7%（排除噪声主因）；优势项梯度 1.14-2.58 全程有力；输出层权重增长 2.75-2.85 倍在两个变体上同幅（症状非病因）；分岔在前进命令——未校准 0.462→0.468（平）、完整 0.451→0.250（−45%），后者优势 std 0.087→0.027、h 0.798→0.932。两条自我更正：成本通道主导方差被「整回合未超支」子集否掉；「优势把靠近判为更差」是漏控距离造成的混杂，同回合内 corr(优势,h)=+0.40~+0.72、方向正确。开关未启用、未训练；NAV-064 保持 false。",
+     "actions": [
+      "读 networks.py / ppo.py / storage.py / train_formal.py，确认策略梯度与动作变换链路",
+      "实现 policy_grad_terms()：优势项与熵项各自反传取范数，只读不更新",
+      "在 updater 增 grad_decomp 开关并记录 act_fwd_mean / act_steer_absmean",
+      "train_formal 从冻结预登记读 policy_grad_decomp.enabled 并打印横幅",
+      "写 tests/test_policy_grad_decomp.py（PD1-PD6）并实跑",
+      "写 scripts/diag_policy_xray.py：五检查点 × 两变体，拆分梯度并量信号质量",
+      "针对「靠近被判更差」做分层与回合内复算，确认是混杂而非符号错误",
+      "跑 11 套件回归 + G3 重跑 + 2 次更新冒烟（policy_decomp_smoke_prereg）",
+      "追加文档章节、台账 round_11_policy_xray、本条工作记录"
+     ],
+     "files_changed": [
+      "src/camra_navigation/algorithm/ppo.py",
+      "scripts/train_formal.py",
+      "tests/test_policy_grad_decomp.py",
+      "scripts/diag_policy_xray.py",
+      "config/policy_decomp_smoke_prereg.json(+.sha256)",
+      "reports/training_round_r11_policy_xray.json",
+      "docs/algorithm_implementation.md"
+     ],
+     "commands": [
+      "python tests/test_policy_grad_decomp.py",
+      "for f in tests/test_*.py; do python $f; done  # 11 套件 rc=0",
+      "python scripts/build_gate_g3_alignment_v2.py",
+      "python scripts/train_formal.py --run-id pd_smoke --smoke-updates 2 --prereg-name policy_decomp_smoke_prereg.json",
+      "python scripts/diag_policy_xray.py"
+     ],
+     "results": [
+      "PD1-PD6 9 项断言全 PASS；打开仪器化后参数更新逐位相同（Δloss=0.000e+00）",
+      "11 个回归套件 rc=0；G3 22/22 PASS；冒烟退出码 0 且字段落盘",
+      "未校准：前进命令持平、h 0.540→0.449、优势 std 0.12 稳定",
+      "完整：前进命令 0.451→0.250、转向 0.051→0.173、h 0.798→0.932、优势 std 0.087→0.027"
+     ],
+     "evidence": [
+      "reports/training_round_r11_policy_xray.json（两变体 × 五检查点，逐项数值）",
+      "reports/gate_G3_alignment_v2.json（verdict=PASS，22 条）",
+      "/tmp/nav064_smoke/pd_smoke/train_log.jsonl 两条 update 的 grad_adv_norm / grad_ent_share / act_fwd_mean",
+      "config/policy_decomp_smoke_prereg.json.sha256 = 0a626b7ff9f0b2775d10381fa9c89252a39f3e4cb92484b9b058d77e4621e35f"
+     ],
+     "remaining_work": [
+      "是否新开一轮以在训练中使用该仪器化（需改 r11 预登记「不加第 12 轮」条款）",
+      "完整变体 h 贴常数 1（0.798→0.932）与优势 std 塌缩（0.087→0.027）的处理方案未定"
+     ],
+     "blockers": [
+      "r11 预登记冻结「本轮后无论结果如何 NAV-064 收尾」「不加第 12 轮」，开新训练须用户签发修改",
+      "累计训练墙钟 15.1 h，超协议 12.0 h 上限约 26%，扩轮须用户追加上限"
+     ]
     }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

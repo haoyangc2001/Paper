@@ -1603,5 +1603,95 @@
    "reading": "开关成立但改不动主因；退化在策略身体权重层，不在先验、不在噪声、不在样本加权"
   },
   "decision": "不启用、不训练；NAV-064 保持 false；等用户就能否新开轮次与下一步杠杆（身体权重/优势结构 vs 环境层安全语义）做裁定"
+ },
+ "round_11_policy_xray": {
+  "date": "2026-11-14T23:40:00+08:00",
+  "authorization": "用户 2026-11-14 23:17『@skill:create-plan-worklog 把策略层按照推荐做一下 按照要求』",
+  "scope": "策略层仪器化（policy_grad_decomp，默认关闭）+ 用冻结样本做策略层 X 光；不启用开关、不启动训练、不改契约与 r11 预登记",
+  "files": [
+   "src/camra_navigation/algorithm/ppo.py",
+   "scripts/train_formal.py",
+   "tests/test_policy_grad_decomp.py",
+   "scripts/diag_policy_xray.py",
+   "config/policy_decomp_smoke_prereg.json",
+   "reports/training_round_r11_policy_xray.json"
+  ],
+  "prereg_sha256": {
+   "policy_decomp_smoke_prereg.json": "0a626b7ff9f0b2775d10381fa9c89252a39f3e4cb92484b9b058d77e4621e35f"
+  },
+  "verification": {
+   "unit_tests": "PD1-PD6 全 PASS（9 断言；打开仪器化后参数更新逐位相同）",
+   "regression_suites": "11 套件 rc=0",
+   "gate_g3": "PASS 22/22",
+   "smoke": "pd_smoke：退出码 0、store_problems 空、[POLICY-DECOMP] enabled=True、两路梯度范数与动作统计已落盘；2 次更新不构成行为证据"
+  },
+  "findings": {
+   "entropy_share_of_grad": [
+    0.012,
+    0.0108,
+    0.0091,
+    0.0112,
+    0.0107
+   ],
+   "advantage_grad_norm_range": [
+    1.1366,
+    2.5762
+   ],
+   "head_weight_fro": {
+    "uncal": [
+     0.1018,
+     0.29
+    ],
+    "full": [
+     0.1159,
+     0.3194
+    ]
+   },
+   "forward_command": {
+    "uncal": [
+     0.462,
+     0.468
+    ],
+    "full": [
+     0.451,
+     0.25
+    ]
+   },
+   "steer_absmean": {
+    "uncal": [
+     0.054,
+     0.101
+    ],
+    "full": [
+     0.051,
+     0.173
+    ]
+   },
+   "adv_std": {
+    "uncal": [
+     0.1247,
+     0.1213
+    ],
+    "full": [
+     0.0875,
+     0.027
+    ]
+   },
+   "h_mean": {
+    "uncal": [
+     0.5401,
+     0.4489
+    ],
+    "full": [
+     0.7984,
+     0.9321
+    ]
+   }
+  },
+  "self_corrections": [
+   "成本通道主导优势方差：被「整回合未超支」子集（75%-98% 样本）否掉",
+   "「优势把靠近判为更差」：漏控「离终点多远」，同回合内 corr(优势,h)=+0.40~+0.72，方向正确；距离通道不需要改符号"
+  ],
+  "decision": "开关默认关闭、不启用、不训练；NAV-064 保持 false。下一步杠杆（是否新开一轮以使用该仪器化 / 是否处理完整变体 h 贴常数 1 的钉死）需按计划改预登记与资源上限，属用户裁定范围"
  }
 }

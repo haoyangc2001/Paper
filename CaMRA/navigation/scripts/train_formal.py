@@ -367,10 +367,16 @@ def main() -> int:
         if not (0.0 <= ent <= 0.02):
             raise SystemExit(f"ent_coef {ent} outside the loop protocol band [0, 0.02]")
         cfg = _dc.replace(cfg, ent_coef=ent)
+    # NAV-064 策略层仪器化（policy_grad_decomp，默认关闭）：只额外计算「优势项」与
+    # 「熵项」各自的梯度范数并记进日志，**不参与更新、不改任何损失**。用途是定位
+    # 「优势项塌缩、熵占主导」这类只在行为上可见的失效（第 11 轮 X 光实测熵项占比
+    # 约 1%，因此默认关闭；打开后每次 update 多两次只读反传）。
+    decomp_on = bool(prereg.get("policy_grad_decomp", {}).get("enabled", False))
     updater = P.MinimizationUpdater(
         net, cfg,
         lr_policy=float(prereg["algorithm"]["lr_policy"]),
         lr_critic=float(prereg["algorithm"]["lr_critic"]),
+        grad_decomp=decomp_on,
     )
     obj_cfg = S.ObjectiveConfig.from_contracts(VALUE_CONTRACT, r_goal_m=0.5)
     # NAV-064 修正 ①/②：权重与开关一律从**先冻结的**预登记读取，不硬编码。
@@ -418,6 +424,7 @@ def main() -> int:
         raise SystemExit(f"dead_step_mask.field={dsm_field!r} 不受支持（只允许 safety_y）")
     print(f"[DEAD-STEP-MASK] enabled={dsm_on} field={dsm_field} "
           f"policy={dsm_policy} reach={dsm_reach}", flush=True)
+    print(f"[POLICY-DECOMP] enabled={decomp_on}", flush=True)
 
     if args.init_from:
         prev = S.atomic_load(args.init_from)

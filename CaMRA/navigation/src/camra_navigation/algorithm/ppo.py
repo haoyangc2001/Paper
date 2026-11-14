@@ -168,6 +168,53 @@ def value_loss(value: torch.Tensor, value_old: torch.Tensor, target: torch.Tenso
                   .float().mean().detach()}
 
 
+def policy_grad_terms(net: nn.Module, obs: torch.Tensor, action: torch.Tensor,
+                      log_prob_old: torch.Tensor, adv_normalized: torch.Tensor,
+                      cfg: "PPOConfig", mask: torch.Tensor | None = None) -> dict:
+    """把策略梯度拆成「优势项」与「熵项」，返回各自范数与夹角。
+
+    NAV-064 策略层仪器化（``policy_grad_decomp``，默认关闭）：
+
+      · **优势项** ``mean(max(ratio·A, clip(ratio)·A))`` —— 唯一携带「到终点 / 花多少」
+        信息的通道；
+      · **熵项** ``− ent_coef·mean(H)`` —— 只应作用于 ``log_std``，对均值参数的作用
+        必须可忽略；若它的占比涨起来，说明优势项塌了而熵在主导（历次失效模式的入口）。
+
+    两次反传各自重算前向图（``loss_s.backward()`` 会释放共享图，不能复用），
+    因此只在开关打开时调用，且**不参与参数更新**——只读梯度范数。
+    """
+    params = list(net.policy.parameters())
+
+    def _flat(loss: torch.Tensor) -> torch.Tensor:
+        for p in params:
+            p.grad = None
+        loss.backward()
+        g = torch.cat([p.grad.detach().reshape(-1) if p.grad is not None
+                       else torch.zeros(p.numel()) for p in params])
+        for p in params:
+            p.grad = None
+        return g
+
+    dist = net.policy(obs)
+    ratio = torch.exp(dist.log_prob(action) - log_prob_old)
+    lo, hi = 1.0 - cfg.clip_eps, 1.0 + cfg.clip_eps
+    surrogate = torch.maximum(ratio * adv_normalized,
+                              torch.clamp(ratio, lo, hi) * adv_normalized)
+    g_adv = _flat(_apply_mask(surrogate, mask).mean())
+
+    dist2 = net.policy(obs)
+    g_ent = _flat(-cfg.ent_coef * _apply_mask(dist2.entropy(), mask).mean())
+
+    n_adv = float(torch.linalg.vector_norm(g_adv))
+    n_ent = float(torch.linalg.vector_norm(g_ent))
+    denom = max(n_adv + n_ent, 1e-12)
+    cos = 0.0
+    if n_adv > 1e-12 and n_ent > 1e-12:
+        cos = float(torch.dot(g_adv, g_ent) / (n_adv * n_ent))
+    return {"grad_adv_norm": n_adv, "grad_ent_norm": n_ent,
+            "grad_ent_share": n_ent / denom, "grad_adv_ent_cos": cos}
+
+
 # ---------------------------------------------------------------- 更新器
 class MinimizationUpdater:
     """三网各自的优化器 + 独立反传；只碰上层参数。"""
@@ -175,9 +222,12 @@ class MinimizationUpdater:
     ROLES = ("policy", "critic_cost", "critic_reach")
 
     def __init__(self, networks: nn.Module, cfg: PPOConfig | None = None,
-                 lr_policy: float = 3e-4, lr_critic: float = 1e-3) -> None:
+                 lr_policy: float = 3e-4, lr_critic: float = 1e-3,
+                 grad_decomp: bool = False) -> None:
         self.cfg = cfg or PPOConfig.from_contract()
         self.net = networks
+        #: NAV-064 策略层仪器化（默认关闭）：只额外计算两个梯度范数，不改更新。
+        self.grad_decomp = bool(grad_decomp)
         groups = networks.param_groups()
         self.optimizers = {
             "policy": torch.optim.Adam(groups["policy"], lr=lr_policy),
@@ -234,6 +284,11 @@ class MinimizationUpdater:
         entropy = dist.entropy()
         loss_pi, pi_stats = policy_loss(log_prob, batch["log_prob_old"], adv_n, entropy,
                                         self.cfg, mask=live_policy)
+        # 仪器化必须在 _step 之前：那次反传会释放同一张图。
+        decomp = (policy_grad_terms(self.net, obs, batch["action"],
+                                    batch["log_prob_old"], adv_n, self.cfg,
+                                    mask=live_policy)
+                  if self.grad_decomp else None)
         gn_pi = self._step("policy", loss_pi)
 
         vc = self.net.critic_cost(obs)
@@ -262,6 +317,14 @@ class MinimizationUpdater:
             out["policy_mask_kept_fraction"] = kept_pi
         if kept_h is not None:
             out["reach_mask_kept_fraction"] = kept_h
+        if decomp is not None:
+            # 行为侧同时记录：均值前进命令与转向幅度。退化期最先变的是这两个量，
+            # 而它们在只看 loss 的日志里是隐形的。
+            act = batch["action"].detach()
+            out.update(decomp)
+            out["act_fwd_mean"] = float(act[:, 0].mean())
+            out["act_steer_absmean"] = (float(act[:, 2].abs().mean())
+                                        if act.shape[-1] > 2 else 0.0)
         return out
 
 
