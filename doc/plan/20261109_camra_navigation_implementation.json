@@ -6554,6 +6554,50 @@
             "NAV-064 关闭档仍未达成，保持 false"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T15:25:00+08:00",
+          "summary": "按授权实施速度余量前的前置验证证伪了该方案：起步速度 0.465→0.480/0.500/0.520/0.550 时开发集到达恒为 2/6，而最小回合末预算从 +1.8 J 变为 −13.8/−35.2/−57.4/−92.1 J（超支）。逐图明细显示 l1_empty 最近 0.62 m、差 0.12 m 未进 r_goal=0.5 m 判定圈，提速后反而退化到 1.71 m。同一 0.465 m/s 下「朝目标转向」可 4/6 到达且全在预算内（剩 123/146 J），证明缺口是转向能力而非速度。未改任何代码、未冻结速度预登记，NAV-064 保持 false，等用户裁定转向方案。",
+          "actions": [
+            "拉取最新计划并运行校验器 update 模式（VALID，51/67，NAV-064 false，22 条记录）",
+            "核对远程工作树干净、无训练进程、无 r11 目录、GPU 4 张空闲（load 117）",
+            "在开发集 6 图上扫描起步速度 0.465/0.480/0.500/0.520/0.550，记录到达、预算内到达、成本与最小回合末预算",
+            "输出逐图明细（结局、成本、剩余预算、最近距离），定位失败类型",
+            "核对 arrival 判据 r_goal=0.5 m（config/navigation_contract_v1.json）",
+            "复核 straight 与 seek 两种模式在同一 0.465 m/s 下的到达与预算",
+            "写入 docs 前置验证章节、台账 speed_margin_precheck、本计划记录；未改实现代码"
+          ],
+          "files_changed": [
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "t_sweep_speed.py（开发集起步速度扫描，确定性动作）",
+            "scripts/diag_reachability.py（straight vs seek，0.465 m/s）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "到达数在 0.465~0.550 全部为 2/6，与速度无关；最小回合末预算 0.465 为 +1.8 J，0.480 起转负（−13.8/−35.2/−57.4/−92.1）",
+            "l1_empty 两图在 0.465 时最近 0.62/0.92 m（r_goal=0.5 m，差 0.12 m），提速后退化到 1.71/1.84 m",
+            "l2_single_detour 两图在 8.36 m 处 collision，与速度无关",
+            "seek 模式 0.465 m/s：4/6 到达、成本 282/336 J、剩 123/146 J；straight：2/6、286/341 J",
+            "结论：缺转向能力，不缺速度；速度余量方案作废，未实施、未冻结预登记"
+          ],
+          "evidence": [
+            "t_sweep_speed.py 输出（5 档速度 × 2 变体 × 6 图，含逐图明细）",
+            "scripts/diag_reachability.py 输出（mode=straight goal=2/6；mode=seek goal=4/6，z_end 122.9/146.3 J）",
+            "config/navigation_contract_v1.json：r_goal_m = 0.5",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "由用户裁定：是否采用带转向的起点（方法语义变更），或改训练侧，或按现状收尾",
+            "NAV-064 关闭档未达成，保持 false；未启动第 11 轮训练"
+          ],
+          "blockers": [
+            "授权方案（补速度余量）的前提被确定性实测证伪：提速不增加到达且导致超支",
+            "可行替代（转向先验）改变策略初值语义，超出本次授权范围，需用户裁定"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
