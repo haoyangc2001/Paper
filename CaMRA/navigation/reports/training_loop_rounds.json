@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "round_8_complete_falsification_pending_user_decision",
+  "status": "round_9_launched_pending_result",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -433,7 +433,8 @@
     "23:40 方案前提被证伪：tanh 压缩比 0.99~1.00，小动作来自均值被训练推到 0；改动作层不对症，对症的是训练目标。等用户重新选择：改训练目标／仍改动作层防塌缩＋初始化偏置／按原裁定结案",
     "初始化修正已落地并离线验收（新初始化策略 2/6 到达 vs 关闭 0/6）；第 8 轮训练需当次授权方可验证自锁是否被打破",
     "第 8 轮（用户 00:22 授权）已于 00:25:22 启动，四开关全开、6 run 从零初始化；结果出来后按 extra_round_policy 判断是否加第 9 轮",
-    "第 8 轮失败触发证伪条款：训练期 0 到达。根因是验收用确定性动作、训练用采样动作；已修（log_std_init=-3，采样 6/18 到达）。第 9 轮需单独授权"
+    "第 8 轮失败触发证伪条款：训练期 0 到达。根因是验收用确定性动作、训练用采样动作；已修（log_std_init=-3，采样 6/18 到达）。第 9 轮需单独授权",
+    "第 9 轮（用户 09:11 授权，上限轮）已于 09:12:48 启动；低噪声初始化 v1.2.1，采样动作离线 6/18 到达。结果决定 NAV-064 收尾方向"
   ],
   "round_7_preregistration": {
     "date": "2026-11-13",
@@ -795,5 +796,54 @@
     "root_cause": "验收 AI5 用确定性动作（8/18 到达），训练用采样动作（0/18）；判据未覆盖训练实际动作模式",
     "falsification_triggered": true,
     "decision": "按预登记停下，不自动加第 9 轮；修复已落地并离线验证（采样 6/18）"
+  },
+  "round_9_preregistration": {
+    "date": "2026-11-14",
+    "authorization": "用户 09:11『@skill:create-plan-worklog 可以 继续开始推进任务吧』",
+    "prereg": {
+      "path": "config/training_loop_prereg_r9.json",
+      "sha256": "6f0cc83d9884a149d8285f735d6b229c52555a9821e5a72de11fda0c115f6160",
+      "version": "r9.0.0"
+    },
+    "status": "frozen_before_round_9_launched",
+    "cap_round": true,
+    "switches": {
+      "budget_accounting": "consistent",
+      "action_bounded": true,
+      "action_init_fix": {
+        "enabled": true,
+        "initial_forward_speed": 0.465,
+        "log_std_min": -5.0,
+        "log_std_init": -3.0
+      },
+      "objective_signal_fix": {
+        "joint_cost_weight": 50.0,
+        "joint_min_recursion": false
+      }
+    },
+    "fresh_init": "6 个 run 全部不传 --init-from",
+    "readback": "READBACK_VERDICT PASS（四开关 + fresh_init）",
+    "smoke": "--smoke-updates 2 exit 0；[ACTION-INIT] enabled=True v0=0.465 log_std_min=-5.0 log_std_init=-3.0",
+    "launch": {
+      "tmux_session": "nav064-r9",
+      "started_at": "2026-11-14T09:12:48+08:00",
+      "runs": 6,
+      "proc_count_at_check": 6,
+      "all_four_switches_in_all_6_logs": true
+    },
+    "resource": {
+      "used_so_far_h": 10.8,
+      "expected_after_h": 12.1,
+      "cap_h": 12.0,
+      "overrun_h": 0.1,
+      "note": "略超上限约 1%，按用户当次授权执行并如实登记"
+    },
+    "primary_criterion": "训练日志 goal_reached 是否首次 > 0；『到达且预算内』是否首次非零",
+    "falsification": "若训练全程 goal_reached 仍为 0，写正式负结果并结案，不加第 10 轮",
+    "not_claimed": [
+      "结果未产生，不宣称自锁已打破",
+      "不宣称成功率提升",
+      "不宣称预算内到达出现"
+    ]
   }
 }

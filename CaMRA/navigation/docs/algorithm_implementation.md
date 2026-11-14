@@ -737,3 +737,38 @@ NAV-064 收尾判定。基础设施失败换 run id 重跑，不计作业务轮�
 第 8 轮按预登记 falsification 条款判定：训练全程无到达正例 → **停下，不自动
 加第 9 轮**。修复已离线验证，但训练后能否借此打破自锁仍未验证；第 9 轮需单独
 授权，且必须重新初始化策略头。
+
+
+## NAV-064 第 9 轮启动：低噪声初始化后的验证轮（2026-11-14）
+
+用户 09:11 授权继续推进。预登记 `config/training_loop_prereg_r9.json`
+（sha `6f0cc83d9884a149…`）先冻结，**第 9 轮是 extra_round_policy 的上限轮**。
+
+四个开关（全部顶层，6 份日志均已核对）：
+
+| 开关 | 值 |
+|---|---|
+| `budget_accounting` | `consistent`（full alpha=0.190483、E_ref 363.0→432.1 J） |
+| `action_bounded` | `true` |
+| `action_init_fix` | `enabled=true`、`v0=0.465`、`log_std_min=-5.0`、`log_std_init=-3.0` |
+| `objective_signal_fix.joint_cost_weight` | `50.0` |
+
+第 8 轮失败的根因（验收用确定性动作、训练用采样动作）已在此配置中修正：初始
+探索尺度从 std=1 降到 std≈0.05，离线实测采样动作下训练集 18 图到达 6/18。
+6 个 run 全部不传 `--init-from`，从零初始化。
+
+启动前用 `train_formal.verify_prereg` 真实回读（`READBACK_VERDICT PASS`）并跑
+2 更新冒烟（exit 0、四开关齐全、无 `WARMSTART`）。`tmux` 会话 `nav064-r9` 于
+09:12:48 启动 6 个 run，检查时 6 个进程在跑。
+
+### 资源与上限
+
+8 轮累计约 10.8 h，第 9 轮预计 +1.3 h，累计约 **12.1 h，略超协议 12.0 h 上限
+约 0.1 h（≈1%）**，已在预登记 `authorization.cap_note` 中如实登记，不静默超额。
+无论本轮结果如何，NAV-064 在本轮后收尾：达标则进入 NAV-065 候选冻结，仍全 0
+则按预登记 falsification 写正式负结果，**不加第 10 轮、不放宽判据**。
+
+### 边界
+
+训练结果在本章节写入时尚未产生：不宣称自锁已被打破、不宣称成功率提升、
+不宣称预算内到达出现。

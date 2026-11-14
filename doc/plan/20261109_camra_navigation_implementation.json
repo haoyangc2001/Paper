@@ -6295,6 +6295,54 @@
           "blockers": [
             "预登记 falsification 条款已触发（训练全程无到达正例），第 9 轮属新的正式试验轮次，需用户当次授权，不得自动启动"
           ]
+        },
+        {
+          "timestamp": "2026-11-14T09:20:00+08:00",
+          "summary": "按用户 09:11 授权启动第 9 轮（上限轮）：冻结 training_loop_prereg_r9.json，启用 action_init_fix v1.2.1（log_std_init=-3.0、log_std_min=-5.0），6 run 从零初始化，回读与冒烟均 PASS，tmux nav064-r9 于 09:12:48 启动。NAV-064 保持 false，结果未产生。",
+          "actions": [
+            "开工对齐：重读 execution-rules.md；拉取最新计划并 validate_worklog.py --mode update（VALID、51/67、16 条记录）",
+            "核对远程：git 干净（01ee69c）、无训练进程、无 nav064_r9* 目录、GPU 空闲、action_init_fix 预登记 v1.2.1 在位",
+            "冻结 config/training_loop_prereg_r9.json（sha 6f0cc83d9884a149）并写 .sha256；绑定 r8 预登记/报告、v1.2.1 预登记、budget_action_fix、amend5、G3、价值契约的真实散列",
+            "train_formal.verify_prereg 真实回读四开关 + fresh_init（READBACK_VERDICT PASS）",
+            "冒烟 --smoke-updates 2：exit 0，[ACTION-INIT] enabled=True v0=0.465 log_std_min=-5.0 log_std_init=-3.0，无 WARMSTART",
+            "部署 /tmp/nav064_round9.sh，tmux nav064-r9 于 09:12:48 启动 6 个 run",
+            "docs 追加第 9 轮章节、台账 round_9_preregistration、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "config/training_loop_prereg_r9.json(+.sha256)",
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python t_build_r9_prereg.py",
+            "python /tmp/t_readback_r9.py（tiger11）",
+            "train_formal.py --run-id nav064_r9_smoke --prereg-name training_loop_prereg_r9.json --smoke-updates 2",
+            "tmux new-session -d -s nav064-r9 \"bash /tmp/nav064_round9.sh\"",
+            "ps -eo pid,args | grep '[t]rain_formal.py'（6）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "6 个 run 全部从零初始化、四开关全开；[ACTION-INIT] 打印 log_std_init=-3.0（第 8 轮失败的修正已生效）",
+            "启动 09:12:48，检查时 6 进程在跑；预计约 1.3 h 完成（10:40 前后）",
+            "资源：8 轮累计约 10.8 h，第 9 轮预计 +1.3 h → 约 12.1 h，略超协议 12.0 h 约 0.1 h，已在预登记 cap_note 如实登记",
+            "NAV-064 保持 false；未推送"
+          ],
+          "evidence": [
+            "config/training_loop_prereg_r9.json + .sha256（6f0cc83d9884a149…，PIN_OK）",
+            "READBACK_VERDICT PASS",
+            "/tmp/r9_smoke.log：SMOKE_RC=0 与四行开关打印",
+            "nav064_r9/round9_start.txt：start 2026-11-14T09:12:48+08:00 launched 6 runs",
+            "6 份 run 日志各含 1 条 ACTION-INIT 完整打印；ps 计数 6",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "等 ROUND9_DONE 与 exit_codes，检查 6 run 是否完整 600 更新",
+            "统计训练日志 goal_reached 累计是否首次 > 0、到达分支梯度是否 >= 0.04",
+            "eval_training_round.py --round 9 生成 reports/training_round_r9.json，与 r8 逐项对比",
+            "按结果收尾：达标进入 NAV-065 候选冻结；仍全 0 则写正式负结果并结案，不加第 10 轮"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

@@ -1,0 +1,174 @@
+{
+  "schema": "camra-training-loop-prereg-v1",
+  "version": "r9.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-14T09:20:00+08:00",
+  "status": "frozen_before_round_9",
+  "round": 9,
+  "task": "初始化修正 v1.2.1 后的验证轮：初始探索尺度降到 std≈0.05，使采样动作≈确定性动作，检验训练早期是否首次出现到达正例。本项为 extra_round_policy 的上限轮。",
+  "authorization": {
+    "needed": true,
+    "why": "第 8 轮触发预登记 falsification（训练全程无到达正例），第 9 轮属新的正式试验轮次",
+    "granted_by": "用户 2026-11-14 09:11 回复『@skill:create-plan-worklog 可以 继续开始推进任务吧』",
+    "granted_at": "2026-11-14T09:11:00+08:00",
+    "scope": "授权启动第 9 轮 6 个正式 run（extra_round_policy 的上限轮）；不授权第 10 轮",
+    "cap_note": "最多到第 9 轮；累计墙钟预计 12.1 h，略超协议 12.0 h 上限约 0.1 h（≈1%），按用户当次授权执行并如实登记，不静默超额"
+  },
+  "binding": {
+    "loop_protocol": {
+      "path": "config/training_loop_protocol_v1_1.json",
+      "sha256": "34d4bd6ecb56ad4f8ebfd9326f617934f6621d07e56ea6a057e296c840bd8231"
+    },
+    "round_8_prereg": {
+      "path": "config/training_loop_prereg_r8.json",
+      "sha256": "109d9abd4f69314df227b915664a8f26981d6521f3da88f7a30635889a4b567c"
+    },
+    "round_8_report": {
+      "path": "reports/training_round_r8.json",
+      "sha256": "eb1687d9699b5cee47d3032c221929cde69d387d4f74d70d71818fd1900e39f5"
+    },
+    "action_init_fix_prereg": {
+      "path": "config/action_init_fix_prereg_v1.json",
+      "sha256": "a6d305707fce245b136013d6b20890ba8f984dc55664105601f298f712c1e4b5"
+    },
+    "budget_action_fix_prereg": {
+      "path": "config/budget_action_fix_prereg_v1.json",
+      "sha256": "a42cd8410d347f67c4cba855e4a24219ab54e678263794caa337f6c7585516f0"
+    },
+    "amend5": {
+      "path": "config/rcppo_alignment_contract_v1.amend5.json",
+      "sha256": "0269ff3b9ffd267cabae00da20c0f85dd02f6e8ab1912b23237c1def06b840ff"
+    },
+    "gate_g3": {
+      "path": "reports/gate_G3_alignment_v2.json",
+      "sha256": "8dffc1c98d1b26648c6c30b1a696c1b3f9119d2cc2139f260f49d6d02dcfcffc"
+    },
+    "value_objective": {
+      "path": "config/value_objective_contract_v1.json",
+      "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+    }
+  },
+  "launch_preconditions": [
+    "action_init_fix 预登记 v1.2.1 已冻结：v0=0.465、log_std_min=-5.0、log_std_init=-3.0",
+    "采样动作下新初始化策略在训练集 18 图到达 6/18（修订后的 AI5 要求 >=4）",
+    "用 train_formal.py 真实消费路径回读本文件，四个开关同时打印生效",
+    "6 个 run 均不传 --init-from；run 目录与日志目录不存在；无残留 train_formal.py 进程"
+  ],
+  "hypothesis": "第 8 轮失败的原因是验收用确定性动作（8/18 到达）而训练采样（std=1，0/18）。v1.2.1 把初始 log_std 降到 −3.0（std≈0.05），采样动作下训练集已实测 6/18 到达。若假设成立，第 9 轮训练日志应首次出现 goal_reached>0，到达分支梯度恢复到 ≥0.04，并在 dev 上出现非零的『到达且预算内』或至少 dev SR 明显高于 0.0。",
+  "falsification": "若第 9 轮训练日志全程 goal_reached 仍为 0，说明低噪声初始化仍不足以打断自锁；按 uncertainty_policy 停止，写正式负结果并结案，不加第 10 轮、不放宽时限或判据。",
+  "method": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "runs": 6
+  },
+  "environment": {
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5
+  },
+  "budget": {
+    "sampling": {
+      "kind": "uniform",
+      "k_low": 0.6,
+      "k_high": 1.3
+    }
+  },
+  "algorithm": {
+    "lr_policy": 0.0003,
+    "lr_critic": 0.001,
+    "epochs_per_window": 10,
+    "minibatch_size": 512,
+    "ent_coef": 0.01,
+    "log_std_learnable_range": [
+      -5.0,
+      1.0
+    ],
+    "warm_start": {},
+    "fresh_init": true,
+    "fresh_init_reason": "第 8 轮权重在无正例下再次收敛到近零动作；必须从零初始化才能让新的初始偏置与低噪声初值生效。"
+  },
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600
+  },
+  "checkpoints": {
+    "save_every_updates": 50,
+    "final_checkpoint": "最后一个更新"
+  },
+  "round_acceptance": {
+    "closing_tier_source": "development 6 图 × 3 种子，确定性均值动作，k=1.0",
+    "dev_success_rate_median": 0.1,
+    "per_method": "两方法都必须 >= 0.10（SR 条件）；『预算内到达』为主判据，正式判定归 NAV-066",
+    "budget_response_on_dev": {
+      "grid_k": [
+        0.7,
+        0.85,
+        1.0,
+        1.15,
+        1.3
+      ],
+      "purpose": "诊断：预算内到达是否首次出现非零"
+    },
+    "primary_questions_this_round": [
+      "训练日志 goal_reached 累计是否首次 > 0（自锁是否被打破）",
+      "『到达且 z_end>=0』是否首次出现非零（主判据）",
+      "到达分支梯度是否从第 8 轮的 0.016~0.048 恢复到 >= 0.04",
+      "两方法 dev SR 中位数是否 >= 0.10",
+      "6 个 run 是否全部完整跑完 600 更新"
+    ],
+    "ideal_tier": {
+      "sr": 0.9,
+      "collision_rate": 0.0,
+      "blocking": false
+    }
+  },
+  "resource": {
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 12.0,
+    "max_rounds": 4,
+    "runs_this_round": 6,
+    "used_so_far": {
+      "rounds": 8,
+      "calendar_hours": 10.8
+    },
+    "runs_used_total": 48,
+    "note": "第 9 轮为 extra_round_policy 的上限轮，预计 +1.3 h、累计约 12.1 h，略超 12.0 h 约 0.1 h，已如实登记；无论结果如何本轮后 NAV-064 收尾。"
+  },
+  "data_access": {
+    "train": "训练取样（18 图）",
+    "development": "唯一判定来源",
+    "budget_selection": "本循环禁止使用",
+    "final_*": "封存",
+    "audit": "收尾给出实际加载路径清单与 split hash；本轮 6 个 run 均为 fresh_init"
+  },
+  "stops": {
+    "met": "立刻停止，进入 NAV-065 候选冻结",
+    "rounds_exhausted": "第 9 轮为上限轮，无论结果如何 NAV-064 收尾",
+    "wall_clock": "立刻停止当前 run，不延长",
+    "infrastructure": "换 run id 重跑，与原 attempt 一并报告",
+    "semantic_doubt": "若仍无到达正例，写正式负结果并结案，不加第 10 轮"
+  },
+  "reporting": "reports/training_round_r9.json + 台账更新；报告须与第 8 轮逐项对比（到达正例数、到达分支梯度、顶格率、每步功率、成本、超支、预算内到达、SR）",
+  "objective_signal_fix": {
+    "joint_cost_weight": 50.0,
+    "joint_min_recursion": false
+  },
+  "budget_accounting": "consistent",
+  "action_bounded": true,
+  "action_init_fix": {
+    "enabled": true,
+    "initial_forward_speed": 0.465,
+    "log_std_min": -5.0,
+    "log_std_init": -3.0
+  },
+  "field_placement_note": "四个开关全部置于顶层；训练器 188/330/332/355 行与评估器 125/143 行均从顶层 prereg.get 读取。冻结后必须回读一遍再启动。"
+}
