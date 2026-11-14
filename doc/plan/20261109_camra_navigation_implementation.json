@@ -6343,6 +6343,46 @@
             "按结果收尾：达标进入 NAV-065 候选冻结；仍全 0 则写正式负结果并结案，不加第 10 轮"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T11:20:00+08:00",
+          "summary": "第 9 轮（上限轮）完成：训练期首次出现 639 次到达并全部集中在前 100 更新，到达/成本梯度比 2.263→0.477；但 300 更新后到达消失，策略回到少动省油解，两方法 dev SR 仍 0.0/0.0，关闭档未达成。按 stops.rounds_exhausted 收尾，NAV-064 保持 false，不加第 10 轮。",
+          "actions": [
+            "核对 ROUND9_DONE/exit_codes/6 份 train_log：600 更新、exit 0、1.47 h",
+            "tmux 跑 eval_training_round.py --round 9 生成 reports/training_round_r9.json（EVAL_RC=0）",
+            "统计训练期目标到达随 update 窗口的分布：639 次全部在 0-100（149/85/159/40/88/35），100-300 仅 83 次，300-600 为 0",
+            "对比 r8/r9 成本、剩余预算、离终点距离、结局标签与梯度比",
+            "docs 追加第 9 轮结果章节、台账 round_9_result、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "reports/training_round_r9.json",
+            "reports/training_loop_rounds.json",
+            "docs/algorithm_implementation.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "eval_training_round.py --round 9 --prereg training_loop_prereg_r9.json --run-ids <6> --out reports/training_round_r9.json",
+            "t_diag_r9.py（对比 r8/r9 训练期到达与梯度）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "训练期 goal_reached 累计 639（r8 为 0），全部集中在前 100 更新；300-600 完全为 0",
+            "成本/到达梯度比 2.263→0.477，到达分支一度压过成本分支",
+            "开发集成功率仍 0.0/0.0，预算内到达仍 0；成本 130.6/118.3 J（r8 157.9/158.5，更省油），离终点 10.26/11.53 m（r8 8.87/10.37，更远）",
+            "结论：初始化修正对冷启动有效，但训练目标把到达行为教坏；瓶颈转移到成本项权重",
+            "第 9 轮为上限轮，按 stops.rounds_exhausted 收尾；NAV-064 保持 false，不加第 10 轮、不放宽判据"
+          ],
+          "evidence": [
+            "reports/training_round_r9.json（closing_tier、6 run dev 与 budget_response）",
+            "t_diag_r9.py 输出：各 run 窗口分布与梯度比",
+            "评估日志 /tmp/nav064_eval_r9.log（EVAL_RC=0）",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "由用户裁定下一步：在 NAV-065/061–063 范围内处理成本项（降 w / 只在超支时罚 / 分阶段训练），或按现有最好候选走正式预算判定",
+            "NAV-064 关闭档仍未达成，保持 false；本循环已到第 9 轮上限，不再加轮"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
