@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "round_10_launched_pending_result",
+  "status": "round_10_complete_not_met_pending_user_decision",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -436,7 +436,8 @@
     "第 8 轮失败触发证伪条款：训练期 0 到达。根因是验收用确定性动作、训练用采样动作；已修（log_std_init=-3，采样 6/18 到达）。第 9 轮需单独授权",
     "第 9 轮（用户 09:11 授权，上限轮）已于 09:12:48 启动；低噪声初始化 v1.2.1，采样动作离线 6/18 到达。结果决定 NAV-064 收尾方向",
     "第 9 轮（上限轮）完成：训练期首次出现 639 次到达（前 100 更新），但训练目标把策略推回少动省油解，dev SR 仍 0.0。瓶颈已转移到成本项权重，建议在 NAV-065/061–063 范围内处理，而非继续调初始化",
-    "第 9 轮审计：初始化改动符合依据且生效（初始 0.465 m/s、离终点 0.6 m），但训练把速度压成衰减曲线（0.28→−0.06）；下一步应改成本项（超支才罚 / 降 w / 分阶段），不再调初始化"
+    "第 9 轮审计：初始化改动符合依据且生效（初始 0.465 m/s、离终点 0.6 m），但训练把速度压成衰减曲线（0.28→−0.06）；下一步应改成本项（超支才罚 / 降 w / 分阶段），不再调初始化",
+    "第 10 轮完成：遮蔽使到达样本维持到训练后段（300-500 窗口 180 次）、停滞 49497→5431、开发集离终点 10.26→5.87 m，但速度仍回合内衰减到 0，dev SR 仍 0.0；剩余瓶颈为速度衰减通道与 30 s 时间预算（需 0.486 m/s，参考 0.465 差 4%）"
   ],
   "round_7_preregistration": {
     "date": "2026-11-13",
@@ -1103,7 +1104,7 @@
       "sha256": "583ef08535e87fe13ca9c0bd3d4b36c046824abbcf0b3b96c22b34ebfd755fff",
       "version": "r10.0.0"
     },
-    "status": "frozen_before_round_10_launched",
+    "status": "complete_not_met",
     "cap_override": "突破第 9 轮上限（用户当次授权）；累计 13.6 h 超 12 h 约 13%，如实登记",
     "switches": {
       "budget_accounting": "consistent",
@@ -1135,6 +1136,112 @@
     "not_claimed": [
       "结果未产生，不宣称到达能维持",
       "不宣称达标"
-    ]
+    ],
+    "result": "dev SR 0.0/0.0；训练期到达 1597，300-500 窗口 180 次；离终点 5.87/8.70 m"
+  },
+  "round_10_result": {
+    "date": "2026-11-14",
+    "prereg_sha256": "583ef08535e87fe13ca9c0bd3d4b36c046824abbcf0b3b96c22b34ebfd755fff",
+    "change": "cost_on_overspend_only=True（成本项只在 z<0 时计入 g_train）",
+    "runs": "6/6 完整 600 更新，exit 0，1.30 h，11:50:38→13:08:36",
+    "closing_tier": {
+      "uncalibrated": 0.0,
+      "full": 0.0
+    },
+    "sr_within_budget_max": 0.0,
+    "closing_tier_met": false,
+    "training_goal_reached_total": 1597,
+    "goal_reached_by_window": {
+      "uncalibrated_s0": [
+        191,
+        126,
+        54,
+        22
+      ],
+      "uncalibrated_s1": [
+        400,
+        276,
+        70,
+        23
+      ],
+      "uncalibrated_s2": [
+        87,
+        22,
+        56,
+        0
+      ],
+      "full_s0": [
+        77,
+        14,
+        0,
+        4
+      ],
+      "full_s1": [
+        125,
+        3,
+        0,
+        0
+      ],
+      "full_s2": [
+        47,
+        0,
+        0,
+        0
+      ],
+      "windows": [
+        "0-100",
+        "100-300",
+        "300-500",
+        "500-600"
+      ]
+    },
+    "stagnation_steps_total": 5431,
+    "timeout_steps_total": 69098,
+    "cost_mean_J": {
+      "uncalibrated": 310.6,
+      "full": 306.8
+    },
+    "z_end_mean_J": {
+      "uncalibrated": 94.6,
+      "full": 175.5
+    },
+    "min_goal_distance_m": {
+      "uncalibrated": 5.87,
+      "full": 8.7
+    },
+    "steps_mean": {
+      "uncalibrated": 259,
+      "full": 267
+    },
+    "episode_labels": "uncal: 11 timeout + 5 collision + 2 stagnation；full: 14 timeout + 1 collision + 3 stagnation",
+    "overspent_episodes": {
+      "uncalibrated": "2/18",
+      "full": "0/18"
+    },
+    "grad_last50_mean": {
+      "reach": 0.0364,
+      "cost": 0.0201,
+      "ratio": 0.552
+    },
+    "vx_by_50_uncal_s0_l1_empty_s2001": [
+      0.621,
+      0.57,
+      0.508,
+      0.282,
+      0.054,
+      0.005
+    ],
+    "vx_by_50_fresh_l1_empty_s2001": [
+      0.463,
+      0.464,
+      0.464,
+      0.465,
+      0.465,
+      0.466
+    ],
+    "required_mean_speed_mps": 0.486,
+    "verdict": "遮蔽把到达样本保到训练后段（300-500 窗口 180 次，r9 为 0）、停滞 49497→5431、开发集离终点 10.26→5.87 m；但速度仍在回合内衰减到 0，30 s 时间预算本就需要 0.486 m/s（参考速度 0.465 差 4%），dev SR 仍 0.0/0.0",
+    "conclusion": "瓶颈从『到达样本缺失』转移到『速度在回合内衰减 + 时间预算边界』；遮蔽项 16/18 回合未触发，残留衰减来自目标中其余与能耗耦合的通道（推断，未分项实测）",
+    "decision": "NAV-064 保持 false；是否继续第 11 轮或改速度/衰减通道，需用户当次授权"
   }
 }

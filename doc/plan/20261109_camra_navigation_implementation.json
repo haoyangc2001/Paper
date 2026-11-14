@@ -6476,6 +6476,52 @@
             "按判据收尾：达标进 NAV-065；若后期到达仍为 0 则写正式负结果，不加第 11 轮"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T14:55:00+08:00",
+          "summary": "第 10 轮完成：成本项遮蔽使训练期到达从 639 增至 1597，且 300-500 窗口首次保住 180 次（r9 为 0），停滞 49497→5431，开发集离终点 10.26→5.87 m；但回合内速度仍从 0.621 衰减到 0.005，dev SR 仍 0.0/0.0、预算内到达仍 0，closing_tier_met=false。NAV-064 保持 false。",
+          "actions": [
+            "核对 ROUND10_DONE/exit_codes/6 份 train_log：600 更新、exit 0、1.30 h（11:50:38→13:08:36）",
+            "tmux 跑 eval_training_round.py --round 10 生成 reports/training_round_r10.json（EVAL_RC=0）",
+            "统计训练期 goal_reached 的 update 窗口分布：合计 1597，未校准 3 run 在 300-500 窗口为 54/70/56",
+            "对比 r9/r10 的成本、剩余预算、离终点、结局标签、梯度比与停滞步数",
+            "轨迹审计：同一开发图上对比 FRESH / r9 / r10 的每 50 步前进速度",
+            "核对超支回合数与回合末预算，判断遮蔽项实际触发比例",
+            "docs 追加第 10 轮结果章节、台账 round_10_result、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "reports/training_round_r10.json",
+            "reports/training_loop_rounds.json",
+            "docs/algorithm_implementation.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "eval_training_round.py --round 10 --prereg training_loop_prereg_r10.json --run-ids <6> --out reports/training_round_r10.json",
+            "t_diag_r10.py（r9/r10 训练期到达窗口与梯度）",
+            "t_audit_trajectory_r10.py（FRESH vs TRAINED_r10 逐段速度）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "训练期到达 1597（r9 639、r8 0）；未校准 300-500 窗口 54/70/56，r9 该窗口全 0 → 到达行为首次延续到训练后段",
+            "停滞步数 49497→5431；到达梯度 0.0250→0.0364，成本梯度 0.0119→0.0201，比值 0.477→0.552",
+            "开发集离终点 10.26/11.53→5.87/8.70 m，步数 203/210→259/267，成本 130.6/118.3→310.6/306.8 J，剩余预算 274.5/364.0→94.6/175.5 J",
+            "dev SR 仍 0.0/0.0、预算内到达仍 0、closing_tier_met=false",
+            "逐段速度：r10 起步 0.621 m/s（快于初始 0.465），随后 0.570/0.508/0.282/0.054/0.005，末段归零；r9 为 0.282→−0.064",
+            "时间预算边界：路线约 14.6 m / 30 s 需 0.486 m/s；FRESH 以 0.465 恒定速度终点前 0.6 m 即 timeout",
+            "遮蔽触发比例：未校准 2/18、完整 0/18 回合超支 → 残留衰减不来自被遮蔽的每步成本项（推断，未分项实测）"
+          ],
+          "evidence": [
+            "reports/training_round_r10.json（closing_tier、6 run dev 与逐回合明细）",
+            "t_diag_r10.py 输出：r9/r10 各 run 窗口分布与梯度比",
+            "t_audit_trajectory_r10.py 输出：FRESH 0.463 恒定 min_dist 0.6 m；TRAINED_r10_s0 0.621→0.005 min_dist 5.9 m",
+            "评估日志 /tmp/nav064_eval_r10.log（EVAL_RC=0）",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "由用户裁定：是否继续第 11 轮，或在 NAV-065/061–063 范围内处理速度衰减通道",
+            "NAV-064 关闭档仍未达成，保持 false"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
