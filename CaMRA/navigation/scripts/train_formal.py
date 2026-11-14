@@ -136,7 +136,7 @@ def verify_prereg(name: str) -> tuple[dict, str]:
     actual = hashlib.sha256(payload).hexdigest()
     if actual != sha:
         raise SystemExit(
-            f"prereg hash mismatch: {PREREG} is {actual[:16]}... but the frozen "
+            f"prereg hash mismatch: {name} is {actual[:16]}... but the frozen "
             f"pin says {sha[:16]}...; a frozen prereg must never be edited in place"
         )
     return json.loads(payload.decode("utf-8")), actual
@@ -405,6 +405,20 @@ def main() -> int:
     print(f"[CURRICULUM] enabled={curr_on} warmup_updates={curr_warmup} "
           f"w_after_warmup={w}", flush=True)
 
+    # NAV-064 盖章段隔离（dead_step_mask，默认关闭）：不可逆安全历史 y=1 之后，
+    # h=max(g_norm,C·y) 恒为 1，目标与基线同时被钉死；这些步既没有「离终点多近」
+    # 的信息，又会通过优势标准化把整体统计量往常数上拽。默认 False 保证旧预登记
+    # 逐位不变；只改**哪些样本参与损失**，不改 W / τ* / 可行性判据 / 目标定义。
+    dsm = prereg.get("dead_step_mask", {})
+    dsm_on = bool(dsm.get("enabled", False))
+    dsm_policy = bool(dsm.get("mask_policy_surrogate", True)) if dsm_on else False
+    dsm_reach = bool(dsm.get("mask_reach_regression", True)) if dsm_on else False
+    dsm_field = str(dsm.get("field", "safety_y"))
+    if dsm_on and dsm_field != "safety_y":
+        raise SystemExit(f"dead_step_mask.field={dsm_field!r} 不受支持（只允许 safety_y）")
+    print(f"[DEAD-STEP-MASK] enabled={dsm_on} field={dsm_field} "
+          f"policy={dsm_policy} reach={dsm_reach}", flush=True)
+
     if args.init_from:
         prev = S.atomic_load(args.init_from)
         net.load_state_dict(prev["model"])
@@ -595,11 +609,23 @@ def main() -> int:
             "value_reach_old": torch.as_tensor(batch_arrays["value_reach"], dtype=torch.float32),
             "target_reach": torch.as_tensor(batch_arrays["obj_target_reach"], dtype=torch.float32),
         }
+        if dsm_on:
+            # 有效样本 = 本步**尚未**触发不可逆安全历史（safety_y=0）。
+            live = torch.as_tensor((np.asarray(batch_arrays["safety_y"]) <= 0.5),
+                                   dtype=torch.float32)
+            if dsm_policy:
+                batch["live_policy"] = live
+            if dsm_reach:
+                batch["live_reach"] = live
         epochs = int(prereg["algorithm"].get("epochs_per_window", 1))
         mb = int(prereg["algorithm"].get("minibatch_size", 0)) or int(batch["obs"].shape[0])
         n_samples = int(batch["obs"].shape[0])
         stats_acc: dict[str, list[float]] = {}
         grad_steps = 0
+        # 盖章段隔离打开时，一个 minibatch 可能整批落在 y=1 段（完整变体里成片出现）。
+        # 这种批没有有效样本，跳过并计数；不抬高阈值、不放宽掩码。
+        mask_keys = [k for k in ("live_policy", "live_reach") if k in batch]
+        skipped_mb = 0
         for _epoch in range(epochs):
             perm = torch.randperm(n_samples)
             for start in range(0, n_samples, mb):
@@ -607,6 +633,11 @@ def main() -> int:
                 if int(sel.numel()) < 2:
                     continue
                 sub = {k: v[sel] for k, v in batch.items()}
+                if mask_keys:
+                    kept = min(float((sub[k] > 0.5).sum()) for k in mask_keys)
+                    if kept < 2:
+                        skipped_mb += 1
+                        continue
                 st_sub = updater.update(sub)
                 net.policy.clamp_log_std()   # amend2: log_std ∈ [-5, 1]
                 grad_steps += 1
@@ -615,6 +646,8 @@ def main() -> int:
                         stats_acc.setdefault(k, []).append(v)
         stats = {k: float(np.mean(v)) for k, v in stats_acc.items()}
         stats["grad_steps"] = float(grad_steps)
+        if mask_keys:
+            stats["mask_skipped_minibatches"] = float(skipped_mb)
 
         # ---- audit chunks (per-env stores keep global_step continuity) ----
         for st, kind, arrays, env_done in window_segments:

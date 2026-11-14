@@ -1,0 +1,94 @@
+{
+ "schema": "camra-nav064-switch-prereg-v1",
+ "version": "deadstep-mask.1.0.0",
+ "created_at": "2026-11-14T22:10:00+08:00",
+ "task": "NAV-064",
+ "status": "implemented_not_enabled",
+ "purpose": "把「不可逆安全历史已触发（safety_y=1）」之后的步从**策略损失**与**reach 评价回归**中隔离。理由是这些步的目标被 h=max(g_norm,C·y) 钉成常数 1：既不含「离终点多近」的信息，又会通过优势标准化把统计量往常数上拽。",
+ "switch": {
+  "enabled": false,
+  "mask_policy_surrogate": true,
+  "mask_reach_regression": true,
+  "field": "safety_y",
+  "semantics": {
+   "mask_policy_surrogate": "优势标准化的 mean/std、PPO 代理目标、熵项，全部只在 safety_y=0 的样本上取统计与均值；被遮蔽样本不贡献策略梯度。",
+   "mask_reach_regression": "reach 评价网络的截断价值损失只在 safety_y=0 的样本上取均值；成本评价网络**不遮蔽**（其目标在盖章段仍有定义）。",
+   "unchanged": [
+    "W(t,τ) 的定义与 τ* 的选取",
+    "可行性判据 W<=beta",
+    "g / g_train / target_* 的数值（只改哪些样本参与损失）",
+    "safety_y 的不可逆语义与几何膨胀半径",
+    "终止/截断语义、预算扣费口径"
+   ]
+  }
+ },
+ "implementation": {
+  "files": [
+   "src/camra_navigation/algorithm/ppo.py",
+   "scripts/train_formal.py",
+   "tests/test_dead_step_mask.py"
+  ],
+  "default_off_proof": "mask=None 时 _apply_mask 原样返回同一张量；DM1/DM6 实测差 0.0",
+  "guard": "某 minibatch 有效样本 <2 时跳过并计数（mask_skipped_minibatches），不抬阈值"
+ },
+ "verification": {
+  "unit_tests": "tests/test_dead_step_mask.py DM1–DM7 全 PASS",
+  "regression_suites": "10 个套件 rc=0（含 rcppo_alignment / minimization_update / training_semantics / objective_signal_fix / budget_action_fix / action_init_fix / cost_mask / steering_curriculum / rollout_resume）",
+  "gate_g3": "reports/gate_G3_alignment_v2.json verdict=PASS，22/22",
+  "smoke": "config/dead_step_mask_smoke_prereg.json + --smoke-updates 2（仅机械验证）"
+ },
+ "counter_evidence": {
+  "note": "以下三条是**实施前**在冻结样本与检查点上实测的，指向同一个结论：本开关是清理，不是治本；不足以解释「离线 4/6 起点到训练后 0~2/6」。",
+  "policy_channel": {
+   "method": "state_u600 权重 + 末段真实样本各 5.5 万步，只改参与损失的样本",
+   "full": {
+    "dead_fraction": 0.4926,
+    "cos_all_vs_masked": 0.954,
+    "grad_norm_all": 0.7412,
+    "grad_norm_masked": 0.9008,
+    "cos_live_vs_dead": 0.51
+   },
+   "uncalibrated": {
+    "dead_fraction": 0.0154,
+    "cos_all_vs_masked": 0.997
+   },
+   "reading": "方向偏约 17 度、范数放大 22%；两组样本同向（cos +0.51），所以不是「反着推」，是「稀释」；主臂几乎不受影响。"
+  },
+  "reach_channel": {
+   "err_mass_share_dead": {
+    "full": 0.0368,
+    "uncalibrated": 0.0047
+   },
+   "err_mean_live_vs_dead": {
+    "full": [
+     0.000984,
+     3.9e-05
+    ]
+   },
+   "grad_norm_masked_vs_all": {
+    "full": [
+     0.0109,
+     0.0081
+    ]
+   },
+   "reading": "盖章段只占平方误差质量的 3.7%，且两组误差都已很小；屏蔽它近乎空转。"
+  },
+  "reason_not_enabled": "开关本身成立且可逆，但证据表明它改不动主因；在没有新一轮授权、且 r11 预登记已冻结「本轮后收尾」的前提下，不启用、不训练。"
+ },
+ "activation_rule": "启用必须由**新的**轮次预登记显式声明 dead_step_mask.enabled=true 并先冻结哈希；本文件不构成任何训练授权。",
+ "sources": {
+  "template_prereg": {
+   "path": "config/training_loop_prereg_r11.json",
+   "sha256": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2"
+  },
+  "deadsteps_report": {
+   "path": "reports/training_round_r11_deadsteps.json"
+  },
+  "grad_counterfactual": {
+   "path": "reports/training_round_r11_grad_counterfactual.json"
+  },
+  "prior_erasure": {
+   "path": "reports/training_round_r11_prior_erasure.json"
+  }
+ }
+}

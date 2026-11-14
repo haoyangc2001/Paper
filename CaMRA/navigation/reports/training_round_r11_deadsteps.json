@@ -1,0 +1,219 @@
+{
+ "task": "NAV-064",
+ "kind": "dead_step_gradient_diagnosis",
+ "n_chunks_per_env": 60,
+ "runs": [
+  {
+   "run": "nav064_r11_uncalibrated_s0",
+   "chunks": 1080,
+   "chunks_total": 21670,
+   "steps": 127739,
+   "dead_steps": 3269,
+   "dead_frac": 0.0256,
+   "A_signal": {
+    "adv_all": {
+     "n": 127739,
+     "mean": 0.150314,
+     "std": 0.130825,
+     "p05": -0.033878,
+     "p95": 0.380787,
+     "abs_mean": 0.161128,
+     "abs_sum": 20582.327
+    },
+    "adv_live": {
+     "n": 124470,
+     "mean": 0.154084,
+     "std": 0.129528,
+     "p05": -0.02776,
+     "p95": 0.38209,
+     "abs_mean": 0.163944,
+     "abs_sum": 20406.051
+    },
+    "adv_dead": {
+     "n": 3269,
+     "mean": 0.006771,
+     "std": 0.093941,
+     "p05": -0.090984,
+     "p95": 0.244092,
+     "abs_mean": 0.053924,
+     "abs_sum": 176.276
+    },
+    "abs_adv_share_live": 0.9914,
+    "zero_adv_frac_dead": 0.0,
+    "zero_adv_frac_live": 0.0,
+    "target_minus_value_dead_mean": 0.006771,
+    "target_minus_value_live_mean": 0.154084,
+    "stop_now_dead": 0.5864,
+    "stop_now_live": 0.0211
+   },
+   "B_normalization_bias": {
+    "adv_mean_all": 0.150314,
+    "adv_std_all": 0.130825,
+    "adv_mean_live": 0.154084,
+    "adv_std_live": 0.129528,
+    "adv_mean_dead": 0.006771,
+    "bias_unmasked": -1.0972,
+    "bias_if_live_stats": -1.1373,
+    "live_adv_shrink_factor": 1.01,
+    "note": "bias_unmasked=(dead_mean−all_mean)/all_std：盖章段在**全样本**标准化下拿到的常数优势；bias_if_live_stats 是同一批样本若按有效样本统计量标准化会拿到什么（屏蔽后它们不再进损失，数值只用于说明偏置来源）"
+   },
+   "C_masking": {
+    "kept_fraction": 0.9744
+   },
+   "speed_by_group": {
+    "vx_live": 0.4772,
+    "vx_dead": 0.3432,
+    "goal_dist_live": 8.412,
+    "goal_dist_dead": 6.473
+   },
+   "per_phase": [
+    {
+     "phase": 0,
+     "n": 32229,
+     "dead_frac": 0.0034,
+     "adv_live_abs_mean": 0.196909,
+     "adv_all_std": 0.154101,
+     "vx_live": 0.4683,
+     "vx_dead": 0.4619,
+     "goal_dist_live": 8.336
+    },
+    {
+     "phase": 1,
+     "n": 30877,
+     "dead_frac": 0.0262,
+     "adv_live_abs_mean": 0.15368,
+     "adv_all_std": 0.117826,
+     "vx_live": 0.4773,
+     "vx_dead": 0.486,
+     "goal_dist_live": 9.237
+    },
+    {
+     "phase": 2,
+     "n": 31441,
+     "dead_frac": 0.0285,
+     "adv_live_abs_mean": 0.137768,
+     "adv_all_std": 0.107026,
+     "vx_live": 0.4816,
+     "vx_dead": 0.3219,
+     "goal_dist_live": 8.577
+    },
+    {
+     "phase": 3,
+     "n": 33192,
+     "dead_frac": 0.0438,
+     "adv_live_abs_mean": 0.165494,
+     "adv_all_std": 0.131365,
+     "vx_live": 0.4819,
+     "vx_dead": 0.2681,
+     "goal_dist_live": 7.547
+    }
+   ]
+  },
+  {
+   "run": "nav064_r11_full_s0",
+   "chunks": 1080,
+   "chunks_total": 21462,
+   "steps": 125063,
+   "dead_steps": 63512,
+   "dead_frac": 0.5078,
+   "A_signal": {
+    "adv_all": {
+     "n": 125063,
+     "mean": 0.042692,
+     "std": 0.099808,
+     "p05": -0.032896,
+     "p95": 0.246357,
+     "abs_mean": 0.05633,
+     "abs_sum": 7044.853
+    },
+    "adv_live": {
+     "n": 61551,
+     "mean": 0.079885,
+     "std": 0.121331,
+     "p05": -0.063535,
+     "p95": 0.312462,
+     "abs_mean": 0.099413,
+     "abs_sum": 6118.965
+    },
+    "adv_dead": {
+     "n": 63512,
+     "mean": 0.006648,
+     "std": 0.05205,
+     "p05": -0.017523,
+     "p95": 0.034459,
+     "abs_mean": 0.014578,
+     "abs_sum": 925.889
+    },
+    "abs_adv_share_live": 0.8686,
+    "zero_adv_frac_dead": 0.0,
+    "zero_adv_frac_live": 0.0,
+    "target_minus_value_dead_mean": 0.006648,
+    "target_minus_value_live_mean": 0.079885,
+    "stop_now_dead": 0.7097,
+    "stop_now_live": 0.1633
+   },
+   "B_normalization_bias": {
+    "adv_mean_all": 0.042692,
+    "adv_std_all": 0.099808,
+    "adv_mean_live": 0.079885,
+    "adv_std_live": 0.121331,
+    "adv_mean_dead": 0.006648,
+    "bias_unmasked": -0.3611,
+    "bias_if_live_stats": -0.6036,
+    "live_adv_shrink_factor": 0.8226,
+    "note": "bias_unmasked=(dead_mean−all_mean)/all_std：盖章段在**全样本**标准化下拿到的常数优势；bias_if_live_stats 是同一批样本若按有效样本统计量标准化会拿到什么（屏蔽后它们不再进损失，数值只用于说明偏置来源）"
+   },
+   "C_masking": {
+    "kept_fraction": 0.4922
+   },
+   "speed_by_group": {
+    "vx_live": 0.435,
+    "vx_dead": 0.3402,
+    "goal_dist_live": 11.503,
+    "goal_dist_dead": 9.594
+   },
+   "per_phase": [
+    {
+     "phase": 0,
+     "n": 31300,
+     "dead_frac": 0.4092,
+     "adv_live_abs_mean": 0.177363,
+     "adv_all_std": 0.157234,
+     "vx_live": 0.4601,
+     "vx_dead": 0.4434,
+     "goal_dist_live": 9.956
+    },
+    {
+     "phase": 1,
+     "n": 30108,
+     "dead_frac": 0.5539,
+     "adv_live_abs_mean": 0.095644,
+     "adv_all_std": 0.071518,
+     "vx_live": 0.4602,
+     "vx_dead": 0.393,
+     "goal_dist_live": 11.486
+    },
+    {
+     "phase": 2,
+     "n": 31113,
+     "dead_frac": 0.5851,
+     "adv_live_abs_mean": 0.076395,
+     "adv_all_std": 0.061174,
+     "vx_live": 0.4364,
+     "vx_dead": 0.3207,
+     "goal_dist_live": 12.191
+    },
+    {
+     "phase": 3,
+     "n": 32542,
+     "dead_frac": 0.4862,
+     "adv_live_abs_mean": 0.034,
+     "adv_all_std": 0.036532,
+     "vx_live": 0.3861,
+     "vx_dead": 0.2234,
+     "goal_dist_live": 12.696
+    }
+   ]
+  }
+ ]
+}

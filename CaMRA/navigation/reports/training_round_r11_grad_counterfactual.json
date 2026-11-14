@@ -1,0 +1,68 @@
+{
+ "task": "NAV-064",
+ "kind": "policy_gradient_counterfactual",
+ "checkpoint": "state_u600.pt",
+ "chunks_per_env": 24,
+ "runs": [
+  {
+   "variant": "uncalibrated",
+   "run": "nav064_r11_uncalibrated_s0",
+   "samples": 54574,
+   "dead_fraction": 0.0154,
+   "reach": {
+    "err_mass_share_dead": 0.0047,
+    "err_mean_live": 0.018636,
+    "err_mean_dead": 0.005658,
+    "loss_masked": 0.004814,
+    "loss_all": 0.004762,
+    "grad_norm_masked": 0.258271,
+    "grad_norm_all": 0.251169,
+    "cos_masked_all": 1.0
+   },
+   "norms": {
+    "all": 1.297332,
+    "masked": 1.309528,
+    "live_only": 1.309524,
+    "dead_only": 4.530996
+   },
+   "cosine": {
+    "all_vs_masked": 0.9965,
+    "masked_vs_live_only": 1.0,
+    "live_vs_dead": 0.1692,
+    "all_vs_dead": 0.239
+   },
+   "dead_share_of_norm": 3.4925,
+   "note": "cosine 越接近 −1 表示两组样本把策略往相反方向推；dead_share_of_norm 是只算盖章段时的梯度范数占全样本的比例"
+  },
+  {
+   "variant": "full",
+   "run": "nav064_r11_full_s0",
+   "samples": 54777,
+   "dead_fraction": 0.4926,
+   "reach": {
+    "err_mass_share_dead": 0.0368,
+    "err_mean_live": 0.000984,
+    "err_mean_dead": 3.9e-05,
+    "loss_masked": 0.000246,
+    "loss_all": 0.00013,
+    "grad_norm_masked": 0.010922,
+    "grad_norm_all": 0.008144,
+    "cos_masked_all": 0.5666
+   },
+   "norms": {
+    "all": 0.741235,
+    "masked": 0.900838,
+    "live_only": 0.900882,
+    "dead_only": 1.050768
+   },
+   "cosine": {
+    "all_vs_masked": 0.9544,
+    "masked_vs_live_only": 1.0,
+    "live_vs_dead": 0.5101,
+    "all_vs_dead": 0.6998
+   },
+   "dead_share_of_norm": 1.4176,
+   "note": "cosine 越接近 −1 表示两组样本把策略往相反方向推；dead_share_of_norm 是只算盖章段时的梯度范数占全样本的比例"
+  }
+ ]
+}
