@@ -6383,6 +6383,43 @@
             "NAV-064 关闭档仍未达成，保持 false；本循环已到第 9 轮上限，不再加轮"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T11:35:00+08:00",
+          "summary": "按用户要求审计第 9 轮改动是否符合依据：参数层 bias/log_std 训练后仍在（tanh 0.40、log_std -2.73），行为层初始策略稳跑 0.465 m/s、离终点 0.6 m，而训练后速度从 0.28 衰减到 -0.06 并倒退。结论：改动符合依据且确实生效，但只在起点有效；训练目标的成本项把持续前进逐步消解。给出三个改训练目标的方案，均需裁定。",
+          "actions": [
+            "审计参数：读 r8/r9 共 12 个 state.pt 的 policy.head.bias 与 policy.log_std",
+            "审计行为：同一开发图对比全新初始策略与 r9_s0 训练后策略的每 50 步平均前进速度",
+            "对照训练期到达分布（639 次全在前 100 更新）解释「早期有效、后期失效」",
+            "docs 追加审计章节、台账 round_9_audit、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python /tmp/t_audit_init_fix.py（tiger11，读 12 个 state.pt）",
+            "python /tmp/t_audit_trajectory.py（tiger11，对比 FRESH 与 TRAINED 的逐段速度）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "参数未被学坏：r9 训练后 bias0 均值 0.4256（tanh 0.40）、log_std -2.725，初值 0.5037/-3.0",
+            "初始策略在 l1_empty-s2001 稳跑 0.463~0.466 m/s，30 秒后离终点 0.6 m；训练后速度 0.282→-0.064、离终点 10.1 m",
+            "结论：初始化改动符合依据且生效，但只解决起点；head 权重学出依赖观测的减速映射",
+            "根因仍是成本项：h 远离终点时饱和（变化 0.01 量级）、50·c≈0.45，每步奖励少动",
+            "方案：①成本项只在超支时罚 ②降 w 到 5~10 ③分阶段训练；另可把初始速度 0.465→0.50 补余量（非主因）"
+          ],
+          "evidence": [
+            "t_audit_init_fix.py 输出（12 个 run 的 bias/log_std/tanh）",
+            "t_audit_trajectory.py 输出（FRESH vs TRAINED 的 vx_by_50 与最近距离）",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "由用户裁定改训练目标的具体方案（超支才罚 / 降 w / 分阶段），改后需回 NAV-061~063 重验并重冻预登记",
+            "NAV-064 关闭档仍未达成，保持 false；第 9 轮已到轮次上限"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
