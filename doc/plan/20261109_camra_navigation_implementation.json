@@ -6659,6 +6659,64 @@
             "NAV-064 关闭档未达成，保持 false"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T19:45:00+08:00",
+          "summary": "按用户 19:37 授权推进建议的第 0 步：补记第 11 轮结果，并对冻结的 r11 训练样本做只读 X 光诊断。8/8 run 完成、closing_tier_met=false、SR 中位 0.0/0.0，主臂 uncal_s0 首次出现 2/6 预算内到达；时间线证伪课程假设（u50 退化早于 u150 开课）。X 光（3 run × 720 chunks，约 8.3 万步/run）证伪了 19:19 口头分析的两条推断（电费项主导、到达不发声），并把 92% 停止视野更正为 r6 历史口径（r11 主臂 3.4% / full 43%→64%），新证据显示 full 变体的可达性评价网络学反（按距离桶 V_h 近处 0.999 > 远处 0.689、corr −0.466）而主臂正常，两个变体是两种病。第 1 步方案前提因此不成立，按 NAV-064 约束停下等用户裁定；未改任何代码/契约/预登记，未启动训练。",
+          "actions": [
+            "开工对齐：重读 AGENTS_root.md、execution-rules.md、NAV-064 的 goal/constraints/acceptance/24 条历史记录；校验器 --mode update 输出 VALID（51/67、NAV-064 false）",
+            "核对本地 plan_snapshot.json 与服务器 doc/plan 权威副本 sha256 一致（c9b24e3a…）",
+            "补生成第 11 轮正式报告 training_round_r11.json / _steeronly.json（上一轮已修评估脚本并做 r10 逐位回归）",
+            "新增只读诊断 diag_xray_signal.py：五问统计（打分表构成、动作与优势、停止视野、到达步、评价网络），按 chunk 序号分 P0–P3 阶段",
+            "新增交叉验证 diag_xray_crosscheck.py：按距离桶的 V_h 均值、安全项饱和比例、到达样本数，排除低方差伪相关",
+            "文档追加第 11 轮结果与 X 光章节（含对 19:19 分析的四条更正）、台账补 round_11_result 与 round_11_xray、计划追加本条记录"
+          ],
+          "files_changed": [
+            "scripts/eval_training_round.py（上一轮修复，本轮一并纳入提交）",
+            "scripts/diag_xray_signal.py",
+            "scripts/diag_xray_crosscheck.py",
+            "reports/training_round_r11.json",
+            "reports/training_round_r11_steeronly.json",
+            "reports/training_round_r11_diag.json",
+            "reports/training_round_r11_timeline.json",
+            "reports/training_round_r11_xray.json",
+            "reports/training_round_r11_xray_crosscheck.txt",
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python /c/Users/smile/.workbuddy/skills/create-plan-worklog/scripts/validate_worklog.py plan_snapshot.json --mode update",
+            "python /tmp/nav064_xray.py（服务器，51 s）",
+            "python /tmp/nav064_xray_crosscheck.py",
+            "python validate_worklog.py --mode update（本条记录写入后）"
+          ],
+          "results": [
+            "第 11 轮：8/8 exit 0，1.60 h；关闭档未达成，SR 中位 0.0/0.0；首次 2/6 预算内到达（单种子）",
+            "X 光 Q1：电费项均值 0.0063/0.0081/0.0008，含电费项步 7.2%/9.4%/0.9%，约为单步距离变化的 2 倍（非 145 倍）",
+            "X 光 Q2：控制距离后主臂 3/5 桶前进反更优；full 变体 4/5 桶前进被罚（12m 以上 +0.0946）",
+            "X 光 Q3：stop_now 主臂 uncal 3.4%、对照 3.4%、full 43.0%（P0 26.4% → P3 64.3%）",
+            "X 光 Q4：到达步 46/83296（0.055%）与 8/82345（0.010%）；到达步 g 0.053 vs 0.528、adv≈0 vs 0.144",
+            "X 光 Q5：corr(V_h,距离) 主臂 +0.664、对照 +0.628、full +0.039（P1 −0.466、P2 −0.293）",
+            "交叉验证：full P1 按距离桶 V_h 0–3m 0.999 > 12–100m 0.689，P2 0.963 > 0.803；安全项饱和 37.4%→61.0%；vx 0.451→0.293；到达样本 P1/P2/P3 全 0"
+          ],
+          "evidence": [
+            "reports/training_round_r11.json / _steeronly.json（closing_tier、逐 run dev）",
+            "reports/training_round_r11_timeline.json（每 50 更新检查点）",
+            "reports/training_round_r11_xray.json（sha 1d48bd65…）",
+            "reports/training_round_r11_xray_crosscheck.txt（sha e1d70c6d…）",
+            "r10 逐位回归对比（除两个新增字段外 DIFF_KEYS=[]、逐图 label 与 state_sha256 相同）",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "等用户裁定：先修 full 变体的评价网络/安全项饱和，还是先解决主臂 uncal 的先验被抵消与正例稀疏，或改为分变体各自处理",
+            "裁定后按 create-plan-worklog 流程冻结新预登记；若涉及数学目标变化须回 NAV-061–063 重验 G3",
+            "NAV-064 关闭档未达成，保持 false；不加训练轮次、不放宽判据"
+          ],
+          "blockers": [
+            "19:19 建议的第 1 步（改 D4/D5 符号与量级、把『到达且预算内』写进终态残差）前提被 X 光数据推翻：r11 到达步信号并不弱、电费项也不大；按 NAV-064 约束，数学目标变化须回 NAV-061–063 重验，继续执行会返工",
+            "两个变体病因不同（full：可达性评价网络学反 + 停止掩码 43%→64%；uncal：u50 抵消转向先验 + 到达正例 0.055%），单一方案无法通吃，需用户裁定范围"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

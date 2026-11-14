@@ -1,0 +1,1712 @@
+{
+  "schema": "nav064-r11-diag-v1",
+  "note": "Independent read-only diagnostic: replays frozen-prereg switch values (incl. steering_gain) that eval_training_round.py does not pass to NW.build. Deterministic = historical report convention; sampled = training action mode, torch seed 1234, one pass per map.",
+  "prereg": {
+    "nav064_r11_uncalibrated_s0": {
+      "path": "training_loop_prereg_r11.json",
+      "sha256": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2"
+    },
+    "nav064_r11_uncalibrated_s1": {
+      "path": "training_loop_prereg_r11.json",
+      "sha256": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2"
+    },
+    "nav064_r11_uncalibrated_s2": {
+      "path": "training_loop_prereg_r11.json",
+      "sha256": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2"
+    },
+    "nav064_r11_full_s0": {
+      "path": "training_loop_prereg_r11.json",
+      "sha256": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2"
+    },
+    "nav064_r11_full_s1": {
+      "path": "training_loop_prereg_r11.json",
+      "sha256": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2"
+    },
+    "nav064_r11_full_s2": {
+      "path": "training_loop_prereg_r11.json",
+      "sha256": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2"
+    },
+    "nav064_r11_uncalibrated_s0_steeronly": {
+      "path": "training_loop_prereg_r11_steeronly.json",
+      "sha256": "54ce184a2fdd9f9b3d6328f87f4007d21cd86ee31b5a53880fc947984bd68ffb"
+    },
+    "nav064_r11_full_s0_steeronly": {
+      "path": "training_loop_prereg_r11_steeronly.json",
+      "sha256": "54ce184a2fdd9f9b3d6328f87f4007d21cd86ee31b5a53880fc947984bd68ffb"
+    }
+  },
+  "dev_maps": [
+    "l1_empty-s2001",
+    "l1_empty-s2002",
+    "l2_single_detour-s2001",
+    "l2_single_detour-s2002",
+    "l3_multi_path-s2001",
+    "l3_multi_path-s2002"
+  ],
+  "runs": [
+    {
+      "run_id": "nav064_r11_uncalibrated_s0",
+      "variant": "uncalibrated",
+      "seed": 0,
+      "steering_gain": 0.2,
+      "curriculum_enabled": true,
+      "training": {
+        "per_100_updates": {
+          "0-99": {
+            "collision": 2042,
+            "out_of_bounds": 0,
+            "goal_reached": 1219,
+            "stagnation": 0,
+            "timeout": 546
+          },
+          "100-199": {
+            "collision": 2050,
+            "out_of_bounds": 0,
+            "goal_reached": 824,
+            "stagnation": 0,
+            "timeout": 933
+          },
+          "200-299": {
+            "collision": 1922,
+            "out_of_bounds": 0,
+            "goal_reached": 31,
+            "stagnation": 0,
+            "timeout": 1653
+          },
+          "300-399": {
+            "collision": 1831,
+            "out_of_bounds": 0,
+            "goal_reached": 52,
+            "stagnation": 4,
+            "timeout": 1705
+          },
+          "400-499": {
+            "collision": 1708,
+            "out_of_bounds": 0,
+            "goal_reached": 226,
+            "stagnation": 0,
+            "timeout": 1588
+          },
+          "500-599": {
+            "collision": 519,
+            "out_of_bounds": 0,
+            "goal_reached": 646,
+            "stagnation": 12,
+            "timeout": 2129
+          }
+        },
+        "episode_label_counts": {
+          "collision": 5221,
+          "out_of_bounds": 0,
+          "goal_reached": 1513,
+          "stagnation": 7,
+          "timeout": 4178
+        },
+        "wall_hours": 1.39,
+        "n_updates": 600
+      },
+      "dev": {
+        "deterministic": {
+          "sr": 0.3333333333333333,
+          "n_goal": 2,
+          "n_arrived_within_budget": 2,
+          "mean_min_distance_m": 1.016,
+          "mean_cost_J": 385.76,
+          "min_z_end_J": -4.35,
+          "labels": {
+            "l1_empty-s2001": "timeout",
+            "l1_empty-s2002": "timeout",
+            "l2_single_detour-s2001": "goal_reached",
+            "l2_single_detour-s2002": "goal_reached",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.297,
+              "cost_model_J": 346.18,
+              "z_J_end": 16.39,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 0.966,
+              "cost_model_J": 353.32,
+              "z_J_end": 9.66,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "goal_reached",
+              "steps": 277,
+              "min_goal_distance_m": 0.492,
+              "cost_model_J": 432.82,
+              "z_J_end": 53.37,
+              "arrived_within_budget": true
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "goal_reached",
+              "steps": 279,
+              "min_goal_distance_m": 0.494,
+              "cost_model_J": 437.21,
+              "z_J_end": 42.72,
+              "arrived_within_budget": true
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.506,
+              "cost_model_J": 372.07,
+              "z_J_end": -4.35,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.343,
+              "cost_model_J": 372.95,
+              "z_J_end": -1.65,
+              "arrived_within_budget": false
+            }
+          ]
+        },
+        "sampled": {
+          "sr": 0.3333333333333333,
+          "n_goal": 2,
+          "n_arrived_within_budget": 2,
+          "mean_min_distance_m": 1.102,
+          "mean_cost_J": 392.4,
+          "min_z_end_J": -13.06,
+          "labels": {
+            "l1_empty-s2001": "timeout",
+            "l1_empty-s2002": "timeout",
+            "l2_single_detour-s2001": "goal_reached",
+            "l2_single_detour-s2002": "goal_reached",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 2.086,
+              "cost_model_J": 345.23,
+              "z_J_end": 17.34,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 0.709,
+              "cost_model_J": 367.96,
+              "z_J_end": -4.98,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "goal_reached",
+              "steps": 277,
+              "min_goal_distance_m": 0.499,
+              "cost_model_J": 437.65,
+              "z_J_end": 48.54,
+              "arrived_within_budget": true
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "goal_reached",
+              "steps": 289,
+              "min_goal_distance_m": 0.484,
+              "cost_model_J": 446.35,
+              "z_J_end": 33.59,
+              "arrived_within_budget": true
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.529,
+              "cost_model_J": 380.78,
+              "z_J_end": -13.06,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.303,
+              "cost_model_J": 376.42,
+              "z_J_end": -5.12,
+              "arrived_within_budget": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_uncalibrated_s1",
+      "variant": "uncalibrated",
+      "seed": 1,
+      "steering_gain": 0.2,
+      "curriculum_enabled": true,
+      "training": {
+        "per_100_updates": {
+          "0-99": {
+            "collision": 2068,
+            "out_of_bounds": 0,
+            "goal_reached": 989,
+            "stagnation": 0,
+            "timeout": 740
+          },
+          "100-199": {
+            "collision": 1482,
+            "out_of_bounds": 0,
+            "goal_reached": 486,
+            "stagnation": 0,
+            "timeout": 1569
+          },
+          "200-299": {
+            "collision": 1397,
+            "out_of_bounds": 0,
+            "goal_reached": 112,
+            "stagnation": 0,
+            "timeout": 1773
+          },
+          "300-399": {
+            "collision": 1119,
+            "out_of_bounds": 0,
+            "goal_reached": 74,
+            "stagnation": 0,
+            "timeout": 2164
+          },
+          "400-499": {
+            "collision": 2718,
+            "out_of_bounds": 0,
+            "goal_reached": 30,
+            "stagnation": 0,
+            "timeout": 936
+          },
+          "500-599": {
+            "collision": 2125,
+            "out_of_bounds": 0,
+            "goal_reached": 9,
+            "stagnation": 0,
+            "timeout": 1416
+          }
+        },
+        "episode_label_counts": {
+          "collision": 5519,
+          "out_of_bounds": 0,
+          "goal_reached": 858,
+          "stagnation": 0,
+          "timeout": 4097
+        },
+        "wall_hours": 1.387,
+        "n_updates": 600
+      },
+      "dev": {
+        "deterministic": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 6.345,
+          "mean_cost_J": 319.82,
+          "min_z_end_J": 38.46,
+          "labels": {
+            "l1_empty-s2001": "collision",
+            "l1_empty-s2002": "collision",
+            "l2_single_detour-s2001": "timeout",
+            "l2_single_detour-s2002": "timeout",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "collision",
+              "steps": 176,
+              "min_goal_distance_m": 6.086,
+              "cost_model_J": 261.64,
+              "z_J_end": 100.93,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "collision",
+              "steps": 177,
+              "min_goal_distance_m": 6.505,
+              "cost_model_J": 257.31,
+              "z_J_end": 105.67,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.028,
+              "cost_model_J": 375.3,
+              "z_J_end": 110.89,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.342,
+              "cost_model_J": 373.24,
+              "z_J_end": 106.7,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 4.746,
+              "cost_model_J": 318.61,
+              "z_J_end": 49.11,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 4.364,
+              "cost_model_J": 332.84,
+              "z_J_end": 38.46,
+              "arrived_within_budget": false
+            }
+          ]
+        },
+        "sampled": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 5.916,
+          "mean_cost_J": 340.28,
+          "min_z_end_J": -22.66,
+          "labels": {
+            "l1_empty-s2001": "timeout",
+            "l1_empty-s2002": "collision",
+            "l2_single_detour-s2001": "timeout",
+            "l2_single_detour-s2002": "timeout",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 3.106,
+              "cost_model_J": 385.23,
+              "z_J_end": -22.66,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "collision",
+              "steps": 156,
+              "min_goal_distance_m": 7.453,
+              "cost_model_J": 231.4,
+              "z_J_end": 131.58,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 7.818,
+              "cost_model_J": 388.88,
+              "z_J_end": 97.31,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 7.608,
+              "cost_model_J": 387.88,
+              "z_J_end": 92.05,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 5.044,
+              "cost_model_J": 314.17,
+              "z_J_end": 53.55,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 4.466,
+              "cost_model_J": 334.12,
+              "z_J_end": 37.18,
+              "arrived_within_budget": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_uncalibrated_s2",
+      "variant": "uncalibrated",
+      "seed": 2,
+      "steering_gain": 0.2,
+      "curriculum_enabled": true,
+      "training": {
+        "per_100_updates": {
+          "0-99": {
+            "collision": 2014,
+            "out_of_bounds": 0,
+            "goal_reached": 853,
+            "stagnation": 0,
+            "timeout": 924
+          },
+          "100-199": {
+            "collision": 2190,
+            "out_of_bounds": 0,
+            "goal_reached": 662,
+            "stagnation": 0,
+            "timeout": 1044
+          },
+          "200-299": {
+            "collision": 2632,
+            "out_of_bounds": 0,
+            "goal_reached": 88,
+            "stagnation": 0,
+            "timeout": 1234
+          },
+          "300-399": {
+            "collision": 2309,
+            "out_of_bounds": 0,
+            "goal_reached": 29,
+            "stagnation": 23,
+            "timeout": 1408
+          },
+          "400-499": {
+            "collision": 1369,
+            "out_of_bounds": 0,
+            "goal_reached": 7,
+            "stagnation": 479,
+            "timeout": 1633
+          },
+          "500-599": {
+            "collision": 786,
+            "out_of_bounds": 0,
+            "goal_reached": 15,
+            "stagnation": 711,
+            "timeout": 1923
+          }
+        },
+        "episode_label_counts": {
+          "collision": 6037,
+          "out_of_bounds": 0,
+          "goal_reached": 867,
+          "stagnation": 590,
+          "timeout": 4130
+        },
+        "wall_hours": 1.406,
+        "n_updates": 600
+      },
+      "dev": {
+        "deterministic": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 6.4,
+          "mean_cost_J": 257.17,
+          "min_z_end_J": 25.1,
+          "labels": {
+            "l1_empty-s2001": "timeout",
+            "l1_empty-s2002": "timeout",
+            "l2_single_detour-s2001": "collision",
+            "l2_single_detour-s2002": "collision",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 2.154,
+              "cost_model_J": 327.37,
+              "z_J_end": 35.21,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.715,
+              "cost_model_J": 337.89,
+              "z_J_end": 25.1,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "collision",
+              "steps": 139,
+              "min_goal_distance_m": 8.418,
+              "cost_model_J": 162.21,
+              "z_J_end": 323.98,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "collision",
+              "steps": 139,
+              "min_goal_distance_m": 8.435,
+              "cost_model_J": 162.17,
+              "z_J_end": 317.76,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.866,
+              "cost_model_J": 274.78,
+              "z_J_end": 92.94,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.81,
+              "cost_model_J": 278.59,
+              "z_J_end": 92.72,
+              "arrived_within_budget": false
+            }
+          ]
+        },
+        "sampled": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 6.674,
+          "mean_cost_J": 265.39,
+          "min_z_end_J": 13.84,
+          "labels": {
+            "l1_empty-s2001": "timeout",
+            "l1_empty-s2002": "stagnation",
+            "l2_single_detour-s2001": "collision",
+            "l2_single_detour-s2002": "collision",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "stagnation"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 2.568,
+              "cost_model_J": 335.96,
+              "z_J_end": 26.61,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "stagnation",
+              "steps": 278,
+              "min_goal_distance_m": 3.257,
+              "cost_model_J": 349.15,
+              "z_J_end": 13.84,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "collision",
+              "steps": 142,
+              "min_goal_distance_m": 8.389,
+              "cost_model_J": 169.74,
+              "z_J_end": 316.45,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "collision",
+              "steps": 134,
+              "min_goal_distance_m": 8.446,
+              "cost_model_J": 169.52,
+              "z_J_end": 310.42,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.458,
+              "cost_model_J": 285.29,
+              "z_J_end": 82.43,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "stagnation",
+              "steps": 266,
+              "min_goal_distance_m": 8.924,
+              "cost_model_J": 282.7,
+              "z_J_end": 88.6,
+              "arrived_within_budget": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_full_s0",
+      "variant": "full",
+      "seed": 0,
+      "steering_gain": 0.2,
+      "curriculum_enabled": true,
+      "training": {
+        "per_100_updates": {
+          "0-99": {
+            "collision": 2165,
+            "out_of_bounds": 0,
+            "goal_reached": 775,
+            "stagnation": 0,
+            "timeout": 843
+          },
+          "100-199": {
+            "collision": 2764,
+            "out_of_bounds": 0,
+            "goal_reached": 25,
+            "stagnation": 0,
+            "timeout": 1121
+          },
+          "200-299": {
+            "collision": 2284,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 0,
+            "timeout": 1321
+          },
+          "300-399": {
+            "collision": 1583,
+            "out_of_bounds": 0,
+            "goal_reached": 2,
+            "stagnation": 0,
+            "timeout": 1897
+          },
+          "400-499": {
+            "collision": 1353,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 0,
+            "timeout": 2049
+          },
+          "500-599": {
+            "collision": 613,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 97,
+            "timeout": 2540
+          }
+        },
+        "episode_label_counts": {
+          "collision": 5517,
+          "out_of_bounds": 0,
+          "goal_reached": 420,
+          "stagnation": 45,
+          "timeout": 4722
+        },
+        "wall_hours": 1.403,
+        "n_updates": 600
+      },
+      "dev": {
+        "deterministic": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 11.474,
+          "mean_cost_J": 246.25,
+          "min_z_end_J": 149.36,
+          "labels": {
+            "l1_empty-s2001": "collision",
+            "l1_empty-s2002": "timeout",
+            "l2_single_detour-s2001": "timeout",
+            "l2_single_detour-s2002": "timeout",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "collision",
+              "steps": 126,
+              "min_goal_distance_m": 11.551,
+              "cost_model_J": 178.17,
+              "z_J_end": 253.46,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 11.513,
+              "cost_model_J": 282.76,
+              "z_J_end": 149.36,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 11.147,
+              "cost_model_J": 232.34,
+              "z_J_end": 346.46,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 10.954,
+              "cost_model_J": 232.41,
+              "z_J_end": 338.95,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 11.887,
+              "cost_model_J": 274.01,
+              "z_J_end": 163.76,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 11.79,
+              "cost_model_J": 277.8,
+              "z_J_end": 164.23,
+              "arrived_within_budget": false
+            }
+          ]
+        },
+        "sampled": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 11.547,
+          "mean_cost_J": 270.98,
+          "min_z_end_J": 120.31,
+          "labels": {
+            "l1_empty-s2001": "collision",
+            "l1_empty-s2002": "collision",
+            "l2_single_detour-s2001": "stagnation",
+            "l2_single_detour-s2002": "timeout",
+            "l3_multi_path-s2001": "stagnation",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "collision",
+              "steps": 115,
+              "min_goal_distance_m": 11.49,
+              "cost_model_J": 177.51,
+              "z_J_end": 254.13,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "collision",
+              "steps": 107,
+              "min_goal_distance_m": 11.357,
+              "cost_model_J": 175.4,
+              "z_J_end": 256.73,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "stagnation",
+              "steps": 298,
+              "min_goal_distance_m": 11.217,
+              "cost_model_J": 319.74,
+              "z_J_end": 259.06,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 11.634,
+              "cost_model_J": 320.78,
+              "z_J_end": 250.57,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "stagnation",
+              "steps": 290,
+              "min_goal_distance_m": 11.703,
+              "cost_model_J": 317.45,
+              "z_J_end": 120.31,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 11.879,
+              "cost_model_J": 315.0,
+              "z_J_end": 127.04,
+              "arrived_within_budget": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_full_s1",
+      "variant": "full",
+      "seed": 1,
+      "steering_gain": 0.2,
+      "curriculum_enabled": true,
+      "training": {
+        "per_100_updates": {
+          "0-99": {
+            "collision": 2185,
+            "out_of_bounds": 0,
+            "goal_reached": 1116,
+            "stagnation": 0,
+            "timeout": 512
+          },
+          "100-199": {
+            "collision": 2256,
+            "out_of_bounds": 0,
+            "goal_reached": 178,
+            "stagnation": 0,
+            "timeout": 1340
+          },
+          "200-299": {
+            "collision": 2089,
+            "out_of_bounds": 0,
+            "goal_reached": 2,
+            "stagnation": 77,
+            "timeout": 1533
+          },
+          "300-399": {
+            "collision": 712,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 538,
+            "timeout": 2083
+          },
+          "400-499": {
+            "collision": 671,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 800,
+            "timeout": 1880
+          },
+          "500-599": {
+            "collision": 242,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 1951,
+            "timeout": 1163
+          }
+        },
+        "episode_label_counts": {
+          "collision": 4238,
+          "out_of_bounds": 0,
+          "goal_reached": 682,
+          "stagnation": 1573,
+          "timeout": 4114
+        },
+        "wall_hours": 1.381,
+        "n_updates": 600
+      },
+      "dev": {
+        "deterministic": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 8.493,
+          "mean_cost_J": 304.32,
+          "min_z_end_J": 111.97,
+          "labels": {
+            "l1_empty-s2001": "timeout",
+            "l1_empty-s2002": "timeout",
+            "l2_single_detour-s2001": "timeout",
+            "l2_single_detour-s2002": "timeout",
+            "l3_multi_path-s2001": "collision",
+            "l3_multi_path-s2002": "collision"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 10.831,
+              "cost_model_J": 289.49,
+              "z_J_end": 142.15,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 10.59,
+              "cost_model_J": 295.37,
+              "z_J_end": 136.76,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 7.623,
+              "cost_model_J": 317.24,
+              "z_J_end": 261.56,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.444,
+              "cost_model_J": 297.05,
+              "z_J_end": 274.31,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "collision",
+              "steps": 184,
+              "min_goal_distance_m": 6.964,
+              "cost_model_J": 296.74,
+              "z_J_end": 141.03,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "collision",
+              "steps": 223,
+              "min_goal_distance_m": 6.509,
+              "cost_model_J": 330.06,
+              "z_J_end": 111.97,
+              "arrived_within_budget": false
+            }
+          ]
+        },
+        "sampled": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 9.405,
+          "mean_cost_J": 334.67,
+          "min_z_end_J": 28.34,
+          "labels": {
+            "l1_empty-s2001": "stagnation",
+            "l1_empty-s2002": "timeout",
+            "l2_single_detour-s2001": "stagnation",
+            "l2_single_detour-s2002": "stagnation",
+            "l3_multi_path-s2001": "stagnation",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "stagnation",
+              "steps": 274,
+              "min_goal_distance_m": 10.674,
+              "cost_model_J": 320.25,
+              "z_J_end": 111.39,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 11.925,
+              "cost_model_J": 331.36,
+              "z_J_end": 100.77,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "stagnation",
+              "steps": 291,
+              "min_goal_distance_m": 10.722,
+              "cost_model_J": 327.25,
+              "z_J_end": 251.55,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "stagnation",
+              "steps": 233,
+              "min_goal_distance_m": 10.683,
+              "cost_model_J": 270.63,
+              "z_J_end": 300.73,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "stagnation",
+              "steps": 249,
+              "min_goal_distance_m": 6.91,
+              "cost_model_J": 344.82,
+              "z_J_end": 92.95,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 5.518,
+              "cost_model_J": 413.7,
+              "z_J_end": 28.34,
+              "arrived_within_budget": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_full_s2",
+      "variant": "full",
+      "seed": 2,
+      "steering_gain": 0.2,
+      "curriculum_enabled": true,
+      "training": {
+        "per_100_updates": {
+          "0-99": {
+            "collision": 2029,
+            "out_of_bounds": 0,
+            "goal_reached": 1510,
+            "stagnation": 0,
+            "timeout": 272
+          },
+          "100-199": {
+            "collision": 2019,
+            "out_of_bounds": 0,
+            "goal_reached": 752,
+            "stagnation": 21,
+            "timeout": 994
+          },
+          "200-299": {
+            "collision": 1910,
+            "out_of_bounds": 0,
+            "goal_reached": 12,
+            "stagnation": 81,
+            "timeout": 1651
+          },
+          "300-399": {
+            "collision": 1867,
+            "out_of_bounds": 0,
+            "goal_reached": 6,
+            "stagnation": 16,
+            "timeout": 1657
+          },
+          "400-499": {
+            "collision": 1663,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 36,
+            "timeout": 1887
+          },
+          "500-599": {
+            "collision": 635,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 258,
+            "timeout": 2401
+          }
+        },
+        "episode_label_counts": {
+          "collision": 5231,
+          "out_of_bounds": 0,
+          "goal_reached": 1198,
+          "stagnation": 199,
+          "timeout": 4319
+        },
+        "wall_hours": 1.392,
+        "n_updates": 600
+      },
+      "dev": {
+        "deterministic": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 9.013,
+          "mean_cost_J": 273.09,
+          "min_z_end_J": 184.96,
+          "labels": {
+            "l1_empty-s2001": "collision",
+            "l1_empty-s2002": "collision",
+            "l2_single_detour-s2001": "timeout",
+            "l2_single_detour-s2002": "timeout",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "collision",
+              "steps": 111,
+              "min_goal_distance_m": 9.049,
+              "cost_model_J": 227.47,
+              "z_J_end": 204.17,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "collision",
+              "steps": 122,
+              "min_goal_distance_m": 8.632,
+              "cost_model_J": 247.17,
+              "z_J_end": 184.96,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.474,
+              "cost_model_J": 335.21,
+              "z_J_end": 243.58,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.444,
+              "cost_model_J": 333.29,
+              "z_J_end": 238.06,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 9.762,
+              "cost_model_J": 250.06,
+              "z_J_end": 187.71,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 9.716,
+              "cost_model_J": 245.35,
+              "z_J_end": 196.69,
+              "arrived_within_budget": false
+            }
+          ]
+        },
+        "sampled": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 8.566,
+          "mean_cost_J": 334.36,
+          "min_z_end_J": 102.13,
+          "labels": {
+            "l1_empty-s2001": "collision",
+            "l1_empty-s2002": "collision",
+            "l2_single_detour-s2001": "timeout",
+            "l2_single_detour-s2002": "timeout",
+            "l3_multi_path-s2001": "collision",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "collision",
+              "steps": 132,
+              "min_goal_distance_m": 7.725,
+              "cost_model_J": 278.58,
+              "z_J_end": 153.06,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "collision",
+              "steps": 271,
+              "min_goal_distance_m": 8.54,
+              "cost_model_J": 281.94,
+              "z_J_end": 150.19,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 7.959,
+              "cost_model_J": 476.67,
+              "z_J_end": 102.13,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 8.684,
+              "cost_model_J": 365.26,
+              "z_J_end": 206.1,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "collision",
+              "steps": 294,
+              "min_goal_distance_m": 8.65,
+              "cost_model_J": 326.73,
+              "z_J_end": 111.03,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 9.837,
+              "cost_model_J": 276.99,
+              "z_J_end": 165.05,
+              "arrived_within_budget": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_uncalibrated_s0_steeronly",
+      "variant": "uncalibrated",
+      "seed": 0,
+      "steering_gain": 0.2,
+      "curriculum_enabled": false,
+      "training": {
+        "per_100_updates": {
+          "0-99": {
+            "collision": 2089,
+            "out_of_bounds": 0,
+            "goal_reached": 781,
+            "stagnation": 0,
+            "timeout": 941
+          },
+          "100-199": {
+            "collision": 2324,
+            "out_of_bounds": 0,
+            "goal_reached": 161,
+            "stagnation": 0,
+            "timeout": 1347
+          },
+          "200-299": {
+            "collision": 2253,
+            "out_of_bounds": 0,
+            "goal_reached": 32,
+            "stagnation": 0,
+            "timeout": 1467
+          },
+          "300-399": {
+            "collision": 255,
+            "out_of_bounds": 0,
+            "goal_reached": 69,
+            "stagnation": 0,
+            "timeout": 2900
+          },
+          "400-499": {
+            "collision": 250,
+            "out_of_bounds": 0,
+            "goal_reached": 38,
+            "stagnation": 2,
+            "timeout": 2921
+          },
+          "500-599": {
+            "collision": 591,
+            "out_of_bounds": 0,
+            "goal_reached": 191,
+            "stagnation": 25,
+            "timeout": 2470
+          }
+        },
+        "episode_label_counts": {
+          "collision": 4060,
+          "out_of_bounds": 0,
+          "goal_reached": 640,
+          "stagnation": 12,
+          "timeout": 5676
+        },
+        "wall_hours": 1.379,
+        "n_updates": 600
+      },
+      "dev": {
+        "deterministic": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 3.54,
+          "mean_cost_J": 318.09,
+          "min_z_end_J": -34.37,
+          "labels": {
+            "l1_empty-s2001": "timeout",
+            "l1_empty-s2002": "timeout",
+            "l2_single_detour-s2001": "collision",
+            "l2_single_detour-s2002": "collision",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 0.884,
+              "cost_model_J": 377.25,
+              "z_J_end": -14.68,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.027,
+              "cost_model_J": 374.42,
+              "z_J_end": -11.43,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "collision",
+              "steps": 204,
+              "min_goal_distance_m": 8.409,
+              "cost_model_J": 177.98,
+              "z_J_end": 308.21,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "collision",
+              "steps": 197,
+              "min_goal_distance_m": 8.414,
+              "cost_model_J": 175.1,
+              "z_J_end": 304.84,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.19,
+              "cost_model_J": 402.09,
+              "z_J_end": -34.37,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.315,
+              "cost_model_J": 401.72,
+              "z_J_end": -30.42,
+              "arrived_within_budget": false
+            }
+          ]
+        },
+        "sampled": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 1.511,
+          "mean_cost_J": 397.03,
+          "min_z_end_J": -45.58,
+          "labels": {
+            "l1_empty-s2001": "timeout",
+            "l1_empty-s2002": "timeout",
+            "l2_single_detour-s2001": "timeout",
+            "l2_single_detour-s2002": "timeout",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 0.705,
+              "cost_model_J": 404.18,
+              "z_J_end": -41.61,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.677,
+              "cost_model_J": 375.87,
+              "z_J_end": -12.89,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.594,
+              "cost_model_J": 402.89,
+              "z_J_end": 83.3,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 2.336,
+              "cost_model_J": 376.19,
+              "z_J_end": 103.75,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.288,
+              "cost_model_J": 406.14,
+              "z_J_end": -38.42,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 1.468,
+              "cost_model_J": 416.89,
+              "z_J_end": -45.58,
+              "arrived_within_budget": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_full_s0_steeronly",
+      "variant": "full",
+      "seed": 0,
+      "steering_gain": 0.2,
+      "curriculum_enabled": false,
+      "training": {
+        "per_100_updates": {
+          "0-99": {
+            "collision": 1864,
+            "out_of_bounds": 0,
+            "goal_reached": 550,
+            "stagnation": 0,
+            "timeout": 1320
+          },
+          "100-199": {
+            "collision": 992,
+            "out_of_bounds": 0,
+            "goal_reached": 22,
+            "stagnation": 0,
+            "timeout": 2417
+          },
+          "200-299": {
+            "collision": 902,
+            "out_of_bounds": 0,
+            "goal_reached": 69,
+            "stagnation": 0,
+            "timeout": 2353
+          },
+          "300-399": {
+            "collision": 964,
+            "out_of_bounds": 0,
+            "goal_reached": 120,
+            "stagnation": 2,
+            "timeout": 2200
+          },
+          "400-499": {
+            "collision": 1480,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 172,
+            "timeout": 1698
+          },
+          "500-599": {
+            "collision": 1527,
+            "out_of_bounds": 0,
+            "goal_reached": 0,
+            "stagnation": 245,
+            "timeout": 1672
+          }
+        },
+        "episode_label_counts": {
+          "collision": 3828,
+          "out_of_bounds": 0,
+          "goal_reached": 374,
+          "stagnation": 200,
+          "timeout": 5444
+        },
+        "wall_hours": 1.366,
+        "n_updates": 600
+      },
+      "dev": {
+        "deterministic": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 10.352,
+          "mean_cost_J": 325.69,
+          "min_z_end_J": 84.57,
+          "labels": {
+            "l1_empty-s2001": "collision",
+            "l1_empty-s2002": "collision",
+            "l2_single_detour-s2001": "collision",
+            "l2_single_detour-s2002": "collision",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "collision",
+              "steps": 145,
+              "min_goal_distance_m": 9.423,
+              "cost_model_J": 247.13,
+              "z_J_end": 184.5,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "collision",
+              "steps": 144,
+              "min_goal_distance_m": 9.213,
+              "cost_model_J": 245.66,
+              "z_J_end": 186.47,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "collision",
+              "steps": 223,
+              "min_goal_distance_m": 11.387,
+              "cost_model_J": 393.56,
+              "z_J_end": 185.24,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "collision",
+              "steps": 204,
+              "min_goal_distance_m": 11.288,
+              "cost_model_J": 374.14,
+              "z_J_end": 197.22,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 10.209,
+              "cost_model_J": 336.2,
+              "z_J_end": 101.56,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 10.591,
+              "cost_model_J": 357.47,
+              "z_J_end": 84.57,
+              "arrived_within_budget": false
+            }
+          ]
+        },
+        "sampled": {
+          "sr": 0.0,
+          "n_goal": 0,
+          "n_arrived_within_budget": 0,
+          "mean_min_distance_m": 9.262,
+          "mean_cost_J": 321.32,
+          "min_z_end_J": 72.9,
+          "labels": {
+            "l1_empty-s2001": "collision",
+            "l1_empty-s2002": "collision",
+            "l2_single_detour-s2001": "collision",
+            "l2_single_detour-s2002": "collision",
+            "l3_multi_path-s2001": "timeout",
+            "l3_multi_path-s2002": "timeout"
+          },
+          "episodes": [
+            {
+              "map_id": "l1_empty-s2001",
+              "label": "collision",
+              "steps": 144,
+              "min_goal_distance_m": 9.623,
+              "cost_model_J": 255.07,
+              "z_J_end": 176.57,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "label": "collision",
+              "steps": 140,
+              "min_goal_distance_m": 9.615,
+              "cost_model_J": 249.55,
+              "z_J_end": 182.57,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "label": "collision",
+              "steps": 202,
+              "min_goal_distance_m": 10.943,
+              "cost_model_J": 362.1,
+              "z_J_end": 216.7,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "label": "collision",
+              "steps": 194,
+              "min_goal_distance_m": 10.571,
+              "cost_model_J": 358.5,
+              "z_J_end": 212.86,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 9.569,
+              "cost_model_J": 364.87,
+              "z_J_end": 72.9,
+              "arrived_within_budget": false
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "label": "timeout",
+              "steps": 300,
+              "min_goal_distance_m": 5.254,
+              "cost_model_J": 337.83,
+              "z_J_end": 104.2,
+              "arrived_within_budget": false
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,412 @@
+{
+  "schema": "nav064-r11-xray-v1",
+  "note": "Read-only diagnostic over frozen r11 rollout chunks. Chunk index is a monotone (not linear) proxy for training progress; P0..P3 are quartiles of chunk index. Minimization-PPO convention: positive obj_adv_total means WORSE than the baseline, so the probability of that action is pushed DOWN.",
+  "method": {
+    "n_chunks_per_env": 120,
+    "envs_sampled": [
+      0,
+      3,
+      6,
+      9,
+      12,
+      15
+    ],
+    "fields": [
+      "action_raw",
+      "goal_distance_m",
+      "goal_distance_m_next",
+      "cost_norm",
+      "obj_g",
+      "obj_g_train",
+      "obj_adv_total",
+      "obj_stop_now",
+      "value_reach",
+      "terminated",
+      "z_norm",
+      "obj_feasible"
+    ]
+  },
+  "runs": [
+    {
+      "run_id": "nav064_r11_uncalibrated_s0",
+      "tag": "main_uncal",
+      "n_chunk_files": 720,
+      "n_samples": 83296,
+      "Q1_score_composition": {
+        "distance_term_g_mean": 0.52812,
+        "distance_term_g_std": 0.24189,
+        "cost_norm_mean": 0.002369,
+        "electricity_term_mean": 0.00627,
+        "electricity_term_max": 0.22032,
+        "frac_steps_with_electricity_term": 0.0717,
+        "ratio_electricity_to_per_step_distance_gain": 2.0
+      },
+      "Q2_action_vs_advantage": {
+        "by_distance": [
+          {
+            "dist_m": "0-3",
+            "n": 8176,
+            "vx_high": 0.4788,
+            "vx_low": 0.2945,
+            "adv_when_moving": 0.02421,
+            "adv_when_idle": 0.02939,
+            "adv_penalty_for_moving": -0.00518
+          },
+          {
+            "dist_m": "3-6",
+            "n": 15322,
+            "vx_high": 0.5103,
+            "vx_low": 0.3339,
+            "adv_when_moving": 0.11404,
+            "adv_when_idle": 0.07536,
+            "adv_penalty_for_moving": 0.03868
+          },
+          {
+            "dist_m": "6-9",
+            "n": 21801,
+            "vx_high": 0.5719,
+            "vx_low": 0.3899,
+            "adv_when_moving": 0.11887,
+            "adv_when_idle": 0.12672,
+            "adv_penalty_for_moving": -0.00785
+          },
+          {
+            "dist_m": "9-12",
+            "n": 23469,
+            "vx_high": 0.5751,
+            "vx_low": 0.4254,
+            "adv_when_moving": 0.18009,
+            "adv_when_idle": 0.16597,
+            "adv_penalty_for_moving": 0.01412
+          },
+          {
+            "dist_m": "12-100",
+            "n": 14528,
+            "vx_high": 0.5757,
+            "vx_low": 0.444,
+            "adv_when_moving": 0.24434,
+            "adv_when_idle": 0.24662,
+            "adv_penalty_for_moving": -0.00228
+          }
+        ],
+        "corr_vx_adv": 0.2204,
+        "corr_dist_adv": 0.4927
+      },
+      "Q3_zero_lookahead": {
+        "stop_now_frac_overall": 0.0338,
+        "adv_mean_when_stop_now": 0.03107,
+        "adv_mean_when_not": 0.14769
+      },
+      "Q4_arrival_signal": {
+        "n_arrival_steps": 46,
+        "g_at_arrival": 0.05326,
+        "g_elsewhere": 0.52838,
+        "adv_at_arrival": 4e-05,
+        "adv_elsewhere": 0.14383,
+        "obj_feasible_at_arrival": 0.6087,
+        "obj_feasible_elsewhere": 0.0361
+      },
+      "Q5_reach_critic": {
+        "corr_value_reach_vs_distance_overall": 0.6642,
+        "value_reach_std": 0.2359,
+        "g_std": 0.24189
+      },
+      "by_training_phase": {
+        "P0": {
+          "n": 20965,
+          "g_mean": 0.52476,
+          "electricity_term_mean": 0.00053,
+          "adv_mean": 0.17938,
+          "stop_now_frac": 0.0238,
+          "value_reach_mean": 0.30454,
+          "corr_reach_dist": 0.7287,
+          "vx_mean": 0.4684
+        },
+        "P1": {
+          "n": 19168,
+          "g_mean": 0.55704,
+          "electricity_term_mean": 0.00936,
+          "adv_mean": 0.12569,
+          "stop_now_frac": 0.0197,
+          "value_reach_mean": 0.42614,
+          "corr_reach_dist": 0.6533,
+          "vx_mean": 0.4684
+        },
+        "P2": {
+          "n": 21016,
+          "g_mean": 0.52105,
+          "electricity_term_mean": 0.00735,
+          "adv_mean": 0.12088,
+          "stop_now_frac": 0.0342,
+          "value_reach_mean": 0.38472,
+          "corr_reach_dist": 0.6281,
+          "vx_mean": 0.4599
+        },
+        "P3": {
+          "n": 22147,
+          "g_mean": 0.51298,
+          "electricity_term_mean": 0.00802,
+          "adv_mean": 0.14737,
+          "stop_now_frac": 0.0549,
+          "value_reach_mean": 0.33552,
+          "corr_reach_dist": 0.6649,
+          "vx_mean": 0.4874
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_full_s0",
+      "tag": "main_full",
+      "n_chunk_files": 720,
+      "n_samples": 82345,
+      "Q1_score_composition": {
+        "distance_term_g_mean": 0.86592,
+        "distance_term_g_std": 0.17463,
+        "cost_norm_mean": 0.002248,
+        "electricity_term_mean": 0.0008,
+        "electricity_term_max": 0.16958,
+        "frac_steps_with_electricity_term": 0.0092,
+        "ratio_electricity_to_per_step_distance_gain": 0.3
+      },
+      "Q2_action_vs_advantage": {
+        "by_distance": [
+          {
+            "dist_m": "0-3",
+            "n": 1810,
+            "vx_high": 0.487,
+            "vx_low": 0.3828,
+            "adv_when_moving": -0.00906,
+            "adv_when_idle": 0.00423,
+            "adv_penalty_for_moving": -0.01329
+          },
+          {
+            "dist_m": "3-6",
+            "n": 4898,
+            "vx_high": 0.4813,
+            "vx_low": 0.3603,
+            "adv_when_moving": 0.03591,
+            "adv_when_idle": 0.01819,
+            "adv_penalty_for_moving": 0.01772
+          },
+          {
+            "dist_m": "6-9",
+            "n": 12847,
+            "vx_high": 0.485,
+            "vx_low": 0.307,
+            "adv_when_moving": 0.04248,
+            "adv_when_idle": 0.01236,
+            "adv_penalty_for_moving": 0.03012
+          },
+          {
+            "dist_m": "9-12",
+            "n": 32805,
+            "vx_high": 0.4921,
+            "vx_low": 0.2788,
+            "adv_when_moving": 0.04654,
+            "adv_when_idle": 0.01335,
+            "adv_penalty_for_moving": 0.0332
+          },
+          {
+            "dist_m": "12-100",
+            "n": 29985,
+            "vx_high": 0.4943,
+            "vx_low": 0.2099,
+            "adv_when_moving": 0.10987,
+            "adv_when_idle": 0.01527,
+            "adv_penalty_for_moving": 0.09459
+          }
+        ],
+        "corr_vx_adv": 0.2517,
+        "corr_dist_adv": 0.1442
+      },
+      "Q3_zero_lookahead": {
+        "stop_now_frac_overall": 0.4301,
+        "adv_mean_when_stop_now": 0.00354,
+        "adv_mean_when_not": 0.06848
+      },
+      "Q4_arrival_signal": {
+        "n_arrival_steps": 8,
+        "g_at_arrival": 0.13472,
+        "g_elsewhere": 0.86599,
+        "adv_at_arrival": -0.01815,
+        "adv_elsewhere": 0.04055,
+        "obj_feasible_at_arrival": 0.375,
+        "obj_feasible_elsewhere": 0.003
+      },
+      "Q5_reach_critic": {
+        "corr_value_reach_vs_distance_overall": 0.0389,
+        "value_reach_std": 0.23022,
+        "g_std": 0.17463
+      },
+      "by_training_phase": {
+        "P0": {
+          "n": 20039,
+          "g_mean": 0.77572,
+          "electricity_term_mean": 0.0,
+          "adv_mean": 0.09708,
+          "stop_now_frac": 0.2638,
+          "value_reach_mean": 0.65604,
+          "corr_reach_dist": -0.0235,
+          "vx_mean": 0.4511
+        },
+        "P1": {
+          "n": 18183,
+          "g_mean": 0.87952,
+          "electricity_term_mean": 0.00197,
+          "adv_mean": 0.03848,
+          "stop_now_frac": 0.2503,
+          "value_reach_mean": 0.83771,
+          "corr_reach_dist": -0.4659,
+          "vx_mean": 0.4267
+        },
+        "P2": {
+          "n": 21283,
+          "g_mean": 0.9034,
+          "electricity_term_mean": 0.00125,
+          "adv_mean": 0.02327,
+          "stop_now_frac": 0.5113,
+          "value_reach_mean": 0.87385,
+          "corr_reach_dist": -0.293,
+          "vx_mean": 0.3589
+        },
+        "P3": {
+          "n": 22840,
+          "g_mean": 0.8993,
+          "electricity_term_mean": 0.00017,
+          "adv_mean": 0.00868,
+          "stop_now_frac": 0.6435,
+          "value_reach_mean": 0.88514,
+          "corr_reach_dist": 0.1653,
+          "vx_mean": 0.2935
+        }
+      }
+    },
+    {
+      "run_id": "nav064_r11_uncalibrated_s0_steeronly",
+      "tag": "control_uncal",
+      "n_chunk_files": 720,
+      "n_samples": 86016,
+      "Q1_score_composition": {
+        "distance_term_g_mean": 0.52144,
+        "distance_term_g_std": 0.24671,
+        "cost_norm_mean": 0.002279,
+        "electricity_term_mean": 0.00806,
+        "electricity_term_max": 0.21515,
+        "frac_steps_with_electricity_term": 0.0939,
+        "ratio_electricity_to_per_step_distance_gain": 2.6
+      },
+      "Q2_action_vs_advantage": {
+        "by_distance": [
+          {
+            "dist_m": "0-3",
+            "n": 9241,
+            "vx_high": 0.4698,
+            "vx_low": 0.2868,
+            "adv_when_moving": 0.03397,
+            "adv_when_idle": 0.02585,
+            "adv_penalty_for_moving": 0.00811
+          },
+          {
+            "dist_m": "3-6",
+            "n": 17347,
+            "vx_high": 0.5139,
+            "vx_low": 0.3307,
+            "adv_when_moving": 0.10553,
+            "adv_when_idle": 0.09594,
+            "adv_penalty_for_moving": 0.00959
+          },
+          {
+            "dist_m": "6-9",
+            "n": 20798,
+            "vx_high": 0.5553,
+            "vx_low": 0.3739,
+            "adv_when_moving": 0.15967,
+            "adv_when_idle": 0.13036,
+            "adv_penalty_for_moving": 0.02931
+          },
+          {
+            "dist_m": "9-12",
+            "n": 24471,
+            "vx_high": 0.5521,
+            "vx_low": 0.3909,
+            "adv_when_moving": 0.18514,
+            "adv_when_idle": 0.1561,
+            "adv_penalty_for_moving": 0.02904
+          },
+          {
+            "dist_m": "12-100",
+            "n": 14159,
+            "vx_high": 0.5775,
+            "vx_low": 0.4504,
+            "adv_when_moving": 0.25281,
+            "adv_when_idle": 0.24876,
+            "adv_penalty_for_moving": 0.00405
+          }
+        ],
+        "corr_vx_adv": 0.2589,
+        "corr_dist_adv": 0.4773
+      },
+      "Q3_zero_lookahead": {
+        "stop_now_frac_overall": 0.0341,
+        "adv_mean_when_stop_now": -0.01144,
+        "adv_mean_when_not": 0.15406
+      },
+      "Q4_arrival_signal": {
+        "n_arrival_steps": 26,
+        "g_at_arrival": 0.0579,
+        "g_elsewhere": 0.52158,
+        "adv_at_arrival": 0.02665,
+        "adv_elsewhere": 0.14845,
+        "obj_feasible_at_arrival": 0.5,
+        "obj_feasible_elsewhere": 0.0206
+      },
+      "Q5_reach_critic": {
+        "corr_value_reach_vs_distance_overall": 0.6276,
+        "value_reach_std": 0.23958,
+        "g_std": 0.24671
+      },
+      "by_training_phase": {
+        "P0": {
+          "n": 21335,
+          "g_mean": 0.52886,
+          "electricity_term_mean": 0.00689,
+          "adv_mean": 0.17143,
+          "stop_now_frac": 0.0138,
+          "value_reach_mean": 0.33284,
+          "corr_reach_dist": 0.7147,
+          "vx_mean": 0.4593
+        },
+        "P1": {
+          "n": 18950,
+          "g_mean": 0.56236,
+          "electricity_term_mean": 0.00681,
+          "adv_mean": 0.1095,
+          "stop_now_frac": 0.0646,
+          "value_reach_mean": 0.4393,
+          "corr_reach_dist": 0.5624,
+          "vx_mean": 0.458
+        },
+        "P2": {
+          "n": 21145,
+          "g_mean": 0.49639,
+          "electricity_term_mean": 0.01131,
+          "adv_mean": 0.13977,
+          "stop_now_frac": 0.0421,
+          "value_reach_mean": 0.33054,
+          "corr_reach_dist": 0.5892,
+          "vx_mean": 0.481
+        },
+        "P3": {
+          "n": 24586,
+          "g_mean": 0.50501,
+          "electricity_term_mean": 0.00725,
+          "adv_mean": 0.16586,
+          "stop_now_frac": 0.0214,
+          "value_reach_mean": 0.30621,
+          "corr_reach_dist": 0.6548,
+          "vx_mean": 0.4331
+        }
+      }
+    }
+  ]
+}

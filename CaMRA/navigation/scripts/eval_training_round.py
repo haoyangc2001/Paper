@@ -142,6 +142,13 @@ def main() -> int:
         state = torch.load(state_path, map_location="cpu", weights_only=False)
         init_fix = prereg.get("action_init_fix", {})
         init_on = bool(init_fix.get("enabled", False))
+        # NAV-064 r11: the steering prior is a construction-time constant, not a
+        # learned parameter.  It must be replayed here or the evaluated policy
+        # silently differs from the one that was trained.  Older preregs have no
+        # such field -> gain 0.0 -> byte-identical behaviour to previous rounds.
+        steer = prereg.get("steering_prior", {})
+        steering_gain = (float(steer.get("gain", 0.0))
+                         if bool(steer.get("enabled", False)) else 0.0)
         net = NW.build(
             nav,
             action_bounded=bool(prereg.get("action_bounded", False)),
@@ -150,7 +157,8 @@ def main() -> int:
             log_std_min=(float(init_fix["log_std_min"])
                          if init_on and "log_std_min" in init_fix else None),
             log_std_init=(float(init_fix["log_std_init"])
-                          if init_on and "log_std_init" in init_fix else None))
+                          if init_on and "log_std_init" in init_fix else None),
+            steering_gain=steering_gain)
         net.load_state_dict(state["model"])
         net.eval()
         ctx = build_rollout_ctx(variant)
@@ -233,6 +241,8 @@ def main() -> int:
         "budget_accounting": acct,
         "action_bounded": bool(prereg.get("action_bounded", False)),
         "action_init_fix": prereg.get("action_init_fix", {}),
+        "steering_prior": prereg.get("steering_prior", {}),
+        "cost_curriculum": prereg.get("cost_curriculum", {}),
         "closing_tier": {
             "criterion": f"development SR median >= {threshold} for both methods",
             "threshold": threshold,

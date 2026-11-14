@@ -1,0 +1,1176 @@
+{
+  "schema": "nav064-r11-timeline-v1",
+  "note": "dev 6 maps at k=1.0, network rebuilt with frozen-prereg steering_gain; torch seed 1234 for sampled mode",
+  "runs": [
+    {
+      "run_id": "nav064_r11_uncalibrated_s0",
+      "variant": "uncalibrated",
+      "steering_gain": 0.2,
+      "curriculum": {
+        "enabled": true,
+        "warmup_updates": 150,
+        "w_after_warmup": 50.0,
+        "form": "update_idx < 150 时 joint_cost_weight=0，之后恢复 50；只改启用时序"
+      },
+      "points": [
+        {
+          "ckpt": "state_u50.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 3.14,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "goal",
+              "goal"
+            ]
+          },
+          "sampled": {
+            "n_goal": 3,
+            "n_wb": 3,
+            "mean_min_distance_m": 3.15,
+            "labels": [
+              "time",
+              "goal",
+              "coll",
+              "coll",
+              "goal",
+              "goal"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u100.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 3.25,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "goal",
+              "goal"
+            ]
+          },
+          "sampled": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 3.25,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "goal",
+              "goal"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u150.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 0,
+            "mean_min_distance_m": 3.36,
+            "labels": [
+              "goal",
+              "goal",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 3.37,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u200.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 3.85,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 3.88,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u250.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.48,
+            "labels": [
+              "coll",
+              "coll",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.24,
+            "labels": [
+              "coll",
+              "coll",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u300.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.98,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.79,
+            "labels": [
+              "coll",
+              "coll",
+              "coll",
+              "time",
+              "coll",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u350.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 4.28,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 4.38,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "coll",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u400.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.34,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "time",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.07,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "coll",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u450.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.42,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.21,
+            "labels": [
+              "coll",
+              "time",
+              "time",
+              "time",
+              "coll",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u500.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 0,
+            "mean_min_distance_m": 4.66,
+            "labels": [
+              "goal",
+              "goal",
+              "coll",
+              "time",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 1,
+            "n_wb": 0,
+            "mean_min_distance_m": 3.64,
+            "labels": [
+              "time",
+              "goal",
+              "time",
+              "time",
+              "coll",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u550.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 0,
+            "mean_min_distance_m": 0.84,
+            "labels": [
+              "goal",
+              "goal",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 2,
+            "n_wb": 1,
+            "mean_min_distance_m": 2.17,
+            "labels": [
+              "time",
+              "goal",
+              "coll",
+              "goal",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u600.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 1.02,
+            "labels": [
+              "time",
+              "time",
+              "goal",
+              "goal",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 1.1,
+            "labels": [
+              "time",
+              "time",
+              "goal",
+              "goal",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 1.02,
+            "labels": [
+              "time",
+              "time",
+              "goal",
+              "goal",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 1.1,
+            "labels": [
+              "time",
+              "time",
+              "goal",
+              "goal",
+              "time",
+              "time"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "nav064_r11_full_s0",
+      "variant": "full",
+      "steering_gain": 0.2,
+      "curriculum": {
+        "enabled": true,
+        "warmup_updates": 150,
+        "w_after_warmup": 50.0,
+        "form": "update_idx < 150 时 joint_cost_weight=0，之后恢复 50；只改启用时序"
+      },
+      "points": [
+        {
+          "ckpt": "state_u50.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 5.04,
+            "labels": [
+              "goal",
+              "goal",
+              "coll",
+              "coll",
+              "time",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 4.27,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u100.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 4.31,
+            "labels": [
+              "coll",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.43,
+            "labels": [
+              "coll",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u150.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.92,
+            "labels": [
+              "coll",
+              "coll",
+              "coll",
+              "coll",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.04,
+            "labels": [
+              "coll",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u200.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 7.79,
+            "labels": [
+              "coll",
+              "coll",
+              "coll",
+              "coll",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 8.11,
+            "labels": [
+              "coll",
+              "coll",
+              "coll",
+              "coll",
+              "coll",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u250.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.87,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.21,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u300.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 8.85,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 8.66,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "coll",
+              "coll",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u350.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 9.96,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 9.61,
+            "labels": [
+              "time",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u400.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 8.88,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 9.04,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u450.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 10.83,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 10.49,
+            "labels": [
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u500.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 10.01,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 9.89,
+            "labels": [
+              "time",
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u550.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 10.66,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 10.47,
+            "labels": [
+              "coll",
+              "coll",
+              "time",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u600.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 11.47,
+            "labels": [
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 11.55,
+            "labels": [
+              "coll",
+              "coll",
+              "stag",
+              "time",
+              "stag",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 11.47,
+            "labels": [
+              "coll",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 11.55,
+            "labels": [
+              "coll",
+              "coll",
+              "stag",
+              "time",
+              "stag",
+              "time"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "nav064_r11_uncalibrated_s0_steeronly",
+      "variant": "uncalibrated",
+      "steering_gain": 0.2,
+      "curriculum": {
+        "enabled": false,
+        "warmup_updates": 0,
+        "w_after_warmup": 50.0,
+        "form": "update_idx < 150 时 joint_cost_weight=0，之后恢复 50；只改启用时序"
+      },
+      "points": [
+        {
+          "ckpt": "state_u50.pt",
+          "deterministic": {
+            "n_goal": 2,
+            "n_wb": 2,
+            "mean_min_distance_m": 3.82,
+            "labels": [
+              "goal",
+              "goal",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 1,
+            "n_wb": 1,
+            "mean_min_distance_m": 3.8,
+            "labels": [
+              "goal",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u100.pt",
+          "deterministic": {
+            "n_goal": 1,
+            "n_wb": 1,
+            "mean_min_distance_m": 3.2,
+            "labels": [
+              "time",
+              "goal",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 1,
+            "n_wb": 1,
+            "mean_min_distance_m": 3.4,
+            "labels": [
+              "goal",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u150.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.52,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 1,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.56,
+            "labels": [
+              "goal",
+              "time",
+              "coll",
+              "coll",
+              "coll",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u200.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.31,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.41,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u250.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 6.15,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "coll",
+              "coll"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 5.11,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "coll"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u300.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 2.64,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 2.61,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u350.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 2.27,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 2.29,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u400.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 2.02,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 2.18,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u450.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 1.71,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 1.82,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u500.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 1.69,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 1.63,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u550.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 3.69,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 2.34,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state_u600.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 3.54,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 1.51,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        },
+        {
+          "ckpt": "state.pt",
+          "deterministic": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 3.54,
+            "labels": [
+              "time",
+              "time",
+              "coll",
+              "coll",
+              "time",
+              "time"
+            ]
+          },
+          "sampled": {
+            "n_goal": 0,
+            "n_wb": 0,
+            "mean_min_distance_m": 1.51,
+            "labels": [
+              "time",
+              "time",
+              "time",
+              "time",
+              "time",
+              "time"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
