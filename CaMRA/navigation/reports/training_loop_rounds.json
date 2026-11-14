@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "round_10_complete_not_met_pending_user_decision",
+  "status": "round_11_launched_pending_result",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -437,7 +437,8 @@
     "第 9 轮（用户 09:11 授权，上限轮）已于 09:12:48 启动；低噪声初始化 v1.2.1，采样动作离线 6/18 到达。结果决定 NAV-064 收尾方向",
     "第 9 轮（上限轮）完成：训练期首次出现 639 次到达（前 100 更新），但训练目标把策略推回少动省油解，dev SR 仍 0.0。瓶颈已转移到成本项权重，建议在 NAV-065/061–063 范围内处理，而非继续调初始化",
     "第 9 轮审计：初始化改动符合依据且生效（初始 0.465 m/s、离终点 0.6 m），但训练把速度压成衰减曲线（0.28→−0.06）；下一步应改成本项（超支才罚 / 降 w / 分阶段），不再调初始化",
-    "第 10 轮完成：遮蔽使到达样本维持到训练后段（300-500 窗口 180 次）、停滞 49497→5431、开发集离终点 10.26→5.87 m，但速度仍回合内衰减到 0，dev SR 仍 0.0；剩余瓶颈为速度衰减通道与 30 s 时间预算（需 0.486 m/s，参考 0.465 差 4%）"
+    "第 10 轮完成：遮蔽使到达样本维持到训练后段（300-500 窗口 180 次）、停滞 49497→5431、开发集离终点 10.26→5.87 m，但速度仍回合内衰减到 0，dev SR 仍 0.0；剩余瓶颈为速度衰减通道与 30 s 时间预算（需 0.486 m/s，参考 0.465 差 4%）",
+    "第 11 轮已启动（转向先验 + 成本项课程 + 只开先验的对照臂，共 8 run）：离线采样动作下先验使 dev 到达 0/6→4/6 且全在预算内；结果待训练完成"
   ],
   "round_7_preregistration": {
     "date": "2026-11-13",
@@ -1266,5 +1267,165 @@
     "budget_channel_share": "预算整段变化折算约 0.14 m/s，占实测衰减 0.62 m/s 的约 22%",
     "correction": "此前把残留衰减归因到 −z / V_total 为推断；实测显示预算通道只占 22%，其余来自分布式映射，不能靠再遮蔽单个目标项消除",
     "implication": "继续在目标函数做减法不划算；先补时间/速度余量（需 0.486 m/s，参考 0.465 差 4%），再看回合内衰减是否仍致命"
+  },
+  "speed_margin_precheck": {
+    "date": "2026-11-14",
+    "intent": "按第 10 轮建议补时间/速度余量（initial_forward_speed 0.465 → 0.50 级）",
+    "verdict": "FALSIFIED — 提速不增加到达，且从 0.48 起出现超支；缺的是转向能力",
+    "speed_sweep_dev": {
+      "0.465": {
+        "uncal_goal": "2/6",
+        "uncal_within_budget": "2/6",
+        "cost_mean_J": 286.1,
+        "z_end_min_J": 1.8
+      },
+      "0.480": {
+        "uncal_goal": "2/6",
+        "uncal_within_budget": "2/6",
+        "cost_mean_J": 293.1,
+        "z_end_min_J": -13.8
+      },
+      "0.500": {
+        "uncal_goal": "2/6",
+        "uncal_within_budget": "2/6",
+        "cost_mean_J": 302.5,
+        "z_end_min_J": -35.2
+      },
+      "0.520": {
+        "uncal_goal": "2/6",
+        "uncal_within_budget": "1/6",
+        "cost_mean_J": 312.6,
+        "z_end_min_J": -57.4
+      },
+      "0.550": {
+        "uncal_goal": "2/6",
+        "uncal_within_budget": "0/6",
+        "cost_mean_J": 328.1,
+        "z_end_min_J": -92.1
+      },
+      "full_z_end_min_J": {
+        "0.465": 2.1,
+        "0.480": -16.4,
+        "0.500": -41.9,
+        "0.520": -68.4,
+        "0.550": -109.7
+      }
+    },
+    "per_map_at_0.465": {
+      "l1_empty-s2001": {
+        "label": "timeout",
+        "min_dist_m": 0.62
+      },
+      "l1_empty-s2002": {
+        "label": "timeout",
+        "min_dist_m": 0.92
+      },
+      "l2_single_detour-s2001": {
+        "label": "collision",
+        "min_dist_m": 8.36
+      },
+      "l2_single_detour-s2002": {
+        "label": "collision",
+        "min_dist_m": 8.36
+      },
+      "l3_multi_path-s2001": {
+        "label": "goal_reached",
+        "min_dist_m": 0.49
+      },
+      "l3_multi_path-s2002": {
+        "label": "goal_reached",
+        "min_dist_m": 0.49
+      }
+    },
+    "per_map_at_0.520": {
+      "l1_empty-s2001": {
+        "label": "timeout",
+        "min_dist_m": 1.71
+      },
+      "l1_empty-s2002": {
+        "label": "timeout",
+        "min_dist_m": 1.84
+      }
+    },
+    "r_goal_m": 0.5,
+    "steering_evidence": {
+      "straight": {
+        "uncal_goal": "2/6",
+        "full_goal": "2/6",
+        "cost_J": "286/341",
+        "z_end_J": "119/142"
+      },
+      "seek": {
+        "uncal_goal": "4/6",
+        "full_goal": "4/6",
+        "cost_J": "282/336",
+        "z_end_J": "123/146"
+      },
+      "note": "同一 0.465 m/s 下，朝目标转向把到达从 2/6 提到 4/6 且全在预算内"
+    },
+    "decision": "不提速、不冻结速度余量预登记；转向先验属方法语义变更，NAV-064 保持 false，等用户裁定"
+  },
+  "steering_curriculum": {
+    "date": "2026-11-14",
+    "authorization": "用户 14:58 授权按前置验证结论推进（转向先验 + 课程）",
+    "implementation": {
+      "steering_prior": "PolicyNetwork.forward: mean[:,2] += gain*obs[goal_dir_y_body]，只改 loc",
+      "cost_curriculum": "train_formal 更新循环按 update_idx 重绑 obj_cfg.joint_cost_weight",
+      "defaults": "gain=0.0 / enabled=False，逐位回归"
+    },
+    "offline_acceptance_sampled": {
+      "gain_0.0": {
+        "uncal_goal": "1/6",
+        "full_goal": "1/6",
+        "z_min_J": [
+          -3.5,
+          -4.1
+        ]
+      },
+      "gain_0.2": {
+        "uncal_goal": "4/6",
+        "uncal_within_budget": "4/6",
+        "full_goal": "4/6",
+        "full_within_budget": "4/6",
+        "z_min_J": [
+          7.5,
+          8.9
+        ],
+        "cost_J": [
+          285.6,
+          340.0
+        ]
+      },
+      "gain_0.4_to_2.0": "饱和一致（wz 被 ±1 截断）",
+      "chosen": 0.2,
+      "remaining_failures": "l2_single_detour 两图 collision（8.36 m），转向先验不解决绕障"
+    },
+    "tests": {
+      "test_steering_curriculum.py": "7/7 PASS",
+      "regression": "27 PASS / 1 既有 FAIL（test_nominal_env.py 历史口径）",
+      "g3": "PASS（散列未变 03db8787）",
+      "curriculum_switch_probe": "warmup=1 → update0=0.0 / update1=50.0 / update2=50.0"
+    },
+    "prereg": {
+      "main": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2",
+      "control": "54ce184a2fdd9f9b3d6328f87f4007d21cd86ee31b5a53880fc947984bd68ffb",
+      "amendments": [
+        "r11.0.0 budget 块格式错",
+        "r11.0.1 结构缺 lr_policy → 改用 r10 模板"
+      ]
+    },
+    "launch": {
+      "at": "2026-11-14T15:15:26+08:00",
+      "tmux": "nav064-r11",
+      "runs": 8,
+      "main": 6,
+      "control": 2,
+      "host_load": 267.95
+    },
+    "resource": {
+      "cumulative_wall_clock_h": 15.1,
+      "protocol_cap_h": 12.0,
+      "over_cap_pct": 26
+    }
   }
 }

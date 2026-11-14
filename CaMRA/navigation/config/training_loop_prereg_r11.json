@@ -1,0 +1,215 @@
+{
+  "schema": "camra-training-loop-prereg-v1",
+  "version": "r11.0.2",
+  "owner": "NAV-064",
+  "created_at": "2026-11-14T15:35:00+08:00",
+  "status": "frozen_before_round_11",
+  "round": 11,
+  "task": "成本项遮蔽后的验证轮：只在已超支的步计入 w·c，检验「到达」能否维持到训练后期（第 9 轮只在前 100 更新出现）。",
+  "authorization": {
+    "needed": true,
+    "why": "新正式训练轮次；且同时启用两个新开关（转向先验、成本项课程）",
+    "granted_by": "用户 2026-11-14 14:58『@skill:create-plan-worklog 可以 那就按照要求按照你的建议开始推进』",
+    "granted_at": "2026-11-14T14:58:00+08:00",
+    "scope": "转向先验 + 成本项时序课程同轮启用，并含只开转向先验的对照臂",
+    "cap_note": "累计 10 轮约 13.6 h + 本轮约 1.5 h ≈ 15.1 h，超协议 12.0 h 约 26%，按用户当次授权执行并如实登记"
+  },
+  "binding": {
+    "loop_protocol": {
+      "path": "config/training_loop_protocol_v1_1.json",
+      "sha256": "34d4bd6ecb56ad4f8ebfd9326f617934f6621d07e56ea6a057e296c840bd8231"
+    },
+    "round_10_prereg": {
+      "path": "config/training_loop_prereg_r10.json",
+      "sha256": "583ef08535e87fe13ca9c0bd3d4b36c046824abbcf0b3b96c22b34ebfd755fff"
+    },
+    "round_10_report": {
+      "path": "reports/training_round_r10.json",
+      "sha256": "6259228ebe24e71c8ffb2f3aff671fc9e8aac4856f3e8dc8d34fd4293f234514"
+    },
+    "action_init_fix_prereg": {
+      "path": "config/action_init_fix_prereg_v1.json",
+      "sha256": "a6d305707fce245b136013d6b20890ba8f984dc55664105601f298f712c1e4b5"
+    },
+    "cost_mask_prereg": {
+      "path": "config/objective_cost_mask_prereg_v1.json",
+      "sha256": "c0e9970e32ef51f14e507fe932f5b599b75542d6358aaba295b52a8061f517ee"
+    },
+    "amend5": {
+      "path": "config/rcppo_alignment_contract_v1.amend5.json",
+      "sha256": "0269ff3b9ffd267cabae00da20c0f85dd02f6e8ab1912b23237c1def06b840ff"
+    },
+    "gate_g3": {
+      "path": "reports/gate_G3_alignment_v2.json",
+      "sha256": "03db878734f1b71dc77134355d4b94694b117be4543aa28f7aa5f6d259ead289"
+    },
+    "value_contract": {
+      "path": "config/value_objective_contract_v1.json",
+      "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+    },
+    "budget_action_fix_prereg": {
+      "path": "config/budget_action_fix_prereg_v1.json",
+      "sha256": "a42cd8410d347f67c4cba855e4a24219ab54e678263794caa337f6c7585516f0"
+    }
+  },
+  "hypothesis": "第 10 轮训练后开发集离终点 5.87/8.70 m、dev SR 0；前置验证证明缺的是转向而非速度：同一 0.465 m/s 下朝目标转向可 4/6 到达且全在预算内（剩 123/146 J），直行仅 2/6，且提速只会让 min_dist 变差并超支。故给策略一个由 goal_dir_y_body 驱动的转向先验（只改动作均值 loc），并在前 150 次更新把成本权重置 0（只练到达），期望训练早期即获得到达正例且能把到达行为维持到后期。",
+  "falsification": "满足任一即判本轮不成立：(a) 训练期 300-600 窗口 goal_reached 仍为 0；(b) 两方法 dev SR 中位仍为 0.0 且离终点未优于第 10 轮（5.87/8.70 m）；(c) 训练后开发集到达数低于离线起点（采样动作 4/6）。触发即停下写正式负结果，不加第 12 轮、不放宽时限/判据/地图。",
+  "method": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "runs": 6,
+    "control_arm": {
+      "runs": [
+        "nav064_r11_uncalibrated_s0_steeronly",
+        "nav064_r11_full_s0_steeronly"
+      ],
+      "config_delta": "cost_curriculum.enabled=false，其余与主臂一致",
+      "purpose": "把转向先验与课程的贡献分开（第 6→7 轮三处同改导致归因不清的教训）"
+    },
+    "steering_prior": "见顶层 steering_prior",
+    "cost_curriculum": "见顶层 cost_curriculum"
+  },
+  "environment": {
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5
+  },
+  "budget": {
+    "sampling": {
+      "kind": "uniform",
+      "k_low": 0.6,
+      "k_high": 1.3
+    }
+  },
+  "algorithm": {
+    "lr_policy": 0.0003,
+    "lr_critic": 0.001,
+    "epochs_per_window": 10,
+    "minibatch_size": 512,
+    "ent_coef": 0.01,
+    "log_std_learnable_range": [
+      -5.0,
+      1.0
+    ],
+    "warm_start": {},
+    "fresh_init": true,
+    "fresh_init_reason": "第 10 轮权重仍在回合内把速度收向 0；本轮带新先验从零初始化，避免旧权重抵消先验。",
+    "forbid_warmstart": true
+  },
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600
+  },
+  "checkpoints": {
+    "save_every_updates": 50,
+    "final_checkpoint": "最后一个更新"
+  },
+  "round_acceptance": {
+    "closing_tier_source": "development 6 图 × 3 种子，确定性均值动作，k=1.0",
+    "dev_success_rate_median": 0.1,
+    "per_method": "两方法都必须 >= 0.10（SR 条件）；『到达且预算内』为主判据",
+    "budget_response_on_dev": {
+      "grid_k": [
+        0.7,
+        0.85,
+        1.0,
+        1.15,
+        1.3
+      ],
+      "purpose": "诊断：预算内到达是否首次非零"
+    },
+    "primary_questions_this_round": [
+      "训练期 300-600 窗口 goal_reached 是否 > 0（第 10 轮为 180 次，须不退化）",
+      "『到达且 z_end>=0』是否首次非零（主判据）",
+      "两方法 dev SR 中位数是否 >= 0.10",
+      "训练后开发集到达数是否 >= 离线起点 4/6（课程是否把先验的好处留住）",
+      "对照臂（只开先验）是否明显差于主臂（判定课程的净贡献）"
+    ],
+    "ideal_tier": {
+      "sr": 0.9,
+      "collision_rate": 0.0,
+      "blocking": false
+    }
+  },
+  "resource": {
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 12.0,
+    "max_rounds": 4,
+    "runs_this_round": 8,
+    "used_so_far": {
+      "rounds": 10,
+      "calendar_hours": 13.6
+    },
+    "runs_used_total": 60,
+    "note": "6 主 run + 2 对照 run；预计累计约 15.1 h、超 12 h 约 26%，已如实登记。"
+  },
+  "data_access": {
+    "train": "训练取样（18 图，顺序与构成未改动）",
+    "development": "唯一判定来源",
+    "budget_selection": "本循环禁止使用",
+    "final_*": "封存",
+    "audit": "收尾给出实际加载路径清单与 split hash；本轮 8 个 run 均为 fresh_init"
+  },
+  "stops": {
+    "met": "立刻停止，进入 NAV-065 候选冻结",
+    "rounds_exhausted": "本轮后无论结果如何 NAV-064 收尾",
+    "wall_clock": "立刻停止当前 run，不延长",
+    "infrastructure": "换 run id 重跑，与原 attempt 一并报告",
+    "semantic_doubt": "若后期到达仍为 0，写正式负结果并结案，不加第 12 轮"
+  },
+  "reporting": "reports/training_round_r11.json + 台账；须与第 10 轮逐项对比（窗口到达数、速度曲线、成本、剩余预算、SR、对照臂）",
+  "objective_signal_fix": {
+    "joint_cost_weight": 50.0,
+    "joint_min_recursion": false,
+    "cost_on_overspend_only": true
+  },
+  "budget_accounting": "consistent",
+  "action_bounded": true,
+  "action_init_fix": {
+    "enabled": true,
+    "initial_forward_speed": 0.465,
+    "log_std_min": -5.0,
+    "log_std_init": -3.0
+  },
+  "steering_prior": {
+    "enabled": true,
+    "gain": 0.2,
+    "field": "goal_dir_y_body",
+    "target": "wz",
+    "form": "mean[:,2] += gain * obs[goal_dir_y_body]；只改 loc，不改 log_prob/雅可比/熵",
+    "offline_acceptance": "采样动作 dev 4/6 到达、4/6 预算内、z_min 7.5/8.9 J（gain 0.1~2.0 结果饱和一致，取最小有效档 0.2）"
+  },
+  "cost_curriculum": {
+    "enabled": true,
+    "warmup_updates": 150,
+    "w_after_warmup": 50.0,
+    "form": "update_idx < 150 时 joint_cost_weight=0，之后恢复 50；只改启用时序"
+  },
+  "amendments": [
+    {
+      "version": "r11.0.1",
+      "date": "2026-11-14T15:30:00+08:00",
+      "old_sha256": "4e97797486dbc568f810884281b7a93b6427cd7928ee7be7b3cd23c4bce1a0c8",
+      "trigger": "冒烟被训练器拒绝：budget 块写成 {rule, range}，trainer.budget_rules() 只接受 budget.sampling={kind,k_low,k_high} 或 legacy k_train",
+      "change": "budget 改为 {\"sampling\": {\"kind\": \"uniform\", \"k_low\": 0.6, \"k_high\": 1.3}}，与 r10 一致",
+      "unchanged": "转向先验 gain=0.2、课程 warmup=150、w=50、遮蔽、预算口径、初始化修正全部不变"
+    },
+    {
+      "version": "r11.0.2",
+      "date": "2026-11-14T15:35:00+08:00",
+      "old_sha256": "68ad1713b803a6730ff1112767c1d3a44f2a15a69792e934f10cd177ed038df8",
+      "trigger": "冒烟报 KeyError: 'lr_policy'：手写结构缺少训练器读取的 algorithm/window_semantics/checkpoints 等字段",
+      "change": "改为以冻结的 training_loop_prereg_r10.json 为模板做字段覆盖，保证训练器读取的每个结构字段都存在",
+      "unchanged": "转向先验 gain=0.2、课程 warmup=150、w=50、遮蔽、预算口径、初始化修正、绑定散列、验收与证伪判据均不变"
+    }
+  ]
+}

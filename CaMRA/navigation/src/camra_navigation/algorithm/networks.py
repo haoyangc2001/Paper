@@ -264,7 +264,8 @@ class PolicyNetwork(nn.Module):
                  action_bounded: bool = False,
                  initial_forward_speed: float = 0.0,
                  log_std_min: float | None = None,
-                 log_std_init: float | None = None) -> None:
+                 log_std_init: float | None = None,
+                 steering_gain: float = 0.0) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
@@ -281,6 +282,21 @@ class PolicyNetwork(nn.Module):
         # 与参考实现一致：log_std 是独立参数、初值 0（std=1），不随状态变化。
         # 可学习范围见上方 LOG_STD_MIN/LOG_STD_MAX（amend2）。
         self.log_std = nn.Parameter(torch.full((cfg.action_dim,), self.log_std_init))
+        #: NAV-064 转向先验（steering_prior，默认 0.0 = 关闭）：在动作**均值**上
+        #: 叠加 ``gain * sin(目标方位角)``（obs 的 ``goal_dir_y_body``）。只改分布的
+        #: loc，不改分布形态、``log_prob`` 雅可比或熵公式；网络学到的部分可反向
+        #: 抵消该先验，因此它是先验而不是硬约束。
+        self.steering_gain = float(steering_gain)
+        self._goal_dir_y_idx: int | None = None
+        if self.steering_gain != 0.0:
+            if layout is None:
+                raise ValueError("steering_gain 非零时需要 layout 才能定位 goal_dir_y_body")
+            if cfg.action_dim < 3:
+                raise ValueError(f"steering_gain 需要 3 维动作，得到 {cfg.action_dim}")
+            _sl = layout.slice_of("goal_dir_y_body")
+            if _sl.stop - _sl.start != 1:
+                raise ValueError("goal_dir_y_body 必须为 1 维")
+            self._goal_dir_y_idx = int(_sl.start)
         if self.initial_forward_speed > 0.0 and self.action_bounded:
             # a = tanh(loc)：令零化 body 输出时的确定性前进速度等于参考速度。
             # 只改 bias 的一个分量；不改分布形态、log_prob 雅可比或熵公式。
@@ -297,6 +313,10 @@ class PolicyNetwork(nn.Module):
         if obs.shape[-1] != self.cfg.obs_dim:
             raise ValueError(f"obs 最后一维应为 {self.cfg.obs_dim}，得到 {tuple(obs.shape)}")
         mean = self.head(self.body(obs))
+        if self.steering_gain != 0.0:
+            # 只改均值第三分量（wz）；原地写 clone 以保持自动求导图完整。
+            mean = mean.clone()
+            mean[:, 2] = mean[:, 2] + self.steering_gain * obs[:, self._goal_dir_y_idx]
         # forward 侧防御性钳位（与 clamp_log_std 双保险；边界处梯度为 0）
         std = self.log_std.clamp(self.log_std_min, LOG_STD_MAX).exp().expand_as(mean)
         if self.action_bounded:
@@ -336,14 +356,16 @@ class BudgetConditionedNetworks(nn.Module):
                  action_bounded: bool = False,
                  initial_forward_speed: float = 0.0,
                  log_std_min: float | None = None,
-                 log_std_init: float | None = None) -> None:
+                 log_std_init: float | None = None,
+                 steering_gain: float = 0.0) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
         self.policy = PolicyNetwork(cfg, layout, action_bounded=action_bounded,
                                     initial_forward_speed=initial_forward_speed,
                                     log_std_min=log_std_min,
-                                    log_std_init=log_std_init)
+                                    log_std_init=log_std_init,
+                                    steering_gain=steering_gain)
         self.critic_cost = ValueNetwork(cfg, layout)
         self.critic_reach = ValueNetwork(cfg, layout)
 
@@ -390,7 +412,8 @@ def build(nav_contract: dict[str, Any] | None = None,
           action_bounded: bool = False,
           initial_forward_speed: float = 0.0,
           log_std_min: float | None = None,
-          log_std_init: float | None = None) -> BudgetConditionedNetworks:
+          log_std_init: float | None = None,
+          steering_gain: float = 0.0) -> BudgetConditionedNetworks:
     """按契约构造三个网络，并在构造时校验配置。"""
     if nav_contract is None:
         nav_contract, _ = load_contracts()
@@ -402,4 +425,5 @@ def build(nav_contract: dict[str, Any] | None = None,
     return BudgetConditionedNetworks(cfg, layout, action_bounded=action_bounded,
                                      initial_forward_speed=initial_forward_speed,
                                      log_std_min=log_std_min,
-                                     log_std_init=log_std_init)
+                                     log_std_init=log_std_init,
+                                     steering_gain=steering_gain)

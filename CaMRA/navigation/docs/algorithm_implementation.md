@@ -1089,3 +1089,65 @@ G3 门禁 `PASS`；冒烟 `[OBJ-FIX] ... cost_on_overspend_only=True`。
    4/6、剩 123 J），但它在方法语义上比现有常数前向偏置更进一步：等于给策略一个手写的
    目标朝向控制器作为初值。这属于方案语义变更，按计划规则需用户裁定后再动。
 4. `l2_single_detour` 的绕障缺失独立存在，任何转向先验都不会自动修好它。
+
+
+## NAV-064 第 11 轮：转向先验 + 成本项课程（2026-11-14）
+
+用户 14:58 授权按前置验证结论推进。本轮实现两个**默认关闭**的开关，二者落在不同层，
+互不冲突：转向先验在网络里改动作均值，成本课程在训练器里改权重启用时序。
+
+### 一、实现
+
+| 开关 | 落点 | 形式 | 默认 |
+|---|---|---|---|
+| `steering_prior` | `networks.py::PolicyNetwork.forward` | `mean[:,2] += gain * obs[goal_dir_y_body]` | `gain=0.0`（不走该分支） |
+| `cost_curriculum` | `train_formal.py` 更新循环 | `update_idx < warmup` 时 `joint_cost_weight=0`，之后恢复预登记值 | `enabled=False`（不重绑 `obj_cfg`） |
+
+- 转向先验**只改分布 loc**：`SquashedNormal` 的 `log_prob`、雅可比、熵公式一字未动；
+  索引由 `layout.slice_of("goal_dir_y_body")` 派生（实测为 8），不写死。
+- 课程只重绑 `obj_cfg`：`compute_objectives` 读到的即当次权重；`W`、`τ*`、可行性判据、
+  `target_cost`/`target_reach` 均不受影响。
+- 两者默认关闭时与原实现逐位一致（SC1 断言 `torch.equal`）。
+
+### 二、离线验收：采样动作，dev 6 图
+
+训练用的是采样动作，所以验收也必须在采样动作下做（第 8 轮教训）。
+
+| gain | 未校准 采样 | 未校准 预算内 | 完整 采样 | 完整 预算内 | z_end 最小 | 平均成本 |
+|---|---|---|---|---|---|---|
+| 0.0 | 1/6 | 1/6 | 1/6 | 1/6 | −3.5 / −4.1 J | 290.7 / 346.0 J |
+| **0.2** | **4/6** | **4/6** | **4/6** | **4/6** | **+7.5 / +8.9 J** | 285.6 / 340.0 J |
+| 0.4 ~ 2.0 | 4/6 | 4/6 | 4/6 | 4/6 | +7.4 / +8.8 J | 285.5 / 339.9 J |
+
+- gain 从 0.1 起就达到 4/6，0.4 以上因转向角速度被 ±1 饱和而结果完全一致；取**最小有效档
+  0.2**，先验越弱、网络越容易学出比它更好的策略。
+- 与第 10 轮训练后的 0/6 相比，离线起点把 dev 到达从 0 提到 4/6，且剩余预算为正。
+- 两张 `l2_single_detour` 仍是 collision（8.36 m 撞墙），转向先验不解决绕障。
+
+### 三、确定性测试与门禁
+
+- `tests/test_steering_curriculum.py` **7/7 PASS**：开关关闭逐位一致（SC1）、索引取自
+  布局（SC2）、loc 第三分量精确等于 `gain*obs[8]` 且 vx/vy 不动（SC3）、`log_prob` 有限
+  且动作严格 <1（SC4）、目标在左侧时 wz 更大（SC5）。首版 SC1 因两次建网未重置随机源
+  而假失败，已修正测试。
+- 课程切换点用临时预登记（`warmup=1`）实跑验证：`update=0 → 0.0`、`update=1 → 50.0`、
+  `update=2 → 50.0`；临时文件已删除。
+- 正式冒烟：`[STEER-PRIOR] enabled=True gain=0.2`、`[CURRICULUM] enabled=True
+  warmup_updates=150`、`[OBJ-FIX] cost_on_overspend_only=True`、`[ACTION-INIT] …`、
+  无 `WARMSTART`。
+- 全量回归 **27 PASS / 1 既有 FAIL**（`test_nominal_env.py` 历史口径检查，与本改动无关）；
+  **G3 PASS**，报告散列未变（`03db8787…`）。
+
+### 四、预登记与启动
+
+- 主臂 `config/training_loop_prereg_r11.json` 散列 `dbcca7ef…`（r11.0.2）。
+  两处修订如实记录：r11.0.0 的 `budget` 块写成 `{rule, range}` 被训练器拒绝（只认
+  `budget.sampling`）；r11.0.1 手写结构缺 `lr_policy` 等字段报 `KeyError`。最终改为
+  以冻结的 r10 预登记为模板做字段覆盖。
+- 对照臂 `config/training_loop_prereg_r11_steeronly.json` 散列 `54ce184a…`：仅把
+  `cost_curriculum.enabled` 置 false，其余不变，用于把先验与课程的贡献分开。
+- 8 个 run 于 15:15:26 启动（tmux `nav064-r11`），全部 fresh init：6 主 run（2 变体 ×
+  3 种子）+ 2 对照 run（2 变体 × seed 0）。启动时主机 load 267.95（他人负载高），
+  预计耗时可能长于 1.5 h。
+- 资源账：累计 10 轮 13.6 h + 本轮预计 1.5 h ≈ **15.1 h，超协议 12 h 约 26%**，
+  已在预登记 `authorization.cap_note` 与 `resource.note` 如实登记。

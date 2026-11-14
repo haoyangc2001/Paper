@@ -340,9 +340,17 @@ def main() -> int:
         init_std_init = float(init_std_init)
     if not (0.0 <= init_speed < 1.0):
         raise SystemExit(f"initial_forward_speed={init_speed} 超出 [0,1)")
+    # NAV-064 转向先验：一律从先冻结的预登记读取，默认关闭（逐位回归）
+    steer = prereg.get("steering_prior", {})
+    steer_on = bool(steer.get("enabled", False))
+    steer_gain = float(steer.get("gain", 0.0)) if steer_on else 0.0
+    if not (-5.0 <= steer_gain <= 5.0):
+        raise SystemExit(f"steering gain={steer_gain} 超出 [-5,5]")
+    print(f"[STEER-PRIOR] enabled={steer_on} gain={steer_gain} "
+          f"field=goal_dir_y_body target=wz", flush=True)
     net = NW.build(nav_contract, action_bounded=bounded,
                    initial_forward_speed=init_speed, log_std_min=init_std_min,
-                   log_std_init=init_std_init)
+                   log_std_init=init_std_init, steering_gain=steer_gain)
     print(f"[ACTION-BOUNDED] {bounded}", flush=True)
     print(f"[ACTION-INIT] enabled={init_on} v0={init_speed} "
           f"log_std_min={init_std_min} log_std_init={init_std_init}", flush=True)
@@ -382,6 +390,20 @@ def main() -> int:
                           joint_cost_on_overspend_only=cost_mask)
     print(f"[OBJ-FIX] joint_cost_weight={w} joint_min_recursion={use_min} "
           f"cost_on_overspend_only={cost_mask}", flush=True)
+
+    # NAV-064 成本项课程（cost_curriculum，默认关闭）：前 warmup_updates 次更新
+    # 把 joint_cost_weight 置 0（只练到达），之后恢复预登记的 w。只改训练的
+    # 启用时序；不改 W、τ*、可行性判据、也不改固定 w 的语义。
+    curr = prereg.get("cost_curriculum", {})
+    curr_on = bool(curr.get("enabled", False))
+    curr_warmup = int(curr.get("warmup_updates", 0)) if curr_on else 0
+    if curr_on and not (0 <= curr_warmup <= 600):
+        raise SystemExit(f"warmup_updates={curr_warmup} 超出 [0,600]")
+    obj_cfg_base = obj_cfg
+    if curr_on:
+        obj_cfg = _dc.replace(obj_cfg_base, joint_cost_weight=0.0)
+    print(f"[CURRICULUM] enabled={curr_on} warmup_updates={curr_warmup} "
+          f"w_after_warmup={w}", flush=True)
 
     if args.init_from:
         prev = S.atomic_load(args.init_from)
@@ -434,9 +456,23 @@ def main() -> int:
          "action_init_fix": {"enabled": init_on,
                              "initial_forward_speed": init_speed,
                              "log_std_min": init_std_min,
-                             "log_std_init": init_std_init}})
+                             "log_std_init": init_std_init},
+         "steering_prior": {"enabled": steer_on, "gain": steer_gain,
+                            "field": "goal_dir_y_body", "target": "wz"},
+         "cost_curriculum": {"enabled": curr_on,
+                             "warmup_updates": curr_warmup,
+                             "w_after_warmup": w}})
 
     for update_idx in range(max_updates):
+        # 课程切换点：只在这一处重绑 obj_cfg，close_segment 读到的就是当次权重
+        if curr_on:
+            obj_cfg = _dc.replace(
+                obj_cfg_base,
+                joint_cost_weight=0.0 if update_idx < curr_warmup else w)
+            if update_idx in (0, curr_warmup - 1, curr_warmup) or update_idx == max_updates - 1:
+                print(f"[CURRICULUM] update={update_idx} "
+                      f"joint_cost_weight={float(obj_cfg.joint_cost_weight):.1f}",
+                      flush=True)
         t_win = time.time()
         window_segments: list[tuple[EpisodeState, str, dict[str, np.ndarray], bool]] = []
 

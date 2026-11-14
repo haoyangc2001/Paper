@@ -6598,6 +6598,67 @@
             "授权方案（补速度余量）的前提被确定性实测证伪：提速不增加到达且导致超支",
             "可行替代（转向先验）改变策略初值语义，超出本次授权范围，需用户裁定"
           ]
+        },
+        {
+          "timestamp": "2026-11-14T15:45:00+08:00",
+          "summary": "按用户 14:58 授权实现并启动第 11 轮：新增两个默认关闭开关——转向先验（PolicyNetwork.forward 给 wz 均值加 gain*goal_dir_y_body，只改 loc）与成本项课程（前 150 更新 joint_cost_weight=0）。离线在采样动作下验收 gain=0.2 得 dev 4/6 到达且全在预算内（z_min 7.5/8.9 J），较第 10 轮训练后的 0/6 是实质改善；测试 7/7、回归 27 PASS/1 既有 FAIL、G3 PASS。8 个 run（6 主 + 2 只开先验的对照）于 15:15:26 启动，全部 fresh init。",
+          "actions": [
+            "拉取计划并校验（VALID、51/67、NAV-064 false、23 条记录、2 条阻塞）",
+            "改 networks.py：PolicyNetwork/BudgetConditionedNetworks/build 增 steering_gain，forward 只在均值第三分量叠加 gain*obs[goal_dir_y_body]",
+            "改 train_formal.py：读顶层 steering_prior 与 cost_curriculum；课程在更新循环重绑 obj_cfg.joint_cost_weight；两处打印与 provenance 记录",
+            "离线扫 gain 0.0/0.1/0.15/0.2/0.3/0.4/0.8/1.2/2.0（采样 + 确定性，2 变体 × 6 图）",
+            "新增 tests/test_steering_curriculum.py（SC1-SC5，7 断言）；修正首版 SC1 的随机源问题",
+            "临时预登记（warmup=1）实跑验证课程切换点，随后删除临时文件",
+            "冻结 training_loop_prereg_r11.json（两次修订如实入 amendments）与对照臂 training_loop_prereg_r11_steeronly.json",
+            "tmux 启动 8 个 run 并核对每份日志的 STEER-PRIOR / CURRICULUM 打印",
+            "docs 追加第 11 轮章节、台账 steering_curriculum、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "src/camra_navigation/algorithm/networks.py",
+            "scripts/train_formal.py",
+            "tests/test_steering_curriculum.py",
+            "config/training_loop_prereg_r11.json",
+            "config/training_loop_prereg_r11.json.sha256",
+            "config/training_loop_prereg_r11_steeronly.json",
+            "config/training_loop_prereg_r11_steeronly.json.sha256",
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python t_patch_steer_curriculum.py（逐处断言唯一出现）",
+            "python tests/test_steering_curriculum.py",
+            "t_sweep_steering.py（gain × 变体 × 采样/确定性 × 6 图）",
+            "train_formal.py --prereg-name tmp_curriculum_probe.json --smoke-updates 3（课程切换点）",
+            "train_formal.py --prereg-name training_loop_prereg_r11.json --smoke-updates 2",
+            "全部 tests/test_*.py + build_gate_g3_alignment_v2.py",
+            "bash /tmp/nav064_round11.sh（tmux nav064-r11，8 run）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "离线采样动作：gain=0.0 → 1/6（z_min −3.5/−4.1 J）；gain=0.2 → 4/6 未校准与 4/6 完整，全部预算内（z_min +7.5/+8.9 J）；gain≥0.4 饱和一致",
+            "确定性测试 7/7 PASS（含开关关闭逐位一致、loc 第三分量精确注入、符号正确）",
+            "课程切换点实测：update 0 权重 0.0，update 1 起 50.0（临时 warmup=1 预登记）",
+            "全量回归 27 PASS / 1 既有 FAIL（test_nominal_env.py 历史口径，与本改动无关）；G3 PASS 且报告散列未变",
+            "预登记主臂 dbcca7ef、对照臂 54ce184a；两次修订（budget 格式、结构缺字段）已入 amendments",
+            "8 个 run 于 15:15:26 启动，全部 fresh init、转向先验全生效；主臂课程开启、对照臂关闭",
+            "资源：累计约 15.1 h，超协议 12 h 约 26%，已在预登记与台账登记"
+          ],
+          "evidence": [
+            "t_sweep_steering.py 输出（9 档 gain × 2 变体 × 采样/确定性）",
+            "tests/test_steering_curriculum.py 输出（SC1-SC5 全 PASS）",
+            "/tmp/r11_probe.log（CURRICULUM update=0 → 0.0、update=1 → 50.0）",
+            "/tmp/r11_smoke.log（四开关 + 课程打印，无 WARMSTART）",
+            "REGRESSION PASS=27 FAIL=1；G3 verdict=PASS",
+            "round11_start.txt（8 个 launched 行）+ 8 份日志的 STEER-PRIOR/CURRICULUM 行",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "等 ROUND11_DONE → 跑 eval_training_round.py --round 11（主臂 6 run + 对照臂 2 run 分开评估）",
+            "按主判据与证伪条款判定：300-600 窗口到达、dev SR 中位、离终点距离、对照臂差值",
+            "NAV-064 关闭档未达成，保持 false"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
