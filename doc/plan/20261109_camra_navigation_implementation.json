@@ -6522,6 +6522,38 @@
             "NAV-064 关闭档仍未达成，保持 false"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T15:10:00+08:00",
+          "summary": "补做第 10 轮输入消融，更正上一条记录中的推断：残留衰减不是预算通道造成的。预算整段变化只折算约 0.14 m/s（占 0.62 m/s 衰减的 22%），剩余时间几乎无影响（±0.01），目标距离与自车速度反馈方向与衰减相反。结论：继续在目标函数做减法不划算，应先补时间/速度余量（需 0.486 m/s，参考速度 0.465 差 4%）。",
+          "actions": [
+            "在训练后策略第 100 步真实状态上做单输入干预（预算满/枯竭、时间 30s/0s、目标 2m/20m、自车速度 0/0.8）",
+            "按消融斜率折算预算通道对衰减的贡献占比",
+            "docs 追加补充实测小节，更正原推断；台账加 round_10_input_ablation；本计划追加本条记录"
+          ],
+          "files_changed": [
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "t_audit_input_ablation.py（单输入干预测指令前进速度）",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "基线 0.546 m/s；预算满 +0.060、只剩 1% −0.075；时间 ±0.01；目标 2m +0.013、20m −0.031；自车速度 0 → +0.066、0.8 → −0.036",
+            "预算通道折算约 0.14 m/s，占实测衰减 0.62 m/s 的 22%；时间通道可忽略",
+            "更正：此前「衰减来自 −z / V_total」为推断，实测不支持其为主要原因，剩余衰减来自分布式映射"
+          ],
+          "evidence": [
+            "/tmp 脚本输出（state=step100 z_J=189.0 t_s=10.0 baseline_forward=0.546 与 8 条干预行）",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "由用户裁定下一步：补速度余量（0.465→0.50 级）或继续第 11 轮 / 转 NAV-065",
+            "NAV-064 关闭档仍未达成，保持 false"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
