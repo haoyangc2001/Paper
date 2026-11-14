@@ -6717,6 +6717,53 @@
             "19:19 建议的第 1 步（改 D4/D5 符号与量级、把『到达且预算内』写进终态残差）前提被 X 光数据推翻：r11 到达步信号并不弱、电费项也不大；按 NAV-064 约束，数学目标变化须回 NAV-061–063 重验，继续执行会返工",
             "两个变体病因不同（full：可达性评价网络学反 + 停止掩码 43%→64%；uncal：u50 抵消转向先验 + 到达正例 0.055%），单一方案无法通吃，需用户裁定范围"
           ]
+        },
+        {
+          "timestamp": "2026-11-14T20:50:00+08:00",
+          "summary": "按用户 20:39 授权执行建议 A 的只读定位：逐环核对代码逻辑并用冻结 rollout chunk 做决定性分层检验 + 几何对照。确证完整变体失败的真正根因是不可逆安全历史 y 把可达性目标钉成常数 1：y=1 时 h≡1、V_h 目标 0.999、stop_now 69.1%；完整变体 49.42% 的步 y=1（主臂仅 2.18%），冻结膨胀半径 2.6139 m 使同一策略在开发图上危险步达 42.5/100 步（未校准 1.29），6/6 图触发 y，67.5% 的回合步数落在常数目标区。分层检验同时证伪了 19:50『评价网络学反』的解释（y=0 样本 corr +0.7495、按距离单调，反转是组成混杂）。确认的原因与用户授权时认定的原因不同，且四个优化方向均涉及冻结契约或验收语义，按纪律停下等方向裁定；本轮未改代码/契约/预登记、未启动训练。",
+          "actions": [
+            "开工对齐：校验器 --mode update VALID（51/67、NAV-064 false、25 条记录、2 条阻塞）；本地与服务器计划 sha 一致（b6d23f62…）",
+            "逐环读代码：vector.py 危险判定、geometry.py update_safety_history、storage.py h 构造与停止残差、targets.py reach_values/select_stop、margins_v1.json 的 delta 来源",
+            "新增只读诊断 diag_rootcause_safety_y.py：Part A 按 y 分层的 C1–C6 检验；Part B 固定策略与 6 张开发图只改几何",
+            "补算触发后常数目标区步数占比并重跑生成最终报告",
+            "文档追加根因确证章节（含四条更正与四个优化方向对比）、台账加 round_11_rootcause、计划追加本条记录"
+          ],
+          "files_changed": [
+            "scripts/diag_rootcause_safety_y.py",
+            "reports/training_round_r11_rootcause.json",
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python validate_worklog.py --mode update",
+            "python scripts/diag_rootcause_safety_y.py（服务器）",
+            "python validate_worklog.py --mode update（本条记录写入后）"
+          ],
+          "results": [
+            "C1 h=max(g_norm,y_before) 最大误差 0.0，确认 y 取步前值",
+            "C2 y=1 占比 2.18% / 2.62% / 49.42%（主臂/对照/完整）；h≥0.99 与 y=1 重合",
+            "C3 完整变体 y=0 样本 corr(Vh,距离)=+0.7495、按距离 0.075→0.725 单调；y=1 样本 Vh≈0.995 → 证伪『评价网络学反』",
+            "C4 完整变体 y=1 时 target_reach 0.9991、stop_residual 0.9992；y=0 时 0.6399 / 0.6740",
+            "C5 完整变体 stop_now y=1 段 69.1% vs y=0 段 17.5%；feasible 恒 0；vx 0.4258→0.3294",
+            "C6 到达步无 y=1，环境/可行性口径分叉猜测未发生",
+            "几何对照：完整 delta=2.6139 m → 危险 42.5/100 步、6/6 图触发 y、67.5% 步落在常数目标区；未校准 delta=0 → 1.29/100 步、3/6 图、1.3%"
+          ],
+          "evidence": [
+            "reports/training_round_r11_rootcause.json（sha 05b2449d…）",
+            "geometry.py:365-368、storage.py:322-324、targets.py:246-258 / 75-113、margins_v1.json delta=2.6138664",
+            "train_formal.py build_envs 与 eval_training_round.build_rollout_ctx 同走 SafetyGeometry.from_frozen，口径一致",
+            "validate_worklog.py --mode update 输出 VALID"
+          ],
+          "remaining_work": [
+            "等用户裁定优化方向（A 样本层隔离 / B 环境层区分裕度与碰撞 / C 调小 delta / D 分变体推进）",
+            "裁定后按流程冻结预登记；若涉及数学或安全语义变化须回 NAV-061~063 重验 G3",
+            "NAV-064 关闭档未达成，保持 false；不加训练轮次、不放宽判据"
+          ],
+          "blockers": [
+            "用户授权时认定的『这个原因』是完整变体评价网络学反，确证结果是『不可逆安全历史 y + 冻结膨胀几何把目标钉死』；方案前提已变更，按『前提变了要停』的纪律须重新裁定",
+            "四个优化方向分别触及训练样本语义、冻结安全契约、冻结校准参数或关闭档验收口径，选错会返工；NAV-064 约束要求数学目标变化回 NAV-061~063 重验"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

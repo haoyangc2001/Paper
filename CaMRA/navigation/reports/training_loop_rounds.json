@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "round_11_complete_xray_done_pending_direction",
+  "status": "rootcause_confirmed_pending_optimization_direction",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -1476,5 +1476,67 @@
     },
     "compute": "51 s 诊断计算，无新增训练墙钟",
     "blocker": "19:19 建议的第 1 步前提被推翻；改数学目标按 NAV-064 约束须回 NAV-061–063 重验，停下等用户裁定"
+  },
+  "round_11_rootcause": {
+    "date": "2026-11-14T20:50:00+08:00",
+    "authorization": "用户 20:39 授权按建议 A 详细分析逻辑，确认原因后优化",
+    "scope": "只读定位，未改代码/契约/预登记/检查点，未启动训练",
+    "script": "scripts/diag_rootcause_safety_y.py",
+    "report": "reports/training_round_r11_rootcause.json",
+    "code_chain": [
+      "vector.py:402-425 用膨胀障碍判 danger",
+      "geometry.py:365-368 update_safety_history 不可逆（once unsafe, always unsafe）",
+      "storage.py:322-324 h=max(g_norm, C*y)，C=1.0 → y=1 时 h≡1",
+      "targets.py:246-258 reach_values → V_h 目标恒 1",
+      "targets.py:75-113 W 被压平，stop_now 升高",
+      "margins_v1.json delta=2.6138664（790 样本 90 分位），训练与评估口径一致，非配置错误"
+    ],
+    "decisive_test": {
+      "C1": "h = max(g_norm, y_before) 最大误差 0.0",
+      "C2": "y=1 占比 主臂 2.18% / 对照 2.62% / 完整 49.42%；h≥0.99 与 y=1 重合",
+      "C3": "分层后完整变体 y=0 样本 corr(Vh,距离)=+0.7495、按距离 0.075→0.725 单调；y=1 样本 Vh≈0.995 与距离无关 → 推翻『评价网络学反』",
+      "C4": "完整变体 y=1 时 target_reach 0.9991 / stop_residual 0.9992（常数）；y=0 时 0.6399 / 0.6740",
+      "C5": "完整变体 stop_now 在 y=1 段 69.1%（y=0 段 17.5%）；feasible 恒 0；vx 0.4258→0.3294",
+      "C6": "到达步无 y=1，『环境与可行性判据分叉』猜测未发生，如实登记"
+    },
+    "geometry_control": {
+      "same_policy_same_6_dev_maps": true,
+      "uncalibrated": {
+        "delta_m": 0.0,
+        "danger_per_100_steps": 1.29,
+        "episodes_with_y": 3,
+        "post_y_frac": 0.013
+      },
+      "full": {
+        "delta_m": 2.6138664115280967,
+        "danger_per_100_steps": 42.5,
+        "episodes_with_y": 6,
+        "post_y_frac": 0.675,
+        "per_map_post_y_frac": [
+          0.81,
+          0.9,
+          0.753,
+          0.77,
+          0.453,
+          0.443
+        ],
+        "first_y_step_range": [
+          24,
+          167
+        ]
+      }
+    },
+    "corrections_to_1950": [
+      "『完整变体评价网络学反』被分层检验证伪：反转是 y=1 样本在近处集中的组成混杂",
+      "停止掩码 43%→64% 更正为 y 的下游结果（y=1 段 69.1%）",
+      "修 D4/D5 符号体系与本节根因无关"
+    ],
+    "optimization_options": [
+      "A 样本层隔离 y=1 段（推荐，默认关闭开关+逐位回归）",
+      "B 环境层区分保守裕度与真碰撞（改安全语义，代价最大）",
+      "C 调小冻结 delta（不建议，等于放宽判据）",
+      "D 分变体推进（改关闭档口径）"
+    ],
+    "blocker": "确证的原因与授权时认定的原因不同；四个方向都涉及冻结契约或验收语义，停下等方向裁定"
   }
 }
