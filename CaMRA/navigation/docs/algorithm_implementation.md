@@ -875,3 +875,54 @@ NAV-064 收尾判定。基础设施失败换 run id 重跑，不计作业务轮�
 
 **不改**：不放宽 30 秒时限、不改地图与判据、不做奖励塑形、不继续调初始化
 （初始化已被本轮证明有效且到顶）。
+
+
+## 成本项遮蔽与第 10 轮：不超支就不记电费账（2026-11-14）
+
+按 11:38 授权实施审计方案一。预登记 `config/objective_cost_mask_prereg_v1.json`
+先冻结（sha 见台账），实现后再冻结第 10 轮预登记。
+
+### 改动
+
+```
+objective_signal_fix.cost_on_overspend_only = true
+  → g_train,t = g_t + w·c_t · 1[z_t < 0]
+```
+
+- `targets.joint_training_sequence` 增加 `overspend_mask`，penalty = c·mask；
+- `storage.ObjectiveConfig` 增加 `joint_cost_on_overspend_only`，调用处传 `(z < 0.0)`；
+- `train_formal` 从预登记读取并打印。
+- **只改策略用的 `g_train`**；`g_ext`、`W`、`τ*`、`obj_feasible`、`target_cost`、
+  `target_reach` 一律不动；默认关闭逐位回归。
+
+### 验收
+
+| 判据 | 结果 |
+|---|---|
+| CM1 默认关闭逐位回归 | 合成序列与旧公式逐位一致；配置默认 False；w=0 短路 |
+| CM2 遮蔽语义 | `z = [0.5, 0.2, −0.1, −0.3]` → `g_train = [1, 1, 2.5, 3.0, 0]`，只在后两步加 `w·c` |
+| CM3 不污染判据量 | 判据量在 `g_train` 之前计算，结构上独立；`test_objective_signal_fix` / `test_targets_oracle` 全绿 |
+| CM4 长度守卫 | mask 长度 ≠ T 时抛 `ValueError` |
+| CM5 记录 | 测试 10/10 PASS、docs/台账/计划 |
+
+全量回归 26 PASS / 1 既有 FAIL（`test_nominal_env.py` 历史口径，与本改动无关）；
+G3 门禁 `PASS`；冒烟 `[OBJ-FIX] ... cost_on_overspend_only=True`。
+
+### 第 10 轮
+
+预登记 `training_loop_prereg_r10.json`（sha 见台账），6 run 从零初始化，
+四开关 + 遮蔽全开。`tmux nav064-r10` 于服务器时间 11:50:38 启动。
+
+**本轮最关键的新判据是「训练期 300-600 窗口的 `goal_reached` 是否 > 0」**——
+第 9 轮 639 次到达全部落在前 100 更新、300 之后为 0；如果遮蔽有效，到达应当
+维持到后期，而不是又退回去。
+
+### 资源
+
+9 轮累计 12.1 h，本轮预计 +1.5 h ≈ **13.6 h，超协议 12 h 上限约 13%**，已写进
+预登记 `authorization.cap_note`。这是用户 11:38 明确授权突破第 9 轮上限后的
+执行轮，如实登记，不静默超额。
+
+### 边界
+
+结果未产生：不宣称到达能维持、不宣称达标。

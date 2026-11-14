@@ -6420,6 +6420,62 @@
             "NAV-064 关闭档仍未达成，保持 false；第 9 轮已到轮次上限"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-14T12:20:00+08:00",
+          "summary": "按 11:38 授权实施方案一：新增「成本项只在超支时计入」的遮蔽开关（默认关闭逐位回归），预登记先冻结后改码，测试 10/10 PASS、回归 26 PASS/1 既有 FAIL、G3 PASS；随后冻结第 10 轮预登记（突破第 9 轮上限、累计 13.6h 超 12h 约 13%，如实登记）并启动 6 run。NAV-064 保持 false，结果未产生。",
+          "actions": [
+            "读 targets/storage/train_formal 的成本项实现与调用点，确认 z_norm 的符号语义（负=超支）",
+            "冻结 config/objective_cost_mask_prereg_v1.json（5 条判据）后改码：joint_training_sequence 加 overspend_mask、ObjectiveConfig 加 joint_cost_on_overspend_only、train_formal 从预登记读取并打印",
+            "新增 tests/test_cost_mask.py（10/10 PASS）：默认公式、遮蔽语义 [1,1,2.5,3.0,0]、mask 全 0/全 1、长度守卫、配置默认值、w=0 短路",
+            "全量回归 26 PASS / 1 既有 FAIL（test_nominal_env.py）、G3 PASS",
+            "冻结 training_loop_prereg_r10.json（sha 583ef08535e87fe1），真实回读 + 冒烟确认 cost_on_overspend_only=True",
+            "tmux nav064-r10 于 11:50:38 启动 6 run；6 份日志均打印遮蔽开关",
+            "docs 追加章节、台账 cost_mask 与 round_10_preregistration、本计划追加本条记录"
+          ],
+          "files_changed": [
+            "config/objective_cost_mask_prereg_v1.json(+.sha256)",
+            "config/training_loop_prereg_r10.json(+.sha256)",
+            "src/camra_navigation/algorithm/targets.py",
+            "src/camra_navigation/algorithm/storage.py",
+            "scripts/train_formal.py",
+            "tests/test_cost_mask.py",
+            "docs/algorithm_implementation.md",
+            "reports/training_loop_rounds.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python t_build_cost_mask_prereg.py / t_patch_cost_mask.py / t_build_r10_prereg.py",
+            "python -m py_compile targets.py storage.py train_formal.py",
+            "tests/test_cost_mask.py（10/10 PASS）",
+            "全量回归 tests/test_*.py（26 PASS / 1 FAIL）",
+            "build_gate_g3_alignment_v2.py（PASS）",
+            "python /tmp/t_readback_r10.py；train_formal.py --smoke-updates 2",
+            "tmux new-session -d -s nav064-r10 \"bash /tmp/nav064_round10.sh\"",
+            "python validate_worklog.py --mode update"
+          ],
+          "results": [
+            "遮蔽实现：g_train 只在 z<0 的步加 w·c；默认关闭时与旧公式逐位一致",
+            "合成验证 z=[0.5,0.2,-0.1,-0.3] → g_train=[1,1,2.5,3.0,0]，符合预期",
+            "测试 10/10 PASS、回归 26 PASS/1 既有 FAIL、G3 PASS",
+            "第 10 轮 6 run 全部从零初始化、四开关 + 遮蔽全开，11:50:38 启动",
+            "本轮关键新判据：训练期 300-600 窗口 goal_reached > 0（第 9 轮该窗口为 0）",
+            "资源：9 轮 12.1h + 本轮约 1.5h ≈ 13.6h，超 12h 上限约 13%，预登记已如实登记"
+          ],
+          "evidence": [
+            "tests/test_cost_mask.py 输出 10/10 PASS",
+            "objective_cost_mask_prereg_v1.json(+.sha256) 与 training_loop_prereg_r10.json(+.sha256) PIN_OK",
+            "READBACK_VERDICT PASS、/tmp/r10_smoke.log 的 [OBJ-FIX] cost_on_overspend_only=True",
+            "nav064_r10/round10_start.txt：start 2026-11-14T11:50:38 launched 6 runs",
+            "6 份日志各 1 条 cost_on_overspend_only=True；ps 计数 6",
+            "G3 verdict=PASS；回归 26 PASS / 1 FAIL"
+          ],
+          "remaining_work": [
+            "等 ROUND10_DONE，统计各窗口 goal_reached（重点 300-600 是否 > 0）",
+            "eval_training_round.py --round 10 生成报告并与 r9 对比",
+            "按判据收尾：达标进 NAV-065；若后期到达仍为 0 则写正式负结果，不加第 11 轮"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

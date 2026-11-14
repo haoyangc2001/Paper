@@ -1,0 +1,64 @@
+{
+  "schema": "camra-objective-cost-mask-prereg-v1",
+  "version": "1.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-14T11:55:00+08:00",
+  "status": "frozen_before_code_change",
+  "authorization": {
+    "granted_by": "用户 2026-11-14 11:38『@skill:create-plan-worklog 可以 那就按照要求按照你的建议开始推进』",
+    "scope": "按审计给出的方案一实施：成本项只在已超支时计入即时代价；不改评分语义、不改 W 判据、不改地图与时限"
+  },
+  "diagnosis": {
+    "fact": "第 9 轮训练后速度从 0.282 逐步衰减到 −0.064（同图 l1_empty-s2001），639 次到达全部集中在前 100 更新",
+    "root_cause": "g_train=max(h,−z)+50·c 中 h 远离终点时饱和（变化量 0.01 量级），50·c≈0.45，每走一步都在奖励少动",
+    "audit": "参数未被学坏（bias0 tanh 0.40、log_std −2.73），变的是 head 权重学出依赖观测的减速映射"
+  },
+  "change": {
+    "form": "新增可选开关 objective_signal_fix.cost_on_overspend_only（默认 False）：为 True 时 w·c_t 只在 z_t<0（已超支）的步计入 g_train",
+    "implementation": [
+      "targets.joint_training_sequence 增加 overspend_mask 参数，penalty=c*mask",
+      "storage.ObjectiveConfig 增加 joint_cost_on_overspend_only，调用处传入 (z<0.0)",
+      "train_formal 从预登记 objective_signal_fix.cost_on_overspend_only 读取并打印"
+    ],
+    "guards": [
+      "默认 False，g_train 与改动前逐位等价",
+      "开关从先冻结的预登记读取，不硬编码",
+      "只改策略用的 g_train；g_ext、W、τ*、obj_feasible、target_cost、target_reach 一律不动",
+      "mask 长度必须等于步数 T，否则显式报错",
+      "不改评分语义、不改 30 s 时限、不改地图与种子族、不做奖励塑形"
+    ]
+  },
+  "acceptance_criteria": [
+    {
+      "id": "CM1",
+      "check": "默认关闭逐位回归",
+      "requirement": "cost_on_overspend_only=False 时 g_train 与改动前逐位相同；既有测试与 G3 门禁全绿"
+    },
+    {
+      "id": "CM2",
+      "check": "遮蔽语义正确",
+      "requirement": "合成序列上，仅在 z<0 的步 g_train 增加 w·c；z>=0 的步 g_train 等于 g_ext"
+    },
+    {
+      "id": "CM3",
+      "check": "不污染判据量",
+      "requirement": "同一 chunk 下 W、τ*、obj_feasible、target_cost、target_reach 与关闭时逐位相同"
+    },
+    {
+      "id": "CM4",
+      "check": "长度守卫",
+      "requirement": "overspend_mask 长度不等于 T 时抛出 ValueError"
+    },
+    {
+      "id": "CM5",
+      "check": "记录与文档",
+      "requirement": "测试文件、docs 章节、台账、计划记录"
+    }
+  ],
+  "falsification": "若 CM1~CM5 任一不过，如实记录并停止，不带着失败进入训练轮",
+  "not_claimed": [
+    "不宣称训练后一定能到达或达标",
+    "不宣称本改动解决完整变体的绕障问题",
+    "不把离线验收当成训练效果"
+  ]
+}

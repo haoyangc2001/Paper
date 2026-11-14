@@ -377,8 +377,11 @@ def main() -> int:
         # 实测会翻转到达梯度（amend3 三条数值反例）；只允许测试显式开启
         raise SystemExit("joint_min_recursion=True 会翻转到达梯度，训练器拒绝启用；"
                          "见 config/rcppo_alignment_contract_v1.amend3.json")
-    obj_cfg = _dc.replace(obj_cfg, joint_cost_weight=w, joint_min_recursion=use_min)
-    print(f"[OBJ-FIX] joint_cost_weight={w} joint_min_recursion={use_min}", flush=True)
+    cost_mask = bool(fix.get("cost_on_overspend_only", False))
+    obj_cfg = _dc.replace(obj_cfg, joint_cost_weight=w, joint_min_recursion=use_min,
+                          joint_cost_on_overspend_only=cost_mask)
+    print(f"[OBJ-FIX] joint_cost_weight={w} joint_min_recursion={use_min} "
+          f"cost_on_overspend_only={cost_mask}", flush=True)
 
     if args.init_from:
         prev = S.atomic_load(args.init_from)
@@ -424,7 +427,8 @@ def main() -> int:
          "calls_per_window": calls_per_window, "max_updates": max_updates,
          "smoke": smoke, "provenance": provenance,
          "objective_signal_fix": {"joint_cost_weight": w,
-                                  "joint_min_recursion": use_min},
+                                  "joint_min_recursion": use_min,
+                                  "cost_on_overspend_only": cost_mask},
          "budget_accounting": str(prereg.get("budget_accounting", "nominal")),
          "action_bounded": bool(prereg.get("action_bounded", False)),
          "action_init_fix": {"enabled": init_on,

@@ -139,7 +139,8 @@ def joint_sequence(h_t: np.ndarray, z_norm: np.ndarray, h_T: float, z_T: float,
 
 
 def joint_training_sequence(g_ext: np.ndarray, cost_norm: np.ndarray,
-                            weight: float = 0.0) -> np.ndarray:
+                            weight: float = 0.0,
+                            overspend_mask: np.ndarray | None = None) -> np.ndarray:
     """训练用联合即时代价：``g_train,t = g_t + w·c_t``，``g_T`` 不变。
 
     NAV-064 修正 ①：``g_t=max(h_t,−z_t)`` 只装了「剩余预算」这个存量，
@@ -157,8 +158,17 @@ def joint_training_sequence(g_ext: np.ndarray, cost_norm: np.ndarray,
     w = float(weight)
     if w == 0.0:
         return g.copy()
+    penalty = c
+    if overspend_mask is not None:
+        # NAV-064 成本项遮蔽：只在已超支（z<0）的步计入 w·c。未超支时每步成本
+        # 会把「持续前进」教成「逐步减速」（第 9 轮审计：vx 0.46→−0.06）。
+        m = np.asarray(overspend_mask, dtype=np.float64).reshape(-1)
+        if m.shape[0] != c.shape[0]:
+            raise ValueError(
+                f"overspend_mask 长度应为 T={c.shape[0]}，得到 {m.shape[0]}")
+        penalty = c * m
     out = g.copy()
-    out[:-1] += w * c
+    out[:-1] += w * penalty
     return out
 
 

@@ -2,7 +2,7 @@
   "schema": "camra-training-loop-ledger-v1",
   "task": "NAV-064",
   "protocol": "config/training_loop_protocol_v1_1.json",
-  "status": "rounds_exhausted_r9_cap_reached_nav064_not_met",
+  "status": "round_10_launched_pending_result",
   "closing_tier_met": false,
   "rounds": [
     {
@@ -1075,6 +1075,66 @@
     "not_claimed": [
       "不宣称任一方案一定成功",
       "不宣称已找到根治手段"
+    ]
+  },
+  "cost_mask": {
+    "date": "2026-11-14",
+    "prereg": {
+      "path": "config/objective_cost_mask_prereg_v1.json",
+      "sha256": "c0e9970e32ef51f14e507fe932f5b599b75542d6358aaba295b52a8061f517ee"
+    },
+    "form": "g_train,t = g_t + w·c_t·1[z_t<0]；开关 objective_signal_fix.cost_on_overspend_only，默认 False",
+    "guards": "只改 g_train；g_ext/W/τ*/obj_feasible/target_cost/target_reach 不动；默认关闭逐位回归",
+    "acceptance": {
+      "CM1": "PASS",
+      "CM2": "PASS（[1,1,2.5,3.0,0]）",
+      "CM3": "PASS（结构独立 + 既有 objective 测试全绿）",
+      "CM4": "PASS（ValueError）",
+      "CM5": "PASS（测试 10/10）"
+    },
+    "regression": "26 PASS / 1 既有 FAIL（test_nominal_env.py）",
+    "gate_g3": "PASS"
+  },
+  "round_10_preregistration": {
+    "date": "2026-11-14",
+    "authorization": "用户 11:38『可以 那就按照要求按照你的建议开始推进』",
+    "prereg": {
+      "path": "config/training_loop_prereg_r10.json",
+      "sha256": "583ef08535e87fe13ca9c0bd3d4b36c046824abbcf0b3b96c22b34ebfd755fff",
+      "version": "r10.0.0"
+    },
+    "status": "frozen_before_round_10_launched",
+    "cap_override": "突破第 9 轮上限（用户当次授权）；累计 13.6 h 超 12 h 约 13%，如实登记",
+    "switches": {
+      "budget_accounting": "consistent",
+      "action_bounded": true,
+      "action_init_fix": {
+        "enabled": true,
+        "initial_forward_speed": 0.465,
+        "log_std_min": -5.0,
+        "log_std_init": -3.0
+      },
+      "objective_signal_fix": {
+        "joint_cost_weight": 50.0,
+        "joint_min_recursion": false,
+        "cost_on_overspend_only": true
+      }
+    },
+    "readback": "READBACK_VERDICT PASS",
+    "smoke": "SMOKE_RC=0，四开关 + cost_on_overspend_only=True",
+    "launch": {
+      "tmux_session": "nav064-r10",
+      "started_at": "2026-11-14T11:50:38+08:00",
+      "runs": 6,
+      "proc_count_at_check": 6,
+      "mask_flag_in_all_6_logs": true
+    },
+    "key_criterion": "训练期 300-600 窗口的 goal_reached > 0（到达能否维持）",
+    "primary_criterion": "『到达且 z_end>=0』是否首次非零",
+    "falsification": "若 300-600 窗口仍为 0，停下写正式负结果，不加第 11 轮",
+    "not_claimed": [
+      "结果未产生，不宣称到达能维持",
+      "不宣称达标"
     ]
   }
 }
