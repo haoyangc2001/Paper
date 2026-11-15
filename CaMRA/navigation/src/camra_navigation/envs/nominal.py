@@ -164,6 +164,11 @@ class StepRecord:
     goal_distance_before: float = 0.0
     #: ``z_J_before >= 0``: over-budget is a reported fact now, not a terminal.
     within_budget: bool = True
+    #: NAV-064 r14: severity of *this step's* violation in [0, 1] (0 = none).
+    #: Binary rounds r1-r13 always recorded 0.0/1.0-equivalent facts via
+    #: ``danger_violation``; this field adds the graded magnitude so logs can
+    #: separate a graze from a deep hit (F1/F2 evidence).
+    safety_severity: float = 0.0
 
     def as_dict(self) -> dict:
         return {
@@ -193,6 +198,7 @@ class StepRecord:
             "safety_y_before": self.safety_y_before,
             "goal_distance_before": self.goal_distance_before,
             "within_budget": self.within_budget,
+            "safety_severity": self.safety_severity,
         }
 
 
@@ -226,6 +232,12 @@ class EpisodeResult:
     within_budget: bool = True
     arrived_within_budget: bool = False
     over_budget_J: float = 0.0
+    #: NAV-064 r14 diagnostics (user-authorized 2026-11-15T17:32).
+    max_safety_severity: float = 0.0
+    #: Full context of the stagnation trigger, or None if the episode never
+    #: stagnated.  Collected so "killed while actually fine-tuning the last
+    #: metre" vs "genuinely stuck" can be told apart from logs alone.
+    stagnation_context: dict | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -251,6 +263,8 @@ class EpisodeResult:
             "within_budget": self.within_budget,
             "arrived_within_budget": self.arrived_within_budget,
             "over_budget_J": self.over_budget_J,
+            "max_safety_severity": self.max_safety_severity,
+            "stagnation_context": self.stagnation_context,
         }
 
 
@@ -270,6 +284,10 @@ class NominalNavEnv:
         stagnation_window_s: float = 3.0,
         stagnation_min_displacement_m: float = 0.05,
         initial_pose_jitter_m: float = 0.0,
+        safety_severity_enabled: bool = False,
+        safety_severity_floor: float = 0.2,
+        safety_severity_ref_depth_m: float = 0.25,
+        observation_version: str | None = None,
     ) -> None:
         if abs(cost_model.dt_s - DT_NAV_S) > 1e-12:
             raise NominalEnvError(
@@ -277,6 +295,12 @@ class NominalNavEnv:
             )
         if not math.isfinite(z0_J):
             raise NominalEnvError(f"z0_J must be finite, got {z0_J}")
+        if not (0.0 < safety_severity_floor < 1.0):
+            raise NominalEnvError(
+                f"safety_severity_floor must be in (0, 1), got {safety_severity_floor}")
+        if safety_severity_ref_depth_m <= 0.0:
+            raise NominalEnvError(
+                f"safety_severity_ref_depth_m must be > 0, got {safety_severity_ref_depth_m}")
         self.spec = spec
         self.geometry = geometry
         self.cost_model = cost_model
@@ -286,6 +310,13 @@ class NominalNavEnv:
         self.stagnation_window_s = float(stagnation_window_s)
         self.stagnation_min_displacement_m = float(stagnation_min_displacement_m)
         self.initial_pose_jitter_m = float(initial_pose_jitter_m)
+        # NAV-064 r14 (user-authorized 2026-11-15T17:32): graded safety history.
+        # Default off = binary history, byte-identical to rounds r1-r13.
+        self.safety_severity_enabled = bool(safety_severity_enabled)
+        self.safety_severity_floor = float(safety_severity_floor)
+        self.safety_severity_ref_depth_m = float(safety_severity_ref_depth_m)
+        self.observation_version = observation_version or obs.OBS_VERSION
+        obs.z_ratio_clip(self.observation_version)
 
         self._obstacle_polys = tuple(ob.polygon() for ob in spec.obstacles())
         self._obstacle_obs = tuple(
@@ -341,6 +372,9 @@ class NominalNavEnv:
         self.danger_steps = 0
         self.internal_violation_steps = 0
         self._applied_last = (0.0, 0.0, 0.0)
+        # NAV-064 r14 diagnostics
+        self.max_safety_severity = 0.0
+        self.stagnation_context: dict | None = None
         return self.observation()
 
     # ---- state ----
@@ -372,7 +406,8 @@ class NominalNavEnv:
         )
 
     def observation(self) -> list[float]:
-        return obs.encode_observation(self.ego, self._obstacle_obs, self._extent, self.task)
+        return obs.encode_observation(self.ego, self._obstacle_obs, self._extent,
+                                      self.task, version=self.observation_version)
 
     @property
     def steps(self) -> tuple[StepRecord, ...]:
@@ -418,6 +453,15 @@ class NominalNavEnv:
         # --- cost on the applied command (charges the budget exactly once) ---
         cost = self.cost_model.step(command.applied, budget=self.budget)
 
+        # --- geometry facts for the record ----------------------------------
+        # NAV-064 r14: margins are computed *before* the safety update so the
+        # violation severity of this very step can be priced from the depth.
+        min_nom = (
+            min(G.nominal_margin((p1, y1), poly, self.geometry) for poly in self._obstacle_polys)
+            if self._obstacle_polys
+            else None
+        )
+
         # --- safety history: obstacle inflation plus the wall bands ----------
         danger = any(
             G.nominal_violation_during_step((p0, y0), (p1, y1), poly, self.geometry)
@@ -426,18 +470,32 @@ class NominalNavEnv:
         # ``internal_violation`` is the nominal constraint being crossed.  It is
         # recorded, never used as a label (frozen contract: orthogonal).
         internal = bool(danger)
-        self.safety_y = G.update_safety_history(self.safety_y, danger)
+        # NAV-064 r14 (user-authorized 2026-11-15T17:32): graded severity.
+        # Binary mode (default, r1-r13): severity is 1 on any violation and the
+        # update below is byte-identical to the old ``update_safety_history``.
+        # Graded mode: severity rises linearly with penetration depth from
+        # ``floor`` (grazing touch) to 1.0 (deeper than ``ref_depth_m``), so a
+        # graze is priced strictly below a deep hit and post-violation steps
+        # keep a position-dependent h instead of a constant 1.
+        if danger:
+            if self.safety_severity_enabled:
+                depth = 0.0 if min_nom is None else max(0.0, -float(min_nom))
+                depth = max(depth, -float(G.boundary_margin(
+                    (p1, y1), self.spec.extent, self.geometry)))
+                severity = G.safety_severity_from_depth(
+                    depth, floor=self.safety_severity_floor,
+                    ref_depth_m=self.safety_severity_ref_depth_m)
+                self.safety_y = G.update_safety_history_graded(self.safety_y, severity)
+            else:
+                severity = 1.0
+                self.safety_y = G.update_safety_history(self.safety_y, danger)
+        else:
+            severity = 0.0
+        self.max_safety_severity = max(self.max_safety_severity, severity)
         if danger:
             self.danger_steps += 1
         if internal:
             self.internal_violation_steps += 1
-
-        # --- geometry facts for the record ----------------------------------
-        min_nom = (
-            min(G.nominal_margin((p1, y1), poly, self.geometry) for poly in self._obstacle_polys)
-            if self._obstacle_polys
-            else None
-        )
         min_phys = (
             min(G.physical_clearance((p1, y1), yaw1, poly, self.geometry) for poly in self._obstacle_polys)
             if self._obstacle_polys
@@ -506,6 +564,7 @@ class NominalNavEnv:
             safety_y_before=safety_before,
             goal_distance_before=goal_d_before,
             within_budget=bool(z_before >= 0.0),
+            safety_severity=severity,
         )
         self._records.append(record)
         self.index += 1
@@ -524,7 +583,26 @@ class NominalNavEnv:
         if anchor is None:
             return False
         moved = math.hypot(self._pose[0] - anchor[0], self._pose[1] - anchor[1])
-        return moved < self.stagnation_min_displacement_m
+        if moved >= self.stagnation_min_displacement_m:
+            return False
+        # NAV-064 r14 diagnostics (user-authorized 2026-11-15T17:32): capture
+        # the full scene at the trigger so logs alone can separate a false kill
+        # ("slowly fine-tuning the last metre, still had budget") from a true
+        # one ("genuinely out of options").  Nothing reads this during training;
+        # it is evidence collection only.
+        self.stagnation_context = {
+            "t_s": round(self.t_s, 3),
+            "pose": [round(self._pose[0], 4), round(self._pose[1], 4)],
+            "goal_distance_m": round(math.hypot(
+                float(self.spec.goal[0]) - self._pose[0],
+                float(self.spec.goal[1]) - self._pose[1]), 4),
+            "z_J": round(float(self.budget.z_J), 3),
+            "window_displacement_m": round(moved, 6),
+            "min_displacement_m": self.stagnation_min_displacement_m,
+            "window_s": self.stagnation_window_s,
+            "time_remaining_s": round(max(0.0, self.t_max_s - self.t_s), 3),
+        }
+        return True
 
     # ---- reporting ----
     def result(self) -> EpisodeResult:
@@ -555,6 +633,8 @@ class NominalNavEnv:
             arrived_within_budget=bool(
                 self.label == "goal_reached" and self.budget.z_J >= 0.0),
             over_budget_J=over,
+            max_safety_severity=self.max_safety_severity,
+            stagnation_context=self.stagnation_context,
         )
 
     def trace(self) -> dict:
@@ -563,7 +643,7 @@ class NominalNavEnv:
             "schema": "camra-nominal-episode-v1",
             "map": self.spec.to_dict(),
             "map_geometry_hash": self.spec.geometry_hash(),
-            "obs_version": obs.OBS_VERSION,
+            "obs_version": self.observation_version,
             "command_version": obs.COMMAND_VERSION,
             "integrator": _FROZEN_INTEGRATOR,
             "controller_id": "camra_go2_velocity_it2999_v2",
@@ -577,6 +657,9 @@ class NominalNavEnv:
             "t_max_s": self.t_max_s,
             "stagnation_window_s": self.stagnation_window_s,
             "stagnation_min_displacement_m": self.stagnation_min_displacement_m,
+            "safety_severity_enabled": self.safety_severity_enabled,
+            "safety_severity_floor": self.safety_severity_floor,
+            "safety_severity_ref_depth_m": self.safety_severity_ref_depth_m,
             "result": self.result().as_dict(),
             "steps": [r.as_dict() for r in self._records],
         }

@@ -1,880 +1,893 @@
 {
-  "schema": "camra-navigation-contract-v1",
-  "version": "1.5.0",
-  "created_at": "2026-11-10T10:22:00+08:00",
-  "owner_tasks": [
-    "NAV-055",
-    "NAV-012",
-    "NAV-013",
-    "NAV-056",
-    "NAV-062"
+ "schema": "camra-navigation-contract-v1",
+ "version": "1.6.0",
+ "created_at": "2026-11-10T10:22:00+08:00",
+ "owner_tasks": [
+  "NAV-055",
+  "NAV-012",
+  "NAV-013",
+  "NAV-056",
+  "NAV-062"
+ ],
+ "status": "partial",
+ "status_note": "v1.3.0：NAV-018 组装名义环境时发现 NAV-016 冻结的地图图元是矩形岛，而 obs-v1 只接受圆形。按 map_encoding.extension_rule 的要求扩展几何核并升版本到 obs-v2，未静默复用 radius。布局、维度（41）与全部常数不变，仅图元集合从 circle 扩为 circle|convex_polygon，故圆形地图的编码逐位不变。 v1.5.0（NAV-062）：观测升 obs-v3 —— z_ratio 裁剪上限从 ±1.0 放宽到 ±1.5，因为采样预算 k∈[0.6,1.3]×E_ref 在 E_ref≈489 J 时比值达 1.16，旧上限把『还剩预算』编码成『预算耗尽』，且 W 用裁剪值后不再可加；布局、维度（41）与其余常数不变，obs-v2 仍可按版本重建。同时把 budget_exhausted 从终止事件改为非终止诊断事实：参考实现 is_terminal 只看时限，预算是成本项；『预算内到达』改由独立字段判定。旧报告、旧数据锁与旧判定不变。",
+ "controller": {
+  "id": "camra_go2_velocity_it2999_v2",
+  "bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+  "bundle_tree_sha256": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+  "checkpoint_sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+  "policy_entry": "exported/policy.pt (RecursiveScriptModule, 45 -> 12)"
+ },
+ "validated_command_domain": {
+  "vx_mps": [
+   -1.0,
+   1.0
   ],
-  "status": "partial",
-  "status_note": "v1.3.0：NAV-018 组装名义环境时发现 NAV-016 冻结的地图图元是矩形岛，而 obs-v1 只接受圆形。按 map_encoding.extension_rule 的要求扩展几何核并升版本到 obs-v2，未静默复用 radius。布局、维度（41）与全部常数不变，仅图元集合从 circle 扩为 circle|convex_polygon，故圆形地图的编码逐位不变。 v1.5.0（NAV-062）：观测升 obs-v3 —— z_ratio 裁剪上限从 ±1.0 放宽到 ±1.5，因为采样预算 k∈[0.6,1.3]×E_ref 在 E_ref≈489 J 时比值达 1.16，旧上限把『还剩预算』编码成『预算耗尽』，且 W 用裁剪值后不再可加；布局、维度（41）与其余常数不变，obs-v2 仍可按版本重建。同时把 budget_exhausted 从终止事件改为非终止诊断事实：参考实现 is_terminal 只看时限，预算是成本项；『预算内到达』改由独立字段判定。旧报告、旧数据锁与旧判定不变。",
-  "controller": {
-    "id": "camra_go2_velocity_it2999_v2",
-    "bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
-    "bundle_tree_sha256": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
-    "checkpoint_sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
-    "policy_entry": "exported/policy.pt (RecursiveScriptModule, 45 -> 12)"
+  "vy_mps": [
+   -0.4,
+   0.4
+  ],
+  "wz_radps": [
+   -1.0,
+   1.0
+  ],
+  "unit": {
+   "vx": "m/s",
+   "vy": "m/s",
+   "wz": "rad/s"
   },
-  "validated_command_domain": {
-    "vx_mps": [
-      -1.0,
-      1.0
+  "frame": "body",
+  "comparison_tolerance": 1e-06,
+  "comparison_note": "实测值以 float32 表示（如 0.4000000059604645）。判定越界必须用容差，不得直接与 float64 边界做严格比较。",
+  "resolution": {
+   "decided_by": "NAV-055",
+   "report": "reports/command_domain_resolution.json",
+   "confidence": "high",
+   "sources_agreeing": 5,
+   "sources": [
+    "calibration_protocol_v1.0.2.command_domain",
+    "frozen_manifest.contract.command.ranges",
+    "power_model_v1.domain",
+    "commands.py LIMITS (hard-coded)",
+    "800 measured applied commands on tiger10 (extremes 1.0 / 0.400000006 / 1.0)"
+   ],
+   "rejected_value": {
+    "vx": [
+     -2.0,
+     2.0
     ],
-    "vy_mps": [
-      -0.4,
-      0.4
+    "vy": [
+     -1.0,
+     1.0
     ],
-    "wz_radps": [
-      -1.0,
-      1.0
-    ],
-    "unit": {
-      "vx": "m/s",
-      "vy": "m/s",
-      "wz": "rad/s"
-    },
-    "frame": "body",
-    "comparison_tolerance": 1e-06,
-    "comparison_note": "实测值以 float32 表示（如 0.4000000059604645）。判定越界必须用容差，不得直接与 float64 边界做严格比较。",
-    "resolution": {
-      "decided_by": "NAV-055",
-      "report": "reports/command_domain_resolution.json",
-      "confidence": "high",
-      "sources_agreeing": 5,
-      "sources": [
-        "calibration_protocol_v1.0.2.command_domain",
-        "frozen_manifest.contract.command.ranges",
-        "power_model_v1.domain",
-        "commands.py LIMITS (hard-coded)",
-        "800 measured applied commands on tiger10 (extremes 1.0 / 0.400000006 / 1.0)"
-      ],
-      "rejected_value": {
-        "vx": [
-          -2.0,
-          2.0
-        ],
-        "vy": [
-          -1.0,
-          1.0
-        ],
-        "wz": [
-          -2.0,
-          2.0
-        ]
-      },
-      "rejected_reason": "仅出现在 margins_v1.applicability 的描述文本中；无实测支持，且超出功率模型拟合域",
-      "legacy_files_modified": false
-    }
-  },
-  "command_pipeline": {
-    "requested": "上层策略输出的机身系速度，未经裁剪",
-    "clip_rule": "逐轴裁剪到 validated_command_domain，容差 1e-6",
-    "applied": "裁剪后的值，作为唯一实际下发命令",
-    "single_applied_rule": "同一 applied 必须同时用于：名义运动积分、功率模型成本计算、底层观测输入、日志记录。禁止在各处分别裁剪或分别记录不同版本。",
-    "prohibited": [
-      "使用 rejected_value 的任何轴范围",
-      "对 applied 做二次平滑或滤波而不记录（若需滤波，须在契约中新增并重新登记）",
-      "把 requested 写入日志冒充 applied"
+    "wz": [
+     -2.0,
+     2.0
     ]
-  },
-  "timing": {
-    "physics_dt_s": 0.005,
-    "low_level_dt_s": 0.02,
-    "navigation_dt_s": 0.1,
-    "source": "protocol.clocks 与 frozen_manifest.contract.timing 一致",
-    "status": "reference only; binding validation belongs to NAV-025"
-  },
-  "cost_interface": {
-    "unit": "J",
-    "step_interval_s": 0.1,
-    "nominal_step_cost": "c_nom = P_nom(applied) * 0.1",
-    "budget_decrement": "z <- z - (1 + alpha) * c_nom",
-    "alpha_source": "margins_v1.json alpha (exact file value, not rounded)",
-    "status": "reference only; full semantics belong to NAV-014/NAV-056"
-  },
-  "consumers": [
-    {
-      "task": "NAV-012",
-      "needs": "event/termination contract",
-      "uses": "validated_command_domain"
-    },
-    {
-      "task": "NAV-014",
-      "needs": "cost and budget adapter",
-      "uses": "validated_command_domain + cost_interface"
-    },
-    {
-      "task": "NAV-025",
-      "needs": "10/50/200 Hz bridge",
-      "uses": "timing + validated_command_domain"
-    },
-    {
-      "task": "NAV-029",
-      "needs": "training contract",
-      "uses": "all frozen fields"
-    }
-  ],
-  "open_items": [
-    {
-      "item": "观测编码与坐标契约（NAV-013）",
-      "owner": "NAV-013",
-      "status": "resolved",
-      "resolved_by": "NAV-013",
-      "resolution": "obs-v1 41 维与 cmd-v1 已冻结，见 reports/observation_contract_check.json"
-    },
-    {
-      "item": "z_ref 与归一化映射（NAV-056）",
-      "owner": "NAV-056",
-      "status": "resolved",
-      "resolved_by": "NAV-056",
-      "resolution": "Z_REF_J 确认为场景级归一化常数；z_J 有符号语义、V_c/V_h 尺度、共同停止时刻与 bootstrap 规则见 config/value_objective_contract_v1.json"
-    },
-    "足迹与姿态处理（NAV-057）",
-    "预算比较协议（NAV-058）",
-    "地图几何与可达性（NAV-016/017）",
-    {
-      "item": "地图图元类型与地图半幅",
-      "owner": "NAV-017",
-      "blocks": "obs-v1 的 MAP_HALF_M 与 obstacle 图元语义最终化",
-      "status": "resolved",
-      "resolved_by": "NAV-016/NAV-017",
-      "resolution": "图元按 obs-v2 扩为 circle|convex_polygon（矩形岛直携带，不做外接圆近似）；54 张清单地图实测最大 |x|=11.0、最大 |y|=11.75 m，均在 MAP_HALF_M=15.0 覆盖内，px_n/py_n 不会触顶截断；证据见 reports/split_manifest_check.json 与 reports/scene_mapping_check.json"
-    },
-    {
-      "item": "z_J / z_ref_J 与成本 critic 尺度",
-      "owner": "NAV-056",
-      "status": "resolved",
-      "resolved_by": "NAV-056",
-      "resolution": "Z_REF_J 确认为场景级归一化常数；z_J 有符号语义、V_c/V_h 尺度、共同停止时刻与 bootstrap 规则见 config/value_objective_contract_v1.json"
-    }
-  ],
-  "task_definition": {
-    "objective": "在有限时域内到达目标集合并避免危险集合，同时最小化累计正关节机械功",
-    "horizon_s": 30.0,
-    "horizon_rule": "首轮不越过原校准的 30 s 测量时长；延长时限属改变评分口径，需先询问",
-    "state_contains_remaining_time": true,
-    "goal": {
-      "criterion": "平面欧氏距离 d_xy(base, goal) <= r_goal",
-      "r_goal_m": 0.5,
-      "r_goal_basis": "取足迹外接圆半径量级（footprint 0.458 m^2，外接半径约 0.5055 m）。到达判据不应小于机身尺度，否则机器人“已到达”但身体仍在目标外",
-      "provisional": true,
-      "heading_requirement": "none",
-      "heading_basis": "首轮不要求朝向；δ 只由平面位置偏差得到，不构成航向界，加入朝向判据会引入未校准维度",
-      "speed_requirement": "none",
-      "dwell_s": 0.0,
-      "dwell_basis": "首轮不要求停稳；v2 在低速存在起步死区与稳态不足，要求停稳会把底层已知局限变成任务失败",
-      "confirmation": "到达判定取第一个满足 d_xy <= r_goal 的物理子步，不做事后回溯",
-      "post_arrival": "回合立即结束（测量终止）；不追加零速停车指令，因此不发生额外能量"
-    },
-    "notes": "r_goal 与 dwell 属评分语义，当前取上述建议值并标记 provisional；NAV-017 完成地图与可达性检查后一并复核"
-  },
-  "event_table": {
-    "principle": "同一物理子步内多个事件同时成立时，按下面的 priority 从小到大取唯一标签。安全类优先于到达，到达优先于预算与超时。",
-    "events": [
-      {
-        "id": "fall",
-        "priority": 1,
-        "criterion": "沿用 v2 环境终止项：base_contact（机身接触地面）或 bad_orientation（姿态超限）",
-        "source": "locomotion/docs/eval_protocol.json metric_definitions.failure_rate 明文：termination before horizon (base_contact or bad_orientation)",
-        "outcome": "business_failure",
-        "counts_in_denominator": "uncovered side"
-      },
-      {
-        "id": "collision",
-        "priority": 2,
-        "criterion": "物理层面：碰撞体与障碍或边界墙发生接触（接触力>0 或等价接触事件）",
-        "outcome": "business_failure",
-        "note": "与 internal_violation 严格区分；碰撞是真实物理接触"
-      },
-      {
-        "id": "out_of_bounds",
-        "priority": 3,
-        "criterion": "base 平面位置离开地图可行区域外框（几何判据，非物理接触）",
-        "outcome": "business_failure",
-        "note": "地图边界墙未建模时用几何余量判定；建模后改由 collision 覆盖，二者不叠加计数"
-      },
-      {
-        "id": "internal_violation",
-        "priority": 4,
-        "criterion": "名义安全约束被违反：足迹⊕disc(delta) 与膨胀后障碍相交",
-        "outcome": "method_internal",
-        "note": "只用于方法内部诊断，不得静默等同物理碰撞，也不进入 SR/CR 的分子分母；真实 SR 与 CR 只用 fall/collision/out_of_bounds"
-      },
-      {
-        "id": "goal_reached",
-        "priority": 5,
-        "criterion": "d_xy <= r_goal（且 dwell 满足，首轮 dwell=0）",
-        "outcome": "success",
-        "note": "同一步预算越过 0 不影响到达判定（该步成本已计入），但『预算内到达』必须由独立字段 within_budget / arrived_within_budget 给出（NAV-062）"
-      },
-      {
-        "id": "budget_exhausted",
-        "priority": 6,
-        "criterion": "remaining_budget_J <= 0（记录的诊断事实，不终止回合）",
-        "outcome": "diagnostic",
-        "zero_case": "恰好等于 0 记为 on_budget，仍不终止",
-        "negative_case": "变负记 overshoot_J 供诊断，回合继续到到达/碰撞/越界/停滞/时限",
-        "terminal": false,
-        "note": "NAV-062 起不再是终止事件：参考实现的 is_terminal 只看时限，预算是成本项；旧 v1 轨迹里的 budget_exhausted 标签只作历史证据，不得再作为可行性判据"
-      },
-      {
-        "id": "stagnation",
-        "priority": 7,
-        "criterion": "连续 3.0 s 内 base 平面位移 < 0.05 m",
-        "outcome": "business_failure",
-        "basis": "v2 已知低速死区在 <=0.2 m/s；阈值取明显停滞量级，不用它替代底层验收",
-        "provisional": true,
-        "note": "（NAV-062：按截断处理，bootstrap 到 V_c(x_T)，CFG 见表 rcppo_alignment_contract_v1.event_truth_table）"
-      },
-      {
-        "id": "timeout",
-        "priority": 8,
-        "criterion": "t >= 30.0 s",
-        "outcome": "truncated",
-        "note": "恰好 30 s 结束记为 completed；早于 30 s 且由上述事件结束的记对应标签"
-      }
-    ],
-    "tie_examples": [
-      {
-        "case": "子步内同时到达目标与撞到障碍",
-        "label": "collision",
-        "reason": "priority 2 < 5，安全压过到达"
-      },
-      {
-        "case": "子步内到达且预算恰好归零",
-        "label": "goal_reached",
-        "reason": "priority 5 < 6，到达优先；该步成本已计入，预算归零不影响成功标签"
-      },
-      {
-        "case": "预算先耗尽、下一步才到达",
-        "label": "budget_exhausted",
-        "reason": "耗尽发生在到达之前，回合在耗尽步结束"
-      },
-      {
-        "case": "跌倒与越界同刻",
-        "label": "fall",
-        "reason": "priority 1 < 3，物理失效优先"
-      },
-      {
-        "case": "名义膨胀约束违反但物理未碰撞",
-        "label": "internal_violation（不计入 CR/SR）",
-        "reason": "内部约束与方法绑定，不能与真实碰撞混算"
-      }
-    ],
-    "decision_procedure": {
-      "scope": "每个物理子步（0.005 s）执行一次；回合标签在结束的那个子步被唯一确定",
-      "ordered_steps": [
-        "1. 读取本子步的物理事实：base_contact/bad_orientation、接触力、base 平面位置、剩余预算 z、已用时间 t、累计位移窗口",
-        "2. 若 base_contact 或 bad_orientation 成立 → label=fall，回合结束",
-        "3. 否则若发生物理接触（障碍或边界墙）→ label=collision，回合结束",
-        "4. 否则若 base 离开地图可行区域 → label=out_of_bounds，回合结束",
-        "5. 否则若 d_xy <= r_goal → label=goal_reached，回合结束（到达优先于预算与超时）",
-        "6. 否则若 z <= 0 → label=budget_exhausted，回合结束，记录 overshoot_J",
-        "7. 否则若连续 3.0 s 位移 < 0.05 m → label=stagnation，回合结束",
-        "8. 否则若 t >= 30.0 s → label=timeout，回合结束",
-        "9. 否则继续下一个子步",
-        "10. 全程独立记录 internal_violation（名义膨胀约束违反）布尔值，不参与 2–8 的判定，也不改变 label"
-      ],
-      "why_this_order": "物理失效 > 真实安全违反 > 几何越界 > 任务成功 > 资源耗尽 > 无进展 > 时间用尽。安全类必须在到达之前，否则“撞着到达”会被记成功",
-      "label_is_exclusive": true,
-      "internal_violation_is_orthogonal": true
-    }
-  },
-  "termination_semantics": {
-    "three_kinds_must_not_mix": [
-      {
-        "name": "env_done",
-        "source": "环境 step 返回的 terminate/truncate",
-        "meaning": "物理回合结束（跌倒、碰撞、超时）",
-        "used_by": "环境复位与物理台账"
-      },
-      {
-        "name": "measurement_end",
-        "source": "本契约事件表",
-        "meaning": "任务层测量结束（到达、失败、截断）",
-        "used_by": "指标计算与分母"
-      },
-      {
-        "name": "stop_segmentation",
-        "source": "训练期由价值最小化选出的最优停止时刻",
-        "meaning": "RC-PPO 的 min over T，仅存在于训练",
-        "used_by": "仅训练；评估不得使用"
-      },
-      {
-        "name": "budget_state",
-        "source": "SignedBudget.z_J / z_ratio",
-        "meaning": "有符号剩余预算（成本账），不是终止、不是测量结束",
-        "used_by": "目标 W、观测 z_ratio、报告 within_budget"
-      }
-    ],
-    "rule": "三者在代码、日志与报告中必须用不同字段名；任何一处复用会导致 GAE 截断与停止语义同时被破坏",
-    "auto_reset_policy": {
-      "training": "环境自动复位后，本步后续子步的指标写入必须冻结，只保留本回合已发生事件（见 source_reference_map.md 第 5 节 HiRA 缺口）",
-      "evaluation": "禁止把自动复位后的新回合拼进旧回合；每回合单独一行台账",
-      "detection": "以 env_done 上升沿为界，回合内累积 rather than 取最后一步"
-    },
-    "infeasible_budget": {
-      "criterion": "预算搜索找不到满足可行性条件的初始预算",
-      "outcome": "unresolved，单独计入分母，不得剔除，也不得静默按最大试验预算执行",
-      "note": "若实际执行时预算为 0 或无可行解，该回合记 no_feasible_budget，不参与 SR 分子"
-    },
-    "budget_not_terminal": {
-      "rule": "z_J <= 0 不终止回合，也不产生终止标签；『是否在预算内到达』由独立字段计算",
-      "field_names": [
-        "within_budget",
-        "arrived_within_budget",
-        "over_budget_J"
-      ],
-      "feasibility": "arrived_within_budget == (label == goal_reached AND z_J_end >= 0)",
-      "why": "旧设置在预算耗尽时立刻结束回合：训练里从未见过低预算后半程，且 budget_exhausted 占失败样本的 82-91%，把真正要学的情形削掉了",
-      "old_semantics": "v1 轨迹与 v1 报告仍按旧语义解读，保留不改"
-    }
-  },
-  "cost_settlement": {
-    "decision_boundary_s": 0.1,
-    "rule": "成本只在 0.1 s 决策边界上结算；名义成本按 (1+alpha)*P_nom(applied)*0.1 累加",
-    "partial_last_interval": {
-      "problem": "事件可能发生在两个决策边界之间（如 2.35 s），此时最后一个 0.1 s 段不完整",
-      "nominal_side": "该段仍按完整 0.1 s 计入（策略在该段内保持同一命令，名义模型按命令积分）",
-      "physical_side": "按实际物理子步数积分：J_exec = sum over executed substeps（每子步 0.005 s）",
-      "gap_handling": "两者差额单独记为 partial_step_gap_J，随回合台账保存；不得用比例缩放让两者强行相等，也不得外推到 30 s",
-      "justification": "名义侧用完整段是命令离散化的自然结果；实测侧必须用真实步数，否则能量被人为补齐"
-    },
-    "parking_energy": {
-      "included": false,
-      "reason": "到达即回合结束，不追加零速停车；若后续需要停车段，须新增契约字段并重新登记"
-    },
-    "bootstrap_and_truncation": {
-      "completed": "跑满 30 s 且无失败事件：成本为完整窗口，可直接比较",
-      "truncated": "未跑满（如停滞、超时前终止）：成本是前缀，统计时按预登记规则处理，不得当作完整窗口样本",
-      "bootstrap_rule": "重采样单位为整条轨迹；截断样本与其前缀不得同时作为独立样本计入，避免重复计权",
-      "coverage_inheritance": "禁止按 (已执行时长/30 s) 等比缩放旧覆盖率；旧 30 s 覆盖结论不自动适用于提前终止的导航回合"
-    },
-    "worked_example": {
-      "setup": "某回合在 t=2.35 s 到达目标；命令在该段内保持 vx=0.6、vy=0、wz=0；P_nom(0.6,0,0)=40.0 W；alpha=0.19048279965649906",
-      "nominal_side": {
-        "rule": "按 0.1 s 决策边界结算，最后一段不完整但按完整 0.1 s 计",
-        "n_full_segments": 24,
-        "c_nom_per_segment_J": 4.0,
-        "c_nom_total_J": 96.0,
-        "budget_decrement_J": 114.286349,
-        "note": "24 段 = ceil(2.35 / 0.1) = 24；第 24 段覆盖 2.30–2.40 s"
-      },
-      "physical_side": {
-        "rule": "按实际物理子步积分，每子步 0.005 s",
-        "n_substeps": 470,
-        "formula": "J_exec = sum_{k=1..470} sum_{j=1..12} max(tau_j[k]*qdot_j[k], 0) * 0.005",
-        "note": "470 = 2.35 / 0.005；不含 2.35–2.40 s 的残余子步"
-      },
-      "gap": {
-        "name": "partial_step_gap_J",
-        "definition": "名义侧多算了 2.35–2.40 s 的 0.05 s 命令成本；实测侧只到 2.35 s。差额随回合台账保存",
-        "must_not": "不得按 2.35/2.40 比例缩放任一侧来“对齐”，也不得把 J_exec 外推到 30 s"
-      },
-      "truncation_example": {
-        "case": "回合在 t=12.0 s 停滞结束，未到达",
-        "label": "stagnation",
-        "cost_kind": "prefix",
-        "rule": "12.0 s 的累计能量是前缀，不是完整 30 s 窗口样本；bootstrap 时按整条轨迹重采样，且不与同一轨迹的更长前缀重复计入",
-        "coverage_rule": "不得用 12/30 的比例去缩放旧的 30 s 覆盖率，旧覆盖结论不自动适用"
-      }
-    }
-  },
-  "provisional_decisions": [
-    {
-      "item": "r_goal = 0.5 m",
-      "basis": "足迹外接半径量级",
-      "confirm_by": "NAV-017 地图与可达性检查后复核"
-    },
-    {
-      "item": "dwell_s = 0（不要求停稳）",
-      "basis": "避免把 v2 低速死区变成任务失败",
-      "confirm_by": "NAV-060 pilot 后可据实调整"
-    },
-    {
-      "item": "stagnation 阈值 0.05 m / 3.0 s",
-      "basis": "明显停滞量级",
-      "confirm_by": "NAV-059 低速可执行性核验后复核"
-    },
-    {
-      "item": "到达优先于预算耗尽",
-      "basis": "该步成本已计入，任务目标已实现",
-      "confirm_by": "NAV-056 成本价值尺度冻结时一并确认"
-    },
-    {
-      "item": "不要求朝向、不要求停稳",
-      "basis": "δ 不含航向；首轮最小化未校准维度",
-      "confirm_by": "NAV-057 姿态几何处理确定后复核"
-    },
-    {
-      "item": "R_SENSE_M = 6.0 m",
-      "basis": "覆盖 δ + 足迹外接半径约 3.12 m 的安全相关带并留一倍余量",
-      "confirm_by": "NAV-057 足迹姿态处理与 NAV-017 地图生成后复核"
-    },
-    {
-      "item": "MAP_HALF_M = 15.0 m",
-      "basis": "初始净宽 7–8 m 的多弯通道量级估计",
-      "confirm_by": "NAV-017 地图冻结后按实际半幅确认，否则位置/目标距离会饱和"
-    },
-    {
-      "item": "OBSTACLE_CAPACITY = 8",
-      "basis": "6 m 感知半径内图元数量的保守上限",
-      "confirm_by": "NAV-017 地图生成器保证；超出数量必须记入 step record"
-    },
-    {
-      "item": "观测含实测机身速度",
-      "basis": "分层跟踪存在延迟，速度可反映指令是否生效；RC-PPO 参考实现同样含速度",
-      "confirm_by": "NAV-034 复查是否被名义侧理想跟踪假设利用"
-    },
-    {
-      "item": "Z_REF_J = 550.0",
-      "basis": "1.05 x 场景最大参考路线能量（489.397680362936 J），仅作归一化尺度；旧值 225.6069087767049 J 由 NAV-035 按 OI-2 重定",
-      "confirm_by": "NAV-035 重定并留快照（config/snapshots/navigation_contract_v1.zref225.6069.json），见 config/value_objective_contract_v1.json",
-      "status": "confirmed"
-    },
-    {
-      "item": "动作映射为仿射而非 tanh",
-      "basis": "保证冻结域精确可达，避免低速段被压缩",
-      "confirm_by": "NAV-031 算法迁移时与 PPO 动作分布一并确认"
-    }
-  ],
-  "observation_version": "obs-v3",
-  "action_version": "cmd-v1",
-  "frames_and_conventions": {
-    "world_frame": {
-      "handedness": "right-handed",
-      "axes": "+x 与 +y 为地图平面，+z 向上；运动在 xy 平面内",
-      "state": "[px, py, yaw]；z 高度不属于导航状态",
-      "position_reference": "Go2 base_link 原点在地图坐标系中的位置",
-      "position_reference_note": "不是足迹质心。footprint_v1.json 的质心为 [-0.04563529179509698, -0.010971589494882339] m（机身系），用质心当位置参考会给全链路引入约 4.7 cm 固定偏移。"
-    },
-    "body_frame": {
-      "definition": "Go2 base_link：x 前、y 左、z 上",
-      "shared_by": [
-        "速度命令 [vx, vy, wz]",
-        "footprint_v1 凸多边形",
-        "观测中的目标方向与障碍方位"
-      ]
-    },
-    "quaternion_order": {
-      "value": "wxyz",
-      "component_names": [
-        "w",
-        "x",
-        "y",
-        "z"
-      ],
-      "source": "Isaac Lab 约定（isaaclab.utils.math 文档串明确 (w, x, y, z)）",
-      "danger": "写成 xyzw 不会报错，只会静默旋转机体；下游无法从数值上发现。"
-    },
-    "yaw_definition": {
-      "value": "projected_heading",
-      "algorithm": "把机体 +x 轴用四元数旋转，投影到世界 xy 平面，归一化，取 atan2(y, x)",
-      "range": "(-pi, pi]",
-      "unit": "rad",
-      "equals_planar_yaw_when": "roll = pitch = 0（名义侧恒成立）",
-      "differs_from": "ZYX 欧拉分解的 yaw；有 roll/pitch 时两者不同，本项目只用投影朝向",
-      "undefined_case": "机体 +x 投影长度趋零（机体近乎竖直）时朝向无定义，抛 HeadingUndefined，按 event_table 记 internal_violation（正交，不计入 SR/CR），不得填任意角度。"
-    },
-    "angle_units": "弧度",
-    "distance_units": "米",
-    "wrap_rule": "只在比较与显示时用 wrap_angle 折到 (-pi, pi]；轨迹与状态本身不折"
-  },
-  "observation_spec": {
-    "version": "obs-v3",
-    "total_dim": 41,
-    "concatenate": true,
-    "layout": [
-      {
-        "name": "sin_yaw",
-        "dim": 1
-      },
-      {
-        "name": "cos_yaw",
-        "dim": 1
-      },
-      {
-        "name": "vx_body_n",
-        "dim": 1
-      },
-      {
-        "name": "vy_body_n",
-        "dim": 1
-      },
-      {
-        "name": "wz_body_n",
-        "dim": 1
-      },
-      {
-        "name": "px_n",
-        "dim": 1
-      },
-      {
-        "name": "py_n",
-        "dim": 1
-      },
-      {
-        "name": "goal_dir_x_body",
-        "dim": 1
-      },
-      {
-        "name": "goal_dir_y_body",
-        "dim": 1
-      },
-      {
-        "name": "goal_dist_n",
-        "dim": 1
-      },
-      {
-        "name": "obstacle_bins",
-        "dim": 16
-      },
-      {
-        "name": "wall_dist_n",
-        "dim": 4
-      },
-      {
-        "name": "obstacle_mask",
-        "dim": 8
-      },
-      {
-        "name": "safety_y",
-        "dim": 1
-      },
-      {
-        "name": "z_ratio",
-        "dim": 1
-      },
-      {
-        "name": "time_remaining_n",
-        "dim": 1
-      }
-    ],
-    "field_table": [
-      {
-        "name": "sin_yaw",
-        "dim": 1,
-        "unit": "无量纲",
-        "range": [
-          -1.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "名义积分得到的 yaw 取 sin",
-        "source_physical": "base_quat(wxyz) 的投影朝向取 sin",
-        "note": "用 sin/cos 而不是裸角度，避免 ±pi 处不连续"
-      },
-      {
-        "name": "cos_yaw",
-        "dim": 1,
-        "unit": "无量纲",
-        "range": [
-          -1.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "同上取 cos",
-        "source_physical": "同上取 cos",
-        "note": ""
-      },
-      {
-        "name": "vx_body_n",
-        "dim": 1,
-        "unit": "无量纲（m/s ÷ 1.0）",
-        "range": [
-          -2.0,
-          2.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "applied_command[0]（名义模型假设理想跟踪）",
-        "source_physical": "root_lin_vel_b.x（实测）",
-        "note": "两端来源不同属已知不对称，见 known_asymmetries.velocity_source"
-      },
-      {
-        "name": "vy_body_n",
-        "dim": 1,
-        "unit": "无量纲（m/s ÷ 1.0）",
-        "range": [
-          -2.0,
-          2.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "applied_command[1]",
-        "source_physical": "root_lin_vel_b.y",
-        "note": ""
-      },
-      {
-        "name": "wz_body_n",
-        "dim": 1,
-        "unit": "无量纲（rad/s ÷ 1.0）",
-        "range": [
-          -2.0,
-          2.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "applied_command[2]",
-        "source_physical": "root_ang_vel_b.z",
-        "note": ""
-      },
-      {
-        "name": "px_n",
-        "dim": 1,
-        "unit": "无量纲（m ÷ 15.0）",
-        "range": [
-          -1.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "名义积分 px",
-        "source_physical": "root_pos_w.x",
-        "note": "超出 ±15 m 会饱和；饱和次数记入 step record"
-      },
-      {
-        "name": "py_n",
-        "dim": 1,
-        "unit": "无量纲（m ÷ 15.0）",
-        "range": [
-          -1.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "名义积分 py",
-        "source_physical": "root_pos_w.y",
-        "note": ""
-      },
-      {
-        "name": "goal_dir_x_body",
-        "dim": 1,
-        "unit": "无量纲单位向量分量",
-        "range": [
-          -1.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s（目标点每回合固定）",
-        "source_nominal": "(goal - pos) 旋入机身系后归一化",
-        "source_physical": "同式，pos 取仿真真值",
-        "note": "距离趋零时置 0，不产生 NaN"
-      },
-      {
-        "name": "goal_dir_y_body",
-        "dim": 1,
-        "unit": "无量纲单位向量分量",
-        "range": [
-          -1.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s（目标点每回合固定）",
-        "source_nominal": "同上",
-        "source_physical": "同上",
-        "note": ""
-      },
-      {
-        "name": "goal_dist_n",
-        "dim": 1,
-        "unit": "无量纲（m ÷ 15.0）",
-        "range": [
-          0.0,
-          1.5
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "机体系目标距离 ÷ MAP_HALF_M",
-        "source_physical": "同式",
-        "note": "上界 1.5 保留远目标的分辨力"
-      },
-      {
-        "name": "obstacle_bins",
-        "dim": 16,
-        "unit": "强度 0..1（表面距离 / 6.0 m）",
-        "range": [
-          0.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "冻结地图图元 + 名义位姿，按机身方位分箱取最大值",
-        "source_physical": "同一地图图元 + 仿真真位姿（不使用感知）",
-        "note": "强度 = 1 - clip(表面距离/6.0, 0, 1)；进入图元内部时表面距离取 0、强度 1"
-      },
-      {
-        "name": "wall_dist_n",
-        "dim": 4,
-        "unit": "无量纲（m ÷ 15.0）",
-        "range": [
-          0.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "到 x_min, x_max, y_min, y_max 四墙的有符号距离截零后归一化",
-        "source_physical": "同式",
-        "note": "顺序固定为 x_min, x_max, y_min, y_max"
-      },
-      {
-        "name": "obstacle_mask",
-        "dim": 8,
-        "unit": "0/1",
-        "range": [
-          0.0,
-          1.0
-        ],
-        "update_time": "每回合（地图固定）",
-        "source_nominal": "障碍按表面距离升序、再按方位升序排序，前 min(n,8) 个置 1",
-        "source_physical": "同式",
-        "note": "排序保证编码与地图图元列举顺序无关；被丢弃的图元数记入 step record"
-      },
-      {
-        "name": "safety_y",
-        "dim": 1,
-        "unit": "0/1",
-        "range": [
-          0.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s，单调不减",
-        "source_nominal": "进入膨胀危险集后置 1 且不可逆",
-        "source_physical": "同一判据，位姿取真值",
-        "note": "y=1 后不因离开危险区复位"
-      },
-      {
-        "name": "z_ratio",
-        "dim": 1,
-        "unit": "无量纲（J ÷ 550.0）",
-        "range": [
-          -1.5,
-          1.5
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "z_J（有符号剩余预算）÷ Z_REF_J",
-        "source_physical": "同一累计口径",
-        "note": "负值表示超预算；尺度归 NAV-056 所有。裁剪上限随观测版本：obs-v2 ±1.0、obs-v3 ±1.5（NAV-062）。目标 W 用未裁剪的 z_J/Z_REF_J，观测裁剪只是编码。",
-        "clip_by_version": {
-          "obs-v2": 1.0,
-          "obs-v3": 1.5
-        }
-      },
-      {
-        "name": "time_remaining_n",
-        "dim": 1,
-        "unit": "无量纲（s ÷ 30.0）",
-        "range": [
-          0.0,
-          1.0
-        ],
-        "update_time": "每 0.1 s",
-        "source_nominal": "T_MAX - 已用时间",
-        "source_physical": "同一计时",
-        "note": "截断上限 1.0；不参与能量记账"
-      }
-    ],
-    "constants": {
-      "n_obstacle_bins": 16,
-      "obstacle_capacity": 8,
-      "n_wall_dists": 4,
-      "r_sense_m": 6.0,
-      "map_half_m": 15.0,
-      "t_max_s": 30.0,
-      "v_ref_mps": 1.0,
-      "w_ref_radps": 1.0,
-      "v_body_clip": 2.0,
-      "z_ref_J": 550.0
-    },
-    "constant_provenance": {
-      "r_sense_m": "要覆盖安全相关带：δ=2.613866 m + 足迹外接半径 0.505501 m ≈ 3.12 m，取 6.0 m 留一倍余量",
-      "map_half_m": "provisional，NAV-017 地图生成后按实际半幅确认；位置与目标距离饱和次数必须记录",
-      "t_max_s": "冻结校准协议 30 s 窗口",
-      "z_ref_J": "power-v1 在解析省能速度 0.30986 m/s 处 P_nom=7.52023029255683 W 乘 30 s；是尺度不是任务预算，NAV-056 拥有最终定义",
-      "n_obstacle_bins": "16 与 HiRA 手动雷达同档，兼顾方位分辨率与维度",
-      "obstacle_capacity": "provisional，NAV-017 保证 6 m 感知半径内图元数不超过 8；超出部分按规则丢弃并记数"
-    },
-    "map_encoding": {
-      "primitive_kind": "circle(center_xy, radius) | convex_polygon(vertices)",
-      "primitive_owner": "NAV-017（地图生成）",
-      "kernel": "circle：surface_distance = max(0, |center - base_link| - radius)；convex_polygon：surface_distance = 0（base_link 在内部）否则到边界的精确点-多边形距离。方位角一律取「指向最近表面点」的方向；圆在外部时最近点位于圆心射线上，故与 obs-v1 完全一致。",
-      "overflow_rule": "按 (表面距离, 方位) 升序保留前 8 个；被丢弃数量写入 step record 的 dropped_obstacles",
-      "no_perception": "使用仿真真值与地图图元，首轮不做部分可观测感知任务",
-      "extension_rule": "已执行：NAV-018 升 obs-v2。后续若出现非凸图元或线段，必须再次扩核升版",
-      "sort_key_note": "按 (表面距离, 机身系方位) 升序；矩形改用最近表面点方位后，长边的方位不再等于质心方位",
-      "version_history": [
-        [
-          {
-            "version": "obs-v1",
-            "change": "初版，仅圆形图元",
-            "task": "NAV-013"
-          },
-          {
-            "version": "obs-v2",
-            "change": "图元集合扩为 circle|convex_polygon；布局/维度/常数不变",
-            "task": "NAV-018",
-            "why": "NAV-016 冻结的岛是矩形；用圆覆盖要么需要超过 8 个图元，要么外接圆每侧多出约 0.4 m，足以堵死 7 m 通道在 delta 膨胀后仅剩的 0.76 m 自由带"
-          }
-        ]
-      ]
-    },
-    "nominal_physical_identity": {
-      "rule": "两端调用同一 encoder；物理侧只负责把 root_pos/root_quat/实测速度转成同一 EgoState",
-      "test": "tests/test_observation_contract.py::nominal_equals_physical（逐位相等，覆盖 yaw=0/0.3/-2.9/±pi/1.0）",
-      "expected_differences": "只有来源不同造成的数值差，不允许编码规则不同"
-    },
-    "polygon_support": {
-      "added_in": "obs-v2",
-      "why_not_circles": "矩形 2x2 m 若用外接圆近似，半径 1.414 m 而非半对角以外的真实形状；每侧多出的面积会改变可通行判断，因此不做近似，直接携带多边形。",
-      "exactness": "点-凸多边形距离与包含判定都是精确的（与 maps/geometry.polygon_distance_exact 同源判据）",
-      "capacity_effect": "一组矩形岛仍各占 1 个槽位（L3 为 2 个），未触及 OBSTACLE_CAPACITY=8"
-    }
-  },
-  "action_spec": {
-    "version": "cmd-v1",
-    "action_dim": 3,
-    "action_order": [
-      "vx",
-      "vy",
-      "wz"
-    ],
-    "action_frame": "body",
-    "normalized_range": [
-      -1.0,
-      1.0
-    ],
-    "mapping": "u_req = clip(a, -1, 1) * (1.0, 0.4, 1.0)",
-    "mapping_rationale": "用仿射映射而非 tanh：NAV-055 冻结的域必须精确可达，NAV-059 要探 0.2–0.31 m/s 的低速段，squash 会系统性压低指令值。网络内部的输出有界性是网络自身问题，不属于本契约。",
-    "clip": {
-      "stage": "只在 applied 处裁剪一次",
-      "domain": "见 validated_command_domain",
-      "tolerance": 1e-06
-    },
-    "record_fields": [
-      "requested",
-      "applied",
-      "clipped",
-      "invalid"
-    ],
-    "invalid_rule": "出现 NaN/Inf 时对应分量置 0 并置 invalid=True，绝不向下游传递非有限值",
-    "single_source_rule": "只有 applied 可进入名义积分、功率模型与底层命令桥；requested 仅用于日志与审计。测试用越界请求 (2.0,0,0) 演示：若误用 requested，0.1 s 位移与功率都会不同。",
-    "command_domain_reference": "validated_command_domain（NAV-055）"
-  },
-  "known_asymmetries": [
-    {
-      "item": "measured body velocity 的来源",
-      "nominal": "等于 applied_command（名义模型假设理想跟踪）",
-      "physical": "实测 root_lin_vel_b / root_ang_vel_b，存在跟踪误差与延迟",
-      "why_allowed": "该字段是状态反馈，不是标签；两端编码规则相同，只有来源不同",
-      "risk": "策略可能在名义侧依赖「速度必等于指令」这一过强假设",
-      "review": "NAV-034 复查；若确认被利用，删除这三个字段并升 obs 版本"
-    },
-    {
-      "item": "roll/pitch 的表示能力",
-      "nominal": "只有平面 yaw，恒为零 roll/pitch",
-      "physical": "存在 roll/pitch，朝向用投影 heading 定义",
-      "why_allowed": "投影 heading 在有倾斜时仍连续且两端同式；名义侧零倾斜时与 yaw 严格一致",
-      "risk": "倾斜造成的平面位移误差不在观测里，也不会被名义模型预测",
-      "review": "NAV-026 量化执行误差时一并报告，不在此处用滤波掩盖"
-    }
-  ],
-  "value_objective_reference": {
-    "contract": "config/value_objective_contract_v1.json",
-    "version": "1.0.0",
-    "owner": "NAV-056",
-    "relation": "z_ratio 归一化尺度、V_c/V_h 尺度与共同停止时刻由该契约定义，本文件只引用"
+   },
+   "rejected_reason": "仅出现在 margins_v1.applicability 的描述文本中；无实测支持，且超出功率模型拟合域",
+   "legacy_files_modified": false
   }
+ },
+ "command_pipeline": {
+  "requested": "上层策略输出的机身系速度，未经裁剪",
+  "clip_rule": "逐轴裁剪到 validated_command_domain，容差 1e-6",
+  "applied": "裁剪后的值，作为唯一实际下发命令",
+  "single_applied_rule": "同一 applied 必须同时用于：名义运动积分、功率模型成本计算、底层观测输入、日志记录。禁止在各处分别裁剪或分别记录不同版本。",
+  "prohibited": [
+   "使用 rejected_value 的任何轴范围",
+   "对 applied 做二次平滑或滤波而不记录（若需滤波，须在契约中新增并重新登记）",
+   "把 requested 写入日志冒充 applied"
+  ]
+ },
+ "timing": {
+  "physics_dt_s": 0.005,
+  "low_level_dt_s": 0.02,
+  "navigation_dt_s": 0.1,
+  "source": "protocol.clocks 与 frozen_manifest.contract.timing 一致",
+  "status": "reference only; binding validation belongs to NAV-025"
+ },
+ "cost_interface": {
+  "unit": "J",
+  "step_interval_s": 0.1,
+  "nominal_step_cost": "c_nom = P_nom(applied) * 0.1",
+  "budget_decrement": "z <- z - (1 + alpha) * c_nom",
+  "alpha_source": "margins_v1.json alpha (exact file value, not rounded)",
+  "status": "reference only; full semantics belong to NAV-014/NAV-056"
+ },
+ "consumers": [
+  {
+   "task": "NAV-012",
+   "needs": "event/termination contract",
+   "uses": "validated_command_domain"
+  },
+  {
+   "task": "NAV-014",
+   "needs": "cost and budget adapter",
+   "uses": "validated_command_domain + cost_interface"
+  },
+  {
+   "task": "NAV-025",
+   "needs": "10/50/200 Hz bridge",
+   "uses": "timing + validated_command_domain"
+  },
+  {
+   "task": "NAV-029",
+   "needs": "training contract",
+   "uses": "all frozen fields"
+  }
+ ],
+ "open_items": [
+  {
+   "item": "观测编码与坐标契约（NAV-013）",
+   "owner": "NAV-013",
+   "status": "resolved",
+   "resolved_by": "NAV-013",
+   "resolution": "obs-v1 41 维与 cmd-v1 已冻结，见 reports/observation_contract_check.json"
+  },
+  {
+   "item": "z_ref 与归一化映射（NAV-056）",
+   "owner": "NAV-056",
+   "status": "resolved",
+   "resolved_by": "NAV-056",
+   "resolution": "Z_REF_J 确认为场景级归一化常数；z_J 有符号语义、V_c/V_h 尺度、共同停止时刻与 bootstrap 规则见 config/value_objective_contract_v1.json"
+  },
+  "足迹与姿态处理（NAV-057）",
+  "预算比较协议（NAV-058）",
+  "地图几何与可达性（NAV-016/017）",
+  {
+   "item": "地图图元类型与地图半幅",
+   "owner": "NAV-017",
+   "blocks": "obs-v1 的 MAP_HALF_M 与 obstacle 图元语义最终化",
+   "status": "resolved",
+   "resolved_by": "NAV-016/NAV-017",
+   "resolution": "图元按 obs-v2 扩为 circle|convex_polygon（矩形岛直携带，不做外接圆近似）；54 张清单地图实测最大 |x|=11.0、最大 |y|=11.75 m，均在 MAP_HALF_M=15.0 覆盖内，px_n/py_n 不会触顶截断；证据见 reports/split_manifest_check.json 与 reports/scene_mapping_check.json"
+  },
+  {
+   "item": "z_J / z_ref_J 与成本 critic 尺度",
+   "owner": "NAV-056",
+   "status": "resolved",
+   "resolved_by": "NAV-056",
+   "resolution": "Z_REF_J 确认为场景级归一化常数；z_J 有符号语义、V_c/V_h 尺度、共同停止时刻与 bootstrap 规则见 config/value_objective_contract_v1.json"
+  }
+ ],
+ "task_definition": {
+  "objective": "在有限时域内到达目标集合并避免危险集合，同时最小化累计正关节机械功",
+  "horizon_s": 30.0,
+  "horizon_rule": "首轮不越过原校准的 30 s 测量时长；延长时限属改变评分口径，需先询问",
+  "state_contains_remaining_time": true,
+  "goal": {
+   "criterion": "平面欧氏距离 d_xy(base, goal) <= r_goal",
+   "r_goal_m": 0.5,
+   "r_goal_basis": "取足迹外接圆半径量级（footprint 0.458 m^2，外接半径约 0.5055 m）。到达判据不应小于机身尺度，否则机器人“已到达”但身体仍在目标外",
+   "provisional": true,
+   "heading_requirement": "none",
+   "heading_basis": "首轮不要求朝向；δ 只由平面位置偏差得到，不构成航向界，加入朝向判据会引入未校准维度",
+   "speed_requirement": "none",
+   "dwell_s": 0.0,
+   "dwell_basis": "首轮不要求停稳；v2 在低速存在起步死区与稳态不足，要求停稳会把底层已知局限变成任务失败",
+   "confirmation": "到达判定取第一个满足 d_xy <= r_goal 的物理子步，不做事后回溯",
+   "post_arrival": "回合立即结束（测量终止）；不追加零速停车指令，因此不发生额外能量"
+  },
+  "notes": "r_goal 与 dwell 属评分语义，当前取上述建议值并标记 provisional；NAV-017 完成地图与可达性检查后一并复核"
+ },
+ "event_table": {
+  "principle": "同一物理子步内多个事件同时成立时，按下面的 priority 从小到大取唯一标签。安全类优先于到达，到达优先于预算与超时。",
+  "events": [
+   {
+    "id": "fall",
+    "priority": 1,
+    "criterion": "沿用 v2 环境终止项：base_contact（机身接触地面）或 bad_orientation（姿态超限）",
+    "source": "locomotion/docs/eval_protocol.json metric_definitions.failure_rate 明文：termination before horizon (base_contact or bad_orientation)",
+    "outcome": "business_failure",
+    "counts_in_denominator": "uncovered side"
+   },
+   {
+    "id": "collision",
+    "priority": 2,
+    "criterion": "物理层面：碰撞体与障碍或边界墙发生接触（接触力>0 或等价接触事件）",
+    "outcome": "business_failure",
+    "note": "与 internal_violation 严格区分；碰撞是真实物理接触"
+   },
+   {
+    "id": "out_of_bounds",
+    "priority": 3,
+    "criterion": "base 平面位置离开地图可行区域外框（几何判据，非物理接触）",
+    "outcome": "business_failure",
+    "note": "地图边界墙未建模时用几何余量判定；建模后改由 collision 覆盖，二者不叠加计数"
+   },
+   {
+    "id": "internal_violation",
+    "priority": 4,
+    "criterion": "名义安全约束被违反：足迹⊕disc(delta) 与膨胀后障碍相交",
+    "outcome": "method_internal",
+    "note": "只用于方法内部诊断，不得静默等同物理碰撞，也不进入 SR/CR 的分子分母；真实 SR 与 CR 只用 fall/collision/out_of_bounds"
+   },
+   {
+    "id": "goal_reached",
+    "priority": 5,
+    "criterion": "d_xy <= r_goal（且 dwell 满足，首轮 dwell=0）",
+    "outcome": "success",
+    "note": "同一步预算越过 0 不影响到达判定（该步成本已计入），但『预算内到达』必须由独立字段 within_budget / arrived_within_budget 给出（NAV-062）"
+   },
+   {
+    "id": "budget_exhausted",
+    "priority": 6,
+    "criterion": "remaining_budget_J <= 0（记录的诊断事实，不终止回合）",
+    "outcome": "diagnostic",
+    "zero_case": "恰好等于 0 记为 on_budget，仍不终止",
+    "negative_case": "变负记 overshoot_J 供诊断，回合继续到到达/碰撞/越界/停滞/时限",
+    "terminal": false,
+    "note": "NAV-062 起不再是终止事件：参考实现的 is_terminal 只看时限，预算是成本项；旧 v1 轨迹里的 budget_exhausted 标签只作历史证据，不得再作为可行性判据"
+   },
+   {
+    "id": "stagnation",
+    "priority": 7,
+    "criterion": "连续 3.0 s 内 base 平面位移 < 0.05 m",
+    "outcome": "business_failure",
+    "basis": "v2 已知低速死区在 <=0.2 m/s；阈值取明显停滞量级，不用它替代底层验收",
+    "provisional": true,
+    "note": "（NAV-062：按截断处理，bootstrap 到 V_c(x_T)，CFG 见表 rcppo_alignment_contract_v1.event_truth_table）"
+   },
+   {
+    "id": "timeout",
+    "priority": 8,
+    "criterion": "t >= 30.0 s",
+    "outcome": "truncated",
+    "note": "恰好 30 s 结束记为 completed；早于 30 s 且由上述事件结束的记对应标签"
+   }
+  ],
+  "tie_examples": [
+   {
+    "case": "子步内同时到达目标与撞到障碍",
+    "label": "collision",
+    "reason": "priority 2 < 5，安全压过到达"
+   },
+   {
+    "case": "子步内到达且预算恰好归零",
+    "label": "goal_reached",
+    "reason": "priority 5 < 6，到达优先；该步成本已计入，预算归零不影响成功标签"
+   },
+   {
+    "case": "预算先耗尽、下一步才到达",
+    "label": "budget_exhausted",
+    "reason": "耗尽发生在到达之前，回合在耗尽步结束"
+   },
+   {
+    "case": "跌倒与越界同刻",
+    "label": "fall",
+    "reason": "priority 1 < 3，物理失效优先"
+   },
+   {
+    "case": "名义膨胀约束违反但物理未碰撞",
+    "label": "internal_violation（不计入 CR/SR）",
+    "reason": "内部约束与方法绑定，不能与真实碰撞混算"
+   }
+  ],
+  "decision_procedure": {
+   "scope": "每个物理子步（0.005 s）执行一次；回合标签在结束的那个子步被唯一确定",
+   "ordered_steps": [
+    "1. 读取本子步的物理事实：base_contact/bad_orientation、接触力、base 平面位置、剩余预算 z、已用时间 t、累计位移窗口",
+    "2. 若 base_contact 或 bad_orientation 成立 → label=fall，回合结束",
+    "3. 否则若发生物理接触（障碍或边界墙）→ label=collision，回合结束",
+    "4. 否则若 base 离开地图可行区域 → label=out_of_bounds，回合结束",
+    "5. 否则若 d_xy <= r_goal → label=goal_reached，回合结束（到达优先于预算与超时）",
+    "6. 否则若 z <= 0 → label=budget_exhausted，回合结束，记录 overshoot_J",
+    "7. 否则若连续 3.0 s 位移 < 0.05 m → label=stagnation，回合结束",
+    "8. 否则若 t >= 30.0 s → label=timeout，回合结束",
+    "9. 否则继续下一个子步",
+    "10. 全程独立记录 internal_violation（名义膨胀约束违反）布尔值，不参与 2–8 的判定，也不改变 label"
+   ],
+   "why_this_order": "物理失效 > 真实安全违反 > 几何越界 > 任务成功 > 资源耗尽 > 无进展 > 时间用尽。安全类必须在到达之前，否则“撞着到达”会被记成功",
+   "label_is_exclusive": true,
+   "internal_violation_is_orthogonal": true
+  }
+ },
+ "termination_semantics": {
+  "three_kinds_must_not_mix": [
+   {
+    "name": "env_done",
+    "source": "环境 step 返回的 terminate/truncate",
+    "meaning": "物理回合结束（跌倒、碰撞、超时）",
+    "used_by": "环境复位与物理台账"
+   },
+   {
+    "name": "measurement_end",
+    "source": "本契约事件表",
+    "meaning": "任务层测量结束（到达、失败、截断）",
+    "used_by": "指标计算与分母"
+   },
+   {
+    "name": "stop_segmentation",
+    "source": "训练期由价值最小化选出的最优停止时刻",
+    "meaning": "RC-PPO 的 min over T，仅存在于训练",
+    "used_by": "仅训练；评估不得使用"
+   },
+   {
+    "name": "budget_state",
+    "source": "SignedBudget.z_J / z_ratio",
+    "meaning": "有符号剩余预算（成本账），不是终止、不是测量结束",
+    "used_by": "目标 W、观测 z_ratio、报告 within_budget"
+   }
+  ],
+  "rule": "三者在代码、日志与报告中必须用不同字段名；任何一处复用会导致 GAE 截断与停止语义同时被破坏",
+  "auto_reset_policy": {
+   "training": "环境自动复位后，本步后续子步的指标写入必须冻结，只保留本回合已发生事件（见 source_reference_map.md 第 5 节 HiRA 缺口）",
+   "evaluation": "禁止把自动复位后的新回合拼进旧回合；每回合单独一行台账",
+   "detection": "以 env_done 上升沿为界，回合内累积 rather than 取最后一步"
+  },
+  "infeasible_budget": {
+   "criterion": "预算搜索找不到满足可行性条件的初始预算",
+   "outcome": "unresolved，单独计入分母，不得剔除，也不得静默按最大试验预算执行",
+   "note": "若实际执行时预算为 0 或无可行解，该回合记 no_feasible_budget，不参与 SR 分子"
+  },
+  "budget_not_terminal": {
+   "rule": "z_J <= 0 不终止回合，也不产生终止标签；『是否在预算内到达』由独立字段计算",
+   "field_names": [
+    "within_budget",
+    "arrived_within_budget",
+    "over_budget_J"
+   ],
+   "feasibility": "arrived_within_budget == (label == goal_reached AND z_J_end >= 0)",
+   "why": "旧设置在预算耗尽时立刻结束回合：训练里从未见过低预算后半程，且 budget_exhausted 占失败样本的 82-91%，把真正要学的情形削掉了",
+   "old_semantics": "v1 轨迹与 v1 报告仍按旧语义解读，保留不改"
+  }
+ },
+ "cost_settlement": {
+  "decision_boundary_s": 0.1,
+  "rule": "成本只在 0.1 s 决策边界上结算；名义成本按 (1+alpha)*P_nom(applied)*0.1 累加",
+  "partial_last_interval": {
+   "problem": "事件可能发生在两个决策边界之间（如 2.35 s），此时最后一个 0.1 s 段不完整",
+   "nominal_side": "该段仍按完整 0.1 s 计入（策略在该段内保持同一命令，名义模型按命令积分）",
+   "physical_side": "按实际物理子步数积分：J_exec = sum over executed substeps（每子步 0.005 s）",
+   "gap_handling": "两者差额单独记为 partial_step_gap_J，随回合台账保存；不得用比例缩放让两者强行相等，也不得外推到 30 s",
+   "justification": "名义侧用完整段是命令离散化的自然结果；实测侧必须用真实步数，否则能量被人为补齐"
+  },
+  "parking_energy": {
+   "included": false,
+   "reason": "到达即回合结束，不追加零速停车；若后续需要停车段，须新增契约字段并重新登记"
+  },
+  "bootstrap_and_truncation": {
+   "completed": "跑满 30 s 且无失败事件：成本为完整窗口，可直接比较",
+   "truncated": "未跑满（如停滞、超时前终止）：成本是前缀，统计时按预登记规则处理，不得当作完整窗口样本",
+   "bootstrap_rule": "重采样单位为整条轨迹；截断样本与其前缀不得同时作为独立样本计入，避免重复计权",
+   "coverage_inheritance": "禁止按 (已执行时长/30 s) 等比缩放旧覆盖率；旧 30 s 覆盖结论不自动适用于提前终止的导航回合"
+  },
+  "worked_example": {
+   "setup": "某回合在 t=2.35 s 到达目标；命令在该段内保持 vx=0.6、vy=0、wz=0；P_nom(0.6,0,0)=40.0 W；alpha=0.19048279965649906",
+   "nominal_side": {
+    "rule": "按 0.1 s 决策边界结算，最后一段不完整但按完整 0.1 s 计",
+    "n_full_segments": 24,
+    "c_nom_per_segment_J": 4.0,
+    "c_nom_total_J": 96.0,
+    "budget_decrement_J": 114.286349,
+    "note": "24 段 = ceil(2.35 / 0.1) = 24；第 24 段覆盖 2.30–2.40 s"
+   },
+   "physical_side": {
+    "rule": "按实际物理子步积分，每子步 0.005 s",
+    "n_substeps": 470,
+    "formula": "J_exec = sum_{k=1..470} sum_{j=1..12} max(tau_j[k]*qdot_j[k], 0) * 0.005",
+    "note": "470 = 2.35 / 0.005；不含 2.35–2.40 s 的残余子步"
+   },
+   "gap": {
+    "name": "partial_step_gap_J",
+    "definition": "名义侧多算了 2.35–2.40 s 的 0.05 s 命令成本；实测侧只到 2.35 s。差额随回合台账保存",
+    "must_not": "不得按 2.35/2.40 比例缩放任一侧来“对齐”，也不得把 J_exec 外推到 30 s"
+   },
+   "truncation_example": {
+    "case": "回合在 t=12.0 s 停滞结束，未到达",
+    "label": "stagnation",
+    "cost_kind": "prefix",
+    "rule": "12.0 s 的累计能量是前缀，不是完整 30 s 窗口样本；bootstrap 时按整条轨迹重采样，且不与同一轨迹的更长前缀重复计入",
+    "coverage_rule": "不得用 12/30 的比例去缩放旧的 30 s 覆盖率，旧覆盖结论不自动适用"
+   }
+  }
+ },
+ "provisional_decisions": [
+  {
+   "item": "r_goal = 0.5 m",
+   "basis": "足迹外接半径量级",
+   "confirm_by": "NAV-017 地图与可达性检查后复核"
+  },
+  {
+   "item": "dwell_s = 0（不要求停稳）",
+   "basis": "避免把 v2 低速死区变成任务失败",
+   "confirm_by": "NAV-060 pilot 后可据实调整"
+  },
+  {
+   "item": "stagnation 阈值 0.05 m / 3.0 s",
+   "basis": "明显停滞量级",
+   "confirm_by": "NAV-059 低速可执行性核验后复核"
+  },
+  {
+   "item": "到达优先于预算耗尽",
+   "basis": "该步成本已计入，任务目标已实现",
+   "confirm_by": "NAV-056 成本价值尺度冻结时一并确认"
+  },
+  {
+   "item": "不要求朝向、不要求停稳",
+   "basis": "δ 不含航向；首轮最小化未校准维度",
+   "confirm_by": "NAV-057 姿态几何处理确定后复核"
+  },
+  {
+   "item": "R_SENSE_M = 6.0 m",
+   "basis": "覆盖 δ + 足迹外接半径约 3.12 m 的安全相关带并留一倍余量",
+   "confirm_by": "NAV-057 足迹姿态处理与 NAV-017 地图生成后复核"
+  },
+  {
+   "item": "MAP_HALF_M = 15.0 m",
+   "basis": "初始净宽 7–8 m 的多弯通道量级估计",
+   "confirm_by": "NAV-017 地图冻结后按实际半幅确认，否则位置/目标距离会饱和"
+  },
+  {
+   "item": "OBSTACLE_CAPACITY = 8",
+   "basis": "6 m 感知半径内图元数量的保守上限",
+   "confirm_by": "NAV-017 地图生成器保证；超出数量必须记入 step record"
+  },
+  {
+   "item": "观测含实测机身速度",
+   "basis": "分层跟踪存在延迟，速度可反映指令是否生效；RC-PPO 参考实现同样含速度",
+   "confirm_by": "NAV-034 复查是否被名义侧理想跟踪假设利用"
+  },
+  {
+   "item": "Z_REF_J = 550.0",
+   "basis": "1.05 x 场景最大参考路线能量（489.397680362936 J），仅作归一化尺度；旧值 225.6069087767049 J 由 NAV-035 按 OI-2 重定",
+   "confirm_by": "NAV-035 重定并留快照（config/snapshots/navigation_contract_v1.zref225.6069.json），见 config/value_objective_contract_v1.json",
+   "status": "confirmed"
+  },
+  {
+   "item": "动作映射为仿射而非 tanh",
+   "basis": "保证冻结域精确可达，避免低速段被压缩",
+   "confirm_by": "NAV-031 算法迁移时与 PPO 动作分布一并确认"
+  }
+ ],
+ "observation_version": "obs-v4",
+ "action_version": "cmd-v1",
+ "frames_and_conventions": {
+  "world_frame": {
+   "handedness": "right-handed",
+   "axes": "+x 与 +y 为地图平面，+z 向上；运动在 xy 平面内",
+   "state": "[px, py, yaw]；z 高度不属于导航状态",
+   "position_reference": "Go2 base_link 原点在地图坐标系中的位置",
+   "position_reference_note": "不是足迹质心。footprint_v1.json 的质心为 [-0.04563529179509698, -0.010971589494882339] m（机身系），用质心当位置参考会给全链路引入约 4.7 cm 固定偏移。"
+  },
+  "body_frame": {
+   "definition": "Go2 base_link：x 前、y 左、z 上",
+   "shared_by": [
+    "速度命令 [vx, vy, wz]",
+    "footprint_v1 凸多边形",
+    "观测中的目标方向与障碍方位"
+   ]
+  },
+  "quaternion_order": {
+   "value": "wxyz",
+   "component_names": [
+    "w",
+    "x",
+    "y",
+    "z"
+   ],
+   "source": "Isaac Lab 约定（isaaclab.utils.math 文档串明确 (w, x, y, z)）",
+   "danger": "写成 xyzw 不会报错，只会静默旋转机体；下游无法从数值上发现。"
+  },
+  "yaw_definition": {
+   "value": "projected_heading",
+   "algorithm": "把机体 +x 轴用四元数旋转，投影到世界 xy 平面，归一化，取 atan2(y, x)",
+   "range": "(-pi, pi]",
+   "unit": "rad",
+   "equals_planar_yaw_when": "roll = pitch = 0（名义侧恒成立）",
+   "differs_from": "ZYX 欧拉分解的 yaw；有 roll/pitch 时两者不同，本项目只用投影朝向",
+   "undefined_case": "机体 +x 投影长度趋零（机体近乎竖直）时朝向无定义，抛 HeadingUndefined，按 event_table 记 internal_violation（正交，不计入 SR/CR），不得填任意角度。"
+  },
+  "angle_units": "弧度",
+  "distance_units": "米",
+  "wrap_rule": "只在比较与显示时用 wrap_angle 折到 (-pi, pi]；轨迹与状态本身不折"
+ },
+ "observation_spec": {
+  "version": "obs-v4",
+  "total_dim": 41,
+  "concatenate": true,
+  "layout": [
+   {
+    "name": "sin_yaw",
+    "dim": 1
+   },
+   {
+    "name": "cos_yaw",
+    "dim": 1
+   },
+   {
+    "name": "vx_body_n",
+    "dim": 1
+   },
+   {
+    "name": "vy_body_n",
+    "dim": 1
+   },
+   {
+    "name": "wz_body_n",
+    "dim": 1
+   },
+   {
+    "name": "px_n",
+    "dim": 1
+   },
+   {
+    "name": "py_n",
+    "dim": 1
+   },
+   {
+    "name": "goal_dir_x_body",
+    "dim": 1
+   },
+   {
+    "name": "goal_dir_y_body",
+    "dim": 1
+   },
+   {
+    "name": "goal_dist_n",
+    "dim": 1
+   },
+   {
+    "name": "obstacle_bins",
+    "dim": 16
+   },
+   {
+    "name": "wall_dist_n",
+    "dim": 4
+   },
+   {
+    "name": "obstacle_mask",
+    "dim": 8
+   },
+   {
+    "name": "safety_y",
+    "dim": 1
+   },
+   {
+    "name": "z_ratio",
+    "dim": 1
+   },
+   {
+    "name": "time_remaining_n",
+    "dim": 1
+   }
+  ],
+  "field_table": [
+   {
+    "name": "sin_yaw",
+    "dim": 1,
+    "unit": "无量纲",
+    "range": [
+     -1.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "名义积分得到的 yaw 取 sin",
+    "source_physical": "base_quat(wxyz) 的投影朝向取 sin",
+    "note": "用 sin/cos 而不是裸角度，避免 ±pi 处不连续"
+   },
+   {
+    "name": "cos_yaw",
+    "dim": 1,
+    "unit": "无量纲",
+    "range": [
+     -1.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "同上取 cos",
+    "source_physical": "同上取 cos",
+    "note": ""
+   },
+   {
+    "name": "vx_body_n",
+    "dim": 1,
+    "unit": "无量纲（m/s ÷ 1.0）",
+    "range": [
+     -2.0,
+     2.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "applied_command[0]（名义模型假设理想跟踪）",
+    "source_physical": "root_lin_vel_b.x（实测）",
+    "note": "两端来源不同属已知不对称，见 known_asymmetries.velocity_source"
+   },
+   {
+    "name": "vy_body_n",
+    "dim": 1,
+    "unit": "无量纲（m/s ÷ 1.0）",
+    "range": [
+     -2.0,
+     2.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "applied_command[1]",
+    "source_physical": "root_lin_vel_b.y",
+    "note": ""
+   },
+   {
+    "name": "wz_body_n",
+    "dim": 1,
+    "unit": "无量纲（rad/s ÷ 1.0）",
+    "range": [
+     -2.0,
+     2.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "applied_command[2]",
+    "source_physical": "root_ang_vel_b.z",
+    "note": ""
+   },
+   {
+    "name": "px_n",
+    "dim": 1,
+    "unit": "无量纲（m ÷ 15.0）",
+    "range": [
+     -1.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "名义积分 px",
+    "source_physical": "root_pos_w.x",
+    "note": "超出 ±15 m 会饱和；饱和次数记入 step record"
+   },
+   {
+    "name": "py_n",
+    "dim": 1,
+    "unit": "无量纲（m ÷ 15.0）",
+    "range": [
+     -1.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "名义积分 py",
+    "source_physical": "root_pos_w.y",
+    "note": ""
+   },
+   {
+    "name": "goal_dir_x_body",
+    "dim": 1,
+    "unit": "无量纲单位向量分量",
+    "range": [
+     -1.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s（目标点每回合固定）",
+    "source_nominal": "(goal - pos) 旋入机身系后归一化",
+    "source_physical": "同式，pos 取仿真真值",
+    "note": "距离趋零时置 0，不产生 NaN"
+   },
+   {
+    "name": "goal_dir_y_body",
+    "dim": 1,
+    "unit": "无量纲单位向量分量",
+    "range": [
+     -1.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s（目标点每回合固定）",
+    "source_nominal": "同上",
+    "source_physical": "同上",
+    "note": ""
+   },
+   {
+    "name": "goal_dist_n",
+    "dim": 1,
+    "unit": "无量纲（m ÷ 15.0）",
+    "range": [
+     0.0,
+     1.5
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "机体系目标距离 ÷ MAP_HALF_M",
+    "source_physical": "同式",
+    "note": "上界 1.5 保留远目标的分辨力"
+   },
+   {
+    "name": "obstacle_bins",
+    "dim": 16,
+    "unit": "强度 0..1（表面距离 / 6.0 m）",
+    "range": [
+     0.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "冻结地图图元 + 名义位姿，按机身方位分箱取最大值",
+    "source_physical": "同一地图图元 + 仿真真位姿（不使用感知）",
+    "note": "强度 = 1 - clip(表面距离/6.0, 0, 1)；进入图元内部时表面距离取 0、强度 1"
+   },
+   {
+    "name": "wall_dist_n",
+    "dim": 4,
+    "unit": "无量纲（m ÷ 15.0）",
+    "range": [
+     0.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "到 x_min, x_max, y_min, y_max 四墙的有符号距离截零后归一化",
+    "source_physical": "同式",
+    "note": "顺序固定为 x_min, x_max, y_min, y_max"
+   },
+   {
+    "name": "obstacle_mask",
+    "dim": 8,
+    "unit": "0/1",
+    "range": [
+     0.0,
+     1.0
+    ],
+    "update_time": "每回合（地图固定）",
+    "source_nominal": "障碍按表面距离升序、再按方位升序排序，前 min(n,8) 个置 1",
+    "source_physical": "同式",
+    "note": "排序保证编码与地图图元列举顺序无关；被丢弃的图元数记入 step record"
+   },
+   {
+    "name": "safety_y",
+    "dim": 1,
+    "unit": "0/1",
+    "range": [
+     0.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s，单调不减",
+    "source_nominal": "进入膨胀危险集后置 1 且不可逆",
+    "source_physical": "同一判据，位姿取真值",
+    "note": "y=1 后不因离开危险区复位"
+   },
+   {
+    "name": "z_ratio",
+    "dim": 1,
+    "unit": "无量纲（J ÷ 550.0）",
+    "range": [
+     -3.0,
+     3.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "z_J（有符号剩余预算）÷ Z_REF_J",
+    "source_physical": "同一累计口径",
+    "note": "负值表示超预算；尺度归 NAV-056 所有。裁剪上限随观测版本：obs-v2 ±1.0、obs-v3 ±1.5（NAV-062）。目标 W 用未裁剪的 z_J/Z_REF_J，观测裁剪只是编码。",
+    "clip_by_version": {
+     "obs-v2": 1.0,
+     "obs-v3": 1.5
+    },
+    "range_note": "obs-v4（r14，D9 修复，用户 2026-11-15T17:32 授权）：±1.5 时所有场景 E_ref>Z_REF 导致成本通道在 critic 眼里饱和，V_c−z 学不准。±3.0 覆盖训练带 k∈[0.6,1.3] 与实测超支漂移（z 低至 −1.6）。"
+   },
+   {
+    "name": "time_remaining_n",
+    "dim": 1,
+    "unit": "无量纲（s ÷ 30.0）",
+    "range": [
+     0.0,
+     1.0
+    ],
+    "update_time": "每 0.1 s",
+    "source_nominal": "T_MAX - 已用时间",
+    "source_physical": "同一计时",
+    "note": "截断上限 1.0；不参与能量记账"
+   }
+  ],
+  "constants": {
+   "n_obstacle_bins": 16,
+   "obstacle_capacity": 8,
+   "n_wall_dists": 4,
+   "r_sense_m": 6.0,
+   "map_half_m": 15.0,
+   "t_max_s": 30.0,
+   "v_ref_mps": 1.0,
+   "w_ref_radps": 1.0,
+   "v_body_clip": 2.0,
+   "z_ref_J": 550.0
+  },
+  "constant_provenance": {
+   "r_sense_m": "要覆盖安全相关带：δ=2.613866 m + 足迹外接半径 0.505501 m ≈ 3.12 m，取 6.0 m 留一倍余量",
+   "map_half_m": "provisional，NAV-017 地图生成后按实际半幅确认；位置与目标距离饱和次数必须记录",
+   "t_max_s": "冻结校准协议 30 s 窗口",
+   "z_ref_J": "power-v1 在解析省能速度 0.30986 m/s 处 P_nom=7.52023029255683 W 乘 30 s；是尺度不是任务预算，NAV-056 拥有最终定义",
+   "n_obstacle_bins": "16 与 HiRA 手动雷达同档，兼顾方位分辨率与维度",
+   "obstacle_capacity": "provisional，NAV-017 保证 6 m 感知半径内图元数不超过 8；超出部分按规则丢弃并记数"
+  },
+  "map_encoding": {
+   "primitive_kind": "circle(center_xy, radius) | convex_polygon(vertices)",
+   "primitive_owner": "NAV-017（地图生成）",
+   "kernel": "circle：surface_distance = max(0, |center - base_link| - radius)；convex_polygon：surface_distance = 0（base_link 在内部）否则到边界的精确点-多边形距离。方位角一律取「指向最近表面点」的方向；圆在外部时最近点位于圆心射线上，故与 obs-v1 完全一致。",
+   "overflow_rule": "按 (表面距离, 方位) 升序保留前 8 个；被丢弃数量写入 step record 的 dropped_obstacles",
+   "no_perception": "使用仿真真值与地图图元，首轮不做部分可观测感知任务",
+   "extension_rule": "已执行：NAV-018 升 obs-v2。后续若出现非凸图元或线段，必须再次扩核升版",
+   "sort_key_note": "按 (表面距离, 机身系方位) 升序；矩形改用最近表面点方位后，长边的方位不再等于质心方位",
+   "version_history": [
+    [
+     {
+      "version": "obs-v1",
+      "change": "初版，仅圆形图元",
+      "task": "NAV-013"
+     },
+     {
+      "version": "obs-v2",
+      "change": "图元集合扩为 circle|convex_polygon；布局/维度/常数不变",
+      "task": "NAV-018",
+      "why": "NAV-016 冻结的岛是矩形；用圆覆盖要么需要超过 8 个图元，要么外接圆每侧多出约 0.4 m，足以堵死 7 m 通道在 delta 膨胀后仅剩的 0.76 m 自由带"
+     }
+    ]
+   ]
+  },
+  "nominal_physical_identity": {
+   "rule": "两端调用同一 encoder；物理侧只负责把 root_pos/root_quat/实测速度转成同一 EgoState",
+   "test": "tests/test_observation_contract.py::nominal_equals_physical（逐位相等，覆盖 yaw=0/0.3/-2.9/±pi/1.0）",
+   "expected_differences": "只有来源不同造成的数值差，不允许编码规则不同"
+  },
+  "polygon_support": {
+   "added_in": "obs-v2",
+   "why_not_circles": "矩形 2x2 m 若用外接圆近似，半径 1.414 m 而非半对角以外的真实形状；每侧多出的面积会改变可通行判断，因此不做近似，直接携带多边形。",
+   "exactness": "点-凸多边形距离与包含判定都是精确的（与 maps/geometry.polygon_distance_exact 同源判据）",
+   "capacity_effect": "一组矩形岛仍各占 1 个槽位（L3 为 2 个），未触及 OBSTACLE_CAPACITY=8"
+  }
+ },
+ "action_spec": {
+  "version": "cmd-v1",
+  "action_dim": 3,
+  "action_order": [
+   "vx",
+   "vy",
+   "wz"
+  ],
+  "action_frame": "body",
+  "normalized_range": [
+   -1.0,
+   1.0
+  ],
+  "mapping": "u_req = clip(a, -1, 1) * (1.0, 0.4, 1.0)",
+  "mapping_rationale": "用仿射映射而非 tanh：NAV-055 冻结的域必须精确可达，NAV-059 要探 0.2–0.31 m/s 的低速段，squash 会系统性压低指令值。网络内部的输出有界性是网络自身问题，不属于本契约。",
+  "clip": {
+   "stage": "只在 applied 处裁剪一次",
+   "domain": "见 validated_command_domain",
+   "tolerance": 1e-06
+  },
+  "record_fields": [
+   "requested",
+   "applied",
+   "clipped",
+   "invalid"
+  ],
+  "invalid_rule": "出现 NaN/Inf 时对应分量置 0 并置 invalid=True，绝不向下游传递非有限值",
+  "single_source_rule": "只有 applied 可进入名义积分、功率模型与底层命令桥；requested 仅用于日志与审计。测试用越界请求 (2.0,0,0) 演示：若误用 requested，0.1 s 位移与功率都会不同。",
+  "command_domain_reference": "validated_command_domain（NAV-055）"
+ },
+ "known_asymmetries": [
+  {
+   "item": "measured body velocity 的来源",
+   "nominal": "等于 applied_command（名义模型假设理想跟踪）",
+   "physical": "实测 root_lin_vel_b / root_ang_vel_b，存在跟踪误差与延迟",
+   "why_allowed": "该字段是状态反馈，不是标签；两端编码规则相同，只有来源不同",
+   "risk": "策略可能在名义侧依赖「速度必等于指令」这一过强假设",
+   "review": "NAV-034 复查；若确认被利用，删除这三个字段并升 obs 版本"
+  },
+  {
+   "item": "roll/pitch 的表示能力",
+   "nominal": "只有平面 yaw，恒为零 roll/pitch",
+   "physical": "存在 roll/pitch，朝向用投影 heading 定义",
+   "why_allowed": "投影 heading 在有倾斜时仍连续且两端同式；名义侧零倾斜时与 yaw 严格一致",
+   "risk": "倾斜造成的平面位移误差不在观测里，也不会被名义模型预测",
+   "review": "NAV-026 量化执行误差时一并报告，不在此处用滤波掩盖"
+  }
+ ],
+ "value_objective_reference": {
+  "contract": "config/value_objective_contract_v1.json",
+  "version": "1.0.0",
+  "owner": "NAV-056",
+  "relation": "z_ratio 归一化尺度、V_c/V_h 尺度与共同停止时刻由该契约定义，本文件只引用"
+ },
+ "amendments": [
+  {
+   "version": "obs-v4",
+   "date": "2026-11-15T17:32:00+08:00",
+   "authorized_by": "用户 2026-11-15T17:32 三点决策（r14 开工）",
+   "changes": [
+    "observation_spec.version: obs-v3 -> obs-v4",
+    "z_ratio range: ±1.5 -> ±3.0（布局/维度不变）"
+   ],
+   "reason": "D9：成本通道观测饱和，V_c−z 学不准；配合值契约 v1.3.0 深井语义"
+  }
+ ]
 }

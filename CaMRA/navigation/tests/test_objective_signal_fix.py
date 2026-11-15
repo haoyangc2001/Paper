@@ -216,7 +216,8 @@ def check_f5_min_recursion_counterexample():
     g = np.linspace(1.0, 0.0, 12)
     baseline = np.zeros(11)
     done = np.zeros(12, dtype=int)
-    v = T.joint_min_return(g, baseline, done, gamma=0.999, lam=0.95)
+    v = T.joint_min_return(g, baseline, done, gamma=0.999, lam=0.95,
+                           terminal_baseline=0.0)
     ok2 = (v.shape == (11,) and bool(np.all(np.isfinite(v)))
            and bool(np.all(v >= 0.0)) and bool(np.all(v <= float(g.max()) + 1e-9)))
     check("f5_joint_min_return_is_well_defined", ok2,

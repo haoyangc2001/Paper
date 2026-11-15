@@ -221,14 +221,21 @@ def main() -> int:
         and abs(g_vals[3] - (19.5 / l_ref)) < 1e-12,
         {"dist_m": dists, "g_norm": g_vals, "r_goal_m": r_goal},
     )
+    # r14（v1.3.0 分级安全）：y 不再只有 0/1，支配性要求改为
+    # 「最低严重度也压得住深井」——即 C*floor > G_INSIDE，保证任何违规步
+    # h=max(g, C*y)=C*y>0 不可行；C 本身仍 >= 1.0（全严重度与 FAIL_PENALTY 同级）。
+    sev = q.get("safety_severity", {})
+    floor = float(sev.get("operational_params", {}).get("severity_floor", 0.2))
     check(
         "C_dominates",
-        c_safe >= 1.0 and c_safe > abs(g_inside),
+        c_safe >= 1.0 and c_safe * floor > g_inside and c_safe > g_inside,
         {
             "C": c_safe,
-            "worst_minus_z_ratio": -1.0,
+            "severity_floor": floor,
+            "C_times_floor": c_safe * floor,
             "G_INSIDE": g_inside,
-            "conclusion": "C*y=1.0 严格为正，y=1 时 W 必 > 0，可行判据不会翻转",
+            "conclusion": "任何 y>0 时 C*y >= C*floor > G_INSIDE，违规步 h 必 > 0（不可行）；"
+                           "y=1 时 C*y=1.0 与 FAIL_PENALTY 同级，可行判据不会翻转",
         },
     )
 

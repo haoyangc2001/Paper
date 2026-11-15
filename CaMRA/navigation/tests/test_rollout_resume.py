@@ -532,18 +532,18 @@ def main() -> int:
     # 的能量）；W 必须用未裁剪的 z_norm，否则会被悄悄截到 ±1.5。初始预算越界
     # 由 BudgetSampler 在知道 z0 的地方拒绝（见 test_training_semantics）。
     saturated = dict(syn)
-    saturated["z_norm"] = np.full(4, -1.6)
-    saturated["z_ratio"] = np.full(4, -1.5)
+    saturated["z_norm"] = np.full(4, -3.2)
+    saturated["z_ratio"] = np.full(4, -3.0)
     out_sat = S.compute_objectives(saturated, cfg, terminal_kind="success")
     check("saturated_budget_uses_unclipped_value",
           bool(np.asarray(out_sat["obj_z_saturated"]).all())
-          and abs(float(out_sat["obj_g"][0]) - 1.6) < 1e-12
-          and abs(float(out_sat["obj_target_total"][0]) - 1.6) < 1e-12
+          and abs(float(out_sat["obj_g"][0]) - 3.2) < 1e-12
+          and abs(float(out_sat["obj_target_total"][0]) - 3.2) < 1e-12
           and not bool(out_sat["obj_feasible"][-1]),
           {"obj_g": out_sat["obj_g"].tolist(),
            "target_total": out_sat["obj_target_total"].tolist(),
            "saturated_steps": int(np.asarray(out_sat["obj_z_saturated"]).sum()),
-           "note": "z_norm=-1.6 时 g=1.6（不是被裁到 1.5）；饱和只作诊断记录"})
+           "note": "z_norm=-3.2 时 g=3.2（不是被裁到 3.0，obs-v4）；饱和只作诊断记录"})
 
     # ================= 二、中断-恢复等价于连续跑 =================
     state_a = checkpoint_state(run_a)

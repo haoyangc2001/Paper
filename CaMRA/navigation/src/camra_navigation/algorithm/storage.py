@@ -202,6 +202,13 @@ class ObjectiveConfig:
     #: 的 reach 到达时为大负数，本仓库 h 被 max(·,0) 抹平，启用会翻转到达梯度
     #: （见 amend3 的三条数值反例）。保留可调用实现供对照与反例测试。
     joint_min_recursion: bool = False
+    #: NAV-064 r14 h 语义版本（用户 2026-11-15T17:32 授权）：
+    #: - ``"v1"``（默认，r1-r13）：安全态 ``h = max(g_norm, 0)``，到达无奖励。
+    #: - ``"v2_deep_well"``：安全态 ``h = g_norm``（目标集内为深井 G_INSIDE=-3），
+    #:   违规态仍 ``max(g_norm, C·y)``。必须与值契约 v1.3.0（G_INSIDE=-3）与
+    #:   min 型递推一起由预登记显式声明，训练器校验三者同现。
+    h_semantics: str = "v1"
+    estimator_version: str = "legacy-v2"
 
     @classmethod
     def from_contracts(cls, value_contract_path: str, *, r_goal_m: float) -> "ObjectiveConfig":
@@ -220,7 +227,8 @@ class ObjectiveConfig:
             G_INSIDE=float(q["g_norm"]["G_INSIDE"]),
             fail_penalty=float(fail["value"]),
             r_goal_m=float(r_goal_m),
-            gamma_joint=float(est["gamma_cost"]),
+            gamma_joint=float(est.get("gamma_joint", est["gamma_cost"])),
+            estimator_version=str(est.get("version", "legacy-v2")),
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -296,6 +304,11 @@ def compute_objectives(
     term = np.asarray(arrays["terminated"], dtype=bool).reshape(-1)
     trunc = np.asarray(arrays["truncated"], dtype=bool).reshape(-1)
     b_c = np.asarray(arrays["bootstrap_value_cost"], dtype=np.float64).reshape(-1)
+    repaired = cfg.estimator_version == "rcppo-r14-v3"
+    if repaired and "bootstrap_value_reach" not in arrays:
+        raise StorageError("rcppo-r14-v3 requires the actual final reach critic")
+    b_h = np.asarray(arrays.get("bootstrap_value_reach", np.zeros_like(b_c)),
+                     dtype=np.float64).reshape(-1)
 
     Tn = c.shape[0]
     if Tn == 0:
@@ -305,7 +318,7 @@ def compute_objectives(
                       ("z_norm_next", z_next),
                       ("safety_y_next", y_next), ("goal_distance_m_next", goal_d_next),
                       ("terminated", term), ("truncated", trunc),
-                      ("bootstrap_value_cost", b_c)):
+                      ("bootstrap_value_cost", b_c), ("bootstrap_value_reach", b_h)):
         if arr.shape[0] != Tn:
             raise StorageError(f"{name} 长度 {arr.shape[0]} ≠ T={Tn}")
     if terminal_kind not in ("failure", "success", "truncation"):
@@ -326,11 +339,20 @@ def compute_objectives(
     z_saturated = np.abs(z) > z_clip
 
     # --- t 侧：h_t = max(g_norm(x_t), C·y_t) ----------------------------
+    # r14 起语义可由预登记选 v2（深井）：安全态 h = g_norm 不被 0 裁剪，
+    # 违规态（含分级严重度）不变，见 targets.safety_step_v2。
     g = g_norm_from_distance(goal_d, cfg)
-    h_t = np.asarray(T.safety_step(g, y, cfg.C), dtype=np.float64)
+    if getattr(cfg, "h_semantics", "v1") == "v2_deep_well":
+        h_t = np.asarray(T.safety_step_v2(g, y, cfg.C), dtype=np.float64)
+    else:
+        h_t = np.asarray(T.safety_step(g, y, cfg.C), dtype=np.float64)
     # --- T 侧：终态只补一次 -------------------------------------------------
     g_T = float(g_norm_from_distance(goal_d_next[-1:], cfg)[0])
-    h_T_measured = float(max(g_T, cfg.C * float(y_next[-1])))
+    y_T = float(y_next[-1])
+    if getattr(cfg, "h_semantics", "v1") == "v2_deep_well":
+        h_T_measured = float(max(g_T, cfg.C * y_T)) if y_T > 0.0 else g_T
+    else:
+        h_T_measured = float(max(g_T, cfg.C * y_T))
     if terminal_kind == "failure":
         h_T = float(cfg.fail_penalty)
     else:
@@ -348,6 +370,12 @@ def compute_objectives(
         term_cost = float(b_c[-1])           # x_T 的 V_c，采集时存下
     else:
         term_cost = 0.0                      # 成功与失败都不 bootstrap
+
+    # A slice has both a measured stopping signal at x_T and its actual critic.
+    # The min Bellman operator permits stopping there, so its boundary is capped
+    # by that measured signal. True terminal states use no learned continuation.
+    reach_boundary = (min(h_T, float(b_h[-1])) if terminal_kind == "truncation"
+                      else h_T)
 
     # --- 共同停止：三套估计器共用同一个 τ* 与 done ----------------------
     gamma_joint = cfg.gamma_cost if cfg.gamma_joint is None else float(cfg.gamma_joint)
@@ -371,6 +399,7 @@ def compute_objectives(
     # 的语义不符）。这里与 W 共用 spent 矩阵的同一列，末步成本不漏不重。
     target_cost = T.cost_to_stop(c, stop_index, vc_terminal=term_cost,
                                  gamma=cfg.gamma_cost)
+    cumulative_cost_target = target_cost.copy()
     if terminal_kind == "failure":
         # 契约：失败步的 V_c 目标严格等于 FAIL_PENALTY（不叠加该步成本）
         target_cost = target_cost.copy()
@@ -396,15 +425,43 @@ def compute_objectives(
         overspend_mask=(z < 0.0) if cfg.joint_cost_on_overspend_only else None,
         base_weight=cfg.joint_cost_base_weight)
     total_value = np.maximum(vh, vc - z)
-    if cfg.joint_min_recursion:
+    if cfg.joint_min_recursion and not repaired:
         # 严格参考形态：_ref_gae_reach4 已减过 baseline，Q 直接就是目标
         target_total = T.joint_min_return(g_train, total_value, done_ext,
-                                          cfg.gamma_h, cfg.gae_lambda)
+                                          gamma_joint, cfg.gae_lambda,
+                                          terminal_baseline=max(
+                                              reach_boundary,
+                                              term_cost - float(z_next[-1])))
     else:
         target_total = T.lambda_return(g_train, done_ext, cfg.gae_lambda)[:Tn]
     adv_total = target_total - total_value
+    if repaired:
+        if not cfg.joint_min_recursion or cfg.h_semantics != "v2_deep_well":
+            raise StorageError("rcppo-r14-v3 requires the registered min/deep-well semantics")
+        effective_cost = c.copy()
+        if terminal_kind == "failure":
+            # Existing failure convention: replace the final step by the
+            # absorbing penalty, rather than adding the final action twice.
+            effective_cost[-1] = cfg.fail_penalty
+        vc_ext = np.concatenate([vc, [term_cost]])
+        vh_ext = np.concatenate([vh, [reach_boundary]])
+        joint_boundary = max(reach_boundary, term_cost - float(z_next[-1]))
+        total_ext = np.concatenate([total_value, [joint_boundary]])
+        shared_done = np.asarray(stop_now, dtype=bool)
+        target_cost = T.cost_gae_return(effective_cost, vc_ext, shared_done,
+                                       cfg.gamma_cost, cfg.gae_lambda)
+        target_reach = T.min_gae_return(h_ext, vh_ext, shared_done,
+                                       cfg.gamma_h, cfg.gae_lambda,
+                                       force_continue=terminal_kind == "failure")
+        target_total = T.min_gae_return(g_train, total_ext, shared_done,
+                                       gamma_joint, cfg.gae_lambda,
+                                       force_continue=terminal_kind == "failure")
+        adv_cost = target_cost - vc
+        adv_reach = target_reach - vh
+        adv_total = target_total - total_value
     # 诊断用"到停止的成本"由同一目标减掉终端项得到，不重复计算
-    spent_to_stop = target_cost - np.where(stop_index == Tn, term_cost, 0.0)
+    spent_to_stop = (cumulative_cost_target
+                     - np.where(stop_index == Tn, term_cost, 0.0))
 
     return {
         "obj_g_norm": g,

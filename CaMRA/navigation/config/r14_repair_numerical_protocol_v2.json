@@ -1,0 +1,39 @@
+{
+  "schema": "camra-r14a2-numerical-protocol-v2",
+  "version": "2.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-15T23:35:45.846891+08:00",
+  "authorization": "User approved one additional six-run fresh attempt and necessary local commits; keep all old attempts, no remote push.",
+  "implementation_versions": {
+    "observation": "obs-v5",
+    "estimator": "rcppo-r14-v3"
+  },
+  "hard_acceptance": "all previous independent checks plus actual schedule/writer and strict audit/registry consumers PASS; bind all current sources",
+  "correlations": "diagnostics only; old gate reports remain FAIL, no overwrites",
+  "tolerance": {
+    "float64_atol": 1e-12,
+    "float64_rtol": 1e-10,
+    "float32_atol": 1e-06,
+    "float32_rtol": 1e-05
+  },
+  "cases": [
+    "constant signal/value at multiple lengths and lambda",
+    "independent scalar n-step Bellman mixture with distinct critic values",
+    "shared stops at current/intermediate/final state",
+    "first arrival on one/final action",
+    "graded safety, irreversible violation and negative budget arrival",
+    "terminal vs slice bootstrap sensitivity for all three estimators",
+    "failure penalty propagates with existing forced terminal stop",
+    "gamma_joint production argument",
+    "actual minimizing PPO probability update and clipped branch",
+    "observation/contract/hash/source/gate FAIL startup rejection",
+    "actual close_segment production consumer",
+    "actual gamma_2 schedule at update0/50/149/150/299/300/599",
+    "production reset identity snapshots and discount metadata",
+    "strict metadata auditor rejects stale identities/discounts",
+    "frozen run registry resolves evaluator candidates and rejects duplicates"
+  ],
+  "boundary_contract": "config/value_objective_contract_r14_repair_v1.json",
+  "training_release": "must bind PASS report plus complete current source/contract hashes; numerical protocol contains no training-prereg hash to avoid cycles",
+  "scope": "Numerical controlled cases only before training. One authorized new six-run attempt at 600 updates/run, 18x227 samples/update, first100 included, no extra performance smoke."
+}

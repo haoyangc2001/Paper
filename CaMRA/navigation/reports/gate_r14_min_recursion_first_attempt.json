@@ -1,0 +1,60 @@
+{
+ "schema": "camra-r14-min-recursion-gate-v1",
+ "task": "NAV-064-r14",
+ "verdict": "FAIL",
+ "rule": "3 个历史 run 的 v2+min 递推 corr(h, adv) 全部 > 0；且 v1+min 递推复现翻负（负对照成立）",
+ "sampling": "每个 rollout_env 均匀抽样至多 60 个 chunk",
+ "value_contract_version": "1.3.0",
+ "G_INSIDE": -3.0,
+ "runs": [
+  {
+   "run_id": "nav064_r5_uncalibrated_s0",
+   "v1_min_recursion": {
+    "n_episodes": 1080,
+    "n_steps": 91984,
+    "corr_pooled": -0.4825,
+    "corr_episode_median": -0.7565
+   },
+   "v2_deep_well_min_recursion": {
+    "n_episodes": 1080,
+    "n_steps": 91984,
+    "corr_pooled": -0.4825,
+    "corr_episode_median": -0.7565
+   },
+   "direction_restored": false
+  },
+  {
+   "run_id": "nav064_r1c_uncalibrated_s0",
+   "v1_min_recursion": {
+    "n_episodes": 1080,
+    "n_steps": 115412,
+    "corr_pooled": -0.377,
+    "corr_episode_median": -0.7209
+   },
+   "v2_deep_well_min_recursion": {
+    "n_episodes": 1080,
+    "n_steps": 115412,
+    "corr_pooled": -0.377,
+    "corr_episode_median": -0.7209
+   },
+   "direction_restored": false
+  },
+  {
+   "run_id": "nav064_r5_full_s0",
+   "v1_min_recursion": {
+    "n_episodes": 1080,
+    "n_steps": 89564,
+    "corr_pooled": 0.2163,
+    "corr_episode_median": 0.2798
+   },
+   "v2_deep_well_min_recursion": {
+    "n_episodes": 1080,
+    "n_steps": 89564,
+    "corr_pooled": 0.2163,
+    "corr_episode_median": 0.2798
+   },
+   "direction_restored": false
+  }
+ ],
+ "note": "chunk 为历史 rollout（只读），adv 用当前代码重算；w=0 隔离语义效应"
+}

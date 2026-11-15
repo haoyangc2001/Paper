@@ -128,18 +128,18 @@ def main() -> int:
     # clipping of the normalised value above Z_REF, but z_J itself is never clipped
     hi = select_on_grid(rows_with({0.7: False, 0.85: False, 1.0: False, 1.15: False, 1.3: True}),
                         grid=GRID, e_ref_J=500.0, z_ref_J=Z_REF)
-    # obs-v3 的裁剪上限是 ±1.5（NAV-062）；650 J 的比值 1.1818 已不再饱和，
-    # 所以这里同时验"未裁剪值保留"和"超过 1.5 才饱和"
+    # obs-v4 的裁剪上限是 ±3.0（r14/D9）；650 J 的比值 1.1818 不饱和，
+    # 所以这里同时验"未裁剪值保留"和"超过 3.0 才饱和"（e_ref=1500 → 比值 3.55）
     clip = OBS.z_ratio_clip()
     saturated = select_on_grid(
         rows_with({0.7: False, 0.85: False, 1.0: False, 1.15: False, 1.3: True}),
-        grid=GRID, e_ref_J=1000.0, z_ref_J=Z_REF)
+        grid=GRID, e_ref_J=1500.0, z_ref_J=Z_REF)
     check("z_ratio_clipped_but_budget_is_not",
           hi["status"] == "found" and abs(hi["z_J"] - 650.0) < 1e-9
           and abs(hi["z_ratio"] - 650.0 / 550.0) < 1e-12
           and abs(hi["z_ratio_clipped"] - min(650.0 / 550.0, clip)) < 1e-12
           and abs(saturated["z_ratio_clipped"] - clip) < 1e-12
-          and abs(saturated["z_ratio"] - 1300.0 / 550.0) < 1e-12,
+          and abs(saturated["z_ratio"] - 1950.0 / 550.0) < 1e-12,
           {"clip": clip, "z_J": hi["z_J"], "z_ratio": hi["z_ratio"],
            "z_ratio_clipped": hi["z_ratio_clipped"],
            "saturated_ratio": saturated["z_ratio"],

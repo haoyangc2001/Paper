@@ -1,0 +1,79 @@
+"""Verify the exact implementation and numerical release before sampling."""
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+
+def file_sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
+    root = Path(nav_root)
+    bindings = prereg.get("binding", {})
+    for name, entry in bindings.items():
+        path = root / entry["path"]
+        if not path.is_file() or file_sha(path) != entry["sha256"]:
+            raise ValueError(f"binding mismatch: {name}: {path}")
+    runtime = prereg.get("runtime_contract")
+    if runtime is not None:
+        if runtime.get("reach_schedule") != "reference_gamma_2_half_horizon":
+            raise ValueError("unsupported reach discount schedule")
+        rows = prereg.get("run_registry", [])
+        expected = {(m, s) for m in prereg["method"]["variants"] for s in prereg["method"]["seeds"]}
+        pairs = [(r["variant"], r["seed"]) for r in rows]
+        if len(rows) != 6 or len(set(r["run_id"] for r in rows)) != 6 or set(pairs) != expected or len(set(pairs)) != 6:
+            raise ValueError("run registry is incomplete or contains duplicates")
+        if not all(r["run_id"].startswith(runtime["run_prefix"] + "_") for r in rows):
+            raise ValueError("run IDs use a previous attempt prefix")
+        for field in ("store_auditor", "development_evaluator", "runner", "reference_energy_report"):
+            if field not in bindings:
+                raise ValueError(f"required runtime binding missing: {field}")
+    versions = prereg.get("implementation_versions", {})
+    if int(prereg.get("round", 0)) >= 14 and not versions:
+        raise ValueError("r14 requires the repaired numerical gate and explicit versions")
+    if not versions:
+        return
+    if versions != {"observation": "obs-v5", "estimator": "rcppo-r14-v3"}:
+        raise ValueError("unsupported observation/estimator pairing")
+    for field in ("navigation_contract", "value_contract", "numerical_gate"):
+        if field not in bindings:
+            raise ValueError(f"required binding missing: {field}")
+    nav = json.loads((root / bindings["navigation_contract"]["path"]).read_bytes())
+    value = json.loads((root / bindings["value_contract"]["path"]).read_bytes())
+    if nav["observation_spec"]["version"] != versions["observation"]:
+        raise ValueError("navigation observation version mismatch")
+    if nav.get("observation_version") != versions["observation"]:
+        raise ValueError("navigation top-level observation version mismatch")
+    if value["estimator"].get("version") != versions["estimator"]:
+        raise ValueError("value estimator version mismatch")
+    fix = prereg.get("objective_signal_fix", {})
+    if (fix.get("h_semantics") != "v2_deep_well"
+            or fix.get("joint_min_recursion") is not True
+            or float(fix.get("joint_cost_weight", -1)) != 0.0
+            or float(fix.get("joint_cost_base_weight", -1)) != 0.0):
+        raise ValueError("repaired estimator requires registered min/deep-well/no-additive-cost settings")
+    if (float(value["estimator"]["gamma_cost"]) != 1.0
+            or float(value["estimator"]["gamma_joint"]) != 1.0):
+        raise ValueError("repaired cost/joint discount mismatch")
+    gate = json.loads((root / bindings["numerical_gate"]["path"]).read_bytes())
+    if gate.get("verdict") != "PASS" or gate.get("implementation_versions") != versions:
+        raise ValueError("numerical gate is not PASS for these versions")
+    if not gate.get("checks") or not all(c["ok"] for c in gate["checks"]):
+        raise ValueError("numerical gate has missing or failed checks")
+    if not gate.get("code_files") or not gate.get("protocol"):
+        raise ValueError("numerical gate has no source/protocol bindings")
+    for rel, digest in gate["code_files"].items():
+        if file_sha(root / rel) != digest:
+            raise ValueError(f"gate source mismatch: {rel}")
+    if runtime is not None:
+        passed = {c.get("check") for c in gate["checks"] if c["ok"]}
+        required = {"runtime_schedule_reaches_final_halfway", "runtime_writer_snapshot_before_reset",
+                    "runtime_auditor_rejects_stale_identity", "runtime_registry_selects_current_attempt"}
+        if not required.issubset(passed):
+            raise ValueError("gate omitted required production runtime checks")
+    protocol = gate["protocol"]
+    if file_sha(root / protocol["path"]) != protocol["sha256"]:
+        raise ValueError("gate protocol mismatch")

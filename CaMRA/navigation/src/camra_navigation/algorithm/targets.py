@@ -183,7 +183,8 @@ def joint_training_sequence(g_ext: np.ndarray, cost_norm: np.ndarray,
 
 
 def joint_min_return(values: np.ndarray, baseline: np.ndarray,
-                     done: np.ndarray, gamma: float, lam: float) -> np.ndarray:
+                     done: np.ndarray, gamma: float, lam: float,
+                     *, terminal_baseline: float) -> np.ndarray:
     """参考 ``calculate_gae_reach4`` 的**严格**形态，返回长度 T 的联合目标。
 
     直接复用本文件的逐行转写 :func:`_ref_gae_reach4`（保留其 roll / mask /
@@ -205,9 +206,77 @@ def joint_min_return(values: np.ndarray, baseline: np.ndarray,
         raise ValueError(f"values 长度应为 T+1={Tn + 1}，得到 {g.shape[0]}")
     if d.shape[0] < Tn:
         raise ValueError(f"done 长度 {d.shape[0]} < T={Tn}")
-    vh_all = np.concatenate([v, [v[-1]]])[:, None]      # (T+1, 1)
+    vh_all = np.concatenate([v, [float(terminal_baseline)]])[:, None]
     _, q = _ref_gae_reach4(float(gamma), float(lam), g[:, None], vh_all, d[:Tn])
     return q[:, 0]
+
+
+def min_gae_return(signals: np.ndarray, baseline: np.ndarray,
+                   done: np.ndarray, gamma: float, lam: float,
+                   *, force_continue: bool = False) -> np.ndarray:
+    """Normalized finite-horizon min GAE, with explicit T+1 critic states.
+
+    The reference's reverse scan visits horizon counters 0,1,... .  At each
+    chronological t, row k contains the (k+1)-step Bellman target.  Inserting
+    baseline[t] prepares the *next* iteration t-1; inserting baseline[t+1]
+    would incorrectly duplicate the last value and skip V(t+1).
+
+    force_continue implements the existing absorbing-failure rule tau*=T:
+    stopping at a preceding state is unavailable on such a segment.
+    """
+    h = np.asarray(signals, dtype=np.float64).reshape(-1)
+    v = np.asarray(baseline, dtype=np.float64).reshape(-1)
+    d = np.asarray(done, dtype=bool).reshape(-1)
+    Tn = h.size - 1
+    if Tn < 1 or v.size != Tn + 1 or d.size != Tn:
+        raise ValueError("min GAE requires T+1 signals/values and T stop flags")
+    if not (0.0 <= lam < 1.0 and 0.0 < gamma <= 1.0):
+        raise ValueError("min GAE requires 0<=lambda<1 and 0<gamma<=1")
+    if not np.isfinite(h).all() or not np.isfinite(v).all():
+        raise ValueError("non-finite min GAE boundary")
+    carry = np.zeros(Tn + 1)
+    carry[0] = v[-1]
+    coefficients = np.zeros(Tn + 1)
+    previous_stop = False
+    out = np.empty(Tn)
+    for scanned, t in enumerate(range(Tn - 1, -1, -1)):
+        factor = lam / (1.0 - lam) if previous_stop else lam
+        coefficients = np.roll(coefficients, 1) * factor * (not d[t])
+        coefficients[0] = 1.0
+        continuation = (1.0 - gamma) * h[t] + gamma * carry
+        row = continuation if force_continue else np.minimum(h[t], continuation)
+        if d[t]:
+            row = np.full_like(row, h[t])
+        row[scanned + 1:] = 0.0
+        out[t] = np.dot(row, coefficients) / coefficients.sum()
+        carry = np.roll(row, 1)
+        carry[0] = v[t]
+        previous_stop = bool(d[t])
+    return out
+
+
+def cost_gae_return(costs: np.ndarray, baseline: np.ndarray,
+                    done: np.ndarray, gamma: float, lam: float) -> np.ndarray:
+    """Cost GAE with the same stop flags and an explicit final critic value.
+
+    The final dummy next-stop is zero, so a sampling slice retains its true
+    bootstrap.  Actual success/failure supply their terminal boundary first.
+    """
+    c = np.asarray(costs, dtype=np.float64).reshape(-1)
+    v = np.asarray(baseline, dtype=np.float64).reshape(-1)
+    d = np.asarray(done, dtype=bool).reshape(-1)
+    if v.size != c.size + 1 or d.size != c.size:
+        raise ValueError("cost GAE requires T costs/stops and T+1 values")
+    target = np.empty(c.size)
+    advantage = 0.0
+    for t in range(c.size - 1, -1, -1):
+        next_stop = bool(d[t + 1]) if t + 1 < c.size else False
+        active = float(not d[t])
+        continuation = active * float(not next_stop)
+        delta = active * c[t] + gamma * continuation * v[t + 1] - v[t]
+        advantage = delta + gamma * lam * continuation * advantage
+        target[t] = advantage + v[t]
+    return target
 
 
 def cost_to_stop(cost_norm: np.ndarray, stop_index: np.ndarray,
@@ -366,7 +435,9 @@ def _ref_gae_reach4(gamma: float, lam: float, T_hs: np.ndarray, T_Vhs: np.ndarra
         coeffs = (roll * lam * (1.0 - pre_done)
                   + roll * (lam / (1.0 - lam)) * pre_done) * (1.0 - done_row)
         coeffs[0] = 1.0
-        mask = (ar < ii + 1).astype(float)[:, None]
+        # JAX scans reversed ts with reverse=True: ii in the source is the
+        # elapsed scan horizon (0,1,...), not this chronological array index.
+        mask = (ar < T - ii).astype(float)[:, None]
         done_processed = 0.0 if done_row == 0.0 else np.inf
         disc = (1.0 - gamma) * hs + gamma * (next_vh + done_processed)
         row = np.minimum(hs, disc) * mask
@@ -438,3 +509,24 @@ def safety_step(g_norm: np.ndarray, y: np.ndarray, C: float | None = None) -> np
     cc = load_objective()["C"] if C is None else float(C)
     return np.maximum(np.asarray(g_norm, dtype=np.float64),
                       cc * np.asarray(y, dtype=np.float64))
+
+
+def safety_step_v2(g_norm: np.ndarray, y: np.ndarray, C: float) -> np.ndarray:
+    """NAV-064 r14 深井语义（用户 2026-11-15T17:32 授权）。
+
+    v1 把 ``h`` 写成 ``max(g_norm, C·y)``：安全态（y=0）时 C·y=0，把这层
+    max 变成 ``max(g_norm, 0)``，把目标集内的深井 ``G_INSIDE = -3`` 抹成 0 ——
+    到达与撞死在信号上无差别，min 型递推因此没有「奔头」（amend3 反例实测
+    corr(h, adv) 在 2/3 run 上翻负）。v2 只改安全态的语义：
+
+    * y > 0（违规，含分级）：``h = max(g_norm, C·y)`` —— 与 v1 完全一致，
+      严重度作为下限保留不可逆安全历史；
+    * y = 0（从未违规）：``h = g_norm``，不再被 0 裁剪 —— 目标集内 h=-3
+      的深井得以存在，min 型 Bellman 有奔向的负值。
+
+    可行集不变：违规步 h ≥ C·y_min_severity > 0（不可行），目标集外安全步
+    h = g_norm > 0（仍未到达）。改变的只是「安全到达」的价：0 → -3。
+    """
+    g = np.asarray(g_norm, dtype=np.float64)
+    yy = np.asarray(y, dtype=np.float64)
+    return np.where(yy > 0.0, np.maximum(g, float(C) * yy), g)

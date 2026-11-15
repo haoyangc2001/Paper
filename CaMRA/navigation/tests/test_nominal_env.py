@@ -86,9 +86,13 @@ def main() -> int:
     power = PowerModel.from_dict(json.load(open(POWER, encoding="utf-8")))
 
     # --- 1. observation version and dimension -----------------------------
+    # 历史注记：本断言曾钉 obs-v2（NAV-016 原始冻结点），自 NAV-062 升 obs-v3
+    # 起就是已知红项；r14（D9，用户 2026-11-15T17:32 授权）再升 obs-v4
+    # （z_ratio 编码 ±3.0）。布局/维度/其余常数自 obs-v2 起从未变过。
     check(
         "obs_version_widened_to_v2",
-        obs.OBS_VERSION == "obs-v2" and obs.OBS_DIM == 41,
+        obs.OBS_VERSION == "obs-v5" and obs.OBS_DIM == 41
+        and obs.SUPPORTED_OBS_VERSIONS[-1] == obs.OBS_VERSION,
         {
             "obs_version": obs.OBS_VERSION,
             "dim": obs.OBS_DIM,
@@ -311,7 +315,10 @@ def main() -> int:
         "labels_match_frozen_priority",
         collision["label"] == "collision"
         and goal["label"] == "goal_reached"
-        and budget_lbl["label"] == "budget_exhausted"
+        # NAV-062 起 z<=0 是被报告的事实（within_budget/overshoot），不是终止：
+        # 预算耗尽的回合 label 必须是 None。旧断言等 budget_exhausted 标签，
+        # 与冻结的 termination_semantics 矛盾，是陈年红项，r14 一并对齐。
+        and budget_lbl["label"] is None
         and stagn["label"] == "stagnation"
         and timeout["label"] == "timeout"
         and oob["label"] == "out_of_bounds",

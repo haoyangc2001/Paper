@@ -1,0 +1,111 @@
+--- a/CaMRA/navigation/scripts/train_formal.py
++++ b/CaMRA/navigation/scripts/train_formal.py
+@@ -288,6 +288,25 @@
+     def reset_episode(self) -> None:
+         self.episode_counter += 1
+         self.new_segment()
++
++
++def reach_gamma_at_update(update_idx: int, total_updates: int,
++                          gamma_init: float, gamma_final: float) -> float:
++    """Reference gamma_2 schedule: reach final gamma halfway through training."""
++    if total_updates <= 0 or not 0 <= update_idx < total_updates:
++        raise ValueError("invalid update or training horizon")
++    if not 0 < gamma_init <= gamma_final < 1:
++        raise ValueError("reach discounts must be increasing and strictly below one")
++    return min(gamma_final, gamma_init + (gamma_final - gamma_init)
++               * 2.0 * update_idx / total_updates)
++
++
++def segment_identity(state: EpisodeState) -> dict:
++    """Capture identifiers and budget before reset mutates EpisodeState."""
++    return {"env_index": int(state.env_index), "episode_id": int(state.episode_counter),
++            "map_id": state.map_id, "map_seed": int(state.map_seed),
++            "episode_z0_J": state.episode_z0.get("z0_J"),
++            "episode_k": state.episode_z0.get("k")}
+ 
+ 
+ def close_segment(
+@@ -429,6 +448,7 @@
+         grad_decomp=decomp_on,
+     )
+     obj_cfg = S.ObjectiveConfig.from_contracts(VALUE_CONTRACT, r_goal_m=0.5)
++    reach_estimator = json.load(open(VALUE_CONTRACT, encoding="utf-8"))["estimator"]
+     # NAV-064 修正 ①/②：权重与开关一律从**先冻结的**预登记读取，不硬编码。
+     # 默认 0/False 保证旧预登记（r1-r5）的语义逐位不变；新预登记必须显式声明。
+     import dataclasses as _dc
+@@ -588,8 +608,12 @@
+                 print(f"[CURRICULUM] update={update_idx} "
+                       f"joint_cost_weight={float(obj_cfg.joint_cost_weight):.1f}",
+                       flush=True)
++        # Follow RC-PPO's actual gamma_2 consumer, independently of gamma_joint.
++        obj_cfg = _dc.replace(obj_cfg, gamma_h=reach_gamma_at_update(
++            update_idx, max_updates, float(reach_estimator["gamma_h_init"]),
++            float(reach_estimator["gamma_h_final"])))
+         t_win = time.time()
+-        window_segments: list[tuple[EpisodeState, str, dict[str, np.ndarray], bool]] = []
++        window_segments: list[tuple[dict, str, dict[str, np.ndarray], bool]] = []
+ 
+         for _call in range(calls_per_window):
+             obs_in = obs_np
+@@ -663,7 +687,7 @@
+                     arrays, kind_used = close_segment(
+                         st.seg, kind, float(bvc_t[k]), float(bvh_t[k]),
+                         env_done=True, label=label_i)
+-                    window_segments.append((st, kind_used, arrays, True))
++                    window_segments.append((segment_identity(st), kind_used, arrays, True))
+                     episode_labels.append(label_i)
+                     log({"kind": "episode_diag", "env": st.env_index,
+                          "map_id": st.map_id, "episode_id": st.episode_counter,
+@@ -703,7 +727,7 @@
+                 arrays, kind_used = close_segment(
+                     st.seg, "truncation", float(bvc[i]), float(bvh[i]),
+                     env_done=False, label=None)
+-                window_segments.append((st, kind_used, arrays, False))
++                window_segments.append((segment_identity(st), kind_used, arrays, False))
+                 # the environment episode continues; only the training segment
+                 # ended -- open a fresh segment for the same episode
+                 st.new_segment()
+@@ -766,21 +790,26 @@
+             stats["mask_skipped_minibatches"] = float(skipped_mb)
+ 
+         # ---- audit chunks (per-env stores keep global_step continuity) ----
+-        for st, kind, arrays, env_done in window_segments:
++        for identity, kind, arrays, env_done in window_segments:
++            env_index = identity["env_index"]
+             meta = {
+                 "event": "episode",
+-                "chunk_index": stores[st.env_index].expected_chunk_index(),
++                "chunk_index": stores[env_index].expected_chunk_index(),
+                 "terminal_kind": kind,
+                 "env_done": env_done,
+-                "episode_id": st.episode_counter,
+-                "map_id": st.map_id,
+-                "map_seed": st.map_seed,
++                "episode_id": identity["episode_id"],
++                "map_id": identity["map_id"],
++                "map_seed": identity["map_seed"],
+                 "n_samples": int(len(arrays["t"])),
+-                "episode_z0_J": st.episode_z0.get("z0_J"),
+-                "episode_k": st.episode_z0.get("k"),
++                "episode_z0_J": identity["episode_z0_J"],
++                "episode_k": identity["episode_k"],
++                "gamma_h": obj_cfg.gamma_h,
++                "gamma_joint": obj_cfg.gamma_joint,
++                "update_idx": update_idx,
+                 "schema": S.SCHEMA_BUFFER,
+             }
+-            stores[st.env_index].write_chunk(arrays, meta)
++            assert np.all(arrays["episode_id"] == meta["episode_id"])
++            stores[env_index].write_chunk(arrays, meta)
+ 
+         tail = episode_labels[-len(window_segments):]
+         # r14 诊断：本窗口的目标信号健康度。corr_g_adv 应 > 0（越靠近目标
+@@ -808,6 +837,7 @@
+         row = {
+             "kind": "update", "update": update_idx,
+             "wall_seconds": round(time.time() - t_win, 3),
++            "gamma_h": obj_cfg.gamma_h, "gamma_joint": obj_cfg.gamma_joint,
+             "n_segments": len(window_segments),
+             "n_samples": int(batch["obs"].shape[0]),
+             "epochs": epochs, "minibatch_size": mb, "grad_steps": grad_steps,

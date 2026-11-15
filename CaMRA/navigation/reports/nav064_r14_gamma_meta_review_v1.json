@@ -1,0 +1,85 @@
+{
+  "owner": "NAV-064",
+  "schema": "camra-r14-gamma-meta-review-v1",
+  "time": "2026-11-15T23:15:23.219787+08:00",
+  "verdict": "CANDIDATE_NUMERICAL_PASS_TRAINING_HELD",
+  "candidate": {
+    "navigation_root": "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/CaMRA/navigation",
+    "source_sha256": "f993fcf9bf6836cd9ef25662bcf7fb1731dfa0b6482e2e2a04574f2689dd8ada",
+    "schedule": "min(final, init+(final-init)*2*update_idx/total_updates)",
+    "production_changes": [
+      "consume reach schedule after curriculum config rebind",
+      "snapshot scalar episode identity before reset; record update and discounts"
+    ]
+  },
+  "verification": {
+    "special_checks": 14,
+    "numerical_gate_checks": 37,
+    "regression_suites": {
+      "test_training_semantics": 0,
+      "test_rollout_resume": 0,
+      "test_budget_selection": 0,
+      "test_value_objective": 0,
+      "test_targets_oracle": 0,
+      "test_network_contract": 0,
+      "test_observation_contract": 0,
+      "test_minimization_update": 0
+    },
+    "gate_code_binding_pass": true,
+    "active_source_unchanged_from_previous_gate": true
+  },
+  "historical_harness_failures": [
+    {
+      "name": "isolated_budget_selection_missing_old_fixtures",
+      "result": "exit1; restored exposed historical fixtures; a2 PASS"
+    },
+    {
+      "name": "test_minimization_ppo_typo",
+      "result": "exit2; actual test_minimization_update a2 PASS"
+    },
+    {
+      "name": "special_v3_output_cli_variable_shadowed",
+      "result": "14 checks PASS then AttributeError; v4 verifier fixed, candidate unchanged"
+    }
+  ],
+  "training": {
+    "current_run_state": "SIGSTOP",
+    "completed_updates": [
+      65,
+      62,
+      64,
+      59,
+      59,
+      59
+    ],
+    "new_runs_started": 0,
+    "fresh_retraining_authorization": "PENDING",
+    "NAV-064": false,
+    "downstream_released": false
+  },
+  "evidence": {
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_r14_gamma_meta_candidate_v4.json": "ffa0ecd7cb87f770e6bfbec40b1f68dbd456eecb7dfb7e764fefe7862d4160a2",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/CaMRA/navigation/reports/gate_gamma_meta_v2.json": "b1235c8b5e9bc38ecbd64ca4fe9a47cf0ba83d967021d02ae5a0627d51b8e2e0",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/docs/patches/train_formal_r14_gamma_meta_v3.patch": "fb4827e73c4a325efd8d4528d117f5b880401e974a6cc11a55df116280d431f8",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/docs/patches/verify_train_formal_r14_gamma_meta_v4.py": "4c673c8adf464abcfdb7c4029201c89db269c06c77efdff161fc63e1bb1e829b",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/exit_codes.txt": "e90b9ebb0bf867a7aad3ece9b9415753fa867502eb97a4b5ca0fbd83e7e6f60b",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/exit_codes_a2.txt": "feff6c03d68ca5b8fd78ca5d9d7b49e870ea6cd1d951127378dfa2931eac5a26",
+    "/tmp/nav064_candidate_special_v3.log": "07d235d7c06e78782f7a4fe2ebf6739865e8c90d94c23099e47da1f616123713",
+    "/tmp/nav064_candidate_special_v4.log": "cae6f7d002999540b7509e84b762912680cdfabea80a26ddc67ce1845dbe3810",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_observation_contract.log": "90b815cf95f171c9cc6302c0e222e0c117d2eee06c590f0259ab6aa7733e55f7",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_minimization_update_a2.log": "8086967ef17b5b7c867c61c281f43954be1e31799afeceadf3571632d39784a9",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_network_contract.log": "95fb562ccbdea095564f85b59bad1b049a78ee11473d892cf9cd116eeeb48f05",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_value_objective.log": "ab13b14dc51d770bb7f9e60efcb9c9e8c3bbab9279ef6cbba6b0f57b8356639d",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_minimization_ppo.log": "5a298072ff235831b7ffbf7e3c68f9cd956304bcdc176807e563c44c9018106c",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_targets_oracle.log": "2a79521a684933bb3e099ab4f48772fa93cec3e1ba0d5c69d6c26aeb021c1dee",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_budget_selection_a2.log": "7f93dc054bfc85967d47bb634894874d8fb2f78156249ed159609ba9b7c1f382",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_rollout_resume.log": "7634c71c2635fed49caf0885b548ec2301c38542320b6dc9ed3a089f01acf89f",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_budget_selection.log": "da68237a606ee303f2a1b38a900e5b70693b0e0a11bf3891e49a89b1639d803d",
+    "/pub/data/caohy/work/camra_navigation/nav064_r14_candidate_gamma_meta_v2/regressions/test_training_semantics.log": "24424db2af270f5bb992a885270beb43ddfa2e54ec37d4ba74bdd0fdd0e59a6d"
+  },
+  "limits": [
+    "Numerical and regression validation does not establish learning, performance or task completion.",
+    "Active frozen registration and source not replaced. Additional six fresh runs need resource decision.",
+    "v3 code patch supersedes the preserved earlier v2 patch."
+  ]
+}

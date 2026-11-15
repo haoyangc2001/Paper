@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.join(_REPO, "CaMRA", "calibration", "src"))
 from camra_navigation import frames  # noqa: E402
 from camra_navigation import observation as obs  # noqa: E402
 
-CONTRACT = os.path.join(_NAV_ROOT, "config", "navigation_contract_v1.json")
+CONTRACT = os.path.join(_NAV_ROOT, "config", "navigation_contract_r14_repair_v2.json")
 POWER_MODEL = os.path.join(_REPO, "CaMRA", "calibration", "config", "power_model_v1.json")
 
 RESULTS: list[dict[str, Any]] = []
@@ -245,19 +245,19 @@ def main() -> int:
     )
 
     # 7. Negative budget and remaining time ---------------------------------
-    # NAV-062：obs-v3 把 z_ratio 裁剪上限从 ±1.0 放宽到 ±1.5（k∈[0.6,1.3] 时
-    # 比值可达 1.16，旧上限把"还有预算"编码成"耗尽"）。两个版本都要能重建：
-    # v2 的 ±1 断言原样保留在 v2_cases 里，v3 断言新的 ±1.5。
+    # NAV-062：obs-v3 曾把上限从 ±1.0 放宽到 ±1.5。r14（D9 修复，用户 2026-11-15T17:32
+    # 授权）obs-v4 再放宽到 ±3.0：所有场景 E_ref>Z_REF，±1.5 下成本通道对 critic 饱和。
+    # v2/v3 的重建断言原样保留，v4 断言新的 ±3.0。
     lim = obs.z_ratio_clip()
     z_cases = []
-    for z in (-1000.0, -50.0, 0.0, 120.0, 1000.0):
+    for z in (-1650.0, -50.0, 0.0, 120.0, 1650.0):
         vec = obs.encode_observation(
             ego, [], extent, obs.TaskState(1.0, 1.0, 0.0, z, 10.0)
         )
         z_cases.append({"z_J": z, "z_ratio": vec[slices["z_ratio"].start]})
     check(
         "z_ratio_signed_and_bounded",
-        lim == 1.5
+        lim == 3.0
         and all(-lim <= c["z_ratio"] <= lim for c in z_cases)
         and z_cases[0]["z_ratio"] == -lim
         and z_cases[3]["z_ratio"] > 0.0
@@ -265,7 +265,7 @@ def main() -> int:
         {"clip": lim, "cases": z_cases},
     )
     v2_cases = []
-    for z in (-1000.0, -50.0, 0.0, 120.0, 1000.0):
+    for z in (-1650.0, -50.0, 0.0, 120.0, 1650.0):
         vec = obs.encode_observation(
             ego, [], extent, obs.TaskState(1.0, 1.0, 0.0, z, 10.0), version="obs-v2"
         )

@@ -1,5 +1,36 @@
 # 上层导航实施交接
 
+## 最新执行状态：r14a2 已放行，等待本地提交后开训
+
+用户已明确批准一次新增六个 fresh-init run ×600 更新及必要本地提交。旧六个有实现偏差的 attempt 已按 PID 核验后结束，368 个完整更新、未完成窗口、原日志、原始数组和 u50 checkpoint 均保留；旧报告和冻结预登记不改写。保存与终止证据为 `reports/nav064_r14a2_preparation.json`。
+
+修复已接入正式源码：reach 使用参考实际 gamma_2 双倍调度，半程达到 0.99999；reset 前保存回合标量身份；训练、评估、审计从冻结 registry 读取本次 run ID。新门禁 65/65、32 套回归全部通过，放行报告为 `reports/nav064_r14a2_training_release_v1.json`。活动源码、消费链和新门禁已绑定 `config/training_loop_prereg_r14_repair_v2.json`（r14.2.0，SHA256 `87e814ae0de8aee5276627232e6eff4c8d77b339a9e8568e16e7e337aa19eff2`），放行快照见报告。
+
+新 run 为 `nav064_r14a2_{uncalibrated,full}_s{0,1,2}`，每 run 600 更新、每更新18×227=4086样本；前100计入600。入口 `scripts/run_round14a2.py` 在 tiger11/tmux 核验预登记与重名后启动六组，自动执行第100更新前缀审计、600更新全量审计及最后 checkpoint 的 development 评估。失败会保留现场并停下；不会自动推进 NAV-065 或追加新轮次。输出根为 `/pub/data/caohy/work/camra_navigation/`，本轮协调日志目录为 `nav064_r14a2/`。
+
+目前只通过训练前验收，NAV-064 仍 false。两方法三种子中位数可行 SR≥0.10、能耗/预算≤1、full危险步中位数为0及机制/稳定性/数据审计需全部满足才可关闭。corr 只作诊断，不能替代门禁或性能。固定v2、旧校准、预算选择集与final封存、只读参考和论文边界保持。
+
+下列“暂停”“待授权”“尚未替换”等文字均保留为此前时点的历史记录，当前资源授权已解除。
+
+
+## 当前恢复入口：2026-11-15 NAV-064 r14
+
+**23:03 起的最新状态：六个训练进程已暂停，NAV-064 仍 false。** 生产入口漏接冻结契约要求的 reach 折扣退火，实际一直使用 0.999；真实样本重算确认会改变 reach 目标。另有终止后写摘要时引用下一回合身份/预算的问题，逐步原始数组保留正确。原放行报告未检查退火消费者，不能继续作为完整链路的放行证据；旧报告不改写。当前已完成更新数为 uncalibrated 65/62/64、full 59/59/59，共 368，六个进程均 SIGSTOP，u50 存档及原日志保留。
+
+修复仅在隔离候选中完成：接入 RC-PPO 实际 gamma_2 调度（半程达到 0.99999），并在 reset 前捕获回合标量身份。专项 14 项、独立数值门禁 37 项和 8 套针对性回归通过；最新复现脚本为 `docs/patches/verify_train_formal_r14_gamma_meta_v4.py`，匹配补丁为 `docs/patches/train_formal_r14_gamma_meta_v3.patch`。活动训练源码及原冻结预登记尚未替换；不得直接恢复旧进程或复用原 run ID。修复证据与六个新 run 的具体重训提案见[候选复核与重训提案](nav064_r14_gamma_meta_review_20261115.md)。追加正式 attempt/资源尚待用户确认；不是 SSH 同机例外待决，也不表示训练达标。以下启动信息均保留为暂停前历史。
+
+2026-11-15 22:50 实际启动更新：训练前32套回归及37项独立数值/生产调用门禁全部通过，放行证据见 `reports/nav064_r14_training_release_v1.json`。六个正式run（`nav064_r14_{uncalibrated,full}_s{0,1,2}`）已在 tiger11 的 `nav064-r14-repair-20261115:round14` 启动，输出位于 `/pub/data/caohy/work/camra_navigation/`。每run按原额度执行600更新、18×227窗口，前100更新计入600；最后checkpoint用于既定开发网格。训练、开发指标与审计尚未完成，NAV-064仍false，下游未放行。以下“尚未启动”均为此前时点事实。
+
+主计划 1.3.1 当前为 **51/67 项历史记录完成，NAV-064=false**。用户同意先回修学习链路、通过独立数值和实际更新门禁，再在原额度内训练；开发验收通过后才进入 NAV-065 及下游。具体顺序、接口要求、反例和资源边界见[当前阶段恢复安排](nav064_r14_recovery_plan_20261115.md)，执行主体记录追加在主计划 NAV-064 下。
+
+2026-11-15 续跑更新：用户已明确允许当前 tiger11 会话直接用 tmux 执行，原 SSH 失败作为已授权的同机例外保留，不再是当前阻塞。会话为 `nav064-r14-repair-20261115`；v2 29 个冻结文件、匹配校准输入与资产核验通过，修正前源码保存于 `/pub/data/caohy/work/camra_navigation/nav064_r14_repair_20261115_a2/source_before/`。新版 obs-v5 / rcppo-r14-v3 已完成回修，独立数值与生产消费者门禁见 `reports/gate_r14_repair_v1_attempt3.json`（37/37 PASS），旧 FAIL 与前两次 attempt 保留。新训练预登记为 `config/training_loop_prereg_r14_repair_v1.json`，SHA256 `30033056d6ca2b27d636998ee9d85b573e791e53ceee4a78c3e127299a206c0a`。回归复验正在收尾，训练尚未启动；NAV-064 仍 false。
+
+以下段落保留为本日取得同机授权前的历史状态：
+
+本次只完成静态核查与恢复安排：当前终端为 `tiger11.ios.ac.cn`，但规定的 SSH 身份预检返回 Permission denied（退出码255），因此实现、数值重验和训练仍未启动。需先恢复规定登录检查，或取得同机直接 tmux 执行的明确例外。原 r14 预登记、两次失败报告、已有修改和历史记录保留；旧 true/PASS 不代替当前新版放行。
+
+下面的“当前交接：2026-11-12”及其48/67、下一项061等表述保留为当时的历史快照。
+
 ## 当前交接：2026-11-12计划修订
 
 当前[实施计划](../../../doc/plan/20261109_camra_navigation_implementation.json)为 **1.3.1，48/67项记录完成**，下一项 **NAV-061**。本次只修订现有任务与说明，未运行服务器、实现、训练或新评估；保留全部任务编号、数组顺序、历史状态与工作记录。

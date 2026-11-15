@@ -72,8 +72,9 @@ def refs_at(t_deadline, dev_maps, cache_path):
     return out
 
 
-def run_episode(net, spec, ctx, z0, t_max_s, cap):
-    env = E.VectorNominalNavEnv(spec, ctx["geom"], ctx["cm"], n_envs=1, z0_J=z0, t_max_s=t_max_s)
+def run_episode(net, spec, ctx, z0, t_max_s, cap, env_kwargs=None):
+    env = E.VectorNominalNavEnv(spec, ctx["geom"], ctx["cm"], n_envs=1, z0_J=z0,
+                                t_max_s=t_max_s, **(env_kwargs or {}))
     env.reset()
     steps = 0
     min_d = math.inf
@@ -93,6 +94,9 @@ def run_episode(net, spec, ctx, z0, t_max_s, cap):
         "cost_model_J": round(float(res.cost_model_J), 1), "z0_J": round(float(z0), 1),
         "z_J_end": round(float(res.z_J), 1), "within_budget": bool(res.within_budget),
         "danger_steps": dangers,
+        # r14 诊断：分级严重度与停滞触发现场（无触发为 None）
+        "max_safety_severity": round(float(res.max_safety_severity), 4),
+        "stagnation_context": res.stagnation_context,
     }
 
 
@@ -124,6 +128,17 @@ def main():
         prereg = preregs[prereg_name]
         variant = "uncalibrated" if "uncalibrated" in rid else "full"
         acct = str(prereg.get("budget_accounting", "nominal"))
+        # r14：评估环境的停滞/安全严重度参数一律读该 run 冻结的预登记——
+        # 评估契约与训练契约由同一份文件保证，不再从命令行另传一套。
+        stag = prereg.get("stagnation", {}) or {}
+        sev = prereg.get("safety_continuity", {}) or {}
+        env_kwargs = {
+            "stagnation_window_s": float(stag.get("window_s", 3.0)),
+            "stagnation_min_displacement_m": float(stag.get("min_displacement_m", 0.05)),
+            "safety_severity_enabled": bool(sev.get("enabled", False)),
+            "safety_severity_floor": float(sev.get("severity_floor", 0.2)),
+            "safety_severity_ref_depth_m": float(sev.get("severity_ref_depth_m", 0.25)),
+        }
         state = torch.load(os.path.join(E.WORK_ROOT, rid, "state.pt"),
                            map_location="cpu", weights_only=False)
         net = build_net(prereg)
@@ -137,7 +152,8 @@ def main():
             e_nom = refs[m["map_id"]]["e_ref_J"]
             mult = ACC.consistent_e_ref if acct == "consistent" else (lambda e, v: e)
             z0 = args.k * mult(e_nom, variant)
-            r = run_episode(net, spec, ctx, z0, args.t_max, int(args.t_max / 0.1) + 50)
+            r = run_episode(net, spec, ctx, z0, args.t_max,
+                            int(args.t_max / 0.1) + 50, env_kwargs=env_kwargs)
             feasible = (r["label"] == "goal_reached" and r["danger_steps"] == 0
                         and r["within_budget"])
             r.update({"map_id": m["map_id"], "feasible": bool(feasible),
@@ -150,7 +166,9 @@ def main():
         sr = sum(1 for r in rows if r["label"] == "goal_reached") / len(rows)
         feas = sum(1 for r in rows if r["feasible"]) / len(rows)
         results.append({"run_id": rid, "variant": variant, "sr": round(sr, 3),
-                        "sr_feasible": round(feas, 3), "episodes": rows})
+                        "sr_feasible": round(feas, 3),
+                        "env_kwargs": env_kwargs, "prereg": prereg_name,
+                        "episodes": rows})
         print("   -> SR %.2f  可行到达 %.2f\n" % (sr, feas))
 
     payload = {"schema": "camra-contract-margin-eval-v1", "task": "NAV-064",

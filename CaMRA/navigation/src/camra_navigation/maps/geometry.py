@@ -368,6 +368,44 @@ def update_safety_history(y_prev: float, violation: bool) -> float:
     return 1.0 if (violation or prev >= 0.5) else 0.0
 
 
+def update_safety_history_graded(y_prev: float, severity: float) -> float:
+    """NAV-064 r14 graded safety history (user-authorized 2026-11-15T17:32).
+
+    Irreversible *max*-history of a per-step severity in [0, 1]:
+    ``y_new = max(y_prev, severity)``.  ``severity = 0`` means "no violation
+    this step" and leaves the history untouched.  The binary function above
+    is the special case ``severity in {0, 1}``; it is kept byte-identical for
+    rounds r1-r13, whose preregs declare the old semantics.
+
+    Why: under the binary history one graze of the danger band costs exactly
+    as much as driving into the obstacle centre (F1), and after the stamp
+    every further step carries the same constant (F2).  The graded history
+    keeps irreversibility -- the episode never "un-violates" -- while making
+    the price of a graze strictly smaller than the price of a deep hit.
+    """
+    s = float(severity)
+    if not (0.0 <= s <= 1.0):
+        raise ValueError(f"safety severity must be in [0, 1], got {s}")
+    return max(float(y_prev), s)
+
+
+def safety_severity_from_depth(depth_m: float, *, floor: float, ref_depth_m: float) -> float:
+    """Linear severity in penetration depth, clipped to [floor, 1].
+
+    ``depth_m <= 0`` (a grazing touch, margin exactly at the boundary) maps to
+    ``floor``; ``depth_m >= ref_depth_m`` maps to ``1.0`` (as bad as the binary
+    stamp).  In between the severity rises linearly, so "how deep" is priced
+    continuously instead of as one all-or-nothing jump.
+    """
+    if ref_depth_m <= 0.0:
+        raise ValueError(f"ref_depth_m must be > 0, got {ref_depth_m}")
+    if not (0.0 < floor < 1.0):
+        raise ValueError(f"floor must be in (0, 1), got {floor}")
+    d = max(0.0, float(depth_m))
+    s = floor + (1.0 - floor) * (d / float(ref_depth_m))
+    return min(1.0, max(floor, s))
+
+
 def legacy_avoid_to_y(avoid: float) -> float:
     """Map the frozen RC-PPO ``avoid`` sign to the navigation ``y``.
 

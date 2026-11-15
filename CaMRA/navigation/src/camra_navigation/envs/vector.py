@@ -201,6 +201,10 @@ class BatchStepRecord:
     z_ratio_before: np.ndarray = None  # type: ignore[assignment]
     safety_y_before: np.ndarray = None  # type: ignore[assignment]
     goal_distance_before: np.ndarray = None  # type: ignore[assignment]
+    #: Signed budget / encoded ratio / safety history / goal distance at the
+    #: decision time ``t`` (the state ``obs`` and the critics were evaluated at).
+    #: NAV-064 r14: per-env severity of *this step's* violation (0 = none).
+    safety_severity: np.ndarray = None  # type: ignore[assignment]
     #: ``z_J_before >= 0`` per env: over-budget is reported, never terminal.
     within_budget: np.ndarray = None  # type: ignore[assignment]
 
@@ -221,8 +225,12 @@ class VectorNominalNavEnv:
         t_max_s: float = 30.0,
         stagnation_window_s: float = 3.0,
         stagnation_min_displacement_m: float = 0.05,
+        safety_severity_enabled: bool = False,
+        safety_severity_floor: float = 0.2,
+        safety_severity_ref_depth_m: float = 0.25,
         initial_pose_jitter_m: float = 0.0,
         compute_margins: bool = False,
+        observation_version: str | None = None,
     ) -> None:
         if n_envs < 1:
             raise NominalEnvError(f"n_envs must be >= 1, got {n_envs}")
@@ -240,8 +248,14 @@ class VectorNominalNavEnv:
         self.t_max_s = float(t_max_s)
         self.stagnation_window_s = float(stagnation_window_s)
         self.stagnation_min_displacement_m = float(stagnation_min_displacement_m)
+        # NAV-064 r14: graded safety history (default off = r1-r13 binary).
+        self.safety_severity_enabled = bool(safety_severity_enabled)
+        self.safety_severity_floor = float(safety_severity_floor)
+        self.safety_severity_ref_depth_m = float(safety_severity_ref_depth_m)
         self.initial_pose_jitter_m = float(initial_pose_jitter_m)
         self.compute_margins = bool(compute_margins)
+        self.observation_version = observation_version or obs.OBS_VERSION
+        obs.z_ratio_clip(self.observation_version)
         self.obs_dim = obs.OBS_DIM
 
         # --- cached map geometry (identical objects to the scalar env's) ---
@@ -325,6 +339,9 @@ class VectorNominalNavEnv:
         self._internal_steps = [0] * n
         self._applied_last = np.zeros((n, 3), dtype=np.float64)
         self._history: list[list[tuple[float, float, float]]] = []
+        # NAV-064 r14 diagnostics
+        self._max_severity = [0.0] * n
+        self._stagnation_ctx: list[dict | None] = [None] * n
         self._obs = np.zeros((n, self.obs_dim), dtype=np.float64)
         for i, seed in enumerate(self._seeds):
             # Same rng construction and call order as the scalar env's reset.
@@ -380,7 +397,8 @@ class VectorNominalNavEnv:
                 time_remaining_s=max(0.0, self.t_max_s - float(self._t_s[i])),
             )
             self._obs[i] = obs.encode_observation(
-                ego, self._obstacle_obs, self._extent, task
+                ego, self._obstacle_obs, self._extent, task,
+                version=self.observation_version,
             )
 
     # ---- geometry (batched) ----
@@ -474,6 +492,7 @@ class VectorNominalNavEnv:
         goal_dist_before = goal_dist.copy()
         danger_out = np.zeros(n, dtype=bool)
         internal_out = np.zeros(n, dtype=bool)
+        severity_out = np.zeros(n, dtype=np.float64)
         margins_nom = np.full(n, np.nan) if self.compute_margins else None
         margins_phys = np.full(n, np.nan) if self.compute_margins else None
 
@@ -545,7 +564,33 @@ class VectorNominalNavEnv:
                 p1x, p1y, y1 = float(p1[k, 0]), float(p1[k, 1]), float(yaw1[k])
                 p0x, p0y = float(p0[k, 0]), float(p0[k, 1])
                 d = bool(danger[k])
-                self._safety_y[i] = G.update_safety_history(float(self._safety_y[i]), d)
+                # NAV-064 r14: graded safety history, same semantics as the
+                # scalar env (see nominal.py step()).  Binary default keeps the
+                # r1-r13 update byte-identical.
+                if d:
+                    if self.safety_severity_enabled:
+                        pos = (p1x, p1y)
+                        depth = 0.0
+                        if self._obstacle_polys:
+                            depth = max(depth, -min(
+                                G.nominal_margin(pos, poly, self.geometry)
+                                for poly in self._obstacle_polys))
+                        depth = max(depth, -float(G.boundary_margin(
+                            pos, self.spec.extent, self.geometry)))
+                        sev = G.safety_severity_from_depth(
+                            max(0.0, depth), floor=self.safety_severity_floor,
+                            ref_depth_m=self.safety_severity_ref_depth_m)
+                        self._safety_y[i] = G.update_safety_history_graded(
+                            float(self._safety_y[i]), sev)
+                    else:
+                        sev = 1.0
+                        self._safety_y[i] = G.update_safety_history(
+                            float(self._safety_y[i]), d)
+                else:
+                    sev = 0.0
+                severity_out[i] = sev
+                if self._max_severity[i] < sev:
+                    self._max_severity[i] = sev
                 if d:
                     self._danger_steps[i] += 1
                     self._internal_steps[i] += 1
@@ -614,6 +659,7 @@ class VectorNominalNavEnv:
             z_ratio_before=z_ratio_before,
             safety_y_before=safety_before,
             goal_distance_before=goal_dist_before,
+            safety_severity=severity_out,
             within_budget=z_before >= 0.0,
         )
 
@@ -635,7 +681,23 @@ class VectorNominalNavEnv:
             return False
         moved = math.hypot(float(self._pose[i, 0]) - anchor[0],
                            float(self._pose[i, 1]) - anchor[1])
-        return moved < self.stagnation_min_displacement_m
+        if moved >= self.stagnation_min_displacement_m:
+            return False
+        # NAV-064 r14 diagnostics: same context as the scalar env (see
+        # nominal.py), collected so logs can judge every kill afterwards.
+        self._stagnation_ctx[i] = {
+            "t_s": round(float(self._t_s[i]), 3),
+            "pose": [round(float(self._pose[i, 0]), 4), round(float(self._pose[i, 1]), 4)],
+            "goal_distance_m": round(math.hypot(
+                float(self.spec.goal[0]) - float(self._pose[i, 0]),
+                float(self.spec.goal[1]) - float(self._pose[i, 1])), 4),
+            "z_J": round(float(self._z0[i] - self._spent_J[i]), 3),
+            "window_displacement_m": round(moved, 6),
+            "min_displacement_m": self.stagnation_min_displacement_m,
+            "window_s": self.stagnation_window_s,
+            "time_remaining_s": round(max(0.0, self.t_max_s - float(self._t_s[i])), 3),
+        }
+        return True
 
     # ---- reporting ----
     def result(self, i: int) -> EpisodeResult:
@@ -672,4 +734,6 @@ class VectorNominalNavEnv:
                 self._label[i] == "goal_reached"
                 and self._z0[i] - self._spent_J[i] >= 0.0),
             over_budget_J=max(0.0, float(-(self._z0[i] - self._spent_J[i]))),
+            max_safety_severity=float(self._max_severity[i]),
+            stagnation_context=self._stagnation_ctx[i],
         )

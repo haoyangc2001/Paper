@@ -91,11 +91,19 @@ __all__ = [
 #: Legacy encodings stay reconstructible: :func:`encode_observation` takes
 #: ``version=`` and every version keeps its own clip, so ``obs-v2`` can be
 #: replayed bit-for-bit on the same state.
-OBS_VERSION = "obs-v3"
+OBS_VERSION = "obs-v5"
 #: Observation versions this module can still encode (old reports stay checkable).
-SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3")
+SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3", "obs-v4", "obs-v5")
 #: ``|z_ratio|`` upper bound per observation version.  Not a budget: a scale.
-Z_RATIO_CLIP_BY_VERSION: dict[str, float] = {"obs-v2": 1.0, "obs-v3": 1.5}
+#:
+#: NAV-064 r14 (obs-v4, D9 fix, user-authorized 2026-11-15T17:32): every scene
+#: has ``E_ref > Z_REF`` so under obs-v3 the cost channel saturated for the critic
+#: before the robot ever overspent -- ``V_c - z`` could not be learned near z=0.
+#: Clip 3.0 covers the full training band ``k in [0.6, 1.3]`` plus the overspend
+#: excursions actually observed (NAV-064: z down to -1.6 during a 30 s run).
+Z_RATIO_CLIP_BY_VERSION: dict[str, float] = {
+    "obs-v2": 1.0, "obs-v3": 1.5, "obs-v4": 3.0, "obs-v5": 3.0,
+}
 #: Version of the action/normalisation mapping.
 COMMAND_VERSION = "cmd-v1"
 
@@ -465,7 +473,12 @@ def encode_observation(
         _clip(_finite(extent.y_max - ego.py) / MAP_HALF_M, 0.0, 1.0),
     )
 
-    safety_y = 1.0 if float(task.safety_y) >= 0.5 else 0.0
+    # v5 preserves the graded, irreversible history used by the objective.
+    # Earlier versions retain their original threshold for checkpoint replay.
+    selected_version = OBS_VERSION if version is None else version
+    safety_y = (_clip(_finite(task.safety_y), 0.0, 1.0)
+                if selected_version == "obs-v5"
+                else (1.0 if float(task.safety_y) >= 0.5 else 0.0))
     z_ratio = z_ratio_value(task.z_J, z_ref_J, version=version)
     t_rem_n = _clip(_finite(task.time_remaining_s) / T_MAX_S, 0.0, 1.0)
 

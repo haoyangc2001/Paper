@@ -69,7 +69,7 @@ FOOTPRINT = os.path.join(CALIB, "config", "footprint_v1.json")
 MARGINS = os.path.join(CALIB, "config", "margins_v1.json")
 GEOM = os.path.join(_NAV_ROOT, "config", "geometry_contract_v1.json")
 POWER = os.path.join(CALIB, "config", "power_model_v1.json")
-NAV_CONTRACT = os.path.join(_NAV_ROOT, "config", "navigation_contract_v1.json")
+NAV_CONTRACT = os.path.join(_NAV_ROOT, "config", "navigation_contract_r14_repair_v2.json")
 VALUE_CONTRACT = os.path.join(_NAV_ROOT, "config", "value_objective_contract_v1.json")
 PREREG = os.path.join(_NAV_ROOT, "config", "formal_training_prereg_v3.json")
 
@@ -578,7 +578,7 @@ def check_budget_sampler() -> None:
 
     # 初始预算越界必须在这里拒绝（段级守卫已移除：窗口切片段的 z[0] 本来就是负的）
     too_big = mod.BudgetSampler(seed=1, n_envs=1, low=1.3, high=1.3,
-                                e_ref={"m": 700.0}, z_ref_J=obs.Z_REF_J,
+                                e_ref={"m": 1400.0}, z_ref_J=obs.Z_REF_J,
                                 clip=obs.z_ratio_clip())
     rejected = False
     try:
@@ -586,7 +586,7 @@ def check_budget_sampler() -> None:
     except SystemExit:
         rejected = True
     check("oversized_z0_rejected_at_the_sampler", rejected,
-          {"z0_J": 1.3 * 700.0, "z_max_J": z_max,
+          {"z0_J": 1.3 * 1400.0, "z_max_J": z_max,
            "note": "z0 > clip*Z_REF 时采样器直接拒绝，不等到 compute_objectives"})
 
     # the formal trainer must offer the structured rule and the legacy fallback

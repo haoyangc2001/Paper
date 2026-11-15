@@ -37,6 +37,7 @@ import argparse
 import hashlib
 import json
 import os
+import socket
 import sys
 import time
 from typing import Any
@@ -55,6 +56,7 @@ from camra_navigation import observation as obs  # noqa: E402
 from camra_navigation.algorithm import networks as NW  # noqa: E402
 from camra_navigation.algorithm import ppo as P  # noqa: E402
 from camra_navigation.algorithm import storage as S  # noqa: E402
+from camra_navigation.algorithm.validation import verify_training_bindings  # noqa: E402
 from camra_navigation.budget import accounting as ACC  # noqa: E402
 from camra_navigation.costs import JCostModel  # noqa: E402
 from camra_navigation.envs.vector import VectorNominalNavEnv  # noqa: E402
@@ -139,7 +141,23 @@ def verify_prereg(name: str) -> tuple[dict, str]:
             f"prereg hash mismatch: {name} is {actual[:16]}... but the frozen "
             f"pin says {sha[:16]}...; a frozen prereg must never be edited in place"
         )
-    return json.loads(payload.decode("utf-8")), actual
+    prereg = json.loads(payload.decode("utf-8"))
+    try:
+        verify_training_bindings(prereg, NAV_ROOT)
+    except (ValueError, OSError, KeyError) as exc:
+        raise SystemExit(f"training release refused: {exc}") from exc
+    return prereg, actual
+
+
+def registered_run_id(prereg: dict, variant: str, seed: int) -> str:
+    """Resolve a candidate from the frozen run registry, never a previous attempt."""
+    if "run_registry" not in prereg:
+        return f"nav064_r14_{variant}_s{seed}"
+    matches = [r["run_id"] for r in prereg["run_registry"]
+               if r["variant"] == variant and r["seed"] == seed]
+    if len(matches) != 1:
+        raise ValueError("run registry requires exactly one candidate per method/seed")
+    return matches[0]
 
 
 def budget_rules(prereg: dict) -> dict:
@@ -210,6 +228,27 @@ def build_envs(prereg: dict, variant: str):
     split = json.load(open(SPLIT, encoding="utf-8"))
     train_maps = split["splits"]["train"]["maps"]
     z_max = obs.z_ratio_clip() * obs.Z_REF_J
+    # r14（用户 2026-11-15T17:32 授权）：停滞阈值与安全严重度分级一律从预登记
+    # 读取，训练与评估共用同一份口径（r12 的教训：评估悄悄用了另一套预算）。
+    stag = prereg.get("stagnation", {}) or {}
+    stag_window = float(stag.get("window_s", 3.0))
+    stag_min_disp = float(stag.get("min_displacement_m", 0.05))
+    if not (0.5 <= stag_window <= 10.0):
+        raise SystemExit(f"stagnation.window_s={stag_window} 超出 [0.5, 10]")
+    if not (0.005 <= stag_min_disp <= 0.2):
+        raise SystemExit(f"stagnation.min_displacement_m={stag_min_disp} 超出 [0.005, 0.2]")
+    sev = prereg.get("safety_continuity", {}) or {}
+    sev_on = bool(sev.get("enabled", False))
+    sev_floor = float(sev.get("severity_floor", 0.2))
+    sev_ref = float(sev.get("severity_ref_depth_m", 0.25))
+    if sev_on and not (0.0 < sev_floor < 1.0):
+        raise SystemExit(f"safety_continuity.severity_floor={sev_floor} 超出 (0, 1)")
+    if sev_on and sev_ref <= 0.0:
+        raise SystemExit(f"safety_continuity.severity_ref_depth_m={sev_ref} 必须 > 0")
+    print(f"[STAGNATION] window_s={stag_window} min_displacement_m={stag_min_disp}",
+          flush=True)
+    print(f"[SAFETY-CONT] enabled={sev_on} floor={sev_floor} "
+          f"ref_depth_m={sev_ref}", flush=True)
     envs, map_ids = [], []
     for idx, m in enumerate(train_maps):
         spec = M.build(m["level"], m["seed"], design)
@@ -223,6 +262,13 @@ def build_envs(prereg: dict, variant: str):
             spec, geometry, cm, n_envs=1, z0_J=z0,
             t_max_s=float(prereg["environment"]["t_max_s"]),
             r_goal_m=float(prereg["environment"]["r_goal_m"]),
+            stagnation_window_s=stag_window,
+            stagnation_min_displacement_m=stag_min_disp,
+            safety_severity_enabled=sev_on,
+            safety_severity_floor=sev_floor,
+            safety_severity_ref_depth_m=sev_ref,
+            observation_version=prereg.get("implementation_versions", {}).get(
+                "observation", "obs-v4" if int(prereg.get("round", 0)) >= 14 else "obs-v3"),
         ))
         map_ids.append(m["map_id"])
     return envs, e_ref, map_ids
@@ -255,6 +301,25 @@ class EpisodeState:
         self.new_segment()
 
 
+def reach_gamma_at_update(update_idx: int, total_updates: int,
+                          gamma_init: float, gamma_final: float) -> float:
+    """Reference gamma_2 schedule: reach final gamma halfway through training."""
+    if total_updates <= 0 or not 0 <= update_idx < total_updates:
+        raise ValueError("invalid update or training horizon")
+    if not 0 < gamma_init <= gamma_final < 1:
+        raise ValueError("reach discounts must be increasing and strictly below one")
+    return min(gamma_final, gamma_init + (gamma_final - gamma_init)
+               * 2.0 * update_idx / total_updates)
+
+
+def segment_identity(state: EpisodeState) -> dict:
+    """Capture identifiers and budget before reset mutates EpisodeState."""
+    return {"env_index": int(state.env_index), "episode_id": int(state.episode_counter),
+            "map_id": state.map_id, "map_seed": int(state.map_seed),
+            "episode_z0_J": state.episode_z0.get("z0_J"),
+            "episode_k": state.episode_z0.get("k")}
+
+
 def close_segment(
     seg: S.Segment, kind: str, bvc: float, bvh: float,
     *, env_done: bool, label: str | None,
@@ -270,7 +335,7 @@ def close_segment(
 
 
 def main() -> int:
-    global obj_cfg
+    global obj_cfg, NAV_CONTRACT, VALUE_CONTRACT
     ap = argparse.ArgumentParser(description="formal preregistered training")
     ap.add_argument("--run-id", required=True)
     ap.add_argument("--variant", default="uncalibrated",
@@ -288,6 +353,12 @@ def main() -> int:
     args = ap.parse_args()
 
     prereg, prereg_sha = verify_prereg(args.prereg_name)
+    if "run_registry" in prereg and args.run_id != registered_run_id(prereg, args.variant, args.seed):
+        raise SystemExit("run ID differs from frozen attempt registry")
+    for key, global_name in (("navigation_contract", "NAV_CONTRACT"),
+                              ("value_contract", "VALUE_CONTRACT")):
+        if key in prereg.get("binding", {}):
+            globals()[global_name] = os.path.join(NAV_ROOT, prereg["binding"][key]["path"])
     smoke = bool(args.smoke_updates)
     if smoke:
         print(f"[SMOKE] mechanical test: {args.smoke_updates} updates, "
@@ -312,7 +383,7 @@ def main() -> int:
         sampler = BudgetSampler(
             seed=int(args.seed), n_envs=n_envs,
             low=rules["k_low"], high=rules["k_high"], e_ref=e_ref,
-            z_ref_J=obs.Z_REF_J, clip=obs.z_ratio_clip())
+            z_ref_J=obs.Z_REF_J, clip=obs.z_ratio_clip(envs[0].observation_version))
         budget_draws = [sampler.draw(i, map_ids[i]) for i in range(n_envs)]
     else:
         sampler = None
@@ -390,6 +461,7 @@ def main() -> int:
         grad_decomp=decomp_on,
     )
     obj_cfg = S.ObjectiveConfig.from_contracts(VALUE_CONTRACT, r_goal_m=0.5)
+    reach_estimator = json.load(open(VALUE_CONTRACT, encoding="utf-8"))["estimator"]
     # NAV-064 修正 ①/②：权重与开关一律从**先冻结的**预登记读取，不硬编码。
     # 默认 0/False 保证旧预登记（r1-r5）的语义逐位不变；新预登记必须显式声明。
     import dataclasses as _dc
@@ -397,11 +469,24 @@ def main() -> int:
     w = float(fix.get("joint_cost_weight", 0.0))
     if not (0.0 <= w <= 100.0):
         raise SystemExit(f"joint_cost_weight={w} 超出预登记允许范围 [0,100]")
+    # r14（用户 2026-11-15T17:32 授权）：h 语义版本。v2_deep_well = 安全态
+    # h=g_norm（深井 G_INSIDE=-3）+ 违规态 max(g,C·y) 不变；必须与值契约
+    # v1.3.0（G_INSIDE 已改 -3）同现，否则深井被 max(·,0) 抹平，白改。
+    h_sem = str(fix.get("h_semantics", "v1"))
+    if h_sem not in ("v1", "v2_deep_well"):
+        raise SystemExit(f"objective_signal_fix.h_semantics={h_sem!r} 不受支持"
+                         "（允许 v1 / v2_deep_well）")
+    if h_sem == "v2_deep_well" and obj_cfg.G_INSIDE > -0.5:
+        raise SystemExit(
+            f"h_semantics=v2_deep_well 但值契约 G_INSIDE={obj_cfg.G_INSIDE} 不是深井；"
+            "深井语义要求值契约先升版到 G_INSIDE=-3.0（v1.3.0）")
     use_min = bool(fix.get("joint_min_recursion", False))
-    if use_min:
-        # 实测会翻转到达梯度（amend3 三条数值反例）；只允许测试显式开启
-        raise SystemExit("joint_min_recursion=True 会翻转到达梯度，训练器拒绝启用；"
-                         "见 config/rcppo_alignment_contract_v1.amend3.json")
+    if use_min and h_sem != "v2_deep_well":
+        # amend3 的三条数值反例仍然成立：v1 语义（h 被 max(·,0) 抹平）下开
+        # min 递推会翻转到达梯度。只有深井语义 + 门禁（corr(h,adv)>0）过了
+        # 才允许开启。
+        raise SystemExit("joint_min_recursion=True 需要 h_semantics=v2_deep_well；"
+                         "v1 下会翻转到达梯度（amend3 反例），训练器拒绝启用")
     cost_mask = bool(fix.get("cost_on_overspend_only", False))
     # r13 候选：预算内逐步成本的基础权重。默认 0.0 = 与 r12 逐位等价。
     # 依据 reports/contract_margin_eval.json：预算抬高 15% 后策略把额度花掉
@@ -411,9 +496,10 @@ def main() -> int:
         raise SystemExit(f"joint_cost_base_weight={wb} 超出预登记允许范围 [0,10]")
     obj_cfg = _dc.replace(obj_cfg, joint_cost_weight=w, joint_min_recursion=use_min,
                           joint_cost_on_overspend_only=cost_mask,
-                          joint_cost_base_weight=wb)
+                          joint_cost_base_weight=wb, h_semantics=h_sem)
     print(f"[OBJ-FIX] joint_cost_weight={w} joint_min_recursion={use_min} "
-          f"cost_on_overspend_only={cost_mask} cost_base_weight={wb}", flush=True)
+          f"cost_on_overspend_only={cost_mask} cost_base_weight={wb} "
+          f"h_semantics={h_sem}", flush=True)
 
     # NAV-064 成本项课程（cost_curriculum，默认关闭）：前 warmup_updates 次更新
     # 把 joint_cost_weight 置 0（只练到达），之后恢复预登记的 w。只改训练的
@@ -471,6 +557,15 @@ def main() -> int:
     # <run_dir>/rollout_env{i}/rollout; pass run_dir as root for tidiness.
     obs_np = np.stack([envs[i].observation[0] for i in range(n_envs)]).astype(np.float32)
 
+    # r14 诊断日志的口径字段：与 build_envs 同一份预登记读取（同一表达式）
+    stag_cfg = prereg.get("stagnation", {}) or {}
+    stag_window = float(stag_cfg.get("window_s", 3.0))
+    stag_min_disp = float(stag_cfg.get("min_displacement_m", 0.05))
+    sev_cfg = prereg.get("safety_continuity", {}) or {}
+    sev_on = bool(sev_cfg.get("enabled", False))
+    sev_floor = float(sev_cfg.get("severity_floor", 0.2))
+    sev_ref = float(sev_cfg.get("severity_ref_depth_m", 0.25))
+
     log_f = open(log_path, "a", encoding="utf-8")
     episode_labels: list[str | None] = []
     t_start = time.time()
@@ -483,14 +578,28 @@ def main() -> int:
          "seed": args.seed, "prereg_sha256": prereg_sha,
          "n_envs": n_envs, "z0_J_range": [round(min(z0s), 2), round(max(z0s), 2)],
          "budget_rule": rules, "z0_J_initial": [round(z, 3) for z in z0s],
-         "z_ratio_clip": obs.z_ratio_clip(), "obs_version": obs.OBS_VERSION,
+         "z_ratio_clip": obs.z_ratio_clip(envs[0].observation_version),
+         "obs_version": envs[0].observation_version,
          "schema": S.SCHEMA_BUFFER,
+         "runtime": {"host": socket.getfqdn(), "python": sys.executable,
+                     "tmux": os.environ.get("TMUX"), "cwd": os.getcwd()},
+         "data_access": {"split_used": "train", "map_ids": map_ids,
+                         "inputs": {p: S.file_sha256(p) for p in
+                                    (SPLIT, DESIGN, POWER, MARGINS, FOOTPRINT, GEOM_CONTRACT)}},
+         "implementation_versions": prereg.get("implementation_versions", {}),
+         "runtime_contract": prereg.get("runtime_contract", {}),
          "calls_per_window": calls_per_window, "max_updates": max_updates,
          "smoke": smoke, "provenance": provenance,
          "objective_signal_fix": {"joint_cost_weight": w,
                                   "joint_cost_base_weight": wb,
                                   "joint_min_recursion": use_min,
-                                  "cost_on_overspend_only": cost_mask},
+                                  "cost_on_overspend_only": cost_mask,
+                                  "h_semantics": h_sem},
+         "stagnation": {"window_s": stag_window,
+                        "min_displacement_m": stag_min_disp},
+         "safety_continuity": {"enabled": sev_on,
+                               "severity_floor": sev_floor,
+                               "severity_ref_depth_m": sev_ref},
          "budget_accounting": str(prereg.get("budget_accounting", "nominal")),
          "action_bounded": bool(prereg.get("action_bounded", False)),
          "action_init_fix": {"enabled": init_on,
@@ -513,8 +622,12 @@ def main() -> int:
                 print(f"[CURRICULUM] update={update_idx} "
                       f"joint_cost_weight={float(obj_cfg.joint_cost_weight):.1f}",
                       flush=True)
+        # Follow RC-PPO's actual gamma_2 consumer, independently of gamma_joint.
+        obj_cfg = _dc.replace(obj_cfg, gamma_h=reach_gamma_at_update(
+            update_idx, max_updates, float(reach_estimator["gamma_h_init"]),
+            float(reach_estimator["gamma_h_final"])))
         t_win = time.time()
-        window_segments: list[tuple[EpisodeState, str, dict[str, np.ndarray], bool]] = []
+        window_segments: list[tuple[dict, str, dict[str, np.ndarray], bool]] = []
 
         for _call in range(calls_per_window):
             obs_in = obs_np
@@ -582,11 +695,26 @@ def main() -> int:
                         kind = "truncation"
                     else:
                         kind = "failure"
+                    # r14 诊断：在 reset 冲掉现场之前把整局证据抓下来
+                    # （停滞触发现场、最高安全严重度、终点距离与余电）。
+                    res_i = envs[i].result(0)
                     arrays, kind_used = close_segment(
                         st.seg, kind, float(bvc_t[k]), float(bvh_t[k]),
                         env_done=True, label=label_i)
-                    window_segments.append((st, kind_used, arrays, True))
+                    window_segments.append((segment_identity(st), kind_used, arrays, True))
                     episode_labels.append(label_i)
+                    log({"kind": "episode_diag", "env": st.env_index,
+                         "map_id": st.map_id, "episode_id": st.episode_counter,
+                         "label": label_i, "terminal_kind": kind_used,
+                         "n_steps": int(res_i.n_steps), "t_s": round(float(res_i.t_s), 2),
+                         "goal_distance_m": round(float(res_i.goal_distance_m), 4),
+                         "z_J_end": round(float(res_i.z_J), 2),
+                         "z0_J": round(float(res_i.z0_J), 2),
+                         "max_safety_severity": round(float(res_i.max_safety_severity), 4),
+                         "danger_steps": int(res_i.danger_steps),
+                         "within_budget": bool(res_i.within_budget),
+                         "arrived_within_budget": bool(res_i.arrived_within_budget),
+                         "stagnation_context": res_i.stagnation_context})
                     # a new episode draws its own budget (NAV-062); the draw is
                     # logged so the episode's z0 never has to be inferred
                     if sampler is not None:
@@ -613,7 +741,7 @@ def main() -> int:
                 arrays, kind_used = close_segment(
                     st.seg, "truncation", float(bvc[i]), float(bvh[i]),
                     env_done=False, label=None)
-                window_segments.append((st, kind_used, arrays, False))
+                window_segments.append((segment_identity(st), kind_used, arrays, False))
                 # the environment episode continues; only the training segment
                 # ended -- open a fresh segment for the same episode
                 st.new_segment()
@@ -676,29 +804,58 @@ def main() -> int:
             stats["mask_skipped_minibatches"] = float(skipped_mb)
 
         # ---- audit chunks (per-env stores keep global_step continuity) ----
-        for st, kind, arrays, env_done in window_segments:
+        for identity, kind, arrays, env_done in window_segments:
+            env_index = identity["env_index"]
             meta = {
                 "event": "episode",
-                "chunk_index": stores[st.env_index].expected_chunk_index(),
+                "chunk_index": stores[env_index].expected_chunk_index(),
                 "terminal_kind": kind,
                 "env_done": env_done,
-                "episode_id": st.episode_counter,
-                "map_id": st.map_id,
-                "map_seed": st.map_seed,
+                "episode_id": identity["episode_id"],
+                "map_id": identity["map_id"],
+                "map_seed": identity["map_seed"],
                 "n_samples": int(len(arrays["t"])),
-                "episode_z0_J": st.episode_z0.get("z0_J"),
-                "episode_k": st.episode_z0.get("k"),
+                "episode_z0_J": identity["episode_z0_J"],
+                "episode_k": identity["episode_k"],
+                "gamma_h": obj_cfg.gamma_h,
+                "gamma_joint": obj_cfg.gamma_joint,
+                "update_idx": update_idx,
                 "schema": S.SCHEMA_BUFFER,
             }
-            stores[st.env_index].write_chunk(arrays, meta)
+            assert np.all(arrays["episode_id"] == meta["episode_id"])
+            stores[env_index].write_chunk(arrays, meta)
 
         tail = episode_labels[-len(window_segments):]
+        # r14 诊断：本窗口的目标信号健康度。corr_g_adv 应 > 0（越靠近目标
+        # 优势越大；深井语义下的核心验收线），corr_c_adv 在超支口径下应 < 0，
+        # 全程撤罚（w=0）时应 ≈ 0（成本只经 −z 进 max，不直接进优势）。
+        def _corr(a: np.ndarray, b: np.ndarray) -> float:
+            a = np.asarray(a, dtype=np.float64); b = np.asarray(b, dtype=np.float64)
+            sa, sb = a.std(), b.std()
+            if sa < 1e-12 or sb < 1e-12:
+                return float("nan")
+            return float(((a - a.mean()) * (b - b.mean())).mean() / (sa * sb))
+        _g = batch_arrays["obj_g_norm"]; _adv = batch_arrays["obj_adv_total"]
+        _h = batch_arrays["obj_h"]; _c = batch_arrays["cost_norm"]
+        _z = batch_arrays["z_norm"]
+        win_diag = {
+            "corr_g_adv": round(_corr(_g, _adv), 4),
+            "corr_c_adv": round(_corr(_c, _adv), 4),
+            "h_min": round(float(np.min(_h)), 4),
+            "h_mean": round(float(np.mean(_h)), 4),
+            "frac_h_below0": round(float(np.mean(_h < 0.0)), 4),
+            "frac_overspend": round(float(np.mean(_z < 0.0)), 4),
+            "adv_total_min": round(float(np.min(_adv)), 4),
+            "adv_total_max": round(float(np.max(_adv)), 4),
+        }
         row = {
             "kind": "update", "update": update_idx,
             "wall_seconds": round(time.time() - t_win, 3),
+            "gamma_h": obj_cfg.gamma_h, "gamma_joint": obj_cfg.gamma_joint,
             "n_segments": len(window_segments),
             "n_samples": int(batch["obs"].shape[0]),
             "epochs": epochs, "minibatch_size": mb, "grad_steps": grad_steps,
+            "win_diag": win_diag,
             "labels_last_window": {
                 name: sum(1 for x in tail if x == name) for name in ALL_LABELS
             },
@@ -716,6 +873,7 @@ def main() -> int:
                 "seed": args.seed,
                 "variant": args.variant,
                 "prereg_sha256": prereg_sha,
+                "implementation_versions": prereg.get("implementation_versions", {}),
                 "calls_per_window": calls_per_window,
                 "z0_J": [round(z, 3) for z in z0s],
                 "map_ids": map_ids,
@@ -735,6 +893,7 @@ def main() -> int:
         "seed": args.seed,
         "variant": args.variant,
         "prereg_sha256": prereg_sha,
+        "implementation_versions": prereg.get("implementation_versions", {}),
     }, os.path.join(run_dir, "state.pt"))
     log({"kind": "run_end", "wall_hours": round(wall / 3600.0, 3),
          "updates": max_updates,
