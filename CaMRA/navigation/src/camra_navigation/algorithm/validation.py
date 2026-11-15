@@ -36,8 +36,16 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
         raise ValueError("r14 requires the repaired numerical gate and explicit versions")
     if not versions:
         return
-    if versions != {"observation": "obs-v5", "estimator": "rcppo-r14-v3"}:
+    feedback = versions == {"observation": "obs-v5", "estimator": "rcppo-feedback-v4"}
+    if not feedback and versions != {"observation": "obs-v5", "estimator": "rcppo-r14-v3"}:
         raise ValueError("unsupported observation/estimator pairing")
+    if feedback:
+        if prereg.get("dead_step_mask", {}).get("enabled", False):
+            raise ValueError("feedback-v4 requires all policy/reach samples")
+        if prereg.get("feedback_policy") != "finite_horizon_all_states":
+            raise ValueError("feedback-v4 requires explicit task-ending policy")
+        if prereg.get("authorization", {}).get("training_approved") is not True:
+            raise ValueError("feedback repair is not authorization for additional training")
     for field in ("navigation_contract", "value_contract", "numerical_gate"):
         if field not in bindings:
             raise ValueError(f"required binding missing: {field}")
@@ -49,6 +57,14 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
         raise ValueError("navigation top-level observation version mismatch")
     if value["estimator"].get("version") != versions["estimator"]:
         raise ValueError("value estimator version mismatch")
+    if feedback:
+        if (nav.get("value_objective_reference", {}).get("contract")
+                != bindings["value_contract"]["path"]
+                or nav.get("termination_semantics", {}).get("training_boundary", {}).get("version")
+                != prereg["feedback_policy"]):
+            raise ValueError("feedback navigation/value boundary contracts disagree")
+        if float(nav["task_definition"]["horizon_s"]) != float(prereg["environment"]["t_max_s"]):
+            raise ValueError("feedback task horizon differs from navigation contract")
     fix = prereg.get("objective_signal_fix", {})
     if (fix.get("h_semantics") != "v2_deep_well"
             or fix.get("joint_min_recursion") is not True
@@ -63,6 +79,12 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
         raise ValueError("numerical gate is not PASS for these versions")
     if not gate.get("checks") or not all(c["ok"] for c in gate["checks"]):
         raise ValueError("numerical gate has missing or failed checks")
+    if feedback:
+        passed = {c.get("check") for c in gate["checks"] if c["ok"]}
+        required = {"task_deadline_no_learned_future", "all_graded_states_in_loss",
+                    "crossing_action_bad_probability_decreases", "train_replay_feedback_bounds"}
+        if not required.issubset(passed):
+            raise ValueError("feedback gate omitted ending/safety/update/replay evidence")
     if not gate.get("code_files") or not gate.get("protocol"):
         raise ValueError("numerical gate has no source/protocol bindings")
     for rel, digest in gate["code_files"].items():

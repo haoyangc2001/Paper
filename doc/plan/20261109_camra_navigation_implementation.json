@@ -5161,7 +5161,7 @@
     "动作两端与接近饱和样本的applied、log_prob和梯度统计可解释，记录裁剪/饱和比例；未完成动作契约处理不能靠列风险通过。",
     "回归覆盖真实训练及critic重拟合采样入口、预算搜索单位转换和物理接口；旧证据保留、新报告与hash独立。"
    ],
-   "verification_result": "PASS：三侧（名义标量/向量/物理）接口与契约同步到 t/t+1 显式配对、逐回合预算抽样与『预算不终止』语义。①样本两侧字段齐全（schema camra-navigation-rollout-v2），两步手算逐项对上 h_t/h_T/obj_spent/W，单侧变异证明 z_norm_next 不污染 V(x_t)、z_norm 会移动 W；缺配对字段的 v1 chunk 被拒绝而非静默重解释。②每回合 k~U(0.6,1.3)、z0=k·E_ref 逐 env 抽样，同 seed 与中断-恢复得到同一序列（40 抽样前缀/续接对比），2000 抽样覆盖 [0.6,1.3] 且 1900+ 个不同值，z0 上限 825 J 由守卫强制。③z_J<=0 不再终止：实测 z<0 后继续步进 231 步才因到达结束，新回合不再产生 budget_exhausted 标签；超预算到达 label=goal_reached 但 arrived_within_budget=False 且 W>0；危险后到达 h_T=1.0、W>0 不可行；干净到达 W=0（恰在 beta=0 的可行边界，与契约 max_zero_caveat 一致）。④窗口切片与 30 s 时限都 bootstrap 但 env_done 与 extent 不同；⑤动作顶格量化登记：64/64 顶格样本 applied 触限，策略参数梯度非零且一步 SGD 把均值推离更贵动作（mean_vx 下降），路径梯度在裁剪区为 0（不要求环境可导）。测试 24/24 PASS（reports/training_semantics_v2.json，sha 46815bbf…）；同批回归 test_observation_contract 29/29、test_cost_budget 20/20、test_rollout_resume 26/26、test_toy_reference 13/13、test_targets_oracle 15/15、test_value_objective 11/11、test_budget_search 17/17、test_budget_selection 22/22、test_physical_loop 18/18、test_vector_equivalence 6/6（逐位等价未受影响）。旧报告、旧 chunk、旧判定保留；未重训、未重跑物理 pilot、未重签门禁。",
+   "verification_result": "PASS（2026-11-16回修重验）：终端/样本接口受影响部分重验；预算、观测、动作及物理接口的有效证据由32套回归复核。 证据：reports/gate_feedback_v1_attempt4.json（97/97）和reports/nav064_feedback_repair_release_v1.json（32套回归/旧train重算）。历史验收完整保留于NAV-064 correction.original_states及plan_before.json。NAV-064仍false。",
    "planned_outputs": [
     "src/camra_navigation/envs/{nominal,vector,physical}.py",
     "src/camra_navigation/observation.py与algorithm/storage.py",
@@ -5347,7 +5347,59 @@
       "downstream_disposition": "继续：行为与判定均未变化，后续任务读 LF 版本",
       "closure_state": "validated"
      }
+    },
+    {
+     "timestamp": "2026-11-16T04:04:40.698812+08:00",
+     "summary": "NAV-064新版反馈链回修待重验，旧验收及记录保留。",
+     "actions": [
+      "暂退回false，原状态与验收详见NAV-064回修记录及原计划快照。"
+     ],
+     "files_changed": [
+      "doc/plan/20261109_camra_navigation_implementation.json"
+     ],
+     "commands": [],
+     "results": [
+      "旧true不作新版放行证据。"
+     ],
+     "evidence": [
+      "NAV-064-finite-horizon-safety-feedback-v4",
+      "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/preflight.json"
+     ],
+     "remaining_work": [
+      "重验受影响生产消费者后恢复。"
+     ],
+     "blockers": []
     }
+
+   ,
+{
+ "timestamp": "2026-11-16T04:28:46.457258+08:00",
+ "summary": "NAV-064反馈回修重验后恢复true；主体证据与历史验收见NAV-064收尾记录。",
+ "actions": [
+  "按依赖复核受影响前置及生产消费者；保留全部旧记录。"
+ ],
+ "files_changed": [
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python tests/test_feedback_gate.py --out reports/gate_feedback_v1_attempt4.json",
+  "32套回归：各实际命令为注册解释器+report.json的suite路径；cwd=CaMRA/navigation，日志见regression/report.json",
+  "python /home/caohy/.codex/skills/create-plan-worklog/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+ ],
+ "results": [
+  "终端/样本接口受影响部分重验；预算、观测、动作及物理接口的有效证据由32套回归复核。",
+  "97项新版门禁与32套回归通过，不表示NAV-064训练达标。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json",
+  "CaMRA/navigation/reports/gate_feedback_v1_attempt4.json",
+  "CaMRA/navigation/reports/gate_feedback_v1_attempt4.replay.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/report.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/preflight.json"
+ ],
+ "remaining_work": [],
+ "blockers": []
+}
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [
@@ -5384,7 +5436,7 @@
     "固定old_log_prob的多epoch受控测试验证最小化梯度方向、熵符号、裁剪正负分支及更新次数；真实训练短探针可逐字段离线复算原始转移到三种target/advantage。",
     "重验受影响G1/G3目标与数据契约，新报告明确旧证据适用范围；全部语义缺口关闭才允许NAV-064，不能只提交差异文档就通过。"
    ],
-   "verification_result": "PASS：三套估计器改为共用同一停止掩码，并以实际训练调用链验收（gate_G3_alignment_v2，22/22）。①共同停止：τ*(t)=argmin W，done[t]=1[τ*=t]；成本目标改为『到停止』的实测成本(+仅 τ*=T 的 V_c)，reach 目标改为 min 型 DP 值上的 λ-return，联合策略目标改为 g=max(h,−z) 上的 λ-return 减 V_total；compute_objectives 内部的调用被计数（cost_to_stop×1、lambda_return×2、joint_sequence×1），两次 λ-return 的 done 逐元素相同。②手算：τ*=t 时成本 0/联合 g_t；τ*=T 时段内成本+bootstrap 且联合为嵌套 λ-return；同总 J 不同时刻成本目标相同、而 γ=0.99 时会不同；两 critic 偏好不同终点时三套目标服从同一 τ*；停止之后把成本改成 5.0，τ*≤停止点的目标逐位不变。③失败回合强制 τ*=T：前序每步联合目标都含 FAIL_PENALTY（逐步手算 λ-return 对齐），失败末步成本=1.0。④边界：危险后到达 W≥1、负预算 g>0 且不可行、λ/γ_h 改变确实移动生产目标、切片+正确 bootstrap 的成本目标等于完整轨迹。⑤PPO：A±×ratio 四格裁剪值为 1.6 / 0.8 / −1.2 / −0.5（max 悲观侧），熵项符号为负，多 epoch 重放 old_log_prob 固定（更新次数 3×4=12，各 mb 的 ratio≠1）。⑥真实产物：train_nominal 一个回合的每个 chunk 由原始字段重算全部派生目标，逐位一致。对齐报告 10 行矩阵覆盖样本时序/y/预算/共同停止/三估计器/终端/动作概率/PPO/搜索 value，逐行给参考与当前的路径+行号+hash、单位/维度/符号、差异类型与修复证据；三处有意偏离量化登记（联合 γ=1.0 vs 参考 0.999，30 步常值 g 上 ΔG=0.0148；失败强制停在 T；reach 尾部用实测 h_T）。回归：targets_oracle 15、value 11、toy 13、minimization 12、network 20、observation 29、cost 20、training_semantics 24、physical 18、budget_search 17、budget_selection 23、rollout 27、vector_equivalence 6 全绿。旧 G3(NAV-035)、旧三轮训练与旧报告保留原样，不因本项通过而改写。",
+   "verification_result": "PASS（2026-11-16回修重验）：共同停止/三估计器/受控PPO/旧train重算及当前生产消费者门禁通过；有限时域和安全边界是版本化Go2适配，不声称全部JAX逐位一致。 证据：reports/gate_feedback_v1_attempt4.json（97/97）和reports/nav064_feedback_repair_release_v1.json（32套回归/旧train重算）。历史验收完整保留于NAV-064 correction.original_states及plan_before.json。NAV-064仍false。",
    "planned_outputs": [
     "src/camra_navigation/algorithm/{targets,storage,ppo}.py及实际消费者",
     "tests/test_rcppo_alignment.py与既有targets/oracle/update回归",
@@ -5485,7 +5537,59 @@
       "与参考的逐位等价未证明也不要求；D1/D2/D3 三处偏离若将来要贴参考，必须整链一起改并另立版本"
      ],
      "blockers": []
+    },
+    {
+     "timestamp": "2026-11-16T04:04:40.698812+08:00",
+     "summary": "NAV-064新版反馈链回修待重验，旧验收及记录保留。",
+     "actions": [
+      "暂退回false，原状态与验收详见NAV-064回修记录及原计划快照。"
+     ],
+     "files_changed": [
+      "doc/plan/20261109_camra_navigation_implementation.json"
+     ],
+     "commands": [],
+     "results": [
+      "旧true不作新版放行证据。"
+     ],
+     "evidence": [
+      "NAV-064-finite-horizon-safety-feedback-v4",
+      "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/preflight.json"
+     ],
+     "remaining_work": [
+      "重验受影响生产消费者后恢复。"
+     ],
+     "blockers": []
     }
+
+   ,
+{
+ "timestamp": "2026-11-16T04:28:46.457258+08:00",
+ "summary": "NAV-064反馈回修重验后恢复true；主体证据与历史验收见NAV-064收尾记录。",
+ "actions": [
+  "按依赖复核受影响前置及生产消费者；保留全部旧记录。"
+ ],
+ "files_changed": [
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python tests/test_feedback_gate.py --out reports/gate_feedback_v1_attempt4.json",
+  "32套回归：各实际命令为注册解释器+report.json的suite路径；cwd=CaMRA/navigation，日志见regression/report.json",
+  "python /home/caohy/.codex/skills/create-plan-worklog/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+ ],
+ "results": [
+  "共同停止/三估计器/受控PPO/旧train重算及当前生产消费者门禁通过；有限时域和安全边界是版本化Go2适配，不声称全部JAX逐位一致。",
+  "97项新版门禁与32套回归通过，不表示NAV-064训练达标。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json",
+  "CaMRA/navigation/reports/gate_feedback_v1_attempt4.json",
+  "CaMRA/navigation/reports/gate_feedback_v1_attempt4.replay.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/report.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/preflight.json"
+ ],
+ "remaining_work": [],
+ "blockers": []
+}
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [
@@ -8043,7 +8147,229 @@
           ],
           "blockers": [],
           "timestamp": "2026-11-15T23:48:51+08:00"
-        }
+        },
+    {
+     "timestamp": "2026-11-16T04:04:40.698812+08:00",
+     "summary": "NAV-064反馈链回修开工：确认r14a2开发失败，保留源码和全部旧证据；有限时域及安全样本协议在新版本重验前不放行训练。",
+     "actions": [
+      "重新读取根AGENTS、技能及执行/字段规范、主计划1.3.1、模块README、交接、参考调用链及r14a2审计/开发证据。",
+      "按tasks数组确认NAV-064为首个依赖满足的未完成任务；在当前任务登记NAV-062/063终端和样本反馈前置证据需新版重验。",
+      "在tiger11/tmux核验29个v2冻结文件及匹配输入，保存源码、原计划及预存未跟踪文件hash。"
+     ],
+     "files_changed": [
+      "doc/plan/20261109_camra_navigation_implementation.json"
+     ],
+     "commands": [
+      "python /tmp/nav064_v4_prepare.py",
+      "python /home/caohy/.codex/skills/create-plan-worklog/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+     ],
+     "results": [
+      "本项服务于固定v2的预算内安全到达目标；允许修改仅导航新版本契约、目标转换、正式训练消费者及必要验证。",
+      "r14a2六run×600已完成，开发关闭档FAIL_DEVELOPMENT；NAV-064保持false。",
+      "先验证窗口切片/45秒截止、分级安全与全样本反馈，再复核gamma；不改评分、机械功、地图、时限、v2/校准、参考仓库或论文。",
+      "NAV-062/063旧验收保留，因新版本前置条件待重验暂退回false；其余任务不变。"
+     ],
+     "evidence": [
+      "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/preflight.json",
+      "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/source_before",
+      "CaMRA/navigation/reports/nav064_r14a2_closure.json",
+      "/pub/data/caohy/work/camra_navigation/nav064_r14a2_audit_u600/report.json"
+     ],
+     "remaining_work": [
+      "完成版本化边界/样本协议推导、参考gamma独立复核、实际采样关闭/PPO更新门禁及train样本重算；重验受影响前置后才形成下一轮具体方案。"
+     ],
+     "blockers": [],
+     "correction": {
+      "correction_id": "NAV-064-finite-horizon-safety-feedback-v4",
+      "discovered_in_task": "NAV-064",
+      "upstream_task_ids": [
+       "NAV-062",
+       "NAV-063"
+      ],
+      "original_states": {
+       "NAV-062": {
+        "status": true,
+        "verification_result_ref": "原计划快照plan_before.json对应任务，逐字节保留"
+       },
+       "NAV-063": {
+        "status": true,
+        "verification_result_ref": "原计划快照plan_before.json对应任务，逐字节保留"
+       }
+      },
+      "original_artifact_references": [
+       "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/source_before",
+       "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/plan_before.json"
+      ],
+      "problem_and_evidence": "任务deadline与外部窗口共用bootstrap；分级安全掩码是历史已登记适配，本次用户授权对照参考全样本复核，不能把旧选择伪称接线缺陷。",
+      "affected_task_ids": [
+       "NAV-062",
+       "NAV-063",
+       "NAV-064",
+       "NAV-065",
+       "NAV-066",
+       "NAV-067"
+      ],
+      "affected_gate_ids": [
+       "G3",
+       "gate_r14a2_attempt1"
+      ],
+      "authorization_basis": "用户要求按前述六步方案推进：本次先做NAV-064内有限时域/安全反馈/联合gamma复核与数值生产链回修。既有正式额度已用完；新增训练额度不由本次回修自动扩充。",
+      "changes_and_versions": "新版候选rcppo-feedback-v4；旧源码与契约保留。",
+      "revalidation_evidence": [],
+      "status_changes": [
+       {
+        "id": "NAV-062",
+        "before": true,
+        "after": false
+       },
+       {
+        "id": "NAV-063",
+        "before": true,
+        "after": false
+       }
+      ],
+      "downstream_disposition": "仅在NAV-064内回修；新版数值链路与学习未通过前，下游保持阻塞。",
+      "closure_state": "open"
+     }
+    }
+
+   ,
+{
+ "timestamp": "2026-11-16T04:28:46.457258+08:00",
+ "summary": "NAV-064反馈回修收尾：97项门禁、32套回归、73548条已有train重算通过，前置恢复；新训练待额度确认。",
+ "actions": [
+  "建立独立feedback值/导航契约，正式训练区分任务终端和外部窗口；全分级安全样本进入policy/reach/标准化。",
+  "延续critic应用已知安全边界，原始critic保留回归梯度；重新推导gamma_joint=1的有限时域依据，保留参考gamma_2半程退火。",
+  "完成独立枚举、受控PPO、六run已有train重算、启动/注册表/审计消费门禁及32套回归；保留attempt1容差实现失败及后续全部报告。",
+  "核验v2冻结输入、旧源码快照、全部旧契约和预存文件；恢复NAV-062/063，NAV-064及下游不作性能放行。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/config/training_loop_feedback_proposal_v1.json",
+  "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json",
+  "CaMRA/navigation/docs/nav064_feedback_repair_20261116.md",
+  "CaMRA/navigation/docs/implementation_handoff.md",
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python tests/test_feedback_gate.py --out reports/gate_feedback_v1_attempt4.json",
+  "32套回归：各实际命令为注册解释器+report.json的suite路径；cwd=CaMRA/navigation，日志见regression/report.json",
+  "python /home/caohy/.codex/skills/create-plan-worklog/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+ ],
+ "results": [
+  "97/97门禁PASS；66组枚举；跨界动作受控概率0.5→0.425861。",
+  "32/32回归PASS；73548条旧train重算，8532条有危险历史，20918条联合目标变化，旧目标仍可复现。",
+  "29个v2冻结文件、匹配输入、旧源码/契约和预存报告hash一致；无论文/参考/校准/底层修改。",
+  "NAV-062/063恢复true；NAV-064=false；没有新增训练或development性能采样。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json",
+  "CaMRA/navigation/reports/gate_feedback_v1_attempt4.json",
+  "CaMRA/navigation/reports/gate_feedback_v1_attempt4.replay.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/report.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/preflight.json"
+ ],
+ "remaining_work": [
+  "确认六个fresh run×600更新/14709600样本的新增额度，独立冻结预登记及pin、核验资源后执行；前100审计计入600。",
+  "完成原development关闭档后才推进NAV-065，随后按依赖完成预算搜索及物理验证。"
+ ],
+ "blockers": [
+  "资源额度待用户确认：上一轮六组600已耗尽。本次回修不自动扩充正式训练次数；依据主计划uncertainty_policy及NAV-064约束。"
+ ],
+ "correction": {
+  "correction_id": "NAV-064-finite-horizon-safety-feedback-v4",
+  "discovered_in_task": "NAV-064",
+  "upstream_task_ids": [
+   "NAV-062",
+   "NAV-063"
+  ],
+  "problem_and_evidence": "deadline被当作切片bootstrap；分级安全样本和延续值反馈待重验。旧安全掩码是冻结历史适配，不伪称旧接线缺陷。",
+  "original_artifact_references": [
+   "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/plan_before.json",
+   "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/source_before"
+  ],
+  "affected_task_ids": [
+   "NAV-062",
+   "NAV-063",
+   "NAV-064",
+   "NAV-065",
+   "NAV-066",
+   "NAV-067"
+  ],
+  "affected_gate_ids": [
+   "G3",
+   "gate_r14a2_attempt1"
+  ],
+  "authorization_basis": "用户要求按前述分析/技能推进；既有导航回修及本地提交授权；旧额度不自动覆盖新增训练。",
+  "changes_and_versions": "obs-v5/rcppo-feedback-v4；新值契约1.4.0-feedback及导航1.7.0-feedback。",
+  "revalidation_evidence": [
+   "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json",
+   "CaMRA/navigation/reports/gate_feedback_v1_attempt4.json",
+   "CaMRA/navigation/reports/gate_feedback_v1_attempt4.replay.json",
+   "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/report.json",
+   "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/preflight.json"
+  ],
+  "original_states": {
+   "NAV-062": {
+    "status": true,
+    "verification_result": "PASS：三侧（名义标量/向量/物理）接口与契约同步到 t/t+1 显式配对、逐回合预算抽样与『预算不终止』语义。①样本两侧字段齐全（schema camra-navigation-rollout-v2），两步手算逐项对上 h_t/h_T/obj_spent/W，单侧变异证明 z_norm_next 不污染 V(x_t)、z_norm 会移动 W；缺配对字段的 v1 chunk 被拒绝而非静默重解释。②每回合 k~U(0.6,1.3)、z0=k·E_ref 逐 env 抽样，同 seed 与中断-恢复得到同一序列（40 抽样前缀/续接对比），2000 抽样覆盖 [0.6,1.3] 且 1900+ 个不同值，z0 上限 825 J 由守卫强制。③z_J<=0 不再终止：实测 z<0 后继续步进 231 步才因到达结束，新回合不再产生 budget_exhausted 标签；超预算到达 label=goal_reached 但 arrived_within_budget=False 且 W>0；危险后到达 h_T=1.0、W>0 不可行；干净到达 W=0（恰在 beta=0 的可行边界，与契约 max_zero_caveat 一致）。④窗口切片与 30 s 时限都 bootstrap 但 env_done 与 extent 不同；⑤动作顶格量化登记：64/64 顶格样本 applied 触限，策略参数梯度非零且一步 SGD 把均值推离更贵动作（mean_vx 下降），路径梯度在裁剪区为 0（不要求环境可导）。测试 24/24 PASS（reports/training_semantics_v2.json，sha 46815bbf…）；同批回归 test_observation_contract 29/29、test_cost_budget 20/20、test_rollout_resume 26/26、test_toy_reference 13/13、test_targets_oracle 15/15、test_value_objective 11/11、test_budget_search 17/17、test_budget_selection 22/22、test_physical_loop 18/18、test_vector_equivalence 6/6（逐位等价未受影响）。旧报告、旧 chunk、旧判定保留；未重训、未重跑物理 pilot、未重签门禁。"
+   },
+   "NAV-063": {
+    "status": true,
+    "verification_result": "PASS：三套估计器改为共用同一停止掩码，并以实际训练调用链验收（gate_G3_alignment_v2，22/22）。①共同停止：τ*(t)=argmin W，done[t]=1[τ*=t]；成本目标改为『到停止』的实测成本(+仅 τ*=T 的 V_c)，reach 目标改为 min 型 DP 值上的 λ-return，联合策略目标改为 g=max(h,−z) 上的 λ-return 减 V_total；compute_objectives 内部的调用被计数（cost_to_stop×1、lambda_return×2、joint_sequence×1），两次 λ-return 的 done 逐元素相同。②手算：τ*=t 时成本 0/联合 g_t；τ*=T 时段内成本+bootstrap 且联合为嵌套 λ-return；同总 J 不同时刻成本目标相同、而 γ=0.99 时会不同；两 critic 偏好不同终点时三套目标服从同一 τ*；停止之后把成本改成 5.0，τ*≤停止点的目标逐位不变。③失败回合强制 τ*=T：前序每步联合目标都含 FAIL_PENALTY（逐步手算 λ-return 对齐），失败末步成本=1.0。④边界：危险后到达 W≥1、负预算 g>0 且不可行、λ/γ_h 改变确实移动生产目标、切片+正确 bootstrap 的成本目标等于完整轨迹。⑤PPO：A±×ratio 四格裁剪值为 1.6 / 0.8 / −1.2 / −0.5（max 悲观侧），熵项符号为负，多 epoch 重放 old_log_prob 固定（更新次数 3×4=12，各 mb 的 ratio≠1）。⑥真实产物：train_nominal 一个回合的每个 chunk 由原始字段重算全部派生目标，逐位一致。对齐报告 10 行矩阵覆盖样本时序/y/预算/共同停止/三估计器/终端/动作概率/PPO/搜索 value，逐行给参考与当前的路径+行号+hash、单位/维度/符号、差异类型与修复证据；三处有意偏离量化登记（联合 γ=1.0 vs 参考 0.999，30 步常值 g 上 ΔG=0.0148；失败强制停在 T；reach 尾部用实测 h_T）。回归：targets_oracle 15、value 11、toy 13、minimization 12、network 20、observation 29、cost 20、training_semantics 24、physical 18、budget_search 17、budget_selection 23、rollout 27、vector_equivalence 6 全绿。旧 G3(NAV-035)、旧三轮训练与旧报告保留原样，不因本项通过而改写。"
+   }
+  },
+  "status_changes": [
+   {
+    "id": "NAV-062",
+    "before": false,
+    "after": true,
+    "basis": "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json"
+   },
+   {
+    "id": "NAV-063",
+    "before": false,
+    "after": true,
+    "basis": "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json"
+   }
+  ],
+  "downstream_disposition": "数值前置恢复；064真实训练/开发未验收，065–067不推进。",
+  "closure_state": "validated"
+ }
+}
+   ,
+{
+ "timestamp": "2026-11-16T04:32:05.499497+08:00",
+ "summary": "NAV-064收尾存档复核：完整旧开发报告镜像至仓库外，提交轻量索引，原文件与失败判定保持。",
+ "actions": [
+  "按大产物存储约束复制r14a2完整开发报告至本次独立证据目录，核验原文件与副本SHA256相同。",
+  "为本地提交补充轻量索引及收尾报告存档引用；不删除、移动或覆盖原报告。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/reports/training_round_r14a2.index.json",
+  "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json",
+  "CaMRA/navigation/docs/nav064_feedback_repair_20261116.md",
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "tiger11/tmux：bash /tmp/nav064_v4_archive_prepare.sh",
+  "python /home/caohy/.codex/skills/create-plan-worklog/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+ ],
+ "results": [
+  "原报告与副本sha256=f75af1ee569f2856606b06bb24f86e405c2a2fcac5f6779eb261d4b89b2d7cc0",
+  "NAV-064保持false，新增六run训练仍未启动且待额度确认；源代码和已通过门禁不变。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/training_round_r14a2.index.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/historical_reports/training_round_r14a2.json",
+  "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json"
+ ],
+ "remaining_work": [
+  "确认新增六run×600额度后冻结新预登记，按100/600更新审计及原development关闭档执行。"
+ ],
+ "blockers": [
+  "新增正式训练额度待用户确认，旧额度已用完。"
+ ]
+}
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [

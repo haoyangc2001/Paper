@@ -320,15 +320,35 @@ def segment_identity(state: EpisodeState) -> dict:
             "episode_k": state.episode_z0.get("k")}
 
 
+def training_sample_masks(safety_y: np.ndarray, prereg: dict,
+                          cfg: S.ObjectiveConfig) -> dict[str, torch.Tensor]:
+    """Loss sample selection is versioned independently of safety truth."""
+    mask = prereg.get("dead_step_mask", {}) or {}
+    if cfg.estimator_version == "rcppo-feedback-v4":
+        if mask.get("enabled", False):
+            raise S.StorageError("feedback-v4 learns policy/reach from all states")
+        return {}
+    if not mask.get("enabled", False):
+        return {}
+    live = torch.as_tensor(np.asarray(safety_y) <= 0.5, dtype=torch.float32)
+    return {name: live for name, flag in
+            (("live_policy", "mask_policy_surrogate"), ("live_reach", "mask_reach_regression"))
+            if mask.get(flag, True)}
+
+
 def close_segment(
     seg: S.Segment, kind: str, bvc: float, bvh: float,
     *, env_done: bool, label: str | None,
 ) -> tuple[dict[str, np.ndarray], str]:
     """Finalise a training segment under the contract bootstrap table."""
     arrays = seg.arrays()
+    if env_done and obj_cfg.estimator_version == "rcppo-feedback-v4":
+        if label is None:
+            raise S.StorageError("task ending requires an event label")
+        kind = S.terminal_kind_for_event(label, obj_cfg)
     arrays["bootstrap_value_cost"][-1] = float(bvc)
     arrays["bootstrap_value_reach"][-1] = float(bvh)
-    arrays["terminated"][-1] = bool(env_done and label in (FAILURE_LABELS + SUCCESS_LABELS))
+    arrays["terminated"][-1] = bool(env_done and kind != "truncation")
     arrays["truncated"][-1] = bool(kind == "truncation")
     objs = S.compute_objectives(arrays, obj_cfg, terminal_kind=kind)
     return {**arrays, **objs}, kind
@@ -763,14 +783,7 @@ def main() -> int:
             "value_reach_old": torch.as_tensor(batch_arrays["value_reach"], dtype=torch.float32),
             "target_reach": torch.as_tensor(batch_arrays["obj_target_reach"], dtype=torch.float32),
         }
-        if dsm_on:
-            # 有效样本 = 本步**尚未**触发不可逆安全历史（safety_y=0）。
-            live = torch.as_tensor((np.asarray(batch_arrays["safety_y"]) <= 0.5),
-                                   dtype=torch.float32)
-            if dsm_policy:
-                batch["live_policy"] = live
-            if dsm_reach:
-                batch["live_reach"] = live
+        batch.update(training_sample_masks(batch_arrays["safety_y"], prereg, obj_cfg))
         epochs = int(prereg["algorithm"].get("epochs_per_window", 1))
         mb = int(prereg["algorithm"].get("minibatch_size", 0)) or int(batch["obs"].shape[0])
         n_samples = int(batch["obs"].shape[0])

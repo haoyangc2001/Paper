@@ -1,5 +1,15 @@
 # 上层导航实施交接
 
+## 最新状态：2026-11-16 反馈回修通过数值门禁，新增训练待额度确认
+
+r14a2六组各600更新已结束，实际开发结论为`FAIL_DEVELOPMENT`：uncalibrated安全可行SR中位数0，full为1/6，但full危险步中位数114，未通过原关闭档。以下“正在训练”保留为此前时点记录。
+
+NAV-064内已完成新版有限任务终端、外部窗口bootstrap区分、全分级安全样本学习及安全延续值边界。当前源码绑定门禁`reports/gate_feedback_v1_attempt4.json`为97/97 PASS；73548条已有train样本重算通过，旧目标可复现。原始失败、旧契约和源码快照保留。联合gamma=1的依据已重做有限时域推导，未再以机械功不折扣替代该推导。
+
+32套回归通过；受影响前置NAV-062/063恢复true。收尾证据为`reports/nav064_feedback_repair_release_v1.json`，只通过数值/回归验收，尚无新版训练效果。
+
+详细结果、验收边界、资源提案及下一入口见[反馈回修记录](nav064_feedback_repair_20261116.md)。新增六run×600更新提案是`config/training_loop_feedback_proposal_v1.json`；`training_approved=false`，尚未启动，不把数值正确等同于导航训练通过。NAV-064仍false，下游065–067未执行；任务状态与回归汇总以主计划和本次release报告为准。
+
 ## 最新启动证据：r14a2 正在训练
 
 2026-11-15 23:47:33，六个新 run 已从本地提交 `4b793d1d59e97d3f1c7db9f7dfc2252279852109` 在 tiger11/tmux 的 `nav064-r14-repair-20261115:r14a2-training` 启动。每组已完成至少两个正式更新；独立检查六组前两次更新的共49032个原始样本，确认18×227窗口、10 epoch×512、gamma_h由0.999升至0.9990033、gamma_joint=1及原始回合身份/写入hash匹配。具体PID、进度与路径见 `reports/nav064_r14a2_started_v1.json`。

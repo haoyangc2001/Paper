@@ -1,0 +1,500 @@
+{
+  "schema": "camra-nav064-feedback-repair-release-v1",
+  "owner": "NAV-064",
+  "timestamp": "2026-11-16T04:28:46.457258+08:00",
+  "verdict": "PASS_NUMERICAL_AND_REGRESSION_ONLY",
+  "training_started": false,
+  "training_authorized": false,
+  "nav064_complete": false,
+  "implementation_versions": {
+    "observation": "obs-v5",
+    "estimator": "rcppo-feedback-v4"
+  },
+  "host": "tiger11.ios.ac.cn",
+  "tmux": "/tmp/tmux-39400170/default,2639274,25",
+  "cwd": "/home/caohy/repositories/Paper",
+  "python_tests": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "gate": {
+    "path": "CaMRA/navigation/reports/gate_feedback_v1_attempt4.json",
+    "sha256": "0bd119d6a25c52617f6bb78e19662db7a7ce79c36a0355c1b6ad3ddd2370ffb5",
+    "checks": 97,
+    "passed": 97,
+    "code_files": {
+      "config/navigation_contract_feedback_v1.json": "5b61517bc7f9278c6b3870f539af0b0a66078feba490d44c504d2f41a730a86f",
+      "config/navigation_contract_r14_repair_v2.json": "64cf4db1840ae90464ad1019584b1882e5ae763055bc99e86587a9efac21bb63",
+      "config/value_objective_contract_feedback_v1.json": "1e7d87c03822d7b65c06afbfd04a5f8ad725892c7420d5da9f335eb1de5ee3ff",
+      "config/value_objective_contract_r14_repair_v1.json": "7f15173beab3cf4f8f64b934bcdfed7e1430a2d594b7d3e732cc5dd4b01c9ae9",
+      "docs/patches/verify_train_formal_r14_gamma_meta_v4.py": "4c673c8adf464abcfdb7c4029201c89db269c06c77efdff161fc63e1bb1e829b",
+      "scripts/audit_r14a2.py": "4c4239c1860f0c3578d665a44555560731f887ac5f9ffbef7fc942ef6e705205",
+      "scripts/build_r14a2_prereg.py": "587a9314f9e77826f161e4486cbf70706bb650a9b7a7f270b73def7c4902a7f3",
+      "scripts/contract_margin_eval.py": "4e0c670d0c293b19679e2a0f0796151a9d02fdf6781bec9e1082d5415507a171",
+      "scripts/eval_r14_repair.py": "f523f9e93bcc39f93027be490c9165bcdae12f5aac8c5644b960dc678f238fb7",
+      "scripts/eval_training_round.py": "13e5e392e95b73baf18798caeadb46904f94b27043f57c9d57b55bf730f1f788",
+      "scripts/run_feedback_round.py": "d2b99d5a09f1ba6634fd05df0a6719763f7ba1e79ea639e2a4d328477290b284",
+      "scripts/run_round14a2.py": "6ade1bc09a0c945988c34308d2b83576c2768bdb07181a6f9262235443711e60",
+      "scripts/train_formal.py": "fa85465577dfb4d6d269704282e75a0a95ec1d25685c8e16ffe8995eb69b3065",
+      "src/camra_navigation/__init__.py": "2ac9ea55fc3e4e3927f2fb8b7ae7a77453c9ad1f499105be4632d7051dfd4098",
+      "src/camra_navigation/algorithm/__init__.py": "fe54134928610888966883462dbc307c8f7893fedb1be8447951b340a6a4cd4b",
+      "src/camra_navigation/algorithm/networks.py": "c35576c6f136a6e900e171e34a91524a34dbbf8c77b931a314eb2e8cae485065",
+      "src/camra_navigation/algorithm/ppo.py": "63e20e1d457e13a8e1037a5814972cff63fa10c090f3203904bd6a26eba5bbd3",
+      "src/camra_navigation/algorithm/storage.py": "37c7b4f628740085d0ea85ad0a05367e92ed9eaaa18d99f867b7625b6bd24bbf",
+      "src/camra_navigation/algorithm/targets.py": "dd1be31009e2f73983fd45ffc31d8f865f35c2dacfb2523d669909f21159cda5",
+      "src/camra_navigation/algorithm/validation.py": "60b62add91d0e065d0e6ee94a618f853dbf43ac3a184f9fc74682ac7a93d84a5",
+      "src/camra_navigation/budget/__init__.py": "2478819eaced9c56e4503c29dbbde77da35f7119bbb9120c29fac556d4fee444",
+      "src/camra_navigation/budget/accounting.py": "daa2ba9b363aeeaccec382a708022e0c4012a0858727d6f7289661db9cc34444",
+      "src/camra_navigation/budget/search.py": "9277418b2d4669a8e1f8a8faac3b8f8b251ea787872829561bfcc97b993b14af",
+      "src/camra_navigation/control/__init__.py": "90f8814371f8a50fd297fd145ab970362ca1273a93cb25c11fc1e3b8c9d26cfc",
+      "src/camra_navigation/control/v2_policy.py": "224cb2800d2106d21249b8ecd74eedab807c3319253f3618dfe9152328338736",
+      "src/camra_navigation/control/velocity_bridge.py": "396723e36cbc436de3d1029ccb6181f04695319903147d24891ce8e228c123e3",
+      "src/camra_navigation/costs.py": "e8fb432fdf116fd83e4a948e7c950cad573062ad5a87c7af0cedf6aae2a9b323",
+      "src/camra_navigation/envs/__init__.py": "c169ca558e1f1a82bd093eddc160744b75e8d2df8829745e2e25a2aea05bbd9c",
+      "src/camra_navigation/envs/nominal.py": "7d0b46344b7fc150234e5071b56f821236cc4208208947fe75b5da1298d4432d",
+      "src/camra_navigation/envs/physical.py": "4bd32e74d7584dc612c2cb40ff39941be8f914d80f4ebff70fc0d866678abbea",
+      "src/camra_navigation/envs/vector.py": "8cc9eae86350ce4e53d01a61ddef4d8f2d7cfde6e50158df6d0de822e733d1a4",
+      "src/camra_navigation/evaluation/__init__.py": "bf2b930f66eca529fc65da8d6dde340b0fbdd903f72d0386e686af477fbc5dbd",
+      "src/camra_navigation/evaluation/recorder.py": "2f18d4773c68600f0ad78ef0dd7720453bde640de1ba3f674caee7d5231049ab",
+      "src/camra_navigation/frames.py": "f81fc8690bf825bd5b598f71c0c279fb5ac075f00922815ad94e6cb948f4da23",
+      "src/camra_navigation/maps/__init__.py": "e3c83783e6ef71d608e44c2fc1888fd19dd7f2e3813501980f16d0a668cc6130",
+      "src/camra_navigation/maps/feasibility.py": "f6b1ea8747a47efaff2ae0ee9fd2b49f279d37f7860f5d9d127d7c1ee758e2f4",
+      "src/camra_navigation/maps/generator.py": "dc9b336e3cabe57f0a392c8f60f896ff621b25eda2f743ecde107912d633547a",
+      "src/camra_navigation/maps/geometry.py": "1218b7aaa80a577befbd6157423c75fc7b987d17884af0e66b8c109edbab952e",
+      "src/camra_navigation/maps/scene_adapter.py": "a72fd7fdb5de0ac897442661ff77f85da726d1cddb4975f4ef1bb97cd0c238b7",
+      "src/camra_navigation/observation.py": "b5225e452084571ac52859238e83f5323c0afd514c4c539fea669c1d9cfc1e4a",
+      "src/camra_navigation/runs.py": "f835a345bc34a8bf952b3f1f3e756ab5c3f8e38632757703b15a7672e6481810",
+      "tests/test_feedback_gate.py": "58fff2d8735851adaa56a3fa6a1d5ec89f18d466f9b9da566e9f8a5e00bf8abb",
+      "tests/test_r14_repair_gate.py": "db7b5885109d28d54521ddd1a914f23f86c8e4a53e4e1a2bd6a7fc3a286bbc16",
+      "tests/test_r14a2_gate.py": "0dfb350c7f53abe149a9ab2cfb44ba27e9621fe18f60e5e89885aa570278fc52"
+    },
+    "protocol": {
+      "path": "config/feedback_numerical_protocol_v1.json",
+      "sha256": "ac2211c2a39f20a83b5a46ad56b33789f38adb246eb18959679710a467e3887f"
+    },
+    "component_reports": {
+      "reports/gate_feedback_v1_attempt4.json": "0bd119d6a25c52617f6bb78e19662db7a7ce79c36a0355c1b6ad3ddd2370ffb5",
+      "reports/gate_feedback_v1_attempt4.legacy.base.json": "46ab1e4136e77d5806e674c5f9a9ebefd7531481af9e53f82a01ce4c09a3025d",
+      "reports/gate_feedback_v1_attempt4.legacy.gamma.json": "fe850d9ba193446cf1b6ce625dec4608797268a16f567bc5949461f73c1d0c41",
+      "reports/gate_feedback_v1_attempt4.legacy.json": "a36efa41da0ef13a7848beba1081876e6bac2cb6413e94f12322cad690a09459",
+      "reports/gate_feedback_v1_attempt4.replay.json": "df7ee5078316329cf198f9f0f26980653adf4eedff80457e99ff3a906bd2ea80",
+      "reports/gate_feedback_v1_attempt4.startup.json": "a27bf1d79cc8895df4ce17654de90d96efd257c089db92516696f74274ee21d1"
+    }
+  },
+  "regression": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/report.json",
+    "sha256": "792ea30891194302d0e5934976c97e6f48cfc5be89ad69b81ed5853c518d8a50",
+    "verdict": "PASS",
+    "suites": {
+      "tests/test_action_init_fix.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_action_init_fix.py.log",
+        "sha256": "2fd240841ff35a12bccf8f127a98bc839c998da4118c5eece59d06dad453283b"
+      },
+      "tests/test_budget_action_fix.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_budget_action_fix.py.log",
+        "sha256": "e8d52237a31cdcb98f458fbe72a32c79e84528e8463978dd7c3316744227fff6"
+      },
+      "tests/test_budget_search.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_budget_search.py.log",
+        "sha256": "246f971fb3bf6b8352d9f222fd5f767c1d8e369925972570ef009e289909e10c"
+      },
+      "tests/test_budget_selection.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_budget_selection.py.log",
+        "sha256": "7f93dc054bfc85967d47bb634894874d8fb2f78156249ed159609ba9b7c1f382"
+      },
+      "tests/test_control_timing.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_control_timing.py.log",
+        "sha256": "5fe5ed944ed059bba8811c5161d10183ee51a94981acea4b32459a58ee30f6e9"
+      },
+      "tests/test_cost_base_weight.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_cost_base_weight.py.log",
+        "sha256": "c4669ec2dd07c333877f790a1c95f7fbc670d81ef3bd83296a9ba1b3b35e0e6b"
+      },
+      "tests/test_cost_budget.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_cost_budget.py.log",
+        "sha256": "1c5ddb8dc0d70e195af5d04d47b538c34f012a33bfecce8ce069f5a25b301d86"
+      },
+      "tests/test_cost_mask.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_cost_mask.py.log",
+        "sha256": "c01d1aa21c8c6007109eed68314199118b9e4480c9c85e878d62afcf7c6cf2e8"
+      },
+      "tests/test_dead_step_mask.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_dead_step_mask.py.log",
+        "sha256": "16570b0c1c4a2a5010b81bbaeaafa7414c473d123961a9b5e478a3012cc8badc"
+      },
+      "tests/test_h_semantics_v2.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_h_semantics_v2.py.log",
+        "sha256": "1fe006aa8ea0389a72c7ef7341334381fd35d5a30ae916596c87e19d4369420c"
+      },
+      "tests/test_map_feasibility.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_map_feasibility.py.log",
+        "sha256": "bb5a19a193ba682547acc9d24e44399276296b58547cc42973e5e70ab62780fe"
+      },
+      "tests/test_map_generator.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_map_generator.py.log",
+        "sha256": "c7cd831532ce04ba6baff7187fca2bbea2e934d135a63f0b295ea65aaed89673"
+      },
+      "tests/test_minimization_update.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_minimization_update.py.log",
+        "sha256": "8086967ef17b5b7c867c61c281f43954be1e31799afeceadf3571632d39784a9"
+      },
+      "tests/test_network_contract.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_network_contract.py.log",
+        "sha256": "95fb562ccbdea095564f85b59bad1b049a78ee11473d892cf9cd116eeeb48f05"
+      },
+      "tests/test_nominal_env.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_nominal_env.py.log",
+        "sha256": "e1ecd94bd10475bb2fe632cc318a18638d1aa58ddd2c33791534e6f492001d63"
+      },
+      "tests/test_nominal_math.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_nominal_math.py.log",
+        "sha256": "76de8cdc86152ee2093f6696daa77264cbf4be25742b4865571aada89c4015b5"
+      },
+      "tests/test_objective_signal_fix.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_objective_signal_fix.py.log",
+        "sha256": "9a39b0e3dbece48c8c959f493a97fe7d3ece66f6696a591991b98abb4b2fe7e8"
+      },
+      "tests/test_observation_contract.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_observation_contract.py.log",
+        "sha256": "90b815cf95f171c9cc6302c0e222e0c117d2eee06c590f0259ab6aa7733e55f7"
+      },
+      "tests/test_physical_loop.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_physical_loop.py.log",
+        "sha256": "3bea44e44a21ce7f7f9863ebb901d67b14c2514b2fd1c6dd3e793eec1fc8b291"
+      },
+      "tests/test_policy_grad_decomp.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_policy_grad_decomp.py.log",
+        "sha256": "bbaeb3e183f592d41b9b72d04ad4a7e135ba782c6c5a8962c43445accce67f96"
+      },
+      "tests/test_pose_footprint.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_pose_footprint.py.log",
+        "sha256": "3c9dbc73a92dd6e5c194853f149a32679f9df3b4bfa9b66c3f35b049e46269aa"
+      },
+      "tests/test_rcppo_alignment.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_rcppo_alignment.py.log",
+        "sha256": "c4e7df0b6e1668da8a7f0ddc3256a5eb65260c77b3cee0d85a8f19fc38483ff6"
+      },
+      "tests/test_rollout_resume.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_rollout_resume.py.log",
+        "sha256": "36aa8f9a2803c27e99072517ae5a89a08af4bc290051309db5de1a2519aded3b"
+      },
+      "tests/test_safety_geometry.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_safety_geometry.py.log",
+        "sha256": "d659e4930d591ab39529023cc1e6b2b67d09b9b9bcf29a6528a0def09eb199f1"
+      },
+      "tests/test_scene_mapping.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_scene_mapping.py.log",
+        "sha256": "c8daee87172ddd967934442422371bc859cb7d4084f5d959f41a1caf6592b999"
+      },
+      "tests/test_splits.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_splits.py.log",
+        "sha256": "2f7e688e8fabb6c5b6e4e36596190f870b50bc84fc5816968ccf17ef1f564413"
+      },
+      "tests/test_steering_curriculum.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_steering_curriculum.py.log",
+        "sha256": "66ba75036961a194437a3558ee6a7cbaa3f201666d44e470b334cd98b93a9c49"
+      },
+      "tests/test_targets_oracle.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_targets_oracle.py.log",
+        "sha256": "2a79521a684933bb3e099ab4f48772fa93cec3e1ba0d5c69d6c26aeb021c1dee"
+      },
+      "tests/test_toy_reference.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_toy_reference.py.log",
+        "sha256": "aacb63ff90f9760d16977acf5a7e7510e18f37591492c5db80aab78ab88f0317"
+      },
+      "tests/test_training_semantics.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_training_semantics.py.log",
+        "sha256": "24424db2af270f5bb992a885270beb43ddfa2e54ec37d4ba74bdd0fdd0e59a6d"
+      },
+      "tests/test_value_objective.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_value_objective.py.log",
+        "sha256": "ab13b14dc51d770bb7f9e60efcb9c9e8c3bbab9279ef6cbba6b0f57b8356639d"
+      },
+      "tests/test_vector_equivalence.py": {
+        "exit_code": 0,
+        "log": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/regression/test_vector_equivalence.py.log",
+        "sha256": "180571e996ebb04a2607d1cdb5477f00a01237c73af36c34d6e4f27aa023addc"
+      }
+    }
+  },
+  "replay": {
+    "path": "CaMRA/navigation/reports/gate_feedback_v1_attempt4.replay.json",
+    "sha256": "df7ee5078316329cf198f9f0f26980653adf4eedff80457e99ff3a906bd2ea80",
+    "split": "train",
+    "updates": [
+      0,
+      300,
+      599
+    ],
+    "samples": 73548,
+    "unsafe_samples": 8532,
+    "changed_joint_targets": 20918,
+    "legacy_ok": true,
+    "feedback_bounds_ok": true
+  },
+  "preservation": {
+    "preflight": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/preflight.json",
+    "source_snapshot": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/source_before",
+    "snapshot_hashes_match": true,
+    "legacy_configs_unchanged": {
+      "config/training_loop_prereg_r2.json": true,
+      "config/training_loop_prereg_r2.json.sha256": true,
+      "config/formal_training_prereg_v3.json.sha256": true,
+      "config/rcppo_alignment_contract_v1.amend4.json": true,
+      "config/training_loop_prereg_r11.json.sha256": true,
+      "config/training_loop_prereg_r1.json": true,
+      "config/action_init_fix_prereg_v1.json.sha256": true,
+      "config/deployment_freeze_prereg_v1.amend1.json": true,
+      "config/training_loop_prereg_r8.json.sha256": true,
+      "config/training_loop_protocol_v1.json": true,
+      "config/budget_comparison_contract_v1.json": true,
+      "config/training_loop_prereg_r8.json": true,
+      "config/gate_g4_prereg_v1.json": true,
+      "config/deployment_freeze_prereg_v1.json.sha256": true,
+      "config/training_loop_prereg_r11.json": true,
+      "config/map_design_v1.json": true,
+      "config/training_loop_prereg_r14_repair_v2.json.sha256": true,
+      "config/rcppo_alignment_contract_v1.amend4.json.sha256": true,
+      "config/training_loop_prereg_r12_nomask.json": true,
+      "config/split_manifest_v1.json": true,
+      "config/budget_action_fix_prereg_v1.json.sha256": true,
+      "config/training_loop_prereg_r13_b0.json.sha256": true,
+      "config/training_loop_prereg_r14.json": true,
+      "config/training_loop_prereg_r7.json": true,
+      "config/objective_cost_mask_prereg_v1.json": true,
+      "config/smoke_training_prereg_v1.json.sha256": true,
+      "config/action_init_fix_prereg_v1.json": true,
+      "config/dead_step_mask_smoke_prereg.json": true,
+      "config/budget_selection_v1.json.sha256": true,
+      "config/training_loop_prereg_r6.json": true,
+      "config/training_loop_prereg_r14_repair_v2.json": true,
+      "config/value_objective_contract_r14_repair_v1.json": true,
+      "config/training_loop_prereg_r5.json": true,
+      "config/gate_g3_alignment_v2_prereg.json.sha256": true,
+      "config/smoke_training_prereg_v1.json": true,
+      "config/navigation_contract_v1.json": true,
+      "config/training_loop_prereg_r5.json.sha256": true,
+      "config/training_loop_prereg_r9.json.sha256": true,
+      "config/rcppo_alignment_contract_v1.amend2.json.sha256": true,
+      "config/training_loop_prereg_r3.json.sha256": true,
+      "config/value_objective_contract_v1.json": true,
+      "config/navigation_contract_r14_repair_v1.json.sha256": true,
+      "config/dead_step_mask_prereg_v1.json.sha256": true,
+      "config/rcppo_alignment_contract_v1.amend1.json": true,
+      "config/objective_signal_fix_prereg_v1.json.sha256": true,
+      "config/training_loop_prereg_r4.json.sha256": true,
+      "config/policy_decomp_smoke_prereg.json": true,
+      "config/dead_step_mask_prereg_v1.json": true,
+      "config/training_loop_prereg_r4.json": true,
+      "config/navigation_contract_r14_repair_v2.json": true,
+      "config/rcppo_alignment_contract_v1.amend5.json": true,
+      "config/wallclock_amend_v1.json": true,
+      "config/geometry_margin_closedloop_v1.json": true,
+      "config/geometry_contract_v1.json": true,
+      "config/training_loop_prereg_r11_steeronly.json.sha256": true,
+      "config/objective_cost_mask_prereg_v1.json.sha256": true,
+      "config/training_loop_prereg_r7.json.sha256": true,
+      "config/experiment_prereg_v1.json": true,
+      "config/r14_repair_numerical_protocol_v2.json": true,
+      "config/training_loop_protocol_v1.json.sha256": true,
+      "config/calibration_applicability_prereg_v1.json": true,
+      "config/rcppo_alignment_contract_v1.json": true,
+      "config/geometry_margin_closedloop_v1.json.sha256": true,
+      "config/r14_repair_numerical_protocol_v2.json.sha256": true,
+      "config/training_loop_prereg_r13.json": true,
+      "config/training_loop_prereg_r10.json.sha256": true,
+      "config/rcppo_alignment_contract_v1.amend3.json.sha256": true,
+      "config/smoke_training_prereg_v1.amend1.json": true,
+      "config/budget_selection_v1.json": true,
+      "config/formal_training_prereg_v1.json": true,
+      "config/training_loop_prereg_r3.json": true,
+      "config/training_loop_prereg_r10.json": true,
+      "config/dead_step_mask_smoke_prereg.json.sha256": true,
+      "config/rcppo_alignment_contract_v1.json.sha256": true,
+      "config/gate_g4_prereg_v1.json.sha256": true,
+      "config/budget_action_fix_prereg_v1.json": true,
+      "config/training_loop_prereg_r13_b0.json": true,
+      "config/training_loop_protocol_v1_1.json.sha256": true,
+      "config/training_loop_prereg_r14_repair_v1.json.sha256": true,
+      "config/training_loop_prereg_r12.json.sha256": true,
+      "config/smoke_training_prereg_v1.amend2.json": true,
+      "config/formal_training_prereg_v3.json": true,
+      "config/resource_budget_v1.json": true,
+      "config/rcppo_alignment_contract_v1.amend2.json": true,
+      "config/training_loop_prereg_r14_repair_v1.json": true,
+      "config/training_loop_protocol_v1_1.json": true,
+      "config/objective_signal_fix_prereg_v1.json": true,
+      "config/training_loop_prereg_r11_steeronly.json": true,
+      "config/training_loop_prereg_r12.json": true,
+      "config/formal_training_prereg_v1.json.sha256": true,
+      "config/deployment_freeze_prereg_v1.json": true,
+      "config/training_loop_prereg_r14.json.sha256": true,
+      "config/runtime_paths.json": true,
+      "config/formal_training_prereg_v2.json.sha256": true,
+      "config/r14_repair_numerical_protocol_v1.json.sha256": true,
+      "config/r14_repair_numerical_protocol_v1.json": true,
+      "config/navigation_contract_r14_repair_v1.json": true,
+      "config/rcppo_alignment_contract_v1.amend3.json": true,
+      "config/policy_decomp_smoke_prereg.json.sha256": true,
+      "config/formal_training_prereg_v2.json": true,
+      "config/training_loop_prereg_r13.json.sha256": true,
+      "config/training_loop_prereg_r1.json.sha256": true,
+      "config/gate_g3_alignment_v2_prereg.json": true,
+      "config/training_loop_prereg_r6.json.sha256": true,
+      "config/value_objective_contract_r14_repair_v1.json.sha256": true,
+      "config/training_loop_prereg_r9.json": true,
+      "config/training_loop_prereg_r12_nomask.json.sha256": true,
+      "config/snapshots/navigation_contract_v1.zref225.6069.json": true,
+      "config/snapshots/value_objective_contract_v1.mgn0.5.pre-1.2.0.json": true,
+      "config/snapshots/value_objective_contract_v1.zref225.6069.json": true,
+      "config/snapshots/budget_comparison_contract_v1.zref225.6069.json": true
+    },
+    "preexisting_untracked_hashes": {
+      "CaMRA/navigation/reports/nav064_r14a2_closure.json": "41dfea468fbd0569523ad269bc555968ba6920465711d931b7987310560403a9",
+      "CaMRA/navigation/reports/training_round_r14a2.json": "f75af1ee569f2856606b06bb24f86e405c2a2fcac5f6779eb261d4b89b2d7cc0",
+      "CaMRA/navigation/reports/training_round_r14a2.references.json": "cfcd33f03e70623ed3a486a2b33f1a6793d1c76e72c68b1171c614d044078190",
+      "doc/plan/20261109_camra_navigation_implementation.json.bak_20261115": "497dcd35eec46674310e33187633790ac08b0e0360287ccbc6376b353cf7b02d"
+    },
+    "frozen_inputs": {
+      "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json": true,
+      "CaMRA/calibration/config/calibration_protocol_v1.0.2.json": true,
+      "CaMRA/calibration/config/power_model_v1.json": true,
+      "CaMRA/calibration/config/footprint_v1.json": true,
+      "CaMRA/calibration/config/margins_v1.json": true,
+      "CaMRA/calibration/config/data_lock_v1.json": true,
+      "CaMRA/calibration/config/step_cost_schema_v1.json": true
+    },
+    "v2_bundle_29_files": {
+      "FROZEN": true,
+      "README.md": true,
+      "model/model_2999.pt": true,
+      "results/task024_aggregate.txt": true,
+      "results/task026_aggregate.json": true,
+      "results/task026_rollout_jit.json": true,
+      "results/task026_rollout_onnx.json": true,
+      "results/task026_rollout_trainer.json": true,
+      "assets/Go2/usd/go2.usd": true,
+      "assets/Go2/usd/configuration/go2_description_base.usd": true,
+      "assets/Go2/usd/configuration/go2_description_physics.usd": true,
+      "assets/Go2/usd/configuration/go2_description_sensor.usd": true,
+      "exported/policy.onnx": true,
+      "exported/policy.pt": true,
+      "samples/obs_samples.npz": true,
+      "params/agent.yaml": true,
+      "params/camra_env_cfg.py": true,
+      "params/deploy.yaml": true,
+      "params/env.yaml": true,
+      "params/export_manifest.json": true,
+      "params/export_verification.json": true,
+      "docs/eval_protocol.json": true,
+      "env/pip-freeze.txt": true,
+      "scripts/aggregate_rollout_arms.py": true,
+      "scripts/export_policy_candidate.py": true,
+      "scripts/freeze_controller_bundle.py": true,
+      "scripts/rollout_exported_policy.py": true,
+      "scripts/verify_export_consistency.py": true,
+      "scripts/verify_frozen_bundle.py": true
+    },
+    "protected_git_status": ""
+  },
+  "production_consumers": [
+    "train_formal.close_segment -> terminal_kind_for_event -> compute_objectives",
+    "training_sample_masks -> MinimizationUpdater -> policy/reach/normalization",
+    "audit_r14a2 --prereg -> verify_prereg -> selected registry/objective version",
+    "run_feedback_round -> selected prereg, audit100/audit600, development"
+  ],
+  "acceptance_scope": {
+    "NAV-062": "终端/样本接口受影响部分重验；预算、观测、动作及物理接口的有效证据由32套回归复核。",
+    "NAV-063": "共同停止/三估计器/受控PPO/旧train重算及当前生产消费者门禁通过；有限时域和安全边界是版本化Go2适配，不声称全部JAX逐位一致。",
+    "NAV-064": "保持false：r14a2为FAIL_DEVELOPMENT；新版尚无训练/开发性能证据。",
+    "NAV-065_to_067": "未执行；新checkpoint、双critic冻结、价值预算搜索及物理子步仍按原任务重验。"
+  },
+  "proposal": {
+    "path": "CaMRA/navigation/config/training_loop_feedback_proposal_v1.json",
+    "sha256": "91dfb66d0cedc0ce1f56c99eeb097e75c29051758f10d2ffaa0e300c847440e5",
+    "requested_runs": 6,
+    "updates_per_run": 600,
+    "samples": 14709600,
+    "first100_included": true,
+    "status": "PROPOSED_NOT_FROZEN",
+    "performance_thresholds": {
+      "primary_metric": "sr_feasible = 到达 ∧ 全程 safety_y=0 ∧ z_end>=0",
+      "closing_tier_source": "development 6 图 × 3 种子 × k=1.15（T=45 s），确定性均值动作",
+      "sr_feasible_median": 0.1,
+      "energy_ratio_median": 1.0,
+      "danger_steps_median_full": 0,
+      "note": "sr_feasible 是本轮主判据；历史 sr（label==goal_reached）与 sr_within_budget 并列报告，便于与 r1-r12 对照，但不得单独引用 sr 报喜",
+      "budget_response_on_dev": {
+        "grid_k": [
+          1.0,
+          1.15,
+          1.3
+        ],
+        "purpose": "诊断：余量继续增大时到达与能耗如何变化"
+      },
+      "ideal_tier": {
+        "sr_feasible": 0.9,
+        "collision_rate": 0.0,
+        "energy_ratio": 1.0
+      },
+      "energy_aggregation": "每种子六张图energy/budget中位数，再取三种子中位数；danger为每种子六图总步数后取三种子中位数。成功率为安全可行到达全分母。",
+      "required_additional_audits": [
+        "完整600次更新与18×227窗口",
+        "无NaN/Inf与固定old_log_prob多epoch",
+        "原始样本共同停止/预算/动作审计",
+        "train/development数据路径、地图、散列及候选身份一致",
+        "reach gamma_2 actual per-update/chunk consumption",
+        "strict pre-reset identity/budget agreement",
+        "all final checkpoints and current attempt registry identities"
+      ]
+    }
+  },
+  "limits": [
+    "Original JAX dependency remains outside this environment; no dependency installed. Common constant case uses the source-checked transcription; independent scalar enumeration is the primary oracle.",
+    "Distinct-baseline insertion, absorbing-failure continuation and explicit boundary table are recorded Go2 correctness adaptations; no claim of bitwise identity with all original JAX outputs.",
+    "CPU controlled updates and existing train replay only; no new performance evidence.",
+    "Safety continuation bounds are a versioned Go2 adaptation, not literal RC-PPO source.",
+    "NAV-064 stays false until authorized training and development acceptance pass.",
+    "所有旧失败和原始数据保留；本次数值通过不构成新增资源授权或训练性能通过。"
+  ],
+  "historical_large_report": {
+    "schema": "camra-large-report-index-v1",
+    "owner": "NAV-064",
+    "report": "r14a2 development negative result",
+    "original_path": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/training_round_r14a2.json",
+    "preserved_copy": "/pub/data/caohy/work/camra_navigation/nav064_feedback_repair_20261116_v1/historical_reports/training_round_r14a2.json",
+    "sha256": "f75af1ee569f2856606b06bb24f86e405c2a2fcac5f6779eb261d4b89b2d7cc0",
+    "size_bytes": 70826777,
+    "verdict": "FAIL_DEVELOPMENT",
+    "closure": "reports/nav064_r14a2_closure.json",
+    "retention": "Original file remains unchanged. Full report archived outside Git; no deletion or result reclassification."
+  }
+}

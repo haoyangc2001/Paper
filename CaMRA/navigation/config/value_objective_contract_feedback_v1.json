@@ -1,0 +1,304 @@
+{
+  "schema": "camra-navigation-value-objective-v1",
+  "version": "1.4.0-feedback",
+  "created_at": "2026-11-16",
+  "owner_tasks": [
+    "NAV-064"
+  ],
+  "depends_on": [
+    "NAV-012",
+    "NAV-013",
+    "NAV-055"
+  ],
+  "status": "numerical_candidate_not_training_approval",
+  "status_note": "NAV-064 finite task boundary and all-state feedback correction; historical contracts unchanged.",
+  "objective": {
+    "statement": "在冻结 v2 底层之上，找到使任务成功率可行的最小未折扣累计机械功执行策略；成本只累加执行前缀，不按时间折扣。",
+    "cost_per_step": "c_model,t = (1 + alpha) * P_nom(u_applied,t) * dt_nav，dt_nav = 0.1 s，单位 J",
+    "episode_cost": "J_task = sum_{t=0}^{T-1} c_model,t，未折扣；T 为到达或终止时刻",
+    "success_condition": "存在 t <= T 使 dist(x_t, goal) <= r_goal 且 y_t = 0 且 z_t >= 0",
+    "tie_break": "同成功率下比较 J_task 的中位数与上分位；不允许只报均值",
+    "what_is_not_the_objective": [
+      "电池能量、电压积分或功率积分以外的任何代理量",
+      "RC-PPO 的 sum(control^2)/2 或 a.u. 预算",
+      "按 <1 的折扣因子加权的成本（那会把晚发生的能耗当成更便宜）"
+    ]
+  },
+  "quantities": {
+    "z_0": {
+      "meaning": "本回合初始预算",
+      "unit": "J",
+      "source": "场景参数（由 NAV-041 预算搜索给出），每回合固定",
+      "note": "不是归一化尺度；不得用作 z_ratio 的分母"
+    },
+    "spent_J": {
+      "meaning": "截至当前时刻的累计模型成本",
+      "definition": "sum_{s<t} c_model,s",
+      "unit": "J"
+    },
+    "z_J": {
+      "meaning": "有符号剩余预算",
+      "definition": "z_0 - spent_J",
+      "unit": "J",
+      "range": "可正可负；负值表示已超支",
+      "note": "与 calibration BudgetState.z_ratio 的区别：后者分母是本回合 initial_J 且下限截零，不保留负值信息"
+    },
+    "Z_REF_J": {
+      "meaning": "归一化尺度（场景级常数）",
+      "value": 550.0,
+      "previous_value": 225.6069087767049,
+      "provenance": "1.05 x 54 张图里最大的参考路线能量（NAV-058：L2 489.397680362936 J）向上取整；三级的参考成本因此落在 0.66-0.89，均严格小于 FAIL_PENALTY=1.0",
+      "rule": "按场景固定；严禁随本回合初始预算变化",
+      "confirmed_by": "NAV-035 重定（旧值 225.6069087767049 J 是解析省能速度 0.30986 m/s 的 30 s 能量，低于全部场景的参考能量，导致可行性被判死、观测饱和、FAIL_PENALTY 弱于成功成本）",
+      "change_reason": "NAV-035 / OI-2：z_ratio 必须不饱和，而 z0 <= Z_REF_J；旧值使任何策略在整个回合里都不可行"
+    },
+    "z_ratio": {
+      "meaning": "归一化有符号剩余预算",
+      "definition": "observation clip(z_J/Z_REF_J,-3,3); objective uses unclipped z_J/Z_REF_J",
+      "unit": "无量纲",
+      "range": [
+        -3.0,
+        3.0
+      ],
+      "note": "与观测 obs-v1 的 z_ratio 字段同式同值，训练与观测不得各算一套"
+    },
+    "g_norm": {
+      "meaning": "归一化到目标的剩余距离",
+      "definition": "(dist(x, goal) - r_goal) / L_REF，当 dist <= r_goal 时取 G_INSIDE",
+      "L_REF_m": 15.0,
+      "L_REF_source": "与 obs-v1 的 MAP_HALF_M 同值；NAV-017 若改地图半幅需同步升版本",
+      "G_INSIDE": -3.0,
+      "property": "g_norm <= 0 当且仅当在目标集内；上界约 2.0（30 m 对角）",
+      "unit": "无量纲",
+      "G_INSIDE_previous": -0.001,
+      "G_INSIDE_rationale": "r14 尺度审计（scripts/t_scale_audit.py，工作记录 38）：参考 RC-PPO 的 reach 通道到达时为 -300（×100 标度），本仓 h 归一到 [0,1] 量纲折算约 -3。v1 的 -0.001 使到达几乎无奖励，min 型递推在非负域上把全程压平、方向反转（amend3 反例：corr(h,adv) 2/3 run 翻负）。深井后 clean arrival 的 h_T=-3，任何违规到达 h_T=C·y∈[0.2,1] 仍严格劣于 clean arrival。",
+      "h_semantics": "v1（r1-r13）：h=max(g_norm, C·y)，安全态被 max(·,0) 裁剪；v2_deep_well（r14 起）：安全态 h=g_norm（不裁剪），违规态（含分级 y）仍 h=max(g_norm, C·y)。可行集不变：违规步 h≥C·y_floor>0 不可行，目标集外安全步 h=g_norm>0 未到达。"
+    },
+    "C": {
+      "meaning": "安全常数：安全历史 y=1 时的惩罚",
+      "value": 1.0,
+      "unit": "无量纲",
+      "requirement": "C > 0 且 C >= 1.0，使 y=1 时 C*y 严格大于任何可达的 G_INSIDE 与 -z_ratio 上界 1.0",
+      "note": "C=1.0 恰好等于 -z_ratio 的最坏值 1.0，两者并列时仍 > 0，判据不翻转",
+      "note_v1_3_0": "obs-v4（r14）把 z_ratio 编码上界放宽到 ±3 后，−z_ratio 可超过 C=1.0。这不破坏可行性判据：两者都 > 0 即不可行，深超支比撞死『更不可行』只是训练信号的量级排序，不改变可行集。C 仍取 1.0。"
+    },
+    "V_c": {
+      "meaning": "成本评价网络：从当前状态到共同停止时刻的期望归一化成本",
+      "definition": "E[sum_{s=t}^{tau*-1} c_model,s] / Z_REF_J",
+      "unit": "无量纲（J / Z_REF_J）",
+      "sign": "非负",
+      "normalization": "除以 Z_REF_J，与 z_ratio 同尺度；不得以 J 直接输出"
+    },
+    "V_h": {
+      "meaning": "可达性评价网络：在共同停止时刻前能否既到目标又不违反安全历史",
+      "definition": "normalized min-Bellman reach estimate under shared stopping; safe h=g_norm; unsafe h=max(g_norm,C*y)",
+      "unit": "无量纲",
+      "sign": "<= 0 表示存在安全到达，> 0 表示不能",
+      "bellman": "Finite-horizon min Bellman; reach gamma_2 schedule remains an explicitly approximate estimator, joint gamma=1."
+    },
+    "beta": {
+      "meaning": "可行性阈值",
+      "value": 0.0,
+      "rule": "判定可行当且仅当 W <= -beta；beta > 0 表示要求留出裕度",
+      "reference": "RC-PPO 的 THRESHOLD_CPPO 默认 0.0，与本值一致",
+      "not_a_safety_margin": "beta 是数值可行性容差，不能替代 delta 或作为安全裕度解释"
+    },
+    "safety_severity": {
+      "meaning": "r14 分级安全历史：y 从二值升级为 [0,1] 严重度，不可逆 max-历史（只增不减）",
+      "definition": "violation 步的严重度 = clip(floor + (1-floor)·depth/ref_depth_m, floor, 1)，depth=侵入名义边界（膨胀障碍/墙带）的深度（米）；episode 内 y_t = max(历史严重度)。无违规步严重度=0。",
+      "operational_params": {
+        "severity_floor": 0.2,
+        "severity_ref_depth_m": 0.25
+      },
+      "param_source": "预登记 safety_continuity 段（训练器/评估器读取，不硬编码）",
+      "rationale": "F1：二值盖章下轻擦边=深撞同价（都 1.0），策略无从学会『贴边可以、撞深不行』；F2：盖章后 h 恒为常数，后续步无梯度。分级后价格连续且保留不可逆性。撞死（collision/out_of_bounds）回合仍以 FAIL_PENALTY=1.0 终止，语义不变。",
+      "unit": "无量纲（与 C·y 同尺度）"
+    }
+  },
+  "residual": {
+    "formula": "W(x) = max( V_h(x), V_c(x) - z_ratio )",
+    "reading": "V_c - z_ratio <= 0 表示预计剩余成本装得进剩余预算；V_h <= 0 表示能安全到达；两者都满足才可行",
+    "single_stop_time": "W 的 max 必须在同一个停止时刻上取，不得让两个 critic 各自选时刻",
+    "why_not_sum": "求和会把「能到达但超支」和「装得进预算但到不了」互相抵消，破坏分离语义",
+    "scale_requirement": "V_c、z_ratio 同为 J/Z_REF_J；V_h、g_norm、C 为无量纲。任一侧混入 J 会使 W 失去意义（见反例 2）"
+  },
+  "stop_rule": {
+    "definition": "tau*(t)=first argmin_{tau>=t} max(h_tau,spent(t,tau)+[tau=T]*V_c(T)-z_t); the same stop mask is consumed by all three estimators",
+    "implementation_note": "RC-PPO calculate_indexs3 在倒序扫描中逐步选 argmin，因此是「每步对尾段重新取最优停止」，不是一次性全局 argmin；实现必须复刻该语义而非改写为全局 argmin",
+    "done_marking": "被选中的位置记 done=1，供 GAE 截断与分段使用；与 env_done、measurement_end 三者分开命名（NAV-012）",
+    "shared_index": "两个 critic 共用同一 tau*；违反即视为实现错误，不是数值差异",
+    "counterexample": "reports/value_objective_alignment.json 的 separate_stop_counterexample：分开取时刻会给出 W=-0.1（误判可行），正确值为 +0.5（不可行）"
+  },
+  "estimator": {
+    "gamma_cost": 1.0,
+    "gamma_cost_rationale": "目标就是未折扣累计 J。RC-PPO 的 GAMMA_ENERGY 默认值恰为 1.0，本条沿用而非改写；若改成 0.99，同样 100 J 但晚发生的轨迹会被低估约 8.65 J（见反例 1），等于偷偷把目标改成折扣成本。",
+    "gae_lambda": 0.95,
+    "gae_lambda_rationale": "λ 是估计器的偏差-方差折中，不是目标。γ_c=1 时 TD(λ) 目标是 n 步回报的 λ 加权混合，λ=1 即蒙特卡洛；0.95 为参考实现取值。",
+    "gamma_h_init": 0.999,
+    "gamma_h_final": 0.99999,
+    "gamma_h_rationale": "Reference gamma_2 schedule, 0.999 to 0.99999 at half horizon, retained as an estimator approximation. Finite horizon does not require contraction; gamma_h<1 does not establish an exact finite-horizon zero-threshold certificate.",
+    "clip_eps": 0.2,
+    "ent_coef": 0.01,
+    "vf_coef": 0.5,
+    "max_grad_norm": 2.5,
+    "optimization_hyperparameters_note": "clip_eps / ent_coef / vf_coef / lr / epochs / minibatches / max_grad_norm 属于优化超参，训练任务可调整，不改变本契约语义，因此不在此冻结具体值以外的约束。",
+    "max_grad_norm_provenance": "NAV-034 复判整改（用户批准）：0.5 在短训练中导致 97.8% 更新被裁剪、CLI 步长与梯度脱钩；1.2.0 仅改此一处，1.1.0 的逐字节快照在 config/snapshots/value_objective_contract_v1.mgn0.5.pre-1.2.0.json（sha256=cd3c232218dce1a9386de57ec4de3075af8fdcea4882532cd7651c5765be1a60）。其余估计器量与 1.1.0 完全一致。",
+    "version": "rcppo-feedback-v4",
+    "gamma_joint": 1.0,
+    "gamma_joint_rationale": "Finite horizon with explicit remaining time: F_0=q_T and F_H=min(q_t,F_{H-1}); gamma_joint=1 preserves the exact finite-horizon zero threshold. This is independent of undiscounted mechanical work."
+  },
+  "bootstrap": {
+    "types": [
+      "env_done_failure",
+      "env_done_success",
+      "task_end",
+      "sampling_slice",
+      "training_stop_segmentation"
+    ],
+    "env_done_failure": {
+      "target": "V_c 目标 = FAIL_PENALTY；V_h 目标 = FAIL_PENALTY",
+      "bootstrap": false,
+      "reason": "失败是终止事件，后续状态无意义；不给 bootstrap 以免把失败价值向后续状态摊薄"
+    },
+    "env_done_success": {
+      "target": "V_c 目标 = 该段实际归一化成本；V_h 目标 = 该时刻 g_norm",
+      "bootstrap": false
+    },
+    "training_stop_segmentation": {
+      "target": "按 tau* 截断，其后不计入优势",
+      "bootstrap": false,
+      "reason": "停止分段是训练用的最优停止语义，与环境终止无关；混用会同时破坏 GAE 截断与停止含义"
+    },
+    "FAIL_PENALTY": {
+      "value": 1.0,
+      "unit": "无量纲（与 V_c 同尺度）",
+      "rationale": "必须 > 0 且不弱于任何可行结局（可行时 W <= 0）；取 1.0 与 C 同量级",
+      "status": "provisional",
+      "review": "NAV-034 训练诊断时若有证据表明过大/过小再调整，需升版本"
+    },
+    "task_end": {
+      "events": [
+        "timeout",
+        "stagnation"
+      ],
+      "bootstrap": false,
+      "target": "V_c(T)=0; V_h(T)=measured h_T; joint(T)=max(h_T,-z_T); task ended, no learned future."
+    },
+    "sampling_slice": {
+      "events": [
+        "none"
+      ],
+      "bootstrap": true,
+      "target": "Captured V_c(x_T), bounded V_h(x_T); environment and budget continue across window."
+    }
+  },
+  "training_targets": {
+    "policy_advantage": "normalized min-GAE joint target with gamma_joint=1, minus raw W=max(V_h,V_c-z)",
+    "cost_critic_target": "advantages_V + value（GAE(gamma_cost, lambda)）",
+    "reach_critic_target": "advantages_h + value_h（GAE(gamma_h, lambda)，min 型 Bellman）",
+    "normalization": "优势按 (A - mean) / (std + 1e-8) 归一化后再进损失",
+    "policy_loss": "最小化 mean(max(ratio*A, clip(ratio)*A)) + 熵项（最小化下熵为负号）；不得照抄成 min + 梯度上升",
+    "common_value_units": "V_c 与 z_ratio 同为 J/Z_REF_J；V_h 为无量纲残差量；两者在 W 中相加/取 max 前必须已同尺度"
+  },
+  "sign_conventions": [
+    "成本 c_model > 0（支出为正），z 递减",
+    "V_c >= 0，表示还要花的归一化成本",
+    "V_h <= 0 表示可安全到达；> 0 表示不能",
+    "y>0 时 C·y > 0 使 ĝ 为正（不可行）；y=0 且在目标集内时 ĝ=G_INSIDE=-3 < 0（深井）。v1.3.0 修订：v1 的『ĝ 必为正』在安全到达时不成立，正是 min 递推翻负的根因",
+    "W <= -beta 判为可行",
+    "优势 A > 0 表示该动作比基线更差（成本最小化），降低其概率；A < 0 则提高概率"
+  ],
+  "reference_diff": {
+    "baseline": "RC-PPO EFPPO_utils full-sample updates and EC-EFPPO separate energy/reach discounts",
+    "preserved_adaptations": [
+      "Go2 interfaces and graded irreversible safety",
+      "shared stop and forced absorbing-failure convention",
+      "T+1 baseline and normalized n-step mixtures"
+    ],
+    "new_corrections": [
+      "real deadline/stagnation differs from external sampling slice",
+      "all graded states participate in learning",
+      "analytical continuation bounds without loss dead zones"
+    ]
+  },
+  "forbidden": [
+    "用 J 数值直接与无量纲 V_h 比较",
+    "把 z_ref 设成本回合初始预算并据此归一化",
+    "让两个 critic 各自选择停止时刻",
+    "把 <1 的 gamma 当作目标折扣（§estimator 已说明 gamma_cost=1）",
+    "把 beta 当作安全裕度或与 delta 混用",
+    "在截断样本上做 bootstrap 却在评估时当作失败",
+    "用 FAIL_PENALTY 参与可行性判定 W <= -beta"
+  ],
+  "provisional": [
+    {
+      "item": "C = 1.0",
+      "basis": "与 -z_ratio 最坏值同量级且严格为正，判据不翻转",
+      "confirm_by": "NAV-034 训练诊断"
+    },
+    {
+      "item": "FAIL_PENALTY = 1.0",
+      "basis": "与 C 同量级，明显劣于任何可行结局",
+      "confirm_by": "NAV-034"
+    },
+    {
+      "item": "gae_lambda = 0.95",
+      "basis": "参考实现取值，属估计器超参",
+      "confirm_by": "NAV-034 可调，不需要改目标语义"
+    }
+  ],
+  "open_items": [
+    {
+      "item": "L_REF_m 与地图半幅同步",
+      "owner": "NAV-017",
+      "note": "若地图半幅不是 15 m，g_norm 与 obs 的 px_n/py_n 需同版本调整"
+    },
+    {
+      "item": "z_0 的场景取值",
+      "owner": "NAV-041",
+      "note": "预算搜索产出的可行预算，不是本契约的常数"
+    }
+  ],
+  "amendments": [
+    {
+      "version": "1.3.0",
+      "date": "2026-11-15T17:32:00+08:00",
+      "authorized_by": "用户 2026-11-15T17:32 三点决策（r14 开工、并入安全项连续化与停滞规则、M10 留 NAV-066）",
+      "changes": [
+        "quantities.g_norm.G_INSIDE: -0.001 -> -3.0",
+        "quantities.safety_severity: 新增（分级安全历史）",
+        "sign_conventions『ĝ 必为正』条: 修订为 ĝ 可为负（深井）",
+        "配套代码：targets.safety_step_v2、geometry.update_safety_history_graded、observation.obs-v4（z_ratio clip 1.5 -> 3.0）、train_formal h_semantics 接线"
+      ],
+      "incompatible_with": "r1-r13 的数值结果（h 语义与观测编码均变）"
+    },
+    {
+      "version": "1.4.0-feedback",
+      "authorized_by": "User requested execution of the preceding finite-horizon/safety-feedback analysis; extra training remains separately proposed.",
+      "source_sha256": "7f15173beab3cf4f8f64b934bcdfed7e1430a2d594b7d3e732cc5dd4b01c9ae9",
+      "changes": "finite task ends, all states, analytical continuation bounds; independently justified joint gamma=1; no metric/map/budget/v2 changes"
+    }
+  ],
+  "repair_boundary_table": {
+    "success": "V_c(T)=0; V_h(T)=measured h_T; joint(T)=max(h_T,-z_T); learned terminal critics ignored",
+    "failure": "shared tau*=T; no preceding stop allowed; final effective cost replaced by FAIL_PENALTY; terminal reach=FAIL_PENALTY; no learned bootstrap",
+    "truncation": "Captured V_c(x_T), bounded V_h(x_T); environment and budget continue across window.",
+    "task_end": "V_c(T)=0; V_h(T)=measured h_T; joint(T)=max(h_T,-z_T); task ended, no learned future."
+  },
+  "repair_estimators": {
+    "cost": "same stop flags; cost GAE with actual T+1 baseline, gamma_cost=1",
+    "reach": "normalized finite-horizon min GAE, gamma_h unchanged",
+    "joint": "normalized finite-horizon min GAE, gamma_joint=1",
+    "reference_differences": [
+      "reverse-scan horizon counter corrected in the source transcription",
+      "insert V(t) after processing t, to provide V(t+1) at the next chronological step; original JAX inserts V(t+1) and duplicates the terminal baseline",
+      "apply existing failure tau*=T rule as continuation-only Bellman on absorbing failure segments",
+      "finite boundary table makes actual h_T and captured reach bootstrap explicit; original terminal source cannot be inferred by duplicating V(T-1)"
+    ]
+  },
+  "feedback": {
+    "sample_policy": "all states in policy, reach regression, cost regression and advantage normalization",
+    "continuation_bounds": "When stopping allowed: C*y<=V_h<=h for y>0; V_h<=h for y=0. Absorbing failure has no stopping upper bound. Raw critic baseline/regression remains unprojected.",
+    "training_approval": "Not provided by this contract."
+  }
+}

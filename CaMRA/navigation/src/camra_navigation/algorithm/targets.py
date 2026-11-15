@@ -211,6 +211,26 @@ def joint_min_return(values: np.ndarray, baseline: np.ndarray,
     return q[:, 0]
 
 
+def bounded_reach_continuation(value: np.ndarray, signal: np.ndarray,
+                               safety_history: np.ndarray, C: float,
+                               *, allow_stop: bool = True) -> np.ndarray:
+    """Exact bounds on continuation values, without changing raw critic targets.
+
+    Stopping now gives V_h <= h.  Once y>0, its irreversible max history
+    gives h_s >= C*y_t at every future state, hence V_h >= C*y_t.
+    Apply these bounds to bootstraps; regress the raw critic against the
+    resulting targets so a prediction below the bound still receives gradients.
+    """
+    v, h, y = np.broadcast_arrays(np.asarray(value, dtype=np.float64),
+                                   np.asarray(signal, dtype=np.float64),
+                                   np.asarray(safety_history, dtype=np.float64))
+    lower = np.where(y > 0.0, float(C) * y, -np.inf)
+    if np.any(h < lower):
+        raise ValueError("reach signal contradicts irreversible safety history")
+    upper = h if allow_stop else np.full_like(h, np.inf)
+    return np.maximum(lower, np.minimum(v, upper))
+
+
 def min_gae_return(signals: np.ndarray, baseline: np.ndarray,
                    done: np.ndarray, gamma: float, lam: float,
                    *, force_continue: bool = False) -> np.ndarray:

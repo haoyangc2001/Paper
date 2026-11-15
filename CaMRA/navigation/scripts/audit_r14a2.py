@@ -134,6 +134,12 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
     checked(not np.any((a['terminated']|a['truncated'])[:-1]),'interior termination')
     checked(bool(a['terminated'][-1])!=bool(a['truncated'][-1]),'terminal flags')
     kind=e['terminal_kind']; kinds[kind]+=1
+    if cfg.estimator_version == 'rcppo-feedback-v4':
+     event_name=S.EVENT_NAMES[int(a['event_code'][-1])]
+     expected_kind='truncation' if event_name=='none' else S.terminal_kind_for_event(event_name,cfg)
+     checked(kind==expected_kind,'finite task ending vs sampling slice')
+     checked(bool(a['terminated'][-1])==(kind!='truncation'),'feedback terminal flag')
+     checked(F.training_sample_masks(a['safety_y'],pr,cfg)=={},'feedback all-state selection')
     gamma=F.reach_gamma_at_update(u,pr['window_semantics']['max_updates'],float(est['gamma_h_init']),float(est['gamma_h_final']))
     validate_runtime_metadata(e,episode_id=ep,z0=z0,k=k,update=u,gamma_h=gamma,gamma_joint=1.)
     if u in spot_updates:
@@ -186,11 +192,12 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  return {'run_id':rid,'updates_audited':updates,'checks_pass':True,'counts':dict(counters),'target_kinds':dict(kinds),'numerical_differences':dict(diffs),'stability':{k:stats([r[k] for r in ul]) for k in numeric_keys},'empirical_post_update_kl':{str(u):{'n':len(v),'mean':float(np.mean(v)),**stats(v)} for u,v in kl.items()},'budget_coverage':diagnostics,'canonical_index':str(canonical),'canonical_index_sha256':sha(canonical),'metadata_validation':'Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion.'}
 
 def main():
- ap=argparse.ArgumentParser(); ap.add_argument('--updates',type=int,default=600); ap.add_argument('--out',required=True); args=ap.parse_args()
+ ap=argparse.ArgumentParser(); ap.add_argument('--updates',type=int,default=600); ap.add_argument('--out',required=True)
+ ap.add_argument('--prereg',default='training_loop_prereg_r14_repair_v2.json'); args=ap.parse_args()
  checked(os.environ.get('TMUX'),'tmux required'); checked(socket.gethostname().split('.')[0]=='tiger11','host')
  torch.set_num_threads(1)
  out=Path(args.out); checked(not out.exists(),'output exists'); out.mkdir(parents=True)
- pr,pin=F.verify_prereg('training_loop_prereg_r14_repair_v2.json')
+ pr,pin=F.verify_prereg(args.prereg)
  report={'schema':'camra-r14a2-store-audit-v2','task':'NAV-064','time':datetime.datetime.now().astimezone().isoformat(),'prereg_sha256':pin,'script_sha256':sha(__file__),'updates_audited':args.updates,'runs':[],'verdict':'INCOMPLETE'}
  try:
   for variant in pr['method']['variants']:

@@ -1,0 +1,29 @@
+{
+  "schema": "camra-feedback-numerical-protocol-v1",
+  "version": "1.0.0",
+  "owner": "NAV-064",
+  "implementation_versions": {
+    "observation": "obs-v5",
+    "estimator": "rcppo-feedback-v4"
+  },
+  "boundary_contract": "config/value_objective_contract_feedback_v1.json",
+  "tolerance": {
+    "float64_atol": 1e-12,
+    "float64_rtol": 1e-10,
+    "float32_atol": 1e-06,
+    "float32_rtol": 1e-05
+  },
+  "cases": [
+    "independent n-step enumeration on arbitrary critics and every shared stopping position",
+    "real deadline/stagnation ignores learned future; external slice consumes both critics",
+    "analytical graded-safety bounds and raw regression gradient",
+    "crossing vs safe action controlled minimizing PPO probability update",
+    "all graded states enter production sample selection and updater",
+    "legacy r14a2 targets reproduce old stored objective arrays",
+    "existing train windows: two methods x three seeds x updates 0/300/599; no new performance rollouts",
+    "reference gamma_2 schedule and gamma_joint finite horizon threshold counterexample",
+    "startup rejects stale gates/code and unapproved training"
+  ],
+  "correlations": "diagnostics only, no mandatory global correlation sign",
+  "scope": "CPU numerical correction and replay of existing train data; no new training or development performance sampling."
+}

@@ -86,6 +86,16 @@ class StorageError(RuntimeError):
     """缓冲/状态文件的契约被违反（重复写入、错位、缺字段、哈希不符）。"""
 
 
+def terminal_kind_for_event(label: str, cfg: "ObjectiveConfig") -> str:
+    """Versioned task ending; legacy experiment semantics remain readable."""
+    if cfg.estimator_version == "rcppo-feedback-v4" and label in ("timeout", "stagnation"):
+        return "task_end"
+    try:
+        return TERMINAL_KIND[label]
+    except KeyError as exc:
+        raise StorageError(f"unknown terminal event {label!r}") from exc
+
+
 # ---------------------------------------------------------------- 字段表
 @dataclass(frozen=True)
 class FieldSpec:
@@ -304,7 +314,8 @@ def compute_objectives(
     term = np.asarray(arrays["terminated"], dtype=bool).reshape(-1)
     trunc = np.asarray(arrays["truncated"], dtype=bool).reshape(-1)
     b_c = np.asarray(arrays["bootstrap_value_cost"], dtype=np.float64).reshape(-1)
-    repaired = cfg.estimator_version == "rcppo-r14-v3"
+    feedback = cfg.estimator_version == "rcppo-feedback-v4"
+    repaired = cfg.estimator_version in ("rcppo-r14-v3", "rcppo-feedback-v4")
     if repaired and "bootstrap_value_reach" not in arrays:
         raise StorageError("rcppo-r14-v3 requires the actual final reach critic")
     b_h = np.asarray(arrays.get("bootstrap_value_reach", np.zeros_like(b_c)),
@@ -321,8 +332,24 @@ def compute_objectives(
                       ("bootstrap_value_cost", b_c), ("bootstrap_value_reach", b_h)):
         if arr.shape[0] != Tn:
             raise StorageError(f"{name} 长度 {arr.shape[0]} ≠ T={Tn}")
-    if terminal_kind not in ("failure", "success", "truncation"):
+    if terminal_kind not in (("failure", "success", "truncation", "task_end")
+                             if feedback else ("failure", "success", "truncation")):
         raise StorageError(f"未知 terminal_kind={terminal_kind!r}")
+    if feedback:
+        if (cfg.gamma_cost != 1.0 or cfg.gamma_joint != 1.0
+                or cfg.joint_cost_weight != 0.0 or cfg.joint_cost_base_weight != 0.0):
+            raise StorageError("feedback-v4 requires undiscounted costs/joint reach and no additive costs")
+        if "event_code" not in arrays:
+            raise StorageError("feedback-v4 requires explicit ending event identity")
+        event = EVENT_NAMES.get(int(np.asarray(arrays["event_code"])[-1]))
+        expected_kind = "truncation" if event == "none" else terminal_kind_for_event(event, cfg)
+        if terminal_kind != expected_kind:
+            raise StorageError(f"feedback-v4 ending {event!r} requires {expected_kind!r}")
+        if bool(trunc[-1]) != (terminal_kind == "truncation"):
+            raise StorageError("feedback-v4 task ends and external slices have different flags")
+        if (np.any(y_next < y) or np.any(y < 0.0) or np.any(y_next > 1.0)
+                or not np.allclose(y_next[:-1], y[1:], atol=1e-12, rtol=0.0)):
+            raise StorageError("feedback-v4 requires consistent irreversible safety history")
     if bool(term[0: Tn - 1].any()) or bool(trunc[0: Tn - 1].any()):
         raise StorageError("回合中间出现终止/截断标记：一个 chunk 只允许装一个完整回合")
     if bool(term[-1]) and bool(trunc[-1]):
@@ -376,6 +403,9 @@ def compute_objectives(
     # by that measured signal. True terminal states use no learned continuation.
     reach_boundary = (min(h_T, float(b_h[-1])) if terminal_kind == "truncation"
                       else h_T)
+    if feedback and terminal_kind == "truncation":
+        reach_boundary = float(T.bounded_reach_continuation(
+            reach_boundary, h_T, y_T, cfg.C))
 
     # --- 共同停止：三套估计器共用同一个 τ* 与 done ----------------------
     gamma_joint = cfg.gamma_cost if cfg.gamma_joint is None else float(cfg.gamma_joint)
@@ -444,9 +474,14 @@ def compute_objectives(
             # absorbing penalty, rather than adding the final action twice.
             effective_cost[-1] = cfg.fail_penalty
         vc_ext = np.concatenate([vc, [term_cost]])
-        vh_ext = np.concatenate([vh, [reach_boundary]])
+        vh_continuation = (T.bounded_reach_continuation(
+            vh, h_t, y, cfg.C, allow_stop=terminal_kind != "failure")
+                           if feedback else vh)
+        vh_ext = np.concatenate([vh_continuation, [reach_boundary]])
         joint_boundary = max(reach_boundary, term_cost - float(z_next[-1]))
-        total_ext = np.concatenate([total_value, [joint_boundary]])
+        continuation_total = (np.maximum(vh_continuation, vc - z)
+                              if feedback else total_value)
+        total_ext = np.concatenate([continuation_total, [joint_boundary]])
         shared_done = np.asarray(stop_now, dtype=bool)
         target_cost = T.cost_gae_return(effective_cost, vc_ext, shared_done,
                                        cfg.gamma_cost, cfg.gae_lambda)
