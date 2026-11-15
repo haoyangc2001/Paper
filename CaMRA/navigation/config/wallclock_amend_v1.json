@@ -1,0 +1,39 @@
+{
+ "schema": "camra-navigation-wallclock-amend-v1",
+ "task": "NAV-064",
+ "date": "2026-11-15T12:48:00+08:00",
+ "authorization": "用户 2026-11-15T12:48 明确要求：两个预算限制（单轮时长、累计总时长）全部剔除，不设上限，质量优先，接受花大量时间提升质量。",
+ "decision": {
+  "per_round_wall_clock_cap_h": null,
+  "total_wall_clock_cap_h": null,
+  "policy": "quality_first_no_wallclock_cap",
+  "applies_from_round": 13
+ },
+ "rationale": "r12 实测 3.11 h 超 3.0 h 上限、累计 18.21 h 超 18.0 h 上限，两者均源于与同事共享 tiger11 的排期波动（单 run 从 r11 的 1.39 h 涨到 2.63-2.70 h），与训练质量无关；把机器繁忙记成方案失败会污染结论。时间上限既不能加速质量提升，又会在负载波动时逼出「缩短训练」这类损害可比性的动作，故整体取消。",
+ "supersedes": {
+  "config/training_loop_prereg_r11.json": {
+   "resource.per_round_wall_clock_cap_h": 3.0,
+   "resource.total_wall_clock_cap_h": 12.0,
+   "handling": "文件保持逐字节不变（已 hash pin 并被报告引用）；两项字段自 r13 起不再生效"
+  },
+  "config/training_loop_prereg_r12.json": {
+   "resource.per_round_wall_clock_cap_h": 3.0,
+   "resource.total_wall_clock_cap_h": 18.0,
+   "handling": "同上；r12 已结案，3.11 h / 18.21 h 的「超支」不再作为失败项或告警项"
+  },
+  "config/training_loop_prereg_r12_nomask.json": {
+   "resource.per_round_wall_clock_cap_h": 3.0,
+   "resource.total_wall_clock_cap_h": 18.0,
+   "handling": "同上"
+  }
+ },
+ "still_enforced": [
+  "每 run 600 updates（或预登记写的更新数）必须跑满，不得早停",
+  "每轮 run 数与种子族固定（6 主 + 2 对照），不得减少",
+  "地图、split、数据划分、阈值、判据、对照臂不得因耗时调整",
+  "checkpoint 规则仍为「最后更新」，与表现无关",
+  "墙钟仍须如实记录并可追溯；超长运行须给出进度证据（更新数/到达率曲线）",
+  "轮次上限（max_rounds）仍按原计划执行，开新轮次仍需用户授权"
+ ],
+ "reporting": "每轮报告仍须写实际墙钟与单 run 时长，但判定只看非时间类判据"
+}

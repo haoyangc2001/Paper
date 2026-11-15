@@ -1,0 +1,137 @@
+{
+ "schema": "camra-navigation-design-proposal-v1",
+ "task": "NAV-064",
+ "title": "第 13 轮候选设计：先修测量，再动目标",
+ "date": "2026-11-15T13:10:00+08:00",
+ "status": "proposal_only_not_authorized",
+ "based_on": {
+  "reports/training_round_r12.json": "主臂 6 run dev 评估",
+  "reports/training_round_r12_control.json": "对照臂 2 run",
+  "reports/negative_result_r12.json": "r12 正式负结果",
+  "train_log.jsonl (r12, 8 runs)": "末段前进命令 / 有效段优势 std / 掩码保留率"
+ },
+ "verdict_on_r12": {
+  "criterion_1_forward_command": "达标（中位 0.4670 ≥ 0.45）",
+  "criterion_2_effective_adv_std": "达标（中位 0.0848 ≥ 0.08）",
+  "criterion_3_dev_sr": "未达标（中位 0.0、最好 2/6）",
+  "reading": "盖章段隔离解决了『学不动』；『学坏』（违规到达、超预算）与『测不准』（n=6）两件事仍未解决"
+ },
+ "measurement_power": {
+  "design": "development 6 图 × 1 回合 × 3 种子；判据 = 3 个种子的 SR 中位 ≥ 0.10（即至少 2 个 run 各有 ≥1 次到达）",
+  "binomial_check": {
+   "true_sr_0.05": "判据通过概率 17%",
+   "true_sr_0.10": "45%",
+   "true_sr_0.14": "64%",
+   "true_sr_0.20": "83%",
+   "true_sr_0.25": "92%",
+   "true_sr_0.30": "96%"
+  },
+  "conclusion": "在 6 个回合上算成功率，判据在阈值处只有 45% 的通过概率；要让判据稳定给出『达标』，真实成功率得 ≥0.25，是预登记写的 0.10 的 2.5 倍。因此 r12 的『未达标』无法区分『真的差』与『测不出来』",
+  "cheap_fix": "评估回合数从 6 提到 54（6 图 × 3 档预算 k∈{0.85,1.0,1.15} × 3 次动作随机种子）；实测 6 回合约 13 s/run，54 回合约 2 min/run，8 个 run 约 16 min，纯测量、不占训练预算"
+ },
+ "observed_evidence": {
+  "train_vs_dev": "训练期到达率 9.71/16.51/14.21%（18 张训练图、随机采样）；dev 2/6、0/6、0/6（6 张留出图、确定性动作）",
+  "distance_progress": "dev 最近剩余距离均值：r11 full 11.47/8.49/9.01 m → r12 full 3.75/8.69/8.78 m；对照臂 6.64 m",
+  "danger": "dev 每回合危险步：r12 full 66.0/171.0/130.7；对照 228.7；r11 115.2/222.3/104.8",
+  "within_budget": "8 个 run 在 k=1.0 全部 0/6『到达且预算内』；只有 k=1.30（预算放宽 30%）才出现 2/6",
+  "arrivals_are_violating": "full_s0 两个到达图（l3_multi_path s2001/s2002）分别有 92 与 86 个危险步"
+ },
+ "code_findings": [
+  {
+   "id": "F1",
+   "file": "src/camra_navigation/algorithm/storage.py:324 (h_t) + targets.py:426 (safety_step)",
+   "fact": "h_t = max(g_norm, C·y)，C=1.0（config/value_objective_contract_v1.json），y∈{0,1}",
+   "consequence": "一旦盖章，h 恒等于 1.0，可达性通道不再携带『离终点多远』的信息；盖章后的步对可达性价值没有区分度"
+  },
+  {
+   "id": "F2",
+   "file": "config/value_objective_contract_v1.json (C=1.0) + Z_REF_J.provenance (FAIL_PENALTY=1.0)",
+   "fact": "C·y 的最大值 1.0 与 FAIL_PENALTY 1.0 完全相等",
+   "consequence": "『擦边违规后继续跑』与『直接撞死』在可达性价值上同价；目标函数没有给『避免违规』留下任何梯度，只要还能到达就等价"
+  },
+  {
+   "id": "F3",
+   "file": "scripts/train_formal.py（掩码谓词 safety_y <= 0.5）",
+   "fact": "r12 的掩码把 y=1 的步整体剔除；y 是『一旦不安全永远不安全』的累积标志，因此违规发生的**那一步**（y 由 0 翻 1）也被剔除",
+   "consequence": "唯一能把『进入警戒区』这个动作与高代价联系起来的那一步，从策略损失和 reach 回归里都消失了；对照臂（不掩码）危险步 228.7 说明不掩码更差，故掩码本身不是恶化来源，但它也没带来安全行为"
+  },
+  {
+   "id": "F4",
+   "file": "storage.py:394-400（g_train）+ targets.py:141-172（joint_training_sequence）",
+   "fact": "能耗只在 z<0（已超支）时以 w·c 进入即时代价；未超支时 w·c 被遮蔽（第 9 轮审计为防止『逐步减速』而加）",
+   "consequence": "『省着用』没有梯度，只有『已经超支后少花』有梯度；这解释了 k=1.0 时全 0/6、要放宽 30% 才出现预算内到达"
+  },
+  {
+   "id": "F5",
+   "file": "config/split_manifest_v1.json",
+   "fact": "train 18 张、development 6 张；两者 layout_hash 相同、只有随机几何不同（同分布、非同布局）",
+   "consequence": "不存在『换布局』的泛化鸿沟；训练→dev 的落差主要来自 18 张图覆盖不足 + n=6 的测量噪声，而不是分布外泛化"
+  }
+ ],
+ "next_steps": [
+  {
+   "id": "S1",
+   "title": "把测量修好（不训练、不改训练行为）",
+   "why": "在 54 回合上重算 sr_feasible、最近距离中位、危险步中位，才能判断 S2/S3 有没有用",
+   "how": [
+    "评估脚本增加 episodes_per_map=3（动作随机种子）与 k 网格 {0.85,1.0,1.15}",
+    "主指标新增 sr_feasible = 到达 ∧ 全程 y=0 ∧ z_end≥0，与现有 sr（label==goal_reached）、sr_within_budget 并列报告",
+    "对 r11 的 6 个 run 与 r12 的 8 个 run 全部重算，形成同一把尺子的对照表"
+   ],
+   "cost": "约 16-20 分钟，纯推理，不动训练预算",
+   "risk": "无（只读 checkpoint）",
+   "authorization_needed": false
+  },
+  {
+   "id": "S2",
+   "title": "边界步保留：掩码谓词从 y_t 改成 (y_t ∧ y_{t-1})",
+   "why": "回应 F3——把『违规那一步』放回损失，让『进入警戒区』重新承当惩罚；数学目标、C、FAIL_PENALTY、W、τ* 一律不动",
+   "how": [
+    "chunk 内取前一步 y（段首用上一段末值或标记不可用），生成 enter = y_t ∧ ¬y_{t-1}",
+    "policy 掩码 = ¬(y_t ∧ y_{t-1})；reach 回归掩码保持原样（y_t）以免污染距离回归",
+    "离线先验检查：在 r12 的 chunk 上算 enter 步占比与这些步的优势符号/量级；若 enter 步优势与后续动作无关，则本轮预期收益有限，改走 S3"
+   ],
+   "cost": "实现 + 单测约 1-2 小时；一轮训练按机器空闲情况排期",
+   "risk": "中低；可默认关闭，单测要求打开前后逐位等价（关闭时）",
+   "authorization_needed": true
+  },
+  {
+   "id": "S3",
+   "title": "把安全做成连续代价通道（治本，改数学）",
+   "why": "回应 F1/F2——C·y 只有 0/1 且与 FAIL_PENALTY 同值，天然无法表达『擦边』与『越陷越深』的差别",
+   "how": [
+    "方案 A：逐步入侵代价 c_s,t = 1[y_t]（或按侵入深度归一化），作为独立成本通道、独立 critic 与独立预算，h 与 τ* 不动",
+    "方案 B：把 C 从常数改成随持续违规时间增长的阶梯（C_t = 1 + κ·(t − t_enter)），保持 y=1 时仍 >1",
+    "两者都必须回 NAV-061–063 重验数学目标（可行性判据、W、τ* 的语义），前 12 轮结果不再可比"
+   ],
+   "cost": "实现 + 单测 + 契约重验约 1-2 天；训练轮次另行排期",
+   "risk": "高（改评分语义）；但这是唯一能同时改善『违规到达』与『危险步』的路径",
+   "authorization_needed": true
+  },
+  {
+   "id": "S4",
+   "title": "规模：更新数与训练图数量",
+   "why": "F5 表明落差主要来自覆盖不足；墙钟上限已取消，规模可以直接上",
+   "how": [
+    "更新数 600 → 1200（保持每轮可比性由 S1 的尺子保证）",
+    "训练图 18 → 30（若允许从 budget_selection 之外再生成新图；不得占用 final_*）",
+    "对照臂保留 2 个 run，用于确认改动是否仍是因果来源"
+   ],
+   "cost": "单轮墙钟按机器情况（r12 实测 8 run 并行 2.6-2.7 h，串行更多）",
+   "risk": "低；但需先确认机器排期",
+   "authorization_needed": true
+  }
+ ],
+ "recommended_order": ["S1（立刻，无风险）", "S2 + S4 同轮（不改数学，先看边界步与规模是否够）", "S3（若 S2 后违规步仍高，再动数学）"],
+ "not_doing": [
+  "不放宽 dev 判据阈值、不换更容易的地图、不隐藏失败 run",
+  "不因耗时长而缩短更新数或减少种子（墙钟上限已取消，见 config/wallclock_amend_v1.json）",
+  "不在 final_* 上做任何调参或反馈"
+ ],
+ "needs_user_authorization": [
+  "S2 实现与训练轮次",
+  "S3 数学目标变更（须回 NAV-061–063 重验）",
+  "S4 的更新数与训练图数量扩容",
+  "开始第 13 轮本身（r12 负结果的 stops 条款写明须另行授权）"
+ ]
+}
