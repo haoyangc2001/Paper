@@ -179,10 +179,21 @@ def build_envs(prereg: dict, variant: str):
     else:
         raise SystemExit(f"unknown variant {variant!r}")
 
-    refs = json.load(open(E_REF_REPORT, encoding="utf-8"))
+    # r13：参考能耗报告与预算系数可由预登记指定（默认沿用冻结件与 k=1.0，
+    # 旧预登记因此逐位不变）。契约余量版必须同时改时限与 E_ref，否则训练与
+    # 评估的口径不一致——r12 的评估修复就是踩过这个坑。
+    ref_cfg = prereg.get("reference_energy", {}) or {}
+    ref_name = str(ref_cfg.get("report", "reports/train_map_reference_energy.json"))
+    ref_path = ref_name if os.path.isabs(ref_name) else os.path.join(NAV_ROOT, ref_name)
+    k_budget = float(ref_cfg.get("budget_k", 1.0))
+    if not (0.9 <= k_budget <= 1.3):
+        raise SystemExit(f"reference_energy.budget_k={k_budget} 超出允许范围 [0.9,1.3]")
+    refs = json.load(open(ref_path, encoding="utf-8"))
     if refs["verdict"] != "PASS":
         raise SystemExit("train-map reference-energy report is not PASS")
-    e_ref_nominal = {r["map_id"]: float(r["e_ref_J"]) for r in refs["maps"]}
+    e_ref_nominal = {r["map_id"]: k_budget * float(r["e_ref_J"]) for r in refs["maps"]}
+    print(f"[REF-ENERGY] report={os.path.basename(ref_path)} "
+          f"t_deadline={refs.get('t_deadline_s', 30.0)} budget_k={k_budget}", flush=True)
     # NAV-064 修正 A：预算基准与扣费同口径。默认 nominal（旧语义逐位回归），
     # 只有预登记显式声明 consistent 才启用；alpha 属于 full 变体。
     acct = str(prereg.get("budget_accounting", "nominal"))
