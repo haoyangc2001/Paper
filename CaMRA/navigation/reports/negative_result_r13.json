@@ -1,0 +1,59 @@
+{
+ "schema": "camra-navigation-negative-result-v1",
+ "task": "NAV-064",
+ "round": 13,
+ "date": "2026-11-15",
+ "prereg_sha256": {
+  "A_arm": "c084e6eed80dd757b1a5f077ca91826591724360011f2a17f820b9248bf2c9f5",
+  "B_arm": "6b55c8814e971b18ed8b6a88c9bcea90a7939dceadb7a8dae6d877992bd1097b"
+ },
+ "verdict": "falsified",
+ "verdict_text": "判据 (c) 触发：两方法 sr_feasible 中位均为 0.00，A 臂到达数 0/6 不优于 r12 的 2/6。写正式负结果并结案；不改判据、不放宽阈值。",
+ "what_worked": {
+  "in_budget_cost_reduced_spending": "uncalibrated 臂 A 能耗/预算比中位 0.60 vs 臂 B 0.85（−29%）；full 臂 0.94 vs 0.67。成本项确实让策略少花钱，方向与假设一致",
+  "danger_down_for_uncal": "uncalibrated 臂 A 危险步中位 4 vs 臂 B 11"
+ },
+ "what_failed": {
+  "arrivals_collapsed": "uncalibrated 训练期到达率 7.4/10.6/8.2%（臂 A）vs 23.4/25.2/37.4%（臂 B）；dev 到达 0/6 vs 0/6/2/6。即成本项用「少走」换「少花钱」，与第 9 轮审计的「逐步减速」是同一机制，只是权重从 50 降到 2 仍然压住前进",
+  "full_variant_safety_collapsed": "full 全部 6 个 run dev 到达 0，危险步 1109-1818（r12 同契约下 505），终止以 collision 为主，单回合危险步达 131-264",
+  "regression_vs_no_retraining": "同一份余量契约下，未经本轮训练的 r12 checkpoint 反而更好：r12 uncal_s0_nomask SR 1.00 / 可行 0.67、r12 full_s0 SR 0.67；本轮 12 个 run 最好只有 SR 0.33、可行 0.00。即「在放宽后的契约上重新训练」让策略变差，而不是变好",
+  "last_mile_stall": "最好的 B 臂 run（uncal_s2_b0）在 l1 两图 41.4 s 处因 stagnation 终止、距目标 2.70-2.72 m；l3 两图为 timeout（3.55 m）与 stagnation（1.88 m）。差最后一两米停住，不是找不到路"
+ },
+ "measurement_caveat": "训练期到达率（本 12 run 7-37%）与 dev 成功率的落差在 r12 就存在；本轮契约变宽后落差反而更大（训练最高 37%，dev 最好 2/6），说明 dev 的确定性均值动作与训练期的随机策略差异是独立问题，不能用训练期到达率替 dev 结论",
+ "criteria_table": {
+  "a_arm_energy_ratio_median": {
+   "uncalibrated": 0.6,
+   "full": 0.94,
+   "threshold_max": 1.1,
+   "met": true
+  },
+  "c_sr_feasible_median": {
+   "uncalibrated": 0.0,
+   "full": 0.0,
+   "threshold": 0.1,
+   "met": false
+  },
+  "a_minus_b_energy_diff": {
+   "uncalibrated": 0.25,
+   "full": -0.27,
+   "note": "成本项确实改变了能耗"
+  }
+ },
+ "training": {
+  "runs": 12,
+  "all_exit_0": true,
+  "updates_each": 600,
+  "per_run_wall_h": [
+   1.31,
+   1.39
+  ],
+  "wall_clock": "2026-11-15T13:20:35 → 约 14:55（约 1.55 h，12 并行）",
+  "contract": "T=45 s、k=1.15、E_ref 按 45 s 重算"
+ },
+ "next_round_candidates": [
+  "安全连续代价（F1/F2：C=1.0 与 FAIL_PENALTY 同值、盖章后可达性通道恒 1）——full 的碰撞率高到 42-71%，是最大的单点损失",
+  "最后一两米停滞：stagnation 规则（3 s/0.05 m）在 41 s 触发，需要诊断是「学不会精调」还是「被终止规则提前判死」",
+  "成本项若要保留，必须与「到达」解耦（例如只在已到达或接近目标时计成本），否则必然压住前进",
+  "契约：本轮的放宽未带来训练收益，是否保留余量版作为评估口径需重新评估"
+ ]
+}
