@@ -1,0 +1,1272 @@
+{
+  "schema": "camra-training-round-report-v1",
+  "task": "NAV-064",
+  "round": 12,
+  "prereg_version": "r12.0.0-control",
+  "prereg": {
+    "path": "config/training_loop_prereg_r12_nomask.json",
+    "sha256": "b801915bb872ee3d75a91dec9c44567887cb3700c73dc75d12a345db2fc7d46e"
+  },
+  "gate_g3_alignment_v2": {
+    "path": "reports/gate_G3_alignment_v2.json",
+    "sha256": "03db878734f1b71dc77134355d4b94694b117be4543aa28f7aa5f6d259ead289"
+  },
+  "warm_start": {},
+  "objective_signal_fix": {
+    "joint_cost_weight": 50.0,
+    "joint_min_recursion": false,
+    "cost_on_overspend_only": true
+  },
+  "budget_accounting": "consistent",
+  "action_bounded": true,
+  "action_init_fix": {
+    "enabled": true,
+    "initial_forward_speed": 0.465,
+    "log_std_min": -5.0,
+    "log_std_init": -3.0
+  },
+  "steering_prior": {
+    "enabled": true,
+    "gain": 0.2,
+    "field": "goal_dir_y_body",
+    "target": "wz",
+    "form": "mean[:,2] += gain * obs[goal_dir_y_body]；只改 loc，不改 log_prob/雅可比/熵",
+    "offline_acceptance": "采样动作 dev 4/6 到达、4/6 预算内、z_min 7.5/8.9 J（gain 0.1~2.0 结果饱和一致，取最小有效档 0.2）",
+    "unchanged_from": "r11"
+  },
+  "cost_curriculum": {
+    "enabled": true,
+    "warmup_updates": 150,
+    "w_after_warmup": 50.0,
+    "form": "update_idx < 150 时 joint_cost_weight=0，之后恢复 50；只改启用时序",
+    "unchanged_from": "r11"
+  },
+  "closing_tier": {
+    "criterion": "development SR median >= 0.1 for both methods",
+    "threshold": 0.1,
+    "by_method": {
+      "uncalibrated": {
+        "seeds": [
+          0
+        ],
+        "sr_by_seed": {
+          "0": 0.0
+        },
+        "sr_median": 0.0,
+        "sr_min": 0.0,
+        "sr_max": 0.0,
+        "n_runs": 1
+      },
+      "full": {
+        "seeds": [
+          0
+        ],
+        "sr_by_seed": {
+          "0": 0.0
+        },
+        "sr_median": 0.0,
+        "sr_min": 0.0,
+        "sr_max": 0.0,
+        "n_runs": 1
+      }
+    },
+    "met": {
+      "uncalibrated": false,
+      "full": false
+    },
+    "closing_tier_met": false
+  },
+  "runs": [
+    {
+      "run_id": "nav064_r12_uncalibrated_s0_nomask",
+      "variant": "uncalibrated",
+      "seed": 0,
+      "state_sha256": "11d9ac32d8890ec5b4a3f1375c874dd75b8df7dc53dd3bbfb74f2eaa8316c4f5",
+      "checkpoint": "state.pt",
+      "updates": 600,
+      "wall_hours": 2.637,
+      "budget_rule": {
+        "kind": "uniform",
+        "k_low": 0.6,
+        "k_high": 1.3
+      },
+      "z0_J_initial": [
+        379.635,
+        443.627,
+        238.055,
+        445.869,
+        441.665,
+        314.6,
+        432.041,
+        301.205,
+        542.792,
+        465.008,
+        450.336,
+        454.151,
+        330.054,
+        369.451,
+        363.35,
+        381.739,
+        421.917,
+        313.553
+      ],
+      "obs_version": "obs-v3",
+      "schema": "camra-navigation-rollout-v2",
+      "label_counts": {
+        "collision": 3566,
+        "out_of_bounds": 0,
+        "goal_reached": 605,
+        "stagnation": 3,
+        "timeout": 5946
+      },
+      "clip_fraction_mean": 0.11111924166666669,
+      "dev": {
+        "k": 1.0,
+        "sr": 0.0,
+        "sr_within_budget": 0.0,
+        "episodes": [
+          {
+            "map_id": "l1_empty-s2001",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 1.597,
+            "cost_model_J": 333.07,
+            "z0_J": 362.57,
+            "z_J_end": 29.5,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 0
+          },
+          {
+            "map_id": "l1_empty-s2002",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 1.919,
+            "cost_model_J": 324.46,
+            "z0_J": 362.98,
+            "z_J_end": 38.53,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 0
+          },
+          {
+            "map_id": "l2_single_detour-s2001",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 0.555,
+            "cost_model_J": 401.23,
+            "z0_J": 486.19,
+            "z_J_end": 84.95,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 0
+          },
+          {
+            "map_id": "l2_single_detour-s2002",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 1.427,
+            "cost_model_J": 388.07,
+            "z0_J": 479.93,
+            "z_J_end": 91.87,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 0
+          },
+          {
+            "map_id": "l3_multi_path-s2001",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 1.987,
+            "cost_model_J": 350.06,
+            "z0_J": 367.72,
+            "z_J_end": 17.65,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 0
+          },
+          {
+            "map_id": "l3_multi_path-s2002",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 1.937,
+            "cost_model_J": 349.34,
+            "z0_J": 371.31,
+            "z_J_end": 21.97,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 0
+          }
+        ]
+      },
+      "budget_response": [
+        {
+          "k": 0.7,
+          "sr": 0.0,
+          "sr_within_budget": 0.0,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.098,
+              "cost_model_J": 317.9,
+              "z0_J": 253.8,
+              "z_J_end": -64.1,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.408,
+              "cost_model_J": 309.62,
+              "z0_J": 254.09,
+              "z_J_end": -55.53,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.042,
+              "cost_model_J": 357.79,
+              "z0_J": 340.33,
+              "z_J_end": -17.45,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.075,
+              "cost_model_J": 352.78,
+              "z0_J": 335.95,
+              "z_J_end": -16.82,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.359,
+              "cost_model_J": 333.31,
+              "z0_J": 257.4,
+              "z_J_end": -75.91,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.299,
+              "cost_model_J": 334.45,
+              "z0_J": 259.91,
+              "z_J_end": -74.54,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            }
+          ]
+        },
+        {
+          "k": 0.85,
+          "sr": 0.0,
+          "sr_within_budget": 0.0,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.849,
+              "cost_model_J": 325.34,
+              "z0_J": 308.18,
+              "z_J_end": -17.15,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.165,
+              "cost_model_J": 316.88,
+              "z0_J": 308.54,
+              "z_J_end": -8.35,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 0.937,
+              "cost_model_J": 387.26,
+              "z0_J": 413.26,
+              "z_J_end": 26.0,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.724,
+              "cost_model_J": 369.17,
+              "z0_J": 407.94,
+              "z_J_end": 38.77,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.197,
+              "cost_model_J": 341.89,
+              "z0_J": 312.56,
+              "z_J_end": -29.33,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.127,
+              "cost_model_J": 341.47,
+              "z0_J": 315.61,
+              "z_J_end": -25.86,
+              "within_budget": false,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            }
+          ]
+        },
+        {
+          "k": 1.0,
+          "sr": 0.0,
+          "sr_within_budget": 0.0,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.597,
+              "cost_model_J": 333.07,
+              "z0_J": 362.57,
+              "z_J_end": 29.5,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.919,
+              "cost_model_J": 324.46,
+              "z0_J": 362.98,
+              "z_J_end": 38.53,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 0.555,
+              "cost_model_J": 401.23,
+              "z0_J": 486.19,
+              "z_J_end": 84.95,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.427,
+              "cost_model_J": 388.07,
+              "z0_J": 479.93,
+              "z_J_end": 91.87,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.987,
+              "cost_model_J": 350.06,
+              "z0_J": 367.72,
+              "z_J_end": 17.65,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.937,
+              "cost_model_J": 349.34,
+              "z0_J": 371.31,
+              "z_J_end": 21.97,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            }
+          ]
+        },
+        {
+          "k": 1.15,
+          "sr": 0.16666666666666666,
+          "sr_within_budget": 0.16666666666666666,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.34,
+              "cost_model_J": 341.18,
+              "z0_J": 416.96,
+              "z_J_end": 75.78,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.671,
+              "cost_model_J": 332.42,
+              "z0_J": 417.43,
+              "z_J_end": 85.02,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 1.15,
+              "label": "goal_reached",
+              "n_steps": 291,
+              "t_s": 29.1,
+              "min_goal_distance_m": 0.493,
+              "cost_model_J": 408.6,
+              "z0_J": 559.12,
+              "z_J_end": 150.52,
+              "within_budget": true,
+              "arrived_within_budget": true,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.499,
+              "cost_model_J": 404.73,
+              "z0_J": 551.93,
+              "z_J_end": 147.2,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.79,
+              "cost_model_J": 358.22,
+              "z0_J": 422.88,
+              "z_J_end": 64.66,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.746,
+              "cost_model_J": 358.59,
+              "z0_J": 427.0,
+              "z_J_end": 68.41,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            }
+          ]
+        },
+        {
+          "k": 1.3,
+          "sr": 0.3333333333333333,
+          "sr_within_budget": 0.3333333333333333,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 1.3,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.078,
+              "cost_model_J": 349.78,
+              "z0_J": 471.34,
+              "z_J_end": 121.57,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 1.3,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.419,
+              "cost_model_J": 340.94,
+              "z0_J": 471.88,
+              "z_J_end": 130.94,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 1.3,
+              "label": "goal_reached",
+              "n_steps": 283,
+              "t_s": 28.3,
+              "min_goal_distance_m": 0.49,
+              "cost_model_J": 415.12,
+              "z0_J": 632.05,
+              "z_J_end": 216.93,
+              "within_budget": true,
+              "arrived_within_budget": true,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 1.3,
+              "label": "goal_reached",
+              "n_steps": 277,
+              "t_s": 27.7,
+              "min_goal_distance_m": 0.476,
+              "cost_model_J": 407.7,
+              "z0_J": 623.92,
+              "z_J_end": 216.22,
+              "within_budget": true,
+              "arrived_within_budget": true,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 1.3,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.597,
+              "cost_model_J": 367.14,
+              "z0_J": 478.04,
+              "z_J_end": 110.89,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 1.3,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 1.536,
+              "cost_model_J": 366.95,
+              "z0_J": 482.7,
+              "z_J_end": 115.74,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run_id": "nav064_r12_full_s0_nomask",
+      "variant": "full",
+      "seed": 0,
+      "state_sha256": "49b8cb0c8f2e59935c0d93c3a2051f5cf47a3e32cd43ec465a04833081725057",
+      "checkpoint": "state.pt",
+      "updates": 600,
+      "wall_hours": 2.644,
+      "budget_rule": {
+        "kind": "uniform",
+        "k_low": 0.6,
+        "k_high": 1.3
+      },
+      "z0_J_initial": [
+        451.949,
+        528.13,
+        283.401,
+        530.799,
+        525.795,
+        374.526,
+        514.338,
+        358.579,
+        646.185,
+        553.584,
+        536.118,
+        540.66,
+        392.924,
+        439.825,
+        432.562,
+        454.454,
+        502.284,
+        373.279
+      ],
+      "obs_version": "obs-v3",
+      "schema": "camra-navigation-rollout-v2",
+      "label_counts": {
+        "collision": 5717,
+        "out_of_bounds": 0,
+        "goal_reached": 495,
+        "stagnation": 262,
+        "timeout": 4653
+      },
+      "clip_fraction_mean": 0.10967420666666666,
+      "dev": {
+        "k": 1.0,
+        "sr": 0.0,
+        "sr_within_budget": 0.0,
+        "episodes": [
+          {
+            "map_id": "l1_empty-s2001",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 5.538,
+            "cost_model_J": 314.1,
+            "z0_J": 431.63,
+            "z_J_end": 117.53,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 261
+          },
+          {
+            "map_id": "l1_empty-s2002",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 5.364,
+            "cost_model_J": 322.45,
+            "z0_J": 432.13,
+            "z_J_end": 109.68,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 252
+          },
+          {
+            "map_id": "l2_single_detour-s2001",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 5.564,
+            "cost_model_J": 329.3,
+            "z0_J": 578.8,
+            "z_J_end": 249.5,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 259
+          },
+          {
+            "map_id": "l2_single_detour-s2002",
+            "label": "timeout",
+            "n_steps": 300,
+            "t_s": 30.0,
+            "min_goal_distance_m": 5.764,
+            "cost_model_J": 335.1,
+            "z0_J": 571.35,
+            "z_J_end": 236.26,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 260
+          },
+          {
+            "map_id": "l3_multi_path-s2001",
+            "label": "collision",
+            "n_steps": 229,
+            "t_s": 22.9,
+            "min_goal_distance_m": 8.885,
+            "cost_model_J": 267.28,
+            "z0_J": 437.76,
+            "z_J_end": 170.49,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 163
+          },
+          {
+            "map_id": "l3_multi_path-s2002",
+            "label": "collision",
+            "n_steps": 242,
+            "t_s": 24.2,
+            "min_goal_distance_m": 8.726,
+            "cost_model_J": 269.2,
+            "z0_J": 442.03,
+            "z_J_end": 172.83,
+            "within_budget": true,
+            "arrived_within_budget": false,
+            "danger_steps": 177
+          }
+        ]
+      },
+      "budget_response": [
+        {
+          "k": 0.7,
+          "sr": 0.0,
+          "sr_within_budget": 0.0,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 7.502,
+              "cost_model_J": 257.25,
+              "z0_J": 302.14,
+              "z_J_end": 44.9,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 261
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 7.359,
+              "cost_model_J": 263.81,
+              "z0_J": 302.49,
+              "z_J_end": 38.68,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 252
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 0.7,
+              "label": "collision",
+              "n_steps": 278,
+              "t_s": 27.8,
+              "min_goal_distance_m": 8.007,
+              "cost_model_J": 249.94,
+              "z0_J": 405.16,
+              "z_J_end": 155.22,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 230
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 0.7,
+              "label": "collision",
+              "n_steps": 231,
+              "t_s": 23.1,
+              "min_goal_distance_m": 8.31,
+              "cost_model_J": 231.01,
+              "z0_J": 399.95,
+              "z_J_end": 168.94,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 184
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 9.554,
+              "cost_model_J": 243.12,
+              "z0_J": 306.43,
+              "z_J_end": 63.31,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 203
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 0.7,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 9.576,
+              "cost_model_J": 240.67,
+              "z0_J": 309.42,
+              "z_J_end": 68.75,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 208
+            }
+          ]
+        },
+        {
+          "k": 0.85,
+          "sr": 0.0,
+          "sr_within_budget": 0.0,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 6.516,
+              "cost_model_J": 284.16,
+              "z0_J": 366.89,
+              "z_J_end": 82.73,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 261
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 6.347,
+              "cost_model_J": 291.36,
+              "z0_J": 367.31,
+              "z_J_end": 75.95,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 253
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 0.85,
+              "label": "collision",
+              "n_steps": 227,
+              "t_s": 22.7,
+              "min_goal_distance_m": 8.336,
+              "cost_model_J": 236.78,
+              "z0_J": 491.98,
+              "z_J_end": 255.2,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 183
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 0.85,
+              "label": "collision",
+              "n_steps": 194,
+              "t_s": 19.4,
+              "min_goal_distance_m": 8.39,
+              "cost_model_J": 230.12,
+              "z0_J": 485.65,
+              "z_J_end": 255.53,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 151
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 0.85,
+              "label": "collision",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 8.629,
+              "cost_model_J": 276.27,
+              "z0_J": 372.1,
+              "z_J_end": 95.83,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 226
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 0.85,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 8.718,
+              "cost_model_J": 270.44,
+              "z0_J": 375.73,
+              "z_J_end": 105.29,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 228
+            }
+          ]
+        },
+        {
+          "k": 1.0,
+          "sr": 0.0,
+          "sr_within_budget": 0.0,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 5.538,
+              "cost_model_J": 314.1,
+              "z0_J": 431.63,
+              "z_J_end": 117.53,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 261
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 5.364,
+              "cost_model_J": 322.45,
+              "z0_J": 432.13,
+              "z_J_end": 109.68,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 252
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 5.564,
+              "cost_model_J": 329.3,
+              "z0_J": 578.8,
+              "z_J_end": 249.5,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 259
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 1.0,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 5.764,
+              "cost_model_J": 335.1,
+              "z0_J": 571.35,
+              "z_J_end": 236.26,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 260
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 1.0,
+              "label": "collision",
+              "n_steps": 229,
+              "t_s": 22.9,
+              "min_goal_distance_m": 8.885,
+              "cost_model_J": 267.28,
+              "z0_J": 437.76,
+              "z_J_end": 170.49,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 163
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 1.0,
+              "label": "collision",
+              "n_steps": 242,
+              "t_s": 24.2,
+              "min_goal_distance_m": 8.726,
+              "cost_model_J": 269.2,
+              "z0_J": 442.03,
+              "z_J_end": 172.83,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 177
+            }
+          ]
+        },
+        {
+          "k": 1.15,
+          "sr": 0.0,
+          "sr_within_budget": 0.0,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 4.588,
+              "cost_model_J": 346.8,
+              "z0_J": 496.38,
+              "z_J_end": 149.58,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 259
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 4.383,
+              "cost_model_J": 356.55,
+              "z0_J": 496.94,
+              "z_J_end": 140.39,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 250
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 5.138,
+              "cost_model_J": 360.37,
+              "z0_J": 665.62,
+              "z_J_end": 305.25,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 262
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 1.15,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 3.281,
+              "cost_model_J": 424.44,
+              "z0_J": 657.06,
+              "z_J_end": 232.61,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 262
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 1.15,
+              "label": "collision",
+              "n_steps": 197,
+              "t_s": 19.7,
+              "min_goal_distance_m": 8.916,
+              "cost_model_J": 269.46,
+              "z0_J": 503.43,
+              "z_J_end": 233.97,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 135
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 1.15,
+              "label": "collision",
+              "n_steps": 207,
+              "t_s": 20.7,
+              "min_goal_distance_m": 8.751,
+              "cost_model_J": 270.13,
+              "z0_J": 508.34,
+              "z_J_end": 238.21,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 147
+            }
+          ]
+        },
+        {
+          "k": 1.3,
+          "sr": 0.0,
+          "sr_within_budget": 0.0,
+          "cells": [
+            {
+              "map_id": "l1_empty-s2001",
+              "k": 1.3,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 3.618,
+              "cost_model_J": 382.42,
+              "z0_J": 561.12,
+              "z_J_end": 178.71,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 257
+            },
+            {
+              "map_id": "l1_empty-s2002",
+              "k": 1.3,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 3.377,
+              "cost_model_J": 394.15,
+              "z0_J": 561.76,
+              "z_J_end": 167.61,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 248
+            },
+            {
+              "map_id": "l2_single_detour-s2001",
+              "k": 1.3,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 3.081,
+              "cost_model_J": 443.9,
+              "z0_J": 752.44,
+              "z_J_end": 308.53,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 198
+            },
+            {
+              "map_id": "l2_single_detour-s2002",
+              "k": 1.3,
+              "label": "timeout",
+              "n_steps": 300,
+              "t_s": 30.0,
+              "min_goal_distance_m": 2.074,
+              "cost_model_J": 479.25,
+              "z0_J": 742.76,
+              "z_J_end": 263.51,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 164
+            },
+            {
+              "map_id": "l3_multi_path-s2001",
+              "k": 1.3,
+              "label": "collision",
+              "n_steps": 174,
+              "t_s": 17.4,
+              "min_goal_distance_m": 8.946,
+              "cost_model_J": 271.51,
+              "z0_J": 569.09,
+              "z_J_end": 297.58,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 116
+            },
+            {
+              "map_id": "l3_multi_path-s2002",
+              "k": 1.3,
+              "label": "collision",
+              "n_steps": 182,
+              "t_s": 18.2,
+              "min_goal_distance_m": 8.776,
+              "cost_model_J": 272.24,
+              "z0_J": 574.64,
+              "z_J_end": 302.41,
+              "within_budget": true,
+              "arrived_within_budget": false,
+              "danger_steps": 125
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "data_access": {
+    "training_maps": "train split only (see run_start.map_ids)",
+    "evaluated_maps": [
+      "l1_empty-s2001",
+      "l1_empty-s2002",
+      "l2_single_detour-s2001",
+      "l2_single_detour-s2002",
+      "l3_multi_path-s2001",
+      "l3_multi_path-s2002"
+    ],
+    "budget_selection_loaded": false,
+    "final_loaded": false,
+    "paths_loaded": [
+      "/pub/data/caohy/work/camra_navigation/nav064_r12_uncalibrated_s0_nomask",
+      "/pub/data/caohy/work/camra_navigation/nav064_r12_full_s0_nomask",
+      "/home/caohy/repositories/Paper/CaMRA/navigation/reports/train_map_reference_energy.json",
+      "/home/caohy/repositories/Paper/CaMRA/navigation/config/split_manifest_v1.json"
+    ]
+  }
+}

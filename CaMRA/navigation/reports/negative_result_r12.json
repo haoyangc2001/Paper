@@ -1,0 +1,80 @@
+{
+ "schema": "camra-navigation-negative-result-v1",
+ "task": "NAV-064",
+ "round": 12,
+ "date": "2026-11-15",
+ "prereg_sha256": "71418a5ea4548ba69a6c3e0d33b64072e9957dc880f5ba29b8488efd01190579",
+ "verdict": "falsified_partial",
+ "verdict_text": "判据 (c) 触发：两方法 dev SR 中位仍为 0.0、最好只有 2/6（不优于 r11 的 2/6）。按 stops.falsified 写正式负结果并结案：『盖章段隔离不是治本』，不追加第 13 轮。但判据 (1)(2) 的中位数均达标，故按 stops.semantic_doubt 记为『部分成立』，分项如实报告。",
+ "criteria": {
+  "c1_forward_command_u600": {
+   "threshold": 0.45,
+   "r11": 0.25,
+   "by_seed": {
+    "0": 0.5044,
+    "1": 0.467,
+    "2": 0.2582
+   },
+   "median": 0.467,
+   "met": true,
+   "note": "2/3 种子达标；s2 仍在 r11 水平"
+  },
+  "c2_effective_adv_std": {
+   "threshold": 0.08,
+   "r11_all_segments": 0.027,
+   "by_seed": {
+    "0": 0.0941,
+    "1": 0.0848,
+    "2": 0.0607
+   },
+   "median": 0.0848,
+   "met": true,
+   "note": "掩码打开时 normalize_advantage 只在 safety_y<=0.5 样本上算均值/标准差，故日志 adv_std 即有效段口径"
+  },
+  "c3_dev_success_rate": {
+   "threshold": 0.1,
+   "sr_median": {
+    "full": 0.0,
+    "uncalibrated": 0.0
+   },
+   "best_arrivals": "2/6 (nav064_r12_full_s0, l3_multi_path×2)",
+   "r11_best_arrivals": "2/6",
+   "met": false
+  }
+ },
+ "control_arm": {
+  "run_id": "nav064_r12_full_s0_nomask",
+  "forward_command_u600": 0.3543,
+  "effective_adv_std": 0.0526,
+  "dev_sr": 0.0,
+  "danger_steps_per_episode": 228.7,
+  "reading": "关掉掩码后前进命令与优势 std 双双回到 r11 附近，说明回升是掩码的因果效果，不是随机波动"
+ },
+ "residual_problem": "三个 full run 每回合危险步 66.0/171.0/130.7，dev 的『到达且预算内』全为 0.00：策略是靠穿警戒区换到达数，安全代价从未进入策略梯度（r11 诊断里 D4/D5 未补完的部分）。这正是本轮没跨过 SR 门槛的直接原因，也是下一轮唯一值得改的地方。",
+ "training": {
+  "runs": 8,
+  "all_exit_0": true,
+  "updates_each": 600,
+  "window": "2026-11-14T22:57:28+08:00 → 2026-11-15T02:03:59+08:00",
+  "wall_h": 3.11,
+  "per_run_wall_h": {
+   "min": 2.63,
+   "max": 2.7
+  },
+  "mask_kept_fraction_u550_599": {
+   "0": 0.3353,
+   "1": 0.3572,
+   "2": 0.4534
+  },
+  "note": "掩码平均只保留约 33-45% 的步，与 r11 诊断的盖章比例一致"
+ },
+ "budget_disclosure": {
+  "per_round_cap_h": 3.0,
+  "per_round_used_h": 3.11,
+  "total_cap_h": 18.0,
+  "total_used_h": 18.21,
+  "verdict": "两项均超（+0.11 h / +0.21 h）",
+  "cause": "与同事共享 tiger11，单 run 墙钟从 r11 的 1.39 h 涨到 2.63-2.70 h；且 00:25 SSH 断连后无法监控，失去提前止损的机会（断连未杀进程，训练自行跑完）"
+ },
+ "ops_lesson": "长时间训练必须用 setsid/nohup 启动并配轮询，不能把训练绑在监控用的 SSH 会话上：本轮 SSH 于 00:25（第 88 分钟）banner 超时，机器用户态被打满，直到次日 12:36 才恢复，中间近 10 小时无观测"
+}

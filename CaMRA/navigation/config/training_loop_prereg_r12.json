@@ -1,0 +1,246 @@
+{
+  "schema": "camra-training-loop-prereg-v1",
+  "version": "r12.0.0",
+  "owner": "NAV-064",
+  "created_at": "2026-11-14T22:15:00+08:00",
+  "status": "frozen_before_round_12",
+  "round": 12,
+  "task": "盖章段隔离的实际训练验证轮：把 safety_y=1（不可逆安全史盖章后）的步从策略替代损失与 reach 回归中剔除，检验完整变体的前进命令与有效段优势能否回升。只改**哪些样本参与损失**，不改目标定义、W 矩阵、τ*、可行性判据、转向先验与成本课程。",
+  "authorization": {
+    "needed": true,
+    "why": "新正式训练轮次；启用一个此前只有单测与冒烟、从未在训练中打开过的开关；且需推翻 r11 预登记冻结的两条收尾条款",
+    "granted_by": "用户 2026-11-14T22:03『可以按照要求开启新的一轮训练』；22:11 就选项确认『只开盖章段隔离』『提到 18 小时，8 个 run』",
+    "granted_at": "2026-11-14T22:11:00+08:00",
+    "scope": "dead_step_mask=true + policy_grad_decomp=true（后者只读观测）；8 个 run，fresh init，其余超参与 r11 完全一致",
+    "overrides": [
+      "r11 stops.semantic_doubt『不加第 12 轮』——用户 22:03 明确授权新开一轮",
+      "r11 resource.total_wall_clock_cap_h=12.0（已用 15.1 h，超 26%）——用户 22:11 授权把上限提到 18.0 h"
+    ],
+    "cap_note": "累计 11 轮 15.1 h + 本轮约 1.6 h ≈ 16.7 h，新上限 18.0 h 内；若本轮实际超出 18.0 h，按 stops.wall_clock 立即停。"
+  },
+  "binding": {
+    "loop_protocol": {
+      "path": "config/training_loop_protocol_v1_1.json",
+      "sha256": "34d4bd6ecb56ad4f8ebfd9326f617934f6621d07e56ea6a057e296c840bd8231"
+    },
+    "round_10_prereg": {
+      "path": "config/training_loop_prereg_r10.json",
+      "sha256": "583ef08535e87fe13ca9c0bd3d4b36c046824abbcf0b3b96c22b34ebfd755fff"
+    },
+    "round_10_report": {
+      "path": "reports/training_round_r10.json",
+      "sha256": "6259228ebe24e71c8ffb2f3aff671fc9e8aac4856f3e8dc8d34fd4293f234514"
+    },
+    "action_init_fix_prereg": {
+      "path": "config/action_init_fix_prereg_v1.json",
+      "sha256": "a6d305707fce245b136013d6b20890ba8f984dc55664105601f298f712c1e4b5"
+    },
+    "cost_mask_prereg": {
+      "path": "config/objective_cost_mask_prereg_v1.json",
+      "sha256": "c0e9970e32ef51f14e507fe932f5b599b75542d6358aaba295b52a8061f517ee"
+    },
+    "amend5": {
+      "path": "config/rcppo_alignment_contract_v1.amend5.json",
+      "sha256": "0269ff3b9ffd267cabae00da20c0f85dd02f6e8ab1912b23237c1def06b840ff"
+    },
+    "gate_g3": {
+      "path": "reports/gate_G3_alignment_v2.json",
+      "sha256": "03db878734f1b71dc77134355d4b94694b117be4543aa28f7aa5f6d259ead289"
+    },
+    "value_contract": {
+      "path": "config/value_objective_contract_v1.json",
+      "sha256": "d6c4648cac3f1d671a5bebea5d8a8571e5416e06590ac2840c4fe87954dbcd3a"
+    },
+    "budget_action_fix_prereg": {
+      "path": "config/budget_action_fix_prereg_v1.json",
+      "sha256": "a42cd8410d347f67c4cba855e4a24219ab54e678263794caa337f6c7585516f0"
+    },
+    "round_11_prereg": {
+      "path": "config/training_loop_prereg_r11.json",
+      "sha256": "dbcca7ef1bc277ebb519c9319b0cdd7cd17de38aeb04a5e4172995268b59a9c2"
+    },
+    "round_11_report": {
+      "path": "reports/training_round_r11.json",
+      "sha256": "386da84172f7831f9390846b820cc5aac0872094ccb23480ae7771313ca99d30"
+    },
+    "dead_step_mask_prereg": {
+      "path": "config/dead_step_mask_prereg_v1.json",
+      "sha256": "979a77194e8a284e084d19a4edf8ce200e812fa462bf9caa2991efca15ad297b"
+    },
+    "policy_decomp_smoke_prereg": {
+      "path": "config/policy_decomp_smoke_prereg.json",
+      "sha256": "0a626b7ff9f0b2775d10381fa9c89252a39f3e4cb92484b9b058d77e4621e35f"
+    }
+  },
+  "hypothesis": "根因已在第 11 轮确证（不是网络学反）：不可逆安全史 y 一旦置 1，h=max(g_norm,y) 恒为 1，完整变体 49.4% 的训练步（几何对照下 67.5%）目标与基线同时被钉成常数，reach 教材退化为常数，优势 std 从 0.087 塌到 0.027，确定性前进命令从 0.451 掉到 0.250。而 y=0 的子样本本身信息充足（corr(V_h, 距离)=+0.7495、按距离 0.075→0.725 单调）。故把这些盖章步从损失里剔除后，剩下的样本应恢复可学信号：期望完整变体 u600 的确定性前进命令回到 ≥0.45（r11 起点 0.451）、有效段优势 std ≥0.08（r11 全段 0.027）。本轮的替代解释（必须被排除）是「剔除只是稀释、方向不变」——那将表现为前进命令仍不回升。",
+  "falsification": "满足任一即判「盖章段隔离不是治本」并写正式负结果：(a) 完整变体 u600 确定性前进命令 < 0.30（r11 0.250，即基本没动）；(b) 完整变体有效段（safety_y=0）优势 std < 0.05（r11 全段 0.027）；(c) 两方法 dev SR 中位仍为 0.0 且到达数 ≤2/6（不优于 r11 的 2/6）。触发即停，不追加第 13 轮、不放宽时限/判据/地图（除用户另行授权）。",
+  "method": {
+    "variants": [
+      "uncalibrated",
+      "full"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "runs": 6,
+    "control_arm": {
+      "runs": [
+        "nav064_r12_uncalibrated_s0_nomask",
+        "nav064_r12_full_s0_nomask"
+      ],
+      "config_delta": "dead_step_mask.enabled=false，其余与主臂逐字段一致",
+      "purpose": "同批同机测「盖章段隔离」的净贡献；同时活体验证关闭路径与 r11 逐位等价"
+    },
+    "steering_prior": "见顶层 steering_prior（与 r11 一致，未改）",
+    "cost_curriculum": "见顶层 cost_curriculum（与 r11 一致，未改）",
+    "dead_step_mask": "见顶层 dead_step_mask（本轮唯一新启用的训练开关）"
+  },
+  "environment": {
+    "t_max_s": 30.0,
+    "r_goal_m": 0.5
+  },
+  "budget": {
+    "sampling": {
+      "kind": "uniform",
+      "k_low": 0.6,
+      "k_high": 1.3
+    }
+  },
+  "algorithm": {
+    "lr_policy": 0.0003,
+    "lr_critic": 0.001,
+    "epochs_per_window": 10,
+    "minibatch_size": 512,
+    "ent_coef": 0.01,
+    "log_std_learnable_range": [
+      -5.0,
+      1.0
+    ],
+    "warm_start": {},
+    "fresh_init": true,
+    "fresh_init_reason": "第 10 轮权重仍在回合内把速度收向 0；本轮带新先验从零初始化，避免旧权重抵消先验。",
+    "forbid_warmstart": true
+  },
+  "window_semantics": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600
+  },
+  "checkpoints": {
+    "save_every_updates": 50,
+    "final_checkpoint": "最后一个更新"
+  },
+  "round_acceptance": {
+    "closing_tier_source": "development 6 图 × 3 种子，确定性均值动作，k=1.0",
+    "dev_success_rate_median": 0.1,
+    "per_method": "两方法都必须 >= 0.10（SR 条件）；『到达且预算内』为主判据",
+    "budget_response_on_dev": {
+      "grid_k": [
+        0.7,
+        0.85,
+        1.0,
+        1.15,
+        1.3
+      ],
+      "purpose": "诊断：预算内到达是否能从 2/6 继续上升"
+    },
+    "primary_questions_this_round": [
+      "完整变体 u600 确定性前进命令是否 >= 0.45（r11 0.250）",
+      "完整变体有效段（safety_y=0）优势 std 是否 >= 0.08（r11 全段 0.027）",
+      "两方法 dev SR 中位数是否 >= 0.10",
+      "开发集到达数是否 >= 2/6（r11 最好 run）",
+      "掩码后每 minibatch 有效样本率与 mask_skipped_minibatches（诊断训练效率损失）"
+    ],
+    "ideal_tier": {
+      "sr": 0.9,
+      "collision_rate": 0.0,
+      "blocking": false
+    }
+  },
+  "resource": {
+    "per_round_wall_clock_cap_h": 3.0,
+    "total_wall_clock_cap_h": 18.0,
+    "max_rounds": 4,
+    "runs_this_round": 8,
+    "used_so_far": {
+      "rounds": 11,
+      "calendar_hours": 15.1
+    },
+    "runs_used_total": 68,
+    "note": "6 主 run（mask on）+ 2 对照 run（mask off, s0）；预计本轮约 1.6 h，累计约 16.7 h，在 18.0 h 新上限内。上限由用户 2026-11-14T22:11 授权由 12.0 提到 18.0。"
+  },
+  "data_access": {
+    "train": "训练取样（18 图，顺序与构成未改动）",
+    "development": "唯一判定来源",
+    "budget_selection": "本循环禁止使用",
+    "final_*": "封存",
+    "audit": "收尾给出实际加载路径清单与 split hash；本轮 8 个 run 均为 fresh_init"
+  },
+  "stops": {
+    "met": "立刻停止，进入 NAV-065 候选冻结",
+    "wall_clock": "立刻停止当前 run，不延长；累计触到 18.0 h 即停",
+    "infrastructure": "换 run id 重跑，与原 attempt 一并报告",
+    "falsified": "写正式负结果并结案；不追加第 13 轮（除用户另行授权）",
+    "semantic_doubt": "若有效段优势仍塌缩但前进命令回升，视为部分成立，如实分项报告，不得择一报喜"
+  },
+  "reporting": "reports/training_round_r12.json + 台账；须与第 11 轮逐项对比（前进命令、有效段优势 std、h 分布、到达数、SR、成本、剩余预算、mask 有效样本率、对照臂）",
+  "objective_signal_fix": {
+    "joint_cost_weight": 50.0,
+    "joint_min_recursion": false,
+    "cost_on_overspend_only": true
+  },
+  "budget_accounting": "consistent",
+  "action_bounded": true,
+  "action_init_fix": {
+    "enabled": true,
+    "initial_forward_speed": 0.465,
+    "log_std_min": -5.0,
+    "log_std_init": -3.0
+  },
+  "steering_prior": {
+    "enabled": true,
+    "gain": 0.2,
+    "field": "goal_dir_y_body",
+    "target": "wz",
+    "form": "mean[:,2] += gain * obs[goal_dir_y_body]；只改 loc，不改 log_prob/雅可比/熵",
+    "offline_acceptance": "采样动作 dev 4/6 到达、4/6 预算内、z_min 7.5/8.9 J（gain 0.1~2.0 结果饱和一致，取最小有效档 0.2）",
+    "unchanged_from": "r11"
+  },
+  "cost_curriculum": {
+    "enabled": true,
+    "warmup_updates": 150,
+    "w_after_warmup": 50.0,
+    "form": "update_idx < 150 时 joint_cost_weight=0，之后恢复 50；只改启用时序",
+    "unchanged_from": "r11"
+  },
+  "amendments": [
+    {
+      "version": "r12.0.0",
+      "date": "2026-11-14T22:15:00+08:00",
+      "old_sha256": null,
+      "trigger": "第 11 轮证伪（dev SR 中位 0.0、到达 2/6 < 离线起点 4/6）后，根因确证为安全史盖章把目标钉成常数；用户授权用已实现并验收的 dead_step_mask 做实际训练验证",
+      "change": "以冻结的 r11 预登记为模板，仅打开 dead_step_mask 与 policy_grad_decomp；对照臂由 r11 的『关课程』改为『关掩码』；资源上限 12.0 -> 18.0 h",
+      "unchanged": "转向先验 gain=0.2、成本课程 warmup=150/w=50、超支遮蔽、fresh init、预算采样、窗口语义、算法超参、验收 SR 门槛 0.10 均不变"
+    }
+  ],
+  "dead_step_mask": {
+    "enabled": true,
+    "field": "safety_y",
+    "mask_policy_surrogate": true,
+    "mask_reach_regression": true,
+    "threshold": 0.5,
+    "threshold_note": "阈值 0.5 硬编码在 scripts/train_formal.py 的 safety_y<=0.5，本字段仅作文档记录，训练器不读取",
+    "form": "live = (safety_y <= 0.5)；同一掩码同时喂 normalize_advantage、policy_loss、value_loss(reach)；不改 W / τ* / 可行性判据 / 目标定义",
+    "offline_evidence": "DM1-DM7 全 PASS（mask=None 逐位等价、全 1 掩码差 0.0）；单批反证：完整变体 cos(全,屏蔽)=0.954、‖g‖ +22%、reach 误差质量占比 3.68%"
+  },
+  "policy_grad_decomp": {
+    "enabled": true,
+    "form": "同一批样本分别反传优势项与熵项取范数，另记 act_fwd_mean / act_steer_absmean",
+    "readonly": true,
+    "evidence": "PD1-PD6 全 PASS，含『打开后参数更新逐位相同』Δloss=0.000e+00"
+  }
+}
