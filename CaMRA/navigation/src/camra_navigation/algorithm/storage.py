@@ -192,6 +192,12 @@ class ObjectiveConfig:
     #: ``w·c_t`` 只在已超支（z<0）的步计入即时代价。默认 False 与改动前逐位等价。
     #: 只影响策略用的 g_train；W / τ* / 可行性判据一律不动。
     joint_cost_on_overspend_only: bool = False
+    #: NAV-064 r12→r13：预算**内**的逐步成本权重（``base_weight``）。
+    #: 与 ``joint_cost_weight`` 配合：超支步仍用大权重 w，未超支步用这个小权重。
+    #: 实测依据（reports/contract_margin_eval.json）：把预算抬高 15% 后，策略把多出来的
+    #: 额度直接花掉（能耗/预算从 92% 涨到 114-123%），因为未超支时成本项被遮蔽，
+    #: 「省着用」没有任何梯度。默认 0.0，表示不额外惩罚未超支步（与改动前逐位等价）。
+    joint_cost_base_weight: float = 0.0
     #: NAV-064 修正 ②：是否启用参考的 min 型联合递推。默认 False——参考环境
     #: 的 reach 到达时为大负数，本仓库 h 被 max(·,0) 抹平，启用会翻转到达梯度
     #: （见 amend3 的三条数值反例）。保留可调用实现供对照与反例测试。
@@ -387,7 +393,8 @@ def compute_objectives(
     # w=0 时 g_train 是 g_ext 的副本，下面逐位等价于改动前（回归保护）。
     g_train = T.joint_training_sequence(
         g_ext, c, cfg.joint_cost_weight,
-        overspend_mask=(z < 0.0) if cfg.joint_cost_on_overspend_only else None)
+        overspend_mask=(z < 0.0) if cfg.joint_cost_on_overspend_only else None,
+        base_weight=cfg.joint_cost_base_weight)
     total_value = np.maximum(vh, vc - z)
     if cfg.joint_min_recursion:
         # 严格参考形态：_ref_gae_reach4 已减过 baseline，Q 直接就是目标

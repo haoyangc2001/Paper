@@ -392,10 +392,17 @@ def main() -> int:
         raise SystemExit("joint_min_recursion=True 会翻转到达梯度，训练器拒绝启用；"
                          "见 config/rcppo_alignment_contract_v1.amend3.json")
     cost_mask = bool(fix.get("cost_on_overspend_only", False))
+    # r13 候选：预算内逐步成本的基础权重。默认 0.0 = 与 r12 逐位等价。
+    # 依据 reports/contract_margin_eval.json：预算抬高 15% 后策略把额度花掉
+    # （能耗/预算 92%→114-123%），未超支步被整体遮蔽导致「省着用」没有梯度。
+    wb = float(fix.get("joint_cost_base_weight", 0.0))
+    if not (0.0 <= wb <= 10.0):
+        raise SystemExit(f"joint_cost_base_weight={wb} 超出预登记允许范围 [0,10]")
     obj_cfg = _dc.replace(obj_cfg, joint_cost_weight=w, joint_min_recursion=use_min,
-                          joint_cost_on_overspend_only=cost_mask)
+                          joint_cost_on_overspend_only=cost_mask,
+                          joint_cost_base_weight=wb)
     print(f"[OBJ-FIX] joint_cost_weight={w} joint_min_recursion={use_min} "
-          f"cost_on_overspend_only={cost_mask}", flush=True)
+          f"cost_on_overspend_only={cost_mask} cost_base_weight={wb}", flush=True)
 
     # NAV-064 成本项课程（cost_curriculum，默认关闭）：前 warmup_updates 次更新
     # 把 joint_cost_weight 置 0（只练到达），之后恢复预登记的 w。只改训练的
@@ -470,6 +477,7 @@ def main() -> int:
          "calls_per_window": calls_per_window, "max_updates": max_updates,
          "smoke": smoke, "provenance": provenance,
          "objective_signal_fix": {"joint_cost_weight": w,
+                                  "joint_cost_base_weight": wb,
                                   "joint_min_recursion": use_min,
                                   "cost_on_overspend_only": cost_mask},
          "budget_accounting": str(prereg.get("budget_accounting", "nominal")),

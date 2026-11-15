@@ -140,7 +140,8 @@ def joint_sequence(h_t: np.ndarray, z_norm: np.ndarray, h_T: float, z_T: float,
 
 def joint_training_sequence(g_ext: np.ndarray, cost_norm: np.ndarray,
                             weight: float = 0.0,
-                            overspend_mask: np.ndarray | None = None) -> np.ndarray:
+                            overspend_mask: np.ndarray | None = None,
+                            base_weight: float = 0.0) -> np.ndarray:
     """训练用联合即时代价：``g_train,t = g_t + w·c_t``，``g_T`` 不变。
 
     NAV-064 修正 ①：``g_t=max(h_t,−z_t)`` 只装了「剩余预算」这个存量，
@@ -148,7 +149,12 @@ def joint_training_sequence(g_ext: np.ndarray, cost_norm: np.ndarray,
     梯度（实测 corr(每步成本, 优势) ≈ 0）。这里把逐步成本以权重 w 显式
     加进即时代价；终端态没有动作，不加成本项。
 
-    ``weight=0`` 返回 ``g_ext`` 的副本（逐位等价），作为回归保护。
+    ``base_weight``（NAV-064 r13 候选）：预算**内**（未超支，z>=0）的步用这个小
+    权重，超支步仍用 ``weight``。理由是实测——把预算整体抬高 15% 后策略把多出的
+    额度直接花掉（能耗/预算 92%→114-123%），因为未超支步被 ``overspend_mask``
+    整体遮蔽，「省着用」没有梯度。``base_weight=0`` 时行为与不传逐位一致。
+
+    ``weight=0`` 且 ``base_weight=0`` 返回 ``g_ext`` 的副本（逐位等价），作为回归保护。
     本函数只改策略用的即时代价；W / τ* / 可行性判据一律不动。
     """
     g = np.asarray(g_ext, dtype=np.float64).reshape(-1)
@@ -156,19 +162,23 @@ def joint_training_sequence(g_ext: np.ndarray, cost_norm: np.ndarray,
     if g.shape[0] != c.shape[0] + 1:
         raise ValueError(f"g_ext 长度应为 T+1={c.shape[0]+1}，得到 {g.shape[0]}")
     w = float(weight)
-    if w == 0.0:
+    wb = float(base_weight)
+    if wb < 0.0 or w < 0.0:
+        raise ValueError(f"权重必须非负，得到 weight={w} base_weight={wb}")
+    if w == 0.0 and wb == 0.0:
         return g.copy()
-    penalty = c
-    if overspend_mask is not None:
+    if overspend_mask is None:
+        penalty = (w + wb) * c
+    else:
         # NAV-064 成本项遮蔽：只在已超支（z<0）的步计入 w·c。未超支时每步成本
         # 会把「持续前进」教成「逐步减速」（第 9 轮审计：vx 0.46→−0.06）。
         m = np.asarray(overspend_mask, dtype=np.float64).reshape(-1)
         if m.shape[0] != c.shape[0]:
             raise ValueError(
                 f"overspend_mask 长度应为 T={c.shape[0]}，得到 {m.shape[0]}")
-        penalty = c * m
+        penalty = w * c * m + wb * c * (1.0 - m)
     out = g.copy()
-    out[:-1] += w * penalty
+    out[:-1] += penalty
     return out
 
 
