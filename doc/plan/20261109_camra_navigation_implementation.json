@@ -5506,16 +5506,17 @@
     "NAV-063"
    ],
    "constraints_and_notes": [
-    "先确认NAV-062/063新证据、契约与代码hash一致，再一轮一预登记；每轮两方法×三种子=6个run，轮次、步数、GPU/墙钟按NAV-061上限执行。",
+    "先确认NAV-062/063新证据、契约与代码hash一致，再一轮一预登记；每轮两方法×三种子=6个run，轮次、更新数与步数按NAV-061上限执行；墙钟不设上限（用户 2026-11-15T12:48 取消 per_round 3.0 h 与累计 18.0 h 两项）。",
     "调参、关闭档判定、checkpoint选择只使用train/development；budget_selection与final_*禁止用于本循环。开发预算响应可按预登记网格检查，不能冒用预算选择集作训练反馈。",
     "每轮记录差分、run/attempt、三个估计器与共同停止的生产版本、预算采样、负预算样本、动作饱和、熵/KL/clip_fraction、更新数和梯度统计；性能变化不得掩盖机制退化。",
     "冻结方法目标、指标/阈值、地图/种子族、数据划分和checkpoint规则。下一轮仅在允许配置项内修改；数学目标变化回到NAV-061–063重验，不靠奖励塑形或阈值放宽拿成功率。",
-    "所有失败和中断保留；基础设施恢复与业务重跑分别记账。上限内按协议推进，达到轮数或资源上限即停止，未达关闭档保持false并报告可选方向。",
-    "关闭前给两方法三种子逐项开发结果、预算响应与稳定性；理想档未到只报告，不能以原G4接受负结果的决定替代本轮关闭档。"
+    "所有失败和中断保留；基础设施恢复与业务重跑分别记账。按协议推进到轮次上限即停止；墙钟与累计耗时不再作为停止条件，不得因耗时中止、缩短或跳过训练（质量优先，见 config/wallclock_amend_v1.json）。",
+    "关闭前给两方法三种子逐项开发结果、预算响应与稳定性；理想档未到只报告，不能以原G4接受负结果的决定替代本轮关闭档。",
+    "墙钟政策（2026-11-15T12:48 用户授权）：单轮训练时长与累计训练总时长均不设上限；为提升质量可接受长时间训练。取消后仍须满足全部非时间类判据（更新数、run 数、地图/种子/划分、阈值、对照臂、随机种子与预登记冻结）；r11/r12 的预登记文件保持逐字节不变，其两项上限由 config/wallclock_amend_v1.json 自 r13 起取代。"
    ],
    "acceptance_criteria": [
     "NAV-061关闭档由train/development真实日志复算满足；引用协议hash且每方法三种子分母/失败完整，无budget_selection判定依赖。",
-    "每轮配置、checkpoint、target/GAE/更新版本及数字证据完整，旧18个训练run与本轮run分开，轮次连续且不超额。",
+    "每轮配置、checkpoint、target/GAE/更新版本及数字证据完整，旧18个训练run与本轮run分开，轮次连续且不超轮次上限（墙钟不设上限）。",
     "真实训练样本预算覆盖与动作概率/共同停止行为符合新协议；多epoch/minibatch已运行且old_log_prob固定，无默默回退旧目标。",
     "数据访问审计核对实际加载路径、split/hash和运行台账，不能仅靠搜索日志里没有final字样证明隔离。",
     "未达标/未闭环语义问题保持false；只有达标才进入新候选冻结。"
@@ -6877,6 +6878,531 @@
      "blockers": [
       "r11 预登记冻结「本轮后无论结果如何 NAV-064 收尾」「不加第 12 轮」，开新训练须用户签发修改",
       "累计训练墙钟 15.1 h，超协议 12.0 h 上限约 26%，扩轮须用户追加上限"
+     ]
+    },
+    {
+     "timestamp": "2026-11-14T23:05:00+08:00",
+     "summary": "按用户 22:03/22:11 授权开启第 12 轮：唯一训练改动是打开盖章段隔离（dead_step_mask=true，另开只读的 policy_grad_decomp），冻结主臂 71418a5e 与对照臂 b801915b 两份预登记，冒烟两开关均生效、退出码 0。启动阶段连续四次失败，全部是基础设施而非方案：tiger11 被同事 5 个 GNN 进程（各 45-49 核）把 load 从 110 推到 684；串行方案被 retry_rule 拒绝，因为 run 目录是 work_root/run_id、与日志目录平级；tiger12 虽空闲，但同版本 isaaclab 0.47.2 上全程 0% GPU 利用率、单核 97%、240 次 env 调用 10 分钟跑不完，判定走 CPU 回退。回 tiger11（load 回落到 220、GPU3-7 43-67%），8 个 run 于 22:56:00-22:59:13 全部启动。",
+     "actions": [
+      "以冻结的 r11 预登记为模板生成 r12 主臂预登记，只翻 dead_step_mask 与 policy_grad_decomp",
+      "生成对照臂预登记（仅 dead_step_mask.enabled=false），两份均写纯哈希 pin",
+      "上传服务器并逐份核对 sha256 与 pin 一致",
+      "tiger11 GPU3 冒烟 2 更新，确认两开关打印与字段落盘",
+      "诊断 run 目录规则：训练器在 work_root 下建 run_id 目录，与日志目录平级",
+      "五次启动尝试（tiger11 8 并行 / 串行 / tiger11 串行 / tiger12 GPU3 / tiger12 GPU0 L40）",
+      "在 tiger12 用 120-update 速度探针（240 次 env 调用）确认其 Isaac 走 CPU 回退",
+      "回 tiger11，8 个 run 落到 GPU3-7（3/4/5 各两个、6/7 各一个）并启动"
+     ],
+     "files_changed": [
+      "config/training_loop_prereg_r12.json（新）",
+      "config/training_loop_prereg_r12.json.sha256（新）",
+      "config/training_loop_prereg_r12_nomask.json（新）",
+      "config/training_loop_prereg_r12_nomask.json.sha256（新）",
+      "scripts/run_round12.sh / run_round12_serial.sh / run_round12_t12.sh / run_round12_t12_l40.sh / run_round12_final.sh（启动脚本，final 为实际使用版本）",
+      "docs/algorithm_implementation.md（追加第 12 轮章节）",
+      "reports/rounds_ledger.json（round_12_preregistration）"
+     ],
+     "commands": [
+      "python t_build_r12_prereg.py / t_build_r12_nomask.py",
+      "scp training_loop_prereg_r12*.json* caohy@192.168.20.11:…/config/",
+      "python scripts/train_formal.py --run-id nav064_r12_smoke --variant full --seed 0 --prereg-name training_loop_prereg_r12.json --smoke-updates 2",
+      "bash scripts/run_round12_final.sh（tiger11, 8 run）"
+     ],
+     "results": [
+      "主臂预登记 sha 71418a5e…190579、对照臂 b801915b…c7d46e，服务器端逐份核对一致",
+      "冒烟：DEAD-STEP-MASK enabled=True / POLICY-DECOMP enabled=True，退出码 0，store_problems 空",
+      "尝试 1：tiger11 8 并行 9 分钟 0 更新，8 进程全在 folio_wait_bit_common，load 110→186",
+      "尝试 2：串行立即被 retry_rule 拒绝（run 目录与日志目录平级，搬错对象）",
+      "尝试 3：tiger11 load 684（同事 5×45-49 核 GNN），pilot 5 分钟 0 更新",
+      "尝试 4：tiger12 GPU3（Blackwell）6.5 分钟 0 更新、显存 0 MiB、单核 97%",
+      "尝试 5：tiger12 GPU0（L40）8 分钟 0 更新；240 次 env 调用 10 分钟未完成 → 判定 CPU 回退",
+      "最终：tiger11 GPU3-7，8 个 run 22:56:00-22:59:13 全部启动，全部 fresh init"
+     ],
+     "evidence": [
+      "config/training_loop_prereg_r12.json.sha256 = 71418a5e…（服务器 sha256sum 一致）",
+      "config/training_loop_prereg_r12_nomask.json.sha256 = b801915b…（服务器 sha256sum 一致）",
+      "/pub/data/caohy/work/camra_navigation/nav064_r12_smoke/train_log.jsonl（两开关 + 掩码字段落盘）",
+      "round12_start.txt（8 个 launched 行、pilot 轮询记录、GPU 快照）",
+      "nav064_r12_aborted*/ 与 nav064_r12_blackwell_abort/（失败尝试的目录证据，未删除）"
+     ],
+     "remaining_work": [
+      "等 ROUND12_DONE → eval_training_round.py --round 12（主臂 6 run 与对照 2 run 分开评估）",
+      "按预登记三条证伪判据判定，重点看完整变体前进命令与有效段优势 std",
+      "如实登记本轮墙钟；可能超 per_round 3.0 h（同事负载），但须在 18.0 h 总量内"
+     ],
+     "blockers": [
+      "tiger11 与同事共享，load 在 110-684 之间波动；本轮墙钟不可预测，可能触发 per_round 3.0 h 上限",
+      "tiger12 空闲但不可用：同版本 isaaclab 对正式 run 走 CPU 回退（0% GPU 利用率、240 calls/10min）",
+      "GPU0-2 被他人占 17.7 GiB 显存，本轮只能用 GPU3-7"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T12:45:00+08:00",
+     "summary": "第 12 轮跑完并按预登记判定：8/8 run 退出码 0、600 更新、墙钟 2026-11-14T22:57:28→2026-11-15T02:03:59（3.11 h）。判据 (1) 前进命令中位 0.4670（≥0.45 达标：s0 0.5044、s1 0.4670、s2 0.2582）；判据 (2) 有效段优势 std 中位 0.0848（≥0.08 达标：0.0941/0.0848/0.0607）；判据 (3) 两方法 dev SR 中位仍 0.0、最好 2/6，不优于 r11 的 2/6，触发证伪条件 (c)，判『盖章段隔离不是治本』并写正式负结果，不加第 13 轮。对照臂 full_s0_nomask 前进命令 0.3543、优势 std 0.0526、dev 0/6、危险步 228.7/回合，证明回升是掩码的因果效果。剩余真问题：三个 full run 危险步 66.0/171.0/130.7，dev『到达且预算内』全为 0.00——策略靠穿警戒区换到达，安全代价始终没进梯度。另须如实登记：本轮墙钟 3.11 h 超 3.0 h 上限，累计 18.21 h 超 18.0 h。",
+     "actions": [
+      "SSH 中断后次日复查：确认 8/8 run 退出码 0、ROUND12_DONE 已写、机器无残留进程",
+      "取回 8 个 run 的汇总行并按变体/臂分组统计训练期到达率",
+      "上传并运行 eval_round12.sh：主臂 6 run 与对照臂 2 run 分开评估（本次用 setsid 脱离会话）",
+      "下载 training_round_r12.json 与 training_round_r12_control.json 并核对逐图结果",
+      "从 train_log.jsonl 提取末段（u550-599）前进命令、有效段优势 std、掩码保留率",
+      "确认 ppo.normalize_advantage 在掩码下只在保留样本上算 mean/std，故日志 adv_std 即有效段口径",
+      "对照 r11 与 r12 的 dev 危险步与最近距离，定位剩余问题为『穿警戒区换到达』",
+      "按 stops.falsified 写正式负结果 reports/negative_result_r12.json 并结案"
+     ],
+     "files_changed": [
+      "reports/training_round_r12.json（主臂 6 run 评估）",
+      "reports/training_round_r12_control.json（对照臂 2 run 评估）",
+      "reports/negative_result_r12.json（正式负结果）",
+      "rounds_ledger.json（round_12_result）",
+      "scripts/r12_policy_metrics.py、scripts/r12_final_window.py、scripts/eval_round12.sh（服务器）"
+     ],
+     "commands": [
+      "ssh caohy@192.168.20.11 'bash scripts/eval_round12.sh'（setsid 脱离会话）",
+      "python scripts/r12_policy_metrics.py",
+      "python scripts/r12_final_window.py"
+     ],
+     "results": [
+      "训练期到达率（goal_reached/episodes）：full 掩码 9.71/16.51/14.21%，full 对照 4.45%，uncalibrated 掩码 6.48/12.41/7.19%，对照 5.98%——r11 同一口径为 46/83296=0.055%，量级差 100-250 倍",
+      "dev SR：full 掩码 0.333/0/0（中位 0.0），uncalibrated 全 0；对照两 run 全 0",
+      "末段前进命令：full 0.5044/0.4670/0.2582，对照 0.3543；r11 末段 0.250",
+      "末段有效段优势 std：full 0.0941/0.0848/0.0607，对照 0.0526；r11 全段 0.027",
+      "掩码保留率（u550-599）：0.3353/0.3572/0.4534，即 55-66% 的步被盖掉",
+      "dev 危险步/回合：r12 full 66.0/171.0/130.7，r12 对照 228.7，r11 full 115.2/222.3/104.8",
+      "dev『到达且预算内』：8 个 run 全为 0.00",
+      "墙钟：3.11 h（22:57:28→02:03:59），单 run 2.63-2.70 h"
+     ],
+     "evidence": [
+      "/pub/data/caohy/work/camra_navigation/nav064_r12/{ROUND12_DONE,exit_codes.txt,round12_start.txt}",
+      "8 份 nav064_r12_*.log 末尾 JSON 汇总行（wall_hours 2.63-2.70、updates 600、store_problems 空）",
+      "reports/training_round_r12.json closing_tier_met=false，full sr_by_seed {0:0.3333,1:0.0,2:0.0}",
+      "reports/training_round_r12_control.json 两 run 全 0/6",
+      "reports/negative_result_r12.json（判据逐项 + 预算超支披露 + 残余问题）",
+      "train_log.jsonl 中 grad_adv_norm/grad_ent_share 全程稳定在 2-3 与 0.8-1.4%，排除熵噪声解释"
+     ],
+     "remaining_work": [
+      "等用户裁定是否授权第 13 轮；唯一候选改动是让安全代价进入策略梯度（警戒区步给负优势或代价惩罚进 policy loss）",
+      "若授权，需先补 D4/D5：把成本/安全项从『只改目标值』改成能产生优势符号的项，并回 NAV-061~063 重验评分语义",
+      "资源上限需用户重签：累计已用 18.21 h，已超 18.0 h",
+      "正式负结果需并入论文/报告的负面证据链（与 r11 的诊断链衔接）"
+     ],
+     "blockers": [
+      "预登记 falsified 条款：不加第 13 轮，须用户另行授权",
+      "资源已超上限：本轮 3.11 h > 3.0 h，累计 18.21 h > 18.0 h，继续需重签上限",
+      "tiger11 与同事共享（load 110-684），单 run 墙钟从 1.39 h 涨到 2.63-2.70 h，预算不可预测",
+      "tiger12 空闲但 isaaclab 走 CPU 回退（0% GPU、240 calls/10min），不能作为备份机"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T13:10:00+08:00",
+     "summary": "按用户 2026-11-15T12:48 授权，把两项墙钟上限（单轮 3.0 h、累计 18.0 h）从 NAV-064 的计划要求里剔除：改 constraints[0]（轮次/更新数/步数仍按 NAV-061，墙钟不设限）、constraints[4]（只按轮次上限停，不得因耗时中止或缩短），追加一条墙钟政策条款，并把验收里『不超额』改成『不超轮次上限（墙钟不设上限）』；新增 config/wallclock_amend_v1.json 作为取代依据（r11/r12 预登记文件保持逐字节不变，两项字段自 r13 起失效），台账登记 wallclock_policy_amend_v1。随后基于 r12 全部数据与代码复查写出 reports/r13_design_proposal.json：量化了『6 回合算成功率』的统计功效（真成功率 0.10 时判据只有 45% 通过概率，要到 0.25 才有 92%），指出 r12 判据 3 无法区分『真差』与『测不准』；并在代码层定位 5 条机制事实（C=1.0 与 FAIL_PENALTY=1.0 同值、盖章后可达性通道恒 1、掩码连『违规那一步』一起剔除、能耗仅在已超支时进梯度、train/dev 同布局仅几何不同），给出 S1 先修测量 / S2 边界步保留 / S3 安全连续代价通道 / S4 规模 四步排序。",
+     "actions": [
+      "改 plan_snapshot.json 的 NAV-064 constraints[0]/constraints[4]，追加墙钟政策条款，修正验收口径",
+      "写 config/wallclock_amend_v1.json：两个上限置 null、applies_from_round=13、列出仍须 enforced 的非时间类判据",
+      "在 rounds_ledger.json 登记 wallclock_policy_amend_v1",
+      "复核 r12 的 8 个 run 日志与两份评估报告，提取前进命令/有效段优势 std/保留率/危险步/预算响应",
+      "读 storage.py compute_objectives、targets.py safety_step 与 joint_training_sequence、value_objective_contract_v1.json，定位 5 条机制事实",
+      "按二项分布算当前判据的通过概率（p=0.05→17%、0.10→45%、0.14→64%、0.20→83%、0.25→92%）",
+      "写 r13 设计提案：S1 测量扩容 54 回合/run、S2 掩码谓词改 (y_t ∧ y_{t-1})、S3 安全连续代价通道、S4 规模扩容",
+      "运行 validate_worklog.py --mode update"
+     ],
+     "files_changed": [
+      "plan_snapshot.json（NAV-064 constraints/acceptance + 第 31 条记录）",
+      "config/wallclock_amend_v1.json（新增）",
+      "rounds_ledger.json（wallclock_policy_amend_v1）",
+      "reports/r13_design_proposal.json（新增）",
+      "t_amend_wallclock.py、t_record_r12_result.py、probe_caps.py（工作脚本）"
+     ],
+     "commands": [
+      "python t_amend_wallclock.py",
+      "python validate_worklog.py plan_snapshot.json --mode update",
+      "python3 /tmp/probe_caps.py（服务器侧定位上限字段）"
+     ],
+     "results": [
+      "计划要求中两项墙钟上限已移除；非时间类判据（更新数、run 数、地图/种子/划分、阈值、对照臂、checkpoint 规则、轮次上限）全部保留",
+      "r11/r12/ r12_nomask 三份预登记文件未改动，其 resource.*_wall_clock_cap_h 由 amend 文件自 r13 起取代",
+      "统计功效：n=6 时真成功率 0.10 的判据通过概率仅 45%，0.25 才 92%——判据 3 在 r12 的『未达标』不构成『没有改善』的证据",
+      "代码事实：h=max(g_norm, C·y) 且 C=1.0=FAIL_PENALTY，盖章后可达性通道恒 1；掩码谓词 safety_y<=0.5 会连违规那一步一起剔除；能耗仅在 z<0 时进 g_train",
+      "r13 提案排序：S1 测量（无风险，~20 分钟）→ S2 边界步保留 + S4 规模（不改数学）→ S3 安全连续代价通道（改数学，回 NAV-061–063）"
+     ],
+     "evidence": [
+      "plan_snapshot.json：constraints[0] 含『墙钟不设上限（用户 2026-11-15T12:48 取消 per_round 3.0 h 与累计 18.0 h 两项）』",
+      "config/wallclock_amend_v1.json：decision.per_round_wall_clock_cap_h=null、total_wall_clock_cap_h=null、applies_from_round=13",
+      "reports/r13_design_proposal.json：measurement_power.binomial_check 与 code_findings F1–F5",
+      "validate_worklog.py 输出 VALID (mode=update)"
+     ],
+     "remaining_work": [
+      "S1 测量扩容（54 回合/run）对 r11 6 run + r12 8 run 重算，产出同一把尺子的对照表",
+      "S2 实现边界步保留掩码 + 离线先验检查（enter 步优势符号/量级）",
+      "S3 若 S2 后违规步仍高，改安全连续代价通道并回 NAV-061–063 重验",
+      "第 13 轮开工需用户授权（r12 stops.falsified 写明）"
+     ],
+     "blockers": [
+      "第 13 轮需用户明确授权（预登记冻结条款）",
+      "tiger11 与同事共享，长跑排期不可预测（墙钟上限已取消，故仅影响排期不影响判据）"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T13:25:00+08:00",
+     "summary": "用报告里已有的预算网格（5 档 k × 6 图）与按层级拆分交叉核对 r12 的 dev 结果，修正初版归因：r12 full_s0 的 2/6 到达在 k=0.7/0.85/1.0/1.15/1.3 五档完全一致、且固定发生在两张 l3_multi_path 图上，说明预算不是决定因素，k 网格也不能当独立样本；按层拆分后各轮解出的是不同子集（r12 full_s0 L1 0/2 L2 0/2 L3 2/2；r11 uncal_s0 L1 0/2 L2 2/2 L3 0/2）。更关键的是失败回合并不「差很远」：r11 uncal_s0 六张图最近距离 1.3/1.0/0.5/0.5/1.5/1.3 m 且 danger_steps=0，r12 ctl uncal_s0 为 1.6/1.9/0.6/1.4/2.0/1.9 m，r12 full_s0 的 l1 两张 2.4/2.3 m；这些回合 label 全是 timeout、n_steps=300。故瓶颈是「最后 1-2 米推进太慢 + 30 s 用尽」，不是找不到路；二元 SR 同时掩盖了「差 1 米与差 10 米同分」「超时与碰撞同分」「解出哪一层不作区分」。据此在 r13 提案中新增 correction 段、F6（时限与速度域的定量关系）与 S0（评估口径按层级/距离/终止原因拆开，不训练不改环境）。",
+     "actions": [
+      "用 budget_response 的 5 档 k × 6 图共 30 个单元交叉核对到达是否随预算变化",
+      "按地图层级（L1/L2/L3）拆分 14 个 run 的 dev 到达与最近距离",
+      "核对失败回合的终止原因与步数（n_steps=300 → timeout）",
+      "在 reports/r13_design_proposal.json 追加 correction_2026_11_15、code_findings F6、next_steps S0，并更新 recommended_order",
+      "运行 validate_worklog.py --mode update"
+     ],
+     "files_changed": [
+      "reports/r13_design_proposal.json（correction + F6 + S0 + 排序更新）",
+      "plan_snapshot.json（第 32 条记录）"
+     ],
+     "commands": [
+      "python（读两份评估报告，按 k 与层级聚合）",
+      "python validate_worklog.py plan_snapshot.json --mode update"
+     ],
+     "results": [
+      "到达与预算无关：同一 run 在五档 k 下到达数完全一致，且固定在两张 l3_multi_path 图",
+      "每轮解出的层级子集不同：r12 full_s0 解 L3、r11 uncal_s0 解 L2、两个对照臂各解别的子集",
+      "失败不是「走错路」而是「差 1-2 米 + 超时」：r11 uncal_s0 六图最近距离全在 1.5 m 内且零危险步；r12 ctl uncal_s0 全在 2.0 m 内",
+      "到达半径约 0.5 m（多张图到达时最近距离恰为 0.5 m）",
+      "30 s 时限与 0.465 m/s 初值的关系：12 m 路线需 25.8 s，仅余 4 s；实测平均前进命令 0.25-0.47，训练期超时占 33-58%"
+     ],
+     "evidence": [
+      "reports/training_round_r12.json 的 budget_response：full_s0 每档均 2/6，未随 k 变化",
+      "reports/training_round_r11.json：uncal_s0 最近距离 1.3/1.0/0.5/0.5/1.5/1.3 m，danger_steps 全 0",
+      "reports/training_round_r12_control.json：uncal_s0_nomask 最近距离 1.6/1.9/0.6/1.4/2.0/1.9 m",
+      "reports/r13_design_proposal.json：correction_2026_11_15.fact_1..fact_4、code_findings F6、next_steps S0",
+      "validate_worklog.py 输出 VALID (mode=update)"
+     ],
+     "remaining_work": [
+      "S0：评估脚本按层级/距离/终止原因拆分报告，并对 14 个 checkpoint 重算",
+      "S1：用现有轨迹算「走完一条 dev 图需要多少秒」，把时限是否充足变成定量结论",
+      "S2/S3/S4 按 S0/S1 结果再定顺序"
+     ],
+     "blockers": [
+      "第 13 轮需用户明确授权（r12 stops.falsified）",
+      "若结论指向「时限不足」，改 30 s 时限属契约变更，须用户授权并回 NAV-060 几何/时限可行性复核"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T13:35:00+08:00",
+     "summary": "完成 S0（评估口径拆开）与 S1（逐秒实测）。S0：写 analyze_dev_breakdown.py，把 r11 6 run + r12 8 run 的 dev 结果按层级、距离、终止原因拆开——14 个 run 里只有 r11 uncal_s0 有 2/6 「到达且可行」，其余 0；失败回合 67-100% 是超时，且多数只差 1-2 m。S1：写 dev_trace.py 逐 0.1 s 记录位姿/速度/能耗/距目标，实测两个最佳 checkpoint：uncal 平均 0.44-0.54 m/s、每米能耗 26.3-29.2 J（解析模型同速 25.5-27.3，只高 3-4%），再给 3.4-6.2 s 就能到达 6/6；full 在 L1 慢到 0.40 m/s（需 0.465）差 2.3-2.4 m、要 10.4-10.9 s，在 L2 于 10.3 s 处碰撞。关键结论：e_ref 等于「参考路线按恰好截止速度跑完」的能耗，预算又是 k=1.0（full 为 ×1.19），于是「到达且预算内」的可行域被压成一个点——实测到达所需能耗是预算的 92-119%，任何 3-19% 的误差都判失败，这不是训练轮次不够。修正了一个自己写的 bug：dev_trace 首跑漏了 consistent 预算口径（full 的 z0 少乘 1.19），修正后 full L1 的比值从 121.9% 回到 103.1%。",
+     "actions": [
+      "写 analyze_dev_breakdown.py：按层级 L1/L2/L3、最近距离中位/最小、超时占比、到达/可行到达拆解报告",
+      "对 r11 6 run + r12 8 run 逐张 dev 图输出拆解，产物 reports/dev_breakdown_r11_r12.json",
+      "写 dev_trace.py：确定性回合逐 0.1 s 记录 t/距目标/实际速度/指令 vx/累计能耗/危险标志",
+      "在 tiger11 实测 nav064_r11_uncalibrated_s0 与 nav064_r12_full_s0 各 6 张 dev 图",
+      "核对 train_map_reference_energy.json：e_ref_J = predicted_energy_deadline_J，v_deadline = 路线长/30 s",
+      "核对 costs.py / accounting.py：consistent 口径下 full 的预算与扣费同乘 (1+alpha)",
+      "修正 dev_trace.py 漏掉 consistent 口径的 bug 并重跑 full",
+      "汇总成 reports/contract_feasibility_finding.json（每图预算/已耗/还需/比值/还需秒数）",
+      "运行 validate_worklog.py --mode update"
+     ],
+     "files_changed": [
+      "scripts/analyze_dev_breakdown.py（新增，只读）",
+      "scripts/dev_trace.py（新增，只读）",
+      "s1_contract_margin.py（本地汇总）",
+      "reports/dev_breakdown_r11_r12.json、reports/contract_feasibility_finding.json（新增）",
+      "plan_snapshot.json（第 33 条记录）"
+     ],
+     "commands": [
+      "python analyze_dev_breakdown.py training_round_r11.json reports/training_round_r12*.json",
+      "python scripts/dev_trace.py --prereg training_loop_prereg_r11.json --run-ids nav064_r11_uncalibrated_s0",
+      "python scripts/dev_trace.py --prereg training_loop_prereg_r12.json --run-ids nav064_r12_full_s0",
+      "python validate_worklog.py plan_snapshot.json --mode update"
+     ],
+     "results": [
+      "S0：14 个 run 中仅 r11 uncal_s0 有 2/6「到达 ∧ 零危险 ∧ 预算内」；其余 12 个 run 可行到达为 0",
+      "S0：失败主因是超时（各 run 67-100%），且 r11 uncal_s0 六图最近距离 0.97-1.51 m、r12 ctl uncal_s0 0.56-1.96 m",
+      "S1：uncal 平均速度 0.44-0.54 m/s（截止速度 0.465-0.571），每米能耗 26.3-29.2 J，同速解析模型 25.5-27.3 J → 仅高 3-4%",
+      "S1：uncal 再给 3.4-6.2 s 即可到达全部 6 图；full 在 L1 只有 0.40 m/s，差 2.3-2.4 m、需 10.4-10.9 s",
+      "S1：full 在 L2 于 10.3 s 碰撞终止（危险步后撞上），属安全性问题而非速度问题",
+      "契约：到达所需总能耗/预算 = uncal 92.0/94.1/104.4/104.9/110.2/112.3%，full 81.4/82.0/103.1/103.6/117.4/118.7%",
+      "契约：e_ref = 参考路线在 v_deadline=路线长/30 s 下的能耗，且 v_deadline 恒高于能耗最省速度 0.3099 m/s → 预算与时限同时零余量",
+      "隐含所需余量：预算 k≈1.15-1.19，时限 ≈42 s；两者与 E_ref 耦合，必须同份预登记一次定死"
+     ],
+     "evidence": [
+      "reports/dev_breakdown_r11_r12.json：14 run × 全体/分层 的到达、可行到达、距离、超时占比",
+      "reports/contract_feasibility_finding.json：每图 budget_J / spent_J / total_needed_J / ratio_to_budget / extra_seconds_needed",
+      "reports/train_map_reference_energy.json：e_ref_J 字段即 predicted_energy_deadline_J（compute_train_map_refs.py:70-78）",
+      "src/camra_navigation/maps/feasibility.py:319-322：energy_deadline 仅在 feasible_in_time 时按 min(v_deadline,v_max) 计算",
+      "src/camra_navigation/budget/accounting.py:56-65：consistent_e_ref = nominal×(1+alpha)",
+      "validate_worklog.py 输出 VALID (mode=update)"
+     ],
+     "remaining_work": [
+      "契约余量需用户裁定：时限 30→42 s、预算 k=1.0→1.15~1.19（或二者只取其一），并重算 E_ref 后重跑 dev",
+      "裁定后按 S2（边界步保留掩码）实现 + 单测 + 一轮训练；full 的 L2 碰撞指向 S3（安全连续代价）",
+      "S0 的拆解口径要固化进 eval_training_round.py，使以后每次评估自动带分层/距离/终止原因"
+     ],
+     "blockers": [
+      "改时限或改预算属评分语义变更，按计划 uncertainty_policy 必须由用户裁定后才能动手",
+      "第 13 轮开工需用户明确授权（r12 stops.falsified）"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T13:50:00+08:00",
+     "summary": "按用户授权做「契约余量版评估」（不训练）：时限 45 s、预算 k=1.15、E_ref 按新时限重算，对 r11 6 run + r12 8 run 共 14 个现有 checkpoint 重评。结果三条：(1) 时间余量只对已经会开的策略有效——r12 uncal_s0_nomask 从 0/6 直接到 6/6（4/6 预算内、零危险步），r12 full_s0 从 2/6 到 4/6，r11 uncal_s2 从 0 到 2/6；其余 10 个 run 仍然 0，(2) 预算余量被策略直接花掉：r11 uncal_s0 的 L2/L3 能耗从 92% 涨到 114-123%，说明能耗只在超支时进梯度，策略把预算当额度用而不是当约束（F4 得到直接验证）；(3) full 变体在更多时间下更容易撞：危险步合计 505-1696，多数回合以 collision 结束。因此契约余量是必要条件但不是充分条件；下一轮真正的训练改动是「让能耗与安全对行为有约束力」，而不是原先计划的边界步保留（S2）。",
+     "actions": [
+      "写 contract_margin_eval.py：按 T/k 重算 dev 图 E_ref 并重跑 14 个 checkpoint（只读，setsid 脱离会话）",
+      "在 tiger11 跑 T=45 s、k=1.15、consistent 预算口径，产物 reports/contract_margin_eval.json 与 refs 缓存",
+      "把新口径与历史报告（r11/r12/对照）逐 run 并列：SR、可行到达、危险步、能耗/预算比、终止原因",
+      "运行 validate_worklog.py --mode update"
+     ],
+     "files_changed": [
+      "scripts/contract_margin_eval.py（新增，只读评估变体）",
+      "scripts/runs_for_margin.json（14 个 run 与其预登记的映射）",
+      "reports/contract_margin_eval.json、reports/contract_margin_refs.json（新增）",
+      "plan_snapshot.json（第 34 条记录）"
+     ],
+     "commands": [
+      "python scripts/contract_margin_eval.py --t-max 45 --k 1.15 --runs scripts/runs_for_margin.json --out reports/contract_margin_eval.json",
+      "python validate_worklog.py plan_snapshot.json --mode update"
+     ],
+     "results": [
+      "SR 变化：r12 uncal_s0_nomask 0.00→1.00（可行 0.67）；r12 full_s0 0.33→0.67（可行仍 0.00）；r11 uncal_s2 0.00→0.33；r11 uncal_s0 仍 0.33（到达的图从 L2 换成 L1）",
+      "其余 10 个 run 在新口径下仍为 0：r11 full_s0/s1/s2、r12 full_s1/s2、r12 uncal_s0/s1/s2、r12 full_s0_nomask、r11 uncal_s1",
+      "能耗/预算比随预算抬升：r11 uncal_s0 的 L2 92%→114/116%，L3 110-112%→123%；r12 full_s0 的 L3 117-119%→116%（仍超）",
+      "危险步：full 变体合计 505-1696，终止以 collision 为主；uncal 的 best run 危险步 0",
+      "时间：新口径下到达用时 24.2-37.5 s，说明 30 s 时限确实截断了一批本来能到的回合",
+      "可行到达几乎不改善（除 uncal_nomask 0.67 与 r11 uncal_s0 0.33），说明「预算内」不是时间问题而是省能行为缺失"
+     ],
+     "evidence": [
+      "reports/contract_margin_eval.json：14 run × 6 图 的 label/耗时/距离/能耗/预算比/危险步/可行标志",
+      "reports/contract_margin_refs.json：T=45 s 下重算的 dev 图 route_length/v_deadline/e_ref（缓存在盘）",
+      "/tmp/margin_eval.log：逐图原始输出（含 stagnation 终止的具体时刻）",
+      "validate_worklog.py 输出 VALID (mode=update)"
+     ],
+     "remaining_work": [
+      "按新证据修订第 13 轮设计：把改动从「边界步保留」改为「能耗在预算内也进梯度 + 安全连续代价」，并冻结预登记",
+      "实现需默认关闭 + 单测覆盖（关闭时逐位等价），并在小批冒烟后再放 6-18 个 run",
+      "契约余量版本与历史结果不可直接比较，报告须分栏标注"
+     ],
+     "blockers": [
+      "能耗/安全进梯度属评分语义变更，按 uncertainty_policy 需用户确认改动方向后实现",
+      "第 13 轮开工仍需用户明确授权（r12 stops.falsified）"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T14:05:00+08:00",
+     "summary": "按契约余量评估的结论，实现「预算内逐步成本权重」开关（默认 0，关闭即与 r12 逐位等价）：targets.joint_training_sequence 增加 base_weight 参数（超支步用 weight、未超支步用 base_weight，两者为 0 时返回 g_ext 副本作回归保护，负权重与掩码长度不符显式报错）；ObjectiveConfig 增加 joint_cost_base_weight 字段（默认 0.0）；train_formal.py 从预登记 objective_signal_fix.joint_cost_base_weight 读取（允许范围 [0,10]）并写入 run_start 与 [OBJ-FIX] 日志。新增 tests/test_cost_base_weight.py（CB1-CB5）全部 PASS，既有 test_objective_signal_fix（7/7）与 test_budget_action_fix（7/7）无回归。上传时发现本地 CRLF 与服务器 LF 不一致导致整文件 diff，统一行尾后真实改动为 3 文件 35 增 10 删。本次未启用任何训练行为。",
+     "actions": [
+      "在 targets.py 的 joint_training_sequence 增加 base_weight（含默认关闭的逐位回归路径与输入校验）",
+      "在 storage.py 的 ObjectiveConfig 增加 joint_cost_base_weight，并在 compute_objectives 传入",
+      "在 train_formal.py 读取预登记字段、打印 [OBJ-FIX] 并落盘 run_start.objective_signal_fix",
+      "写 tests/test_cost_base_weight.py：CB1 关闭逐位相同、CB2 超支/未超支分别加权、CB3 无掩码合并权重、CB4 非法输入报错、CB5 默认值为 0",
+      "上传到 tiger11 并运行三套测试；用 sed 统一 CRLF→LF 后复核 diff",
+      "运行 validate_worklog.py --mode update"
+     ],
+     "files_changed": [
+      "src/camra_navigation/algorithm/targets.py（base_weight）",
+      "src/camra_navigation/algorithm/storage.py（ObjectiveConfig 字段 + 调用点）",
+      "scripts/train_formal.py（读预登记 + 日志 + run_start）",
+      "tests/test_cost_base_weight.py（新增）",
+      "nav064 本地镜像同名文件、plan_snapshot.json（第 35 条记录）"
+     ],
+     "commands": [
+      "python tests/test_cost_base_weight.py → 7/7 PASS",
+      "python tests/test_objective_signal_fix.py → 7/7 PASS（无回归）",
+      "python tests/test_budget_action_fix.py → 7/7 PASS（无回归）",
+      "sed -i 's/\\r$//' 三个上传文件（消除 CRLF 造成的整文件 diff）"
+     ],
+     "results": [
+      "base_weight=0 时输出与旧公式 np.array_equal 为真（逐位回归保护成立）",
+      "base_weight>0 时未超支步的成本项 = base·c，超支步 = w·c，终端项保持不变",
+      "无 overspend_mask 时全部步用 (weight+base)·c",
+      "负权重、负主权重、掩码长度不符、g_ext 长度不符四种非法输入均抛 ValueError",
+      "from_contracts 构造的 ObjectiveConfig 该字段默认为 0.0 —— 不写预登记字段即维持 r12 语义",
+      "真实代码改动量：3 个文件 +35/−10；测试新增 1 个文件"
+     ],
+     "evidence": [
+      "tests/test_cost_base_weight.py 输出 7/7 PASS",
+      "tests/test_objective_signal_fix.py 输出 verdict=PASS；tests/test_budget_action_fix.py 输出 verdict=PASS",
+      "git diff --stat（行尾统一后）：train_formal.py 12 行、storage.py 9 行、targets.py 24 行",
+      "提交 680623a",
+      "validate_worklog.py 输出 VALID (mode=update)"
+     ],
+     "remaining_work": [
+      "冻结第 13 轮预登记：契约余量（T=45 s、k=1.15、E_ref 重算）+ joint_cost_base_weight；对照臂 base_weight=0",
+      "预登记冻结后开 12 个 run（2 臂 × 2 方法 × 3 种子），判据按 sr_feasible 与能耗/预算比",
+      "安全侧（full 变体在余量契约下危险步 505-1696）留待第 14 轮，属数学目标变更"
+     ],
+     "blockers": [
+      "第 13 轮开工需用户明确授权；契约余量版属评分语义变更，须在预登记里显式标注不可与 r1-r12 直接比较"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T13:45:00+08:00",
+     "summary": "第 13 轮开工：冻结 A/B 两份预登记（A c084e6ee…=预算内成本 base_weight 2.0；B 6b55c881…=0.0 对照），契约余量版为 T=45 s、k=1.15、E_ref 按 45 s 重算（v_deadline≈0.311 m/s 正落在能耗最省速度上，E_ref 340.5-423.3 J）。训练器新增 reference_energy.report 与 budget_k 两个预登记入口（默认沿用冻结件与 k=1.0，旧预登记逐位不变），冒烟确认 [REF-ENERGY] t45/1.15、[OBJ-FIX] cost_base_weight=2.0、掩码与观测开关均在、退出码 0、store_problems 空。12 个 run（2 臂 × 2 方法 × 3 种子）于 13:20:35-13:23 用 setsid 脱离会话启动，13:42 时各 run 已跑到 162-184/600 更新。过程中两个自身失误：启动脚本漏 mkdir 导致首跑立即失败（已修并重跑）；用 .log 里的 update 行统计进度得出「22 分钟零更新」的误判，实际每步记录写在 train_log.jsonl，改用正确口径后确认一直在推进。",
+     "actions": [
+      "写 t_build_ref_t45.py，生成 reports/train_map_reference_energy_t45.json（18 张训练图，T=45 s）",
+      "在 train_formal.py 增加 reference_energy.report / budget_k 读取（默认值保证旧预登记逐位不变）",
+      "写 t_build_r13_prereg.py，从 r12 预登记派生 A/B 两臂，并用守卫断言两臂除 base_weight 外逐字段相同",
+      "上传两份预登记并在服务器核对 sha256 与 pin 一致",
+      "tiger11 GPU6 冒烟 2 updates，确认 [REF-ENERGY]/[OBJ-FIX]/[DEAD-STEP-MASK]/[POLICY-DECOMP] 全部正确",
+      "写 run_round13.sh（setsid 启动、GPU3-7 分配、逐 run 日志与 exit_codes、ROUND13_DONE 标记）",
+      "修复启动脚本缺少 mkdir -p $DIR 的问题后重启",
+      "写 eval_round13.sh（复用 contract_margin_eval.py，保证评估契约与训练契约一致）"
+     ],
+     "files_changed": [
+      "config/training_loop_prereg_r13.json(.sha256)、config/training_loop_prereg_r13_b0.json(.sha256)（新增）",
+      "reports/train_map_reference_energy_t45.json（新增，18 张训练图）",
+      "scripts/train_formal.py（reference_energy 入口）、scripts/t_build_ref_t45.py、scripts/t_build_r13_prereg.py",
+      "scripts/run_round13.sh、scripts/eval_round13.sh",
+      "plan_snapshot.json（第 36 条记录）"
+     ],
+     "commands": [
+      "python scripts/t_build_ref_t45.py → verdict=PASS, e_ref 340.5-423.3 J",
+      "python scripts/train_formal.py --run-id nav064_r13_smoke --smoke-updates 2（GPU6）",
+      "bash scripts/run_round13.sh（setsid 脱离会话，12 run）",
+      "python validate_worklog.py plan_snapshot.json --mode update"
+     ],
+     "results": [
+      "两份预登记 sha256：A c084e6eed80dd757b1a5f077ca91826591724360011f2a17f820b9248bf2c9f5、B 6b55c8814e971b18ed8b6a88c9bcea90a7939dceadb7a8dae6d877992bd1097b；服务器核对一致",
+      "冒烟输出：[REF-ENERGY] report=train_map_reference_energy_t45.json t_deadline=45.0 budget_k=1.15；[BUDGET-ACCT] consistent E_ref[0] 392.1 → 466.8 J；[OBJ-FIX] cost_base_weight=2.0",
+      "12 个 run 全部启动（GPU3-7，3/3/2/2/2 分配），13:42 进度 162-184/600 更新，按此速率约 75-90 分钟跑完 600 更新",
+      "z0_J_range 306-641 J（含采样 k∈[0.6,1.3]），最大比值 641/550=1.17 仍在观测截断 1.5 内",
+      "首跑失败原因：启动脚本缺 mkdir -p $DIR（写 round13_start.txt 时目录不存在），已修"
+     ],
+     "evidence": [
+      "config/training_loop_prereg_r13.json 与 _b0.json 的 sha256 文件（纯哈希 pin）",
+      "reports/train_map_reference_energy_t45.json：verdict=PASS、v_deadline≈0.311、t_deadline_s=45.0",
+      "/pub/data/caohy/work/camra_navigation/nav064_r13/round13_start.txt：12 条 launched 行",
+      "各 run 的 train_log.jsonl 中 kind=update 行数 162-184（13:42）",
+      "冒烟 run 的 train_log.jsonl 首行 prereg_sha256=c084e6ee…，store_problems=[]"
+     ],
+     "remaining_work": [
+      "等 12 个 run 跑满 600 updates（ROUND13_DONE）后运行 eval_round13.sh",
+      "按预登记判据判定：sr_feasible 中位 ≥0.10、能耗/预算比中位 ≤1.00、full 危险步中位=0、A 与 B 臂差",
+      "评估后写台账与结论；若 (a) 触发（A/B 差均 <0.05）则判『预算内计成本无效』并转安全方向"
+     ],
+     "blockers": []
+    },
+    {
+     "timestamp": "2026-11-15T16:18:00+08:00",
+     "summary": "第 13 轮跑完并判定：12 个 run 全部 600 更新、退出码 0、墙钟约 1.55 h。评估结果：sr_feasible 两方法中位均 0.00，仅 nav064_r13_uncalibrated_s0_b0 有 2/6 到达且均超预算；触发预登记判据 (c)，写正式负结果。三条实质发现：①预算内计成本确实降低了能耗（uncal 臂 A 0.60 vs 臂 B 0.85，−29%），但同时把训练期到达率从 23-37% 压到 7-10%，与第 9 轮「逐步减速」同机制，权重从 50 降到 2 仍压住前进；②full 变体安全性继续恶化（dev 危险步 1109-1818，单回合 131-264，以 collision 终止为主）；③最关键：同一份余量契约下，未重新训练的 r12 旧 checkpoint 反而更好（r12 uncal_s0_nomask SR 1.00/可行 0.67、r12 full_s0 SR 0.67），说明「在放宽契约上重训」让策略变差。另有最后一两米停滞的直接证据：最好的 B 臂 run 在 41.4 s 因 stagnation 终止、距目标 2.70 m。",
+     "actions": [
+      "检查 ROUND13_DONE 与 exit_codes：12/12 退出码 0，fail=0",
+      "运行 eval_round13.sh（复用 contract_margin_eval.py，保证评估契约与训练一致），产出 reports/training_round_r13.json",
+      "统计 12 个 run 的 train_log 汇总行：到达率 7.41-37.41%、碰撞 42.8-71.5%、超时 9.7-25.1%",
+      "与 reports/contract_margin_eval.json 的旧 checkpoint 基线逐 run 对照",
+      "逐图查看 uncal_s0 / full_s0 / uncal_s2_b0 的失败形态（超时、碰撞、stagnation 与终点距离）",
+      "写 reports/negative_result_r13.json 并追加本条记录"
+     ],
+     "files_changed": [
+      "reports/training_round_r13.json（12 run × 6 图评估）",
+      "reports/negative_result_r13.json（正式负结果）",
+      "plan_snapshot.json（第 37 条记录）"
+     ],
+     "commands": [
+      "bash scripts/eval_round13.sh（setsid）",
+      "python analyze（本地统计 train_log 与评估结果）",
+      "python validate_worklog.py plan_snapshot.json --mode update"
+     ],
+     "results": [
+      "sr_feasible：12 个 run 中 11 个为 0.00，唯一非零是 uncal_s0_b0 的 0.33（但其可行到达仍 0.00，超预算）",
+      "能耗/预算比中位：uncal 臂 A 0.60 / 臂 B 0.85；full 臂 A 0.94 / 臂 B 0.67",
+      "危险步：uncal 0-68；full 941-1818（r12 同契约 505）",
+      "训练期到达率：臂 A 7.4-24.3%，臂 B 12.9-37.4%",
+      "旧 checkpoint 同契约基线：r12 uncal_s0_nomask SR 1.00/可行 0.67，r12 full_s0 SR 0.67",
+      "失败形态：uncal_s2_b0 在 l1 两图 41.4 s stagnation、距 2.70/2.72 m；full_s0 在 l1 10.6 s 即碰撞",
+      "墙钟：单 run 1.31-1.39 h（12 并行，机器空闲），无墙钟上限触发的停止"
+     ],
+     "evidence": [
+      "nav064_r13/ROUND13_DONE 与 exit_codes.txt（12 个 0）",
+      "reports/training_round_r13.json：12 run × 6 图的 label/t_s/min_goal_distance/cost/z0/danger/feasible",
+      "reports/contract_margin_eval.json：旧 checkpoint 在同契约下的 SR 与可行到达",
+      "各 run 的 .log 末尾 JSON 汇总行（episodes_completed 与 label 计数）",
+      "reports/negative_result_r13.json：判据表、发现与下一轮候选"
+     ],
+     "remaining_work": [
+      "第 14 轮候选：安全连续代价（F1/F2）优先——full 碰撞 42-71% 是最大单点损失",
+      "诊断最后一两米停滞：区分「学不会精调」与「stagnation 规则提前判死」",
+      "成本项若要保留，需与到达解耦（仅在到达/接近目标时计成本），否则必然压住前进",
+      "契约余量版是否继续作为评估口径需重新评估（本轮重训未获益）"
+     ],
+     "blockers": [
+      "第 14 轮开工需用户授权（r13 stops.falsified）",
+      "契约余量版与 r1-r12 不可直接比较；是否保留该口径属评分语义决定"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T16:55:00+08:00",
+     "summary": "r13 判负后的全链路根因审计：放下既有结论，重读 AGENTS_root 与 algorithm_implementation 全文、总计划的 method/evaluation contract，逐段精读 targets.py/storage.py/train_formal.py 并与 13 轮训练日志交叉核对；补做冻结常数尺度审计（t_scale_audit.py，不训练、只算数）。结论：卡住的根因在「代码实现的目标函数尺度」这一层，不在文档理解或数据口径。三个数字定案：①距离项每米只值 0.0667（(dist-r)/15），而超支步成本 w=50 时每米罚约 3.3（快走 36 J/m 时），是距离信号的约 50 倍——超支比撞死差不了多少；②r13 A 臂给预算内每步也计成本 base_weight=2.0，按最省能速度每米约 0.095，已超过距离信号 0.0667，前进本身变成净亏——目标函数的理论最优恰好是「走约六成然后怠速」，与 A 臂实测（距目标 8.2 m、预算花 60%）逐点吻合；③全程计成本时 w<1.36、超支口径下超 5% 时 w<27，超 15% 时 w<9，到达才优于原地不动。r12 旧 checkpoint 在余量契约下 SR 1.00（uncal_s0_nomask）证明到达能力本身存在，13 轮训练没有白费在「学不会走」，而是每轮都在优化一个写错了尺度的目标。",
+     "actions": [
+      "重读 nav064/AGENTS_root.md、algorithm_implementation.md 全文与 plan_snapshot 的 goal/final_acceptance/method_contract/evaluation_contract",
+      "精读 joint_training_sequence（targets.py L141-182）、ObjectiveConfig（storage.py L178-200）、train_formal.py 的 base_weight/ref_energy 接线（L409-414）",
+      "与 reports/training_round_r13.json 逐 episode 核对：12 run 的 min_goal_distance、cost/z0、danger_steps、终止 label",
+      "写 scripts/t_scale_audit.py：用冻结常数（L_REF=15、G_INSIDE=-0.001、Z_REF=550、C=1.0、功率模型 P(v)=3.028+4.722v+31.542v^2、l1_empty-s2001 路线 13.95 m）直接计算四种轨迹的目标值",
+      "四层归因：文档理解（无偏差）/计划目标（余量契约仅评估变体、晋升未决）/代码逻辑（根因所在）/训练数据（与代码预测一致，无测量错误）"
+     ],
+     "files_changed": [
+      "scripts/t_scale_audit.py（新增，纯计算审计脚本）",
+      "plan_snapshot.json（第 38 条记录）"
+     ],
+     "commands": [
+      "python scripts/t_scale_audit.py（tiger11，env_isaaclab_v0472）",
+      "grep/读取 targets.py、storage.py、train_formal.py、contract_margin_eval.json、training_round_r13.json、negative_result_r13.json"
+     ],
+     "results": [
+      "尺度审计核心表：原地不动 0.897；预算内到达 -0.001；超支 5% 到达 w=50 时 1.647（比原地不动还差）；差 1 m 停下 0.033",
+      "到达优于原地的权重上限：超支 5% 时 w<27.2、10% 时 w<13.6、15% 时 w<9.1；全程计成本时 w<1.36",
+      "A 臂 base_weight=2.0 的每米净信号 = 0.0667 - 2×24.3/550 ≈ -0.022（前进净亏），任意速度下均为负",
+      "r12 旧 checkpoint 余量契约基线复核：uncal_s0_nomask SR 1.00/可行 0.67、full_s0 SR 0.67、其余多数 0",
+      "stagnation 实证：uncal_s2_b0 距 2.70 m、剩 50 J（按最优 24.3 J/m 恰差约 15-66 J），41.4 s 被判停滞"
+     ],
+     "evidence": [
+      "scripts/t_scale_audit.py 及其完整输出（本轮记录在案）",
+      "reports/training_round_r13.json（12 run × 6 图）",
+      "reports/contract_margin_eval.json（旧 checkpoint 基线）",
+      "src/camra_navigation/algorithm/targets.py joint_training_sequence 源码",
+      "config/training_loop_prereg_r13.json（w=50、base=2.0、T=45、k=1.15 预登记值）"
+     ],
+     "remaining_work": [
+      "r14 设计需按尺度重推成本权重（若保留超支口径：w≈5-9 使「超支到达」与「差 1 m 停下」等价；若改终点超额计费：对超额 E-z0 一次性计 w·over/Z_REF）",
+      "对齐契约规定的联合结构 W=max(V_h, V_c-z)（成本通道只在预算吃紧时生效，天然与前进解耦），替代加性 w·c",
+      "安全项连续化（F1/F2：C=1.0 与 FAIL_PENALTY 同值、盖章后通道恒 1）仍是 full 变体碰撞 42-71% 的最大单点",
+      "stagnation 规则对最后 1-2 m 低速精调的误杀需单独验证"
+     ],
+     "blockers": [
+      "契约余量版（T=45/k=1.15）目前仅为评估变体，是否晋升为训练+评估契约需用户决定",
+      "r14 开工需用户授权（r13 stops.falsified 后按纪律停问）"
+     ]
+    },
+    {
+     "timestamp": "2026-11-15T17:20:00+08:00",
+     "summary": "RC-PPO 参考对照深挖（第 38 条记录的延伸）：通读 Paper/RC-PPO/rl 的 EC-EFPPO.py（L64-76 主目标管线）、gae.py（calculate_gae_reach4 L195、calculate_indexs3 L334、calculate_gae2 L394）、EFPPO_utils.py（_ecefppo_update 策略损失）与 manuscripts/CORL 论文的 MCRA 形式化（轨迹级目标、增广态 ĝ=max{g,Cy,−z}、增广目标集等价性保证、最小可行预算、裕度命题、min 型 Bellman 递推）。与 storage.py L340-425 的现行实现逐环节对照，结合 rcppo_alignment.json 的 D1-D7 与 gate_G3_alignment_v2 结论，确认：W=max(V_h,V_c−z) 已实现并用于基线/可行性，但策略优势侧与参考有两处实质偏离——①参考在 g_append 上做 min 型 Bellman + 归一化 GAE（联合），我们因符号系统不兼容（参考到达=−300 vs 本仓 max(·,0) 抹平）冻结 joint_min_recursion=False（D4，已做过严格转写与反例：corr 翻负 2/3 run）；②参考每步成本只经 −z（存量）进入 max，我们另加 w·c（D5），w 从未按 h 尺度推导（第 38 条记录已定量）。结论：对齐程度为「价值侧对齐、策略目标侧偏离」，偏离的根子是 h 符号体系，启用参考形态必须先给到达一个深度负值（参考 ×100 标度折算约 −3），属契约语义变更与新授权点。",
+     "actions": [
+      "通读 RC-PPO 参考代码三份核心文件与 CORL 论文形式化章节",
+      "逐环节对照 storage.py 现行三估计器实现（共同停止、成本/reach/联合目标）",
+      "复核 rcppo_alignment.json 七项偏离与 G3 门禁 22 判据结论",
+      "按 RC-PPO 理论整理对齐修改建议并区分「已裁定保留」与「需授权变更」"
+     ],
+     "files_changed": [
+      "plan_snapshot.json（第 39 条记录）"
+     ],
+     "commands": [
+      "sed/grep 读取 Paper/RC-PPO/rl/{EC-EFPPO,gae,EFPPO_utils}.py（tiger11 只读副本）",
+      "grep 论文 main.tex 目标函数与定理段",
+      "对照本地 storage.py/ppo.py/targets.py"
+     ],
+     "results": [
+      "参考管线：V_total_append=max(V_reach,V−energy)；g_append=max(reach,−energy)；calculate_indexs3 产共享 done；三个估计器共用；策略损失为 PPO 裁剪型",
+      "论文保证：增广态到达增广目标集 ⟺ 到达+全程安全+不超预算（轨迹级约束，非加权和偏好）；最小可行预算搜索；α/δ 裕度命题（分位数保证）",
+      "min 型联合递推已实现（joint_min_return/joint_min_recursion）但因符号体系冻结为 False，训练器遇 True 拒绝启动",
+      "成本进入策略梯度的参考通道是 −z 与 V_c−z（存量差），不是每步加性罚；「省着用」由部署期预算搜索承担，不由训练期惩罚承担"
+     ],
+     "evidence": [
+      "Paper/RC-PPO/rl/EC-EFPPO.py L64-76、rl/gae.py L195/334/394、rl/EFPPO_utils.py L35-105",
+      "manuscripts/CORL/latex/0820_submitted/main.tex L62-115（形式化与保证）、L234（min 型递推）",
+      "reports/rcppo_alignment.json（D1-D7）与 gate_G3_alignment_v2.json（PASS，7 项偏离）",
+      "src/camra_navigation/algorithm/storage.py L340-425"
+     ],
+     "remaining_work": [
+      "r14 方案A/B/C 已给出；若走 B（对齐 RC-PPO）：先改 G_INSIDE 符号体系（需用户授权）→ 验证 min 型递推 corr(h,adv)>0 → 撤加性 w·c → 修 z_ratio 饱和 → 预算搜索换值法（NAV-066）",
+      "已裁定保留项：γ_joint=1.0（D1）、失败强制 τ*=T（D2）、实测 h_T 尾部（D3）不再重开"
+     ],
+     "blockers": [
+      "G_INSIDE/符号体系变更属 value_objective_contract 语义变更，r1-r13 历史结果不可直接比较，须用户授权后预登记",
+      "r14 开工需用户授权（r13 stops.falsified）"
      ]
     }
    ],
