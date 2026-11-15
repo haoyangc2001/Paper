@@ -8003,6 +8003,46 @@
             "closure_state": "validated"
           },
           "timestamp": "2026-11-15T23:46:09+08:00"
+        },
+        {
+          "summary": "NAV-064 r14a2已本地提交并真实启动六组600更新训练；初始49032样本核验通过，训练和开发关闭档仍在进行。",
+          "actions": [
+            "必要导航修复、独立协议/门禁、旧失败和计划历史已作本地提交4b793d1；未推送。",
+            "启动前再核验冻结注册/源码绑定、run ID未重名和tiger11/tmux，启动六个新进程。",
+            "检查实际六组run_start及前两更新原始数组、hash、回合身份、样本窗口、PPO批次和gamma消费；更新交接。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav064_r14a2_started_v1.json",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav064_r14_recovery_plan_20261115.md",
+            "CaMRA/navigation/docs/nav064_r14_gamma_meta_review_20261115.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "python /tmp/nav064_r14a2_commit.py",
+            "python /tmp/nav064_r14a2_commit_retry.py",
+            "bash /tmp/nav064_r14a2_launch.sh",
+            "python /tmp/nav064_r14a2_started.py"
+          ],
+          "results": [
+            "本地提交4b793d1；初次cached diff检查因保留补丁的单空格上下文行退出2，原日志保留；仅对两份有效unified patch豁免空白检查，其余全部通过并验证补丁可解析。",
+            "六组进程运行，前2更新共49032样本核验通过，gamma_h=[0.999,0.9990033]，gamma_joint=1。",
+            "现行生产接口、版本和固定v2输入匹配；source binding校验仍通过。",
+            "本项实际训练进度已建立，不等于关闭档通过。NAV-064保持false，其余任务状态及全部旧记录未改。"
+          ],
+          "evidence": [
+            "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_r14a2_started_v1.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_r14a2/start.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_r14a2/pids.json",
+            "/tmp/nav064_r14a2_workflow.log",
+            "/pub/data/caohy/work/camra_navigation/nav064_r14a2_release/git_stage_review.json"
+          ],
+          "remaining_work": [
+            "完成每组600更新及100/600审计，检查最后checkpoint开发关闭档、稳定性与数据隔离。",
+            "只有全部验收满足才可关闭NAV-064及推进NAV-065；不自动扩额或开r15。"
+          ],
+          "blockers": [],
+          "timestamp": "2026-11-15T23:48:51+08:00"
         }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
