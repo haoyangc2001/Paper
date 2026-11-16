@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-17T07:21:42.759685+08:00 完整回合反馈版已启动，50更新审计通过
+
+用户批准的两方法×三种子各300次更新正在`tiger11.ios.ac.cn`的`nav064-r14-repair-20261115:episode-training`运行。启动提交`55fbd6bff88041b71dbe3135c18c9ea63840c3a1`，独立冻结pin `f48db2cd9777854acb6963db1075241ba8b4bcbe27c10c5a29a8820263415cb1`。启动核验时六组完成[76, 75, 79, 78, 77, 80]次更新、实采2038253条，实际train18图、输入hash、obs-v7/61、完整当前策略回合及多epoch更新均核对，六进程存活，无HELD。
+
+首50更新原始审计为PASS：六组5400完整回合、1279589样本，216段轨迹独立重算三目标，元数据不一致0。审计后训练已继续；此结果仅证明启动与训练机制/数据符合登记，尚不表示学习或导航安全达标。证据见`reports/nav064_episode_feedback_started_v1.json`，首轮原始审计位于`/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_v1_audit_u50/report.json`。
+
+协调器目录`/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_v1/`；日志`/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_launch_20261117_v1/coordinator.log`。六组各300后自动全量审计，再以最后checkpoint执行108回合development。接手先查start/pids/HELD/FINISHED和实际日志，不重复启动。无额外性能smoke、自动重试、推送或下游执行；NAV-064仍false，按原开发关闭档通过后才推进NAV-065。下方“尚未启动/待确认”均为历史时点。
+
 ## 2026-11-17 用户批准完整回合反馈版，冻结登记通过启动核验
 
 用户已确认新增两方法×三种子各300次完整回合更新（最多14580000样本）及最后checkpoint的108回合development。独立冻结件为`config/training_loop_prereg_episode_feedback_v1.json`，pin `f48db2cd9777854acb6963db1075241ba8b4bcbe27c10c5a29a8820263415cb1`。原proposal和下方“待额度确认”保留为历史。训练前放行为`reports/nav064_episode_feedback_training_release_v1.json`；171门禁/32回归来源仍匹配，57份源码/配置快照和33个固定v2资源核验通过。

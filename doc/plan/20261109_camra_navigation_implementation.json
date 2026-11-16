@@ -8941,6 +8941,51 @@
     "完成50/300更新审计及最后checkpoint的108开发回合；科学关闭档满足前NAV-064保持false，下游不推进。"
   ],
   "blockers": []
+},
+{
+ "timestamp": "2026-11-17T07:21:42.759685+08:00",
+ "summary": "NAV-064完整回合反馈版六组训练已启动；50更新原始审计PASS，保持未通过完整训练验收。",
+ "actions": [
+  "沿用用户已确认的tiger11同机/tmux例外，从提交55fbd6bff88041b71dbe3135c18c9ea63840c3a1启动唯一登记的6×300训练；无重复启动、额外smoke、重试或下游执行。",
+  "再次核对171数值门禁/32套回归来源，57份源码/配置和33个冻结v2资源散列未变；实际生产train入口使用obs-v7/61、complete_episodes_v1与既有RC-PPO目标。",
+  "读取六组实际进程、完整日志快照及首更新18段原始完整回合；核对train18图和实际输入hash、有限损失/梯度、多epoch/minibatch及按实采样的更新步数。",
+  "协调器在全部run达到50后暂停，严格原始审计PASS后已恢复；保留原审计报告/规范索引及其hash。",
+  "启动核验夹具attempt1错误使用ceil计算尾批为1时的梯度步数；对照生产及正式审计的既有尾批规则后修正只读核验，attempt2通过；失败日志/快照保留，未改训练代码或样本。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/reports/nav064_episode_feedback_started_v1.json",
+  "CaMRA/navigation/docs/implementation_handoff.md",
+  "CaMRA/navigation/README.md",
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "tmux nav064-r14-repair-20261115:episode-training: /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_episode_start_20261117.py",
+  "coordinator exec: /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /home/caohy/repositories/Paper/CaMRA/navigation/scripts/run_feedback_round.py --prereg training_loop_prereg_episode_feedback_v1.json",
+  "tmux nav064-r14-repair-20261115:episode-start-verify2: /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_episode_verify_started_20261117.py"
+ ],
+ "results": [
+  "六组启动核验时完成更新[76, 75, 79, 78, 77, 80]，实采合计2038253；六进程存活，未见HELD。",
+  "50更新审计六组均PASS：5400完整回合、1279589样本、216段三目标独立重算；manifest元数据不一致0，原始数组不删除不回填。",
+  "冻结pin f48db2cd9777854acb6963db1075241ba8b4bcbe27c10c5a29a8820263415cb1；仅train18图用于训练，budget_selection/final_*封存；固定v2/校准/地图/任务/预算/关闭档未变。",
+  "局部启动/数值审计与全局实际调用/版本检查通过；尚非学习或安全效果通过。计划保持51/67历史true，NAV-064=false，NAV-065及后续未执行。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/nav064_episode_feedback_started_v1.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_launch_20261117_v1/launch.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_launch_20261117_v1/coordinator.log",
+  "/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_launch_20261117_v1/startup_evidence_v1_attempt2",
+  "/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_v1/start.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_v1/pids.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_v1_audit_u50/report.json",
+  "/tmp/nav064_episode_verify_started_20261117.log",
+  "/tmp/nav064_episode_verify_started_20261117_attempt2.log"
+ ],
+ "remaining_work": [
+  "完成各300次完整回合更新，随后执行300全量原始审计。",
+  "最后checkpoint的108回合development按原关闭档验收；机制、数据与性能全部满足后才可关闭NAV-064，未达标保留负结果。",
+  "训练结束后追加最终结果、证据及下游结论；本次启动记录不构成NAV-065放行。"
+ ],
+ "blockers": []
 }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
