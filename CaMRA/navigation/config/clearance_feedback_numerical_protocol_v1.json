@@ -1,0 +1,32 @@
+{
+  "schema": "camra-clearance-feedback-protocol-v1",
+  "owner": "NAV-064",
+  "scope": "CPU numerical/production/regression gate; no performance rollout or training",
+  "parent": "config/time_feedback_numerical_protocol_v1.json",
+  "candidate": {
+    "parent": "time-feedback-v1",
+    "changes": [
+      "obs-v6/41 -> obs-v7/61;16 signed obstacle margins+4 wall margins using actual per-method radius"
+    ],
+    "unchanged": [
+      "all original obs-v6 named fields",
+      "h/y, bounded continuation, common stop, three GAE, minPPO",
+      "gamma/lambda, initialization, learning rates",
+      "maps/seeds/splits/budgets/45s task/thresholds/last checkpoint"
+    ]
+  },
+  "checks": [
+    "Rerun full time+feedback+runtime numerical gate against current source, including73548 historical train samples",
+    "Independent signed-distance oracle: circles, polygon edges/corners/interior, yaw, obstacle permutation, sensing/clip/empty bins, all wall signs",
+    "Full/uncalibrated actual method radius, no global default; legacy bytewise replay from preserved source",
+    "Production18 train constructors, scalar/vector consistency and actual development constructor with zero rollout steps",
+    "Actor and both critics consume61 fields; controlled pre-crossing two-action minPPO update decreases crossing probability",
+    "Auditor independent vector geometry reconstruction of obs/next_obs, controlled corruption rejected, float32 angular ambiguity explicit",
+    "Version/layout/radius/approval/source/gate/namespace mismatch startup rejection"
+  ],
+  "limits": [
+    "Nearest-surface polar summaries are not a full LiDAR or a formal safety shield.",
+    "Numerical feedback direction does not prove navigation convergence; NAV-064 remains false until training/development closes.",
+    "Do not change gamma/lambda or h/y while isolating this feature candidate."
+  ]
+}

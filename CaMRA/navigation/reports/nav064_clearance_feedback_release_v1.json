@@ -1,0 +1,107 @@
+{
+  "schema": "camra-clearance-feedback-release-v1",
+  "owner": "NAV-064",
+  "plan_version": "1.3.1",
+  "timestamp": "2026-11-16T22:24:38.068248+08:00",
+  "verdict": "PASS_NUMERICAL_AND_REGRESSION_NOT_TRAINING",
+  "nav064_complete": false,
+  "training_started": false,
+  "training_authorized": false,
+  "host": "tiger11.ios.ac.cn",
+  "tmux": "/tmp/tmux-39400170/default,2639274,25",
+  "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "cwd": "/home/caohy/repositories/Paper",
+  "git_head_before_commit": "755325705860d8541c8a4c505f86def30834231b",
+  "implementation_versions": {
+    "observation": "obs-v7",
+    "estimator": "rcppo-feedback-v4"
+  },
+  "gate": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/gate_clearance_feedback_v1_attempt4.json",
+    "sha256": "61bef65360b0e54b9668d9ca46739aa56d66cb9600c8a54a8ef5f70a247a98a1",
+    "checks": 153
+  },
+  "regression": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/regression/report.json",
+    "sha256": "aafbcc2a893c205980f7167f1f9f1f1b39a24ac271beb3aa99ad7670610699d1",
+    "count": 32
+  },
+  "diagnosis": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_clearance_feedback_diagnosis_v1.json",
+    "sha256": "be03b8bc8c1b5c831fb62f2dbcb0b7ebacf0b933901b0709d2ff64b6263b77ca"
+  },
+  "diagnosis_sources": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_clearance_feedback_diagnosis_v1.sources.json",
+    "sha256": "053a8f32ac91adf51b457521b0af3df85c47af66fa785d4ff6313cb15bc5adee"
+  },
+  "candidate_snapshot": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/source_candidate",
+    "manifest": {
+      "path": "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/candidate_source_manifest.json",
+      "sha256": "366d07875c4c6b4cee224493f22b855d6003e7c0fb9629801762fb5998e3c142"
+    },
+    "files": 264
+  },
+  "preservation": {
+    "original_inventory": {
+      "path": "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/preflight.json",
+      "sha256": "f6413f6c5092da3e7ad2a7c21de3c57eb7fa811310ea0f95320d64e8867af12d"
+    },
+    "prior_files_checked": 1025,
+    "expected_mutations": [
+      "CaMRA/navigation/README.md",
+      "CaMRA/navigation/docs/implementation_handoff.md",
+      "CaMRA/navigation/scripts/audit_r14a2.py",
+      "CaMRA/navigation/scripts/run_feedback_round.py",
+      "CaMRA/navigation/src/camra_navigation/algorithm/networks.py",
+      "CaMRA/navigation/src/camra_navigation/algorithm/validation.py",
+      "CaMRA/navigation/src/camra_navigation/envs/nominal.py",
+      "CaMRA/navigation/src/camra_navigation/envs/vector.py",
+      "CaMRA/navigation/src/camra_navigation/observation.py",
+      "doc/plan/20261109_camra_navigation_implementation.json"
+    ],
+    "frozen_resources_unchanged": 33,
+    "old_snapshots_verified": true,
+    "old_preregistrations_contracts_reports_calibration_unchanged": true,
+    "manuscripts_and_reference_modifications": false,
+    "historical_raw_reports": "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/historical_reports",
+    "retained_failed_attempt_log": "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/execution_logs/nav_clearance_gate_attempt1_20261116.log"
+  },
+  "proposal": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/config/training_loop_clearance_feedback_proposal_v1.json",
+    "sha256": "423c8a20a56c063c58ec1b60ea830c7a1926a5e7acd359d3bd6f6046a4b404f3",
+    "training_approved": false,
+    "requested_runs": 6,
+    "requested_updates": 3600,
+    "requested_samples": 14709600,
+    "requested_development_episodes": 108
+  },
+  "production_consumers": [
+    "36 actual train environments/scalar-vector identity",
+    "12 actual development constructors, zero rollout steps",
+    "actual61-input actor and both critics",
+    "actual pre-crossing geometry+close_segment+MinimizationUpdater",
+    "independent audit for obs/next_obs, wrong radius/sign/dim rejected",
+    "new coordinator namespace and strict source/version/layout/geometry startup validation"
+  ],
+  "runtime_checks": {
+    "unapproved_rejected": true,
+    "all_bindings_verified_in_memory_only": true,
+    "new_attempt_paths_absent": true
+  },
+  "old_feedback_text_correction": {
+    "source": {
+      "path": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_feedback_v1_development.json",
+      "sha256": "307a9bce194fadd0a5fd3112437ad095baf12f8631ee91498e0d90a50f45fceb"
+    },
+    "uncalibrated_sr_feasible_median": 0.6666666666666666,
+    "note": "Old handoff text said0; original report says2/3. Historical text/report unchanged; correction appended."
+  },
+  "limits": [
+    "Controlled numerical feedback direction and regression do not prove navigation improvement.",
+    "Nearest-surface directional summaries are not full sensing or a safety shield.",
+    "Actual physical obs-v7 integration remains NAV-067; this stage only checks shared encoder numerically.",
+    "Historical irreversibility plateau, timeout, long-term credit and stochastic/deterministic deployment issues are not claimed solved.",
+    "Additional formal allocation requires approval; no frozen training pin, performance smoke, budget-selection/final access or downstream execution."
+  ]
+}

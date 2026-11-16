@@ -8638,6 +8638,91 @@
   "仅当两方法可行成功率中位数≥0.10、能耗/预算中位数≤1、full危险步中位数0且机制/稳定性/数据审计全部通过，才可结案NAV-064并进入NAV-065。"
  ],
  "blockers": []
+},
+{
+ "timestamp": "2026-11-16T22:12:00+08:00",
+ "summary": "NAV-064安全净空观测回修开工：计划1.3.1，确认time-feedback六组已完整结束且开发未通过；按用户授权推进接口修复和离线门禁。",
+ "actions": [
+  "重读根AGENTS、技能、计划及NAV-064，核对生产源码与最新训练结案；依赖NAV-061/062/063成立，首个可执行任务仍为NAV-064。",
+  "在已获同机例外授权的tiger11/tmux核验解释器、GPU、v2冻结29文件及4资产，建立独立源码和旧报告快照。",
+  "本次单一候选为obs-v7：保留原地图字段，增加基于各方法真实膨胀半径的有符号安全净空；目标函数、安全历史、共同停止、三估计器、min-PPO和gamma/lambda不变。"
+ ],
+ "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+ "commands": ["/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python /tmp/nav_clearance_preflight_20261116.py"],
+ "results": [
+  "最新time-feedback完整3600更新、14709600样本；未校准可行SR中位1/6、完整方法1/2但危险步中位228，FAIL_DEVELOPMENT。",
+  "已保存1025文件hash及源码/旧报告快照；冻结资源33文件匹配。未启动新训练或性能rollout，NAV-064=false，51/67历史完成，不进入下游。"
+ ],
+ "evidence": [
+  "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/preflight.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_v1/FINISHED.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_v1_audit_u600/report.json"
+ ],
+ "remaining_work": [
+  "实现版本化观测和生产训练/开发/审计/协调器接线；独立几何oracle与越界动作反馈验证，重验门禁和回归。",
+  "形成独立六run训练提案，追加额度确认后才冻结并启动；训练关闭档通过前保持NAV-064=false。"
+ ],
+ "blockers": []
+},
+{
+ "timestamp": "2026-11-16T22:25:19.408833+08:00",
+ "summary": "NAV-064安全净空回修收尾：obs-v7生产接线及153项门禁、32套回归通过；训练尚未达标，独立新增六run提案待额度确认。",
+ "actions": [
+  "按用户授权实现61维版本化观测：保留obs-v6原41字段，增加16障碍/4墙面有符号净空，明确使用各方法实际冻结几何半径；接入scalar/vector、三网络、正式训练、development、审计与协调器。",
+  "重跑独立数学/运行时/旧train目标门禁，完成冻结几何oracle、旧编码250组逐值重放、36训练与12开发构造器及越界前一步动作和实际minPPO验证；完成32套回归。",
+  "只读复算time-feedback既有36774条train样本及development结果，追加最新结案及历史文字勘误；保留初始自测失败和旧报告。",
+  "核验1025旧文件及快照、33冻结资源和新版源码/契约/gate绑定；建立候选快照、完成未批准提案的生产启动拒绝/内存接线验证，准备必要本地提交。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/src/camra_navigation/observation.py",
+  "CaMRA/navigation/src/camra_navigation/envs/nominal.py",
+  "CaMRA/navigation/src/camra_navigation/envs/vector.py",
+  "CaMRA/navigation/src/camra_navigation/algorithm/networks.py",
+  "CaMRA/navigation/src/camra_navigation/algorithm/validation.py",
+  "CaMRA/navigation/scripts/audit_r14a2.py",
+  "CaMRA/navigation/scripts/run_feedback_round.py",
+  "CaMRA/navigation/scripts/diagnose_clearance_feedback.py",
+  "CaMRA/navigation/tests/test_clearance_feedback_gate.py",
+  "CaMRA/navigation/config/navigation_contract_clearance_feedback_v1.json",
+  "CaMRA/navigation/config/clearance_feedback_numerical_protocol_v1.json",
+  "CaMRA/navigation/config/training_loop_clearance_feedback_proposal_v1.json",
+  "CaMRA/navigation/reports/gate_clearance_feedback_v1_attempt4.json",
+  "CaMRA/navigation/reports/nav064_clearance_feedback_diagnosis_v1.json",
+  "CaMRA/navigation/reports/nav064_clearance_feedback_release_v1.json",
+  "CaMRA/navigation/docs/nav064_clearance_feedback_20261116.md",
+  "CaMRA/navigation/docs/implementation_handoff.md",
+  "CaMRA/navigation/README.md",
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u CaMRA/navigation/tests/test_clearance_feedback_gate.py --out CaMRA/navigation/reports/gate_clearance_feedback_v1_attempt4.json",
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav_clearance_regression_20261116.py",
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u CaMRA/navigation/scripts/diagnose_clearance_feedback.py --out CaMRA/navigation/reports/nav064_clearance_feedback_diagnosis_v1.json",
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python /tmp/nav_clearance_release_20261116.py"
+ ],
+ "results": [
+  "数值门禁153/153、回归32/32；新字段按实际full半径3.119367799506481m或uncal半径0.5055013879783843m编码；默认41维与旧版本保持。",
+  "实际边界内2.5cm的一步动作进入危险后，沿生产close_segment和MinimizationUpdater的两动作相对密度由0.8413降至0.7082；仅为受控相对密度，不代表实际导航成功率或事件积分概率。",
+  "最新time-feedback开发FAIL_DEVELOPMENT已确认；full36774样本首次越界60次中54次即时距离主导，历史平台2726条。延续值仍能提供安全反馈，未清空y或掩码危险样本。",
+  "固定v2整套、旧校准/锁/参考/论文及旧预登记和报告保持；h/y、共同停止、三GAE/minPPO、gamma/lambda、45秒、预算、地图、数据隔离和验收阈值未改；新增性能rollout及训练为0。",
+  "提案sha256 423c8a20a56c063c58ec1b60ea830c7a1926a5e7acd359d3bd6f6046a4b404f3：申请6个fresh-init run×600更新、14709600样本和108开发回合；training_approved=false，无冻结pin，所有新输出目录不存在。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/nav064_clearance_feedback_release_v1.json",
+  "CaMRA/navigation/reports/gate_clearance_feedback_v1_attempt4.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/regression/report.json",
+  "CaMRA/navigation/reports/nav064_clearance_feedback_diagnosis_v1.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/candidate_source_manifest.json",
+  "CaMRA/navigation/config/training_loop_clearance_feedback_proposal_v1.json"
+ ],
+ "remaining_work": [
+  "用户确认追加正式次数后，另建不可变预登记/pin并核验输出/资源，再执行六组；首100计入600，前缀与全量审计及108开发回合按原阈值验收，无额外smoke/自动重跑。",
+  "训练可行SR、能耗、安全及机制/数据/稳定性关闭档未通过前保持NAV-064=false；NAV-065及之后任务不得提前推进。",
+  "净空输入是否改善安全/超时尚无训练证据；长期价值、随机/确定性部署差异及真实物理61维接线不宣称已解决。"
+ ],
+ "blockers": [
+  "仅新增正式训练额度待确认：上一轮额度用尽，计划uncertainty_policy要求改变正式试验次数先询问；实现和离线验收已完成，不重复请求既有同机执行授权。"
+ ]
 }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

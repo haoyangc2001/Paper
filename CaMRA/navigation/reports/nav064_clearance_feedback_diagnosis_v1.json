@@ -1,0 +1,125 @@
+{
+  "schema": "camra-clearance-feedback-diagnosis-v1",
+  "owner": "NAV-064",
+  "timestamp": "2026-11-16T22:20:09.717284+08:00",
+  "verdict": "DIAGNOSIS_ONLY_NOT_PERFORMANCE_ACCEPTANCE",
+  "new_training": false,
+  "new_performance_rollouts": 0,
+  "parent_prereg": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/config/training_loop_prereg_time_feedback_v1.json",
+    "sha256": "b8742ca9c50629e0cf350ea5d6328339c86f70239b32d73444865ad5bb2a3216"
+  },
+  "closure": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_v1/FINISHED.json",
+    "sha256": "fd720db69b5469b7e13601faf60556a30c9a089d7d1c8f10c91cef0471a256ad",
+    "verdict": "FAIL_DEVELOPMENT"
+  },
+  "full_store_audit": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_v1_audit_u600/report.json",
+    "sha256": "dc9e7cc74c8c4d947472811693bbb2ee1799602d828d0015c23e81ab41e84667",
+    "verdict": "PASS"
+  },
+  "development_source": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_time_feedback_v1_development.json",
+    "sha256": "7ea71ccc4251f0e2872be6413b853f9410e5d1e8356d1dcbca931a02e2dd370c"
+  },
+  "development_summary": {
+    "uncalibrated": {
+      "sr_feasible": 0.16666666666666666,
+      "energy_ratio": 0.8633263199786956,
+      "danger_steps": 0,
+      "performance_pass": true
+    },
+    "full": {
+      "sr_feasible": 0.5,
+      "energy_ratio": 0.8904076178086933,
+      "danger_steps": 228,
+      "performance_pass": false
+    }
+  },
+  "development_primary": {
+    "uncalibrated": {
+      "episodes": 18,
+      "labels": {
+        "timeout": 14,
+        "goal_reached": 3,
+        "collision": 1
+      },
+      "feasible": 3,
+      "overspent": 0,
+      "dangerous_episodes": 2,
+      "danger_steps": 42
+    },
+    "full": {
+      "episodes": 18,
+      "labels": {
+        "timeout": 7,
+        "goal_reached": 9,
+        "collision": 2
+      },
+      "feasible": 8,
+      "overspent": 1,
+      "dangerous_episodes": 5,
+      "danger_steps": 700
+    }
+  },
+  "train_selection": {
+    "updates": [
+      99,
+      349,
+      599
+    ],
+    "runs": [
+      {
+        "run_id": "nav064_time_feedback_v1_full_s0",
+        "samples": 12258,
+        "first_crossing": 21,
+        "immediate_distance_dominates": 20,
+        "saturated_history_nonfailure": 1644,
+        "saturated_stop_now": 1644,
+        "saturated_target_one": 1644
+      },
+      {
+        "run_id": "nav064_time_feedback_v1_full_s1",
+        "samples": 12258,
+        "first_crossing": 20,
+        "immediate_distance_dominates": 19,
+        "saturated_history_nonfailure": 469,
+        "saturated_stop_now": 469,
+        "saturated_target_one": 469
+      },
+      {
+        "run_id": "nav064_time_feedback_v1_full_s2",
+        "samples": 12258,
+        "first_crossing": 19,
+        "immediate_distance_dominates": 15,
+        "saturated_history_nonfailure": 613,
+        "saturated_stop_now": 613,
+        "saturated_target_one": 613
+      }
+    ],
+    "totals": {
+      "samples": 36774,
+      "first_crossing": 60,
+      "immediate_distance_dominates": 54,
+      "saturated_history_nonfailure": 2726,
+      "saturated_stop_now": 2726,
+      "saturated_target_one": 2726
+    }
+  },
+  "sources": {
+    "path": "CaMRA/navigation/reports/nav064_clearance_feedback_diagnosis_v1.sources.json",
+    "sha256": "053a8f32ac91adf51b457521b0af3df85c47af66fa785d4ff6313cb15bc5adee"
+  },
+  "script": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/diagnose_clearance_feedback.py",
+    "sha256": "c9c9bfdb53a38b0cdad24bc3584d03ae4752f9eef8f17a71736052574d05b82a"
+  },
+  "interpretation": [
+    "Distance dominance at first crossing describes the immediate max signal only; bounded future continuation can still penalize the crossing action.",
+    "Saturated irreversible history can create equal targets; do not clear safety history or mask unsafe samples to hide this.",
+    "Timeout and unsafe routes dominate latest development failures; only one full primary episode overspent.",
+    "Explicit clearance is an information-interface hypothesis; numerical gates cannot prove it will fix safety or timeout.",
+    "This feature-only candidate leaves gamma/lambda and the learned stochastic-vs-deterministic deployment issue unchanged; refitting deployment critics belongs to NAV-065."
+  ]
+}

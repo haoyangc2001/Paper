@@ -1,5 +1,15 @@
 # 上层导航实施交接
 
+## 最新状态：2026-11-16晚间 净空接口通过门禁，NAV-064仍未通过训练验收
+
+time-feedback-v1已完整结束：6组×600更新、全量审计PASS，开发FAIL_DEVELOPMENT。uncalibrated可行SR中位1/6、能耗/预算0.863326；full为1/2、0.890408，但危险步中位228。不能按下方旧“正在训练”重启，也不能据到达率放行。
+
+本次按用户授权完成安全净空单一候选obs-v7：原41字段保留，加16障碍/4墙面有符号净空；full/uncal各用实际冻结几何半径，总61维。训练、开发、三网络、审计、协调器和严格启动核验已接通。最终门禁`reports/gate_clearance_feedback_v1_attempt4.json`为153/153，32套回归通过；真实边界一步动作及实际PPO受控更新方向正确，不能据此声称导航改善。固定v2、RC-PPO目标与gamma/lambda、地图、预算、评分不变。
+
+最新train/development诊断和源码/资源保全分别见`reports/nav064_clearance_feedback_diagnosis_v1.json`、`reports/nav064_clearance_feedback_release_v1.json`；实施顺序、验证边界、复算命令与下一入口见[安全净空回修记录](nav064_clearance_feedback_20261116.md)。工作根`/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/`，继续既有tiger11同机/tmux授权。当前51/67历史完成，NAV-064=false，NAV-065及下游未执行。
+
+独立提案`config/training_loop_clearance_feedback_proposal_v1.json`请求新增6组×600更新及108开发回合，尚未批准、冻结或启动。原time-feedback额度已用尽，按计划的正式次数约束待确认新额度；不因数值PASS自动训练或推进下游。下方各“最新”标题均为历史时点；旧feedback-v1的uncal SR中位数写成0属于文字误记，应以原开发报告实际2/3为准，旧文保留供追溯。
+
 ## 最新状态：2026-11-16 时间接口修复完成数值门禁，训练提案待新增额度
 
 feedback-v1六组各600更新已结束，开发结论`FAIL_DEVELOPMENT`：uncalibrated安全可行SR中位数0，full为1/6，但full危险步中位数654。下方“正在训练”等保留为历史时点，不能据此重启旧run。

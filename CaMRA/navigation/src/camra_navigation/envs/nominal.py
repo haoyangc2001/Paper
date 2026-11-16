@@ -407,7 +407,8 @@ class NominalNavEnv:
 
     def observation(self) -> list[float]:
         return obs.encode_observation(self.ego, self._obstacle_obs, self._extent,
-                                      self.task, version=self.observation_version)
+                                      self.task, version=self.observation_version,
+                                      inflation_radius_m=self.geometry.inflation_radius_m)
 
     @property
     def steps(self) -> tuple[StepRecord, ...]:

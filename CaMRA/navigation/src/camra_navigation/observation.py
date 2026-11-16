@@ -69,6 +69,9 @@ __all__ = [
     "clip_applied",
     "command_from_action",
     "field_slices",
+    "layout_for_version",
+    "observation_dim",
+    "signed_surface_distance",
 ]
 
 #: Version of the observation layout and of every constant below.
@@ -93,7 +96,7 @@ __all__ = [
 #: replayed bit-for-bit on the same state.
 OBS_VERSION = "obs-v5"
 #: Observation versions this module can still encode (old reports stay checkable).
-SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3", "obs-v4", "obs-v5", "obs-v6")
+SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3", "obs-v4", "obs-v5", "obs-v6", "obs-v7")
 #: ``|z_ratio|`` upper bound per observation version.  Not a budget: a scale.
 #:
 #: NAV-064 r14 (obs-v4, D9 fix, user-authorized 2026-11-15T17:32): every scene
@@ -102,7 +105,7 @@ SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3", "obs-v4", "obs-v5
 #: Clip 3.0 covers the full training band ``k in [0.6, 1.3]`` plus the overspend
 #: excursions actually observed (NAV-064: z down to -1.6 during a 30 s run).
 Z_RATIO_CLIP_BY_VERSION: dict[str, float] = {
-    "obs-v2": 1.0, "obs-v3": 1.5, "obs-v4": 3.0, "obs-v5": 3.0, "obs-v6": 3.0,
+    "obs-v2": 1.0, "obs-v3": 1.5, "obs-v4": 3.0, "obs-v5": 3.0, "obs-v6": 3.0, "obs-v7": 3.0,
 }
 #: Version of the action/normalisation mapping.
 COMMAND_VERSION = "cmd-v1"
@@ -127,7 +130,7 @@ MAP_HALF_M = 15.0
 T_MAX_S = 30.0
 # Explicit opt-in: old checkpoints keep their original 30-second encoding.
 # NAV-064's task deadline is 45 seconds; v6 represents the full remaining time.
-TIME_REF_S_BY_VERSION = {v: (45.0 if v == "obs-v6" else T_MAX_S)
+TIME_REF_S_BY_VERSION = {v: (45.0 if v in ("obs-v6", "obs-v7") else T_MAX_S)
                          for v in SUPPORTED_OBS_VERSIONS}
 #: Reference speeds for the measured body velocity, metres/second, rad/second.
 V_REF_MPS = 1.0
@@ -184,14 +187,33 @@ LAYOUT: tuple[tuple[str, int], ...] = (
 OBS_DIM = sum(dim for _name, dim in LAYOUT)
 
 
-def field_slices() -> dict[str, slice]:
-    """Return the frozen slice of every field in the observation vector."""
+def layout_for_version(version: str | None = None) -> tuple[tuple[str, int], ...]:
+    """Explicit opt-in layout; legacy/default vectors remain 41-dimensional.
+
+    v7 inserts clearance before the three trailing task fields, preserving their
+    negative indices and every legacy map field.  It does not change safety.
+    """
+    v = OBS_VERSION if version is None else str(version)
+    if v not in SUPPORTED_OBS_VERSIONS:
+        raise ValueError(f"unknown observation version {v!r}")
+    if v == "obs-v7":
+        return LAYOUT[:-3] + (("safety_margin_bins", N_OBSTACLE_BINS),
+                              ("wall_margin_n", N_WALL_DISTS)) + LAYOUT[-3:]
+    return LAYOUT
+
+
+def observation_dim(version: str | None = None) -> int:
+    return sum(dim for _, dim in layout_for_version(version))
+
+
+def field_slices(version: str | None = None) -> dict[str, slice]:
+    """Return named slices for the explicitly selected observation version."""
     out: dict[str, slice] = {}
     start = 0
-    for name, dim in LAYOUT:
+    for name, dim in layout_for_version(version):
         out[name] = slice(start, start + dim)
         start += dim
-    assert start == OBS_DIM
+    assert start == observation_dim(version)
     return out
 
 
@@ -370,6 +392,14 @@ def surface_distance(
     return (max(0.0, centre - max(0.0, float(obstacle.radius))), math.atan2(dy, dx))
 
 
+def signed_surface_distance(ego: EgoState, obstacle) -> float:
+    """Exact signed primitive distance in metres; negative inside the raw shape."""
+    if isinstance(obstacle, PolygonObstacle):
+        d, _, _ = _nearest_on_boundary(ego.px, ego.py, obstacle.vertices)
+        return -d if _point_in_convex(ego.px, ego.py, obstacle.vertices) else d
+    return math.hypot(ego.px - obstacle.cx, ego.py - obstacle.cy) - max(0.0, float(obstacle.radius))
+
+
 def _clip(x: float, lo: float, hi: float) -> float:
     if x < lo:
         return lo
@@ -412,16 +442,25 @@ def encode_observation(
     *,
     z_ref_J: float = Z_REF_J,
     version: str | None = None,
+    inflation_radius_m: float | None = None,
 ) -> list[float]:
     """Encode one state into the frozen observation vector.
 
     The same function is called by the nominal environment and by the Isaac Lab
     environment.  Order of ``obstacles`` does not affect the result.
 
-    ``version`` selects the observation version (default :data:`OBS_VERSION`);
-    the only thing it changes today is the ``z_ratio`` clip
-    (:func:`z_ratio_clip`), so an ``obs-v2`` vector can be reproduced exactly.
+    v7 additionally requires the caller's actual safety-geometry radius
+    (footprint plus that method's delta). It is never inferred from a default.
+    Other versions ignore that parameter and retain their frozen encoding.
     """
+    selected_version = OBS_VERSION if version is None else str(version)
+    layout_for_version(selected_version)
+    clearance = selected_version == "obs-v7"
+    if clearance and (inflation_radius_m is None
+                      or not math.isfinite(float(inflation_radius_m))
+                      or float(inflation_radius_m) < 0.0):
+        raise ValueError("obs-v7 requires the actual finite nonnegative inflation_radius_m")
+    radius = float(inflation_radius_m) if clearance else 0.0
     sin_yaw = math.sin(ego.yaw)
     cos_yaw = math.cos(ego.yaw)
 
@@ -445,6 +484,7 @@ def encode_observation(
 
     # Occupancy bins: max intensity per angular bin, surface-distance based.
     bins = [0.0] * N_OBSTACLE_BINS
+    margins = [1.0] * N_OBSTACLE_BINS  # no sensed primitive in this bin
     bin_width = 2.0 * math.pi / N_OBSTACLE_BINS
     measured: list[tuple[float, float]] = []
     for ob in obstacles:
@@ -462,6 +502,9 @@ def encode_observation(
             idx = N_OBSTACLE_BINS - 1
         if intensity > bins[idx]:
             bins[idx] = intensity
+        if clearance:
+            margin = (signed_surface_distance(ego, ob) - radius) / R_SENSE_M
+            margins[idx] = min(margins[idx], _clip(margin, -1.0, 1.0))
 
     # Canonical order -> mask.  Excess primitives are dropped by rule; the
     # caller records the dropped count (see step record), never silently.
@@ -479,27 +522,33 @@ def encode_observation(
 
     # v5 preserves the graded, irreversible history used by the objective.
     # Earlier versions retain their original threshold for checkpoint replay.
-    selected_version = OBS_VERSION if version is None else version
     safety_y = (_clip(_finite(task.safety_y), 0.0, 1.0)
-                if selected_version in ("obs-v5", "obs-v6")
+                if selected_version in ("obs-v5", "obs-v6", "obs-v7")
                 else (1.0 if float(task.safety_y) >= 0.5 else 0.0))
     z_ratio = z_ratio_value(task.z_J, z_ref_J, version=version)
     time_ref_s = TIME_REF_S_BY_VERSION[selected_version]
-    if selected_version == "obs-v6" and (
+    if selected_version in ("obs-v6", "obs-v7") and (
             not math.isfinite(float(task.time_remaining_s))
             or float(task.time_remaining_s) > time_ref_s + 1e-9):
-        raise ValueError("obs-v6 requires finite remaining time <= 45 seconds")
+        raise ValueError(f"{selected_version} requires finite remaining time <= 45 seconds")
     t_rem_n = _clip(_finite(task.time_remaining_s) / time_ref_s, 0.0, 1.0)
 
+    safety_fields = []
+    if clearance:
+        raw_walls = (ego.px - extent.x_min, extent.x_max - ego.px,
+                     ego.py - extent.y_min, extent.y_max - ego.py)
+        safety_fields = margins + [_clip((d - radius) / R_SENSE_M, -1.0, 1.0)
+                                   for d in raw_walls]
     vec = (
         [sin_yaw, cos_yaw, vx_n, vy_n, wz_n, px_n, py_n]
         + [gdir_x, gdir_y, gdist_n]
         + bins
         + list(walls)
         + mask
+        + safety_fields
         + [safety_y, z_ratio, t_rem_n]
     )
-    assert len(vec) == OBS_DIM, (len(vec), OBS_DIM)
+    assert len(vec) == observation_dim(selected_version), (len(vec), selected_version)
     return vec
 
 
@@ -514,6 +563,7 @@ def encode_from_physical(
     task: TaskState,
     z_ref_J: float = Z_REF_J,
     version: str | None = None,
+    inflation_radius_m: float | None = None,
 ) -> list[float]:
     """Encode from raw simulator quantities through the same encoder.
 
@@ -531,7 +581,7 @@ def encode_from_physical(
         wz_body=float(ang_vel_body[2]),
     )
     return encode_observation(ego, obstacles, extent, task, z_ref_J=z_ref_J,
-                              version=version)
+                              version=version, inflation_radius_m=inflation_radius_m)
 
 
 # --- action pipeline --------------------------------------------------------

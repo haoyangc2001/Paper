@@ -101,7 +101,9 @@ class ObservationLayout:
         return {name: self.slice_of(name) for name in self.BUDGET_FIELDS}
 
     def map_slices(self) -> dict[str, slice]:
-        return {name: self.slice_of(name) for name in self.MAP_FIELDS}
+        fields = self.MAP_FIELDS + tuple(n for n in ("safety_margin_bins", "wall_margin_n")
+                                        if n in self.names)
+        return {name: self.slice_of(name) for name in fields}
 
     def index_of(self, name: str) -> int:
         sl = self.slice_of(name)
@@ -417,7 +419,7 @@ def build(nav_contract: dict[str, Any] | None = None,
     """按契约构造三个网络，并在构造时校验配置。"""
     if nav_contract is None:
         nav_contract, _ = load_contracts()
-    cfg = cfg or NetworkConfig()
+    cfg = cfg or NetworkConfig(obs_dim=int(nav_contract["observation_spec"]["total_dim"]))
     report = cfg.validate_against(nav_contract)
     if not report["ok"]:
         raise ValueError("网络配置与契约不符：" + "; ".join(report["problems"]))

@@ -256,7 +256,7 @@ class VectorNominalNavEnv:
         self.compute_margins = bool(compute_margins)
         self.observation_version = observation_version or obs.OBS_VERSION
         obs.z_ratio_clip(self.observation_version)
-        self.obs_dim = obs.OBS_DIM
+        self.obs_dim = obs.observation_dim(self.observation_version)
 
         # --- cached map geometry (identical objects to the scalar env's) ---
         self._obstacle_polys: tuple[Polygon, ...] = tuple(
@@ -399,6 +399,7 @@ class VectorNominalNavEnv:
             self._obs[i] = obs.encode_observation(
                 ego, self._obstacle_obs, self._extent, task,
                 version=self.observation_version,
+                inflation_radius_m=self.geometry.inflation_radius_m,
             )
 
     # ---- geometry (batched) ----

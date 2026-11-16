@@ -33,6 +33,61 @@ def validate_runtime_metadata(entry, *, episode_id, z0, k, update, gamma_h, gamm
  close(entry['gamma_h'],gamma_h,'incorrect scheduled reach discount')
  close(entry['gamma_joint'],gamma_joint,'incorrect joint discount')
 
+def clearance_oracle(observations, env):
+ """Independent NumPy segment projection on the registered raw polygons.
+
+ Stored poses are float32. Bins within 5e-5 radians of a boundary (or metres of
+ the sensing cutoff) are explicitly ambiguous, while the global minimum still
+ has to agree. No production observation encoder is called by this oracle.
+ """
+ x=np.asarray(observations,dtype=float); sl=O.field_slices('obs-v7')
+ checked(x.ndim==2 and x.shape[1]==61,'clearance observation shape')
+ pos=x[:,5:7]*15.; yaw=np.arctan2(x[:,0],x[:,1]); n=len(x)
+ checked(np.all(np.abs(x[:,5:7])<1.),'clearance pose reconstruction saturated')
+ radius=env.geometry.inflation_radius_m
+ expected=np.ones((n,20)); ambiguous=np.zeros((n,16),dtype=bool)
+ rows=np.arange(n); width=2*np.pi/16
+ for poly in env._obstacle_polys:
+  verts=np.asarray(poly.vertices,dtype=float); a=verts; b=np.roll(verts,-1,axis=0)
+  edge=b-a; rel=pos[:,None,:]-a[None,:,:]
+  u=np.clip(np.sum(rel*edge[None,:,:],axis=2)/np.sum(edge*edge,axis=1),0.,1.)
+  q=a[None,:,:]+u[:,:,None]*edge[None,:,:]
+  ds=np.linalg.norm(pos[:,None,:]-q,axis=2); j=np.argmin(ds,axis=1)
+  d=ds[rows,j]; nearest=q[rows,j]
+  cross=edge[None,:,0]*rel[:,:,1]-edge[None,:,1]*rel[:,:,0]
+  inside=np.all(cross>=-1e-12,axis=1)|np.all(cross<=1e-12,axis=1)
+  signed=np.where(inside,-d,d); surf=np.maximum(signed,0.)
+  direction=nearest-pos
+  direction[d<=1e-12]=verts.mean(axis=0)-pos[d<=1e-12]
+  angle=(np.arctan2(direction[:,1],direction[:,0])-yaw+np.pi)%(2*np.pi)-np.pi
+  f=(angle+np.pi)/width; idx=np.minimum(np.floor(f).astype(int),15)
+  use=surf<=6.; margin=np.clip((signed-radius)/6.,-1.,1.)
+  np.minimum.at(expected,(rows[use],idx[use]),margin[use])
+  edgecase=(np.abs(f-np.round(f))*width<5e-5)&(surf<=6.+5e-5)
+  for shift in (-1,0,1): ambiguous[rows[edgecase],(idx[edgecase]+shift)%16]=True
+  cutoff=np.abs(surf-6.)<5e-5; ambiguous[rows[cutoff],idx[cutoff]]=True
+ xmin,xmax,ymin,ymax=env.spec.extent
+ walls=np.column_stack((pos[:,0]-xmin,xmax-pos[:,0],
+                        pos[:,1]-ymin,ymax-pos[:,1]))
+ expected[:,16:]=np.clip((walls-radius)/6.,-1.,1.)
+ return expected, ambiguous
+
+def validate_clearance_observations(observations, env):
+ expected,ambiguous=clearance_oracle(observations,env)
+ sl=O.field_slices('obs-v7'); x=np.asarray(observations)
+ actual=np.column_stack((x[:,sl['safety_margin_bins']],x[:,sl['wall_margin_n']]))
+ if np.any(~ambiguous):
+  close(actual[:,:16][~ambiguous],expected[:,:16][~ambiguous],
+        'signed obstacle clearance',atol=2e-5,rtol=0)
+ close(actual[:,16:],expected[:,16:],'signed wall clearance',atol=2e-5,rtol=0)
+ # The sensed global minimum is invariant to angular rounding. A cutoff only
+ # matters if every sensed obstacle is farther than the range boundary.
+ stable=np.min(expected[:,:16],axis=1)<(6.-env.geometry.inflation_radius_m)/6.-2e-5
+ if np.any(stable):
+  close(actual[stable,:16].min(axis=1),expected[stable,:16].min(axis=1),
+        'minimum signed obstacle clearance',atol=2e-5,rtol=0)
+ return int(ambiguous.sum())
+
 def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  run=Path('/pub/data/caohy/work/camra_navigation')/rid
  logs=lines(run/'train_log.jsonl'); start=logs[0]
@@ -42,7 +97,7 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  checked(start['prereg_sha256']==pin,'run registration')
  checked(start['implementation_versions']==pr['implementation_versions'],'runtime versions')
  checked(start['obs_version']==pr['implementation_versions']['observation']
-         and start['obs_version'] in ('obs-v5','obs-v6') and not start['smoke'],
+         and start['obs_version'] in ('obs-v5','obs-v6','obs-v7') and not start['smoke'],
          'observation/formal mode')
  checked(start['runtime']['host'].split('.')[0]=='tiger11' and bool(start['runtime']['tmux']),'runtime host/tmux')
  checked(start['runtime']['python']=='/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python','interpreter')
@@ -67,7 +122,8 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  checked(cfg.gamma_joint==cfg.gamma_cost==1,'joint/cost gamma')
  refs=json.loads((NAV/pr['reference_energy']['report']).read_bytes())
  erefs={r['map_id']:float(r['e_ref_J']) for r in refs['maps']}
- alpha=float(start['provenance']['alpha']); slices=O.field_slices()
+ alpha=float(start['provenance']['alpha']); slices=O.field_slices(start['obs_version'])
+ clearance_envs=F.build_envs(pr,variant)[0] if start['obs_version']=='obs-v7' else None
  counters=collections.Counter(); diffs=collections.defaultdict(float); kinds=collections.Counter(); diagnostics=[]; kl=collections.defaultdict(list)
  replay_updates=[x for x in (50,300,550) if x<updates]
  spot_updates={0,updates-1,min(99,updates-1),min(299,updates-1),*replay_updates}
@@ -123,6 +179,10 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
     close(a['z_norm']-a['cost_norm'],a['z_norm_next'],'z_next=z-cost')
     close(a['obs'][:,slices['z_ratio']].reshape(-1),np.clip(a['z_norm'],-3,3),'budget observation',atol=1e-6,rtol=1e-5)
     close(a['obs'][:,slices['safety_y']].reshape(-1),a['safety_y'],'graded safety observation',atol=1e-6,rtol=1e-5)
+    if clearance_envs is not None:
+     for side in ('obs','next_obs'):
+      counters['clearance_angular_ambiguous_fields']+=validate_clearance_observations(a[side],clearance_envs[env_i])
+      counters['clearance_states_checked']+=n
     checked(np.all(a['safety_y_next']>=a['safety_y']),'safety history reversed')
     close(a['action_applied'],np.clip(a['action_raw'],-1,1)*np.array([1,.4,1]),'actual action',atol=1e-6,rtol=1e-5)
     checked(not a['action_invalid'].any(),'invalid action')
