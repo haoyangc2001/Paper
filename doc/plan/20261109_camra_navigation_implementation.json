@@ -8561,6 +8561,43 @@
       "上一轮已批准六run额度全部消耗；按主计划uncertainty_policy与create-plan-worklog执行规则，新增正式试验次数须明确确认。当前仅完成可审阅实现与提案，未擅自加训。"
      ]
     }
+   ,
+{
+ "timestamp": "2026-11-16T17:32:37.438745+08:00",
+ "summary": "NAV-064时间观测新一轮开工：用户批准六组×600更新及108开发回合，核验上游数值放行与固定v2，冻结独立time-feedback预登记。",
+ "actions": [
+  "恢复后重读根AGENTS、技能及执行规则、主计划当前任务、交接和生产启动/验证链，确认首个依赖满足的未完成项仍为NAV-064。",
+  "复核120项数值门禁及47个源码绑定、32套回归日志/源码、冻结校准输入与v2整包29文件；现场核验tiger11/tmux、解释器、GPU、磁盘、进程和新run输出无冲突。",
+  "保留原计划、已审阅提案、历史失败及源码快照；从提案制作独立授权预登记/pin及训练启动放行报告。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/config/training_loop_prereg_time_feedback_v1.json",
+  "CaMRA/navigation/config/training_loop_prereg_time_feedback_v1.json.sha256",
+  "CaMRA/navigation/reports/nav064_time_feedback_training_release_v1.json",
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "bash /tmp/nav064_v4_time_freeze_prepare_20261116.sh",
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python scripts/run_feedback_round.py --prereg training_loop_prereg_time_feedback_v1.json（冻结命令，尚未执行）"
+ ],
+ "results": [
+  "计划1.3.1，NAV-062/063上游验收有效；本轮检验完整剩余时间观测是否改善预算内安全到达，保持RC-PPO预算增广/不可逆历史/共享停止/双critic/三估计器/最小化PPO与固定v2。",
+  "批准uncalibrated/full各三种子，fresh-init各600×4086，共14709600新样本；首100计入600，最后checkpoint执行108回合development，主判据只取k1.15。",
+  "仅新增本轮独立预登记/证据/当前记录与必要本地提交；时间候选之外的算法/观测字段、lambda、地图、预算、评分、数据用途、校准及只读参考/论文保持既有值。",
+  "PASS_TO_START：版本obs-v6/rcppo-feedback-v4，所有绑定有效；同机tmux例外授权沿用。NAV-064保持false，启动不等于性能通过。"
+ ],
+ "evidence": [
+  "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/preflight.json",
+  "CaMRA/navigation/reports/nav064_time_feedback_release_v1.json",
+  "CaMRA/navigation/reports/gate_time_feedback_v1_attempt3.json",
+  "CaMRA/navigation/config/training_loop_prereg_time_feedback_v1.json"
+ ],
+ "remaining_work": [
+  "实际磁盘pin及生产入口核验、本地提交后启动协调器并核验六组真实更新。",
+  "完成100/600严格审计及最后checkpoint开发关闭档；全部验收满足后才允许NAV-065，下游不自动启动。"
+ ],
+ "blockers": []
+}
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [
