@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-17 用户批准完整回合反馈版，冻结登记通过启动核验
+
+用户已确认新增两方法×三种子各300次完整回合更新（最多14580000样本）及最后checkpoint的108回合development。独立冻结件为`config/training_loop_prereg_episode_feedback_v1.json`，pin `f48db2cd9777854acb6963db1075241ba8b4bcbe27c10c5a29a8820263415cb1`。原proposal和下方“待额度确认”保留为历史。训练前放行为`reports/nav064_episode_feedback_training_release_v1.json`；171门禁/32回归来源仍匹配，57份源码/配置快照和33个固定v2资源核验通过。
+
+本轮协调器入口为`scripts/run_feedback_round.py --prereg training_loop_prereg_episode_feedback_v1.json`，在tiger11、tmux `nav064-r14-repair-20261115:episode-training`中执行，cwd为导航目录，解释器`/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python`。run前缀`nav064_episode_feedback_v1`，工作根`/pub/data/caohy/work/camra_navigation/`，启动证据及日志在`nav064_episode_feedback_launch_20261117_v1/`。
+
+先完成必要本地提交再启动；六组均到50更新后暂停审计，通过继续到300，全量审计后只评估最后checkpoint的108回合development。无自动重试、quota填充、额外性能smoke或下游执行。NAV-064仍false，需训练/开发/机制/数据审计全部满足后才关闭。恢复先核对协调器start/pids/HELD/FINISHED与实际进程，不重复启动旧run；原同机执行例外继续有效，不重复询问SSH。
+
 ## 2026-11-17 完整回合反馈候选通过生产数值门禁，正式训练尚未启动
 
 净空版6×600已完整结束：原始审计PASS，108回合开发FAIL_DEVELOPMENT。主预算下两方法可行SR中位均1/3，但full危险步中位780，未通过安全关闭档。full全部600更新的L2训练到达1769次，安全/可行到达均0；不能据到达率推进下游。

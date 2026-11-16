@@ -8906,6 +8906,41 @@
   "blockers": [
     "上轮六组正式额度已耗尽；按计划uncertainty_policy的正式试验次数/资源边界及create-plan-worklog执行规则，新增6×300及108开发回合需明确确认，不由数值PASS自动续期。"
   ]
+},
+{
+  "timestamp": "2026-11-17T07:12:13.372811+08:00",
+  "summary": "NAV-064完整回合反馈版开工：用户批准新增6×300及108开发回合，冻结独立预登记并准备提交启动。",
+  "actions": [
+    "重新完整读取AGENTS、技能执行规则及计划当前定义/依赖/最新记录，确认NAV-061–063 true、当前NAV-064 false；用户本轮明确批准已展示的6个fresh-init run×300完整回合更新及108回合development。",
+    "沿用已批准tiger11同机/tmux例外，现场核验33个固定v2资源/资产散列、171门禁与32套回归来源、旧FINISHED和新输出冲突，保存57份源码/配置快照。",
+    "独立建立training_loop_prereg_episode_feedback_v1.json及SHA256 pin；只冻结授权/状态/来源，不改已审阅候选的采集、λ、任务、地图、预算、阈值或算法。"
+  ],
+  "files_changed": [
+    "CaMRA/navigation/config/training_loop_prereg_episode_feedback_v1.json",
+    "CaMRA/navigation/config/training_loop_prereg_episode_feedback_v1.json.sha256",
+    "doc/plan/20261109_camra_navigation_implementation.json"
+  ],
+  "commands": [
+    "tmux nav064-r14-repair-20261115:episode-launch-preflight: /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_episode_launch_preflight_20261117.py",
+    "tmux训练前放行：/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_episode_training_release_20261117.py"
+  ],
+  "results": [
+    "本项作用：用已验证完整当前策略回合/三套λ=.999候选补足长绕路反馈的实际训练证据；上游eab19d6源码及171数值/32回归有效，受控18/18只作机制依据。",
+    "允许范围为两方法×三种子各300更新、18图每更新各一个完整回合、每组至多2430000样本，总上限14580000；前50计入300，审计50/300，最后checkpoint仅108开发回合。",
+    "fixed v2整套、预算增广/不可逆安全历史/共同停止/三GAE/minPPO及原关闭档保持；不加性能smoke、不自动retry或下游，不读budget_selection/final。",
+    "验收需完整真实训练/开发关闭档与机制/稳定性/输入hash审计，未满足保持NAV-064=false；本次下游交付先为冻结注册/启动记录，学习验收通过前不进入NAV-065。"
+  ],
+  "evidence": [
+    "/pub/data/caohy/work/camra_navigation/nav064_episode_feedback_launch_20261117_v1/preflight.json",
+    "CaMRA/navigation/reports/gate_episode_feedback_v1_attempt2.json",
+    "CaMRA/navigation/reports/nav064_episode_feedback_release_v1.json",
+    "CaMRA/navigation/reports/nav064_episode_feedback_training_release_v1.json"
+  ],
+  "remaining_work": [
+    "核验冻结登记、计划与来源一致后做必要本地提交，tmux启动六组并核实首批实际样本/输入/更新。",
+    "完成50/300更新审计及最后checkpoint的108开发回合；科学关闭档满足前NAV-064保持false，下游不推进。"
+  ],
+  "blockers": []
 }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
