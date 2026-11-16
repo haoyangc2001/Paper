@@ -8598,6 +8598,47 @@
  ],
  "blockers": []
 }
+   ,
+{
+ "timestamp": "2026-11-16T17:35:20.901096+08:00",
+ "summary": "NAV-064时间观测六组训练已真实启动；obs-v6生产样本与最初更新核验通过，原关闭档和后续任务仍未验收。",
+ "actions": [
+  "在tiger11既有tmux的time-feedback-training窗口以冻结解释器启动已提交协调器，使用独立命名空间和六个新run。",
+  "逐run核对run_start/实际输入路径hash、train18图、冻结pin与版本、身份、epoch/minibatch/梯度及有限数值；读取六份真实首chunk核验45秒时间字段逐步下降。",
+  "保存原始启动证据、PID、命令及初始样本散列，追加交接/计划并做必要本地提交；不启动依赖后续任务。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/reports/nav064_time_feedback_started_v1.json",
+  "CaMRA/navigation/docs/implementation_handoff.md",
+  "CaMRA/navigation/docs/nav064_time_feedback_20261116.md",
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "bash /tmp/nav064_v4_time_frozen_commit_launch_20261116.sh",
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u scripts/run_feedback_round.py --prereg training_loop_prereg_time_feedback_v1.json",
+  "bash /tmp/nav064_v4_time_start_evidence_20261116.sh",
+  "bash /tmp/nav064_v4_time_started_record_prepare_20261116.sh"
+ ],
+ "results": [
+  "2026-11-16T17:33:21+08:00六run正式启动，源码提交c850b69ae2539e19b1856b7597b226ed783e3e85；冻结pin b8742ca9c50629e0cf350ea5d6328339c86f70239b32d73444865ad5bb2a3216。",
+  "启动证据时点各run更新数[5, 3, 5, 5, 4, 4]，共106236条样本；每更新4086样本、10epoch、512minibatch、80梯度步；全部已观测数值有限、策略梯度非零、六进程存活且无HELD。",
+  "实际输入train18图/预算抽样与冻结件hash匹配；obs-v6/rcppo-feedback-v4，联合min递推、w=base=0、全状态训练均生效。六份首chunk的时间观测从1按1/450递减，next_obs配对一致。",
+  "本项仅完成授权启动与初始机制核验；协调器将在100更新暂停审计，通过后继续至600，再全量审计及108回合开发评估；NAV-064=false，固定v2/RC-PPO原理/评分与数据隔离保持。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/nav064_time_feedback_started_v1.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/startup_verified_v1.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/initial_time_samples_v1.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_v1/start.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/coordinator.log",
+  "CaMRA/navigation/config/training_loop_prereg_time_feedback_v1.json"
+ ],
+ "remaining_work": [
+  "协调器完成100更新前缀审计、600更新全量审计与最后checkpoint开发关闭档，全部失败保留；不自动重跑/扩额。",
+  "仅当两方法可行成功率中位数≥0.10、能耗/预算中位数≤1、full危险步中位数0且机制/稳定性/数据审计全部通过，才可结案NAV-064并进入NAV-065。"
+ ],
+ "blockers": []
+}
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [

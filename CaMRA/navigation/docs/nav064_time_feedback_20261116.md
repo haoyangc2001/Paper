@@ -48,3 +48,9 @@ RC-PPO的预算增广、不可逆安全历史、共同停止、双critic、三�
 ```
 
 此命令仅作CPU数值检查，不批准训练。正式恢复前重新读取根AGENTS、主计划NAV-064最新记录与本文件，核验release绑定；不重新运行已完成训练。
+
+## 后续授权与启动（2026-11-16 17:33）
+
+用户随后明确批准新一轮训练，已从上述提案另建`config/training_loop_prereg_time_feedback_v1.json`及pin，原提案保持未授权时的历史原文。120项门禁、32套回归、固定v2整包与全部生产绑定复核通过；启动前冻结提交`c850b69`。
+
+六组已在tiger11/tmux实际运行，初始3–5次更新的数值/梯度与实际train输入核验通过，六份原始chunk的45秒时间字段递减正确。证据见`reports/nav064_time_feedback_started_v1.json`。100/600审计及最后checkpoint的108回合开发验收待完成，NAV-064保持false。

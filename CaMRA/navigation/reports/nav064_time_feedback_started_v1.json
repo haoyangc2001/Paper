@@ -1,0 +1,97 @@
+{
+  "schema": "camra-time-feedback-started-v1",
+  "owner": "NAV-064",
+  "time": "2026-11-16T17:35:20.901096+08:00",
+  "verdict": "RUNNING_INITIAL_UPDATES_VERIFIED",
+  "training_start": "2026-11-16T17:33:21.784405+08:00",
+  "training_git_head": "c850b69ae2539e19b1856b7597b226ed783e3e85",
+  "prereg": {
+    "path": "config/training_loop_prereg_time_feedback_v1.json",
+    "sha256": "b8742ca9c50629e0cf350ea5d6328339c86f70239b32d73444865ad5bb2a3216"
+  },
+  "implementation_versions": {
+    "observation": "obs-v6",
+    "estimator": "rcppo-feedback-v4"
+  },
+  "host": "tiger11.ios.ac.cn",
+  "session": "nav064-r14-repair-20261115",
+  "window": "time-feedback-training",
+  "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "cwd": "/home/caohy/repositories/Paper/CaMRA/navigation",
+  "coordinator_directory": "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_v1",
+  "coordinator_log": "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/coordinator.log",
+  "startup_evidence": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/startup_verified_v1.json",
+    "sha256": "0d88ac50bff8cede54a4f4fab8cdc3e735e38b6749bc54c995c324b55bf2424d"
+  },
+  "initial_raw_time_evidence": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/initial_time_samples_v1.json",
+    "sha256": "aaf055fea2479c10693c20d0c0363859cfc950e2ed3224617e648b9d57e91ad1"
+  },
+  "runs": [
+    {
+      "run_id": "nav064_time_feedback_v1_uncalibrated_s0",
+      "variant": "uncalibrated",
+      "seed": 0,
+      "pid": 1881262,
+      "updates_observed": 5,
+      "samples_observed": 20430
+    },
+    {
+      "run_id": "nav064_time_feedback_v1_uncalibrated_s1",
+      "variant": "uncalibrated",
+      "seed": 1,
+      "pid": 1881263,
+      "updates_observed": 3,
+      "samples_observed": 12258
+    },
+    {
+      "run_id": "nav064_time_feedback_v1_uncalibrated_s2",
+      "variant": "uncalibrated",
+      "seed": 2,
+      "pid": 1881264,
+      "updates_observed": 5,
+      "samples_observed": 20430
+    },
+    {
+      "run_id": "nav064_time_feedback_v1_full_s0",
+      "variant": "full",
+      "seed": 0,
+      "pid": 1881265,
+      "updates_observed": 5,
+      "samples_observed": 20430
+    },
+    {
+      "run_id": "nav064_time_feedback_v1_full_s1",
+      "variant": "full",
+      "seed": 1,
+      "pid": 1881266,
+      "updates_observed": 4,
+      "samples_observed": 16344
+    },
+    {
+      "run_id": "nav064_time_feedback_v1_full_s2",
+      "variant": "full",
+      "seed": 2,
+      "pid": 1881267,
+      "updates_observed": 4,
+      "samples_observed": 16344
+    }
+  ],
+  "checks": {
+    "six_alive_fresh_runs": true,
+    "runtime_prereg_and_versions_match": true,
+    "actual_train_inputs_hash_match": true,
+    "first_updates_4086_samples_10epochs_80gradsteps": true,
+    "all_observed_numeric_fields_finite": true,
+    "policy_gradients_nonzero": true,
+    "no_hold_or_failure": true
+  },
+  "nav064_complete": false,
+  "pending": [
+    "100-update strict prefix audit",
+    "600-update full audit",
+    "last-checkpoint108-development closure"
+  ],
+  "automatic_downstream_execution": false
+}

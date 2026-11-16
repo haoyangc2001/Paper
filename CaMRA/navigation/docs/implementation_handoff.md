@@ -175,3 +175,11 @@ cd /home/caohy/repositories/Paper
 ```
 
 断线后先 `tmux ls` 与查进程，不重复启动同一 run。
+
+## NAV-064时间观测版训练启动（2026-11-16）
+
+用户已批准time-feedback提案：两方法×三种子，fresh-init各600更新，首100计入600，共14709600样本；最后checkpoint执行108回合development。独立冻结件为`config/training_loop_prereg_time_feedback_v1.json`，pin `b8742ca9c50629e0cf350ea5d6328339c86f70239b32d73444865ad5bb2a3216`，启动源码提交`c850b69`。原提案、旧run与所有失败保留。
+
+六组于17:33在tiger11、tmux `nav064-r14-repair-20261115:time-feedback-training`启动。解释器`/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python`；cwd为导航目录。协调器目录`/pub/data/caohy/work/camra_navigation/nav064_time_feedback_v1/`，启动日志及证据在`/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/`。启动报告`reports/nav064_time_feedback_started_v1.json`记录六组PID、pin、实际输入hash与最初更新；六份首chunk已验证45秒时间编码。
+
+协调器自动在100更新后暂停作严格审计，通过后继续至600，再全量审计及开发判定；出现HELD须先查现场，不能重复启动或加跑。当前仅证明启动及初始机制，NAV-064仍false；原关闭档不变，NAV-065及后续未执行。恢复时先读根AGENTS和计划最新记录，再检查上述会话、进程、run及HELD/FINISHED标记。
