@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-16T23:02:47.488078+08:00 用户批准后的净空版本启动
+
+两方法×三种子各600更新及108开发回合已明确批准。独立冻结件为config/training_loop_prereg_clearance_feedback_v1.json，pin 776b86bfbeb874c5024645653859afb5d121d7b0520b6367a8b2d7dedceb3bb5；启动提交6e86cd0787e590bb8d6dd8ae894263e3d25cee8f。旧proposal和下方“待批准”表述均保留为历史。
+
+六组已在tiger11的tmux nav064-r14-repair-20261115:clearance-training启动，当前各完成[1, 1, 1, 1, 1, 1]次更新。实际61维obs/next_obs首chunk独立净空oracle、train输入hash与初始更新有限性均通过；本条不表示训练效果已通过。证据见reports/nav064_clearance_feedback_started_v1.json。
+
+协调器工作目录为/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_v1，日志为/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_launch_20261116_v1/coordinator.log。六组均达到100更新后暂停并审计，通过继续到600，再全量审计和最后checkpoint的108回合development。没有自动重试或下游执行，NAV-064仍false。断线后先核对已有pids/start/HELD/FINISHED与原日志，不复用run重复启动。
+
 ## 最新状态：2026-11-16晚间 净空接口通过门禁，NAV-064仍未通过训练验收
 
 time-feedback-v1已完整结束：6组×600更新、全量审计PASS，开发FAIL_DEVELOPMENT。uncalibrated可行SR中位1/6、能耗/预算0.863326；full为1/2、0.890408，但危险步中位228。不能按下方旧“正在训练”重启，也不能据到达率放行。

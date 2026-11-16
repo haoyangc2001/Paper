@@ -8761,6 +8761,45 @@
  ],
  "blockers": []
 }
+   ,
+{
+ "timestamp": "2026-11-16T23:02:47.488078+08:00",
+ "summary": "NAV-064净空版本六组正式训练已启动并核验初始真实更新，尚未进行性能验收。",
+ "actions": [
+  "从独立冻结预登记和已提交源码在tiger11/tmux启动六组fresh-init训练；协调器负责前100暂停审计及600后全量审计和108开发回合。",
+  "核对六进程、实际启动身份/版本/pin、train18图及实际输入hash；逐组检查真实多epoch更新、梯度和数值稳定性。",
+  "六组首个61维真实样本chunk的obs/next_obs通过独立净空几何oracle，接线不是仅配置声明。",
+  "同步启动报告和交接；保留旧报告/提案/失败/预登记及原样本，NAV-064=false。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/reports/nav064_clearance_feedback_started_v1.json",
+  "doc/plan/20261109_camra_navigation_implementation.json",
+  "CaMRA/navigation/docs/implementation_handoff.md",
+  "CaMRA/navigation/docs/nav064_clearance_feedback_20261116.md"
+ ],
+ "commands": [
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u scripts/run_feedback_round.py --prereg training_loop_prereg_clearance_feedback_v1.json",
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python /tmp/nav_clearance_training_started_20261116.py"
+ ],
+ "results": [
+  "训练源码提交6e86cd0787e590bb8d6dd8ae894263e3d25cee8f；pin 776b86bfbeb874c5024645653859afb5d121d7b0520b6367a8b2d7dedceb3bb5；obs-v7/rcppo-feedback-v4。",
+  "初始更新数 [1, 1, 1, 1, 1, 1]；每次4086样本、10epoch×512、80梯度步；已观察更新数值有限、策略梯度非零。",
+  "原RC-PPO方法目标和固定v2/校准/地图/评分/数据划分未变；本轮只验证新增安全净空输入，首chunk独立几何oracle通过。",
+  "当前证据只证明正常启动；100/600审计及development关闭档尚未完成，不将训练运行写成导航通过。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/nav064_clearance_feedback_started_v1.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_launch_20261116_v1/startup_verified_v1.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_v1/start.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_v1/pids.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_launch_20261116_v1/coordinator.log"
+ ],
+ "remaining_work": [
+  "等待六组各600更新、前100和600全量严格审计、108开发回合；原关闭档同时满足后才可NAV-065。",
+  "按原样报告安全可行SR、能耗、危险步、稳定性及完整失败分母；没有自动追加run或下游执行。"
+ ],
+ "blockers": []
+}
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [
