@@ -1,5 +1,16 @@
 # 上层导航实施交接
 
+
+## 最新启动：2026-11-16 feedback-v1 六组训练运行中
+
+用户已批准新六个 fresh-init run ×600更新（共14709600样本），并完成独立冻结预登记 `config/training_loop_prereg_feedback_v1.json`，SHA256 `d14b301a2a26d3edfba32e6fe73ec8cb489a8cacad859f81ddcd68943b657459`。原proposal及失败记录保留，下文“待额度确认”描述此前时点。
+
+2026-11-16 11:41:49，训练从本地提交 `41a93723dfd86ddc7ab8260a063d10aa6a93fa82` 在 `tiger11.ios.ac.cn` 的 `nav064-r14-repair-20261115:feedback-training` 启动；解释器为 `/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python`。入口为 `scripts/run_feedback_round.py --prereg training_loop_prereg_feedback_v1.json`，cwd为本模块。run为 `nav064_feedback_v1_{uncalibrated,full}_s{0,1,2}`，输出根 `/pub/data/caohy/work/camra_navigation/`；协调器目录 `nav064_feedback_v1/`，启动日志 `nav064_feedback_launch_20261116_v1/coordinator.log`。
+
+启动核验时六组各已完成6次更新，共147096个样本；实际使用train18图、obs-v5/rcppo-feedback-v4，每次4086样本、10 epoch×512、80梯度步。冻结pin与实际加载输入散列一致，已观察损失/梯度有限、策略梯度非零、六进程存活且无HELD。证据见 `reports/nav064_feedback_started_v1.json` 及其外部原始记录。这只证明启动和初始更新，尚不表示学习效果或安全可行到达达标。
+
+协调器在六组均达100次后暂停并严格审计首100次（计入600），通过才继续；600次后全量审计并评估最后checkpoint的development网格。失败保留现场，无自动重试或追加轮次，不自动进入NAV-065。断线后先查 `nav064_feedback_v1/{pids,start,HELD,FINISHED}.json`、进程和日志，禁止重启同run。NAV-064仍false，下游未放行。
+
 ## 最新状态：2026-11-16 反馈回修通过数值门禁，新增训练待额度确认
 
 r14a2六组各600更新已结束，实际开发结论为`FAIL_DEVELOPMENT`：uncalibrated安全可行SR中位数0，full为1/6，但full危险步中位数114，未通过原关闭档。以下“正在训练”保留为此前时点记录。
