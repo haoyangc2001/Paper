@@ -84,8 +84,17 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                     "normalizer_m": 6.0, "raw_surface_sensing_range_m": 6.0,
                     "empty_bin": 1.0, "clip": [-1.0, 1.0], "wall_order": ["x_min", "x_max", "y_min", "y_max"]}:
                 raise ValueError("obs-v7 clearance geometry contract mismatch")
-            if prereg["runtime_contract"]["run_prefix"] != "nav064_clearance_feedback_v1":
+            prefix = prereg["runtime_contract"]["run_prefix"]
+            if prefix not in ("nav064_clearance_feedback_v1", "nav064_episode_feedback_v1"):
                 raise ValueError("obs-v7 requires an independent attempt namespace")
+            if prefix == "nav064_episode_feedback_v1":
+                window = prereg["window_semantics"]
+                if (window.get("collection") != "complete_episodes_v1"
+                        or window["calls_per_update"] != 450
+                        or window["env_steps_per_update"] != 8100
+                        or window["max_updates"] != 300
+                        or float(value["estimator"]["gae_lambda"]) != .999):
+                    raise ValueError("episode feedback collection/value/allocation mismatch")
     fix = prereg.get("objective_signal_fix", {})
     if (fix.get("h_semantics") != "v2_deep_well"
             or fix.get("joint_min_recursion") is not True
@@ -117,6 +126,12 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                          "crossing_v7_probability_decreases"}
         if not required.issubset(passed):
             raise ValueError("feedback gate omitted ending/safety/update/replay evidence")
+        if prereg.get("window_semantics", {}).get("collection") == "complete_episodes_v1":
+            required = {"episode_production_complete_batches", "episode_old_log_prob_fixed",
+                        "episode_all_terminal_kinds_retained", "episode_horizon_feedback_18_of_18",
+                        "episode_auditor_variable_samples", "episode_coordinator_allocation"}
+            if not required.issubset(passed):
+                raise ValueError("complete-episode production gate missing")
     if not gate.get("code_files") or not gate.get("protocol"):
         raise ValueError("numerical gate has no source/protocol bindings")
     for rel, digest in gate["code_files"].items():

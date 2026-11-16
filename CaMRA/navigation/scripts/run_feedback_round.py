@@ -26,13 +26,14 @@ def attempt_paths(prereg, root=ROOT):
     prefix = prereg['runtime_contract']['run_prefix']
     versions = prereg.get('implementation_versions', {})
     allowed = {'nav064_feedback_v1': 'obs-v5', 'nav064_time_feedback_v1': 'obs-v6',
-               'nav064_clearance_feedback_v1': 'obs-v7'}
+               'nav064_clearance_feedback_v1': 'obs-v7', 'nav064_episode_feedback_v1': 'obs-v7'}
     if (prefix not in allowed
             or versions.get('observation', 'obs-v5') != allowed[prefix]):
         raise ValueError('unregistered feedback attempt prefix')
+    first, total = allocation(prereg) if prefix == 'nav064_episode_feedback_v1' else (100, 600)
     return {'coordinator': root / prefix,
-            'audit100': root / (prefix + '_audit_u100'),
-            'audit600': root / (prefix + '_audit_u600'),
+            f'audit{first}': root / (prefix + f'_audit_u{first}'),
+            f'audit{total}': root / (prefix + f'_audit_u{total}'),
             'development': NAV / 'reports' / (prefix + '_development.json'),
             'closure': NAV / 'reports' / (prefix + '_closure.json')}
 
@@ -47,6 +48,18 @@ def audit_command(n, prereg_name, paths):
             '--updates', str(n), '--out', str(paths[f'audit{n}'])]
 
 
+def allocation(prereg):
+    w=prereg['window_semantics']
+    if prereg['runtime_contract']['run_prefix']=='nav064_episode_feedback_v1':
+        if (w.get('collection')!='complete_episodes_v1' or w['max_updates']!=300
+                or w['calls_per_update']!=450 or w['env_steps_per_update']!=8100):
+            raise ValueError('episode allocation must be six runs x300, at most8100 samples/update')
+        return 50,300
+    if w['max_updates']!=600 or w['env_steps_per_update']!=4086:
+        raise ValueError('allocation must be six runs x600 x4086')
+    return 100,600
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--prereg', required=True)
@@ -59,9 +72,7 @@ def main():
     p, pin = F.verify_prereg(args.prereg)
     if p['implementation_versions']['estimator'] != 'rcppo-feedback-v4':
         raise ValueError('feedback estimator required')
-    if (p['window_semantics']['max_updates'] != 600
-            or p['window_semantics']['env_steps_per_update'] != 4086):
-        raise ValueError('allocation must be six runs x600 x4086')
+    prefix_updates, total_updates = allocation(p)
     paths = attempt_paths(p)
     for path in list(paths.values()) + [ROOT / r['run_id'] for r in p['run_registry']]:
         if path.exists(): raise FileExistsError(path)
@@ -105,16 +116,16 @@ def main():
                 if proc.poll() is not None and proc.returncode:
                     raise RuntimeError(f'{row["run_id"]} exited {proc.returncode}')
             print({'time': datetime.datetime.now().astimezone().isoformat(), 'updates': counts}, flush=True)
-            if min(counts) >= 100 and not audited:
+            if min(counts) >= prefix_updates and not audited:
                 for _, proc in processes:
                     if proc.poll() is None: os.kill(proc.pid, signal.SIGSTOP)
-                audit(100); audited = True
+                audit(prefix_updates); audited = True
                 for _, proc in processes:
                     if proc.poll() is None: os.kill(proc.pid, signal.SIGCONT)
             if all(proc.poll() is not None for _, proc in processes): break
             time.sleep(30)
-        if counts != [600]*6: raise RuntimeError(f'incomplete allocation {counts}')
-        audit(600)
+        if counts != [total_updates]*6: raise RuntimeError(f'incomplete allocation {counts}')
+        audit(total_updates)
         with (work / 'development.log').open('x') as log:
             subprocess.run([PYTHON, '-u', 'scripts/eval_r14_repair.py', '--prereg', args.prereg,
                             '--out', str(paths['development'])], cwd=NAV, env=env,
@@ -123,7 +134,7 @@ def main():
         passed = dev['performance_pass']
         result = {'owner': 'NAV-064', 'prereg_sha256': pin,
                   'verdict': 'PASS' if passed else 'FAIL_DEVELOPMENT',
-                  'performance': dev['summary'], 'updates': 3600,
+                  'performance': dev['summary'], 'updates': total_updates*6,
                   'automatic_downstream_execution': False}
         with paths['closure'].open('x') as f: json.dump(result, f, indent=2)
         write('FINISHED.json', result)

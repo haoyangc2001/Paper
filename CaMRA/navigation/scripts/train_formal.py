@@ -565,6 +565,9 @@ def main() -> int:
               "log_std reset to contract init (amend2)", flush=True)
 
     calls_per_window = 2 if smoke else int(prereg["window_semantics"]["calls_per_update"])
+    complete_episodes = prereg["window_semantics"].get("collection", "window_v1") == "complete_episodes_v1"
+    if complete_episodes and (smoke or calls_per_window < int(np.ceil(prereg["environment"]["t_max_s"] / .1))):
+        raise SystemExit("complete-episode collection requires the full task horizon, without smoke slicing")
     max_updates = args.smoke_updates if smoke else int(prereg["window_semantics"]["max_updates"])
     ckpt_every = int(prereg["checkpoints"]["save_every_updates"])
 
@@ -609,6 +612,7 @@ def main() -> int:
          "implementation_versions": prereg.get("implementation_versions", {}),
          "runtime_contract": prereg.get("runtime_contract", {}),
          "calls_per_window": calls_per_window, "max_updates": max_updates,
+         "collection": "complete_episodes_v1" if complete_episodes else "window_v1",
          "smoke": smoke, "provenance": provenance,
          "objective_signal_fix": {"joint_cost_weight": w,
                                   "joint_cost_base_weight": wb,
@@ -633,6 +637,20 @@ def main() -> int:
                              "w_after_warmup": w}})
 
     for update_idx in range(max_updates):
+        # Keep one current-policy episode per map in a batch. Finished envs
+        # wait until the next update; no stale-policy prefixes cross updates.
+        if complete_episodes and update_idx:
+            for i, st in enumerate(states):
+                if not envs[i].done[0]:
+                    raise S.StorageError("previous complete episode was not closed")
+                if sampler is not None:
+                    draw = sampler.draw(st.env_index, st.map_id)
+                    envs[i].reset(z0_J=float(draw["z0_J"]))
+                    st.episode_z0 = draw
+                else:
+                    envs[i].reset()
+                st.reset_episode()
+            obs_np = np.stack([e.observation[0] for e in envs]).astype(np.float32)
         # 课程切换点：只在这一处重绑 obj_cfg，close_segment 读到的就是当次权重
         if curr_on:
             obj_cfg = _dc.replace(
@@ -660,6 +678,8 @@ def main() -> int:
             terminal_obs_idx: list[int] = []
             next_obs = np.stack([r.obs[0] for r in recs]).astype(np.float32)
             for i, r in enumerate(recs):
+                if complete_episodes and not r.active[0]:
+                    continue
                 st = states[i]
                 seg = st.seg
                 done_i = bool(r.done[0])
@@ -737,6 +757,8 @@ def main() -> int:
                          "stagnation_context": res_i.stagnation_context})
                     # a new episode draws its own budget (NAV-062); the draw is
                     # logged so the episode's z0 never has to be inferred
+                    if complete_episodes:
+                        continue
                     if sampler is not None:
                         draw = sampler.draw(st.env_index, st.map_id)
                         envs[i].reset(z0_J=float(draw["z0_J"]))
@@ -746,6 +768,13 @@ def main() -> int:
                     st.reset_episode()
                     next_obs[i] = envs[i].observation[0]
             obs_np = next_obs
+            if complete_episodes and all(e.done[0] for e in envs):
+                break
+
+        if complete_episodes and (not all(e.done[0] for e in envs)
+                or len(window_segments) != n_envs
+                or any(not ended or kind == "truncation" for _, kind, _, ended in window_segments)):
+            raise S.StorageError("complete-episode batch contains a missing or sliced task")
 
         # ---- window boundary: truncate still-running episodes -------------
         xt = torch.as_tensor(obs_np, dtype=torch.float32)
@@ -928,7 +957,8 @@ def main() -> int:
         "smoke": smoke,
         "prereg_sha256": prereg_sha,
         "updates": max_updates,
-        "env_steps": max_updates * calls_per_window * n_envs,
+        "env_steps": sum(st.global_step for st in states),
+        "env_steps_cap": max_updates * calls_per_window * n_envs,
         "wall_hours": round(wall / 3600.0, 3),
         "episodes_completed": len(episode_labels),
         "episode_label_counts": {

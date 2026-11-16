@@ -92,10 +92,11 @@ def main():
             assert state["prereg_sha256"] == start["prereg_sha256"] == pin
             assert state["implementation_versions"] == prereg["implementation_versions"]
             assert state["seed"] == seed and state["variant"] == variant
-            assert state["update_idx"] + 1 == end["updates"] == len(updates) == 600
+            assert state["update_idx"] + 1 == end["updates"] == len(updates) == prereg["window_semantics"]["max_updates"]
             assert start["data_access"]["split_used"] == "train" and set(start["data_access"]["map_ids"]) == train_ids
             assert start["obs_version"] == prereg["implementation_versions"]["observation"]
-            assert not start["smoke"] and start["calls_per_window"] == 227
+            assert not start["smoke"] and start["calls_per_window"] == prereg["window_semantics"]["calls_per_update"]
+            assert start.get("collection", "window_v1") == prereg["window_semantics"].get("collection", "window_v1")
             init = prereg["action_init_fix"]
             net = E.NW.build(nav, action_bounded=prereg["action_bounded"],
                              initial_forward_speed=init["initial_forward_speed"],

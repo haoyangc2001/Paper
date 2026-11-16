@@ -89,6 +89,10 @@ def validate_clearance_observations(observations, env):
  return int(ambiguous.sum())
 
 def run_audit(rid,variant,seed,pr,pin,updates,outdir):
+ complete=pr['window_semantics'].get('collection','window_v1')=='complete_episodes_v1'
+ calls=int(pr['window_semantics']['calls_per_update'])
+ total=int(pr['window_semantics']['max_updates'])
+ per_update=collections.Counter()
  run=Path('/pub/data/caohy/work/camra_navigation')/rid
  logs=lines(run/'train_log.jsonl'); start=logs[0]
  ul=[r for r in logs if r['kind']=='update'][:updates]
@@ -107,8 +111,10 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  for p,h in start['data_access']['inputs'].items(): checked(sha(p)==h,f'loaded input {p}')
  numeric_keys=['loss_policy','loss_cost','loss_reach','grad_norm_policy','grad_norm_cost','grad_norm_reach','entropy','clipped_ratio_fraction','adv_mean','adv_std','grad_adv_norm','grad_ent_norm']
  for r in ul:
-  checked(r['n_samples']==4086 and r['epochs']==10 and r['minibatch_size']==512,'formal window/update')
-  checked(r['grad_steps']+r.get('mask_skipped_minibatches',0)==80,'executed minibatches')
+  n=int(r['n_samples'])
+  checked((0<n<=18*calls if complete else n==18*calls) and r['epochs']==10 and r['minibatch_size']==512,'formal window/update')
+  minibatches=n//512+int(n%512>=2)
+  checked(r['grad_steps']+r.get('mask_skipped_minibatches',0)==10*minibatches,'executed minibatches')
   for k in numeric_keys: checked(math.isfinite(r[k]),f'nonfinite update {r["update"]} {k}')
   checked(0<=r['clipped_ratio_fraction']<=1,'clip range')
  checked(any(r['clipped_ratio_fraction']>0 for r in ul),'PPO never clipped')
@@ -146,7 +152,10 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  with canonical.open('x') as idx:
   for env_i,mid in enumerate(map_ids):
    root=run/f'rollout_env{env_i}'/'rollout'
-   entries=[e for e in lines(root/'manifest.jsonl') if int(e['global_step_end'])<updates*227]
+   entries=[e for e in lines(root/'manifest.jsonl') if int(e['update_idx'])<updates]
+   if complete:
+    checked(len(entries)==updates and [e['update_idx'] for e in entries]==list(range(updates)),
+            'one complete episode per map and update')
    expected=0; last_ep=-1; last=None; z0=None; episode_steps=0
    rng=np.random.default_rng([seed,env_i]); ks=[]; ep_rows=[]
    diag_by_id={(r['env'],r['episode_id']):r for r in logs if r['kind']=='episode_diag'}
@@ -171,8 +180,15 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
      close(a['obs'][0],last['next_obs'],'slice observation continuity',atol=1e-6,rtol=1e-5)
      close(a['z_norm'][0],last['z_next'],'slice budget continuity')
      close(a['safety_y'][0],last['y_next'],'slice safety continuity')
-    checked(e['global_step_end']//227==e['global_step_start']//227,'chunk spans update')
-    u=int(e['global_step_start'])//227
+    if complete:
+     u=int(e['update_idx'])
+     checked(ep==u and e['env_done'] and not a['truncated'].any()
+             and n<=calls and a['t'][0]==0 and a['event_code'][-1]!=0,
+             'complete episode identity and terminal boundary')
+    else:
+     checked(e['global_step_end']//calls==e['global_step_start']//calls,'chunk spans update')
+     u=int(e['global_step_start'])//calls
+    per_update[u]+=n
     checked(np.all(a['map_index']==env_i),'raw map index')
     close(a['z_j']/550,a['z_norm'],'budget units')
     close(a['cost_j']/550,a['cost_norm'],'cost units')
@@ -242,15 +258,17 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
     row={'store':str(root),'file':e['file'],'file_sha256':e['file_sha256'],'global_step_start':e['global_step_start'],'global_step_end':e['global_step_end'],'map_id':mid,'episode_id':ep,'episode_k':k,'episode_z0_J':z0,'terminal_kind':kind,'original_metadata_mismatch':mismatch,'source':'raw episode_id/z_j plus deterministic registered budget RNG; original manifest retained'}
     idx.write(json.dumps(row)+'\n')
     last={'next_obs':a['next_obs'][-1],'z_next':float(a['z_norm_next'][-1]),'y_next':float(a['safety_y_next'][-1]),'event':event}; last_ep=ep; expected+=n
-   checked(expected==updates*227,f'incomplete env{env_i} samples {expected}')
+   checked((0<expected<=updates*calls if complete else expected==updates*calls),f'incomplete env{env_i} samples {expected}')
    diagnostics.append({'env':env_i,'map_id':mid,'budget_draws':len(ks),'k_range':[min(ks),max(ks)],'k_mean':float(np.mean(ks)),'k_bins':np.histogram(ks,bins=np.linspace(.6,1.3,8))[0].tolist()})
    print(rid,env_i,expected,'checked',flush=True)
- if updates==600:
-  ends=[r for r in logs if r['kind']=='run_end']; checked(len(ends)==1 and ends[0]['updates']==600,'run completion')
+ if updates==total:
+  ends=[r for r in logs if r['kind']=='run_end']; checked(len(ends)==1 and ends[0]['updates']==total,'run completion')
   st=torch.load(run/'state.pt',map_location='cpu',weights_only=False)
-  checked(st['update_idx']==599 and st['prereg_sha256']==pin and st['implementation_versions']==pr['implementation_versions'],'final checkpoint identity')
+  checked(st['update_idx']==total-1 and st['prereg_sha256']==pin and st['implementation_versions']==pr['implementation_versions'],'final checkpoint identity')
   checked(all(torch.isfinite(v).all() for v in st['model'].values()),'final model nonfinite')
- checked(counters['samples']==updates*4086,'total sample count')
+ for r in ul: checked(per_update[r['update']]==r['n_samples'],'raw samples versus logged update')
+ checked(counters['samples']==sum(r['n_samples'] for r in ul),'total sample count')
+ if complete:checked(counters['completed_episodes']==updates*18,'all maps and failures retained')
  return {'run_id':rid,'updates_audited':updates,'checks_pass':True,'counts':dict(counters),'target_kinds':dict(kinds),'numerical_differences':dict(diffs),'stability':{k:stats([r[k] for r in ul]) for k in numeric_keys},'empirical_post_update_kl':{str(u):{'n':len(v),'mean':float(np.mean(v)),**stats(v)} for u,v in kl.items()},'budget_coverage':diagnostics,'canonical_index':str(canonical),'canonical_index_sha256':sha(canonical),'metadata_validation':'Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion.'}
 
 def main():

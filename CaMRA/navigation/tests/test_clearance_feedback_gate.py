@@ -167,8 +167,18 @@ def production_checks(p,nav):
     check('production_coordinator_clearance_v7',paths['coordinator'].name=='nav064_clearance_feedback_v1'
           and all('nav064_clearance_feedback_v1' in str(v) for v in paths.values())
           and all(row['run_id'] in R.training_command(row,'proposal.json') for row in p['run_registry']))
-    check('clearance_outputs_absent',not any(path.exists() for path in paths.values())
-          and all(not (R.ROOT/row['run_id']).exists() for row in p['run_registry']))
+    # Revalidation after a completed historical attempt must exercise the
+    # coordinator's conflict rejection rather than require deleting outputs.
+    conflict=any(path.exists() for path in paths.values()) or any(
+        (R.ROOT/row['run_id']).exists() for row in p['run_registry'])
+    rejected=False
+    if conflict:
+        with mock.patch.object(F,'verify_prereg',return_value=(p,'mechanical-conflict-probe')), \
+             mock.patch.object(sys,'argv',['run_feedback_round','--prereg','conflict-probe']):
+            try: R.main()
+            except FileExistsError: rejected=True
+    check('clearance_outputs_absent',not conflict or rejected,
+          {'historical_conflict':conflict,'coordinator_rejected_before_write':rejected})
     torch.manual_seed(6407)
     net=NW.build(nav,action_bounded=True,initial_forward_speed=.2,log_std_init=-1.)
     # Two controlled single steps through the actual nominal safety/event path.

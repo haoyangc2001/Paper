@@ -1,0 +1,28 @@
+{
+  "schema": "camra-episode-feedback-numerical-protocol-v1",
+  "owner": "NAV-064",
+  "version": "1",
+  "scope": "CPU mechanical gates and controlled diagnostics, no formal training performance trial.",
+  "required_checks": [
+    "episode_production_complete_batches",
+    "episode_old_log_prob_fixed",
+    "episode_all_terminal_kinds_retained",
+    "episode_horizon_feedback_18_of_18",
+    "episode_auditor_variable_samples",
+    "episode_coordinator_allocation"
+  ],
+  "acceptance": [
+    "Parent feedback/time/clearance/runtime gates rerun on current sources.",
+    "Actual producer: two complete current-policy batches, one episode per18 maps/update, fixed old probabilities and values, all early failures retained, no padding/slicing/stale prefix.",
+    "All terminal kinds retained by production segment closer.",
+    "Independent raw audit: variable samples, registered budget RNG, objective targets, identities and corruption rejection.",
+    "Controlled horizon report bound by hash:18/18 target ordering and relative density.",
+    "Unapproved or inconsistent startup rejected."
+  ],
+  "protected": [
+    "fixed v2 and calibration",
+    "maps/splits/budget/cost/45s/thresholds",
+    "irreversible safety/min stopping/minPPO",
+    "references/manuscripts"
+  ]
+}

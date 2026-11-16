@@ -1,5 +1,15 @@
 # 上层导航实施交接
 
+## 2026-11-17 完整回合反馈候选通过生产数值门禁，正式训练尚未启动
+
+净空版6×600已完整结束：原始审计PASS，108回合开发FAIL_DEVELOPMENT。主预算下两方法可行SR中位均1/3，但full危险步中位780，未通过安全关闭档。full全部600更新的L2训练到达1769次，安全/可行到达均0；不能据到达率推进下游。
+
+NAV-064内完成独立候选：`complete_episodes_v1`采集全部18图每次各一个完整当前策略回合，三套估计器λ=.999；保留全部提前失败，不补样本、不跨更新带旧策略前缀。min共同停止、不可逆安全历史、目标/折扣、obs-v7/61、fixed v2、地图/预算/评分不变。实际生产采集/更新/原始审计门禁`reports/gate_episode_feedback_v1_attempt2.json`为171/171 PASS；36个机械回合/8439样本与180个minibatch均核对。受控六图×三critic对照18/18方向正确，只是干预诊断，尚不能证明探索或训练成功。
+
+详细诊断、变更、完整证据及恢复入口见[完整回合反馈记录](nav064_episode_feedback_20261117.md)，最终回归与保全见`reports/nav064_episode_feedback_release_v1.json`。工作根`/pub/data/caohy/work/camra_navigation/nav064_detour_diagnosis_20261117_v1/`保留116份旧源码/配置/报告快照，继续已批准的tiger11同机/tmux例外，无需再问SSH例外。
+
+提案`config/training_loop_episode_feedback_proposal_v1.json`保持`training_approved=false`、无pin；请求新增两方法×三种子各300完整回合更新（最多14580000样本）及最后checkpoint的108回合开发。前50计入300，审计50/300，无额外性能smoke、自动重试或下游执行。新增正式次数须确认后再冻结/启动；当前51/67历史完成，NAV-064=false，NAV-065及下游未执行。下方“正在训练”等均为历史时点，禁止重复启动。
+
 ## 2026-11-16T23:02:47.488078+08:00 用户批准后的净空版本启动
 
 两方法×三种子各600更新及108开发回合已明确批准。独立冻结件为config/training_loop_prereg_clearance_feedback_v1.json，pin 776b86bfbeb874c5024645653859afb5d121d7b0520b6367a8b2d7dedceb3bb5；启动提交6e86cd0787e590bb8d6dd8ae894263e3d25cee8f。旧proposal和下方“待批准”表述均保留为历史。
