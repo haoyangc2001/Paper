@@ -8370,6 +8370,76 @@
   "新增正式训练额度待用户确认，旧额度已用完。"
  ]
 }
+   ,
+{
+ "timestamp": "2026-11-16T11:38:23.420004+08:00",
+ "summary": "NAV-064新一轮训练开工：用户批准具体六run×600新增额度，资源与上游证据核验通过，冻结feedback-v1独立预登记。",
+ "actions": [
+  "重新读取根AGENTS/技能/主计划/交接及生产消费者；按tasks顺序确认NAV-064和已恢复NAV-062/063。",
+  "核验97项当前门禁全部hash、32套回归原日志、v2整包29文件及匹配冻结输入；保留旧源码和原计划。",
+  "检查无现存训练进程和新run输出冲突，现场记录tiger11/绝对解释器/GPU/磁盘；同机tmux例外授权继续有效。",
+  "据用户本次批准制作独立feedback-v1冻结预登记和SHA256 pin；保留原proposal及全部历史失败。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/config/training_loop_prereg_feedback_v1.json",
+  "CaMRA/navigation/config/training_loop_prereg_feedback_v1.json.sha256",
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "bash /tmp/nav064_v4_feedback_launch_read.sh",
+  "bash /tmp/nav064_v4_feedback_launch_sources.sh",
+  "bash /tmp/nav064_v4_feedback_freeze_prepare.sh",
+  "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python scripts/run_feedback_round.py --prereg training_loop_prereg_feedback_v1.json (预登记启动命令，尚未执行)"
+ ],
+ "results": [
+  "主计划1.3.1；本项验证有限时域/安全反馈修复能否学到预算内安全到达，原RC-PPO预算/共享停止/双critic/三估计器与最小化PPO链保留。",
+  "批准两方法×三种子、每组600×4086样本，共14709600；前100计入600，审计通过继续，600后完整审计和最后checkpoint开发评估。",
+  "允许仅新增本轮契约、证据、原计划追加及必要本地提交；算法/地图/指标/数据用途/v2/校准/参考/论文不变。",
+  "现场预检PASS；训练尚未启动，NAV-064保持false；仅development关闭档通过后才进入下游。"
+ ],
+ "evidence": [
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_launch_20261116_v1/preflight.json",
+  "CaMRA/navigation/reports/nav064_feedback_repair_release_v1.json",
+  "CaMRA/navigation/reports/gate_feedback_v1_attempt4.json",
+  "CaMRA/navigation/config/training_loop_prereg_feedback_v1.json"
+ ],
+ "remaining_work": [
+  "冻结pin实际入口检查及本地提交后启动六组；核验真实更新/元数据/终端/全样本反馈。",
+  "100次前缀及600次全量审计、原development阈值验收，失败保留且不自动加跑。"
+ ],
+ "blockers": []
+}
+   ,
+{
+ "timestamp": "2026-11-16T11:39:22.644238+08:00",
+ "summary": "NAV-064反馈训练启动前放行：新冻结预登记及pin通过实际生产验证，待本地提交后启动已批准六组。",
+ "actions": [
+  "F.verify_prereg对磁盘上的新冻结件及全部binding/门禁hash验收通过；未批准/过期source/gate反例全部拒绝。",
+  "核对注册表六个新run与训练/审计命令，输出路径及历史进程无冲突；保存原始命令日志、预登记及pin到独立目录。"
+ ],
+ "files_changed": [
+  "CaMRA/navigation/reports/nav064_feedback_training_release_v1.json",
+  "doc/plan/20261109_camra_navigation_implementation.json"
+ ],
+ "commands": [
+  "bash /tmp/nav064_v4_feedback_frozen_check.sh",
+  "bash /tmp/nav064_v4_feedback_release_prepare.sh",
+  "python /home/caohy/.codex/skills/create-plan-worklog/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+ ],
+ "results": [
+  "PASS_TO_START；冻结sha256=d14b301a2a26d3edfba32e6fe73ec8cb489a8cacad859f81ddcd68943b657459",
+  "现场preflight和此前数值/回归证据一致；保留原性能阈值，训练未启动，NAV-064仍false。"
+ ],
+ "evidence": [
+  "CaMRA/navigation/reports/nav064_feedback_training_release_v1.json",
+  "/pub/data/caohy/work/camra_navigation/nav064_feedback_launch_20261116_v1/preflight.json",
+  "CaMRA/navigation/config/training_loop_prereg_feedback_v1.json"
+ ],
+ "remaining_work": [
+  "必要本地提交后启动协调器，核验六组真实更新及采样；100/600审计与development仍待运行。"
+ ],
+ "blockers": []
+}
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [

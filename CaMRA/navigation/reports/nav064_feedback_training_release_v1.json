@@ -1,0 +1,81 @@
+{
+  "schema": "camra-feedback-training-release-v1",
+  "task": "NAV-064",
+  "time": "2026-11-16T11:39:22.644238+08:00",
+  "verdict": "PASS_TO_START",
+  "training_started": false,
+  "training_approved": true,
+  "allocation": {
+    "lockstep_width": 18,
+    "calls_per_update": 227,
+    "env_steps_per_update": 4086,
+    "max_updates": 600,
+    "max_total_env_steps_per_run": 2451600
+  },
+  "run_registry": [
+    {
+      "variant": "uncalibrated",
+      "seed": 0,
+      "run_id": "nav064_feedback_v1_uncalibrated_s0"
+    },
+    {
+      "variant": "uncalibrated",
+      "seed": 1,
+      "run_id": "nav064_feedback_v1_uncalibrated_s1"
+    },
+    {
+      "variant": "uncalibrated",
+      "seed": 2,
+      "run_id": "nav064_feedback_v1_uncalibrated_s2"
+    },
+    {
+      "variant": "full",
+      "seed": 0,
+      "run_id": "nav064_feedback_v1_full_s0"
+    },
+    {
+      "variant": "full",
+      "seed": 1,
+      "run_id": "nav064_feedback_v1_full_s1"
+    },
+    {
+      "variant": "full",
+      "seed": 2,
+      "run_id": "nav064_feedback_v1_full_s2"
+    }
+  ],
+  "prereg": {
+    "path": "config/training_loop_prereg_feedback_v1.json",
+    "sha256": "d14b301a2a26d3edfba32e6fe73ec8cb489a8cacad859f81ddcd68943b657459"
+  },
+  "proposal": {
+    "path": "config/training_loop_feedback_proposal_v1.json",
+    "sha256": "91dfb66d0cedc0ce1f56c99eeb097e75c29051758f10d2ffaa0e300c847440e5"
+  },
+  "preflight": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_feedback_launch_20261116_v1/preflight.json",
+    "sha256": "6b237c8327da95ccda9de6f2738260fa3551746ec3c3231d4e416a4033832468"
+  },
+  "checks": {
+    "all_current_97_gate_checks": true,
+    "all_gate_source_hashes": true,
+    "all_32_regression_log_hashes": true,
+    "29_v2_bundle_files": true,
+    "matching_frozen_inputs": true,
+    "no_active_or_conflicting_attempts": true,
+    "frozen_prereg_production_verify": true,
+    "reject_missing_approval_stale_source_stale_gate": true,
+    "only_authorization_provenance_differs_from_reviewed_proposal": true
+  },
+  "launch_command": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u scripts/run_feedback_round.py --prereg training_loop_prereg_feedback_v1.json",
+  "cwd": "/home/caohy/repositories/Paper/CaMRA/navigation",
+  "tmux_session": "nav064-r14-repair-20261115",
+  "launch_window": "feedback-training",
+  "first100": "Included in600; pause six processes and audit prefix before automatic continuation.",
+  "after600": "Full audit then last checkpoint development grid; no downstream task launched automatically.",
+  "limits": [
+    "Historical r14a2 still FAIL_DEVELOPMENT; this release proves startup readiness only.",
+    "No code/objective/metric/fixedv2 changes; existing proposal/frozen historical artifacts unchanged.",
+    "No extra attempt or performance smoke outside six-run allocation."
+  ]
+}
