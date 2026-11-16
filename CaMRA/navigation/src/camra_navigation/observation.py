@@ -93,7 +93,7 @@ __all__ = [
 #: replayed bit-for-bit on the same state.
 OBS_VERSION = "obs-v5"
 #: Observation versions this module can still encode (old reports stay checkable).
-SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3", "obs-v4", "obs-v5")
+SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3", "obs-v4", "obs-v5", "obs-v6")
 #: ``|z_ratio|`` upper bound per observation version.  Not a budget: a scale.
 #:
 #: NAV-064 r14 (obs-v4, D9 fix, user-authorized 2026-11-15T17:32): every scene
@@ -102,7 +102,7 @@ SUPPORTED_OBS_VERSIONS: tuple[str, ...] = ("obs-v2", "obs-v3", "obs-v4", "obs-v5
 #: Clip 3.0 covers the full training band ``k in [0.6, 1.3]`` plus the overspend
 #: excursions actually observed (NAV-064: z down to -1.6 during a 30 s run).
 Z_RATIO_CLIP_BY_VERSION: dict[str, float] = {
-    "obs-v2": 1.0, "obs-v3": 1.5, "obs-v4": 3.0, "obs-v5": 3.0,
+    "obs-v2": 1.0, "obs-v3": 1.5, "obs-v4": 3.0, "obs-v5": 3.0, "obs-v6": 3.0,
 }
 #: Version of the action/normalisation mapping.
 COMMAND_VERSION = "cmd-v1"
@@ -125,6 +125,10 @@ MAP_HALF_M = 15.0
 # --- task scales ------------------------------------------------------------
 #: Episode horizon used by the frozen calibration protocol, seconds.
 T_MAX_S = 30.0
+# Explicit opt-in: old checkpoints keep their original 30-second encoding.
+# NAV-064's task deadline is 45 seconds; v6 represents the full remaining time.
+TIME_REF_S_BY_VERSION = {v: (45.0 if v == "obs-v6" else T_MAX_S)
+                         for v in SUPPORTED_OBS_VERSIONS}
 #: Reference speeds for the measured body velocity, metres/second, rad/second.
 V_REF_MPS = 1.0
 W_REF_RADPS = 1.0
@@ -477,10 +481,15 @@ def encode_observation(
     # Earlier versions retain their original threshold for checkpoint replay.
     selected_version = OBS_VERSION if version is None else version
     safety_y = (_clip(_finite(task.safety_y), 0.0, 1.0)
-                if selected_version == "obs-v5"
+                if selected_version in ("obs-v5", "obs-v6")
                 else (1.0 if float(task.safety_y) >= 0.5 else 0.0))
     z_ratio = z_ratio_value(task.z_J, z_ref_J, version=version)
-    t_rem_n = _clip(_finite(task.time_remaining_s) / T_MAX_S, 0.0, 1.0)
+    time_ref_s = TIME_REF_S_BY_VERSION[selected_version]
+    if selected_version == "obs-v6" and (
+            not math.isfinite(float(task.time_remaining_s))
+            or float(task.time_remaining_s) > time_ref_s + 1e-9):
+        raise ValueError("obs-v6 requires finite remaining time <= 45 seconds")
+    t_rem_n = _clip(_finite(task.time_remaining_s) / time_ref_s, 0.0, 1.0)
 
     vec = (
         [sin_yaw, cos_yaw, vx_n, vy_n, wz_n, px_n, py_n]

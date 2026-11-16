@@ -24,7 +24,10 @@ PYTHON = '/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python'
 def attempt_paths(prereg, root=ROOT):
     """Every output belongs to this registry; no historical attempt defaults."""
     prefix = prereg['runtime_contract']['run_prefix']
-    if prefix != 'nav064_feedback_v1':
+    versions = prereg.get('implementation_versions', {})
+    allowed = {'nav064_feedback_v1': 'obs-v5', 'nav064_time_feedback_v1': 'obs-v6'}
+    if (prefix not in allowed
+            or versions.get('observation', 'obs-v5') != allowed[prefix]):
         raise ValueError('unregistered feedback attempt prefix')
     return {'coordinator': root / prefix,
             'audit100': root / (prefix + '_audit_u100'),

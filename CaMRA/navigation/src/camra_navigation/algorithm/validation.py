@@ -36,7 +36,9 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
         raise ValueError("r14 requires the repaired numerical gate and explicit versions")
     if not versions:
         return
-    feedback = versions == {"observation": "obs-v5", "estimator": "rcppo-feedback-v4"}
+    feedback = (versions.get("observation") in ("obs-v5", "obs-v6")
+                and versions.get("estimator") == "rcppo-feedback-v4"
+                and set(versions) == {"observation", "estimator"})
     if not feedback and versions != {"observation": "obs-v5", "estimator": "rcppo-r14-v3"}:
         raise ValueError("unsupported observation/estimator pairing")
     if feedback:
@@ -65,6 +67,12 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
             raise ValueError("feedback navigation/value boundary contracts disagree")
         if float(nav["task_definition"]["horizon_s"]) != float(prereg["environment"]["t_max_s"]):
             raise ValueError("feedback task horizon differs from navigation contract")
+        if versions["observation"] == "obs-v6":
+            from camra_navigation.observation import TIME_REF_S_BY_VERSION
+            scale = TIME_REF_S_BY_VERSION["obs-v6"]
+            if (float(nav["observation_spec"]["constants"]["t_max_s"]) != scale
+                    or float(prereg["environment"]["t_max_s"]) != scale):
+                raise ValueError("obs-v6 time scale and task deadline must both be 45 seconds")
     fix = prereg.get("objective_signal_fix", {})
     if (fix.get("h_semantics") != "v2_deep_well"
             or fix.get("joint_min_recursion") is not True
@@ -83,6 +91,11 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
         passed = {c.get("check") for c in gate["checks"] if c["ok"]}
         required = {"task_deadline_no_learned_future", "all_graded_states_in_loss",
                     "crossing_action_bad_probability_decreases", "train_replay_feedback_bounds"}
+        if versions["observation"] == "obs-v6":
+            required |= {"time_450_steps_strictly_decreasing", "only_time_field_changes",
+                         "production_build18_train_time_v6", "production_step_time_decreases",
+                         "production_development_constructor_time_v6",
+                         "production_coordinator_time_v6"}
         if not required.issubset(passed):
             raise ValueError("feedback gate omitted ending/safety/update/replay evidence")
     if not gate.get("code_files") or not gate.get("protocol"):

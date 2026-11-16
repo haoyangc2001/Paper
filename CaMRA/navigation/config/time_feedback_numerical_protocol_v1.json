@@ -1,0 +1,33 @@
+{
+  "schema": "camra-time-feedback-protocol-v1",
+  "owner": "NAV-064",
+  "scope": "CPU gate; no performance rollout or training",
+  "parent": "config/feedback_numerical_protocol_v1.json",
+  "checks": [
+    "Full 97-check feedback boundary/estimator/update/replay gate rerun",
+    "450-step strictly decreasing time and45/40/30 distinct",
+    "Legacy v2-v5 encodings preserved",
+    "All18 formal train environments and actual eval constructor selectv6",
+    "Approval/version/horizon/normalization mismatch rejected",
+    "Coordinator routes time-only run IDs and all audit/development/closure paths to the new namespace",
+    "Coordinator rejects legacy namespace with obs-v6; startup rejects missing time-specific evidence"
+  ],
+  "diagnostics": {
+    "existing_runs": "nav064_feedback_v1_{uncalibrated,full}_s{0,1,2}",
+    "train_updates": [
+      99,
+      349,
+      599
+    ],
+    "lambda_candidates": [
+      0.9,
+      0.95,
+      0.98,
+      0.995
+    ],
+    "select_lambda": false,
+    "development": "existingprimaryk1.15tracesonly",
+    "new_rollouts": 0,
+    "purpose": "Diagnose first crossings, plateau, lambda target sensitivity and W/deployment discrepancy; no performance claims."
+  }
+}

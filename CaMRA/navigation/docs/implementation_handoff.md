@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 最新状态：2026-11-16 时间接口修复完成数值门禁，训练提案待新增额度
+
+feedback-v1六组各600更新已结束，开发结论`FAIL_DEVELOPMENT`：uncalibrated安全可行SR中位数0，full为1/6，但full危险步中位数654。下方“正在训练”等保留为历史时点，不能据此重启旧run。
+
+NAV-064内已增加显式obs-v6（剩余时间除45秒），修复前15秒时间编码饱和；旧obs-v2至v5按原编码复现。训练、开发构造器、审计和协调器均支持新版本与独立run命名空间。最新数值门禁为`reports/gate_time_feedback_v1_attempt3.json`，120/120通过；源码/回归/资源保全汇总以`reports/nav064_time_feedback_release_v1.json`为准。
+
+旧轨迹诊断证实部分首次越界被距离项遮蔽、安全历史饱和形成平台；λ离线变化方向不一致，仍保留0.95。详细证据、局限和下一入口见[时间修复与诊断](nav064_time_feedback_20261116.md)。仅时间候选提案为`config/training_loop_time_feedback_proposal_v1.json`，申请新增六组×600更新，`training_approved=false`，尚未开训。原六组额度已耗尽，需确认新增次数后另建冻结预登记；没有额外性能smoke。NAV-064仍false，不能推进NAV-065及后续。
+
 
 ## 最新启动：2026-11-16 feedback-v1 六组训练运行中
 

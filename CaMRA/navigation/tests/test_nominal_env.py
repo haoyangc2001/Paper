@@ -90,15 +90,16 @@ def main() -> int:
     # 起就是已知红项；r14（D9，用户 2026-11-15T17:32 授权）再升 obs-v4
     # （z_ratio 编码 ±3.0）。布局/维度/其余常数自 obs-v2 起从未变过。
     check(
-        "obs_version_widened_to_v2",
+        "default_obs_v5_supported_with_optional_v6",
         obs.OBS_VERSION == "obs-v5" and obs.OBS_DIM == 41
-        and obs.SUPPORTED_OBS_VERSIONS[-1] == obs.OBS_VERSION,
+        and obs.OBS_VERSION in obs.SUPPORTED_OBS_VERSIONS
+        and "obs-v6" in obs.SUPPORTED_OBS_VERSIONS,
         {
             "obs_version": obs.OBS_VERSION,
             "dim": obs.OBS_DIM,
             "why": "NAV-016 froze rectangular islands; the contract forbids "
                    "encoding a polygon through a radius, so the primitive set grew",
-            "unchanged": "layout, dimension and every constant",
+            "unchanged": "default obs-v5 layout, dimension and constants; v6 is explicit opt-in",
         },
     )
 

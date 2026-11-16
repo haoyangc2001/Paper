@@ -41,7 +41,9 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  checked([r['update'] for r in ul]==list(range(updates)),'update sequence')
  checked(start['prereg_sha256']==pin,'run registration')
  checked(start['implementation_versions']==pr['implementation_versions'],'runtime versions')
- checked(start['obs_version']=='obs-v5' and not start['smoke'],'observation/formal mode')
+ checked(start['obs_version']==pr['implementation_versions']['observation']
+         and start['obs_version'] in ('obs-v5','obs-v6') and not start['smoke'],
+         'observation/formal mode')
  checked(start['runtime']['host'].split('.')[0]=='tiger11' and bool(start['runtime']['tmux']),'runtime host/tmux')
  checked(start['runtime']['python']=='/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python','interpreter')
  maps=json.loads(Path(F.SPLIT).read_bytes())['splits']['train']['maps']
