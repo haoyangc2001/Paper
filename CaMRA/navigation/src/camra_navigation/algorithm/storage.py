@@ -86,9 +86,13 @@ class StorageError(RuntimeError):
     """缓冲/状态文件的契约被违反（重复写入、错位、缺字段、哈希不符）。"""
 
 
+TERMINAL_TAIL_ESTIMATOR = "rcppo-terminal-tail-v5"
+FEEDBACK_ESTIMATORS = ("rcppo-feedback-v4", TERMINAL_TAIL_ESTIMATOR)
+
+
 def terminal_kind_for_event(label: str, cfg: "ObjectiveConfig") -> str:
     """Versioned task ending; legacy experiment semantics remain readable."""
-    if cfg.estimator_version == "rcppo-feedback-v4" and label in ("timeout", "stagnation"):
+    if cfg.estimator_version in FEEDBACK_ESTIMATORS and label in ("timeout", "stagnation"):
         return "task_end"
     try:
         return TERMINAL_KIND[label]
@@ -226,6 +230,9 @@ class ObjectiveConfig:
             c = json.load(fh)
         est, q = c["estimator"], c["quantities"]
         fail = c["bootstrap"]["FAIL_PENALTY"]
+        if (est.get("version") == TERMINAL_TAIL_ESTIMATOR
+                and est.get("min_gae_terminal_weights") != "geometric_terminal_tail"):
+            raise StorageError("terminal-tail-v5 requires explicit terminal weight semantics")
         return cls(
             gamma_cost=float(est["gamma_cost"]),
             gamma_h=float(est["gamma_h_init"]),
@@ -314,8 +321,8 @@ def compute_objectives(
     term = np.asarray(arrays["terminated"], dtype=bool).reshape(-1)
     trunc = np.asarray(arrays["truncated"], dtype=bool).reshape(-1)
     b_c = np.asarray(arrays["bootstrap_value_cost"], dtype=np.float64).reshape(-1)
-    feedback = cfg.estimator_version == "rcppo-feedback-v4"
-    repaired = cfg.estimator_version in ("rcppo-r14-v3", "rcppo-feedback-v4")
+    feedback = cfg.estimator_version in FEEDBACK_ESTIMATORS
+    repaired = cfg.estimator_version == "rcppo-r14-v3" or feedback
     if repaired and "bootstrap_value_reach" not in arrays:
         raise StorageError("rcppo-r14-v3 requires the actual final reach critic")
     b_h = np.asarray(arrays.get("bootstrap_value_reach", np.zeros_like(b_c)),
@@ -483,14 +490,18 @@ def compute_objectives(
                               if feedback else total_value)
         total_ext = np.concatenate([continuation_total, [joint_boundary]])
         shared_done = np.asarray(stop_now, dtype=bool)
+        terminal_tail = (cfg.estimator_version == TERMINAL_TAIL_ESTIMATOR
+                         and terminal_kind != "truncation")
         target_cost = T.cost_gae_return(effective_cost, vc_ext, shared_done,
                                        cfg.gamma_cost, cfg.gae_lambda)
         target_reach = T.min_gae_return(h_ext, vh_ext, shared_done,
                                        cfg.gamma_h, cfg.gae_lambda,
-                                       force_continue=terminal_kind == "failure")
+                                       force_continue=terminal_kind == "failure",
+                                       terminal_tail=terminal_tail)
         target_total = T.min_gae_return(g_train, total_ext, shared_done,
                                        gamma_joint, cfg.gae_lambda,
-                                       force_continue=terminal_kind == "failure")
+                                       force_continue=terminal_kind == "failure",
+                                       terminal_tail=terminal_tail)
         adv_cost = target_cost - vc
         adv_reach = target_reach - vh
         adv_total = target_total - total_value

@@ -324,7 +324,7 @@ def training_sample_masks(safety_y: np.ndarray, prereg: dict,
                           cfg: S.ObjectiveConfig) -> dict[str, torch.Tensor]:
     """Loss sample selection is versioned independently of safety truth."""
     mask = prereg.get("dead_step_mask", {}) or {}
-    if cfg.estimator_version == "rcppo-feedback-v4":
+    if cfg.estimator_version in S.FEEDBACK_ESTIMATORS:
         if mask.get("enabled", False):
             raise S.StorageError("feedback-v4 learns policy/reach from all states")
         return {}
@@ -342,7 +342,7 @@ def close_segment(
 ) -> tuple[dict[str, np.ndarray], str]:
     """Finalise a training segment under the contract bootstrap table."""
     arrays = seg.arrays()
-    if env_done and obj_cfg.estimator_version == "rcppo-feedback-v4":
+    if env_done and obj_cfg.estimator_version in S.FEEDBACK_ESTIMATORS:
         if label is None:
             raise S.StorageError("task ending requires an event label")
         kind = S.terminal_kind_for_event(label, obj_cfg)

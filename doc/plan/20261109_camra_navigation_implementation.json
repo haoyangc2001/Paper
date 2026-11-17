@@ -9384,6 +9384,124 @@
           "启动证据本地提交；后续先检查既有协调器/进程和标记，不重复启动或修改已冻结登记"
         ],
         "blockers": []
+      },
+      {
+        "timestamp": "2026-11-17T21:00:00+08:00",
+        "summary": "NAV-064/1.3.1开工对齐：用户授权按退化分析推进反馈纠偏与数值回修；保留上一轮失败和训练额度边界",
+        "actions": [
+          "重新读取AGENTS、create-plan-worklog技能/执行规则、主计划及导航交接，按任务数组确认NAV-064是首个依赖满足的false任务",
+          "核对avoidance-prior-v2已FINISHED而非运行中；关闭档FAIL_DEVELOPMENT，full开发66.7%且L2全部超时；旧启动记录保留",
+          "本项服务于固定v2、RC-PPO原理一致的安全预算内导航；先以已有train轨迹核验完整终端的GAE权重，再做版本化修复/生产链门禁；不凭相关系数判通过",
+          "允许范围为CaMRA/navigation估计器及匹配契约/诊断/门禁/交接，保持共同停止、双critic、三估计器、min策略目标、任务评分、obs-v7、避障v2先验、预算、地图及冻结v2；gamma对照只做数值分析"
+        ],
+        "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+        "commands": ["tiger11；tmux=nav064-r14-repair-20261115；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python"],
+        "results": ["NAV-064=false、NAV-065及后续不执行；先完成无新增采样的可复算诊断与候选验收，不自动追加上一轮已耗尽的6×300额度"],
+        "evidence": ["CaMRA/navigation/reports/nav064_avoidance_prior_v2_closure.json", "/tmp/nav064_deg_terminal.log", "/tmp/nav064_deg_dev_values.log"],
+        "remaining_work": ["保存旧源码/契约/证据和现场资源核验；独立推导终端权重并在已有train复算；依据结果完成有限时域候选/门禁、回归和原理/生产链双重验收；必要新训练提案具体化后再申请额度"],
+        "blockers": []
+      },
+      {
+        "timestamp": "2026-11-17T21:19:42.331808+08:00",
+        "summary": "NAV-064/1.3.1终点尾项回修完成有限验收：独立v5、真实PPO/审计、32回归及新提案绑定通过；正式学习仍待额外配额",
+        "actions": [
+          "复核固定v2和RC-PPO来源：已知终点采用有限任务几何尾项为明确版本化估计器适配，不宣称参考代码有错或论文保证本PPO单调改进",
+          "保留旧v4/外部切片/内部共同停止及costGAE，reach/joint真正任务结束启用rcppo-terminal-tail-v5；保持γ/λ、obs-v7/先验v2、预算、地图、45秒、评分、关闭档和冻结v2",
+          "在真实生产入口完成两次PPO更新及36个完整回合，实际审计重算全部样本；验证协调器50/150/300控制流程和退化暂停；未批准提案拒绝启动，仅内存批准时验证实际绑定",
+          "建立新未批准6×300/108开发提案；追加README/交接/回修说明，保存失效父门禁、名称冲突、缺父报告和错误系数prototype证据，不重写旧结果或锁"
+        ],
+        "files_changed": [
+          "CaMRA/navigation/src/camra_navigation/algorithm/targets.py",
+          "CaMRA/navigation/src/camra_navigation/algorithm/storage.py",
+          "CaMRA/navigation/src/camra_navigation/algorithm/validation.py",
+          "CaMRA/navigation/src/camra_navigation/algorithm/stability.py",
+          "CaMRA/navigation/scripts/train_formal.py",
+          "CaMRA/navigation/scripts/audit_r14a2.py",
+          "CaMRA/navigation/scripts/run_feedback_round.py",
+          "CaMRA/navigation/tests/test_terminal_tail_gate.py",
+          "CaMRA/navigation/config/value_objective_contract_terminal_tail_v1.json",
+          "CaMRA/navigation/config/navigation_contract_terminal_tail_v1.json",
+          "CaMRA/navigation/config/terminal_tail_numerical_protocol_v1.json",
+          "CaMRA/navigation/config/training_loop_terminal_tail_proposal_v1.json",
+          "CaMRA/navigation/reports/gate_terminal_tail_v1_attempt2.json",
+          "CaMRA/navigation/reports/nav064_terminal_tail_repair_v1.json",
+          "CaMRA/navigation/docs/nav064_terminal_tail_repair_20261117.md",
+          "CaMRA/navigation/docs/implementation_handoff.md",
+          "CaMRA/navigation/README.md",
+          "doc/plan/20261109_camra_navigation_implementation.json"
+        ],
+        "commands": [
+          "tiger11；tmux=nav064-r14-repair-20261115；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+          "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_terminal_tail_validation.py",
+          "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_terminal_tail_parent3.py",
+          "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u tests/test_terminal_tail_gate.py --out reports/gate_terminal_tail_v1_attempt2.json --work /pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/tail_gate_attempt2_work --base /pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/parent_gates_attempt3/prior_v2.json",
+          "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_terminal_tail_closecheck.py"
+        ],
+        "results": [
+          "352独立公式用例max_error=2.22e-16；累计452检查/209不同检查名全PASS（含父检查重叠），32回归PASS；实际36回合11618样本/36块均审计通过，old_log_prob固定、两次真实更新及异常数据拒绝通过",
+          "450步无内部停止的终点直接敏感度0.176026%→63.812273%；旧train157条k>=1.15末50 full L2超时重放，负target127→95且三种子均值偏差缩小；旧critic仍有乐观目标，不作学习效果证明",
+          "150稳定性检查及真实协调器模拟流程PASS：退化暂停保全且不进入300/开发，原关闭档/全分母不改；正式提案false无pin、全部新run/协调器/开发输出尚不存在",
+          "284原快照、33固定v2资源和16旧结果/模型/日志hash核验不变；NAV-062/063原理与时序依赖有新版生产/数值链复验，旧v4报告仅用于旧版本，51/67历史完成、NAV-064=false、下游不执行"
+        ],
+        "evidence": [
+          "CaMRA/navigation/reports/nav064_terminal_tail_repair_v1.json",
+          "CaMRA/navigation/reports/gate_terminal_tail_v1_attempt2.json",
+          "CaMRA/navigation/config/training_loop_terminal_tail_proposal_v1.json",
+          "CaMRA/navigation/docs/nav064_terminal_tail_repair_20261117.md",
+          "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/preflight.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/regression/report.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/parent_gates_attempt3/prior_v2.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/tail_gate_attempt2_work/existing_train_replay.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/closecheck.json"
+        ],
+        "remaining_work": [
+          "完成计划update/历史追加审计、受保护路径/当前绑定复核和必要本地提交；不推送",
+          "用户确认额外两方法×三种子×300完整回合更新（最多14580000样本，含50/150门禁）及最后checkpoint108开发回合后，另冻批准登记/pin并复查现场启动；旧额度不转移",
+          "正式训练/开发/稳定性/数据验收通过前保持NAV-064=false，不执行NAV-065/066/067及物理后续"
+        ],
+        "blockers": [
+          "上一轮6×300额度已执行完；新正式试验次数须按主计划uncertainty_policy具体确认。当前缺新版正式学习证据，数值与机械通过不等于训练达标。"
+        ],
+        "correction": {
+          "correction_id": "NAV-064-terminal-tail-v5-20261117",
+          "discovered_in_task": "NAV-064",
+          "upstream_task_ids": [
+            "NAV-062",
+            "NAV-063"
+          ],
+          "problem_and_evidence": "完整任务终点在归一化minGAE中的权重偏弱并受旧内部critic乐观影响；真实full L2训练后退化及157条旧train重放支持该机制线索，不能证明唯一因果。",
+          "original_artifact_references": [
+            "0ded7644bcfc67953c867270d467c0cafe02597a",
+            "config/training_loop_prereg_avoidance_prior_v2.json（daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0）",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/preflight.json",
+            "reports/nav064_avoidance_prior_v2_closure.json"
+          ],
+          "affected_task_ids": [
+            "NAV-064",
+            "NAV-065",
+            "NAV-066",
+            "NAV-067",
+            "NAV-043"
+          ],
+          "affected_gate_ids": [
+            "G3/versioned numerical-production gate",
+            "G4"
+          ],
+          "authorization_basis": "用户要求按create-plan-worklog推进既定导航回修；保留已批准tiger11同机tmux与必要本地提交授权；新增正式配额另行确认。",
+          "changes_and_versions": [
+            "rcppo-terminal-tail-v5及独立value/navigation/numerical协议；v4默认分支逐位可复现",
+            "真实生产/审计适配、150稳定性停机和独立未批准提案；不改变任务目标/评分及冻结系统"
+          ],
+          "revalidation_evidence": [
+            "reports/gate_terminal_tail_v1_attempt2.json",
+            "reports/nav064_terminal_tail_repair_v1.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/parent_gates_attempt3/prior_v2.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/regression/report.json"
+          ],
+          "status_changes": [],
+          "downstream_disposition": "有限数学/实际生产实现验收validated，NAV-062/063新版本相关接口已复验；NAV-064=false，新学习/开发/G4仍无通过证据，下游受阻。",
+          "closure_state": "validated"
+        }
       }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

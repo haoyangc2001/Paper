@@ -32,12 +32,13 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
             if field not in bindings:
                 raise ValueError(f"required runtime binding missing: {field}")
     versions = prereg.get("implementation_versions", {})
+    from .storage import FEEDBACK_ESTIMATORS, TERMINAL_TAIL_ESTIMATOR
     if int(prereg.get("round", 0)) >= 14 and not versions:
         raise ValueError("r14 requires the repaired numerical gate and explicit versions")
     if not versions:
         return
     feedback = (versions.get("observation") in ("obs-v5", "obs-v6", "obs-v7")
-                and versions.get("estimator") == "rcppo-feedback-v4"
+                and versions.get("estimator") in FEEDBACK_ESTIMATORS
                 and set(versions) == {"observation", "estimator"})
     if not feedback and versions != {"observation": "obs-v5", "estimator": "rcppo-r14-v3"}:
         raise ValueError("unsupported observation/estimator pairing")
@@ -85,9 +86,9 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                     "empty_bin": 1.0, "clip": [-1.0, 1.0], "wall_order": ["x_min", "x_max", "y_min", "y_max"]}:
                 raise ValueError("obs-v7 clearance geometry contract mismatch")
             prefix = prereg["runtime_contract"]["run_prefix"]
-            if prefix not in ("nav064_clearance_feedback_v1", "nav064_episode_feedback_v1", "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2"):
+            if prefix not in ("nav064_clearance_feedback_v1", "nav064_episode_feedback_v1", "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2", "nav064_terminal_tail_v1"):
                 raise ValueError("obs-v7 requires an independent attempt namespace")
-            if prefix in ("nav064_episode_feedback_v1", "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2"):
+            if prefix in ("nav064_episode_feedback_v1", "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2", "nav064_terminal_tail_v1"):
                 window = prereg["window_semantics"]
                 if (window.get("collection") != "complete_episodes_v1"
                         or window["calls_per_update"] != 450
@@ -97,10 +98,20 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                     raise ValueError("episode feedback collection/value/allocation mismatch")
     prior = prereg.get("avoidance_prior")
     prior_candidate = runtime is not None and runtime.get("run_prefix") in (
-        "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2")
+        "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2", "nav064_terminal_tail_v1")
+    tail_candidate = versions.get("estimator") == TERMINAL_TAIL_ESTIMATOR
+    if tail_candidate != (runtime is not None and runtime.get("run_prefix") == "nav064_terminal_tail_v1"):
+        raise ValueError("terminal-tail estimator requires its independent attempt namespace")
+    if tail_candidate and (value["estimator"].get("min_gae_terminal_weights") != "geometric_terminal_tail"
+                           or prereg.get("terminal_tail_policy") != "true_endings_only"):
+        raise ValueError("terminal-tail estimator lacks explicit boundary semantics")
+    if tail_candidate:
+        from .stability import TERMINAL_TAIL_STABILITY_GATE
+        if prereg.get("learning_stability_gate") != TERMINAL_TAIL_STABILITY_GATE:
+            raise ValueError("terminal-tail training requires its predeclared learning stability stop")
     if prior_candidate:
         from .policy_prior import PRIOR_CONFIG, PRIOR_CONFIG_V2
-        expected_prior = (PRIOR_CONFIG_V2 if runtime["run_prefix"].endswith("_v2")
+        expected_prior = (PRIOR_CONFIG_V2 if runtime["run_prefix"].endswith("_v2") or tail_candidate
                           else PRIOR_CONFIG)
         if (prior != expected_prior or versions.get("observation") != "obs-v7"
                 or prereg.get("action_bounded") is not True):
@@ -130,7 +141,7 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
         required = {"prior_default_bitwise", "prior_direction_and_walls", "prior_probability_and_residual",
                     "prior_actual_producer", "prior_actual_auditor", "prior_actual_development_build",
                     "prior_corrupt_replay_rejected", "prior_observation_only", "prior_exploration_prefix_gate"}
-        if runtime["run_prefix"].endswith("_v2"):
+        if runtime["run_prefix"].endswith("_v2") or tail_candidate:
             required |= {"prior_v1_bitwise_replay", "prior_v2_all_wall_normals",
                          "prior_v2_quantized_side_replay", "prior_v2_train_closed_loop",
                          "prior_v2_density_and_factory", "prior_v2_coordinator"}
@@ -161,6 +172,15 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                 raise ValueError("complete-episode production gate missing")
     if not gate.get("code_files") or not gate.get("protocol"):
         raise ValueError("numerical gate has no source/protocol bindings")
+    if tail_candidate:
+        required = {"terminal_tail_independent_oracle", "terminal_tail_true_endings",
+                    "terminal_tail_slice_legacy", "terminal_tail_450_weight",
+                    "terminal_tail_production_updater", "terminal_tail_existing_train_replay",
+                    "terminal_tail_producer_auditor", "terminal_tail_candidate_startup",
+                    "terminal_tail_learning_stability_hold"}
+        passed = {c.get("check") for c in gate["checks"] if c["ok"]}
+        if not required.issubset(passed):
+            raise ValueError("terminal-tail numerical/production gate missing")
     for rel, digest in gate["code_files"].items():
         if file_sha(root / rel) != digest:
             raise ValueError(f"gate source mismatch: {rel}")

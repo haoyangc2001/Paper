@@ -1,0 +1,80 @@
+{
+  "schema": "camra-terminal-tail-numerical-protocol-v1",
+  "owner": "NAV-064",
+  "scope": "Finite-horizon boundary repair; fixed v2, task/score/maps/budgets/observations/prior unchanged. No formal training approval.",
+  "numerical_cases": {
+    "horizons": [
+      1,
+      2,
+      5
+    ],
+    "lambdas": [
+      0,
+      0.5,
+      0.95,
+      0.999
+    ],
+    "gammas": [
+      0.999,
+      1.0
+    ],
+    "all_shared_stops": true,
+    "both_failure_modes": true,
+    "seed": 6451,
+    "atol": 1e-11,
+    "rtol": 1e-10
+  },
+  "required_checks": [
+    "terminal_tail_independent_oracle",
+    "terminal_tail_true_endings",
+    "terminal_tail_slice_legacy",
+    "terminal_tail_450_weight",
+    "terminal_tail_production_updater",
+    "terminal_tail_existing_train_replay",
+    "terminal_tail_producer_auditor",
+    "terminal_tail_candidate_startup",
+    "terminal_tail_learning_stability_hold"
+  ],
+  "raw_replay": {
+    "registration": "config/training_loop_prereg_avoidance_prior_v2.json",
+    "registration_sha256": "daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0",
+    "subset": "all full L2 timeout chunks in last50 updates with sampled k>=1.15; fixed before v5 evaluation",
+    "diagnostic_only": true
+  },
+  "mechanical_fixture": {
+    "full_seed": 0,
+    "updates": 2,
+    "train_episodes": 36,
+    "max_samples": 16200,
+    "no_development_or_selection": true,
+    "limits": "Producer/auditor/updater mechanics only; no candidate performance or checkpoint selection evidence."
+  },
+  "learning_stability_fixture": {
+    "scope": "Synthetic raw train stores only; production guard runs after the independent raw audit at update150.",
+    "cases": ["pass", "single_seed_regression_holds_allocation", "tampered_raw_rejected"],
+    "formal_windows": [[0, 50], [100, 150]],
+    "full_seeds": [0, 1, 2],
+    "minimum_budget_k": 1.15,
+    "minimum_conditional_episodes": 20,
+    "minimum_safe_feasible_rate": 0.8,
+    "maximum_rate_drop": 0.1,
+    "failure_action": "HOLD_NO_RETRY",
+    "denominator_policy": "Retain and report every L2 train episode; conditional mechanism check does not replace development acceptance."
+  },
+  "acceptance": [
+    "Independent n-step enumeration equals production for all registered synthetic cases.",
+    "Historical v4 targets and all external slices remain reproducible.",
+    "Terminal sensitivity equals lambda**449 at gamma=1 and no internal stop.",
+    "Successful/safe/overbudget/graded-danger/absorbing-failure endpoints share stopping and remain correctly scored.",
+    "Actual producer uses v5 for two current-policy complete-episode updates and actual raw auditor rebuilds targets.",
+    "Two-action minimization update reduces the probability of the worse finite-horizon action.",
+    "Startup rejects missing tail/gate, old namespace, wrong version/contract and unapproved training.",
+    "32 legacy regression suites pass; protected resources/results unchanged.",
+    "The production learning-stability guard passes good synthetic stores, holds a regressed seed and rejects altered raw evidence."
+  ],
+  "limits": [
+    "Negative target on an individual failed stochastic trajectory is not by itself a bug.",
+    "Terminal weighting is a consistency correction, not proof of improved learned performance.",
+    "Gamma comparison is numerical only; candidate keeps gamma_cost=gamma_joint=1 and the existing reach schedule."
+  ]
+}

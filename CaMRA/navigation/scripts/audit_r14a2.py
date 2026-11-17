@@ -213,7 +213,7 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
     checked(not np.any((a['terminated']|a['truncated'])[:-1]),'interior termination')
     checked(bool(a['terminated'][-1])!=bool(a['truncated'][-1]),'terminal flags')
     kind=e['terminal_kind']; kinds[kind]+=1
-    if cfg.estimator_version == 'rcppo-feedback-v4':
+    if cfg.estimator_version in S.FEEDBACK_ESTIMATORS:
      event_name=S.EVENT_NAMES[int(a['event_code'][-1])]
      expected_kind='truncation' if event_name=='none' else S.terminal_kind_for_event(event_name,cfg)
      checked(kind==expected_kind,'finite task ending vs sampling slice')

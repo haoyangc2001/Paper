@@ -27,18 +27,22 @@ def attempt_paths(prereg, root=ROOT):
     versions = prereg.get('implementation_versions', {})
     allowed = {'nav064_feedback_v1': 'obs-v5', 'nav064_time_feedback_v1': 'obs-v6',
                'nav064_clearance_feedback_v1': 'obs-v7', 'nav064_episode_feedback_v1': 'obs-v7',
-               'nav064_avoidance_prior_v1': 'obs-v7', 'nav064_avoidance_prior_v2': 'obs-v7'}
+               'nav064_avoidance_prior_v1': 'obs-v7', 'nav064_avoidance_prior_v2': 'obs-v7',
+               'nav064_terminal_tail_v1': 'obs-v7'}
     if (prefix not in allowed
             or versions.get('observation', 'obs-v5') != allowed[prefix]):
         raise ValueError('unregistered feedback attempt prefix')
     first, total = (allocation(prereg) if prefix in
                     ('nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1',
-                     'nav064_avoidance_prior_v2') else (100, 600))
-    return {'coordinator': root / prefix,
+                     'nav064_avoidance_prior_v2', 'nav064_terminal_tail_v1') else (100, 600))
+    paths = {'coordinator': root / prefix,
             f'audit{first}': root / (prefix + f'_audit_u{first}'),
             f'audit{total}': root / (prefix + f'_audit_u{total}'),
             'development': NAV / 'reports' / (prefix + '_development.json'),
             'closure': NAV / 'reports' / (prefix + '_closure.json')}
+    if prefix == 'nav064_terminal_tail_v1':
+        paths['audit150'] = root / (prefix + '_audit_u150')
+    return paths
 
 
 def training_command(row, prereg_name):
@@ -54,7 +58,8 @@ def audit_command(n, prereg_name, paths):
 def allocation(prereg):
     w=prereg['window_semantics']
     if prereg['runtime_contract']['run_prefix'] in (
-            'nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1', 'nav064_avoidance_prior_v2'):
+            'nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1', 'nav064_avoidance_prior_v2',
+            'nav064_terminal_tail_v1'):
         if (w.get('collection')!='complete_episodes_v1' or w['max_updates']!=300
                 or w['calls_per_update']!=450 or w['env_steps_per_update']!=8100):
             raise ValueError('episode allocation must be six runs x300, at most8100 samples/update')
@@ -74,6 +79,14 @@ def enforce_exploration(prereg, root, updates, write):
         raise RuntimeError('train-prefix detour exploration failed; allocation held, no retry')
 
 
+def enforce_learning_stability(prereg, root, updates, write):
+    from camra_navigation.algorithm.stability import check_learning_stability
+    result = check_learning_stability(prereg, root, updates)
+    write(f'learning_stability_u{updates}.json', result)
+    if result['verdict'] != 'PASS':
+        raise RuntimeError('train learning deteriorated; allocation held, no retry')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--prereg', required=True)
@@ -84,7 +97,8 @@ def main():
     sys.path.insert(0, str(NAV / 'scripts'))
     import train_formal as F
     p, pin = F.verify_prereg(args.prereg)
-    if p['implementation_versions']['estimator'] != 'rcppo-feedback-v4':
+    from camra_navigation.algorithm.storage import FEEDBACK_ESTIMATORS
+    if p['implementation_versions']['estimator'] not in FEEDBACK_ESTIMATORS:
         raise ValueError('feedback estimator required')
     prefix_updates, total_updates = allocation(p)
     paths = attempt_paths(p)
@@ -117,6 +131,7 @@ def main():
                                cwd=NAV, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
 
         audited = False
+        stability_audited = 'learning_stability_gate' not in p
         while True:
             counts = []
             for row, proc in processes:
@@ -135,6 +150,15 @@ def main():
                     if proc.poll() is None: os.kill(proc.pid, signal.SIGSTOP)
                 audit(prefix_updates); audited = True
                 enforce_exploration(p, ROOT, prefix_updates, write)
+                for _, proc in processes:
+                    if proc.poll() is None: os.kill(proc.pid, signal.SIGCONT)
+            if not stability_audited and min(counts) >= p['learning_stability_gate']['after_updates']:
+                for _, proc in processes:
+                    if proc.poll() is None: os.kill(proc.pid, signal.SIGSTOP)
+                n = p['learning_stability_gate']['after_updates']
+                audit(n)
+                enforce_learning_stability(p, ROOT, n, write)
+                stability_audited = True
                 for _, proc in processes:
                     if proc.poll() is None: os.kill(proc.pid, signal.SIGCONT)
             if all(proc.poll() is not None for _, proc in processes): break

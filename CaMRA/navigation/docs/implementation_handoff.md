@@ -1,5 +1,17 @@
 # 上层导航实施交接
 
+## 2026-11-17 终点反馈回修v5：实现通过，NAV-064仍false
+
+上一轮avoidance-prior-v2已FINISHED，六组300更新/11517556样本/32400回合，108开发FAIL_DEVELOPMENT；full三个种子主成功率66.7%、危险步0，L2均超时。首50→末50的full L2安全到达900/900→277/900，存在训练后退化。旧源码、模型、失败及日志保留，不按下方旧“正在训练”状态续跑。
+
+已版本化为`rcppo-terminal-tail-v5`，仅真正任务结束的reach/joint minGAE保留几何尾项；共同停止、costGAE、外部切片、γ/λ、先验v2、任务/预算/地图/评分及冻结v2均保持。450步无内部停止的终点直接敏感度0.176%→63.8%；旧157条train超时目标中负值127→95，仍有缺口，不能据此宣称新学习通过。参考归一化实现不标成错误，本项明确登记为有限任务适配。
+
+有效门禁`reports/gate_terminal_tail_v1_attempt2.json`为452条累计检查、209个不同名（有父检查重叠），含独立352公式用例、真实两次PPO更新/36完整回合/11618样本及独立审计；32套回归通过。实际协调器在模拟进程测试中验证150退化会HELD且不继续300/开发；原始合成库正常/退化/篡改分支验证通过。284份原快照、33项v2身份及16旧结果/模型/日志hash校验不变。详情、失败attempt、精确命令及边界见[回修说明](nav064_terminal_tail_repair_20261117.md)与`reports/nav064_terminal_tail_repair_v1.json`。
+
+工作根`/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/`；tiger11，原tmux会话`nav064-r14-repair-20261115`，Python绝对路径不变。有效当前源码父链在`parent_gates_attempt3/`，旧hash失配/旧run名冲突/父报告未就绪的attempt均保留，不覆盖或重写旧锁。新版正式前缀`nav064_terminal_tail_v1`尚无run。
+
+未批准提案为`config/training_loop_terminal_tail_proposal_v1.json`，额外申请两方法×三种子×300完整回合更新，上限14580000样本、最后checkpoint108开发回合；前50及150计入300。150额外train稳定性条件为每个full种子k≥1.15的L2首50与100–149窗口各≥20回合、两窗口安全可行率≥80%且下降≤10个百分点；保留全分母，失败或不足HELD_NO_RETRY，不替代原关闭档。提案false、无pin；批准后另冻登记并复核现场/输出/源码后启动，不转移旧额度。当前51/67历史完成、NAV-064=false、NAV-065+不执行；新训练/开发/稳定性/数据验收均通过才进入后续任务。下方旧时点保留。
+
 ## 2026-11-17T17:12:13+08:00 避墙/选边v2已启动：PASS_STARTED
 
 启动提交`b0a0ce9f56a72a37834ffa62538e231bbcab26eb`，冻结pin `daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0`。窗口`nav064-r14-repair-20261115:avoidance-v2-training`在tiger11运行六组；独立核验时各2更新、合计67805样本。原始header/输入hash、18图、61维观测、v2先验、完整回合、10epoch×512及实际目标匹配，六进程正常且无HELD；证据`reports/nav064_avoidance_prior_v2_started_v1.json`及launch根`verified_startup_attempt1/`。

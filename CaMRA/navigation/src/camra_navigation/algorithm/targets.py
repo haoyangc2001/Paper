@@ -233,7 +233,8 @@ def bounded_reach_continuation(value: np.ndarray, signal: np.ndarray,
 
 def min_gae_return(signals: np.ndarray, baseline: np.ndarray,
                    done: np.ndarray, gamma: float, lam: float,
-                   *, force_continue: bool = False) -> np.ndarray:
+                   *, force_continue: bool = False,
+                   terminal_tail: bool = False) -> np.ndarray:
     """Normalized finite-horizon min GAE, with explicit T+1 critic states.
 
     The reference's reverse scan visits horizon counters 0,1,... .  At each
@@ -243,6 +244,11 @@ def min_gae_return(signals: np.ndarray, baseline: np.ndarray,
 
     force_continue implements the existing absorbing-failure rule tau*=T:
     stopping at a preceding state is unavailable on such a segment.
+
+    terminal_tail is explicit for true finite-task endings. The last n-step
+    target then receives the remaining geometric probability lambda**(n-1),
+    rather than lambda**(n-1)/sum(lambda**k). External sampling slices retain
+    the reference normalized mixture. The default preserves historical runs.
     """
     h = np.asarray(signals, dtype=np.float64).reshape(-1)
     v = np.asarray(baseline, dtype=np.float64).reshape(-1)
@@ -263,6 +269,11 @@ def min_gae_return(signals: np.ndarray, baseline: np.ndarray,
         factor = lam / (1.0 - lam) if previous_stop else lam
         coefficients = np.roll(coefficients, 1) * factor * (not d[t])
         coefficients[0] = 1.0
+        if terminal_tail and scanned == 0 and not d[t]:
+            # Seed the known terminal tail in the final one-step target. This
+            # gives [1, lambda/(1-lambda)] at the preceding step, exactly as
+            # the reference already does after an internal shared stop.
+            coefficients[0] /= 1.0 - lam
         continuation = (1.0 - gamma) * h[t] + gamma * carry
         row = continuation if force_continue else np.minimum(h[t], continuation)
         if d[t]:
