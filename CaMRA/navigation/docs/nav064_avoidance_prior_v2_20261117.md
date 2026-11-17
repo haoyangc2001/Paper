@@ -1,5 +1,9 @@
 # NAV-064：避墙方向与绕行选边回修
 
+## 2026-11-17T17:12:13+08:00 实际训练启动核验
+
+启动提交`b0a0ce9f56a72a37834ffa62538e231bbcab26eb`，六组各完成2更新，累计67805样本；六进程正常无HELD，生产身份/输入/目标/完整回合和多epoch核验PASS_STARTED，见`reports/nav064_avoidance_prior_v2_started_v1.json`。训练窗口为原tiger11/tmux的`avoidance-v2-training`。首50原始审计和三个full种子的安全L2探索仍待完成，之后才继续300与108开发验收；原标准未变，NAV-064保持false。下文未启动描述仅为此前时点，续跑先查已有现场，不重复启动。
+
 ## 2026-11-17 新训练授权与冻结登记
 
 用户已批准下文提案的独立两方法×三种子各300更新、最多14580000样本及108回合development；前50计入300，原探索前提和关闭档不变。批准登记为`config/training_loop_prereg_avoidance_prior_v2.json`，pin为`daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0`。原未批准proposal不修改；新登记仅变更授权/状态及来源绑定，运行参数与评分保持一致。

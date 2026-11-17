@@ -1,5 +1,9 @@
 # 上层最小成本到达避障导航器
 
+## 2026-11-17T17:12:13+08:00 避墙/选边v2六组已启动并完成生产核验
+
+启动提交`b0a0ce9f56a72a37834ffa62538e231bbcab26eb`；tiger11原tmux会话的`avoidance-v2-training`窗口运行新版独立六组。核验时每组已完成2次更新，累计67805样本，六进程正常且无HELD；实际train18图/输入hash、obs-v7/61、先验v2、完整回合和多epoch更新匹配登记，见[启动核验](reports/nav064_avoidance_prior_v2_started_v1.json)。首50审计与三个full种子安全L2探索尚待完成，通过才继续300及108开发验收。当前仍NAV-064=false，此为启动证据，不代表学习达标。下方保留历史时点。
+
 ## 2026-11-17 避墙/选边v2新额度已批准，启动准备完成
 
 用户已批准两方法×三种子各300完整回合更新（上限14580000样本）及最后checkpoint的108回合development。独立登记为`config/training_loop_prereg_avoidance_prior_v2.json`，pin为`daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0`；原未批准proposal及旧v1 HELD保持原样。219项门禁、32套回归、60份源码配置快照和33项固定v2身份复核通过，见[训练启动放行](reports/nav064_avoidance_prior_v2_training_release_v1.json)。

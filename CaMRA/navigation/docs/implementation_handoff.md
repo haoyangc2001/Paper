@@ -1,5 +1,11 @@
 # 上层导航实施交接
 
+## 2026-11-17T17:12:13+08:00 避墙/选边v2已启动：PASS_STARTED
+
+启动提交`b0a0ce9f56a72a37834ffa62538e231bbcab26eb`，冻结pin `daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0`。窗口`nav064-r14-repair-20261115:avoidance-v2-training`在tiger11运行六组；独立核验时各2更新、合计67805样本。原始header/输入hash、18图、61维观测、v2先验、完整回合、10epoch×512及实际目标匹配，六进程正常且无HELD；证据`reports/nav064_avoidance_prior_v2_started_v1.json`及launch根`verified_startup_attempt1/`。
+
+恢复先查既有launch/start/pids、原始日志、HELD/FINISHED和进程，不重复启动。协调器自动首50审计、逐full种子安全L2探索，通过后才继续300及最后checkpoint108开发验收；失败保留现场且不自动重试。启动核验不作学习结论；原关闭档未满足，NAV-064=false、NAV-065+未执行。下文均为历史时点。
+
 ## 2026-11-17 避墙/选边v2训练已获授权，待实际启动核验
 
 当前NAV-064=false、历史51/67完成。用户已批准独立6×300完整回合更新、上限14580000样本及最后checkpoint的108开发回合。新登记`config/training_loop_prereg_avoidance_prior_v2.json`与pin `daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0`已冻结；原proposal不改，旧v1 HELD、原始日志和六个u50模型保留，不恢复或转移额度。

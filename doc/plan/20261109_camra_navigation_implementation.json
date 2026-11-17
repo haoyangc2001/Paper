@@ -9335,7 +9335,56 @@
             "启动六组并核对实际观测/先验/概率/原始样本和PPO更新；首50检查通过后继续300及108开发验收"
           ],
           "blockers": []
-        }
+        },
+      {
+        "timestamp": "2026-11-17T17:13:32.262070+08:00",
+        "summary": "NAV-064避墙/选边v2六组正式训练已启动，实际生产身份及完整回合PPO核验通过；保持false等待学习验收",
+        "actions": [
+          "tiger11/tmux复核219门禁/32回归、60份来源快照和33项固定v2身份；旧HELD及新输出无冲突",
+          "按已批准额度独立冻结v2登记/pin，启动前仅提交七个授权文件；原proposal保持原样",
+          "avoidance-v2-training启动六组；独立verify窗口核对实际日志、输入hash、18图、完整回合和多epoch更新"
+        ],
+        "files_changed": [
+          "CaMRA/navigation/config/training_loop_prereg_avoidance_prior_v2.json",
+          "CaMRA/navigation/config/training_loop_prereg_avoidance_prior_v2.json.sha256",
+          "CaMRA/navigation/reports/nav064_avoidance_prior_v2_training_release_v1.json",
+          "CaMRA/navigation/reports/nav064_avoidance_prior_v2_started_v1.json",
+          "CaMRA/navigation/README.md",
+          "CaMRA/navigation/docs/implementation_handoff.md",
+          "CaMRA/navigation/docs/nav064_avoidance_prior_v2_20261117.md",
+          "doc/plan/20261109_camra_navigation_implementation.json"
+        ],
+        "commands": [
+          "tiger11；tmux=nav064-r14-repair-20261115；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+          "avoidance-v2-preflight: Python -u /tmp/nav064_prior_v2_launch_preflight.py",
+          "avoidance-v2-release: Python -u /tmp/nav064_prior_v2_training_release.py",
+          "avoidance-v2-training: Python -u /tmp/nav064_avoidance_v2_start_20261117.py → scripts/run_feedback_round.py --prereg training_loop_prereg_avoidance_prior_v2.json",
+          "avoidance-v2-verify: Python -u /tmp/nav064_avoidance_v2_verify_20261117.py --stage startup",
+          "git commit -m nav: authorize repaired avoidance prior v2 training；b0a0ce9f56a72a37834ffa62538e231bbcab26eb；未推送"
+        ],
+        "results": [
+          "新pin daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0；两方法×三种子各300更新、最多14580000样本及108开发回合，首50计入300",
+          "2026-11-17T17:12:13+08:00六组各完成2更新、累计67805样本，PASS_STARTED，六进程正常无HELD；此为启动证据，不代表学习或开发达标",
+          "实际obs-v7/61、clearance-tangent-v2、train18图/输入hash、完整回合、10epoch×512及min型联合/零加性成本目标匹配；目标/评分/冻结v2未变",
+          "局部启动核验和上游版本一致性通过；旧HELD/模型/日志未改，budget_selection/final封存；NAV-064=false、NAV-065+未执行"
+        ],
+        "evidence": [
+          "CaMRA/navigation/reports/nav064_avoidance_prior_v2_training_release_v1.json",
+          "CaMRA/navigation/reports/nav064_avoidance_prior_v2_started_v1.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_launch_20261117_v2/preflight.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_launch_20261117_v2/launch.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_launch_20261117_v2/coordinator.log",
+          "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_launch_20261117_v2/verified_startup_attempt1/",
+          "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2/start.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2/pids.json"
+        ],
+        "remaining_work": [
+          "协调器自动首50原始审计，再检查三个full种子各至少一次全程安全L2到达；失败HELD无重试/补额",
+          "前提通过才继续300更新、全量审计和最后checkpoint108开发验收；按原关闭档核对学习、稳定性/数据，全部通过才关闭NAV-064",
+          "启动证据本地提交；后续先检查既有协调器/进程和标记，不重复启动或修改已冻结登记"
+        ],
+        "blockers": []
+      }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [
