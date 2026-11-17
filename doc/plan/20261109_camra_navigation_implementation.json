@@ -9502,6 +9502,42 @@
           "downstream_disposition": "有限数学/实际生产实现验收validated，NAV-062/063新版本相关接口已复验；NAV-064=false，新学习/开发/G4仍无通过证据，下游受阻。",
           "closure_state": "validated"
         }
+      },
+      {
+        "timestamp": "2026-11-17T21:21:45.423990+08:00",
+        "summary": "NAV-064终点尾项回修交付核对及必要本地提交完成；仅新增正式训练额度待确认",
+        "actions": [
+          "核验67任务ID/顺序/全部历史work_records前缀和状态均保持，只有当前NAV-064追加记录；update校验通过",
+          "复核当前门禁/提案实际源码和资源绑定、原快照/旧模型结果hash及受保护路径，PASS_DELIVERY_CHECK；CRLF按原计划换行保留",
+          "按用户持续有效的必要本地提交授权提交本次18个文件；未暂存其他已有未跟踪产物、未推送"
+        ],
+        "files_changed": [
+          "doc/plan/20261109_camra_navigation_implementation.json"
+        ],
+        "commands": [
+          "tiger11/tmux；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_terminal_tail_deliverycheck.py",
+          "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_terminal_tail_commit.py",
+          "git -c core.whitespace=cr-at-eol diff --cached --check",
+          "git commit -m \"nav: preserve finite-task terminal feedback and guard training stability\""
+        ],
+        "results": [
+          "本地实现提交 436868e1f76e62fd6807118a1c8153f93e53f4e7，18文件；没有远程推送",
+          "计划追加与完整性、当前绑定、受保护路径及旧资源结果校验全部PASS；NAV-064=false，51/67历史完成，NAV-065+未执行",
+          "正式提案training_approved=false且无pin，无新正式run或开发输出；已授权实现及有限数值/生产夹具均已完成，不能将其写成正式学习达标"
+        ],
+        "evidence": [
+          "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/implementation_commit.json",
+          "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_repair_20261117_v1/delivery_check.json",
+          "CaMRA/navigation/reports/nav064_terminal_tail_repair_v1.json",
+          "CaMRA/navigation/config/training_loop_terminal_tail_proposal_v1.json"
+        ],
+        "remaining_work": [
+          "用户确认额外6×300更新（含50/150门禁、最多14580000样本）及最后checkpoint108开发回合后，另冻批准登记/pin并核验资源启动；保留原提案和旧额度",
+          "训练/开发/稳定性及数据验收全部通过才进入后续任务；失败按原协议暂停或负结果报告，不自动重试/补额"
+        ],
+        "blockers": [
+          "主计划uncertainty_policy要求确认新增正式试验次数；上一轮额度已执行完，不能由实现验收替代额外训练批准。"
+        ]
       }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
