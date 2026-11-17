@@ -1,5 +1,11 @@
 # NAV-064：避墙方向与绕行选边回修
 
+## 2026-11-17 新训练授权与冻结登记
+
+用户已批准下文提案的独立两方法×三种子各300更新、最多14580000样本及108回合development；前50计入300，原探索前提和关闭档不变。批准登记为`config/training_loop_prereg_avoidance_prior_v2.json`，pin为`daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0`。原未批准proposal不修改；新登记仅变更授权/状态及来源绑定，运行参数与评分保持一致。
+
+新预检和训练放行报告`reports/nav064_avoidance_prior_v2_training_release_v1.json`已通过，复核219项门禁、32回归、60份源码配置及33项固定v2身份。工作根为`/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_launch_20261117_v2/`，run前缀`nav064_avoidance_prior_v2`；实际启动以该根`launch.json`及协调器原始记录为准。旧v1保持HELD、不转移额度；本地提交后启动，未通过全部学习/开发/稳定性/数据验收前NAV-064仍false且不推进下游。下文未批准/未启动描述是回修完成时的历史记录。
+
 本项仍为计划1.3.1的NAV-064。固定v2整套、RC-PPO数学目标、三估计器、共同停止、minPPO、观测61维、初始化、地图、预算、45秒任务和原关闭档保持。
 
 ## 原版本负结果

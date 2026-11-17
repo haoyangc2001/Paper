@@ -1,5 +1,11 @@
 # 上层最小成本到达避障导航器
 
+## 2026-11-17 避墙/选边v2新额度已批准，启动准备完成
+
+用户已批准两方法×三种子各300完整回合更新（上限14580000样本）及最后checkpoint的108回合development。独立登记为`config/training_loop_prereg_avoidance_prior_v2.json`，pin为`daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0`；原未批准proposal及旧v1 HELD保持原样。219项门禁、32套回归、60份源码配置快照和33项固定v2身份复核通过，见[训练启动放行](reports/nav064_avoidance_prior_v2_training_release_v1.json)。
+
+新工作根为`/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_launch_20261117_v2/`，训练前缀为`nav064_avoidance_prior_v2`；启动前本地提交后在原tiger11/tmux会话执行，实际启动以`launch.json`、协调器`start.json/pids.json`及原始日志为准。首50更新计入300，先审计，再检查每个full种子至少一次安全L2到达；失败HELD且不自动重试。原关闭档不变，NAV-064=false，训练/开发/稳定性/数据验收通过前不推进下游。下方为历史时点。
+
 ## 2026-11-17 避墙与绕行方向回修v2
 
 当前仍为NAV-064、51/67历史完成。旧avoidance-v1已因首50探索失败自动HELD；原始数据、六个u50模型及旧源码保留。已修复上下墙法向，并为16方向量化观测增加固定歧义选边规则。36条固定seed0、train-only确定性机制回合全部安全且预算内到达，含full的6张L2图；这不是训练或development通过。219项累计门禁、实际2次PPO更新及独立审计、32套回归和正式提案绑定核验通过，见[收尾报告](reports/nav064_avoidance_prior_v2_release_v1.json)。回修边界及未批准的新增6×300更新/108开发回合提案见[本次记录](docs/nav064_avoidance_prior_v2_20261117.md)。原正式阈值不变，未启动新正式训练或下游。以下保留各历史时点。

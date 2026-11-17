@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-17 避墙/选边v2训练已获授权，待实际启动核验
+
+当前NAV-064=false、历史51/67完成。用户已批准独立6×300完整回合更新、上限14580000样本及最后checkpoint的108开发回合。新登记`config/training_loop_prereg_avoidance_prior_v2.json`与pin `daa57ee473e9cfbb2b4ad4c84780673156f4ee8058591729b07339ccd6df27c0`已冻结；原proposal不改，旧v1 HELD、原始日志和六个u50模型保留，不恢复或转移额度。
+
+219门禁、32回归、60份源码配置快照与33项固定v2身份复核通过，来源见`reports/nav064_avoidance_prior_v2_training_release_v1.json`。本次只登记/执行已批准训练，算法、先验v2源码、观测、预算/地图/45秒/评分及固定v2资源不变。新launch根`/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_launch_20261117_v2/`；协调器根`/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2/`。启动前本地提交，原tmux会话新增`avoidance-v2-training`窗口，绝对解释器不变。
+
+实际启动证据以launch根`launch.json/coordinator.log`和协调器`start.json/pids.json`为准；未出现证据前不得认为已训练。前50计入300：原始审计通过且三个full种子各至少一次安全L2到达后才继续；否则自动HELD，无自动重试/补额。300全量审计及108开发验收仍须通过原标准；budget_selection/final封存，NAV-065+不执行。下文各段保留历史，不按旧启动状态续跑。
+
 ## 2026-11-17 NAV-064避墙/选边回修v2
 
 当前51/67历史完成、NAV-064=false。旧avoidance-v1首50原始审计PASS、探索FAIL并HELD，实际348更新/1432145样本和六个u50模型保留，不能按下方旧“正在训练”描述恢复。确认的独立问题为上下墙法向错误和量化角零阈值选边振荡。
