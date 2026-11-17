@@ -100,6 +100,7 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  checked([r['update'] for r in ul]==list(range(updates)),'update sequence')
  checked(start['prereg_sha256']==pin,'run registration')
  checked(start['implementation_versions']==pr['implementation_versions'],'runtime versions')
+ checked(start.get('avoidance_prior')==pr.get('avoidance_prior'),'runtime policy prior')
  checked(start['obs_version']==pr['implementation_versions']['observation']
          and start['obs_version'] in ('obs-v5','obs-v6','obs-v7') and not start['smoke'],
          'observation/formal mode')
@@ -137,7 +138,7 @@ def run_audit(rid,variant,seed,pr,pin,updates,outdir):
  nav=json.loads((NAV/pr['binding']['navigation_contract']['path']).read_bytes())
  def model(state):
   ini=pr['action_init_fix']
-  net=NW.build(nav,action_bounded=True,initial_forward_speed=ini['initial_forward_speed'],log_std_min=ini['log_std_min'],log_std_init=ini['log_std_init'],steering_gain=pr['steering_prior']['gain'])
+  net=NW.build(nav,action_bounded=True,initial_forward_speed=ini['initial_forward_speed'],log_std_min=ini['log_std_min'],log_std_init=ini['log_std_init'],steering_gain=pr['steering_prior']['gain'],avoidance_prior=pr.get('avoidance_prior'))
   net.load_state_dict(state['model']); net.eval(); return net
  for u in replay_updates:
   ck=run/f'state_u{u}.pt'

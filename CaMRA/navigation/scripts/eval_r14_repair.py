@@ -22,6 +22,15 @@ from camra_navigation.algorithm.validation import file_sha
 from camra_navigation.budget.accounting import consistent_e_ref
 
 
+def build_registered_network(nav, prereg):
+    init = prereg['action_init_fix']
+    return E.NW.build(nav, action_bounded=prereg['action_bounded'],
+        initial_forward_speed=init['initial_forward_speed'],
+        log_std_min=init['log_std_min'], log_std_init=init['log_std_init'],
+        steering_gain=prereg['steering_prior']['gain'],
+        avoidance_prior=prereg.get('avoidance_prior'))
+
+
 def rollout(net, spec, ctx, z0, prereg):
     stag = prereg["stagnation"]
     sev = prereg["safety_continuity"]
@@ -97,11 +106,8 @@ def main():
             assert start["obs_version"] == prereg["implementation_versions"]["observation"]
             assert not start["smoke"] and start["calls_per_window"] == prereg["window_semantics"]["calls_per_update"]
             assert start.get("collection", "window_v1") == prereg["window_semantics"].get("collection", "window_v1")
-            init = prereg["action_init_fix"]
-            net = E.NW.build(nav, action_bounded=prereg["action_bounded"],
-                             initial_forward_speed=init["initial_forward_speed"],
-                             log_std_min=init["log_std_min"], log_std_init=init["log_std_init"],
-                             steering_gain=prereg["steering_prior"]["gain"])
+            assert start.get('avoidance_prior') == prereg.get('avoidance_prior')
+            net = build_registered_network(nav, prereg)
             net.load_state_dict(state["model"])
             net.eval()
             budget_rows = []

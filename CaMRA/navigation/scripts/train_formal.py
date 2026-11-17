@@ -452,7 +452,8 @@ def main() -> int:
           f"field=goal_dir_y_body target=wz", flush=True)
     net = NW.build(nav_contract, action_bounded=bounded,
                    initial_forward_speed=init_speed, log_std_min=init_std_min,
-                   log_std_init=init_std_init, steering_gain=steer_gain)
+                   log_std_init=init_std_init, steering_gain=steer_gain,
+                   avoidance_prior=prereg.get('avoidance_prior'))
     print(f"[ACTION-BOUNDED] {bounded}", flush=True)
     print(f"[ACTION-INIT] enabled={init_on} v0={init_speed} "
           f"log_std_min={init_std_min} log_std_init={init_std_init}", flush=True)
@@ -597,7 +598,8 @@ def main() -> int:
         log_f.write(json.dumps(row, ensure_ascii=False) + "\n")
         log_f.flush()
 
-    log({"kind": "run_start", "run_id": args.run_id, "variant": args.variant,
+    log({"kind": "run_start", "avoidance_prior": prereg.get('avoidance_prior'),
+         "run_id": args.run_id, "variant": args.variant,
          "seed": args.seed, "prereg_sha256": prereg_sha,
          "n_envs": n_envs, "z0_J_range": [round(min(z0s), 2), round(max(z0s), 2)],
          "budget_rule": rules, "z0_J_initial": [round(z, 3) for z in z0s],

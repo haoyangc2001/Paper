@@ -1,5 +1,15 @@
 # 上层导航实施交接
 
+## 2026-11-17 本次：完整回合版负结果结案，绕障探索候选通过196项数值/生产门禁
+
+旧`nav064_episode_feedback_v1`六组各300更新均已结束，原始审计PASS，108开发回合FAIL_DEVELOPMENT。主预算下uncalibrated安全可行SR中位2/3、能耗/预算0.819487、危险步0；full分别1/2、0.869677、危险步600。full的L2训练5400回合到达1234次、全程安全到达0次；总体50%不能作为绕障或原关闭档通过依据。旧run、原始chunk、各checkpoint和失败全部保留，保全副本/hash由本次release报告索引。
+
+NAV-064内已实现`clearance-tangent-v1`策略均值先验，仅使用当前obs-v7的目标/航向、障碍及墙净空，网络残差可抵消；采样、PPO、开发与原始审计使用同一分布，没有动作外接覆盖、oracle路线入训练或目标变化。当前门禁`reports/gate_avoidance_prior_v1_attempt1.json`为196/196 PASS，含源码稳定后重跑的171项父门禁及真实两更新机械生产采集、旧概率/critic回放、三目标审计和元数据反例。机械夹具不作为性能/选择证据；最终回归及源码/资源一致性以`reports/nav064_avoidance_prior_release_v1.json`为准。
+
+具体推演、接口、局限与复算入口见[绕障探索记录](nav064_avoidance_prior_20261117.md)。独立工作根`/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/`，主机tiger11，tmux`nav064-r14-repair-20261115`，Python为`/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python`。沿用已批准的同机执行例外；58份旧源码/配置及33项固定v2身份开工核验，原锁不重算。
+
+提案`config/training_loop_avoidance_prior_proposal_v1.json`保持`training_approved=false`，无pin；拟新增两方法×三种子各300更新，上限14580000样本，最后checkpoint的108回合development。前50计入300，审计后要求三个full种子各至少一次安全L2到达，否则HELD，不自动重试/补额。原正式性能与稳定性门槛均保留；旧额度已耗尽，新增正式次数待用户确认后另冻登记。NAV-064=false、51/67历史完成，NAV-065及下游未执行。下方各状态为历史时点。
+
 ## 2026-11-17T07:21:42.759685+08:00 完整回合反馈版已启动，50更新审计通过
 
 用户批准的两方法×三种子各300次更新正在`tiger11.ios.ac.cn`的`nav064-r14-repair-20261115:episode-training`运行。启动提交`55fbd6bff88041b71dbe3135c18c9ea63840c3a1`，独立冻结pin `f48db2cd9777854acb6963db1075241ba8b4bcbe27c10c5a29a8820263415cb1`。启动核验时六组完成[76, 75, 79, 78, 77, 80]次更新、实采2038253条，实际train18图、输入hash、obs-v7/61、完整当前策略回合及多epoch更新均核对，六进程存活，无HELD。

@@ -158,7 +158,8 @@ def main() -> int:
                          if init_on and "log_std_min" in init_fix else None),
             log_std_init=(float(init_fix["log_std_init"])
                           if init_on and "log_std_init" in init_fix else None),
-            steering_gain=steering_gain)
+            steering_gain=steering_gain,
+            avoidance_prior=prereg.get('avoidance_prior'))
         net.load_state_dict(state["model"])
         net.eval()
         ctx = build_rollout_ctx(variant)

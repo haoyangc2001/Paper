@@ -26,11 +26,13 @@ def attempt_paths(prereg, root=ROOT):
     prefix = prereg['runtime_contract']['run_prefix']
     versions = prereg.get('implementation_versions', {})
     allowed = {'nav064_feedback_v1': 'obs-v5', 'nav064_time_feedback_v1': 'obs-v6',
-               'nav064_clearance_feedback_v1': 'obs-v7', 'nav064_episode_feedback_v1': 'obs-v7'}
+               'nav064_clearance_feedback_v1': 'obs-v7', 'nav064_episode_feedback_v1': 'obs-v7',
+               'nav064_avoidance_prior_v1': 'obs-v7'}
     if (prefix not in allowed
             or versions.get('observation', 'obs-v5') != allowed[prefix]):
         raise ValueError('unregistered feedback attempt prefix')
-    first, total = allocation(prereg) if prefix == 'nav064_episode_feedback_v1' else (100, 600)
+    first, total = (allocation(prereg) if prefix in
+                    ('nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1') else (100, 600))
     return {'coordinator': root / prefix,
             f'audit{first}': root / (prefix + f'_audit_u{first}'),
             f'audit{total}': root / (prefix + f'_audit_u{total}'),
@@ -50,7 +52,7 @@ def audit_command(n, prereg_name, paths):
 
 def allocation(prereg):
     w=prereg['window_semantics']
-    if prereg['runtime_contract']['run_prefix']=='nav064_episode_feedback_v1':
+    if prereg['runtime_contract']['run_prefix'] in ('nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1'):
         if (w.get('collection')!='complete_episodes_v1' or w['max_updates']!=300
                 or w['calls_per_update']!=450 or w['env_steps_per_update']!=8100):
             raise ValueError('episode allocation must be six runs x300, at most8100 samples/update')
@@ -58,6 +60,16 @@ def allocation(prereg):
     if w['max_updates']!=600 or w['env_steps_per_update']!=4086:
         raise ValueError('allocation must be six runs x600 x4086')
     return 100,600
+
+
+def enforce_exploration(prereg, root, updates, write):
+    if prereg.get('exploration_gate') is None:
+        return
+    from check_detour_exploration import check_prefix
+    exploration = check_prefix(prereg, root, updates)
+    write('exploration_u50.json', exploration)
+    if exploration['verdict'] != 'PASS':
+        raise RuntimeError('train-prefix detour exploration failed; allocation held, no retry')
 
 
 def main():
@@ -120,6 +132,7 @@ def main():
                 for _, proc in processes:
                     if proc.poll() is None: os.kill(proc.pid, signal.SIGSTOP)
                 audit(prefix_updates); audited = True
+                enforce_exploration(p, ROOT, prefix_updates, write)
                 for _, proc in processes:
                     if proc.poll() is None: os.kill(proc.pid, signal.SIGCONT)
             if all(proc.poll() is not None for _, proc in processes): break

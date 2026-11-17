@@ -8986,7 +8986,98 @@
   "训练结束后追加最终结果、证据及下游结论；本次启动记录不构成NAV-065放行。"
  ],
  "blockers": []
-}
+},
+    {
+     "timestamp": "2026-11-17T14:04:12.485562+08:00",
+     "summary": "NAV-064/1.3.1开工：保留完整回合版负结果，实施仅观测驱动的绕障均值先验候选",
+     "actions": [
+      "完整读取AGENTS、技能、计划及交接，核对NAV-063依赖；tiger11/tmux预检和58份源码配置快照、33项v2资源hash通过",
+      "核验旧6×300已结束，无HELD；沿用已授权同机例外"
+     ],
+     "files_changed": [
+      "doc/plan/20261109_camra_navigation_implementation.json"
+     ],
+     "commands": [
+      "tmux nav064-r14-repair-20261115:avoidance-preflight；绝对Python执行，完整日志/tmp/nav064_avoidance_preflight_20261117.log"
+     ],
+     "results": [
+      "NAV-064=false，51/67历史完成；full开发安全可行SR中位0.5、危险步600，L2训练5400回合/1234到达/0安全到达",
+      "仅修改导航策略均值观测先验及生产链/门禁；固定v2、RC-PPO目标/评分/预算/地图/分片与只读边界不变"
+     ],
+     "evidence": [
+      "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/preflight.json",
+      "CaMRA/navigation/reports/nav064_episode_feedback_v1_closure.json"
+     ],
+     "remaining_work": [
+      "独立默认关闭先验；同一分布采样及PPO密度；真实两更新生产审计、回归及默认复现验收",
+      "形成具体未批准训练提案；实际训练通过后才推进NAV-065及下游"
+     ],
+     "blockers": [
+      "旧正式额度耗尽；实现与门禁完成后再确认具体新增次数，不重复申请同机例外"
+     ]
+    },
+    {
+     "timestamp": "2026-11-17T14:15:39.116458+08:00",
+     "summary": "NAV-064收尾：绕障探索均值先验完成196门禁/32回归及生产审计；旧负结果/源码保全，新正式训练待新增额度",
+     "actions": [
+      "在PolicyNetwork显式增加默认关闭的clearance-tangent-v1观测均值先验；训练、开发、审计和协调器消费同一配置与分布",
+      "保留RC-PPO预算增广、不可逆安全历史、共同停止、双critic/三GAE/minPPO、完整回合/λ=.999及固定v2；原评分/数据/地图/成本/预算不变",
+      "实现首50更新原始审计后的探索检查：三个full种子各至少一次安全L2到达，否则HELD且无重试；这是未批准提案的附加前提，不降低原关闭档",
+      "重跑171父门禁及候选实际两更新生产采集/更新/独立原始审计、反例和32回归；保留失败attempt1及期间变更的attempt2，最终使用源码稳定后attempt3",
+      "保全旧完整回合版报告、42个checkpoint身份、源代码及失败；追加当前文档、未批准训练提案及release索引"
+     ],
+     "files_changed": [
+      "CaMRA/navigation/src/camra_navigation/algorithm/policy_prior.py",
+      "CaMRA/navigation/src/camra_navigation/algorithm/networks.py",
+      "CaMRA/navigation/src/camra_navigation/algorithm/validation.py",
+      "CaMRA/navigation/scripts/train_formal.py",
+      "CaMRA/navigation/scripts/eval_r14_repair.py",
+      "CaMRA/navigation/scripts/eval_training_round.py",
+      "CaMRA/navigation/scripts/audit_r14a2.py",
+      "CaMRA/navigation/scripts/run_feedback_round.py",
+      "CaMRA/navigation/scripts/check_detour_exploration.py",
+      "CaMRA/navigation/tests/test_episode_feedback_gate.py",
+      "CaMRA/navigation/tests/test_avoidance_prior_gate.py",
+      "CaMRA/navigation/config/avoidance_prior_numerical_protocol_v1.json",
+      "CaMRA/navigation/config/training_loop_avoidance_prior_proposal_v1.json",
+      "CaMRA/navigation/reports/gate_avoidance_prior_v1_attempt1.json",
+      "CaMRA/navigation/reports/nav064_avoidance_prior_release_v1.json",
+      "CaMRA/navigation/docs/nav064_avoidance_prior_20261117.md",
+      "CaMRA/navigation/docs/nav064_episode_feedback_20261117.md",
+      "CaMRA/navigation/docs/implementation_handoff.md",
+      "CaMRA/navigation/README.md",
+      "doc/plan/20261109_camra_navigation_implementation.json"
+     ],
+     "commands": [
+      "tiger11/tmux nav064-r14-repair-20261115；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+      "tests/test_episode_feedback_gate.py --out /pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/parent_gate_attempt3.json --work /pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/avoidance_parent_mech_a3",
+      "tests/test_avoidance_prior_gate.py --base /pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/parent_gate_attempt3.json --out /home/caohy/repositories/Paper/CaMRA/navigation/reports/gate_avoidance_prior_v1_attempt1.json --work /pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/avoidance_prior_mech_a1",
+      "32套完整非敏感命令分别保存在regression_attempt1/report.json；提案真实启动拒绝及内存批准核验见proposal_validation.log"
+     ],
+     "results": [
+      "候选门禁196/196 PASS；32/32回归PASS；默认关闭与父源码逐位一致，左右/墙/实际方法净空、概率/Jacobian、残差可抵消和开发工厂一致",
+      "实际机械生产36完整回合/6869样本；36chunk及三目标重算，元数据不一致0、动作裁剪0、预算饱和0；不作为导航性能或模型选择证据",
+      "58份开工与59份最终源码配置快照保留；33项固定v2资源hash一致；上一轮3份完整报告外部副本及42个checkpoint身份核验",
+      "上一轮6×300原始审计PASS而开发FAIL；full安全可行SR中位0.5、危险步600，L2训练5400回合/1234到达/0安全及可行到达；负结果正式保留",
+      "局部计算/生产链和上下游版本已核验，未证明学习成功；NAV-064=false、51/67历史完成，NAV-065及后续未执行，budget_selection/final未访问"
+     ],
+     "evidence": [
+      "CaMRA/navigation/reports/nav064_avoidance_prior_release_v1.json",
+      "CaMRA/navigation/reports/gate_avoidance_prior_v1_attempt1.json",
+      "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/regression_attempt1/report.json",
+      "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/episode_retention.json",
+      "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/proposal_validation.log",
+      "CaMRA/navigation/docs/nav064_avoidance_prior_20261117.md"
+     ],
+     "remaining_work": [
+      "新增具体训练额度获批后另建冻结登记/pin并核验资源、输出冲突，再启动6组×300更新及108开发回合",
+      "前50计入300；先原始审计及安全L2探索前提，通过才继续。全部原训练/稳定性/数据验收通过后才能推进NAV-065",
+      "反应式16方位先验可能绕错边、振荡或停滞；效果尚未验证，不承诺训练必过，不改阈值凑通过"
+     ],
+     "blockers": [
+      "原正式训练额度已耗尽；本次提案training_approved=false且无pin。主计划uncertainty_policy明确改变正式试验次数先询问，需要确认新增两方法×三种子各300更新（最多14580000样本）及108回合development。已批准同机/tmux例外不重复询问。"
+     ]
+    }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [

@@ -1,0 +1,25 @@
+{
+  "schema": "camra-avoidance-prior-numerical-protocol-v1",
+  "owner": "NAV-064",
+  "scope": "Observation-only actor mean prior; CPU numerical/production mechanics, no performance trial.",
+  "required_checks": [
+    "prior_default_bitwise", "prior_direction_and_walls",
+    "prior_probability_and_residual", "prior_actual_producer",
+    "prior_actual_auditor", "prior_actual_development_build",
+    "prior_corrupt_replay_rejected", "prior_observation_only", "prior_exploration_prefix_gate"
+  ],
+  "acceptance": [
+    "Rerun feedback/time/clearance/complete-episode production gates on current sources.",
+    "With prior disabled, seeded initialization/state dictionaries and action densities reproduce the retained parent source bitwise.",
+    "Synthetic obstacle left/right and wall cases turn away; clear and behind-goal cases preserve the existing mean. Check each method's actual radius.",
+    "Independent squashed-normal density/Jacobian replay agrees; PPO residual can cancel prior and updates stay finite.",
+    "Two actual current-policy full episodes per18 train maps/update are retained with fixed old probabilities and independent raw audit. These36 episodes are mechanical fixtures only, not navigation performance or selection evidence.",
+    "The actual development network factory produces the same distribution from the same checkpoint/configuration. A deliberately omitted prior or corrupt runtime registration is rejected.",
+    "No oracle routes, map IDs, future samples, hidden routing state, demonstration training, action override or objective change. Unapproved registration stays rejected."
+  ],
+  "limitations": [
+    "Reactive field at16-bin resolution may miss routes, oscillate or fail. This gate provides no safety guarantee or learning success claim.",
+    "Prior is an explicit Go2 engineering addition shared by both methods, not a mechanism attributed to RC-PPO reference code.",
+    "All original task acceptance thresholds remain necessary before NAV-065."
+  ]
+}

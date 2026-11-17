@@ -127,8 +127,15 @@ def endings_and_horizon(p):
     check('episode_coordinator_allocation',R.allocation(p)==(50,300) and 'audit50' in paths and 'audit300' in paths
           and '--updates' in R.audit_command(50,'unapproved-proposal',paths)
           and all('nav064_episode_feedback_v1' in str(x) for x in paths.values()))
-    check('episode_formal_outputs_absent',not any(x.exists() for x in paths.values())
-          and all(not (R.ROOT/r['run_id']).exists() for r in p['run_registry']))
+    conflict=any(x.exists() for x in paths.values()) or any((R.ROOT/r['run_id']).exists() for r in p['run_registry'])
+    rejected=False
+    if conflict:
+        with mock.patch.object(F,'verify_prereg',return_value=(p,'mechanical-conflict-probe')), \
+             mock.patch.object(sys,'argv',['run_feedback_round','--prereg','conflict-probe']):
+            try:R.main()
+            except FileExistsError:rejected=True
+    check('episode_formal_outputs_absent',not conflict or rejected,
+          dict(historical_conflict=conflict,coordinator_rejected_before_write=rejected))
 
 def startup(p,report,out):
     probe=out.with_suffix('.startup.json');probe.write_text(json.dumps(report,indent=2))

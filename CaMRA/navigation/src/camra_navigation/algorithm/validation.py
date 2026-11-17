@@ -85,9 +85,9 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                     "empty_bin": 1.0, "clip": [-1.0, 1.0], "wall_order": ["x_min", "x_max", "y_min", "y_max"]}:
                 raise ValueError("obs-v7 clearance geometry contract mismatch")
             prefix = prereg["runtime_contract"]["run_prefix"]
-            if prefix not in ("nav064_clearance_feedback_v1", "nav064_episode_feedback_v1"):
+            if prefix not in ("nav064_clearance_feedback_v1", "nav064_episode_feedback_v1", "nav064_avoidance_prior_v1"):
                 raise ValueError("obs-v7 requires an independent attempt namespace")
-            if prefix == "nav064_episode_feedback_v1":
+            if prefix in ("nav064_episode_feedback_v1", "nav064_avoidance_prior_v1"):
                 window = prereg["window_semantics"]
                 if (window.get("collection") != "complete_episodes_v1"
                         or window["calls_per_update"] != 450
@@ -95,6 +95,19 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                         or window["max_updates"] != 300
                         or float(value["estimator"]["gae_lambda"]) != .999):
                     raise ValueError("episode feedback collection/value/allocation mismatch")
+    prior = prereg.get("avoidance_prior")
+    prior_candidate = runtime is not None and runtime.get("run_prefix") == "nav064_avoidance_prior_v1"
+    if prior_candidate:
+        from .policy_prior import PRIOR_CONFIG
+        if (prior != PRIOR_CONFIG or versions.get("observation") != "obs-v7"
+                or prereg.get("action_bounded") is not True):
+            raise ValueError("avoidance candidate policy configuration mismatch")
+        if prereg.get('exploration_gate') != {
+                'after_updates': 50, 'variant': 'full',
+                'minimum_safe_l2_arrivals_per_seed': 1, 'failure_action': 'HOLD_NO_RETRY'}:
+            raise ValueError('avoidance candidate requires registered exploration prerequisite')
+    elif prior is not None:
+        raise ValueError("avoidance prior requires its independent candidate namespace")
     fix = prereg.get("objective_signal_fix", {})
     if (fix.get("h_semantics") != "v2_deep_well"
             or fix.get("joint_min_recursion") is not True
@@ -109,6 +122,13 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
         raise ValueError("numerical gate is not PASS for these versions")
     if not gate.get("checks") or not all(c["ok"] for c in gate["checks"]):
         raise ValueError("numerical gate has missing or failed checks")
+    if prior_candidate:
+        passed = {c.get("check") for c in gate["checks"] if c["ok"]}
+        required = {"prior_default_bitwise", "prior_direction_and_walls", "prior_probability_and_residual",
+                    "prior_actual_producer", "prior_actual_auditor", "prior_actual_development_build",
+                    "prior_corrupt_replay_rejected", "prior_observation_only", "prior_exploration_prefix_gate"}
+        if gate.get("avoidance_prior") != prior or not required.issubset(passed):
+            raise ValueError("avoidance gate omitted policy/production evidence")
     if feedback:
         passed = {c.get("check") for c in gate["checks"] if c["ok"]}
         required = {"task_deadline_no_learned_future", "all_graded_states_in_loss",

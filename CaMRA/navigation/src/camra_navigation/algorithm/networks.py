@@ -267,7 +267,8 @@ class PolicyNetwork(nn.Module):
                  initial_forward_speed: float = 0.0,
                  log_std_min: float | None = None,
                  log_std_init: float | None = None,
-                 steering_gain: float = 0.0) -> None:
+                 steering_gain: float = 0.0,
+                 avoidance_prior: dict | None = None) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
@@ -289,6 +290,13 @@ class PolicyNetwork(nn.Module):
         #: loc，不改分布形态、``log_prob`` 雅可比或熵公式；网络学到的部分可反向
         #: 抵消该先验，因此它是先验而不是硬约束。
         self.steering_gain = float(steering_gain)
+        self.avoidance_prior = None
+        if avoidance_prior is not None:
+            if not self.action_bounded:
+                raise ValueError("avoidance prior requires bounded action distribution")
+            from .policy_prior import ClearanceTangentPrior
+            self.avoidance_prior = ClearanceTangentPrior(
+                avoidance_prior, layout, self.initial_forward_speed, self.steering_gain)
         self._goal_dir_y_idx: int | None = None
         if self.steering_gain != 0.0:
             if layout is None:
@@ -320,6 +328,8 @@ class PolicyNetwork(nn.Module):
             mean = mean.clone()
             mean[:, 2] = mean[:, 2] + self.steering_gain * obs[:, self._goal_dir_y_idx]
         # forward 侧防御性钳位（与 clamp_log_std 双保险；边界处梯度为 0）
+        if self.avoidance_prior is not None:
+            mean = mean + self.avoidance_prior(obs)
         std = self.log_std.clamp(self.log_std_min, LOG_STD_MAX).exp().expand_as(mean)
         if self.action_bounded:
             return SquashedNormal(mean, std)
@@ -359,7 +369,8 @@ class BudgetConditionedNetworks(nn.Module):
                  initial_forward_speed: float = 0.0,
                  log_std_min: float | None = None,
                  log_std_init: float | None = None,
-                 steering_gain: float = 0.0) -> None:
+                 steering_gain: float = 0.0,
+                 avoidance_prior: dict | None = None) -> None:
         super().__init__()
         self.cfg = cfg
         self.layout = layout
@@ -367,7 +378,8 @@ class BudgetConditionedNetworks(nn.Module):
                                     initial_forward_speed=initial_forward_speed,
                                     log_std_min=log_std_min,
                                     log_std_init=log_std_init,
-                                    steering_gain=steering_gain)
+                                    steering_gain=steering_gain,
+                                    avoidance_prior=avoidance_prior)
         self.critic_cost = ValueNetwork(cfg, layout)
         self.critic_reach = ValueNetwork(cfg, layout)
 
@@ -415,7 +427,8 @@ def build(nav_contract: dict[str, Any] | None = None,
           initial_forward_speed: float = 0.0,
           log_std_min: float | None = None,
           log_std_init: float | None = None,
-          steering_gain: float = 0.0) -> BudgetConditionedNetworks:
+          steering_gain: float = 0.0,
+          avoidance_prior: dict | None = None) -> BudgetConditionedNetworks:
     """按契约构造三个网络，并在构造时校验配置。"""
     if nav_contract is None:
         nav_contract, _ = load_contracts()
@@ -428,4 +441,5 @@ def build(nav_contract: dict[str, Any] | None = None,
                                      initial_forward_speed=initial_forward_speed,
                                      log_std_min=log_std_min,
                                      log_std_init=log_std_init,
-                                     steering_gain=steering_gain)
+                                     steering_gain=steering_gain,
+                                     avoidance_prior=avoidance_prior)
