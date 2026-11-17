@@ -9538,7 +9538,75 @@
         "blockers": [
           "主计划uncertainty_policy要求确认新增正式试验次数；上一轮额度已执行完，不能由实现验收替代额外训练批准。"
         ]
-      }
+      },
+        {
+          "timestamp": "2026-11-17T21:26:24.302595+08:00",
+          "summary": "NAV-064/1.3.1恢复开工：用户批准终点尾项v5新增6×300更新及108开发回合，开始冻结登记与现场预检",
+          "actions": [
+            "重新读取AGENTS、create-plan-worklog执行规则、完整计划并核对当前任务/约束及最新README/交接；确认NAV-064是首个依赖满足的false任务",
+            "用户“可以 开始推进吧”批准已评审的额外两方法×三种子各300完整回合更新，上限14580000样本及最后checkpoint108开发回合；首50/150计入300，失败HELD无自动重试/补额",
+            "本项在固定v2下验证rcppo-terminal-tail-v5实际学习；上游为436868e实现、57a771c交付、452累计门禁/32回归及release；允许新增批准登记/pin、执行证据与交接，不改目标/评分/核心源码/冻结v2/地图预算等",
+            "沿用已批准tiger11同机tmux例外；先核验主机、GPU、解释器、33项v2资源、当前源码/旧结果、既有进程及新run冲突，再提交启动；只用train/development，全部下游等待训练验收"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [],
+          "results": [
+            "当前NAV-063=true、NAV-064=false，历史51/67完成；新额度阻塞解除，无须重复申请；先完成启动前验收，不将许可写成已训练"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/training_loop_terminal_tail_proposal_v1.json",
+            "CaMRA/navigation/reports/nav064_terminal_tail_repair_v1.json",
+            "436868e1f76e62fd6807118a1c8153f93e53f4e7",
+            "57a771c196e4dfd0065ab311fc3ace2e81236b8a"
+          ],
+          "remaining_work": [
+            "现场预检、独立批准登记/pin和必要本地提交，启动一次已授权六组并核验实际调用/日志",
+            "50/150/300原始审计、探索/稳定性、108开发及原关闭档均通过前NAV-064保持false，不推进下游"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-17T21:29:50.107579+08:00",
+          "summary": "NAV-064终点尾项v5批准登记/pin和现场启动放行完成，准备提交并启动唯一授权六组",
+          "actions": [
+            "创建独立training_loop_prereg_terminal_tail_v1.json及SHA256 pin；原proposal保留false且不覆盖旧额度",
+            "在tiger11原tmux会话核对64份源码/配置快照、33冻结v2身份、16旧结果/模型日志、452门禁及32回归来源，批准提案除授权/登记身份外与审阅版本一致",
+            "旧avoidance-v2 FINISHED，原六个PID不在继续采样；本次六run及协调器/50/150/300审计/开发/关闭输出均无冲突",
+            "同步README、交接、回修说明及独立启动放行报告；保持RC-PPO原理和固定v2，新训练仅消费已验收的v5，不改源码/评分/超参数"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/training_loop_prereg_terminal_tail_v1.json",
+            "CaMRA/navigation/config/training_loop_prereg_terminal_tail_v1.json.sha256",
+            "CaMRA/navigation/reports/nav064_terminal_tail_training_release_v1.json",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav064_terminal_tail_repair_20261117.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11；tmux=nav064-r14-repair-20261115；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+            "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_tail_launch_preflight.py",
+            "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_tail_training_release.py"
+          ],
+          "results": [
+            "PASS_AUTHORIZED_TO_START，pin=6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4；6×300完整回合更新/最多14580000样本/最后checkpoint108开发，50及150均计入300",
+            "正式时序与评分、共同停止/三估计器、obs-v7/避障先验v2/预算地图和冻结v2均不变；原始审计/探索/稳定性/开发未全部完成前NAV-064=false",
+            "本次不新增smoke，不自动重试或恢复旧run，不推送，不执行NAV-065及后续"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav064_terminal_tail_training_release_v1.json",
+            "CaMRA/navigation/config/training_loop_prereg_terminal_tail_v1.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/preflight.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/training_release.json"
+          ],
+          "remaining_work": [
+            "必要本地提交后，在terminal-tail-training窗口启动协调器，核验实际六个run的登记、原始样本和多epoch调用",
+            "完成50/150/300审计、探索/稳定性、开发及原关闭档后才可判断NAV-064；未满足则保留false和失败证据"
+          ],
+          "blockers": []
+        }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [

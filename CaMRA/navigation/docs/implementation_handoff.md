@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-17 终点尾项v5额度已批准，准备实际启动
+
+用户批准已评审的额外6×300完整回合更新、上限14580000样本及最后checkpoint108开发回合；50/150均计入300，原探索/稳定性/关闭档和失败保留规则不变。原proposal仍false，批准身份独立冻结为`config/training_loop_prereg_terminal_tail_v1.json`和pin `6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4`。本次不改源码、目标、评分、超参数、数据划分或冻结v2，不挪用旧额度。
+
+tiger11沿用已批准同机tmux例外，会话`nav064-r14-repair-20261115`，Python `/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python`。64份当前源码/配置、33项v2身份、16旧结果及452门禁/32回归原证据均核验，输出无冲突，原avoidance-v2 FINISHED且六个旧PID均不在采样。新放行见`reports/nav064_terminal_tail_training_release_v1.json`；工作根`/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/`保存preflight、source_before、registration及training_release。
+
+启动前本地提交，随后在`terminal-tail-training`窗口运行`run_feedback_round.py --prereg training_loop_prereg_terminal_tail_v1.json`。恢复先查launch.json、协调器`/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_v1/{start,pids,HELD,FINISHED}.json`及原始日志，不重复启动。50/150/300原始审计与最后checkpoint108开发全部通过前NAV-064=false，51/67历史完成，NAV-065+不执行。实际启动须有独立核验证据，不能仅凭授权或进程存在判断。下文为历史时点。
+
 ## 2026-11-17 终点反馈回修v5：实现通过，NAV-064仍false
 
 上一轮avoidance-prior-v2已FINISHED，六组300更新/11517556样本/32400回合，108开发FAIL_DEVELOPMENT；full三个种子主成功率66.7%、危险步0，L2均超时。首50→末50的full L2安全到达900/900→277/900，存在训练后退化。旧源码、模型、失败及日志保留，不按下方旧“正在训练”状态续跑。

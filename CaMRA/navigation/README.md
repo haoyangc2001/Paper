@@ -1,5 +1,11 @@
 # 上层最小成本到达避障导航器
 
+## 2026-11-17 终点尾项v5训练已获批准，启动准备通过
+
+用户已批准独立6组×300完整回合更新（最多14580000样本）和最后checkpoint的108开发回合。批准登记为`config/training_loop_prereg_terminal_tail_v1.json`，pin为`6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4`；原未批准提案保持原样。64份源码配置、33项v2身份、16旧结果/模型/日志以及452门禁/32回归来源核验通过，见[启动放行](reports/nav064_terminal_tail_training_release_v1.json)。
+
+在tiger11原tmux会话启动一次`nav064_terminal_tail_v1`六组；50审计/探索、150审计/稳定性均计入300，失败HELD无自动重试。实际启动以新工作根`/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/launch.json`及协调器start/pids和原始日志为准。当前NAV-064=false，训练/开发验收通过前不进入下游。下方各时点保留。
+
 ## 2026-11-17 终点反馈回修已验收，正式新训练待额度确认
 
 上一轮avoidance-prior-v2已FINISHED且开发FAIL：full主成功率66.7%，L2全超时，不能按下方旧“已启动”描述恢复。已完成独立`rcppo-terminal-tail-v5`：真正任务结束保留几何尾项，切片/共同停止/成本估计器及任务评分不变。452条累计检查（209个不同检查名）、真实两次PPO更新与36回合/11618样本审计、32套回归及固定v2/旧结果身份核验通过；仅证明实现，不代表训练效果。第150更新新增退化暂停检查，原开发阈值不变。

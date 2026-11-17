@@ -55,3 +55,7 @@ OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaa
 ```
 
 该命令已执行，输出和run存在，不能原样重跑覆盖。恢复先核对当前计划、release及既有会话/进程/完成标记；正式新训练未启动，不恢复旧FINISHED或挪用旧配额。train/development为唯一来源，budget_selection与final封存。
+
+## 后续记录：用户已批准新额度
+
+用户随后批准上述独立6×300及108开发方案。原提案和原历史结论不改；批准登记为`config/training_loop_prereg_terminal_tail_v1.json`，pin `6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4`。主机、64份源码、33项固定资源、16旧结果与原门禁/32回归证据核验通过，见`reports/nav064_terminal_tail_training_release_v1.json`。新的launch工作根为`/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/`；启动前提交，正式运行以其launch.json及协调器原始日志为准。NAV-064仍false，启动通过不能代替学习与开发验收。
