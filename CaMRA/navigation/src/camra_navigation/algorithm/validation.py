@@ -85,9 +85,9 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                     "empty_bin": 1.0, "clip": [-1.0, 1.0], "wall_order": ["x_min", "x_max", "y_min", "y_max"]}:
                 raise ValueError("obs-v7 clearance geometry contract mismatch")
             prefix = prereg["runtime_contract"]["run_prefix"]
-            if prefix not in ("nav064_clearance_feedback_v1", "nav064_episode_feedback_v1", "nav064_avoidance_prior_v1"):
+            if prefix not in ("nav064_clearance_feedback_v1", "nav064_episode_feedback_v1", "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2"):
                 raise ValueError("obs-v7 requires an independent attempt namespace")
-            if prefix in ("nav064_episode_feedback_v1", "nav064_avoidance_prior_v1"):
+            if prefix in ("nav064_episode_feedback_v1", "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2"):
                 window = prereg["window_semantics"]
                 if (window.get("collection") != "complete_episodes_v1"
                         or window["calls_per_update"] != 450
@@ -96,10 +96,13 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
                         or float(value["estimator"]["gae_lambda"]) != .999):
                     raise ValueError("episode feedback collection/value/allocation mismatch")
     prior = prereg.get("avoidance_prior")
-    prior_candidate = runtime is not None and runtime.get("run_prefix") == "nav064_avoidance_prior_v1"
+    prior_candidate = runtime is not None and runtime.get("run_prefix") in (
+        "nav064_avoidance_prior_v1", "nav064_avoidance_prior_v2")
     if prior_candidate:
-        from .policy_prior import PRIOR_CONFIG
-        if (prior != PRIOR_CONFIG or versions.get("observation") != "obs-v7"
+        from .policy_prior import PRIOR_CONFIG, PRIOR_CONFIG_V2
+        expected_prior = (PRIOR_CONFIG_V2 if runtime["run_prefix"].endswith("_v2")
+                          else PRIOR_CONFIG)
+        if (prior != expected_prior or versions.get("observation") != "obs-v7"
                 or prereg.get("action_bounded") is not True):
             raise ValueError("avoidance candidate policy configuration mismatch")
         if prereg.get('exploration_gate') != {
@@ -127,6 +130,10 @@ def verify_training_bindings(prereg: dict, nav_root: str | Path) -> None:
         required = {"prior_default_bitwise", "prior_direction_and_walls", "prior_probability_and_residual",
                     "prior_actual_producer", "prior_actual_auditor", "prior_actual_development_build",
                     "prior_corrupt_replay_rejected", "prior_observation_only", "prior_exploration_prefix_gate"}
+        if runtime["run_prefix"].endswith("_v2"):
+            required |= {"prior_v1_bitwise_replay", "prior_v2_all_wall_normals",
+                         "prior_v2_quantized_side_replay", "prior_v2_train_closed_loop",
+                         "prior_v2_density_and_factory", "prior_v2_coordinator"}
         if gate.get("avoidance_prior") != prior or not required.issubset(passed):
             raise ValueError("avoidance gate omitted policy/production evidence")
     if feedback:

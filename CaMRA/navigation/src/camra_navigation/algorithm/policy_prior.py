@@ -23,12 +23,20 @@ PRIOR_CONFIG = {
     "max_lateral_action": 0.8,
 }
 
+# Keep v1 intact for replay of its immutable registrations and checkpoints.
+# One full angular bin covers the relative change between two observations
+# each quantized with up to half a bin of bearing error.
+PRIOR_CONFIG_V2 = dict(PRIOR_CONFIG, version="clearance-tangent-v2",
+                       side_uncertainty_rad=math.pi / 8,
+                       ambiguous_side="clockwise")
+
 
 class ClearanceTangentPrior(nn.Module):
     def __init__(self, config, layout, forward_speed, steering_gain):
         super().__init__()
-        if config != PRIOR_CONFIG:
+        if config not in (PRIOR_CONFIG, PRIOR_CONFIG_V2):
             raise ValueError("unsupported clearance tangent prior configuration")
+        self.corrected = config == PRIOR_CONFIG_V2
         if layout is None or layout.total_dim != 61:
             raise ValueError("clearance tangent prior requires obs-v7/61 layout")
         self.slices = {name: layout.slice_of(name) for name in (
@@ -63,17 +71,25 @@ class ClearanceTangentPrior(nn.Module):
         weight = torch.where(threat, weight, torch.zeros_like(weight))
         strength, index = weight.max(-1)
         n = normal[index]
-        side = torch.where(cross.gather(-1, index.unsqueeze(-1)).squeeze(-1) >= 0., -1., 1.)
+        selected_cross = cross.gather(-1, index.unsqueeze(-1)).squeeze(-1)
+        if self.corrected:
+            # A zero threshold turns quantization error into a full left/right
+            # reversal. Inside one bin of ambiguity use the same handedness;
+            # outside it retain the direction away from the obstacle.
+            side = torch.where(selected_cross < -math.sin(math.pi / 8), 1., -1.)
+        else:
+            side = torch.where(selected_cross >= 0., -1., 1.)
         tangent = side.unsqueeze(-1) * torch.stack((-n[..., 1], n[..., 0]), -1)
         clearance = margin.gather(-1, index.unsqueeze(-1)).squeeze(-1)
         repel = ((PRIOR_CONFIG["repulsion_m"] - clearance) / PRIOR_CONFIG["repulsion_m"]).clamp(0., 2.)
         desired = goal + strength.unsqueeze(-1) * (PRIOR_CONFIG["tangent_weight"] * tangent - goal - repel.unsqueeze(-1) * n)
 
-        # Walls are world-axis clearances; rotate their outward normals into
+        # Walls are world-axis clearances; rotate their inward normals into
         # the body frame with the same observed yaw as the actor receives.
         sy, cy = field("sin_yaw").squeeze(-1), field("cos_yaw").squeeze(-1)
         wx = torch.stack((cy, -cy, sy, -sy), -1)
-        wy = torch.stack((-sy, sy, -cy, cy), -1)
+        wy = (torch.stack((-sy, sy, cy, -cy), -1) if self.corrected
+              else torch.stack((-sy, sy, -cy, cy), -1))
         wall = ((PRIOR_CONFIG["repulsion_m"] - field("wall_margin_n") * 6.) / PRIOR_CONFIG["repulsion_m"]).clamp(0., 2.)
         desired = desired + 2. * torch.stack(((wall * wx).sum(-1), (wall * wy).sum(-1)), -1)
         strength = torch.maximum(strength, wall.max(-1).values.clamp_max(1.))

@@ -1,0 +1,34 @@
+{
+  "schema": "camra-avoidance-prior-numerical-protocol-v2",
+  "owner": "NAV-064",
+  "scope": "Deterministic implementation repair; train-only finite mechanics, no new formal training authorization.",
+  "parent": "config/avoidance_prior_numerical_protocol_v1.json",
+  "change": [
+    "Correct inward y-wall normals in v2 only; v1 remains bitwise replayable.",
+    "Within one angular bin (pi/8) of bearing ambiguity use clockwise handedness instead of sign-at-zero; no hidden routing state.",
+    "Preserve obs-v7/61, actor initialization/std, all RC-PPO targets/GAE/PPO, fixed v2 calibration, task and data."
+  ],
+  "required_checks": [
+    "prior_v1_bitwise_replay", "prior_v2_all_wall_normals",
+    "prior_v2_quantized_side_replay", "prior_v2_train_closed_loop",
+    "prior_v2_density_and_factory", "prior_v2_coordinator",
+    "prior_default_bitwise", "prior_direction_and_walls", "prior_probability_and_residual",
+    "prior_actual_producer", "prior_actual_auditor", "prior_actual_development_build",
+    "prior_corrupt_replay_rejected", "prior_observation_only", "prior_exploration_prefix_gate"
+  ],
+  "acceptance": [
+    "Compare v1 prior to retained source on identical float32 observations with torch.equal.",
+    "All four walls at 16 headings produce inward world velocity; independently derive world/body normals.",
+    "Recompute old full L2 prefix900 episodes without changing observations; selected-side flip count must fall, hashes retained. This is counterfactual arithmetic, not closed-loop evidence.",
+    "Exactly36 deterministic fresh-seed0 train-map mechanism episodes: two methods x18 maps, at most450 steps each, no repeats or parameter search. All L1/L2/L3 episodes must reach safely; budget is reported independently and never waived in formal success.",
+    "Recompute current-source parent gates, v1 compatibility and real v2 two-update/36-episode PPO producer, fixed probabilities and raw auditor.",
+    "Unapproved v2 proposal and wrong-version/missing geometry evidence must be rejected by the actual startup validator.",
+    "All existing regression suites must pass; retain failed fixtures and pause on unexplained differences."
+  ],
+  "limits": [
+    "Clockwise ambiguity handling is a local tie rule, not a planner, memory or universal safety guarantee.",
+    "Mechanical routes and sampled actions are never demonstrations or formal training/evaluation data.",
+    "Formal train6x300/108development allocation is a separate concrete proposal; old held runs are not resumed.",
+    "NAV-064 remains false until original learning, stability and data acceptance passes."
+  ]
+}

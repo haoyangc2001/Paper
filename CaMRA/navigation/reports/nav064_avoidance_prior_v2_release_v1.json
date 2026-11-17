@@ -1,0 +1,829 @@
+{
+  "schema": "camra-avoidance-prior-repair-release-v2",
+  "owner": "NAV-064",
+  "timestamp": "2026-11-17T17:01:50.048680+08:00",
+  "verdict": "PASS_NUMERICAL_NOT_TRAINING_APPROVAL",
+  "host": "tiger11.ios.ac.cn",
+  "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "cwd": "/home/caohy/repositories/Paper/CaMRA/navigation",
+  "tmux_session": "nav064-r14-repair-20261115",
+  "plan_version": "1.3.1",
+  "task_status": false,
+  "historical_complete_tasks": 51,
+  "preflight": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/preflight.json",
+    "sha256": "43f476f583351cfc55b2a1718b3e97b254234244e65ebc7e05054499ced44d30"
+  },
+  "gate": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/gate_avoidance_prior_v2_attempt1.json",
+    "sha256": "b29182c6fcf1ac1ea06d5662270f48c7b02494ebbe694a038c7fb5805f06aab0",
+    "checks": 219,
+    "source_files": 58
+  },
+  "parent_gate": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/parent_gate_attempt2.json",
+    "sha256": "d85a6383085677c326d5587239df6255bbcfae1bbfc57975820cbc0cb7be3e11",
+    "checks": 171
+  },
+  "v1_compatibility_gate": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/v1_gate_attempt2.json",
+    "sha256": "e7807c91c8f0db246623c6f8fe440ae5a980b4a8d069ceac14bd9929128d5327",
+    "checks": 196
+  },
+  "regression": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/regression_attempt1/report.json",
+    "sha256": "792a30e885c9bf717e0794b76193fdaf2a4e8269e02349c2d7d6e58a3fa442d9",
+    "suites": 32
+  },
+  "proposal": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/config/training_loop_avoidance_prior_proposal_v2.json",
+    "sha256": "81e6f74e0a84010e3f973651c461c45f04cd2e403a57398c1d50c4543e561b50",
+    "training_approved": false,
+    "allocation_check": "PASS_IN_MEMORY_ONLY",
+    "actual_rejection": "feedback repair is not authorization for additional training",
+    "outputs_absent": {
+      "coordinator": "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2",
+      "audit50": "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2_audit_u50",
+      "audit300": "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2_audit_u300",
+      "development": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_avoidance_prior_v2_development.json",
+      "closure": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_avoidance_prior_v2_closure.json"
+    }
+  },
+  "mechanics": {
+    "path": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/mechanics_attempt1.json",
+    "sha256": "d3db437d5687b25fad043f9ff180eeb9bb9ed36f5517bbb811b45ebb6cff54f0",
+    "episodes": 36,
+    "safe_budget_arrivals": 36,
+    "optimization": false,
+    "traces": {
+      "path": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/mechanics_attempt1/train_mechanism_traces.json",
+      "sha256": "62c94da5917461540088aae49311f92a3fe8efc7b60e48462862b59c94a397fa"
+    },
+    "replay_sources": {
+      "path": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/mechanics_attempt1/replay_sources.json",
+      "sha256": "27fac0b3b683929daac5e02ea16ca451ab6b8d9a010bf1956fbc8b8a779d8d69"
+    }
+  },
+  "actual_v2_production": {
+    "run": "/pub/data/caohy/work/camra_navigation/v2_mech_attempt1_onpolicy_mechanical",
+    "log_sha256": "58ef05e5e5c04c02bdec2077aa907f11de7fa9699765c531ed47329b9ef02bb4",
+    "audit": {
+      "run_id": "v2_mech_attempt1_onpolicy_mechanical",
+      "updates_audited": 2,
+      "checks_pass": true,
+      "counts": {
+        "clearance_angular_ambiguous_fields": 78,
+        "clearance_states_checked": 23162,
+        "negative_budget_samples": 908,
+        "saturated_budget_samples": 0,
+        "graded_safety_samples": 0,
+        "clipped_actions": 0,
+        "samples": 11581,
+        "chunks": 36,
+        "recomputed_chunks": 36,
+        "completed_episodes": 36,
+        "manifest_metadata_mismatches": 0
+      },
+      "target_kinds": {
+        "success": 36
+      },
+      "numerical_differences": {},
+      "stability": {
+        "loss_policy": {
+          "min": 0.050294,
+          "p05": 0.05070615,
+          "median": 0.0544155,
+          "p95": 0.05812485,
+          "max": 0.058537
+        },
+        "loss_cost": {
+          "min": 0.000157,
+          "p05": 0.0013392,
+          "median": 0.011979,
+          "p95": 0.022618799999999998,
+          "max": 0.023801
+        },
+        "loss_reach": {
+          "min": 0.00517,
+          "p05": 0.00589035,
+          "median": 0.0123735,
+          "p95": 0.01885665,
+          "max": 0.019577
+        },
+        "grad_norm_policy": {
+          "min": 4.841729,
+          "p05": 5.1579961,
+          "median": 8.0044,
+          "p95": 10.850803899999999,
+          "max": 11.167071
+        },
+        "grad_norm_cost": {
+          "min": 0.021292,
+          "p05": 0.034844850000000004,
+          "median": 0.1568205,
+          "p95": 0.27879615,
+          "max": 0.292349
+        },
+        "grad_norm_reach": {
+          "min": 0.077322,
+          "p05": 0.0928244,
+          "median": 0.232346,
+          "p95": 0.37186759999999996,
+          "max": 0.38737
+        },
+        "entropy": {
+          "min": -5.005237,
+          "p05": -5.0043995500000005,
+          "median": -4.996862500000001,
+          "p95": -4.98932545,
+          "max": -4.988488
+        },
+        "clipped_ratio_fraction": {
+          "min": 0.136597,
+          "p05": 0.1399366,
+          "median": 0.169993,
+          "p95": 0.2000494,
+          "max": 0.203389
+        },
+        "adv_mean": {
+          "min": -0.013409,
+          "p05": -0.00869085,
+          "median": 0.0337725,
+          "p95": 0.07623585,
+          "max": 0.080954
+        },
+        "adv_std": {
+          "min": 0.052481,
+          "p05": 0.0565168,
+          "median": 0.092839,
+          "p95": 0.1291612,
+          "max": 0.133197
+        },
+        "grad_adv_norm": {
+          "min": 4.841619,
+          "p05": 5.15788365,
+          "median": 8.004265499999999,
+          "p95": 10.85064735,
+          "max": 11.166912
+        },
+        "grad_ent_norm": {
+          "min": 0.024359,
+          "p05": 0.02506835,
+          "median": 0.031452499999999994,
+          "p95": 0.03783665,
+          "max": 0.038546
+        }
+      },
+      "empirical_post_update_kl": {},
+      "budget_coverage": [
+        {
+          "env": 0,
+          "map_id": "l1_empty-s1001",
+          "budget_draws": 2,
+          "k_range": [
+            0.7888506996347092,
+            1.045873181125018
+          ],
+          "k_mean": 0.9173619403798636,
+          "k_bins": [
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 1,
+          "map_id": "l1_empty-s1002",
+          "budget_draws": 2,
+          "k_range": [
+            0.9899966351443584,
+            1.222817153894694
+          ],
+          "k_mean": 1.1064068945195262,
+          "k_bins": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "env": 2,
+          "map_id": "l1_empty-s1003",
+          "budget_draws": 2,
+          "k_range": [
+            0.6565768274212312,
+            0.8817064543955111
+          ],
+          "k_mean": 0.7691416409083711,
+          "k_bins": [
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 3,
+          "map_id": "l1_empty-s1004",
+          "budget_draws": 2,
+          "k_range": [
+            1.2022901057424562,
+            1.226480918552887
+          ],
+          "k_mean": 1.2143855121476717,
+          "k_bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2
+          ]
+        },
+        {
+          "env": 4,
+          "map_id": "l1_empty-s1005",
+          "budget_draws": 2,
+          "k_range": [
+            0.760014870256207,
+            1.2181503549254105
+          ],
+          "k_mean": 0.9890826125908088,
+          "k_bins": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "env": 5,
+          "map_id": "l1_empty-s1006",
+          "budget_draws": 2,
+          "k_range": [
+            0.8674952709086897,
+            0.9834243421168415
+          ],
+          "k_mean": 0.9254598065127656,
+          "k_bins": [
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 6,
+          "map_id": "l2_single_detour-s1001",
+          "budget_draws": 2,
+          "k_range": [
+            0.7493065981339205,
+            0.888464643251089
+          ],
+          "k_mean": 0.8188856206925048,
+          "k_bins": [
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 7,
+          "map_id": "l2_single_detour-s1002",
+          "budget_draws": 2,
+          "k_range": [
+            0.6272027434682612,
+            1.1439892340120559
+          ],
+          "k_mean": 0.8855959887401585,
+          "k_bins": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "env": 8,
+          "map_id": "l2_single_detour-s1003",
+          "budget_draws": 2,
+          "k_range": [
+            1.1317807264443585,
+            1.1431283771898886
+          ],
+          "k_mean": 1.1374545518171235,
+          "k_bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0
+          ]
+        },
+        {
+          "env": 9,
+          "map_id": "l2_single_detour-s1004",
+          "budget_draws": 2,
+          "k_range": [
+            0.996964395018501,
+            1.2895474394449677
+          ],
+          "k_mean": 1.1432559172317345,
+          "k_bins": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "env": 10,
+          "map_id": "l2_single_detour-s1005",
+          "budget_draws": 2,
+          "k_range": [
+            0.7437339203011746,
+            0.9490071872957568
+          ],
+          "k_mean": 0.8463705537984657,
+          "k_bins": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 11,
+          "map_id": "l2_single_detour-s1006",
+          "budget_draws": 2,
+          "k_range": [
+            0.7238689640644322,
+            0.9639286687595618
+          ],
+          "k_mean": 0.843898816411997,
+          "k_bins": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 12,
+          "map_id": "l3_multi_path-s1001",
+          "budget_draws": 2,
+          "k_range": [
+            0.8965631125602034,
+            1.041424379364645
+          ],
+          "k_mean": 0.9689937459624242,
+          "k_bins": [
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 13,
+          "map_id": "l3_multi_path-s1002",
+          "budget_draws": 2,
+          "k_range": [
+            0.6788826698120113,
+            1.0041074901988811
+          ],
+          "k_mean": 0.8414950800054461,
+          "k_bins": [
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 14,
+          "map_id": "l3_multi_path-s1003",
+          "budget_draws": 2,
+          "k_range": [
+            0.7122711302997897,
+            0.9881901666105706
+          ],
+          "k_mean": 0.8502306484551801,
+          "k_bins": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 15,
+          "map_id": "l3_multi_path-s1004",
+          "budget_draws": 2,
+          "k_range": [
+            0.8036981562353951,
+            1.0354140675168382
+          ],
+          "k_mean": 0.9195561118761166,
+          "k_bins": [
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 16,
+          "map_id": "l3_multi_path-s1005",
+          "budget_draws": 2,
+          "k_range": [
+            1.000297819745879,
+            1.1453294076532503
+          ],
+          "k_mean": 1.0728136136995645,
+          "k_bins": [
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0
+          ]
+        },
+        {
+          "env": 17,
+          "map_id": "l3_multi_path-s1006",
+          "budget_draws": 2,
+          "k_range": [
+            0.8525042110593128,
+            1.2136653451618136
+          ],
+          "k_mean": 1.0330847781105632,
+          "k_bins": [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "canonical_index": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/v2_mech_attempt1/audit/v2_mech_attempt1_onpolicy_mechanical_canonical_index.jsonl",
+      "canonical_index_sha256": "35b9c9bbe0152099df341d0ba911f1761d400adb3317298adeb37bd7bcc30eb7",
+      "metadata_validation": "Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion."
+    }
+  },
+  "immutable_resources": {
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/FROZEN": "14c1f7c4cc615f0b0988405d87bf245034cd8cae59240542f40f30437c2e8a13",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/README.md": "4c21583a19c6f675cf6ddcf88a36d28671cf1f5ffd4d1266b3d9ba1a7fa1bce7",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/model/model_2999.pt": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/results/task024_aggregate.txt": "c199ea323897bd7b193d22db9ed402a6853642d4ee3f2cd9330108410a11c571",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/results/task026_aggregate.json": "ce12f200878c192d494a471bf5651064b4932ce8397ddfe53c62d61e343baee7",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/results/task026_rollout_jit.json": "f36c7af7b70052fff1e13c10e449d52ad710a5e9cae458428259d4be2db44e4a",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/results/task026_rollout_onnx.json": "01140c4c0d6e1339ae7cdc517c6e8766d8194b1a30b825d2ff3ec2bb29cee94e",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/results/task026_rollout_trainer.json": "0a6dcc172182264c9579b28e50d7fdc8771766a3824b829d358d14f2d20f1a58",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/assets/Go2/usd/go2.usd": "fd3c8c23c97cea3208fae1ab5eeacba4ffa616fe5f1397be6c7edf4feb93f180",
+    "/pub/data/caohy/unitree_model/Go2/usd/go2.usd": "fd3c8c23c97cea3208fae1ab5eeacba4ffa616fe5f1397be6c7edf4feb93f180",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/assets/Go2/usd/configuration/go2_description_base.usd": "eeed42fb9e41395c47bc3fac7ff5d58625ac62f44bfa5a09cacebff83229c7a0",
+    "/pub/data/caohy/unitree_model/Go2/usd/configuration/go2_description_base.usd": "eeed42fb9e41395c47bc3fac7ff5d58625ac62f44bfa5a09cacebff83229c7a0",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/assets/Go2/usd/configuration/go2_description_physics.usd": "43800f436b3533c869f0b7774e5c70bc4291579df70a62263f808fb1a8f05505",
+    "/pub/data/caohy/unitree_model/Go2/usd/configuration/go2_description_physics.usd": "43800f436b3533c869f0b7774e5c70bc4291579df70a62263f808fb1a8f05505",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/assets/Go2/usd/configuration/go2_description_sensor.usd": "d63cfa5964eb5a72b8e2a02dc89448881497717f21d76b1ec9683a92cb765a16",
+    "/pub/data/caohy/unitree_model/Go2/usd/configuration/go2_description_sensor.usd": "d63cfa5964eb5a72b8e2a02dc89448881497717f21d76b1ec9683a92cb765a16",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/exported/policy.onnx": "d0c993b6a2b607ad7e001f3912d3e1a69905a06fff990009cc86e1f26590122d",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/exported/policy.pt": "8e3f14ad6aca0cb9f48148375657b2eabef6788fa6ed6f0fa3a0a8ebd30d57d4",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/samples/obs_samples.npz": "c018ab016a089c54c7b4bd2ce20476cdabeea9da0466dda24a6dcf2716725e86",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/params/agent.yaml": "6927e152194cde46ea9515bb8d70ae91de433fe9603d9a80b5cb9b87b28dabf6",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/params/camra_env_cfg.py": "72f094e6ecec4a4a3e2e520b2ed493a72ce1474c976b98f3edcb51466a9ad1f4",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/params/deploy.yaml": "6aa00512496a50f1c0999d73b1c8ba20be1f2a350f9db1367f8cd858fc1b7fdc",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/params/env.yaml": "922d473cb449b2cb99c9a701b5af159f55ba3b5ee741c9327fc616f363973c44",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/params/export_manifest.json": "3fea858c52ee0d67738527f2570b477673741e8f4fa23bf032a1cf9df45cc7f6",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/params/export_verification.json": "9f84fa50cdb0e77422cdf794f5b5505f4176d7d655374e93e4788f4f9d49a531",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/docs/eval_protocol.json": "0afc2ceadf8f85111a7d56911736e89d5180fc82c92dbe41ad45d31e42676872",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/env/pip-freeze.txt": "24b1d5301a852a99265f8190209e5821fce096c80ac1f675e3b62de78c09ad6d",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/scripts/aggregate_rollout_arms.py": "bcccf81e4c5eb04e5967d6654d10572a0ebe92b4a81100848a1b40a4ed10fc34",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/scripts/export_policy_candidate.py": "fb914dae783995ec731955058d6b6346e5ce85de9efb6e24f6511980159c8fc0",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/scripts/freeze_controller_bundle.py": "5c463936476a11e7282887b6addbdbd18cd0486f7431fb6f8ed2d91f055037fd",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/scripts/rollout_exported_policy.py": "e85eb3215335f0a6d9bf3c545cd480190ffccc8c766bb23587f6c0c70f81870a",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/scripts/verify_export_consistency.py": "466cdcf763009655013540dc04317d3c83b04ea544969052c97474a6937e80af",
+    "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2/scripts/verify_frozen_bundle.py": "3dbe706ba44468d3cef427e74e4b855f4824cb88d3a3290d0554ed7ec4a61a3d"
+  },
+  "preserved_checkpoints": {
+    "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v1_uncalibrated_s0/state_u50.pt": "3f77a934baf633a9c97a209de48000e4e5f8a14b98939ac9e1c495a462dac038",
+    "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v1_full_s0/state_u50.pt": "b5de463e6397f37516462220ee30fdca35f8d3861766aa8e9ec3b0e4dc54477e",
+    "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v1_full_s2/state_u50.pt": "f57d632700f3825a4265ea91a1903ae040c6f2cd72576921f28ccf60a3d53c1f",
+    "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v1_uncalibrated_s2/state_u50.pt": "798d3edc780a1fac47cc45d0d7e8cdd9e58453d55ff0c4442226a2c15a19f93b",
+    "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v1_full_s1/state_u50.pt": "2fb4cdda2abcaee27fb2ee6dc69670e04780029d592b9df7a73506626412d7a2",
+    "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v1_uncalibrated_s1/state_u50.pt": "10a4b0c3332c69f7131677f4dc8fecc5176faacc1e72c2495d90cd5e2f3bf08f"
+  },
+  "preserved_old_evidence": {
+    "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v1/HELD.json": "0ee643e2eb69833298fc12f14e4eed7e13502efc31e16baf66a3b4002fa73ac3",
+    "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v1/exploration_u50.json": "d6a75923816d4462da65bae2513d669dd2dd0630f0d3d77e562b4dd464ce8387",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_avoidance_prior_u50_v1.json": "33054e95c514f6b9ec2a14dc6297fe7b9b0eeed8d9d286979a30e5a2405dd047"
+  },
+  "submodule_commits": {
+    "RC-PPO": "7d689ff52f6475cf6d83828f9ca9aabb99f06dca",
+    "HiRA": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9"
+  },
+  "snapshot_after": {
+    "config/avoidance_prior_numerical_protocol_v2.json": {
+      "sha256": "6abf95691586cfbb8f0bd5c1e46bc65525c8afbe7295b4216c369fb22d5cdde2",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/avoidance_prior_numerical_protocol_v2.json"
+    },
+    "config/navigation_contract_clearance_feedback_v1.json": {
+      "sha256": "b523eef6ecb6d4bc33800bbdd13a7c171f727f511fd30a57bc7c92abf8ff180a",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/navigation_contract_clearance_feedback_v1.json"
+    },
+    "config/navigation_contract_episode_feedback_v1.json": {
+      "sha256": "233db3e5a78ff4b5efede7b16ad35f8e53dc81fa013f9a46858b351a3e68f682",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/navigation_contract_episode_feedback_v1.json"
+    },
+    "config/navigation_contract_feedback_v1.json": {
+      "sha256": "5b61517bc7f9278c6b3870f539af0b0a66078feba490d44c504d2f41a730a86f",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/navigation_contract_feedback_v1.json"
+    },
+    "config/navigation_contract_r14_repair_v2.json": {
+      "sha256": "64cf4db1840ae90464ad1019584b1882e5ae763055bc99e86587a9efac21bb63",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/navigation_contract_r14_repair_v2.json"
+    },
+    "config/navigation_contract_time_feedback_v1.json": {
+      "sha256": "177e165cc96eea8a031a5b440af35db28a057a41a0cf334e011516e891692067",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/navigation_contract_time_feedback_v1.json"
+    },
+    "config/training_loop_avoidance_prior_proposal_v2.json": {
+      "sha256": "81e6f74e0a84010e3f973651c461c45f04cd2e403a57398c1d50c4543e561b50",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/training_loop_avoidance_prior_proposal_v2.json"
+    },
+    "config/value_objective_contract_episode_feedback_v1.json": {
+      "sha256": "1d22661009764f93f7ed2985406cc8f8c37df7c0c7d3dfe97bcea9565f917d1b",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/value_objective_contract_episode_feedback_v1.json"
+    },
+    "config/value_objective_contract_feedback_v1.json": {
+      "sha256": "1e7d87c03822d7b65c06afbfd04a5f8ad725892c7420d5da9f335eb1de5ee3ff",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/value_objective_contract_feedback_v1.json"
+    },
+    "config/value_objective_contract_r14_repair_v1.json": {
+      "sha256": "7f15173beab3cf4f8f64b934bcdfed7e1430a2d594b7d3e732cc5dd4b01c9ae9",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/config/value_objective_contract_r14_repair_v1.json"
+    },
+    "docs/patches/verify_train_formal_r14_gamma_meta_v4.py": {
+      "sha256": "4c673c8adf464abcfdb7c4029201c89db269c06c77efdff161fc63e1bb1e829b",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/docs/patches/verify_train_formal_r14_gamma_meta_v4.py"
+    },
+    "scripts/audit_r14a2.py": {
+      "sha256": "0a1b4f346b6f7be76aa40ef636a9a85b58b391919ceaee3c411403865bdf793d",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/audit_r14a2.py"
+    },
+    "scripts/build_r14a2_prereg.py": {
+      "sha256": "587a9314f9e77826f161e4486cbf70706bb650a9b7a7f270b73def7c4902a7f3",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/build_r14a2_prereg.py"
+    },
+    "scripts/check_detour_exploration.py": {
+      "sha256": "e6e65a91de56fc5e6cffbdb4d3eac08063f4d7b988d3bfb693770fc5539e5e21",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/check_detour_exploration.py"
+    },
+    "scripts/compare_detour_horizon.py": {
+      "sha256": "a36599fd79c7348fac63e3b096b544d9082c3439f047c1bde7aac0c5a36a2bb1",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/compare_detour_horizon.py"
+    },
+    "scripts/contract_margin_eval.py": {
+      "sha256": "4e0c670d0c293b19679e2a0f0796151a9d02fdf6781bec9e1082d5415507a171",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/contract_margin_eval.py"
+    },
+    "scripts/diagnose_detour_feedback.py": {
+      "sha256": "2b77ed7e5f00e1684a11994ac5225effc3dbbe11f386fd60dc31843b948ed556",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/diagnose_detour_feedback.py"
+    },
+    "scripts/diagnose_time_feedback.py": {
+      "sha256": "761585046b21295e669062387334380bdc9d2f7c0a4c4201a2823b21c372d477",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/diagnose_time_feedback.py"
+    },
+    "scripts/eval_r14_repair.py": {
+      "sha256": "ad1c9d65083f2744403e7fd070c7a33c8f08269edbc7b3065e62c026de2dc0c4",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/eval_r14_repair.py"
+    },
+    "scripts/eval_training_round.py": {
+      "sha256": "e6645e6b291f0d75440cea89a332400ffd7162436ee277e11b620eae39b333dc",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/eval_training_round.py"
+    },
+    "scripts/run_feedback_round.py": {
+      "sha256": "c5e6e596e3aac7d677f45b9424f69d6cc805e7ff7d53b86a8c230fe05c3bfc6d",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/run_feedback_round.py"
+    },
+    "scripts/run_round14a2.py": {
+      "sha256": "6ade1bc09a0c945988c34308d2b83576c2768bdb07181a6f9262235443711e60",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/run_round14a2.py"
+    },
+    "scripts/train_formal.py": {
+      "sha256": "021949ba1bdd6b04ee8c9f32f1d85eb80a3d106f0e5e130e3b006c178cf2f9ab",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/scripts/train_formal.py"
+    },
+    "src/camra_navigation/__init__.py": {
+      "sha256": "2ac9ea55fc3e4e3927f2fb8b7ae7a77453c9ad1f499105be4632d7051dfd4098",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/__init__.py"
+    },
+    "src/camra_navigation/algorithm/__init__.py": {
+      "sha256": "fe54134928610888966883462dbc307c8f7893fedb1be8447951b340a6a4cd4b",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/algorithm/__init__.py"
+    },
+    "src/camra_navigation/algorithm/networks.py": {
+      "sha256": "28a32e86b761ece0e620d679fbff9c84081b0c7f4d14dd5ee580bde3c834cfba",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/algorithm/networks.py"
+    },
+    "src/camra_navigation/algorithm/policy_prior.py": {
+      "sha256": "e6f6d03a5c4e97d9285d7f9f7a96caf4677d5351ed8bd78100e30591987d35e5",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/algorithm/policy_prior.py"
+    },
+    "src/camra_navigation/algorithm/ppo.py": {
+      "sha256": "63e20e1d457e13a8e1037a5814972cff63fa10c090f3203904bd6a26eba5bbd3",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/algorithm/ppo.py"
+    },
+    "src/camra_navigation/algorithm/storage.py": {
+      "sha256": "37c7b4f628740085d0ea85ad0a05367e92ed9eaaa18d99f867b7625b6bd24bbf",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/algorithm/storage.py"
+    },
+    "src/camra_navigation/algorithm/targets.py": {
+      "sha256": "dd1be31009e2f73983fd45ffc31d8f865f35c2dacfb2523d669909f21159cda5",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/algorithm/targets.py"
+    },
+    "src/camra_navigation/algorithm/validation.py": {
+      "sha256": "dfcdb230c479eac25a9e8af070d33815fc71b373df2032773d5f986b370fbe0a",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/algorithm/validation.py"
+    },
+    "src/camra_navigation/budget/__init__.py": {
+      "sha256": "2478819eaced9c56e4503c29dbbde77da35f7119bbb9120c29fac556d4fee444",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/budget/__init__.py"
+    },
+    "src/camra_navigation/budget/accounting.py": {
+      "sha256": "daa2ba9b363aeeaccec382a708022e0c4012a0858727d6f7289661db9cc34444",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/budget/accounting.py"
+    },
+    "src/camra_navigation/budget/search.py": {
+      "sha256": "9277418b2d4669a8e1f8a8faac3b8f8b251ea787872829561bfcc97b993b14af",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/budget/search.py"
+    },
+    "src/camra_navigation/control/__init__.py": {
+      "sha256": "90f8814371f8a50fd297fd145ab970362ca1273a93cb25c11fc1e3b8c9d26cfc",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/control/__init__.py"
+    },
+    "src/camra_navigation/control/v2_policy.py": {
+      "sha256": "224cb2800d2106d21249b8ecd74eedab807c3319253f3618dfe9152328338736",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/control/v2_policy.py"
+    },
+    "src/camra_navigation/control/velocity_bridge.py": {
+      "sha256": "396723e36cbc436de3d1029ccb6181f04695319903147d24891ce8e228c123e3",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/control/velocity_bridge.py"
+    },
+    "src/camra_navigation/costs.py": {
+      "sha256": "e8fb432fdf116fd83e4a948e7c950cad573062ad5a87c7af0cedf6aae2a9b323",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/costs.py"
+    },
+    "src/camra_navigation/envs/__init__.py": {
+      "sha256": "c169ca558e1f1a82bd093eddc160744b75e8d2df8829745e2e25a2aea05bbd9c",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/envs/__init__.py"
+    },
+    "src/camra_navigation/envs/nominal.py": {
+      "sha256": "b20bebeb1e3e45a426b977cd8d253d8ae0b8e826008a550c7c06e324356cb922",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/envs/nominal.py"
+    },
+    "src/camra_navigation/envs/physical.py": {
+      "sha256": "4bd32e74d7584dc612c2cb40ff39941be8f914d80f4ebff70fc0d866678abbea",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/envs/physical.py"
+    },
+    "src/camra_navigation/envs/vector.py": {
+      "sha256": "7c1cdf901bc8cc6d51de0283c6564e734ab004977f672c7e94cf16badac99357",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/envs/vector.py"
+    },
+    "src/camra_navigation/evaluation/__init__.py": {
+      "sha256": "bf2b930f66eca529fc65da8d6dde340b0fbdd903f72d0386e686af477fbc5dbd",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/evaluation/__init__.py"
+    },
+    "src/camra_navigation/evaluation/recorder.py": {
+      "sha256": "2f18d4773c68600f0ad78ef0dd7720453bde640de1ba3f674caee7d5231049ab",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/evaluation/recorder.py"
+    },
+    "src/camra_navigation/frames.py": {
+      "sha256": "f81fc8690bf825bd5b598f71c0c279fb5ac075f00922815ad94e6cb948f4da23",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/frames.py"
+    },
+    "src/camra_navigation/maps/__init__.py": {
+      "sha256": "e3c83783e6ef71d608e44c2fc1888fd19dd7f2e3813501980f16d0a668cc6130",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/maps/__init__.py"
+    },
+    "src/camra_navigation/maps/feasibility.py": {
+      "sha256": "f6b1ea8747a47efaff2ae0ee9fd2b49f279d37f7860f5d9d127d7c1ee758e2f4",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/maps/feasibility.py"
+    },
+    "src/camra_navigation/maps/generator.py": {
+      "sha256": "dc9b336e3cabe57f0a392c8f60f896ff621b25eda2f743ecde107912d633547a",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/maps/generator.py"
+    },
+    "src/camra_navigation/maps/geometry.py": {
+      "sha256": "1218b7aaa80a577befbd6157423c75fc7b987d17884af0e66b8c109edbab952e",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/maps/geometry.py"
+    },
+    "src/camra_navigation/maps/scene_adapter.py": {
+      "sha256": "a72fd7fdb5de0ac897442661ff77f85da726d1cddb4975f4ef1bb97cd0c238b7",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/maps/scene_adapter.py"
+    },
+    "src/camra_navigation/observation.py": {
+      "sha256": "c00d4be40bea875c9371a70458aa3e4c22f179d3474f8916ffa2311e17ae89ef",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/observation.py"
+    },
+    "src/camra_navigation/runs.py": {
+      "sha256": "f835a345bc34a8bf952b3f1f3e756ab5c3f8e38632757703b15a7672e6481810",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/src/camra_navigation/runs.py"
+    },
+    "tests/test_avoidance_prior_gate.py": {
+      "sha256": "431973d1b892e0848f5bb82fbb74166b29483dc68a9c7ccf391df46868a16fdf",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/tests/test_avoidance_prior_gate.py"
+    },
+    "tests/test_avoidance_prior_v2_gate.py": {
+      "sha256": "30cbf2abf5db81aba4b8a2d9800922c3e0318d6d6742c35b869b64fc80cc4b6c",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/tests/test_avoidance_prior_v2_gate.py"
+    },
+    "tests/test_clearance_feedback_gate.py": {
+      "sha256": "bcfd6e624d971ff6b3531eb10b5c477a3173858326d6f1a39a2b85f4bbd1f8a6",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/tests/test_clearance_feedback_gate.py"
+    },
+    "tests/test_episode_feedback_gate.py": {
+      "sha256": "0901ee0eee2a58c9c6775e1a372380f62953734686f78a9febf38083a3d08e7b",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/tests/test_episode_feedback_gate.py"
+    },
+    "tests/test_feedback_gate.py": {
+      "sha256": "58fff2d8735851adaa56a3fa6a1d5ec89f18d466f9b9da566e9f8a5e00bf8abb",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/tests/test_feedback_gate.py"
+    },
+    "tests/test_r14_repair_gate.py": {
+      "sha256": "db7b5885109d28d54521ddd1a914f23f86c8e4a53e4e1a2bd6a7fc3a286bbc16",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/tests/test_r14_repair_gate.py"
+    },
+    "tests/test_r14a2_gate.py": {
+      "sha256": "0dfb350c7f53abe149a9ab2cfb44ba27e9621fe18f60e5e89885aa570278fc52",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/tests/test_r14a2_gate.py"
+    },
+    "tests/test_time_feedback_gate.py": {
+      "sha256": "af1f54bed0deabad452c6caeaa29654b7b8cbc5b8076308a62e27cb23e851522",
+      "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_after/tests/test_time_feedback_gate.py"
+    }
+  },
+  "limits": [
+    "Finite deterministic train-only mechanism and two-update production tests; not formal learned or development performance.",
+    "Gate inherits parent top-level production_fixture; actual_v2_production here and the final prior_actual_producer check identify the repaired v2 fixture.",
+    "36 mechanism episodes are single-seed deterministic current-policy rollouts at k1.15; not evidence of learned generalization or physical safety.",
+    "900 old L2 episodes replay identical observations; lower side-flip count alone does not establish closed-loop success.",
+    "NAV-064 remains false; NAV-065 and downstream not executed. Formal independent6x300/108 allocation requires confirmation.",
+    "No old HELD quota transfer, no formal launch, no final/budget-selection evaluation, no push."
+  ]
+}

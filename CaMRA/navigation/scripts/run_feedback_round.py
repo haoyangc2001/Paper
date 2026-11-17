@@ -27,12 +27,13 @@ def attempt_paths(prereg, root=ROOT):
     versions = prereg.get('implementation_versions', {})
     allowed = {'nav064_feedback_v1': 'obs-v5', 'nav064_time_feedback_v1': 'obs-v6',
                'nav064_clearance_feedback_v1': 'obs-v7', 'nav064_episode_feedback_v1': 'obs-v7',
-               'nav064_avoidance_prior_v1': 'obs-v7'}
+               'nav064_avoidance_prior_v1': 'obs-v7', 'nav064_avoidance_prior_v2': 'obs-v7'}
     if (prefix not in allowed
             or versions.get('observation', 'obs-v5') != allowed[prefix]):
         raise ValueError('unregistered feedback attempt prefix')
     first, total = (allocation(prereg) if prefix in
-                    ('nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1') else (100, 600))
+                    ('nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1',
+                     'nav064_avoidance_prior_v2') else (100, 600))
     return {'coordinator': root / prefix,
             f'audit{first}': root / (prefix + f'_audit_u{first}'),
             f'audit{total}': root / (prefix + f'_audit_u{total}'),
@@ -52,7 +53,8 @@ def audit_command(n, prereg_name, paths):
 
 def allocation(prereg):
     w=prereg['window_semantics']
-    if prereg['runtime_contract']['run_prefix'] in ('nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1'):
+    if prereg['runtime_contract']['run_prefix'] in (
+            'nav064_episode_feedback_v1', 'nav064_avoidance_prior_v1', 'nav064_avoidance_prior_v2'):
         if (w.get('collection')!='complete_episodes_v1' or w['max_updates']!=300
                 or w['calls_per_update']!=450 or w['env_steps_per_update']!=8100):
             raise ValueError('episode allocation must be six runs x300, at most8100 samples/update')
