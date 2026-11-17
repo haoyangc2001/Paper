@@ -1,5 +1,11 @@
 # 上层最小成本到达避障导航器
 
+## 2026-11-17 终点尾项v5训练已启动，首50门禁通过
+
+六组在tiger11原tmux会话的`terminal-tail-training`窗口从提交`6b35db9`启动。首50原始审计通过（5400完整回合/1714070样本），full三个种子L2共900/900全程安全到达，其中384次预算内；随机紧预算分母全部保留。这是train初期探索，尚非最终开发结论，见[实际启动及首50核验](reports/nav064_terminal_tail_v1_u50_v1.json)。
+
+正在继续已批准的每组300更新额度；150审计/稳定性通过才继续300全量审计和最后checkpoint108开发，失败暂停保全、无自动重试。NAV-064仍false，下游不执行；恢复入口见[交接](docs/implementation_handoff.md)，先查既有进程和HELD/FINISHED，不能重复启动。下方为历史时点。
+
 ## 2026-11-17 终点尾项v5训练已获批准，启动准备通过
 
 用户已批准独立6组×300完整回合更新（最多14580000样本）和最后checkpoint的108开发回合。批准登记为`config/training_loop_prereg_terminal_tail_v1.json`，pin为`6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4`；原未批准提案保持原样。64份源码配置、33项v2身份、16旧结果/模型/日志以及452门禁/32回归来源核验通过，见[启动放行](reports/nav064_terminal_tail_training_release_v1.json)。

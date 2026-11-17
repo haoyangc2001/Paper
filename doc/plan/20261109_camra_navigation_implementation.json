@@ -9606,6 +9606,82 @@
             "完成50/150/300审计、探索/稳定性、开发及原关闭档后才可判断NAV-064；未满足则保留false和失败证据"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-17T21:44:12.629823+08:00",
+          "summary": "NAV-064终点尾项v5六组已实际启动，首50原始审计与绕障探索通过；继续已授权150稳定性门禁",
+          "actions": [
+            "从已提交批准登记6b35db9在tiger11原tmux的terminal-tail-training窗口启动一次新六组；启动前再核验当前源码、33项v2身份、pin和所有输出无冲突",
+            "通过独立只读脚本核验六进程实际命令、原始header/输入hash、18张train图、完整回合、obs-v7/先验v2/rcppo-terminal-tail-v5、多epoch更新和首50审计索引；不新增smoke或额外采样",
+            "原始首50审计通过后协调器检查三个full种子的L2安全到达并继续；按原协议保留全部失败、随机紧预算及全分母，不把train探索当development通过"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav064_terminal_tail_v1_u50_v1.json",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav064_terminal_tail_repair_20261117.md",
+            "CaMRA/navigation/README.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:terminal-tail-training；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+            "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_tail_start_committed.py",
+            "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_tail_verify_startup.py --stage u50"
+          ],
+          "results": [
+            "PASS_U50_AUDIT_AND_EXPLORATION；启动提交6b35db96d9d84dabc08e4b7e4c767409559a78f2，pin=6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4；核验时六组更新数[71, 60, 77, 59, 58, 70]，合计2257617样本，六进程正常且无HELD",
+            "首50原始审计：5400完整回合、1714070样本、216块独立数值重算，元数据不一致0；三个full种子各300次全程安全L2到达，共900/900，预算内分别127/130/127，共384/900（训练含随机紧预算）；只证明首段机制和探索，不证明最终效果",
+            "任务目标/评分、共同停止/三估计器、obs-v7/避障先验v2、预算地图与冻结v2保持；NAV-064=false、历史51/67，NAV-065+未执行；无重试/补额/推送"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav064_terminal_tail_v1_u50_v1.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/launch.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/coordinator.log",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/verified_u50_attempt1",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_v1/start.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_v1/pids.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_v1/exploration_u50.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_v1_audit_u50/report.json"
+          ],
+          "remaining_work": [
+            "自动继续到150原始审计及已登记train稳定性检查，若退化HELD_NO_RETRY并保留现场",
+            "前提通过才完成各300更新、全量审计及最后checkpoint108开发；原关闭档、稳定性、数据验收全部通过前不关闭NAV-064或进入下游",
+            "完成计划update/历史追加和受保护路径检查，必要本地提交本次执行证据；恢复先查现有进程与HELD/FINISHED，禁止重复启动"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-17T21:46:17.999385+08:00",
+          "summary": "NAV-064启动与首50证据收尾双重验收通过；整轮训练/稳定性/开发仍待完成",
+          "actions": [
+            "完成startup closecheck，校验主计划67项ID/顺序/全部旧记录前缀及任务状态不变，只在NAV-064追加；保留原CRLF换行，update校验通过",
+            "复核64项当前源码/登记绑定、33项冻结v2和16项旧模型/结果/日志hash、实际六进程和受保护路径；启动及首50证据加入当前导航交接与README",
+            "按持续有效的必要本地提交授权归档本次5项执行证据；不包含其他已有未跟踪产物，不推送；训练按冻结额度自动继续"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u /tmp/nav064_tail_startup_closecheck.py",
+            "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python /home/caohy/.codex/skills/create-plan-worklog/scripts/validate_worklog.py /home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json --mode update",
+            "git -c core.whitespace=cr-at-eol diff --check"
+          ],
+          "results": [
+            "PASS_STARTUP_DELIVERY_CHECK；开工/实际生产调用/当前输入版本/上游依赖与启动交付证据一致，旧数据结果和受保护路径不变",
+            "收尾核验进度[83, 73, 91, 70, 71, 81]，首50审计/探索PASS；尚未到150稳定性和最后checkpoint开发验收，不将启动或train探索写成科学通过",
+            "NAV-064=false、历史51/67，NAV-065+不执行；原理与固定v2保持，无新增采样轮次/重试/额度转移"
+          ],
+          "evidence": [
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/startup_delivery_check.json",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/startup_closecheck.log",
+            "CaMRA/navigation/reports/nav064_terminal_tail_v1_u50_v1.json",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/launch.json"
+          ],
+          "remaining_work": [
+            "既有协调器继续150原始审计/稳定性，失败HELD_NO_RETRY；通过才继续各300更新、全量审计及最后checkpoint108开发",
+            "全部原关闭档及数据/稳定性验收满足前NAV-064保持false；恢复先查现有进程、run和HELD/FINISHED，不重复启动"
+          ],
+          "blockers": []
         }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

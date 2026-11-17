@@ -1,5 +1,7 @@
 # NAV-064：训练退化与已知终点尾项回修
 
+2026-11-17启动更新：用户已批准独立6×300完整回合更新及108开发回合；批准登记/pin已另冻，原未批准提案保留。六组21:30从`6b35db9`在tiger11/tmux启动，首50原始审计和三个full种子安全L2探索PASS，详见[执行核验](../reports/nav064_terminal_tail_v1_u50_v1.json)。正在继续150稳定性关，之后才可能进入300及开发；尚无整轮学习通过结论，NAV-064保持false。下文未批准/尚未启动表述是回修交付时点记录。
+
 本次是计划1.3.1的NAV-064回修。当前51/67项历史完成，NAV-064仍false；固定v2、原关闭档和下游依赖不变。正式新训练尚未批准或启动。结果入口为[实现验收报告](../reports/nav064_terminal_tail_repair_v1.json)、[新版门禁](../reports/gate_terminal_tail_v1_attempt2.json)和[未批准训练提案](../config/training_loop_terminal_tail_proposal_v1.json)。
 
 ## 已确认的问题与边界
