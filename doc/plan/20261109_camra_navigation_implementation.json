@@ -9077,6 +9077,34 @@
      "blockers": [
       "原正式训练额度已耗尽；本次提案training_approved=false且无pin。主计划uncertainty_policy明确改变正式试验次数先询问，需要确认新增两方法×三种子各300更新（最多14580000样本）及108回合development。已批准同机/tmux例外不重复询问。"
      ]
+    },
+    {
+     "timestamp": "2026-11-17T14:30:46.241105+08:00",
+     "summary": "NAV-064/1.3.1恢复开工：用户批准绕障探索候选6×300更新及108开发回合，解除新增额度阻塞",
+     "actions": [
+      "重新读取根AGENTS、计划、技能及交接；NAV-063依赖true，当前NAV-064=false，历史51/67完成",
+      "按用户“可以 开始推进吧”执行已评审额度，沿用tiger11同机/tmux例外；先核验资源与196门禁/32回归源码绑定，再冻结独立批准登记/pin并做必要本地提交"
+     ],
+     "files_changed": [
+      "doc/plan/20261109_camra_navigation_implementation.json"
+     ],
+     "commands": [],
+     "results": [
+      "本项为固定v2、保持RC-PPO核心原理的导航补足安全绕障训练证据；上游4853c9eb源码和avoidance_prior_release_v1为已验收候选",
+      "授权两方法×三种子，各300完整回合更新，上限14580000样本；前50计入300，原始审计后各full种子至少一次全程安全L2到达，否则HELD且不重试/补额",
+      "只冻结配置、训练登记及证据文档；RC-PPO目标/三GAE/共同停止、固定v2整包、校准、评分、地图/分片/预算和原验收保持；只用train/development，budget_selection/final封存",
+      "验收以实际训练/开发性能、稳定性和数据为准；NAV-064通过全部验收前保持false，NAV-065及下游不执行；不承诺先验可使训练通过"
+     ],
+     "evidence": [
+      "CaMRA/navigation/reports/nav064_avoidance_prior_release_v1.json",
+      "CaMRA/navigation/reports/gate_avoidance_prior_v1_attempt1.json",
+      "CaMRA/navigation/config/training_loop_avoidance_prior_proposal_v1.json"
+     ],
+     "remaining_work": [
+      "完成本次现场预检、独立批准登记/pin、启动前本地提交",
+      "tmux启动六组并核验实际样本/更新；完成50探索前提、300审计及最后checkpoint108开发验收"
+     ],
+     "blockers": []
     }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

@@ -1,5 +1,11 @@
 # 上层导航实施交接
 
+## 2026-11-17T14:31:58.671470+08:00 绕障探索版额度已批准，准备正式启动
+
+用户已批准两方法×三种子各300完整回合更新（最多14580000样本），最后checkpoint的108回合development。独立登记`config/training_loop_prereg_avoidance_prior_v1.json`及SHA256 pin已冻结，原未批准proposal保持原样。前50计入300，先原始审计，再要求三个full种子各至少一次全程安全L2到达；否则HELD，保留现场且不自动重试/补额。
+
+本次tiger11/tmux现场预检通过：196门禁、32回归、59份源码/配置快照及33项固定v2身份均匹配，六个新run与协调器/审计/开发输出无冲突。证据根为`/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_launch_20261117_v1/`。启动后以实际launch/start/pids与原始日志为准；当前NAV-064=false，全部训练/开发验收通过后才推进NAV-065。
+
 ## 2026-11-17 本次：完整回合版负结果结案，绕障探索候选通过196项数值/生产门禁
 
 旧`nav064_episode_feedback_v1`六组各300更新均已结束，原始审计PASS，108开发回合FAIL_DEVELOPMENT。主预算下uncalibrated安全可行SR中位2/3、能耗/预算0.819487、危险步0；full分别1/2、0.869677、危险步600。full的L2训练5400回合到达1234次、全程安全到达0次；总体50%不能作为绕障或原关闭档通过依据。旧run、原始chunk、各checkpoint和失败全部保留，保全副本/hash由本次release报告索引。

@@ -41,3 +41,8 @@ full的L2训练共有5400回合，1234次到达，安全到达与安全预算内
 执行主机`tiger11.ios.ac.cn`，tmux会话`nav064-r14-repair-20261115`；解释器`/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python`。独立工作根为`/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/`，开工保留58份父源码/配置和33项固定v2资源hash，原锁不重算。
 
 断线先核对tmux、进程、工作根日志/产物和主计划最新work_records。重验使用全新out/work命名，不覆盖历史机械run；没有批准的六run登记时禁止将proposal作为启动授权。大体积旧development原件保留，并由release索引外部保全副本与SHA256；模型、checkpoint及原始轨迹保留各自旧run目录。
+
+
+## 2026-11-17T14:31:58.671470+08:00 正式额度授权恢复
+
+上述“待新增额度”是前一阶段历史状态，用户现已批准完整提案。本次另建`config/training_loop_prereg_avoidance_prior_v1.json`及pin，proposal与旧证据不变；现场预检通过，后续按已批准6×300、108开发和前50探索前提执行。启动/审计/探索结果写入同一计划NAV-064的追加记录及独立launch工作根；原性能/稳定性关闭档保持，NAV-065尚未放行。
