@@ -11627,6 +11627,93 @@
     "v9单次400更新已结束，新的真实输出层求解仍是模型拟合；主计划uncertainty_policy的正式试验/资源额度变化尚待明确确认，不重用旧额度。",
     "NAV-065原科学验收缺口未关，真实float32求解及全量影响尚未验证；原G4 FAIL保留。"
   ]
+},
+{
+  "timestamp": "2026-11-18T20:57:16.530735+08:00",
+  "summary": "NAV-065/1.3.1 v10批准执行开工：固定一个副本，两个原输出层各一次求解",
+  "actions": [
+    "用户确认具体v10提案后重新读取AGENTS、legacy技能/规则、主计划及最新交接；核对NAV-064上游证据、NAV-065依赖和全部历史。",
+    "现场核验tiger11/tmux、绝对Python3.11.15、GPU、v2冻结33项、源码和准备证据散列；SSH publickey拒绝沿用已有同机执行授权，不换主机。",
+    "按原未批准提案生成独立批准登记、全实现散列和pin；原提案与旧v8/v9登记及产物保持原样。"
+  ],
+  "files_changed": [
+    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json",
+    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json.sha256",
+    "doc/plan/20261109_camra_navigation_implementation.json",
+    ".worklog-testing/NAV-065/head-v10-execution/"
+  ],
+  "commands": [
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/.worklog-testing/NAV-065/head-v10-execution/context.py",
+    "tmux=nav064-r14-repair-20261115:nav065-v10-execution; cwd=/home/caohy/repositories/Paper/CaMRA/navigation"
+  ],
+  "results": [
+    "本项仍为RC-PPO固定actor后双critic估值诊断，为后续可靠价值预算搜索查明局部拟合和全量退化原因；NAV-065=false、52/67、原G4 FAIL不变。",
+    "批准一个full_s0深拷贝，固定v8末次源与原25起点、actor和两个body；原两个输出层各一次float64最小改变量求解，总2次，转回原float32执行原局部及原v5全train检查。",
+    "梯度更新0、新回合0、开发评分0；原目标/架构/W/beta/v2/评分不改。局部通过也不构成NAV-065科学通过，不生成部署包或执行NAV-066，不重用旧额度。",
+    "双重验收为实际求解计数、原标签与生产前向/原门禁、CPU重载/原非head与六模型保护及全量影响复核；完成后交付诊断模型、报告、追加记录和Git提交。"
+  ],
+  "evidence": [
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/head-v10-execution/baseline.json",
+    "CaMRA/navigation/reports/nav065_head_probe_v10_preparation_review.json",
+    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json",
+    "registration_sha256=ab7962f3fe8d1bccfd1498293a277c3065c773fe651366eedd73986879378b21"
+  ],
+  "remaining_work": [
+    "应用批准登记和追加开工记录后执行一次原隔离入口；按legacy由主agent复核实际产物和科学限制，保留全部失败。"
+  ],
+  "blockers": []
+},
+{
+  "timestamp": "2026-11-18T21:01:23.408073+08:00",
+  "summary": "NAV-065/1.3.1 v10已结束：2次输出层求解，25点通过但全量估值严重退化，科学验收仍FAIL",
+  "actions": [
+    "按用户确认的独立批准登记执行一次固定full_s0副本诊断：两个原输出层各一次求解，保留全部原始产物和仅供诊断的checkpoint。",
+    "由legacy主agent重建162条已存train/59877步，复核25点原标签、实际float32预测、原v9局部和原v5全train生产门禁；审计不再求解。",
+    "复核CPU重载、仅四个head张量变化、六原模型/actor和33项v2身份，确认原42项实现散列及准备阶段33基本测试证据有效。",
+    "逐项披露局部与全量退化，追加结果文档、机器审阅、README/AGENTS/交接和主计划，保留旧准备及失败记录。"
+  ],
+  "files_changed": [
+    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json",
+    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json.sha256",
+    "CaMRA/navigation/reports/nav065_head_probe_v10_review.json",
+    "CaMRA/navigation/docs/nav065_head_probe_v10_review_20261118.md",
+    "CaMRA/navigation/docs/implementation_handoff.md",
+    "CaMRA/navigation/README.md",
+    "AGENTS.md",
+    "doc/plan/20261109_camra_navigation_implementation.json",
+    ".worklog-testing/NAV-065/head-v10-execution/"
+  ],
+  "commands": [
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/.worklog-testing/NAV-065/head-v10-execution/launch.py",
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/CaMRA/navigation/scripts/probe_nav065_head.py --registration /home/caohy/repositories/Paper/CaMRA/navigation/config/nav065_head_probe_prereg_v10.json",
+    "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/.worklog-testing/NAV-065/head-v10-execution/audit.py",
+    "tmux=nav064-r14-repair-20261115:nav065-v10-execution; cwd=/home/caohy/repositories/Paper/CaMRA/navigation; host=tiger11.ios.ac.cn"
+  ],
+  "results": [
+    "实际正式求解2、复核额外求解0、梯度更新0、新回合0、开发评分0；本次额度已结束，不重启、转移、扫参数或追加。",
+    "25个已见train起点局部门禁PASS：成本/到达分量符号错误11→0/9→0，联合符号错误13→0；真实float32最大残差约2.16e-6/1.08e-4，证明这些点在当前固定body上确实可拟合。",
+    "全量162起点误放行13→13、误拒绝1→58；原90回合主预算实际可行起点正确识别18→2，旧新增72误放行11→3，所选866沿途边界错判97→439。",
+    "原90回合到达相对MAE15.65%→11946.00%，旧新增72回合43.85%→10794.54%；完整train_gate仍FAIL，成本亦退化，不能用局部成功替代全量科学验收。",
+    "原六模型/actor及v2完整身份不变，未部署诊断副本；原18/18实际可行成果保留，下降的是副本识别能力。RC-PPO固定actor估值原理、共同停止目标、W/beta、架构/obs-v7及原评分不变。",
+    "执行完整性及生产原门禁重载复核通过，准备阶段33基本检查证据与未变实现一致；NAV-065科学验收仍未满足，保持false、52/67、原G4 FAIL，无新G4/部署包或NAV-066执行。"
+  ],
+  "evidence": [
+    "CaMRA/navigation/reports/nav065_head_probe_v10_review.json",
+    "CaMRA/navigation/docs/nav065_head_probe_v10_review_20261118.md",
+    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json",
+    "approval_pin=ab7962f3fe8d1bccfd1498293a277c3065c773fe651366eedd73986879378b21",
+    "/pub/data/caohy/work/camra_navigation/nav065_head_probe_v10",
+    ".worklog-testing/NAV-065/head-v10-execution/execution.json",
+    ".worklog-testing/NAV-065/head-v10-execution/audit-attempt1.log",
+    "diagnostic_checkpoint_sha256=b07e056d1c455405afff4abf7cf559e0c62ee7a38838ab299eceac9b5b1f56cd"
+  ],
+  "remaining_work": [
+    "依据现有结果分析原轨迹、临界预算和沿途目标共同拟合的稳定性；25点表达能力已实测，不用本局部通过替代全任务能力或泛化。",
+    "后续若改变拟合过程或额度，先提出独立可评审方案；本次不自动扩大到六候选、开发评估、架构修改或NAV-066。"
+  ],
+  "blockers": [
+    "原完整train及NAV-065科学验收仍失败；本次授权的2次求解已结束，无继续拟合或下游额度。"
+  ]
 }
       ],
    "test_reports": [
