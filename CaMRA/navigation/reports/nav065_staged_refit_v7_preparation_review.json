@@ -1,0 +1,50 @@
+{
+  "schema": "camra-nav065-v7-preparation-review",
+  "task": "NAV-065",
+  "timestamp": "2026-11-18T18:25:02.033921+08:00",
+  "host": "tiger11.ios.ac.cn",
+  "tmux": "/tmp/tmux-39400170/default,2639274,25",
+  "cwd": "/home/caohy/repositories/Paper/CaMRA/navigation",
+  "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "reviewer": "main agent under legacy; no test subagents",
+  "basic_tests_passed": 79,
+  "saved_train_episodes": 972,
+  "saved_train_steps": 372471,
+  "v2_verified_files": 33,
+  "preparation_pass": true,
+  "scientific_pass": false,
+  "formal_optimizer_steps": 0,
+  "new_rollouts": 0,
+  "development_scoring_rounds": 0,
+  "original_g4": "FAIL",
+  "nav065_status": false,
+  "completed_tasks": 52,
+  "nav066_started": false,
+  "proposal_approved": false,
+  "remaining_train_false_feasible": 25,
+  "v6_rejected_block_reasons": {
+    "previously_correct_start": 23,
+    "original_grid": 4
+  },
+  "source_commit": "a8dd939",
+  "evidence": {
+    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/refit_nav065_staged.py": "dbd4ab7c18da1fdcc6fb86c3dc0f5c2d45aa828efbfc50855043565583036b0a",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/tests/test_nav065_staged_refit.py": "04dc08a62fb175fe4043a4a9b807dc84791b561842a751f8d34729f0652c9bbd",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/config/nav065_staged_refit_proposal_v7.json": "40db3535945486ab3ff8e5ddd9f42b2d50896fccfd6e9fe0baa398db0856d346",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav065_staged_refit_preflight_v7.json": "9cf625c04f483206919005f8287538361ce004bdd39844813d3e23964cad0c19",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/docs/nav065_staged_refit_v7_20261118.md": "bfa0c3ee9ac4d152669d1f73bc7b9c8b4b9d11c3f01b8c3715024dd5a90a60ea"
+  },
+  "basic_log_sha256": "f740c471a462605dbd663587a75802da7ef90ffd0a305dbf901691fdc75fbbd6",
+  "diagnosis_log_sha256": "842887e6b8a21ee88c6394ad0377faf4757634892d9ba5ac9e6fdd4ebdd7a56e",
+  "resources_sha256": "a51bc01298055c12ac3dd7e1263275ffbba1ea490960f423bb03964daa194166",
+  "production_chain": [
+    "refit_nav065_staged.fit -> unchanged refit_nav065_adaptive.train_gate after every step",
+    "refit_nav065_staged.run -> all six saved/reloaded and train gates pass -> unchanged refit_nav065_deployment.evaluate -> original G4"
+  ],
+  "limitations": [
+    "Staged optimization is not scientifically exercised in this preparation.",
+    "No rejected v6 per-start logits/checkpoints exist; exact changed-start identities cannot be retrospectively reconstructed. No real optimizer replay.",
+    "Real source reconstruction uses the unchanged oracle; independent raw-J/common-stop evidence is inherited from v6 only through matching output hashes.",
+    "Source 25 false-feasible starts remain. Original G4 and downstream block retained."
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "camra-nav065-staged-refit-v7",
+  "task": "NAV-065",
+  "approved": false,
+  "status": "PROPOSED_NOT_EXECUTED",
+  "fit_split": "train",
+  "evaluation_split": "development",
+  "output_name": "nav065_staged_refit_v7",
+  "source_run": "nav065_block_refit_v6",
+  "source_manifest_sha256": "f53fbc641c40fed994aa761e47605092366c1135c6fe2bb92bd64e0297dc7bcd",
+  "resource_limit": {
+    "existing_train_episodes": 972,
+    "existing_train_steps": 372471,
+    "new_train_episodes_max": 0,
+    "new_development_episodes": 0,
+    "optimizer_trials_per_candidate_max": 300,
+    "optimizer_trials_total_max": 1800,
+    "development_scoring_rounds_max": 1
+  },
+  "fit": {
+    "numeric_steps_max": 150,
+    "boundary_steps_max": 150,
+    "numeric_learning_rate": 0.0001,
+    "boundary_learning_rate": 0.00001,
+    "sampling_seed": 6510,
+    "interior_samples_per_episode": 8,
+    "boundary_absolute_W_max": 0.05,
+    "sign_boundary_absolute_max": 0.05,
+    "sign_margin_cap": 0.01,
+    "sign_normalization": 0.01,
+    "rule": "Stage 1 fits the unchanged stratified cost/reach squared error without sign projection, at most 150 steps; switch early only if original old AND additional numeric checks pass. Stage 2 uses the same regression plus existing component/joint sign gradient projection for at most 150 steps with a fresh Adam. Unused stage-1 steps do not transfer. Temporary old/new numeric or sign regressions are allowed offline; no per-step or block monotone-correctness guards or backtracking. Check unchanged full v5 train gate after EVERY step and freeze the FIRST full pass. A nonfinite loss/gradient/parameter stops the run with diagnostic logs; it cannot enter development. Log every start prediction and false-feasible/false-infeasible/primary changes. Save the numeric-stage checkpoint. Source files and actors stay unchanged."
+  },
+  "train_gate": "Call the unchanged v5 train_gate on 540 old plus 432 additional train episodes. Old and new numeric errors remain separately checked: relative MAE<=0.35, required Pearson>=0.70. Original primary recognition, beta=0, zero false-feasible and all selected boundary signs remain mandatory. Preserve full_s2 actual train primary 17/18 and reject its timeout. Temporary regression is never deployment approval.",
+  "development_gate": "Only after all six final train gates pass, save and CPU-reload all six models and invoke the unchanged original evaluator on the 180 saved development episodes once. Original primary 6/6, zero false-feasible and G4 are unchanged. No repeated development tuning, new development rollouts or final/budget_selection access.",
+  "failure_policy": "One new, separately approved run only. Preserve every finite failed checkpoint and log; no source overwrite, automatic restart, leftover reuse/transfer, extra rollouts or relaxed final criteria. Any final train failure holds development. This proposal is not authorization for optimizer steps or changed process guards.",
+  "protected": ["six actors", "common-stop cost/reach targets and W", "beta=0 and final G4/v5 train criteria", "complete frozen v2 and calibration", "map/time/unit/split contracts", "all old artifacts", "RC-PPO, HiRA and manuscripts"]
+}
