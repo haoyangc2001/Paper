@@ -12835,6 +12835,38 @@
   ],
   "blockers": []
 }
+,
+{
+  "timestamp": "2026-11-18T22:33:52.814935+08:00",
+  "summary": "NAV-066独立验证结束：实际决策门禁FAIL，保留结果并停止下游",
+  "actions": [
+    "封存18决策及90W查询后执行90条独立名义轨迹；主agent复核原始轨迹/J账本/不可逆安全/时间/oracle及网格效率。",
+    "审计模型/规则/v2散列及历史记录，未训练、未改阈值/模型、未派测试子agent、未访问final或执行物理回合。"
+  ],
+  "files_changed": [
+    "doc/plan/20261109_camra_navigation_implementation.json"
+  ],
+  "commands": [
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py close",
+    "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
+  ],
+  "results": [
+    "{\"uncalibrated\": {\"pass\": true, \"checks\": {\"accepted_safety_time_budget\": true, \"nonvacuous_accepted_count\": true, \"each_level_coverage\": true, \"feasible_map_recall\": true, \"budget_efficiency\": true}, \"maps\": 9, \"grid_rows\": 45, \"accepted\": 9, \"rejected\": 0, \"actually_feasible_maps\": 9, \"correctly_accepted\": 9, \"accepted_failures\": 0, \"efficiency_failures\": 0, \"feasible_map_recall\": 1.0, \"false_rejections\": 0, \"level_accepted\": {\"L1_empty\": 3, \"L2_single_detour\": 3, \"L3_multi_path\": 3}, \"decision_reasons\": {\"selected\": 9}, \"raw_W_confusion\": {\"true_feasible\": 27, \"false_feasible\": 0, \"false_infeasible\": 0, \"true_infeasible\": 18}}, \"full\": {\"pass\": false, \"checks\": {\"accepted_safety_time_budget\": true, \"nonvacuous_accepted_count\": true, \"each_level_coverage\": true, \"feasible_map_recall\": true, \"budget_efficiency\": false}, \"maps\": 9, \"grid_rows\": 45, \"accepted\": 9, \"rejected\": 0, \"actually_feasible_maps\": 9, \"correctly_accepted\": 9, \"accepted_failures\": 0, \"efficiency_failures\": 1, \"feasible_map_recall\": 1.0, \"false_rejections\": 0, \"level_accepted\": {\"L1_empty\": 3, \"L2_single_detour\": 3, \"L3_multi_path\": 3}, \"decision_reasons\": {\"selected\": 9}, \"raw_W_confusion\": {\"true_feasible\": 18, \"false_feasible\": 0, \"false_infeasible\": 1, \"true_infeasible\": 26}}}",
+    "总步数=33531，旧G4 FAIL保留；这只是所测单种子配对的有限名义验证。"
+  ],
+  "evidence": [
+    "CaMRA/navigation/reports/nav066_budget_decision_validation_v2.json",
+    "CaMRA/navigation/docs/nav066_budget_decision_review_v2_20261118.md",
+    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/episodes.jsonl",
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/final-audit.json"
+  ],
+  "remaining_work": [
+    "先评审本次固定规则的具体拒绝/错误/效率原因，任何实质新规则需新版本和独立数据；不默认重训或重跑。"
+  ],
+  "blockers": [
+    "独立实际决策未同时满足各方法全部预登记门槛，NAV-066保持false，下游不执行。"
+  ]
+}
 ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [

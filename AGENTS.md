@@ -1,5 +1,9 @@
 # Agent 接手说明
 
+## 最新结果（2026-11-18，独立检验已结束）
+
+已按用户要求用最好现有模型完成一次90条名义网格轨迹/33531步、18个事前封存预算决策。两方法各9/9所选预算均45秒内安全且预算内到达，错误放行0、拒绝0，L1/L2/L3各3/3；无校准全部门槛PASS，完整方法1图预算高于真实网格最低值两档，预登记效率项FAIL。因此NAV-065准备true、NAV-066=false、53/67，NAV-067不执行。原G4 FAIL保留，本轮训练/更新/物理/final访问均0，额度已用完，不自动重跑或放宽标准。详见[本轮结果](CaMRA/navigation/docs/nav066_budget_decision_review_v2_20261118.md)与[机器报告](CaMRA/navigation/reports/nav066_budget_decision_validation_v2.json)。后续先复审该保守预算估计及保护叠加，不默认新训练。下面“开始/待执行”为本轮先前时点，所有旧失败保留。
+
 ## 当前执行入口（2026-11-18，最优现有模型独立预算决策检验）
 
 用户已确认新版协议，并要求用现有最佳模型检验。主计划已原位升至1.4.0：NAV-065研究准备通过（53/67），原G4 FAIL与全部拟合失败保留；NAV-066按[批准登记](CaMRA/navigation/config/nav066_decision_prereg_v2.json)执行一次最多90条独立名义轨迹，训练/更新/物理回合0。按已有development择优固定无校准seed2 guarded-v4与完整方法seed0 original，不根据新结果换模型。全部18个预算决策/90个W查询须先封存；每方法分别检查放行失败0、可行召回至少80%、放行至少6/9且每level至少2/3、最多一档预算保护。生产入口为`CaMRA/navigation/scripts/run_nav066_decision_validation.py`，不是旧NAV-041标签扫描。
