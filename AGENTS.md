@@ -79,6 +79,10 @@
 
 用户确认v7方案后在tiger11/tmux完成一次独立两阶段critic回修，legacy主agent验收，无测试子agent。复用972条train/372471步，新增回合0；六候选数值+边界步数分别150+150/150+150/150+150/150+150/150+150/150+150，共1800次更新，六actor不变、33项v2身份匹配。起点误放行25→19，所选边界错判932→573；旧五档4/6、完整train 0/6通过，状态HELD_TRAIN_GATE。按批准协议开发重评0，无新G4/部署包；原G4 FAIL、52/67、NAV-065=false、NAV-066未启动保持。本次额度已结束，不能自动重启或转移余量。79项基本测试证据与未变源码匹配，主agent逐步日志/阶段模型/原始轨迹验收通过不等于科学通过。见[结果](CaMRA/navigation/docs/nav065_staged_refit_v7_review_20261118.md)。上方v7未批准为历史时点。
 
+### NAV-065最新补充（2026-11-18，单候选回修v8准备）
+
+用户指定legacy按前述分析推进；主agent完成57项基本检查和972条train/372471步只读诊断，无测试子agent。各固定actor的全量float32输入无完全重复冲突，不等于观测充分；v7到达critic的900次边界更新中874次与回归方向相反。原19次错误放行/64次错误拒绝、G4 FAIL及NAV-065=false保留。隔离v8拟先通过原数值检查，再保留回归方向并限幅符号纠错，用无动量SGD验证；原目标/评分/actor/v2不变。[未批准单候选提案](CaMRA/navigation/config/nav065_pilot_refit_proposal_v8.json)固定full_s0、最多300+100/共400新更新，新回合/开发评分0，通过也不自动扩展。本轮正式更新0，无新批准登记/正式run；过程与数字额度待明确确认，不能重用v7余量。52/67、NAV-066未启动。见[方案与证据](CaMRA/navigation/docs/nav065_pilot_refit_v8_20261118.md)。
+
 ## 前置状态：v2 选择与历史校准复核（2026-11-09）
 
 - [40项 HiRA 接入与校准计划](doc/plan/20261105_camra_hira_policy_calibration.json)当前 **40/40 项记录完成**；不再从 HIRA-001 或 HIRA-039 重新执行。先读[当前结果与复核说明](CaMRA/calibration/docs/controller_comparison_status_20261109.md)，再按需追溯计划全文与实际证据。

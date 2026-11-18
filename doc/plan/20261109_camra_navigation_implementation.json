@@ -11218,6 +11218,87 @@
           "blockers": [
             "本轮末次完整train未全部通过；已批准v7尝试结束，无继续更新授权，原G4 FAIL保持。"
           ]
+        },
+        {
+          "timestamp": "2026-11-18T19:01:52.378422+08:00",
+          "summary": "NAV-065/1.3.1 v8准备开工：核查输入可辨识性与回归/纠错冲突，准备单候选小规模验证",
+          "actions": [
+            "按legacy重读根AGENTS、技能执行规则/字段规范、完整JSON及当前任务历史、根/导航README和当前交接；校验原计划有效，确认首个可执行任务NAV-065、依赖NAV-064=true、52/67完成。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav065-v8-plan/nav065-v8-rules；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+            "legacy validate_worklog.py --mode update"
+          ],
+          "results": [
+            "本项为NAV-066提供可信的固定actor双critic预算判据；v7六候选末次完整train 0/6、错误放行19、错误拒绝64，G4 FAIL有效。",
+            "上游为78919cc的v7来源/阶段日志与最终模型及972条train/372471步；不选中间checkpoint覆盖批准末次结果。",
+            "允许新增隔离诊断、修正训练过程的候选入口、基本测试和未批准小规模提案；保持六actor、共同停止cost/reach目标/W、beta=0、原v5 train/G4、完整v2及匹配校准、地图/时序/J单位和数据隔离。",
+            "验收由主agent按legacy实施，无专用测试子agent；基本测试、只读真实train输入/目标/梯度/分类诊断及生产门禁接线证据不等于科学通过。",
+            "新增优化额度和新过程以具体可审阅提案确认，本轮不调用真实optimizer、不新采样、不开发重评、不访问budget_selection/final、不执行NAV-066。"
+          ],
+          "evidence": [
+            "用户指定create-plan-worklog-legacy基于前述分析推进",
+            "CaMRA/navigation/reports/nav065_staged_refit_v7_review.json",
+            "78919cc0b4b0431d455c6990c764f89dac137c16"
+          ],
+          "remaining_work": [
+            "先用现有数据区分观测信息不足、陡变目标与优化冲突，再准备有界单候选入口并基本验证；全部原科学标准通过前保持false。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-18T19:07:58.805473+08:00",
+          "summary": "NAV-065/1.3.1 v8准备收尾：57基本检查与全量train输入诊断通过，单候选400步提案待确认",
+          "actions": [
+            "实现隔离v8单候选入口：先原数值门槛、再保留回归方向并只投影/限幅符号纠错；边界无动量SGD，不放大微小纠错梯度。",
+            "直接调用未改的v5 train_gate、原目标及分层回归；记录全部起点分类变化、阶段/末次模型，数值未过不强行切换，pilot通过也不调用development或交付部署包。",
+            "主agent在tiger11/tmux运行57项基本检查及972条train/372471步只读诊断，无测试子agent；原v7源码/产物、固定actor及33项v2身份复核匹配。",
+            "按每actor检查全量float32输入精确碰撞、相邻预算标签及v7阶段梯度，实际末次train门禁重建与保存结果逐项一致；未正式优化、采样或开发评分。",
+            "同步未批准提案、诊断/准备报告、方案、AGENTS/导航README/交接和当前任务追加记录，保留旧证据与全部状态。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/refit_nav065_pilot.py",
+            "CaMRA/navigation/tests/test_nav065_pilot_refit.py",
+            "CaMRA/navigation/config/nav065_pilot_refit_proposal_v8.json",
+            "CaMRA/navigation/reports/nav065_pilot_refit_preflight_v8.json",
+            "CaMRA/navigation/docs/nav065_pilot_refit_v8_20261118.md",
+            "CaMRA/navigation/reports/nav065_pilot_refit_v8_preparation_review.json",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            ".worklog-testing/NAV-065/pilot-v8-preparation/"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav065-v8-basic/nav065-v8-preflight/nav065-v8-review；cwd=CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+            "PYTHONPATH=src <Python> -m pytest -q tests/test_nav065_pilot_refit.py tests/test_nav065_staged_refit.py tests/test_nav065_guarded_refit.py tests/test_deployment_oracle.py",
+            "<Python> -u .worklog-testing/NAV-065/pilot-v8-preparation/preflight.py、review.py（绝对路径）；legacy validate_worklog.py --mode update"
+          ],
+          "results": [
+            "57基本检查通过，972条train/372471步预检通过，原v5 gate与v7末次逐项一致；各actor无完全重复输入，不等于观测充分。",
+            "v7到达网络900次边界更新有874次梯度相反；full_s0 L3-s1003预算仅变3.8007 J，到达分量+0.0021004→−3，W跨零，支持陡变目标与优化冲突诊断，不能推断唯一根因。",
+            "新增提案固定full_s0/v7末次来源，最多300纯数值+100边界、共400新更新；其他五模型不动，新回合/开发评分0，通过也不自动扩展。提案approved=false，无新批准登记或正式run。",
+            "原共同停止cost/reach/W、beta=0、网络/obs-v7、六actor、v2/校准及地图/时序/J单位/分片保持；真实生产入口使用原v5 gate，后续六候选与原G4仍必须验收。",
+            "准备与执行完整性证据不等于科学通过；原19误放行/64误拒绝、0/6完整train、G4 FAIL、NAV-065=false、52/67和NAV-066未启动保持。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav065_pilot_refit_preflight_v8.json",
+            "CaMRA/navigation/reports/nav065_pilot_refit_v8_preparation_review.json",
+            "CaMRA/navigation/config/nav065_pilot_refit_proposal_v8.json",
+            "CaMRA/navigation/docs/nav065_pilot_refit_v8_20261118.md",
+            ".worklog-testing/NAV-065/pilot-v8-preparation/basic-attempt1.log",
+            ".worklog-testing/NAV-065/pilot-v8-preparation/preflight-attempt1.log"
+          ],
+          "remaining_work": [
+            "确认具体单候选额度及新优化过程后，另冻批准登记/pin并现场复核，只执行一次新目录试验；不续跑v7或转移旧额度。",
+            "pilot若通过仍需另行评审六候选扩展；全部原train/G4及部署包通过后才能完成NAV-065和进入NAV-066。"
+          ],
+          "blockers": [
+            "新过程及400次optimizer数字额度尚未明确批准；当前真实科学失败未解决，正式训练及下游保持阻塞。"
+          ]
         }
       ],
    "test_reports": [

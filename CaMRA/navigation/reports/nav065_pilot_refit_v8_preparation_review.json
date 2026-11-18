@@ -1,0 +1,53 @@
+{
+  "schema": "camra-nav065-pilot-v8-preparation-review",
+  "task": "NAV-065",
+  "timestamp": "2026-11-18T19:07:58.805473+08:00",
+  "host": "tiger11.ios.ac.cn",
+  "tmux": "/tmp/tmux-39400170/default,2639274,25",
+  "cwd": "/home/caohy/repositories/Paper/CaMRA/navigation",
+  "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "reviewer": "main agent under create-plan-worklog-legacy; no test subagents",
+  "basic_tests_passed": 57,
+  "preparation_pass": true,
+  "scientific_pass": false,
+  "saved_train_episodes": 972,
+  "saved_train_steps": 372471,
+  "v2_verified_files": 33,
+  "formal_optimizer_steps": 0,
+  "new_rollouts": 0,
+  "development_scoring_rounds": 0,
+  "source_gate_exact_match": true,
+  "exact_duplicate_input_groups": 0,
+  "v7_reach_opposing_gradient_steps": 874,
+  "v7_reach_boundary_steps": 900,
+  "source_false_feasible": 19,
+  "source_false_infeasible": 64,
+  "original_g4": "FAIL",
+  "nav065_status": false,
+  "completed_tasks": 52,
+  "nav066_started": false,
+  "proposal_approved": false,
+  "evidence": {
+    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/refit_nav065_pilot.py": "bf71abe45057d5715bf976581c148e5ab48bb11d4b3843cb755796685819457e",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/tests/test_nav065_pilot_refit.py": "bae182c826e98e06ad72662ade822bd7d4c89b35a64f8e80c36eb1a370ad482e",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/config/nav065_pilot_refit_proposal_v8.json": "cb3d30d2567099fd2d5dad923035a43cf83a508b086a4a2de315a927bb021049",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav065_pilot_refit_preflight_v8.json": "01b018febd579f8141a050fd629163f10d3081e56fb593a70ffeddf1e6403963",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/docs/nav065_pilot_refit_v8_20261118.md": "4ff0b640eb3c05b24437c1fd6ae49d2b87032ad0be5b56b118941d2ec7f07805"
+  },
+  "basic_log_sha256": "7c475ce54fd1a4909dd39a52e2e8af72118422d87dc638607fb9be2f97b87685",
+  "preflight_log_sha256": "77f35003907b39de6f9d635e5cb5de6a286420fa9cbb4f29d1acaaa24eb2893e",
+  "resources_sha256": "617189209dc418314023bf21ef563f73c18be2902bd3935c6117ae38acca7ea9",
+  "production_chain": [
+    "refit_nav065_pilot.fit -> unchanged stratified regression / original component-joint signs -> original v5 train_gate after every step",
+    "numeric checks are mandatory before boundary; regression-first correction uses plain SGD and never amplifies a small sign gradient",
+    "refit_nav065_pilot.run -> save and CPU-reload fixed pilot; other five unchanged; no development/evaluate/G4 call even if pilot passes",
+    "future six-candidate expansion requires separate bounded review, all original train/G4 checks and no automatic downstream release"
+  ],
+  "limitations": [
+    "No candidate optimizer was executed; synthetic toy optimizer tests are only basic verification.",
+    "Exact-input uniqueness does not prove sufficient observation or neural representation/generalization.",
+    "First-order sampled-MSE protection is not a finite-step numerical/classification or convergence guarantee.",
+    "Original raw-J/common-stop audit is inherited from matching v7 evidence; this round reconstructed all train gates without changing the oracle.",
+    "v7 failed final models remain the fixed sources; no intermediate checkpoint or development-based candidate selection."
+  ]
+}
