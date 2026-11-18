@@ -1,0 +1,37 @@
+{
+  "schema": "camra-nav065-ridge-probe-v11",
+  "task": "NAV-065",
+  "approved": false,
+  "status": "PROPOSED_NOT_EXECUTED",
+  "fit_split": "train",
+  "candidate": "nav064_terminal_tail_v1_full_s0",
+  "source_checkpoint_sha256": "b6eecf29f35cc1aa20a5fdd2216b0d30425cb044efae325f11a8c86533646bc7",
+  "source_rule": "Fixed v8 final, the same source as v9/v10; never use their fitted diagnostic checkpoints or pick an intermediate. Verify the original 90 plus additional 72 saved train episodes and all 59877 pre-action rows.",
+  "expected_train_episodes": {"original": 90, "additional": 72, "total_steps": 59877},
+  "output_name": "nav065_ridge_probe_v11",
+  "resource_limit": {
+    "update_candidates": ["nav064_terminal_tail_v1_full_s0"],
+    "head_linear_solves_total_max": 2,
+    "solves_per_original_critic_head": 1,
+    "optimizer_steps_total_max": 0,
+    "new_train_episodes_max": 0,
+    "development_scoring_rounds_max": 0,
+    "cpu_threads": 1
+  },
+  "solve": {
+    "method": "One augmented float64 least-squares solve per original output layer, with all-train stratified numerical targets and a source-relative ridge penalty; cast back to the original float32 network.",
+    "rcond": 1e-12,
+    "ridge_strength": 0.01,
+    "target_rms_floor": 1e-6,
+    "head_norm_floor": 1.0,
+    "feature_batch_rows": 2048,
+    "groups": ["original_all_rows", "additional_all_rows", "all_starts", "original_gate_boundary_rows"],
+    "weighting": "Each of the four nonempty groups has mass 1/4. Within each group, existing reach-positive and reach-nonpositive strata have equal mass, and rows within a stratum are uniform. Boundary selection is exactly the original v5 selection, including its starts; repeated rows intentionally receive several group contributions. No train row is removed.",
+    "objective": "For each critic: sum_i p_i*((A_i*(w-w0) - (y_i-A_i*w0))/target_rms)^2 + ridge_strength*||w-w0||^2/head_scale^2; target_rms=max(sqrt(sum_i p_i*y_i^2),target_rms_floor); head_scale=max(||w0||,head_norm_floor). Bias is included in w and penalized. Numerical labels are unchanged.",
+    "rule": "Actor and both critic bodies remain fixed. Two head solves total, no ridge/tolerance/weight/source sweeps or retry. Report the analytic objective-based correction bound, the actual float32 parameter displacement, each group's error/sign changes, all starts, and the unchanged full train gate. A weighted objective improvement alone is never acceptance."
+  },
+  "acceptance": "Use unchanged original v5 full 90+72 episode train_gate before and after. Keep original and added trajectory errors separate and report old primary feasible recognition, all-start and original selected boundary signs. Also report the unchanged v9 25-start checks for continuity, without optimizing solely on those points. Scientific NAV-065/G4 remains unpassed in this pilot, even if its train gate passes.",
+  "failure_policy": "Any real candidate solve is model fitting and requires a separately approved, hash-pinned registration. Exclusive new output, preserve attempts, partial checkpoints and failures, no continuation/transfer/restart. No development, extra candidate, architecture/body change or deployment in this proposal.",
+  "downstream": "One diagnostic checkpoint and full-train impact review. If successful, review a separate extension to other candidates before any development/G4/budget-search work. Failure is evidence about this fixed-feature and fixed-regularization attempt, not proof that the architecture or RC-PPO cannot work.",
+  "protected": ["six original models and actors", "original critic bodies and architecture", "obs-v7 and original numerical cost/reach targets", "common stop, W and beta=0", "original v5 train/G4", "frozen v2 and calibration", "train/development/selection/final isolation", "all prior artifacts and source locks", "RC-PPO/HiRA/manuscripts"]
+}
