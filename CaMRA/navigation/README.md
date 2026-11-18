@@ -1,5 +1,9 @@
 # 上层最小成本到达避障导航器
 
+## 2026-11-18 NAV-065 v5准备完成，新增额度待确认
+
+主agent按legacy完成48项基础检查和540条train/207298步只读覆盖诊断；六候选各18图的旧可行性交界均夹在相差k=0.15的两档间，近零起点49/540。新版入口只在原train图追加临界预算完整轨迹，固定actor拟合双critic，并检查起点及沿途联合符号；原目标、beta、G4和v2不改。[提案](config/nav065_adaptive_refit_proposal_v5.json)申请最多432新train回合、每候选300次critic试步/总1800，全部train过后才原180 development重评一次，尚未批准或执行。详见[v5说明](docs/nav065_adaptive_refit_v5_20261118.md)；NAV-065=false、52/67、原G4 FAIL及NAV-066未启动保持。下方均为历史时点。
+
 ## 2026-11-18 NAV-065 v4复验结束，部署门禁仍失败
 
 固定六份actor，仅剩余full seed1做1次评价器更新，train6/6通过；统一复验180旧development，主预算36/36正确，但紧预算4次错误放行，G4仍FAIL、NAV-065=false、52/67，预算搜索未启动。其他五模型保留，新增回合0。31项基础测试及主agent原轨迹复核通过，按失败协议停止追加拟合。详见[v4结果](docs/nav065_guarded_refit_v4_review_20261118.md)与[当前交接](docs/implementation_handoff.md)，下方为历史时点。

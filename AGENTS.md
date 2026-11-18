@@ -55,6 +55,10 @@
 
 用户允许新一轮测试，按legacy由主agent验证，无测试子agent。v4仅full seed1最多300次试更新，实际首个1e-5试步通过并冻结，其他五模型全部张量及六actor不变。540 train/207298步复用，train6/6、错误放行1→0；统一复评180旧development一次，主预算36/36正确，但紧预算4次错误放行，仅无校准seed1/seed2通过，新G4仍FAIL，无部署包。31项基础检查及主agent720条轨迹/J/共同停止复核通过不等于科学通过；NAV-065=false、52/67、NAV-066不执行。按失败协议停止，不自动使用剩余299次；后续先诊断train边界覆盖与泛化，不把开发失败转train。见[结果](CaMRA/navigation/docs/nav065_guarded_refit_v4_review_20261118.md)。以上v3记录为历史时点。
 
+### NAV-065最新补充（2026-11-18，临界预算补采v5准备）
+
+用户指定legacy并按前述分析推进；主agent完成48项基础检查和540条train/207298步只读覆盖诊断，无测试子agent。六候选各18图的旧预算可行性夹区全为k=0.15，近零起点49/540，支持有限补采但不构成唯一根因或科学通过。隔离v5和未批准提案已建立：最多432新train回合/194400步、每候选300次critic试步/总1800，全部train通过后才原180 development重评一次；actor/原目标/beta/G4/v2不改。新增数字额度尚未确认，本轮正式采样/优化/开发重评均0，不得执行提案或重启旧run、挪用v4余量。原G4 FAIL、NAV-065=false、52/67、NAV-066不执行。见[方案和基础验证](CaMRA/navigation/docs/nav065_adaptive_refit_v5_20261118.md)。
+
 ## 前置状态：v2 选择与历史校准复核（2026-11-09）
 
 - [40项 HiRA 接入与校准计划](doc/plan/20261105_camra_hira_policy_calibration.json)当前 **40/40 项记录完成**；不再从 HIRA-001 或 HIRA-039 重新执行。先读[当前结果与复核说明](CaMRA/calibration/docs/controller_comparison_status_20261109.md)，再按需追溯计划全文与实际证据。

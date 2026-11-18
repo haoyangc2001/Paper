@@ -10728,6 +10728,72 @@
      "blockers": [
       "开发四候选仍有紧预算错误放行，本轮拟合及唯一开发复验已结束，不继续追加。"
      ]
+    },
+    {
+     "timestamp": "2026-11-18T17:00:00+08:00",
+     "summary": "NAV-065/1.3.1 按用户指定legacy续办：诊断训练边界覆盖并准备有界v5入口",
+     "actions": ["重新完整读取AGENTS、legacy技能/执行规则和当前计划，核对NAV-064依赖、v4失败及参考实际调用链。", "仅主agent基础验证；本轮先实现train边界自适应采样、沿途联合符号拟合及配额阻断，保留所有旧源码和失败。"],
+     "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+     "commands": ["读取AGENTS、模块README、NAV计划/交接、RC-PPO/rl/EC-EFPPO.py与root_finding.py；核对git、tiger11及既有tmux。"],
+     "results": ["总目标仍为固定v2、共同停止下的双critic及W=max(V_h,V_c-z)，本项解决NAV-066前的临界预算可信度。", "允许隔离导航实现、只读540条train诊断及合成基础测试；actor、原目标/beta/评分、开发门槛、v2和只读参考不改。", "本次用户同意按前述分析推进；新数据及优化数字额度尚未具体冻结，本轮完成可审阅入口和提案后才申请，未重启旧失败run。"],
+     "evidence": ["CaMRA/navigation/reports/nav065_guarded_refit_v4_review.json", ".worklog-testing/NAV-065/adaptive-v5/before-plan.json", "git HEAD f859007"],
+     "remaining_work": ["train覆盖诊断、隔离入口/原门禁调用、主agent基本测试、资源提案及追加交接；科学G4全过才能交付NAV-066。"],
+     "blockers": ["旧开发四次假可行；新采样/优化额度未冻结，NAV-065=false，NAV-066不启动。"]
+    },
+    {
+     "timestamp": "2026-11-18T17:10:19+08:00",
+     "summary": "NAV-065/1.3.1 v5有限补采入口及主agent基础验收完成，新增数字额度待确认",
+     "actions": [
+      "按用户指定legacy执行，不派专用测试子agent；保存原计划、失败attempt和新源码快照。",
+      "只读核验540条train/207298步、六份v4模型及上游绑定资源，统计预算交界与共同停止目标；没有重新评分development。",
+      "新增隔离v5：只访问原train图，预算变更真实重跑actor；原共同停止目标下拟合双critic的起点/沿途分量和联合W符号。",
+      "接通逐试步回退/额度计数、已正确起点保护、新旧数值误差分列及全train通过后的原G4单次调用；未批准登记在建run前拒绝。",
+      "主agent在tiger11/tmux完成48项基础检查、CLI拒绝及源码/旧产物身份和计划追加历史复核，更新AGENTS、README及交接。"
+     ],
+     "files_changed": [
+      "CaMRA/navigation/scripts/refit_nav065_adaptive.py",
+      "CaMRA/navigation/tests/test_nav065_adaptive_refit.py",
+      "CaMRA/navigation/config/nav065_adaptive_refit_proposal_v5.json",
+      "CaMRA/navigation/reports/nav065_train_coverage_v5_attempt3.json",
+      "CaMRA/navigation/reports/nav065_adaptive_refit_v5_preparation_review.json",
+      "CaMRA/navigation/docs/nav065_adaptive_refit_v5_20261118.md",
+      "CaMRA/navigation/docs/implementation_handoff.md",
+      "CaMRA/navigation/README.md",
+      "AGENTS.md",
+      "doc/plan/20261109_camra_navigation_implementation.json",
+      ".worklog-testing/NAV-065/adaptive-v5/"
+     ],
+     "commands": [
+      "tmux=nav064-r14-repair-20261115:nav065-v5-recheck3及nav065-v5-finalize；host=tiger11.ios.ac.cn；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+      "PYTHONPATH=src:scripts PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -m pytest -q -p no:cacheprovider tests/test_nav065_adaptive_refit.py tests/test_nav065_guarded_refit.py tests/test_nav065_boundary_refit.py tests/test_nav065_saved_refit.py",
+      "同解释器 -u scripts/refit_nav065_adaptive.py --diagnose reports/nav065_train_coverage_v5_attempt3.json",
+      "同解释器 -u .worklog-testing/NAV-065/adaptive-v5/finalize.py；未批准CLI --registration config/nav065_adaptive_refit_proposal_v5.json按预期非零退出。",
+      "legacy validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update；git -c core.whitespace=cr-at-eol diff --check"
+     ],
+     "results": [
+      "有效48项基础检查通过（新增17项、既有31项）；源码与旧v4全部正式产物hash不变，原67项定义/状态/全部旧work_records保留，首个依赖满足项仍NAV-065。",
+      "108个actor×train地图组合均观测到相邻可行性转换，夹区宽度全为k=0.15；abs(W真值)<=0.01的起点49/540，未观测到旧五档反转。支持有限补采，不是唯一根因证明或通过保证。",
+      "首次诊断JSON写入遇NumPy计数序列化错误，原空报告及日志保留；转Python整数并加测试。第二次两个新增测试样本缺stop_index，补齐后48/48通过，未据工程错误判断模型性能。",
+      "提案approved=false：申请最多432新train完整回合/194400步、每候选300次optimizer试步/总1800，拒绝试步计数；全部train通过才复用原180 development统一重评一次。新开发回合、actor更新及物理采集0。",
+      "本轮真实新增正式回合0、critic试更新0、development重评0；未创建正式v5 run，未使用旧v4余量，未访问budget_selection/final。",
+      "局部入口与合成调用链基础验证通过；真实新样本拟合/原开发G4及部署包尚缺，不能以基础测试替代科学放行。固定v2、actor、原目标/共同停止、W/beta、原地图/时限/评分和只读边界保持。NAV-065=false、52/67、原G4 FAIL，NAV-066不执行。"
+     ],
+     "evidence": [
+      "CaMRA/navigation/reports/nav065_train_coverage_v5_attempt3.json",
+      "CaMRA/navigation/reports/nav065_adaptive_refit_v5_preparation_review.json",
+      ".worklog-testing/NAV-065/adaptive-v5/tests-final.log",
+      ".worklog-testing/NAV-065/adaptive-v5/unapproved-refusal.log",
+      ".worklog-testing/NAV-065/adaptive-v5/tested_source/",
+      ".worklog-testing/NAV-065/adaptive-v5/before-plan.json",
+      "CaMRA/navigation/docs/nav065_adaptive_refit_v5_20261118.md"
+     ],
+     "remaining_work": [
+      "用户确认v5具体新增采样/优化额度后，独立冻结批准登记及pin、核对现场资源和源码身份，在新目录执行一次有界补采/拟合。",
+      "六组train全部满足再按原门槛统一复验旧development一次；原G4通过才能完成NAV-065并交付NAV-066。"
+     ],
+     "blockers": [
+      "新数据及数字资源额度未确认；依主计划uncertainty_policy不能直接执行未批准提案，也不能复用旧失败轮剩余额度。原开发四次假可行仍未实际修复。"
+     ]
     }
    ],
    "test_reports": [
