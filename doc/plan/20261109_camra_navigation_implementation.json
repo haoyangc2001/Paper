@@ -10732,13 +10732,32 @@
     {
      "timestamp": "2026-11-18T17:00:00+08:00",
      "summary": "NAV-065/1.3.1 按用户指定legacy续办：诊断训练边界覆盖并准备有界v5入口",
-     "actions": ["重新完整读取AGENTS、legacy技能/执行规则和当前计划，核对NAV-064依赖、v4失败及参考实际调用链。", "仅主agent基础验证；本轮先实现train边界自适应采样、沿途联合符号拟合及配额阻断，保留所有旧源码和失败。"],
-     "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
-     "commands": ["读取AGENTS、模块README、NAV计划/交接、RC-PPO/rl/EC-EFPPO.py与root_finding.py；核对git、tiger11及既有tmux。"],
-     "results": ["总目标仍为固定v2、共同停止下的双critic及W=max(V_h,V_c-z)，本项解决NAV-066前的临界预算可信度。", "允许隔离导航实现、只读540条train诊断及合成基础测试；actor、原目标/beta/评分、开发门槛、v2和只读参考不改。", "本次用户同意按前述分析推进；新数据及优化数字额度尚未具体冻结，本轮完成可审阅入口和提案后才申请，未重启旧失败run。"],
-     "evidence": ["CaMRA/navigation/reports/nav065_guarded_refit_v4_review.json", ".worklog-testing/NAV-065/adaptive-v5/before-plan.json", "git HEAD f859007"],
-     "remaining_work": ["train覆盖诊断、隔离入口/原门禁调用、主agent基本测试、资源提案及追加交接；科学G4全过才能交付NAV-066。"],
-     "blockers": ["旧开发四次假可行；新采样/优化额度未冻结，NAV-065=false，NAV-066不启动。"]
+     "actions": [
+      "重新完整读取AGENTS、legacy技能/执行规则和当前计划，核对NAV-064依赖、v4失败及参考实际调用链。",
+      "仅主agent基础验证；本轮先实现train边界自适应采样、沿途联合符号拟合及配额阻断，保留所有旧源码和失败。"
+     ],
+     "files_changed": [
+      "doc/plan/20261109_camra_navigation_implementation.json"
+     ],
+     "commands": [
+      "读取AGENTS、模块README、NAV计划/交接、RC-PPO/rl/EC-EFPPO.py与root_finding.py；核对git、tiger11及既有tmux。"
+     ],
+     "results": [
+      "总目标仍为固定v2、共同停止下的双critic及W=max(V_h,V_c-z)，本项解决NAV-066前的临界预算可信度。",
+      "允许隔离导航实现、只读540条train诊断及合成基础测试；actor、原目标/beta/评分、开发门槛、v2和只读参考不改。",
+      "本次用户同意按前述分析推进；新数据及优化数字额度尚未具体冻结，本轮完成可审阅入口和提案后才申请，未重启旧失败run。"
+     ],
+     "evidence": [
+      "CaMRA/navigation/reports/nav065_guarded_refit_v4_review.json",
+      ".worklog-testing/NAV-065/adaptive-v5/before-plan.json",
+      "git HEAD f859007"
+     ],
+     "remaining_work": [
+      "train覆盖诊断、隔离入口/原门禁调用、主agent基本测试、资源提案及追加交接；科学G4全过才能交付NAV-066。"
+     ],
+     "blockers": [
+      "旧开发四次假可行；新采样/优化额度未冻结，NAV-065=false，NAV-066不启动。"
+     ]
     },
     {
      "timestamp": "2026-11-18T17:10:19+08:00",
@@ -10794,6 +10813,41 @@
      "blockers": [
       "新数据及数字资源额度未确认；依主计划uncertainty_policy不能直接执行未批准提案，也不能复用旧失败轮剩余额度。原开发四次假可行仍未实际修复。"
      ]
+    },
+    {
+     "timestamp": "2026-11-18T17:16:35.348063+08:00",
+     "summary": "NAV-065/1.3.1 用户确认v5具体额度，冻结独立批准登记并执行一次有界补采/拟合",
+     "actions": [
+      "完整重读AGENTS、legacy技能/执行规则、计划和交接，核对NAV-064=true及当前NAV-065；主agent基本验证，不派测试子agent。",
+      "保留proposal=false；新增批准登记pin和新输出目录，旧轮数据/失败/余量保留。"
+     ],
+     "files_changed": [
+      "CaMRA/navigation/config/nav065_adaptive_refit_prereg_v5.json",
+      "CaMRA/navigation/config/nav065_adaptive_refit_prereg_v5.json.sha256",
+      "doc/plan/20261109_camra_navigation_implementation.json",
+      ".worklog-testing/NAV-065/adaptive-v5-execution/launch.py"
+     ],
+     "commands": [
+      "tiger11/tmux nav064-r14-repair-20261115:nav065-v5-formal；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+      "PYTHONPATH=src:scripts PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 <Python> -u scripts/refit_nav065_adaptive.py --registration config/nav065_adaptive_refit_prereg_v5.json；launcher先核验资源、计划及基本测试。"
+     ],
+     "results": [
+      "批准432新train回合/194400步、每候选300次试步/总1800，拒绝计数、不转移额度；六train全过后冻结并重评原180 development一次，新增开发回合0。",
+      "本项为NAV-066提供固定actor匹配双critic；上游v4六模型、540 train/207298步和四次开发误放行保留。只允许原train图补采及双critic拟合。",
+      "actor、共同停止原目标、W=max(V_h,V_c-z/550)、beta=0、G4/评分/地图/时限、整套v2及校准、数据隔离、论文/参考只读保持；沿用已批准同机tiger11/tmux例外。",
+      "开工不代表科学通过；NAV-065=false、52/67，NAV-066不执行。"
+     ],
+     "evidence": [
+      "用户最新回复：确认",
+      "CaMRA/navigation/config/nav065_adaptive_refit_proposal_v5.json",
+      "CaMRA/navigation/docs/nav065_adaptive_refit_v5_20261118.md",
+      "CaMRA/navigation/reports/nav065_train_coverage_v5_attempt3.json",
+      "git HEAD 5851902"
+     ],
+     "remaining_work": [
+      "现场预检和基本测试、一次有界新run、主agent复核实际产物并交接；G4全过才完成NAV-065。"
+     ],
+     "blockers": []
     }
    ],
    "test_reports": [
