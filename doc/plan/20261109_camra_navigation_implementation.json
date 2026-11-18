@@ -10848,6 +10848,58 @@
       "现场预检和基本测试、一次有界新run、主agent复核实际产物并交接；G4全过才完成NAV-065。"
      ],
      "blockers": []
+    },
+    {
+     "timestamp": "2026-11-18T17:24:10.783995+08:00",
+     "summary": "NAV-065/1.3.1 v5有界补采/双critic拟合及主agent复核结束：0/6完整train通过，HELD且开发重评0",
+     "actions": [
+      "独立批准登记pin=89d46ae22b7b2b4ec58a1d638052f9c2c26fd8f6f6a9c4432a9fcc6019b74f08；原proposal=false及旧轮失败/数据/余量保留。",
+      "tiger11/tmux资源、绝对解释器、v2身份/上游绑定及计划预检通过；保存当前导航src/scripts/config/tests只读快照，主agent48项基础测试通过。",
+      "正式调用refit_nav065_adaptive.py：原18张train图每actor×图新增4个真实预算rollout，共432；只拟合双critic，试步/拒绝/回退/首过冻结均由预登记规则控制。",
+      "主agent按legacy只读复核972条轨迹的原始J账本、共同停止/成本/到达/W真值，432条新动作与固定actor一致，完整采样键/中点顺序、六模型CPU重载、92试步及12接受更新、源码身份均通过；无专用测试子agent。",
+      "按失败协议保留HELD和所有原始轨迹/最终模型/逐试步日志；统一更新交接与结果说明。本轮不重评开发、不新增G4或部署包、不启动NAV-066。"
+     ],
+     "files_changed": [
+      "CaMRA/navigation/reports/nav065_adaptive_refit_v5_review.json",
+      "CaMRA/navigation/docs/nav065_adaptive_refit_v5_review_20261118.md",
+      "CaMRA/navigation/docs/implementation_handoff.md",
+      "CaMRA/navigation/README.md",
+      "AGENTS.md",
+      "doc/plan/20261109_camra_navigation_implementation.json",
+      ".worklog-testing/NAV-065/adaptive-v5-execution/"
+     ],
+     "commands": [
+      "host=tiger11.ios.ac.cn；tmux nav064-r14-repair-20261115:nav065-v5-formal/nav065-v5-review；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+      "PYTHONPATH=src:scripts PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 <Python> -u .worklog-testing/NAV-065/adaptive-v5-execution/launch.py（绝对脚本路径）；完整子命令在launch目录各*-command.json。",
+      "<Python> -m pytest -q -p no:cacheprovider tests/test_nav065_adaptive_refit.py tests/test_nav065_guarded_refit.py tests/test_nav065_boundary_refit.py tests/test_nav065_saved_refit.py",
+      "<Python> -u scripts/refit_nav065_adaptive.py --registration config/nav065_adaptive_refit_prereg_v5.json",
+      "同环境 <Python> -u /home/caohy/repositories/Paper/.worklog-testing/NAV-065/adaptive-v5-execution/review.py；收尾运行legacy validate_worklog.py --mode update及git diff --check。"
+     ],
+     "results": [
+      "用户最新确认后按独立批准登记执行一次v5，固定tiger11/tmux、legacy主agent验证，无专用测试子agent。新增432条train/165173步，连同旧540条共972条/372471步；六候选试更新28/16/24/8/8/8，共92次，接受7/1/4/0/0/0，共12次，六actor不变。旧五档train仍6/6通过，但新增临界预算起点误放行43→27，新增到达critic相对MAE约64%–100%，六组均未通过完整train检查，状态HELD_TRAIN_GATE。按协议开发重评0，无新G4/部署包；原G4 FAIL、NAV-065=false、52/67、NAV-066未启动。未用额度不自动续跑或转移。主agent复核972条轨迹/J/共同停止、采样顺序、试步计数、CPU重载及源码身份通过；基本48测试通过不等于科学通过。",
+      "新增预算观测区间未记录可行性反转，但不构成连续预算单调或泛化保证。27次误放行全部出现在新增train起点，旧540起点0次；新预算沿途分量及符号暴露了旧五档未覆盖的识别缺口，不能说固定actor本轮退化。",
+      "所有候选新增cost相对MAE约0.79%–3.87%，vh相对MAE约63.56%–100.09%，且vh Pearson未达标；最终选定边界状态错符号55/79/91/130/237/389。平均成本拟合准确不等于联合W可信。",
+      "试步守卫在回退上限内无法接受下一步时提前停止，92是实际试步而非耗尽1800；不自行扩额/重启/放宽保护。",
+      "局部程序/数据/身份/调用链验收通过；原科学标准未过，NAV-065保持false及原verification_result不改写。固定actor、原共同停止目标/双critic/W、beta=0、v2/校准、地图/时序/单位/评分、数据分片及只读参考/论文边界保持。给NAV-066的合格部署包仍缺，依赖不得越过。"
+     ],
+     "evidence": [
+      "CaMRA/navigation/config/nav065_adaptive_refit_prereg_v5.json",
+      "CaMRA/navigation/reports/nav065_adaptive_refit_v5_review.json",
+      "/pub/data/caohy/work/camra_navigation/nav065_adaptive_refit_launch_20261118_v5/START.json",
+      "/pub/data/caohy/work/camra_navigation/nav065_adaptive_refit_launch_20261118_v5/source_before.json",
+      "/pub/data/caohy/work/camra_navigation/nav065_adaptive_refit_launch_20261118_v5/tests.log",
+      "/pub/data/caohy/work/camra_navigation/nav065_adaptive_refit_launch_20261118_v5/review.json",
+      "/pub/data/caohy/work/camra_navigation/nav065_adaptive_refit_launch_20261118_v5/train_cases.json",
+      "/pub/data/caohy/work/camra_navigation/nav065_adaptive_refit_v5/HELD_TRAIN_GATE.json",
+      "批准本地提交f3d4e31；源码/产物hash见review.evidence.output_hashes"
+     ],
+     "remaining_work": [
+      "使用已保存train/逐试步日志分析新增预算下reach目标与共同停止切换、梯度及守卫拒绝原因；不把旧开发失败转train。",
+      "需独立方案和明确新额度才能再次拟合/采样；六组完整train和原development/G4均过后才能交付NAV-066。"
+     ],
+     "blockers": [
+      "六组完整train均失败：新增预算的到达critic数值误差、27次误放行及边界符号缺口；当前批准尝试已结束，禁止自动用未用额度续跑。"
+     ]
     }
    ],
    "test_reports": [

@@ -1,5 +1,11 @@
 # 上层导航实施交接
 
+## 2026-11-18 NAV-065 v5执行结束：补采432回合，仍HELD，未重评开发集
+
+用户最新确认后按独立批准登记执行一次v5，固定tiger11/tmux、legacy主agent验证，无专用测试子agent。新增432条train/165173步，连同旧540条共972条/372471步；六候选试更新28/16/24/8/8/8，共92次，接受7/1/4/0/0/0，共12次，六actor不变。旧五档train仍6/6通过，但新增临界预算起点误放行43→27，新增到达critic相对MAE约64%–100%，六组均未通过完整train检查，状态HELD_TRAIN_GATE。按协议开发重评0，无新G4/部署包；原G4 FAIL、NAV-065=false、52/67、NAV-066未启动。未用额度不自动续跑或转移。主agent复核972条轨迹/J/共同停止、采样顺序、试步计数、CPU重载及源码身份通过；基本48测试通过不等于科学通过。
+
+见[本轮结果](nav065_adaptive_refit_v5_review_20261118.md)及[复核报告](../reports/nav065_adaptive_refit_v5_review.json)。正式输出`/pub/data/caohy/work/camra_navigation/nav065_adaptive_refit_v5/`，启动/源码快照/复核`nav065_adaptive_refit_launch_20261118_v5/`。下方为历史时点。
+
 ## 2026-11-18 NAV-065 v5准备完成：train边界覆盖已核验，新额度待确认
 
 按用户指定legacy由主agent验证，不派专用测试子agent。复核540条train/207298步及六份v4固定actor模型：每候选18张图均有预算可行性转换，旧五档的相邻交界宽度全为k=0.15；abs(W真值)≤0.01的起点共49/540。这支持有限临界补采，不证明全部误判唯一根因或保证新一轮通过。
