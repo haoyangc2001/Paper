@@ -11335,6 +11335,50 @@
             "提交批准版本并执行一次独立pilot，按真实产物验收和保存结果；保持原G4 FAIL、NAV-065=false及NAV-066阻塞。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-18T19:53:30.412628+08:00",
+          "summary": "NAV-065/1.3.1 v8执行收尾：单候选数值优先验证结束，保留实际门禁与下游阻塞",
+          "actions": [
+            "用户确认后登记独立批准pin，提交批准版本6759ff8，在新目录执行一次固定full_s0有界pilot。",
+            "主agent按legacy复核原始162轨迹/J/共同停止、每步日志/起点算术/分类变化、数值阶段转移规则/额度、阶段及末次CPU重载和身份；无测试子agent。",
+            "核对57基本检查源码hash、33项v2、全部源码快照及其余五模型/六actor；保留全部产物/失败并同步结果、README、AGENTS和交接。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav065_pilot_refit_v8_review.json",
+            "CaMRA/navigation/docs/nav065_pilot_refit_v8_review_20261118.md",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            ".worklog-testing/NAV-065/pilot-v8-execution/"
+          ],
+          "commands": [
+            "host=tiger11.ios.ac.cn；tmux nav064-r14-repair-20261115:nav065-v8-run/nav065-v8-acceptance；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+            "<Python> -u scripts/refit_nav065_pilot.py --registration config/nav065_pilot_refit_prereg_v8.json",
+            "<Python> -u .worklog-testing/NAV-065/pilot-v8-execution/await_review.py、close.py（绝对路径）；legacy validate_worklog.py --mode update"
+          ],
+          "results": [
+            "用户确认v8后在tiger11/tmux完成一次固定full_s0单候选验证，legacy主agent验收，无测试子agent。复用该候选162条train/59877步，新增回合/开发评分0；实际数值300+边界0、共300更新。临界数据到达相对MAE 80.35%→43.85%（原线35%），Pearson 0.3312→0.5722（原线0.70）；起点误放行3→13、误拒绝10→1。停止原因numeric_gate_not_met，pilot完整train FAIL；六actor及其余五模型不变、33项v2身份匹配。无新G4/部署包，原G4 FAIL、52/67、NAV-065=false及NAV-066未启动保持；本次单次尝试已结束，不自动扩展或挪用阶段余量。",
+            "本轮仍使用原目标/原v5 train_gate，数值未过不切换；单候选不授权开发/G4/部署，实际开发评分0。",
+            "固定策略动作不变，本次critic预测变化不等于NAV-064策略训练退化；不推断未执行的边界SGD或开发/物理效果。",
+            "局部执行与全局接口/来源一致性通过；NAV-065全部六候选/开发/G4科学标准仍未满足，保持false和原verification_result，旧失败及全部记录保留。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav065_pilot_refit_v8_review.json",
+            "/pub/data/caohy/work/camra_navigation/nav065_pilot_refit_launch_20261118_v8/review.json",
+            "/pub/data/caohy/work/camra_navigation/nav065_pilot_refit_launch_20261118_v8/train_cases.json",
+            "/pub/data/caohy/work/camra_navigation/nav065_pilot_refit_launch_20261118_v8/source_before.json",
+            "CaMRA/navigation/config/nav065_pilot_refit_prereg_v8.json",
+            "CaMRA/navigation/reports/nav065_pilot_refit_v8_preparation_review.json"
+          ],
+          "remaining_work": [
+            "根据既有train日志诊断剩余问题；需要新增优化/变更时另行具体评审，不重启本run或挪用边界余量。",
+            "全部六候选原train及开发G4/部署包通过后才能完成NAV-065，NAV-066及物理下游保持阻塞。"
+          ],
+          "blockers": [
+            "本次批准单次pilot已结束，整体NAV-065尚未通过；原G4 FAIL保持，无自动扩展/续跑授权。"
+          ]
         }
       ],
    "test_reports": [

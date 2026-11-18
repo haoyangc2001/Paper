@@ -83,6 +83,10 @@
 
 用户指定legacy按前述分析推进；主agent完成57项基本检查和972条train/372471步只读诊断，无测试子agent。各固定actor的全量float32输入无完全重复冲突，不等于观测充分；v7到达critic的900次边界更新中874次与回归方向相反。原19次错误放行/64次错误拒绝、G4 FAIL及NAV-065=false保留。隔离v8拟先通过原数值检查，再保留回归方向并限幅符号纠错，用无动量SGD验证；原目标/评分/actor/v2不变。[未批准单候选提案](CaMRA/navigation/config/nav065_pilot_refit_proposal_v8.json)固定full_s0、最多300+100/共400新更新，新回合/开发评分0，通过也不自动扩展。本轮正式更新0，无新批准登记/正式run；过程与数字额度待明确确认，不能重用v7余量。52/67、NAV-066未启动。见[方案与证据](CaMRA/navigation/docs/nav065_pilot_refit_v8_20261118.md)。
 
+### NAV-065最新补充（2026-11-18，单候选回修v8已结束）
+
+用户确认v8后在tiger11/tmux完成一次固定full_s0单候选验证，legacy主agent验收，无测试子agent。复用该候选162条train/59877步，新增回合/开发评分0；实际数值300+边界0、共300更新。临界数据到达相对MAE 80.35%→43.85%（原线35%），Pearson 0.3312→0.5722（原线0.70）；起点误放行3→13、误拒绝10→1。停止原因numeric_gate_not_met，pilot完整train FAIL；六actor及其余五模型不变、33项v2身份匹配。无新G4/部署包，原G4 FAIL、52/67、NAV-065=false及NAV-066未启动保持；本次单次尝试已结束，不自动扩展或挪用阶段余量。执行完整性通过不等于科学通过；见[结果](CaMRA/navigation/docs/nav065_pilot_refit_v8_review_20261118.md)。上方v8未批准为历史时点。
+
 ## 前置状态：v2 选择与历史校准复核（2026-11-09）
 
 - [40项 HiRA 接入与校准计划](doc/plan/20261105_camra_hira_policy_calibration.json)当前 **40/40 项记录完成**；不再从 HIRA-001 或 HIRA-039 重新执行。先读[当前结果与复核说明](CaMRA/calibration/docs/controller_comparison_status_20261109.md)，再按需追溯计划全文与实际证据。
