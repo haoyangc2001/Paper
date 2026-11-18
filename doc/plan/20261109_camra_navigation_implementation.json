@@ -11014,6 +11014,50 @@
       "保存批准版本后执行一次正式v6；按真实产物复核，受影响门禁未过保持false且不启动NAV-066。"
      ],
      "blockers": []
+    },
+    {
+     "timestamp": "2026-11-18T17:59:02.813407+08:00",
+     "summary": "NAV-065/1.3.1 v6一次正式回修与legacy复核结束：完整train未过，HELD，无开发重评",
+     "actions": [
+      "按用户确认的独立v6登记执行一次新run，训练前本地提交773f433；复用972条train，不新增采样。",
+      "分层回归及最多4步一段、源锚定工作保护实际执行；每个拒绝段内试步计入额度，拒绝时恢复模型/优化器/随机数，六actor不变。",
+      "主agent按legacy完成63基本检查、972条轨迹/J/共同停止和可行性复算、六模型CPU重载、实际train门禁及段计量复核；未使用测试子agent。",
+      "保持全部旧产物/失败、源快照和原门禁；同步结果报告、入口与交接，仅向当前任务追加工作记录。"
+     ],
+     "files_changed": [
+      "CaMRA/navigation/reports/nav065_block_refit_v6_review.json",
+      "CaMRA/navigation/docs/nav065_block_refit_v6_review_20261118.md",
+      "AGENTS.md",
+      "CaMRA/navigation/README.md",
+      "CaMRA/navigation/docs/implementation_handoff.md",
+      "doc/plan/20261109_camra_navigation_implementation.json",
+      ".worklog-testing/NAV-065/block-v6-execution/"
+     ],
+     "commands": [
+      "tiger11/tmux nav064-r14-repair-20261115:nav065-v6-run/nav065-v6-review/nav065-v6-final；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+      "PYTHONPATH=src:scripts PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 <Python> -u scripts/refit_nav065_blocks.py --registration config/nav065_block_refit_prereg_v6.json",
+      "同环境 <Python> -u .worklog-testing/NAV-065/block-v6-execution/review.py（绝对路径）；legacy validate_worklog.py --mode update；git -c core.whitespace=cr-at-eol diff --check"
+     ],
+     "results": [
+      "用户确认v6方案后在tiger11/tmux完成一次独立离线回修。复用972条train/372471步，新增回合0；六候选试步16/16/16/28/16/24，共116次，接受更新0/0/0/4/0/4，共8次，六actor不变。旧五档train仍6/6通过；新增临界预算误放行27→25，所选边界错判981→932，完整train 0/6通过，状态HELD_TRAIN_GATE。按批准失败协议，开发重评0、无新G4/部署包；原G4 FAIL、52/67、NAV-065=false和NAV-066未启动保持。未用试步不能自动续跑、转移或重启本run。",
+      "段末拒绝原因计数={\"previously_correct_start\": 23, \"original_grid\": 4}",
+      "局部执行完整性PASS，科学验收未过。RC-PPO预算增广/共同停止/同目标双critic/W/beta及最终v5 train/G4、actor、v2整套校准/地图/时序/单位/数据用途保持；不修改论文/参考源码。",
+      "本轮生产refit入口实际调用原v5 train_gate；失败分支阻断原development/G4消费者，未创建部署包，不能交付NAV-066；旧NAV-064=true不替critic放行。",
+      "更新前正确起点保留、33项v2/原来源hash一致；中间回滚机制以基本受控测试验，不额外复演正式optimizer。"
+     ],
+     "evidence": [
+      "CaMRA/navigation/reports/nav065_block_refit_v6_review.json",
+      "CaMRA/navigation/docs/nav065_block_refit_v6_review_20261118.md",
+      "/pub/data/caohy/work/camra_navigation/nav065_block_refit_launch_20261118_v6/review.json",
+      "/pub/data/caohy/work/camra_navigation/nav065_block_refit_launch_20261118_v6/train_cases.json",
+      "/pub/data/caohy/work/camra_navigation/nav065_block_refit_launch_20261118_v6/EXIT.json"
+     ],
+     "remaining_work": [
+      "先基于现有train日志分析保护触发与数值/符号冲突；新增训练/规则或额度须独立方案确认，全部train及原G4通过后再交付NAV-066。"
+     ],
+     "blockers": [
+      "完整train未通过，本次批准尝试按失败协议结束；不自动重启、用未用额度继续或转移候选余量。"
+     ]
     }
    ],
    "test_reports": [
