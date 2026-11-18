@@ -11299,6 +11299,42 @@
           "blockers": [
             "新过程及400次optimizer数字额度尚未明确批准；当前真实科学失败未解决，正式训练及下游保持阻塞。"
           ]
+        },
+        {
+          "timestamp": "2026-11-18T19:48:40.619502+08:00",
+          "summary": "NAV-065/1.3.1 v8用户确认后开工：冻结单候选数值优先过程与400步新额度，执行一次独立pilot",
+          "actions": [
+            "重读根AGENTS、legacy技能/规则及当前交接和方案；完整解析计划，核对全局约束、当前任务/依赖及原历史证据。",
+            "登记用户最新确认：固定full_s0，最多300数值Adam+100边界无动量SGD/总400；数值未过不切换，原train标准保持；不复用旧余量。",
+            "tiger11/tmux核验解释器、GPU、无并发拟合、33项v2及57基本检查对应hash；新增批准登记/pin和只读源码快照，原proposal=false保留。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/nav065_pilot_refit_prereg_v8.json",
+            "CaMRA/navigation/config/nav065_pilot_refit_prereg_v8.json.sha256",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            ".worklog-testing/NAV-065/pilot-v8-execution/launch.py"
+          ],
+          "commands": [
+            "host=tiger11.ios.ac.cn；tmux nav064-r14-repair-20261115:nav065-v8-run；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+            "<Python> -u .worklog-testing/NAV-065/pilot-v8-execution/launch.py（绝对路径）；完整命令/资源/源码快照=/pub/data/caohy/work/camra_navigation/nav065_pilot_refit_launch_20261118_v8"
+          ],
+          "results": [
+            "批准登记pin=d1a6b6c5493b31dcd8cb16d5e0efc54f5f9e2f31ae7f1d40fee029328b8b83f6",
+            "本项为未来NAV-066提供可信同actor双critic；本pilot仅验证full_s0原train要求，不自动扩六候选、开发评分、部署或预算搜索。",
+            "复用该候选162条train（90旧+72临界），六候选972条仅来源核验；新增回合0、开发评分0。来源固定v7末次，无中间checkpoint选择。",
+            "保持原共同停止cost/reach目标/W、beta=0、网络/obs-v7、原v5 train/G4、六actor、固定v2/匹配校准及地图/时序/J/分片。",
+            "主agent按legacy验收，无测试子agent。验证每步门禁/起点日志、阶段/末次CPU重载及源码/actor身份；单候选通过也不等于NAV-065通过，未过保持false。"
+          ],
+          "evidence": [
+            "用户最新明确确认",
+            "f6ce79f92b60eaa007656a7fbe553d629e86575c",
+            "CaMRA/navigation/reports/nav065_pilot_refit_v8_preparation_review.json",
+            "/pub/data/caohy/work/camra_navigation/nav065_pilot_refit_launch_20261118_v8/registration.json"
+          ],
+          "remaining_work": [
+            "提交批准版本并执行一次独立pilot，按真实产物验收和保存结果；保持原G4 FAIL、NAV-065=false及NAV-066阻塞。"
+          ],
+          "blockers": []
         }
       ],
    "test_reports": [
