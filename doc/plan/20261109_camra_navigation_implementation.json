@@ -5605,7 +5605,7 @@
    "id": "NAV-064",
    "phase": "预算与闭环",
    "goal": "在原理门禁通过后按有限协议循环训练，仅用开发数据验收",
-   "status": false,
+   "status": true,
    "depends_on": [
     "NAV-063"
    ],
@@ -5625,7 +5625,7 @@
     "数据访问审计核对实际加载路径、split/hash和运行台账，不能仅靠搜索日志里没有final字样证明隔离。",
     "未达标/未闭环语义问题保持false；只有达标才进入新候选冻结。"
    ],
-   "verification_result": "",
+   "verification_result": "PASS：终点尾项v5六组各300更新、32400完整训练回合、11136866样本，50/150/300原始审计及探索/稳定性通过。末次checkpoint的108个开发回合复算通过，主预算两方法各18/18安全且预算内到达，危险步0。见reports/nav064_terminal_tail_acceptance_v1.json；仅名义训练关闭，部署G4留NAV-065。",
    "planned_outputs": [
     "reports/training_loop_rounds.json",
     "config/training_loop_prereg_r1.json及各轮独立版本",
@@ -9682,6 +9682,28 @@
             "全部原关闭档及数据/稳定性验收满足前NAV-064保持false；恢复先查现有进程、run和HELD/FINISHED，不重复启动"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-18T12:30:00+08:00",
+          "summary": "NAV-064/1.3.1 续办对齐：对终点尾项v5的正式训练逐项验收和归档",
+          "actions": ["按当前计划数组确认NAV-064是首个可执行任务；NAV-061–063已完成，固定v2，训练契约、评分和数据用途不变", "以用户批准的独立6×300尝试、50/150/300审计和末次checkpoint的108个开发回合作为来源；核对实际版本、额度、数据和性能，证据齐备才结项"],
+          "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["tiger11/tmux nav064-r14-repair-20261115:nav064-close-preflight；cwd=/home/caohy/repositories/Paper；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python /home/caohy/.codex/skills/create-plan-worklog/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"],
+          "results": ["主机、解释器、GPU和计划结构检查通过；协调器已有FINISHED及六组运行产物；开始收尾复算，不加训"],
+          "evidence": ["CaMRA/navigation/config/training_loop_prereg_terminal_tail_v1.json", "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_v1/FINISHED.json"],
+          "remaining_work": ["逐项复算开发指标并绑定实际train/development来源、六份最终模型和当前生产代码；完成后交给NAV-065"],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-18T12:40:00+08:00",
+          "summary": "NAV-064/1.3.1 通过训练关闭档并正式结项，六份末次模型交接NAV-065",
+          "actions": ["从已保存的108个开发回合轨迹复算安全、预算和能耗比，匹配六份评估checkpoint；核对六组每次更新、训练原始审计索引、50探索与150稳定性、实际训练和开发加载文件散列", "复验预登记、当前数值门禁/源码快照、实际共同停止与三估计器生产链及冻结v2身份；旧报告和失败原位保留", "收尾脚本首验对两种checkpoint容器误用了整文件相等；训练源码表明周期checkpoint另含恢复字段，改为分别验文件散列并比较全部模型张量及身份，第二次通过"],
+          "files_changed": ["CaMRA/navigation/scripts/verify_nav064_terminal_tail.py", "CaMRA/navigation/reports/nav064_terminal_tail_acceptance_v1.json", "CaMRA/navigation/README.md", "CaMRA/navigation/docs/implementation_handoff.md", "doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["tiger11/tmux nav064-r14-repair-20261115:nav064-close；cwd=/home/caohy/repositories/Paper/CaMRA/navigation", "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u scripts/verify_nav064_terminal_tail.py --out reports/nav064_terminal_tail_acceptance_v1.json"],
+          "results": ["六组各300次、32400完整训练回合、11136866样本，18张train图与6张development图分离，未用budget_selection或final_*作训练和关闭依据；50/150/300原始审计均PASS", "主预算k=1.15，两方法各18/18，L2完整方法6/6，危险步0；三种子能耗/预算中位0.842535（无校准）和0.882154（完整）。完整方法k=1.0仅2/18预算内，作为诊断保留，不改变验收或为此加训", "正式完成52/67；NAV-065消费六份末次模型，评价网络可用性、价值预算搜索及物理结果待各自任务验收"],
+          "evidence": ["CaMRA/navigation/reports/nav064_terminal_tail_acceptance_v1.json", "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/acceptance_attempt1.log", "/pub/data/caohy/work/camra_navigation/nav064_terminal_tail_launch_20261117_v1/acceptance_attempt2.log"],
+          "remaining_work": [],
+          "blockers": []
         }
    ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
@@ -9718,7 +9740,30 @@
     "reports/deployment_critic_validation_v2.json",
     "reports/gate_G4_alignment_v2.json"
    ],
-   "work_records": [],
+   "work_records": [
+    {
+     "timestamp": "2026-11-18T12:42:13+08:00",
+     "summary": "NAV-065/1.3.1 开工：固定六个末次策略并准备双评价部署验收",
+     "actions": ["重新读取根AGENTS和任务约束，确认依赖NAV-064已结项；以其验收报告为唯一模型来源", "先验证现有权重的CPU加载和已存开发动作，绑定固定v2及当前契约；预先明确新G4误判放行条件，不读取新评价结果后调门槛"],
+     "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+     "commands": ["tiger11/tmux nav064-r14-repair-20261115；cwd=/home/caohy/repositories/Paper/CaMRA/navigation；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python"],
+     "results": ["精确目标是判定同一固定策略在给定预算下是否安全可行；策略权重、RC-PPO目标、v2、预算和数据隔离不改；新版G4未放行"],
+     "evidence": ["CaMRA/navigation/reports/nav064_terminal_tail_acceptance_v1.json", "CaMRA/navigation/config/value_objective_contract_terminal_tail_v1.json"],
+     "remaining_work": ["核验六组权重身份与确定性动作；锁定独立轨迹真值、误判标准及边界预算验证方案，再执行双critic验收"],
+     "blockers": []
+    },
+    {
+     "timestamp": "2026-11-18T12:44:07+08:00",
+     "summary": "NAV-065 六份来源及CPU确定性动作已复核，新G4协议待确认",
+     "actions": ["绑定六份末次checkpoint及三个网络各自的权重散列；用生产评估的构建与确定性动作路径复算所有保存的开发动作", "在读取本阶段critic预测前提出具体的G4误判放行线，以及复用三档开发轨迹、补齐两档边界的配额；版本化保留旧bundle和旧G4"],
+     "files_changed": ["CaMRA/navigation/scripts/prepare_nav065_sources.py", "CaMRA/navigation/reports/nav065_deployment_source_binding_v1.json", "CaMRA/navigation/docs/nav065_deployment_validation_proposal_20261118.md", "CaMRA/navigation/docs/implementation_handoff.md", "doc/plan/20261109_camra_navigation_implementation.json"],
+     "commands": ["tiger11/tmux nav064-r14-repair-20261115:nav065-source-replay；OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u scripts/prepare_nav065_sources.py --out reports/nav065_deployment_source_binding_v1.json"],
+     "results": ["六个来源逐一匹配NAV-064及原评估散列；回放42187个确定性动作，最大误差8.940696716308594e-8", "未改变权重、RC-PPO目标、底层v2及数据隔离，未读取新critic预测或启动补充回合；来源核验不是部署性能通过"],
+     "evidence": ["CaMRA/navigation/reports/nav065_deployment_source_binding_v1.json", "CaMRA/navigation/docs/nav065_deployment_validation_proposal_20261118.md"],
+     "remaining_work": ["确认并冻结误判放行线及边界开发回合额度，再以独立轨迹执行价值验收；全部通过后才发布新版bundle/G4"],
+     "blockers": ["新版G4没有已冻结的误判放行线；旧开发轨迹只有k=1.00/1.15/1.30，覆盖搜索边界的k=0.70/0.85需另行确认最多72个正式名义回合。"]
+    }
+   ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [
     "R03",
