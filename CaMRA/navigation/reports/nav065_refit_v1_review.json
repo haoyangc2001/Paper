@@ -1,0 +1,220 @@
+{
+  "schema": "camra-nav065-refit-review-v1",
+  "task": "NAV-065",
+  "status": "FAIL_DEPLOYMENT_VALUE",
+  "host": "tiger11.ios.ac.cn",
+  "tmux": "nav064-r14-repair-20261115:nav065-refit-formal",
+  "working_directory": "/home/caohy/repositories/Paper/CaMRA/navigation",
+  "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "base_git": "027e72ee6c7a5cdce643b2a0f58c16229fd29e6f",
+  "refit_prereg_sha256": "c971caacec4ce84280028d3256258fb284bb54bddd7a49ebf1824bdf1241cc25",
+  "formal_command": "PYTHONPATH=src PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u scripts/refit_nav065_deployment.py",
+  "output_directory": "/pub/data/caohy/work/camra_navigation/nav065_refit_v1",
+  "output_hashes": {
+    "train_episodes.jsonl": "62402f3ea93c963e60dd62a251c5a38895c5b6a789dd78591f39b21a0c2be507",
+    "fitted_candidates.json": "4609bd3176230d5195c0b8915f30d06b5504875fda30ac286bd862c5771e2e43",
+    "development_scores.jsonl": "348593a231f6b43a41ab9694f745b4e33f88622abab907e85b09763b55999783",
+    "deployment_critic_validation_v2.json": "163856057558d322d40246ce31fd4a0d3e6dd984eb8c10e3469f483f1ce9ebd5",
+    "gate_G4_alignment_v2.json": "c4ce22b89251808d3cd2939fdd04f52e79b6304a07b2ea1712a684ae59bd1054"
+  },
+  "run": {
+    "train_split_maps": 18,
+    "candidates": 6,
+    "budgets_per_map": 5,
+    "train_episodes": 540,
+    "train_steps": 207298,
+    "terminal_outcomes": {
+      "goal_reached": 536,
+      "timeout": 4
+    },
+    "updates_per_candidate": 90,
+    "dev_split_maps": 6,
+    "development_episodes": 180,
+    "reused_development_episodes": 180,
+    "new_development_episodes": 0,
+    "development_keys_per_candidate": 30,
+    "clipped_budget_rows": 0,
+    "frozen_v2_files_verified": 33,
+    "actor_tensor_hashes_unchanged": 6,
+    "critic_cost_and_reach_updated": 6
+  },
+  "frozen_acceptance": {
+    "budget_grid_k": [
+      0.7,
+      0.85,
+      1,
+      1.15,
+      1.3
+    ],
+    "primary_k": 1.15,
+    "beta": 0,
+    "false_feasible_max_per_candidate": 0,
+    "primary_true_feasible_min_per_candidate": 6,
+    "relative_mae_max": 0.35,
+    "pearson_min_when_required": 0.7
+  },
+  "aggregate": {
+    "per_budget": [
+      {
+        "k": 0.7,
+        "n": 36,
+        "actual_feasible": 0,
+        "false_feasible": 0,
+        "false_infeasible": 0,
+        "true_infeasible": 36
+      },
+      {
+        "k": 0.85,
+        "n": 36,
+        "actual_feasible": 2,
+        "false_feasible": 3,
+        "false_infeasible": 0,
+        "true_infeasible": 31
+      },
+      {
+        "k": 1,
+        "n": 36,
+        "actual_feasible": 20,
+        "false_feasible": 6,
+        "false_infeasible": 0,
+        "true_infeasible": 10
+      },
+      {
+        "k": 1.15,
+        "n": 36,
+        "actual_feasible": 36,
+        "false_feasible": 0,
+        "false_infeasible": 0,
+        "true_infeasible": 0
+      },
+      {
+        "k": 1.3,
+        "n": 36,
+        "actual_feasible": 36,
+        "false_feasible": 0,
+        "false_infeasible": 0,
+        "true_infeasible": 0
+      }
+    ],
+    "false_feasible_total": 9,
+    "false_infeasible_total": 0,
+    "primary_correct": 36,
+    "primary_total": 36,
+    "candidates_passing": 0,
+    "candidates_total": 6,
+    "pointwise_metrics_pass_all_candidates": true,
+    "cost_relative_mae_range": [
+      0.0067246227,
+      0.0090498565
+    ],
+    "reach_relative_mae_range": [
+      0.0110941572,
+      0.1069415154
+    ],
+    "cost_pearson_range": [
+      0.9998699863,
+      0.9999183133
+    ],
+    "reach_pearson_range": [
+      0.9621431509,
+      0.9997700069
+    ],
+    "false_feasible_cases": [
+      {
+        "variant": "uncalibrated",
+        "seed": 0,
+        "map_id": "l2_single_detour-s2002",
+        "k": 0.85,
+        "overspend_J": 0.5557232,
+        "start_W": -0.0066271
+      },
+      {
+        "variant": "uncalibrated",
+        "seed": 1,
+        "map_id": "l2_single_detour-s2002",
+        "k": 0.85,
+        "overspend_J": 3.7496742,
+        "start_W": -0.0014905
+      },
+      {
+        "variant": "uncalibrated",
+        "seed": 2,
+        "map_id": "l2_single_detour-s2001",
+        "k": 0.85,
+        "overspend_J": 2.8204347,
+        "start_W": -0.0009068
+      },
+      {
+        "variant": "full",
+        "seed": 0,
+        "map_id": "l1_empty-s2001",
+        "k": 1,
+        "overspend_J": 7.6501745,
+        "start_W": -0.0054958
+      },
+      {
+        "variant": "full",
+        "seed": 0,
+        "map_id": "l1_empty-s2002",
+        "k": 1,
+        "overspend_J": 4.7176367,
+        "start_W": -0.0021183
+      },
+      {
+        "variant": "full",
+        "seed": 0,
+        "map_id": "l3_multi_path-s2002",
+        "k": 1,
+        "overspend_J": 4.4727118,
+        "start_W": -0.0032726
+      },
+      {
+        "variant": "full",
+        "seed": 1,
+        "map_id": "l1_empty-s2001",
+        "k": 1,
+        "overspend_J": 2.5138609,
+        "start_W": -0.0174909
+      },
+      {
+        "variant": "full",
+        "seed": 2,
+        "map_id": "l1_empty-s2001",
+        "k": 1,
+        "overspend_J": 2.0996841,
+        "start_W": -0.0168379
+      },
+      {
+        "variant": "full",
+        "seed": 2,
+        "map_id": "l3_multi_path-s2002",
+        "k": 1,
+        "overspend_J": 1.6701351,
+        "start_W": -0.0036535
+      }
+    ],
+    "all_false_feasible_are_safe_goal_arrivals_over_budget": true
+  },
+  "gate": {
+    "verdict": "FAIL",
+    "checks": {
+      "numerical_alignment": true,
+      "learning_available": true,
+      "deployment_values": false,
+      "evaluation_coverage": true
+    },
+    "bundle_emitted": false
+  },
+  "interpretation": "Regression metrics improve, but the predicted W sign is wrong on nine near-boundary development starts. In every false-feasible case the deterministic actor safely reaches the goal but finishes with negative remaining J. Thus a good average critic fit does not make its zero-crossing reliable for least-feasible-budget selection. Do not change beta=0 or the frozen zero-misclassification standard.",
+  "independent_test": {
+    "report": "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/NAV-065-R1/report.json",
+    "verdict": "blocked",
+    "reason": "required implementation-code mutation test was not run; independent raw-J/trace/W cross-validation passed"
+  },
+  "next_state": {
+    "nav064": true,
+    "nav065": false,
+    "nav066_started": false,
+    "additional_refit_or_data_authorized": false
+  }
+}

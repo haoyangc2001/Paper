@@ -1,5 +1,73 @@
 # 上层导航实施交接
 
+## 2026-11-18 NAV-065 v4结束：train6/6，开发G4仍FAIL
+
+用户允许新一轮测试，legacy主agent验证、不派子agent。v4仅full seed1最多300次试更新，实际1次1e-5后train全过、错误放行1→0；其他五模型及六actor不变。复用540 train/207298步，新增回合0；统一复评180旧development一次，主预算36/36正确，但紧预算4次误放行，仅2/6候选通过，新G4 FAIL、无部署包。31项基础测试及720条原始轨迹/J/共同停止复核通过。NAV-065=false、52/67、NAV-066不执行；按失败协议停止，剩余299次不自动使用。
+
+见[详细结果](nav065_guarded_refit_v4_review_20261118.md)、[批准登记](../config/nav065_guarded_refit_prereg_v4.json)及[主agent报告](../reports/nav065_guarded_refit_v4_review.json)。产物位于`/pub/data/caohy/work/camra_navigation/nav065_guarded_refit_v4/`，启动/资源/源码/复核在`nav065_guarded_refit_launch_20261118_v4/`。下一步先分析train预算边界覆盖与跨地图识别，不能把开发失败直接转train；新拟合须独立方案与授权。下方均为历史记录。
+
+## 2026-11-18 NAV-065边界回修v3已结束：5/6 train通过，仍HELD
+
+按用户确认的[独立登记](../config/nav065_boundary_refit_prereg_v3.json)执行一次，16:07:20–16:08:12在tiger11/tmux完成。四组零更新保留，full seed1更新300、seed2首次10更新通过，共310；六组actor不变。540条train/207298步复用，新增回合0。主agent按legacy直接复核，未派专用测试子agent。
+
+假可行4→1，假不可行2→3（非主档诊断）；full seed1最终均值误差达标，仍在L1-s1004/k1.0将超支2.8754 J的安全到达误判为可行。中段零误放行时平均误差未达标，不能挑选回填。full seed2已接受17个真实可行主档并拒绝真实超时，策略失败未改写为成功。整体HELD_TRAIN_GATE，未开发重评、无新G4/部署包，原G4 FAIL、52/67、NAV-065=false及NAV-066未启动保持。
+
+见[详细结果](nav065_boundary_refit_v3_review_20261118.md)及[主agent报告](../reports/nav065_boundary_refit_v3_review.json)。正式产物`/pub/data/caohy/work/camra_navigation/nav065_boundary_refit_v3/`；启动/源快照/登记/逐例复算在`nav065_boundary_refit_launch_20261118_v3/`。full seed1的300上限已耗尽，不转移其他候选未用额度、不重启本run；后续先以现有train证据分析损失冲突。下方未批准与待启动记录均为历史时点。
+
+## 2026-11-18 NAV-065边界回修v3准备完成，尚未正式拟合
+
+按用户指定legacy技能，由主agent基础检查、不安排测试子agent。新版入口保持actor、共同停止目标及beta=0，在critic回归中增加边界分量符号纠错；train主档按真实可行数检查，full seed2接受17并拒绝超时，五档零假可行不变，development原6/6及G4门槛不变。22项基础测试通过，540条train/207298步实际动作与真值预检通过；四组可零更新保留，full seed1/seed2各两次假可行仍未解决。
+
+[详细说明](nav065_boundary_refit_v3_20261118.md)、[未批准提案](../config/nav065_boundary_refit_proposal_v3.json)、[预检报告](../reports/nav065_boundary_refit_preflight_v3.json)已就绪。拟两失败候选各最多300、总600新critic更新，其余四组零更新，新增回合0；六组train全过才复验180条development一次。本轮正式更新0、开发重评0，未创建正式run。新数字额度待确认，不能重用或转移旧额度。52/67、NAV-065=false、原G4 FAIL、NAV-066未启动。以下记录均保留为历史时点。
+
+## 2026-11-18 NAV-065离线重拟合v2已结束，4/6 train通过，整体仍HELD
+
+用户确认后，按[批准登记v2](../config/nav065_saved_refit_prereg_v2.json)执行一次有限离线重拟合。新增采样0，复用540条train，六候选新增更新分别10/10/10/10/300/300，合计640；四组首次train检查通过即冻结，full seed1/seed2到各自300上限仍失败。运行状态`HELD_TRAIN_GATE`，未评分development、未产新G4/部署包。原G4 FAIL有效；NAV-065=false、52/67，NAV-066及下游未启动。不重启本run或挪用余下总额度。
+
+主agent按用户免除专用测试子agent的要求完成540条轨迹复算、CPU重载、actor逐tensor一致、更新序列/早停、原输入及33项v2生产预检。train起点假可行13→4，剩3次紧预算超支放行和1次主预算超时放行。新发现原full seed2在train主档实际只有17/18可行：L2-s1006在45秒时距目标0.577576 m（目标半径0.5 m）、仍余31.103 J。批准方案未先核对此事实就要求train 18/18，导致该候选门槛在固定actor条件下不可达；门槛和失败保留，不改标准回填通过。这与NAV-064原development主档36/36是不同地图分母。
+
+见[详细结果及方案检查遗漏](nav065_saved_refit_v2_review_20261118.md)和[完整复算报告](../reports/nav065_saved_refit_v2_review.json)。两个失败候选的新增更新上限已耗尽；后续先评审门槛适用性及边界符号拟合方案，新增更新/改变门槛须明确授权。下方“提案未批准”等均为历史时点，原提案false保留、实际执行使用独立批准登记。
+
+## 2026-11-18 NAV-065只读边界诊断完成，离线回修入口已备妥
+
+用户要求后续不再安排专用测试子agent；本轮由主agent直接核验，不伪称独立。复用540 train及180 development原始轨迹和拟合前后权重，新增回合/优化更新均为0。train起点假可行3→13、development 3→9，尽管成本起点MAE分别7.46→1.59 J、5.94→2.00 J。问题已出现在训练图，不能只归因于新地图泛化；旧模型的成本高估偏差被消除后，边界错误放行反而增多。九次开发误判均低估共同停止成本，八次到达评价也把共同停止前的小正数预测成负数。见[诊断与下一步](nav065_boundary_diagnosis_20261118.md)和[逐回合证据](../reports/nav065_boundary_diagnosis_v1.json)。
+
+[离线回修入口](../scripts/refit_nav065_saved.py)和[待批准提案](../config/nav065_saved_refit_proposal_v2.json)已建立：新增回合0，仅复用train做双critic起点/沿途/边界回归，每候选最多额外300更新、总计最多1800；先过六组train检查再统一开发复验一次，原目标、beta=0及G4标准不改。提案`approved=false`，尚未启动新拟合。NAV-065仍false、NAV-066未启动；新的更新额度须确认后才能执行。
+
+旧重拟合审阅的训练日志SHA256是抄录错误，原报告保留；诊断报告追加正确值及候选清单的运行时散列依据。原始540条训练数据未被改写。下方为各历史时点记录。
+
+## 2026-11-18 NAV-065固定策略双critic重拟合完成，G4仍未通过
+
+按冻结登记[重拟合预登记](../config/nav065_refit_prereg_v1.json)完成最多540个train名义回合：固定六个actor，每候选90次critic更新，仅拟合成本与到达critic。540条训练回合覆盖18张train图和五档预算，共207,298个轨迹步；开发侧复用全部180个既有development回合，没有新增开发回合。33项固定v2输入核验通过，预算输入裁剪为0，六个actor张量保持不变，六组双critic均有更新。
+
+独立轨迹复算确认主预算`k=1.15`的36/36个可行起点均判断正确，六组平均误差指标均达标；但紧预算发生9次假可行（`k=0.85`为3次，`k=1.00`为6次），实际均安全到达但超过剩余预算0.56–7.65 J。每候选零假可行的冻结标准未达到，六候选0/6通过，G4为`FAIL`，未生成部署候选包。NAV-065保持false，NAV-066及下游不能启动。
+
+测试员R1的原始轨迹/J/W交叉核验通过，但因未运行代码级变异测试而标为blocked；R2随后在隔离副本禁用重复/未知development回合保护，目标断言按预期失败，恢复后通过。R2的流程测试已覆盖，独立报告仍按科学验收结果判fail：G4失败不因测试覆盖补齐而变成通过。详细报告见[重拟合审阅](../reports/nav065_refit_v1_review.json)、[R1](../../../.worklog-testing/NAV-065/NAV-065-R1/report.json)和[R2](../../../.worklog-testing/NAV-065/NAV-065-R2/report.json)；原始训练及复验产物在`/pub/data/caohy/work/camra_navigation/nav065_refit_v1/`。本轮540回合额度已用完；没有新的训练额度或改变beta、验收线的授权。后续须先基于现有证据制定NAV-065合规的下一步方案并取得所需资源授权，G4通过前不得进入NAV-066。
+
+## 2026-11-18 NAV-065 五档正式评估完成，G4 因三次预算误判未放行
+
+提前冻结 [NAV-065 标准](../config/nav065_deployment_prereg_v1.json)：`beta=0`、每候选零假可行、主预算 `k=1.15` 的六个可行起点全部识别，沿用原误差标准。tiger11/tmux 正式评估及只读复核均已完成，计 108 个复用回合、72 个新增回合，共 180 个。主档 36/36 安全且预算内到达并判断正确；紧档三次假可行均为安全到达但超预算 2.10～2.82 J。六个候选均通过平均误差项，三个候选未过假可行门槛，未发布候选包。
+
+[复核报告](../reports/nav065_deployment_v1_review.json)索引原始回合、正式报告和 G4 FAIL 的散列；[结果与重拟合提案](nav065_deployment_review_20261118.md)说明下一步拟固定 actor、只重拟合双评价网络，以及拟新增的 540 个 train 名义回合。依据当前计划的资源约束，新增额度尚未确认。NAV-064 保持完成，NAV-065 保持未完成，NAV-066 及后续未启动。下方“等待评估授权”均为正式评估前的历史状态。
+
+## 2026-11-18 NAV-065 启动前检查通过，等待评估授权
+
+[评估入口](../scripts/evaluate_nav065_deployment.py)会在消耗新额度前核对六份模型散列、108条旧轨迹的起始预算和五档预算的观测分辨率。实际只读检查通过：六候选、108旧回合、60个方法×地图×预算组合；未加载模型、未产生预测或新回合。
+
+正式运行在独立目录保留逐回合记录、双评价报告和 G4 审阅件；覆盖不足或任一候选失败时不生成候选包。18项合成测试通过，审阅件不会改写计划状态或历史产物。[提案](nav065_deployment_validation_proposal_20261118.md)尚未获确认，无正式评估登记；NAV-065仍未完成。
+
+## 2026-11-18 NAV-065 正式评价入口已实现，尚未放行
+
+[评价入口](../scripts/evaluate_nav065_deployment.py)校验单独批准且带 SHA256 的登记、固定候选、上游门禁和 development 来源，再按预算逐回合保存轨迹及预测。初始误判计数和逐步误差分别统计；缺回合或重复回合不能通过。未批准时命令退出并且不建运行目录。轨迹及汇总共17项合成测试通过；未执行真实评价或产生 G4 结果。
+
+恢复时按[提案](nav065_deployment_validation_proposal_20261118.md)先确认回合数及门槛，再冻结 `config/nav065_deployment_prereg_v1.json` 和 SHA256。运行目录由登记绑定，已存在的目录不得覆盖；中断后先查 `episodes.jsonl` 中的开始和完成记录。只有实际预测、覆盖、G4 和候选交付全部验收后才能完成 NAV-065。
+
+## 2026-11-18 NAV-065 独立轨迹判定已准备
+
+以完整轨迹独立判定安全、到达、预算，用同一停止点计算双评价对照目标，不用网络给自己提供真值。吸收失败强制取终点并保留末步成本替换规则；超时和停滞用实测终态。对照目标是确定性全轨迹值，训练中的折扣近似和 λ 平滑不参与。分别核对动作前观测与动作后记录，预算判据用未裁剪的有符号 J 除以固定尺度。
+
+[兼容性审计](../reports/nav065_saved_trajectory_compatibility_v1.json)复核了33项冻结 v2 文件、108条已验收轨迹及42187个动作前观测，未发现预算特征裁剪。合成反例通过。未加载评价网络、未新增回合；当前52/67，NAV-065仍需确认并冻结[验收协议](nav065_deployment_validation_proposal_20261118.md)，再执行双评价检查。G4 和 NAV-066 均未放行。
+
 ## 2026-11-18 NAV-065 已绑定来源，等待冻结部署评价协议
 
 六份末次模型已在 tiger11/tmux 上严格 CPU 重载，42,187 个开发动作复算一致，最大绝对误差约 9e-8。候选来源、策略与双评价权重散列见[核验报告](../reports/nav065_deployment_source_binding_v1.json)。[验收提案](nav065_deployment_validation_proposal_20261118.md)列明独立目标、误判放行线和补齐两档边界预算所需的最多72个开发回合。未读取新部署价值结果或启动新评估；NAV-065尚未验收，NAV-066及后续未执行。

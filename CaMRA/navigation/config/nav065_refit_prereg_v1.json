@@ -1,0 +1,38 @@
+{
+  "schema": "camra-nav065-refit-v1",
+  "approved": true,
+  "decision_reference": "2026-11-18 user confirmed the approved proposal with at most 540 additional nominal train episodes",
+  "fit_split": "train",
+  "evaluation_split": "development",
+  "max_train_episodes": 540,
+  "new_dev_episodes": 0,
+  "fit": {
+    "updates": 90,
+    "learning_rate": 0.001,
+    "interior_samples_per_episode": 8,
+    "sampling_seed": 6501,
+    "start_weight": 0.5
+  },
+  "objective": "Equal weight per whole train episode. For each update use all 90 starts per model plus eight uniformly sampled later steps per trajectory. Half the loss is for starts, half for later steps. MSE of the two existing critics against independent complete-rollout targets with unchanged common stopping and failure semantics.",
+  "output_name": "nav065_refit_v1",
+  "base_git": "027e72ee6c7a5cdce643b2a0f58c16229fd29e6f",
+  "base_evaluation_pin": "7a5a989137baa0f91c069015572878a4e101404841c6d9da3afda247cc2cd874",
+  "inputs": {
+    "scripts/refit_nav065_deployment.py": "f2a699209433cf63f84b3a8c03ad206cc48153a396ba3e34081110bc89240061",
+    "scripts/evaluate_nav065_deployment.py": "d0c0127144801c7d7dcad5f228251dfd63744330ffed9f4d35ebd7d297a8adb9",
+    "scripts/eval_r14_repair.py": "ad1c9d65083f2744403e7fd070c7a33c8f08269edbc7b3065e62c026de2dc0c4",
+    "scripts/eval_training_round.py": "e6645e6b291f0d75440cea89a332400ffd7162436ee277e11b620eae39b333dc",
+    "scripts/train_formal.py": "c3e4fa84a4c2e4622bcec3cb0e17b4cf4e95b814aec760fae75d530d5742e0d9",
+    "scripts/prepare_nav065_sources.py": "54a21e90eeed2344a9da4013b7b2a66892719613d3c6bb20d504852171684f82",
+    "scripts/audit_nav065_saved_trajectories.py": "a5a07383b5e203387b9bf76236f349d5d09b08b13feee1f4c54aa97c216e1e94",
+    "src/camra_navigation/algorithm/deployment_oracle.py": "551eabf6c9593611ceafbbf7560cf9738b1a08db6b065d801b6a2961e802d01a",
+    "reports/train_map_reference_energy_t45.json": "41c4c41718217ba26401fa42bad812ea265908dda858fe86c71a494eb48fd5bf",
+    "reports/nav065_deployment_v1_review.json": "ffbcd592e8d454fa60e1fc14f44668d910dad1a7544f24ec38d31b3eaefc1b12",
+    "config/nav065_deployment_prereg_v1.json": "7a5a989137baa0f91c069015572878a4e101404841c6d9da3afda247cc2cd874"
+  },
+  "previous_run": {
+    "episodes.jsonl": "564ed49aec5f3deb58ae1cd30421c862470238d4254e5b8d3d7ded57a2f70592",
+    "deployment_critic_validation_v2.json": "b1cbf8dea00013d77cc4be57b257af609e503d40e52bd50f086d65f45e2c134d",
+    "gate_G4_alignment_v2.json": "3c0f77661a90adf3d6dd62a251c5a38895c5b6a789dd78591f39b21a0c2be507"
+  }
+}

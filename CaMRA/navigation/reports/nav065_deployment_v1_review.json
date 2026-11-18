@@ -1,0 +1,187 @@
+{
+  "task": "NAV-065",
+  "evaluation": "nav065_deployment_v1",
+  "status": "BLOCKED_DEPLOYMENT_VALUES",
+  "date": "2026-11-18",
+  "host": "tiger11.ios.ac.cn",
+  "formal_tmux": "nav064-r14-repair-20261115:nav065-formal",
+  "review_tmux": "nav064-r14-repair-20261115:nav065-review",
+  "working_directory": "/home/caohy/repositories/Paper/CaMRA/navigation",
+  "formal_command": "PYTHONPATH=src PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u scripts/evaluate_nav065_deployment.py --out /pub/data/caohy/work/camra_navigation/nav065_deployment_v1",
+  "evaluation_pin": "7a5a989137baa0f91c069015572878a4e101404841c6d9da3afda247cc2cd874",
+  "source_training_pin": "6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4",
+  "original_run_directory": "/pub/data/caohy/work/camra_navigation/nav065_deployment_v1",
+  "evidence_sha256": {
+    "episodes.jsonl": "564ed49aec5f3deb58ae1cd30421c862470238d4254e5b8d3d7ded57a2f70592",
+    "deployment_critic_validation_v2.json": "b1cbf8dea00013d77cc4be57b257af609e503d40e52bd50f086d65f45e2c134d",
+    "gate_G4_alignment_v2.json": "3c0f77661a90adf3d6dd62a251c5a38895c5b6a789dd78591f39b21a0c2be507"
+  },
+  "review": {
+    "rollout_labels": "Independently matched run/map/budget keys, recomputed start W using raw J, recomputed trajectory feasibility from arrival, danger history and final budget, and matched every per-candidate budget count to the formal report.",
+    "matched_episodes": 180,
+    "reused_development_episodes": 108,
+    "newly_completed_development_episodes": 72,
+    "journal_rows_by_kind": {
+      "rollout_result": 72,
+      "rollout_start": 72,
+      "scored": 180,
+      "start": 1
+    },
+    "clipped_budget_rows": 0,
+    "passing_candidates": 3,
+    "total_candidates": 6,
+    "false_feasible": 3,
+    "false_infeasible": 4,
+    "primary_true_feasible": 36,
+    "primary_total": 36,
+    "verdict_G4": "FAIL",
+    "failed_gate": "deployment_values",
+    "release_bundle_written": false,
+    "nav064_completed": true,
+    "nav065_completed": false,
+    "nav066_started": false
+  },
+  "budget_summary": [
+    {
+      "k": 0.7,
+      "n": 36,
+      "actual_feasible": 0,
+      "false_positive": 0,
+      "false_negative": 0
+    },
+    {
+      "k": 0.85,
+      "n": 36,
+      "actual_feasible": 2,
+      "false_positive": 1,
+      "false_negative": 1
+    },
+    {
+      "k": 1,
+      "n": 36,
+      "actual_feasible": 20,
+      "false_positive": 2,
+      "false_negative": 3
+    },
+    {
+      "k": 1.15,
+      "n": 36,
+      "actual_feasible": 36,
+      "false_positive": 0,
+      "false_negative": 0
+    },
+    {
+      "k": 1.3,
+      "n": 36,
+      "actual_feasible": 36,
+      "false_positive": 0,
+      "false_negative": 0
+    }
+  ],
+  "false_feasible_cases": [
+    {
+      "id": "nav064_terminal_tail_v1_uncalibrated_s2",
+      "map": "l2_single_detour-s2001",
+      "k": 0.85,
+      "label": "goal_reached",
+      "danger_steps": 0,
+      "t_s": 36.60000000000025,
+      "budget_J": 360.7824501418394,
+      "cost_J": 363.602884803607,
+      "final_budget_J": -2.8204346617676492,
+      "cost_prediction_J": 357.3309600353241,
+      "cost_target_J": 362.63755373998623,
+      "shared_stop_step": 365,
+      "start_vh": -2.6119673252105713,
+      "actual_vh": 0.002538698892180206,
+      "start_W": -0.006275436557300562,
+      "trajectory_W": 0.003372915632994281
+    },
+    {
+      "id": "nav064_terminal_tail_v1_full_s1",
+      "map": "l1_empty-s2001",
+      "k": 1,
+      "label": "goal_reached",
+      "danger_steps": 0,
+      "t_s": 35.20000000000023,
+      "budget_J": 405.4414193530464,
+      "cost_J": 407.95528027718825,
+      "final_budget_J": -2.513860924141852,
+      "cost_prediction_J": 402.8743863105774,
+      "cost_target_J": 406.7937950849576,
+      "shared_stop_step": 351,
+      "start_vh": -2.8177669048309326,
+      "actual_vh": 0.0011549148894818358,
+      "start_W": -0.004667332804489055,
+      "trajectory_W": 0.0024588649671112637
+    },
+    {
+      "id": "nav064_terminal_tail_v1_full_s2",
+      "map": "l1_empty-s2001",
+      "k": 1,
+      "label": "goal_reached",
+      "danger_steps": 0,
+      "t_s": 37.10000000000026,
+      "budget_J": 405.4414193530464,
+      "cost_J": 407.5411034042187,
+      "final_budget_J": -2.0996840511722894,
+      "cost_prediction_J": 402.4994522333145,
+      "cost_target_J": 406.4486259274683,
+      "shared_stop_step": 370,
+      "start_vh": -2.7770116329193115,
+      "actual_vh": 0.00122402682694005,
+      "start_W": -0.0053490311267851975,
+      "trajectory_W": 0.0018312846807670914
+    }
+  ],
+  "candidate_metrics": [
+    {
+      "id": "nav064_terminal_tail_v1_uncalibrated_s0",
+      "pass": true,
+      "vc_rmae": 0.02717608910943711,
+      "vh_rmae": 0.04068166432496926,
+      "vc_pearson": 0.9997517437310627,
+      "vh_pearson": 0.9777555965667268
+    },
+    {
+      "id": "nav064_terminal_tail_v1_uncalibrated_s1",
+      "pass": true,
+      "vc_rmae": 0.0239089582699788,
+      "vh_rmae": 0.2634251579647715,
+      "vc_pearson": 0.9998531140974508,
+      "vh_pearson": 0.7505609248501931
+    },
+    {
+      "id": "nav064_terminal_tail_v1_uncalibrated_s2",
+      "pass": false,
+      "vc_rmae": 0.022090048403106546,
+      "vh_rmae": 0.12946604119394628,
+      "vc_pearson": 0.9993621223272513,
+      "vh_pearson": 0.8810454740987114
+    },
+    {
+      "id": "nav064_terminal_tail_v1_full_s0",
+      "pass": true,
+      "vc_rmae": 0.01658776321067855,
+      "vh_rmae": 0.28806786032643145,
+      "vc_pearson": 0.9997543194282492,
+      "vh_pearson": 0.8214495894759298
+    },
+    {
+      "id": "nav064_terminal_tail_v1_full_s1",
+      "pass": false,
+      "vc_rmae": 0.023030627221915848,
+      "vh_rmae": 0.14400228592034084,
+      "vc_pearson": 0.9997172548029455,
+      "vh_pearson": 0.9206589493661294
+    },
+    {
+      "id": "nav064_terminal_tail_v1_full_s2",
+      "pass": false,
+      "vc_rmae": 0.02408321713617221,
+      "vh_rmae": 0.12797189432948317,
+      "vc_pearson": 0.999322340583865,
+      "vh_pearson": 0.9338372196799841
+    }
+  ]
+}

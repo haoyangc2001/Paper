@@ -35,6 +35,26 @@
 - clean必须以运行时实际参数证明；物理侧按200 Hz子步维护碰撞/危险/到达及active掩码。缺失观测证据不能用期望命令回填，不能仅凭10 Hz端点或50 Hz末态断言全程安全。新验收要求尚待执行，不写成已解决。
 - 下文HiRA及早期NAV交接用于追溯，不是当前控制器选择或待办。早期G2A和短训报告不替新版部署策略背书；NAV-043/048保留适用性复查与最终审计。
 
+### 当前进度更正（2026-11-18）
+
+本节更正上方2026-11-12进度摘要中的计数和下一任务，不改变其余执行约束：导航计划仍为1.3.1，NAV-001–064共52/67项完成；NAV-065是首个依赖已满足的未完成任务。NAV-065固定actor双critic重拟合已使用本次批准的540个train名义回合，复用180个development回合；独立审计确认六候选中0个满足每候选零假可行标准，G4为`FAIL`，NAV-065保持false。额度已耗尽；不得继续训练、启动NAV-066或放宽beta/门槛，除非取得新的明确授权。详见[当前导航交接](CaMRA/navigation/docs/implementation_handoff.md)和主计划中的NAV-065追加记录。
+
+### NAV-065最新补充（2026-11-18，离线重拟合v2已结束）
+
+用户随后明确批准复用540条train、六候选各最多新增300次critic更新；不安排专用测试子agent。该独立尝试已完成：10/10/10/10/300/300，共640更新，新增采样0；4/6通过train，full seed1/seed2失败，状态`HELD_TRAIN_GATE`。未重评development、未生成新G4/部署包；原G4 FAIL、52/67、NAV-065=false及NAV-066未启动保持。失败候选各300上限已耗尽，不能转移其他候选余量或重启。另发现full seed2的train主档实际17/18可行，批准方案未经核实就要求18/18，单纯拟合critic无法满足；须在后续明确评审，不在本轮改门槛。实际仍有四次假可行，不能因门槛缺口宣称科学通过。详见[本轮审阅](CaMRA/navigation/docs/nav065_saved_refit_v2_review_20261118.md)及交接首段；上方“除非新授权”的旧时点记录保留，新增授权已在主计划追加，但不授权继续扩额。
+
+### NAV-065最新补充（2026-11-18，边界回修v3准备）
+
+用户指定create-plan-worklog-legacy并免除专用测试子agent；本轮主agent基础测试22项通过，540条train/207298步只读预检通过。新版隔离入口增加critic边界符号拟合，分列固定策略真实结果与critic识别；full seed2 train主档实际17/18，须拒绝超时，五档零假可行、development原6/6及G4标准不变。四候选保留零更新，full seed1/seed2各两次假可行仍失败。提案仅申请两失败候选各最多300新更新、合计600，新增回合0；全train通过后才开发重评一次。本轮无正式拟合/开发重评，提案未批准，不能重启旧run或转移额度。NAV-065仍false、NAV-066不执行。见[详细说明](CaMRA/navigation/docs/nav065_boundary_refit_v3_20261118.md)。
+
+### NAV-065最新补充（2026-11-18，边界回修v3已结束）
+
+用户随后确认v3方案及两失败候选各最多300新更新、总600。独立批准登记pin为1071c5699879005e22ba82226d45db45fe8e4c7f18ecee7c685164b425f643f6；实际更新0/0/0/0/300/10，共310，六组actor不变，四组源模型全部张量不变。5/6 train通过，假可行4→1；full seed1最后仍错误放行一次k1.0超预算起点，其平均误差已达线。full seed2首次10更新通过，真实主档17/18及超时失败保留、超时已正确拒绝。整体HELD_TRAIN_GATE，development重评0、无新G4/部署包；原G4 FAIL、52/67、NAV-065=false、NAV-066未启动。full seed1的300上限已耗尽，不能转移seed2未用额度或重启追加。主agent按legacy直接复核540条train/207298步，未派测试子agent；见[本轮结果](CaMRA/navigation/docs/nav065_boundary_refit_v3_review_20261118.md)。下方“提案未批准/待执行”保留为历史时点。
+
+### NAV-065最新补充（2026-11-18，投影梯度回修v4已结束）
+
+用户允许新一轮测试，按legacy由主agent验证，无测试子agent。v4仅full seed1最多300次试更新，实际首个1e-5试步通过并冻结，其他五模型全部张量及六actor不变。540 train/207298步复用，train6/6、错误放行1→0；统一复评180旧development一次，主预算36/36正确，但紧预算4次错误放行，仅无校准seed1/seed2通过，新G4仍FAIL，无部署包。31项基础检查及主agent720条轨迹/J/共同停止复核通过不等于科学通过；NAV-065=false、52/67、NAV-066不执行。按失败协议停止，不自动使用剩余299次；后续先诊断train边界覆盖与泛化，不把开发失败转train。见[结果](CaMRA/navigation/docs/nav065_guarded_refit_v4_review_20261118.md)。以上v3记录为历史时点。
+
 ## 前置状态：v2 选择与历史校准复核（2026-11-09）
 
 - [40项 HiRA 接入与校准计划](doc/plan/20261105_camra_hira_policy_calibration.json)当前 **40/40 项记录完成**；不再从 HIRA-001 或 HIRA-039 重新执行。先读[当前结果与复核说明](CaMRA/calibration/docs/controller_comparison_status_20261109.md)，再按需追溯计划全文与实际证据。

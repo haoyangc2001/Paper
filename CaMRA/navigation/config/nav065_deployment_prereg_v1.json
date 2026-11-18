@@ -1,0 +1,34 @@
+{
+  "schema": "camra-nav065-deployment-v1",
+  "authorization": {
+    "evaluation_approved": true,
+    "decision_reference": "User instruction 2026-11-18 to determine the recommended acceptance values from the paper and implementation, adopt them, and proceed with the pending NAV-065 evaluation."
+  },
+  "split": "development",
+  "grid_k": [0.70, 0.85, 1.0, 1.15, 1.3],
+  "primary_k": 1.15,
+  "max_new_episodes": 72,
+  "output_name": "nav065_deployment_v1",
+  "criteria": {
+    "max_false_feasible": 0,
+    "min_primary_true_feasible": 6,
+    "rel_mae_max": 0.35,
+    "pearson_min": 0.70,
+    "variance_ratio_min": 0.50
+  },
+  "decision_basis": {
+    "paper": "So, Ge and Fan (NeurIPS 2024), Eq. 13 and deployment procedure: find the least feasible budget for the deterministic actor via a one-dimensional value search.",
+    "implementation": "RC-PPO root_finding.py evaluates max(energy value minus budget, reach value plus threshold); arguments.py defaults to threshold 0. CaMRA terminal-tail-v5 preserves beta=0 and normalizes signed budget and cost value by the same fixed J scale.",
+    "feasibility": "A false feasible start can invalidate the selected budget. Require zero per candidate on the named 30 starts; require all six known feasible primary starts to pass so always-reject cannot qualify. These are empirical counts on development, not a population safety guarantee.",
+    "error_metrics": "Retain the CaMRA NAV-038 amended thresholds without adjusting to any new result. Relative MAE uses mean absolute trajectory target as denominator; Pearson is required when target std > 1e-12 and at least 0.50 times its mean absolute value.",
+    "coverage": "Reuse exactly 108 accepted deterministic episodes at k=1.00,1.15,1.30; add at most 72 in the same development maps at k=0.70,0.85. No refit, retraining, final split, or budget-selection split.",
+    "truth": "Full, safe, in-budget arrival under the same frozen actor. Independent complete-trajectory targets use shared stopping and finite endpoints without critic bootstraps."
+  },
+  "inputs": {
+    "scripts/evaluate_nav065_deployment.py": "d0c0127144801c7d7dcad5f228251dfd63744330ffed9f4d35ebd7d297a8adb9",
+    "src/camra_navigation/algorithm/deployment_oracle.py": "551eabf6c9593611ceafbbf7560cf9738b1a08db6b065d801b6a2961e802d01a",
+    "reports/nav065_deployment_source_binding_v1.json": "2019ee5949ba2abadbca6ba3aa854bcd9032d1756151a0bb57d3e9b6493538eb",
+    "reports/nav065_saved_trajectory_compatibility_v1.json": "6e4bce74e3e2607187a396c6ee16707e1889767ae04262aa95100d2a0f732d97",
+    "reports/gate_feedback_v1_attempt4.json": "0bd119d6a25c52617f6bb78e19662db7a7ce79c36a0355c1b6ad3ddd2370ffb5"
+  }
+}
