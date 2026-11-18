@@ -11834,6 +11834,58 @@
     "应用批准登记、追加开工记录并本地提交后运行一次隔离入口；主agent复核实际产物、记录科学限制及交接。"
   ],
   "blockers": []
+},
+{
+  "timestamp": "2026-11-18T21:31:31.520673+08:00",
+  "summary": "NAV-065/1.3.1 v11已结束：2次全量正则输出层求解，18/18识别保留但13次误放行未减，train仍FAIL",
+  "actions": [
+    "按用户确认的独立批准登记执行一次固定full_s0副本全量正则拟合，两原输出层各一次求解，保留全部产物及诊断checkpoint。",
+    "legacy主agent重新构建162条已存train/59877步及60905个加权行出现，逐项复核标签/权重散列、原v5完整train_gate、原25点、全部起点/组和float32目标/驻点残差；审计禁止额外求解、优化及开发评分。",
+    "复核CPU重载、仅四head变化、六原模型/actor及33项冻结v2，38基本测试证据与47项批准源码绑定一致；无专门测试子agent。",
+    "披露改善和退化，生成结果说明与机器审阅，同步AGENTS/README/交接并仅追加当前NAV-065记录；原准备和失败证据保留。"
+  ],
+  "files_changed": [
+    "CaMRA/navigation/config/nav065_ridge_probe_prereg_v11.json",
+    "CaMRA/navigation/config/nav065_ridge_probe_prereg_v11.json.sha256",
+    "CaMRA/navigation/reports/nav065_ridge_probe_v11_review.json",
+    "CaMRA/navigation/docs/nav065_ridge_probe_v11_review_20261118.md",
+    "CaMRA/navigation/docs/implementation_handoff.md",
+    "CaMRA/navigation/README.md",
+    "AGENTS.md",
+    "doc/plan/20261109_camra_navigation_implementation.json",
+    ".worklog-testing/NAV-065/ridge-v11-execution/"
+  ],
+  "commands": [
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/.worklog-testing/NAV-065/ridge-v11-execution/launch.py",
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/CaMRA/navigation/scripts/probe_nav065_ridge.py --registration /home/caohy/repositories/Paper/CaMRA/navigation/config/nav065_ridge_probe_prereg_v11.json",
+    "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/.worklog-testing/NAV-065/ridge-v11-execution/audit.py",
+    "tmux=nav064-r14-repair-20261115:nav065-v11-execution; cwd=/home/caohy/repositories/Paper/CaMRA/navigation; host=tiger11.ios.ac.cn"
+  ],
+  "results": [
+    "真实求解2、审计额外求解0、梯度更新0、新回合0、开发评分0；本次额度已结束，不重试、扫描、追加或自动扩展。",
+    "主预算原实际可行及识别18/18保留，全162起点误放行13→13、误拒绝1→1；原25点联合错误13→13，局部仍FAIL。",
+    "原/新增全时刻到达相对MAE15.65%→15.00%/43.85%→41.31%，新增Pearson0.5722→0.6129，所选866边界联合错误97→94；完整train_gate仍FAIL。",
+    "退化保留：原全时刻W相对MAE6.46%→20.96%，全起点到达分量符号错误28→34、边界分量264→290；整体目标改善不保证符号正确。",
+    "实际成本/到达输出层改变量约0.002892/0.937267，float32驻点残差约8.6e-9/1.23e-8；仅为该固定特征/权重/正则的证据，不证明架构不可行。",
+    "原RC-PPO原理/共同停止/W/beta、actor/body/架构/obs-v7、六原模型、v2/校准和评分不变；未部署副本。执行完整性通过，科学验收未满足，NAV-065=false、52/67、原G4 FAIL及NAV-066未启动。"
+  ],
+  "evidence": [
+    "CaMRA/navigation/reports/nav065_ridge_probe_v11_review.json",
+    "CaMRA/navigation/docs/nav065_ridge_probe_v11_review_20261118.md",
+    "CaMRA/navigation/config/nav065_ridge_probe_prereg_v11.json",
+    "approval_pin=ea32c6e299ea68fbd53c7e0e901669262e71dc44f9f49ec5386821e3951f45aa",
+    "/pub/data/caohy/work/camra_navigation/nav065_ridge_probe_v11",
+    ".worklog-testing/NAV-065/ridge-v11-execution/execution.json",
+    ".worklog-testing/NAV-065/ridge-v11-execution/audit-attempt1.log",
+    "diagnostic_checkpoint_sha256=eec0c4df3200856c676da56a1012277b110fa089b32d404fd688a70f228248df"
+  ],
+  "remaining_work": [
+    "先分析已有train的特征、符号边界及拟合折中，提出能区分原因的具体方案；当前固定二次问题已求解，不以盲目追加同类次数替代诊断。",
+    "后续新拟合、改过程/架构、开发评分或六候选扩展须明确评审具体方案；NAV-066继续等待有效上游。"
+  ],
+  "blockers": [
+    "原完整train及NAV-065科学验收仍失败；本次2次拟合额度已结束，无继续拟合或下游授权。"
+  ]
 }
       ],
    "test_reports": [

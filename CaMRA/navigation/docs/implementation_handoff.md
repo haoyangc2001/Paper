@@ -1,5 +1,11 @@
 # 上层导航实施交接
 
+## 2026-11-18 NAV-065 v11结束：稳住全量，关键误判仍未减少
+
+用户确认v11具体提案后在tiger11/tmux完成一次full_s0副本验证，两原输出层各求解一次/共2次，梯度更新/新回合/开发评分0。复用162条train/59877步，原主预算实际可行及识别18/18保留；起点误放行13→13、误拒绝1→1，新增到达相对MAE43.85%→41.31%、Pearson0.5722→0.6129，边界联合错误97→94。原全时刻W相对MAE6.46%→20.96%、起点到达符号错误28→34，仍有退化，完整train FAIL。legacy主agent原生产门禁/CPU重载/仅四head变化/六原模型及33项v2复核通过，38基本测试与未变源码匹配，无测试子agent。原G4 FAIL、52/67、NAV-065=false及NAV-066未启动；2次额度已结束，不追加或自动扩展。
+
+详见[本轮结果](nav065_ridge_probe_v11_review_20261118.md)、[机器审阅](../reports/nav065_ridge_probe_v11_review.json)及[已批准登记](../config/nav065_ridge_probe_prereg_v11.json)，pin为`ea32c6e299ea68fbd53c7e0e901669262e71dc44f9f49ec5386821e3951f45aa`。原始产物`/pub/data/caohy/work/camra_navigation/nav065_ridge_probe_v11/`；tmux `nav064-r14-repair-20261115:nav065-v11-execution`，日志`.worklog-testing/NAV-065/ridge-v11-execution/`。执行完整性通过不等于科学通过；下一步先诊断已有train特征/符号/拟合折中，不自动开始新拟合。下方准备和未批准措辞保留为历史时点。
+
 ## 2026-11-18 NAV-065 v11准备：全量共同拟合与输出层稳定性
 
 用户指定create-plan-worklog-legacy并要求按前述分析推进，主agent完成38项基本检查，无测试子agent；固定v8末次full_s0来源，162条已存train/59877步通过只读生产接线预检。原33223步、已有新增26654步、162起点和原866个边界行按四组/到达符号分层加权，共60905个行出现；没有新增采样。只读包装器禁用候选求解、Adam/SGD、rollout和development评分。
