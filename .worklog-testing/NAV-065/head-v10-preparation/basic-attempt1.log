@@ -1,0 +1,125 @@
+..........FF.....................                                        [100%]
+=================================== FAILURES ===================================
+_ test_actual_small_probe_reports_full_gate_and_does_not_deploy_even_if_local_passes _
+
+tmp_path = PosixPath('/tmp/pytest-of-caohy/pytest-18/test_actual_small_probe_report0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7150b077a350>
+
+    def test_actual_small_probe_reports_full_gate_and_does_not_deploy_even_if_local_passes(tmp_path, monkeypatch):
+        source, rows, inputs = prepared(tmp_path, monkeypatch)
+        before = copy.deepcopy(source.state_dict())
+        settings = H.R.load(H.PROPOSAL)
+        reg = {'criteria': {'rel_mae_max': .35, 'pearson_min': .7, 'variance_ratio_min': .01}}
+>       H.run(settings, 'synthetic', reg, inputs, rows)
+
+tests/test_nav065_head_probe.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/probe_nav065_head.py:182: in run
+    before = {x['run_id']: R.digests(m) for x, m, _, _ in prepared}
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts/probe_nav065_head.py:182: in <dictcomp>
+    before = {x['run_id']: R.digests(m) for x, m, _, _ in prepared}
+                           ^^^^^^^^^^^^
+scripts/refit_nav065_deployment.py:32: in digests
+    return {role: tensor_digest(getattr(model, role)) for role in model.ROLES}
+                                                                  ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Model(
+  (policy): Linear(in_features=1, out_features=1, bias=True)
+  (critic_cost): Critic(
+    (body): Sequential(
+ ..., out_features=3, bias=True)
+      (1): Tanh()
+    )
+    (head): Linear(in_features=3, out_features=1, bias=True)
+  )
+)
+name = 'ROLES'
+
+    def __getattr__(self, name: str) -> Union[Tensor, "Module"]:
+        if "_parameters" in self.__dict__:
+            _parameters = self.__dict__["_parameters"]
+            if name in _parameters:
+                return _parameters[name]
+        if "_buffers" in self.__dict__:
+            _buffers = self.__dict__["_buffers"]
+            if name in _buffers:
+                return _buffers[name]
+        if "_modules" in self.__dict__:
+            modules = self.__dict__["_modules"]
+            if name in modules:
+                return modules[name]
+>       raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
+E       AttributeError: 'Model' object has no attribute 'ROLES'
+
+/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages/torch/nn/modules/module.py:1940: AttributeError
+____________ test_partial_solve_failure_is_preserved_without_retry _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-caohy/pytest-18/test_partial_solve_failure_is_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7150ab5d2c10>
+
+    def test_partial_solve_failure_is_preserved_without_retry(tmp_path, monkeypatch):
+        source, rows, inputs = prepared(tmp_path, monkeypatch)
+        solver = H.solve_head
+        calls = []
+        def fail_second(*args):
+            calls.append(1)
+            if len(calls) == 2:
+                raise ValueError('synthetic failure')
+            return solver(*args)
+        monkeypatch.setattr(H, 'solve_head', fail_second)
+        settings = H.R.load(H.PROPOSAL)
+        with pytest.raises(ValueError, match='synthetic failure'):
+>           H.run(settings, 'synthetic', None, inputs, rows)
+
+tests/test_nav065_head_probe.py:186: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/probe_nav065_head.py:182: in run
+    before = {x['run_id']: R.digests(m) for x, m, _, _ in prepared}
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts/probe_nav065_head.py:182: in <dictcomp>
+    before = {x['run_id']: R.digests(m) for x, m, _, _ in prepared}
+                           ^^^^^^^^^^^^
+scripts/refit_nav065_deployment.py:32: in digests
+    return {role: tensor_digest(getattr(model, role)) for role in model.ROLES}
+                                                                  ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Model(
+  (policy): Linear(in_features=1, out_features=1, bias=True)
+  (critic_cost): Critic(
+    (body): Sequential(
+ ..., out_features=3, bias=True)
+      (1): Tanh()
+    )
+    (head): Linear(in_features=3, out_features=1, bias=True)
+  )
+)
+name = 'ROLES'
+
+    def __getattr__(self, name: str) -> Union[Tensor, "Module"]:
+        if "_parameters" in self.__dict__:
+            _parameters = self.__dict__["_parameters"]
+            if name in _parameters:
+                return _parameters[name]
+        if "_buffers" in self.__dict__:
+            _buffers = self.__dict__["_buffers"]
+            if name in _buffers:
+                return _buffers[name]
+        if "_modules" in self.__dict__:
+            modules = self.__dict__["_modules"]
+            if name in modules:
+                return modules[name]
+>       raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
+E       AttributeError: 'Model' object has no attribute 'ROLES'
+
+/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages/torch/nn/modules/module.py:1940: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_nav065_head_probe.py::test_actual_small_probe_reports_full_gate_and_does_not_deploy_even_if_local_passes
+FAILED tests/test_nav065_head_probe.py::test_partial_solve_failure_is_preserved_without_retry
+2 failed, 31 passed in 2.38s

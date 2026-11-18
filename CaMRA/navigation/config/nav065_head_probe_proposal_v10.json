@@ -1,0 +1,29 @@
+{
+  "schema": "camra-nav065-head-probe-v10",
+  "task": "NAV-065",
+  "approved": false,
+  "status": "PROPOSED_NOT_EXECUTED",
+  "fit_split": "train",
+  "candidate": "nav064_terminal_tail_v1_full_s0",
+  "source_checkpoint_sha256": "b6eecf29f35cc1aa20a5fdd2216b0d30425cb044efae325f11a8c86533646bc7",
+  "source_rule": "Fixed v8 final, identical to the v9 starting checkpoint; never pick a v9 intermediate or best checkpoint. Reuse the exact v9 selection of 25 starts from this actor's 162 saved train episodes.",
+  "output_name": "nav065_head_probe_v10",
+  "resource_limit": {
+    "update_candidates": ["nav064_terminal_tail_v1_full_s0"],
+    "head_linear_solves_total_max": 2,
+    "solves_per_original_critic_head": 1,
+    "optimizer_steps_total_max": 0,
+    "new_train_episodes_max": 0,
+    "development_scoring_rounds_max": 0,
+    "cpu_threads": 1
+  },
+  "solve": {
+    "method": "numpy.linalg.lstsq float64, one solve per original linear head, minimum Euclidean displacement from that source head on the fixed float32 body features plus bias",
+    "rcond": 1e-12,
+    "rule": "Freeze actor and both original critic bodies. Deep-copy source, solve A*delta=target-A*head_source once for each head, cast the new head to the original float32 dtype, and evaluate through the unchanged production network. No epsilon/label/sign shift, retry, tolerance sweep, alternate source, architecture change or extra data. Report precision errors and all local signs even if the solve appears exact in float64."
+  },
+  "acceptance": "Use unchanged v9 local numeric/component/joint sign checks and unchanged original v5 full 90+72 episode train_gate before and after. Report all regressions. Local success shows only finite known-start expressibility; full train failure remains failure. Neither result allows development evaluation, G4, NAV-066 or deployment.",
+  "failure_policy": "Any actual candidate head solve is model fitting, including this non-iterative method, and requires a new approved/hash-pinned registration. Exclusive output; preserve partial attempts/checkpoints and failures. No automatic continuation, transfer, enlargement or reuse of ended optimizer quotas.",
+  "downstream": "Diagnostic-only checkpoint and full-train impact review. If local solve passes, prioritize global fitting/stability on original plus boundary/along-path data; if it fails, diagnose numeric representation. No automatic architectural change or six-candidate expansion.",
+  "protected": ["six original models and actors", "original architecture and obs-v7", "critic bodies during this probe", "common-stop cost/reach targets and W", "beta=0 and original v5 train/G4", "complete frozen v2 and calibration", "map/time/J/split contracts", "all history", "RC-PPO/HiRA/manuscripts"]
+}
