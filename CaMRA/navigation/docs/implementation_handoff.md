@@ -515,3 +515,11 @@ cd /home/caohy/repositories/Paper
 六组于17:33在tiger11、tmux `nav064-r14-repair-20261115:time-feedback-training`启动。解释器`/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python`；cwd为导航目录。协调器目录`/pub/data/caohy/work/camra_navigation/nav064_time_feedback_v1/`，启动日志及证据在`/pub/data/caohy/work/camra_navigation/nav064_time_feedback_launch_20261116_v1/`。启动报告`reports/nav064_time_feedback_started_v1.json`记录六组PID、pin、实际输入hash与最初更新；六份首chunk已验证45秒时间编码。
 
 协调器自动在100更新后暂停作严格审计，通过后继续至600，再全量审计及开发判定；出现HELD须先查现场，不能重复启动或加跑。当前仅证明启动及初始机制，NAV-064仍false；原关闭档不变，NAV-065及后续未执行。恢复时先读根AGENTS和计划最新记录，再检查上述会话、进程、run及HELD/FINISHED标记。
+
+# 2026-11-19 NAV-067阶段保存：子步基础实现，尚未物理验收
+
+用户要求继续后续任务并核对必要提交。本轮按legacy由主agent验证，未安排测试子agent。在`tiger11`的tmux `nav064-r14-repair-20261115:nav067-clean-v2`新增隔离的`envs/physical_v2.py`及`envs/clean_v2.py`，保留原NAV-042源码与所有已绑定模型/配置。新版基础接口显式使用obs-v7/45秒，逐200Hz实际状态维护不可逆危险历史及物理事件，保存终止步并停止后续计费，部分周期按实际时长计模型成本。Isaac适配器绕开gym.step自动复位，仍通过固定v2 action_manager逐子步施加PD；这部分尚未在真实Isaac环境运行，不能宣称已接线通过。
+
+`tests/test_physical_v2.py`的16项基本测试通过，覆盖中间穿障退出、危险历史、旋转扫掠、同时碰撞到达、异步结束、部分周期及陈旧/缺失命令证据拒绝；这些是合成反例，不替代真实仿真。291项原注册绑定源码/配置/资源/所选模型hash复核一致。报告为[基础准备记录](../reports/nav067_substep_preparation_v1.json)，原始日志在`.worklog-testing/NAV-067/clean-v2/`。
+
+计划仍1.4.1、54/67，NAV-067保持false。新增训练/物理回合/W查询均0；下一入口是补齐新版候选绑定和完整可执行生产入口、运行时clean及碰撞体读回，再在有效登记额度内做6回合pilot。真实受控反例和同配置重复性须核对独立额度，不能静默加跑。原效率FAIL、旧G4 FAIL和接受局限记录保留，不能进入NAV-043/G5或访问final_*。

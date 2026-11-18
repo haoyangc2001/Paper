@@ -13020,7 +13020,59 @@
     "reports/nav042_clean_pilot.json",
     "reports/nav042_report_amendment.json"
    ],
-   "work_records": [],
+  "work_records": [
+   {
+    "timestamp": "2026-11-19T07:51:48+08:00",
+    "summary": "NAV-067开工：按legacy接通已测候选与固定v2，修正clean及200Hz事件接口",
+    "actions": [
+     "重新读取根AGENTS、legacy技能及execution-rules、计划全文解析、当前任务与全局/回修约束，核对54/67及NAV-066经接受局限结案。",
+     "本项将已测无校准seed2 guarded-v4和完整方法seed0 original接到固定v2；保留原科学效率FAIL及旧G4 FAIL，输出供NAV-043检查实际闭环适用性。",
+     "仅新增隔离导航适配/入口/配置，不改原注册绑定源码、模型、RC-PPO目标、45秒冻结任务、底层v2及校准锁。",
+     "已确认tiger11/tmux、Python3.11.15及GPU现场信息；继承用户批准同机执行例外。实际仿真前继续核验v2资源及有效配额。",
+     "旧入口仍加载NAV-042旧候选，physical.py默认30秒、旧观测和50Hz事件，不能直接复用作为新版证据。新接线需逐子步记录位姿、终止掩码、真实机械功及实际命令观测。"
+    ],
+    "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+    "commands": ["tmux nav064-r14-repair-20261115:nav067-clean-v2: <absolute Python> -B .worklog-testing/NAV-067/clean-v2/inspect.py", "<absolute Python> -B <legacy skill>/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"],
+    "results": ["计划update校验通过；NAV-067是首个依赖满足的false任务；原有221条工作记录全部读取并保留；本项尚无新训练/物理回合。"],
+    "evidence": [".worklog-testing/NAV-067/clean-v2/baseline.json", ".worklog-testing/NAV-067/clean-v2/current-task.json", ".worklog-testing/NAV-067/clean-v2/inspect.log", "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"],
+    "remaining_work": ["实现隔离clean配置、新模型/45秒观测接口与200Hz事件及能量停止链，主agent基本验证。", "核对6回合新pilot及重复性/真实受控验证独立额度；未授权额度不启动。", "实际适配器和pilot验收后才判定NAV-067；NAV-043及后续依赖继续false。"],
+    "blockers": []
+   },
+   {
+     "timestamp": "2026-11-19T07:57:13.236466+08:00",
+     "summary": "NAV-067阶段保存：200Hz事件基础实现及16项基本检查通过，真实接线未验收",
+     "actions": [
+       "新增隔离physical_v2与clean_v2：显式obs-v7/45秒、实际物理子步、不可逆安全历史、真实终止快照、部分周期模型计费和活跃掩码。",
+       "Isaac适配按v2 action_manager每子步施加PD，使用实际观测命令及时钟，绕开gym.step自动复位；此处仅代码准备，尚未在真实Isaac运行。",
+       "主agent完成中间穿障后退出、危险历史、旋转扫掠、同时到达碰撞、异步结束、部分周期计费和缺失/陈旧命令拒绝等16项基本测试。",
+       "校验原注册绑定的291个源码/配置/资源/模型hash不变，原67项顺序/依赖/状态及全部旧记录前缀保留。"
+     ],
+     "files_changed": [
+       "/home/caohy/repositories/Paper/CaMRA/navigation/src/camra_navigation/envs/physical_v2.py",
+       "/home/caohy/repositories/Paper/CaMRA/navigation/src/camra_navigation/envs/clean_v2.py",
+       "/home/caohy/repositories/Paper/CaMRA/navigation/tests/test_physical_v2.py",
+       "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav067_substep_preparation_v1.json",
+       "/home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json"
+     ],
+     "commands": [
+       "tmux nav064-r14-repair-20261115:nav067-clean-v2; cwd=/home/caohy/repositories/Paper/CaMRA/navigation; PYTHONPATH=src:scripts:../calibration/src PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -m pytest -q tests/test_physical_v2.py"
+     ],
+     "results": [
+       "16项基本测试通过；三个新文件语法解析通过；无新训练/物理回合/W查询。",
+       "本次仅基础实现检查，尚未接通新版完整生产入口，不构成NAV-067或物理性能通过。"
+     ],
+     "evidence": [
+       "CaMRA/navigation/reports/nav067_substep_preparation_v1.json",
+       ".worklog-testing/NAV-067/clean-v2/basic-tests.log"
+     ],
+     "remaining_work": [
+       "新版候选绑定与可执行生产入口；实际clean参数/资产/碰撞体读回。",
+       "有效登记后执行6回合pilot、真实受控反例和同配置重复性，受资源边界约束。",
+       "依照所有局部及全局标准验收后再进入NAV-043。"
+     ],
+     "blockers": []
+   }
+  ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [
     "R05",
