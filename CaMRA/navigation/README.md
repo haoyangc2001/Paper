@@ -1,5 +1,7 @@
 # 上层最小成本到达避障导航器
 
+2026-11-19当前入口：用户已接受完整方法1图预算偏保守的局限，[NAV-066以接受局限结案](reports/nav066_efficiency_limitation_acceptance_v1.json)，原效率FAIL/旧G4 FAIL不改。计划1.4.1、54/67，下一项NAV-067物理接线及200Hz事件核验，尚未执行；本次无新训练/查询/回合。后续是闭环适用性检查、正式冻结、clean/扰动评估及审计交付，见[任务路线](docs/nav066_accepted_limitation_next_steps_20261119.md)。未测候选和物理/最终性能不继承本次接受，以下为历史时点。
+
 2026-11-18最新结果：已用最好现有配对完成90条独立名义轨迹，所选预算两方法各9/9安全且预算内到达、错误放行/拒绝0。无校准PASS；完整方法1图预算预留两档，超过一档效率要求，方法FAIL。NAV-065准备true、NAV-066=false，计划53/67，旧G4 FAIL保留；不自动重训、重跑或继续物理下游。见[本轮结果](docs/nav066_budget_decision_review_v2_20261118.md)及[机器报告](reports/nav066_budget_decision_validation_v2.json)。
 
 2026-11-18当前入口：用户确认[新版预算决策登记](config/nav066_decision_prereg_v2.json)，按已有development固定最好现有配对（无校准seed2 guarded-v4、完整方法seed0 original）。主计划1.4.0，NAV-065只研究准备通过（53/67），旧G4 FAIL保留；下一步NAV-066先封存18个预算决策，再独立执行最多90条名义轨迹。原模型冻结任务为45秒，旧草案30秒系笔误，派生上限40500步；不训练、不执行物理或final_*。见[当前交接](docs/implementation_handoff.md)，下方均保留为历史时点。
