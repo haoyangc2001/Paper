@@ -1,85 +1,108 @@
 {
  "document": {
   "name": "CaMRA 固定 v2 上层最小成本到达避障实施计划",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "created_at": "2026-11-09",
   "mode": "update",
   "source_plan": "本轮用户确认的六阶段实施顺序及逐阶段源码参考；前置过程见 doc/plan/20261103_camra_calibration_implementation.json 和 doc/plan/20261105_camra_hira_policy_calibration.json。",
   "source_snapshot": {
-   "main_head_at_creation": "35a7b4ab04881405bbbe4211f89eacf237ad6f78",
-   "hira_pinned_commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
-   "working_tree_has_preexisting_documentation_changes": true,
-   "server_contacted_during_plan_creation": false
+    "main_head_at_creation": "35a7b4ab04881405bbbe4211f89eacf237ad6f78",
+    "hira_pinned_commit": "6a05af55521e5f6668c50e9f90cf7049b3e35cd9",
+    "working_tree_has_preexisting_documentation_changes": true,
+    "server_contacted_during_plan_creation": false
   },
   "status_definition": {
-   "false": "尚未开始、部分完成、受阻或未通过全部验收",
-   "true": "依赖完成、全部验收满足，且已追加真实工作记录和验证证据"
+    "false": "尚未开始、部分完成、受阻或未通过全部验收",
+    "true": "依赖完成、全部验收满足，且已追加真实工作记录和验证证据"
   },
   "update_rule": "执行前完整读取本计划、AGENTS.md及技能execution-rules.md，按tasks数组和依赖选择任务。2026-11-12按用户要求原位修订已有任务定义，不新增任务、不重排编号；保留全部历史work_records、status与verification_result。本次文档修订不是任务执行。后续在当前任务追加回修证据，按upstream_correction_policy处理失效验收；历史true不代替新版本重验。 每项任务开始、续跑、切换或上下文恢复时，先重新完整读取根AGENTS.md及适用目录指令，执行execution_alignment_policy的开工对齐、局部与全局双重验收及阶段复核；记录在当前任务，不凭旧摘要跳过。",
   "work_record_fields": [
-   "timestamp",
-   "summary",
-   "actions",
-   "files_changed",
-   "commands",
-   "results",
-   "evidence",
-   "remaining_work",
-   "blockers"
+    "timestamp",
+    "summary",
+    "actions",
+    "files_changed",
+    "commands",
+    "results",
+    "evidence",
+    "remaining_work",
+    "blockers"
   ],
-  "updated_at": "2026-11-12",
+  "updated_at": "2026-11-18",
   "revisions": [
-   {
-    "version": "1.1.0",
-    "date": "2026-11-09",
-    "kind": "用户授权的计划内容修订，非任务执行",
-    "summary": "将八类实现对齐问题落实为六项新增前置任务，并补强已有任务、阶段门禁与说明入口。",
-    "added_task_ids": [
-     "NAV-055",
-     "NAV-056",
-     "NAV-057",
-     "NAV-058",
-     "NAV-059",
-     "NAV-060"
-    ],
-    "preserved_task_ids": "NAV-001–054，全部原状态、工作记录和验证结果保持不变",
-    "tasks_executed": 0,
-    "server_contacted": false
-   },
-   {
-    "version": "1.2.0",
-    "date": "2026-11-09",
-    "kind": "用户授权的全程回修规则补充，非任务执行",
-    "summary": "允许在既定范围内回修前置实现，将问题、历史依据、修正、复验和下游影响追加到发现问题的当前任务；保留旧工作记录和产物，失效验收重验后才能继续。",
-    "added_task_ids": [],
-    "preserved_task_ids": "全部60项任务的编号、顺序、依赖、状态、work_records及verification_result保持不变，仅补充全局规则和NAV-001/052/054的执行与验收要求",
-    "tasks_executed": 0,
-    "server_contacted": false
-   },
-   {
-    "version": "1.3.0",
-    "date": "2026-11-12",
-    "kind": "用户授权的原位计划修订与入口同步，非任务执行",
-    "summary": "将RC-PPO原理对齐、样本时序、预算和终止、三套估计器、动作更新、预算搜索、clean物理事件及证据隔离融入已有NAV-061–067和后续验收。既有67项不新增、不重排；修订NAV-067依赖NAV-066以绑定新版候选。",
-    "added_task_ids": [],
-    "preserved_task_ids": "全部67项编号、数组顺序、48项true/19项false、work_records及verification_result逐项保留；已完成任务原定义不改写。",
-    "tasks_executed": 0,
-    "server_contacted": false,
-    "source_head": "dddc629",
-    "historical_note": "NAV-061–067在本次修订前已由dddc629插入。旧48项完成包括用户接受负结果的流程结案；G4仍为FAIL_WITH_STABILITY，不能解释为导航已达标。"
-   },
-   {
-    "version": "1.3.1",
-    "date": "2026-11-12",
-    "kind": "用户授权的全局目标对齐执行规则补充，非任务执行",
-    "summary": "新增每任务开工/恢复必读AGENTS、全局目标卡、开工对齐、局部与上下游双重验收、阶段复核及偏差处理要求；适用于后续执行，不重复新增任务。",
-    "added_task_ids": [],
-    "preserved_task_ids": "67项任务完整定义、编号、数组顺序、依赖、48项true/19项false、work_records和verification_result与本次修订前逐项一致。",
-    "tasks_executed": 0,
-    "server_contacted": false
-   }
+    {
+      "version": "1.1.0",
+      "date": "2026-11-09",
+      "kind": "用户授权的计划内容修订，非任务执行",
+      "summary": "将八类实现对齐问题落实为六项新增前置任务，并补强已有任务、阶段门禁与说明入口。",
+      "added_task_ids": [
+        "NAV-055",
+        "NAV-056",
+        "NAV-057",
+        "NAV-058",
+        "NAV-059",
+        "NAV-060"
+      ],
+      "preserved_task_ids": "NAV-001–054，全部原状态、工作记录和验证结果保持不变",
+      "tasks_executed": 0,
+      "server_contacted": false
+    },
+    {
+      "version": "1.2.0",
+      "date": "2026-11-09",
+      "kind": "用户授权的全程回修规则补充，非任务执行",
+      "summary": "允许在既定范围内回修前置实现，将问题、历史依据、修正、复验和下游影响追加到发现问题的当前任务；保留旧工作记录和产物，失效验收重验后才能继续。",
+      "added_task_ids": [],
+      "preserved_task_ids": "全部60项任务的编号、顺序、依赖、状态、work_records及verification_result保持不变，仅补充全局规则和NAV-001/052/054的执行与验收要求",
+      "tasks_executed": 0,
+      "server_contacted": false
+    },
+    {
+      "version": "1.3.0",
+      "date": "2026-11-12",
+      "kind": "用户授权的原位计划修订与入口同步，非任务执行",
+      "summary": "将RC-PPO原理对齐、样本时序、预算和终止、三套估计器、动作更新、预算搜索、clean物理事件及证据隔离融入已有NAV-061–067和后续验收。既有67项不新增、不重排；修订NAV-067依赖NAV-066以绑定新版候选。",
+      "added_task_ids": [],
+      "preserved_task_ids": "全部67项编号、数组顺序、48项true/19项false、work_records及verification_result逐项保留；已完成任务原定义不改写。",
+      "tasks_executed": 0,
+      "server_contacted": false,
+      "source_head": "dddc629",
+      "historical_note": "NAV-061–067在本次修订前已由dddc629插入。旧48项完成包括用户接受负结果的流程结案；G4仍为FAIL_WITH_STABILITY，不能解释为导航已达标。"
+    },
+    {
+      "version": "1.3.1",
+      "date": "2026-11-12",
+      "kind": "用户授权的全局目标对齐执行规则补充，非任务执行",
+      "summary": "新增每任务开工/恢复必读AGENTS、全局目标卡、开工对齐、局部与上下游双重验收、阶段复核及偏差处理要求；适用于后续执行，不重复新增任务。",
+      "added_task_ids": [],
+      "preserved_task_ids": "67项任务完整定义、编号、数组顺序、依赖、48项true/19项false、work_records和verification_result与本次修订前逐项一致。",
+      "tasks_executed": 0,
+      "server_contacted": false
+    },
+    {
+      "version": "1.4.0",
+      "date": "2026-11-18",
+      "kind": "用户确认的验收复审与最优现有模型独立检验，不训练",
+      "summary": "分离拟合诊断、NAV-065准备与NAV-066实际预算决策验收；保留旧G4 FAIL及历史标准。按已暴露development选最优现有配对、45秒冻结任务和90名义回合上限。",
+      "added_task_ids": [],
+      "preserved_task_ids": "67项顺序、ID、依赖及全部历史记录保留；状态仅在逐项实际验收后更新。"
+    }
   ]
- },
+},
+ "budget_decision_acceptance_revision_v2": {
+  "registration": "CaMRA/navigation/config/nav066_decision_prereg_v2.json",
+  "registration_pin": "6e783599f76e68cc483bfc9f4d3e7649e4b312f48335a5c7c578f974ab9d126c",
+  "authority": "用户确认新版预算决策协议，最新指令：确认，用目前训练出来的最好的模型去检验。既有同机tiger11/tmux例外和本地提交授权持续有效；不派专用测试子agent。",
+  "precedence": "本次已批准的有限研究验收仅覆盖NAV-065/NAV-066。旧NAV-061、G4及NAV-065的全train零误放行/35%/0.70等作为历史拟合诊断完整保留，不再作为本轮准备或实际预算决策的前置硬门槛；不据此宣称价值预测无误。其它全局约束及下游独立门禁继续适用。",
+  "horizon_correction": {
+    "draft_typo_seconds": 30,
+    "draft_typo_max_steps": 27000,
+    "actual_frozen_seconds": 45,
+    "actual_max_steps": 40500,
+    "authority": "config/training_loop_prereg_terminal_tail_v1.json environment.t_max_s=45; original frozen source wins. Prior draft misreported this as unchanged=30. This is recorded before any new map/model query/trajectory. Episodes remain 90, no task/model change."
+  },
+  "old_G4": "FAIL",
+  "downstream_scope": "only selected uncalibrated seed2 guarded-v4 + full seed0 original; no physical or other-seed inheritance"
+},
  "background": {
   "business_context": "在 Isaac Lab 中实现 Go2 分层最小成本到达避障：固定低层速度跟踪器，上层在确定性名义运动模型中学习到达、安全和成本决策，再进入 clean 与扰动物理仿真检验。",
   "current_capability": "截至dddc629，名义标量/向量环境、v2执行桥、三网络训练、预算搜索工具和物理闭环已实现；67项中48项记录完成。已有三轮名义训练的开发成功率仍为0，G4保留FAIL_WITH_STABILITY；NAV-041的90回合扫描无可行预算，NAV-042的6回合只证明接线。下一项NAV-061先冻结原理对齐与回修协议，本次不执行。",
@@ -9783,31 +9806,61 @@
   },
   {
    "id": "NAV-065",
+"acceptance_definition_history": [
+  {
+    "version": "1.3.1",
+    "preserved_at": "2026-11-18T22:28:00.380820+08:00",
+    "goal": "绑定新actor与同目标双critic，验证部署价值判据并重新放行",
+    "constraints_and_notes": [
+      "按NAV-061固定checkpoint规则选择达标轮次六候选，不按预算选择或最终结果择优；旧bundle v1及旧重拟合结果保留。",
+      "固定actor的确定性动作变换后，使用train/development重新核验或拟合双critic；采样时序、共同停止、失败尾项、预算范围和目标函数必须使用NAV-062/063版本。",
+      "核验不能仅比较MAE/Pearson或复用旧amend：增加安全可行/不可行预算与失败状态的W符号/假可行检查；阈值在数据前冻结。目标方差退化时如实报告，不能以相关性无定义免除可行性判定。",
+      "绑定每候选源checkpoint、actor/双critic、观测/动作、z_ref、h/y、beta、估计器及契约hash；验证CPU重载与部署一致。六候选不意味着NAV-066的90回合覆盖所有种子。",
+      "目标/输入变化使旧G4科学放行不能继承；新门禁须同时引用NAV-063和064。critic未达到预算用途的要求则保持false，不以经验扫描自动绕过。"
+    ],
+    "acceptance_criteria": [
+      "deployment_candidates_v2六个候选身份唯一、hash可复算，采用同一新契约；v1字节和旧判定完整保留。",
+      "每候选固定actor的独立开发核验包含预测误差、符号混淆/假可行、边界预算和失败例；目标由独立轨迹/已核验oracle产生，非用同一网络给自己判对。",
+      "部署均值动作与value对应；重拟合未触及actor及v2。所有预算输入覆盖本轮搜索范围且不饱和混淆。",
+      "新G4门禁列学习可用性和部署价值可信度，全部达到预登记条件才通过；旧FAIL_WITH_STABILITY原报告不覆盖。"
+    ],
+    "planned_outputs": [
+      "delivery/deployment_candidates_v2.json",
+      "reports/deployment_critic_validation_v2.json",
+      "reports/gate_G4_alignment_v2.json"
+    ]
+  }
+],
+"acceptance_version": "2.0.0-best",
    "phase": "预算与闭环",
-   "goal": "绑定新actor与同目标双critic，验证部署价值判据并重新放行",
-   "status": false,
+   "goal": "冻结最优现有候选及预算规则，披露拟合局限，完成独立决策验证的研究准备",
+   "status": true,
    "depends_on": [
     "NAV-064"
    ],
    "constraints_and_notes": [
-    "按NAV-061固定checkpoint规则选择达标轮次六候选，不按预算选择或最终结果择优；旧bundle v1及旧重拟合结果保留。",
-    "固定actor的确定性动作变换后，使用train/development重新核验或拟合双critic；采样时序、共同停止、失败尾项、预算范围和目标函数必须使用NAV-062/063版本。",
-    "核验不能仅比较MAE/Pearson或复用旧amend：增加安全可行/不可行预算与失败状态的W符号/假可行检查；阈值在数据前冻结。目标方差退化时如实报告，不能以相关性无定义免除可行性判定。",
-    "绑定每候选源checkpoint、actor/双critic、观测/动作、z_ref、h/y、beta、估计器及契约hash；验证CPU重载与部署一致。六候选不意味着NAV-066的90回合覆盖所有种子。",
-    "目标/输入变化使旧G4科学放行不能继承；新门禁须同时引用NAV-063和064。critic未达到预算用途的要求则保持false，不以经验扫描自动绕过。"
-   ],
+  "按用户最新指令只用已有development择优；六身份/原始报告绑定，不训练、不新增开发评分，模型和v2冻结。",
+  "旧G4 FAIL、原35%/0.70/零误放行标准及全部失败保留为历史诊断，不复用为本轮科学通过。",
+  "生产路径用双critic W=max(V_h,V_c-z/550)、beta=0及一档保护；不改预算增广、安全历史、共同停止或actor。",
+  "保持原模型45秒task；旧草案30秒系笔误，90回合额度不增加。最多40500名义步；没有物理回合。",
+  "准备通过只为PROVISIONAL_RESEARCH_READY，实际可用性属于NAV-066；未测候选及物理下游不能继承。"
+],
    "acceptance_criteria": [
-    "deployment_candidates_v2六个候选身份唯一、hash可复算，采用同一新契约；v1字节和旧判定完整保留。",
-    "每候选固定actor的独立开发核验包含预测误差、符号混淆/假可行、边界预算和失败例；目标由独立轨迹/已核验oracle产生，非用同一网络给自己判对。",
-    "部署均值动作与value对应；重拟合未触及actor及v2。所有预算输入覆盖本轮搜索范围且不饱和混淆。",
-    "新G4门禁列学习可用性和部署价值可信度，全部达到预登记条件才通过；旧FAIL_WITH_STABILITY原报告不覆盖。"
-   ],
-   "verification_result": "NAV-065边界回修v3：主agent复核完整性PASS；310新增critic更新、5/6 train通过、假可行4→1。HELD_TRAIN_GATE，无开发重评/新G4/部署包，原G4 FAIL有效；NAV-065=false。",
+  "绑定六组已有候选、其来源与历史拟合/开发报告；严格CPU重载六组actor/双critic并验证张量hash；明确所测最优配对及未测范围。",
+  "原始拟合错误不隐去：保留历史训练/开发门禁和失败、披露目标尺度/误差/符号诊断；不得声称全训练点无误。",
+  "实际独立验证入口调用已冻结生产保护规则和同一双critic，基本测试覆盖留量/异常/非单调/全部拒绝/预算效率及缺失数据，J与z/550和版本一致。",
+  "批准登记、实现hash、模型hash、数据/资源边界和新9图派生清单已冻结；几何/45秒准入与历史种子/任务实例互斥审计完成，未访问新结果。",
+  "v2/校准及原来源锁未变；模型无更新，尚无新轨迹；只产生研究准备证据，不覆盖旧G4。"
+],
+   "verification_result": "v2.0.0-best准备验收通过；六身份与CPU张量核验、13基础测试、9独立任务实例准入和协议冻结完成。PROVISIONAL_RESEARCH_READY；旧G4 FAIL，未声明价值无误或科学通过。证据reports/nav065_budget_decision_readiness_v2.json。",
    "planned_outputs": [
-    "delivery/deployment_candidates_v2.json",
-    "reports/deployment_critic_validation_v2.json",
-    "reports/gate_G4_alignment_v2.json"
-   ],
+  "config/nav066_decision_prereg_v2.json及.sha256",
+  "reports/nav065_best_existing_model_binding_v2.json",
+  "src/camra_navigation/budget/guarded.py",
+  "scripts/run_nav066_decision_validation.py",
+  "tests/test_guarded_budget.py",
+  "NAV-065 readiness.json"
+],
    "work_records": [
     {
      "timestamp": "2026-11-18T12:42:13+08:00",
@@ -11956,8 +12009,72 @@
     "独立结果后再决定是否需要训练，不在同一选择数据上调阈值、挑模型或放宽验收。"
   ],
   "blockers": ["草案尚未激活；按legacy不确定决策规则及主计划，验收/来源/独立数据/资源的具体修改须最终确认，当前不执行新额度或依赖任务。"]
+},
+{
+  "timestamp": "2026-11-18T22:20:18.687959+08:00",
+  "summary": "NAV-065新版协议激活开工：用户确认独立检验并要求按已有开发结果选最好模型，不训练",
+  "actions": [
+    "重新读取根AGENTS、legacy技能/执行及字段规则、计划全文与当前任务/依赖/历史、导航README和交接。",
+    "在tiger11/tmux核验绝对解释器/GPU、33项冻结v2和原始模型；完整读取既有original/refit-v1/v4开发报告，不执行新评分。",
+    "按用户最新指令覆盖草案v7/最小种子建议，按既有开发主档识别、误放行、误拒绝、平均误差排序并固定最优来源；新独立集尚未生成或查询。"
+  ],
+  "files_changed": [
+    "doc/plan/20261109_camra_navigation_implementation.json",
+    ".worklog-testing/NAV-065/best-decision-v2/"
+  ],
+  "commands": [
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/preflight.py",
+    "tmux=nav064-r14-repair-20261115:nav065-best-v2; cwd=/home/caohy/repositories/Paper"
+  ],
+  "results": [
+    "本项服务RC-PPO固定actor后的双critic预算决策验证；NAV-064依赖有效，当前52/67、NAV-065=false、旧G4 FAIL。",
+    "授权范围为已确认v2数值/一档保护/新选择数据/最多90名义回合和用户要求的已有最优模型；更新0、物理回合0、final_*封存。",
+    "允许新增隔离导航规则/执行入口和协议、原位修订计划准备/独立决策验收并保留旧定义/状态证据；不改模型、原目标/共同停止/beta或冻结v2。",
+    "先完成生产规则、基本测试和来源/版本绑定后验收NAV-065准备，再按依赖启动NAV-066；不以准备通过冒充科学可用。"
+  ],
+  "evidence": [
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/baseline.json",
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/selection.json",
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/validation-before.log"
+  ],
+  "remaining_work": [
+    "按批准登记新版协议、实现实际预算调用链并基本验证，完成准备验收后才冻结新独立决策并执行最多90回合。"
+  ],
+  "blockers": []
 }
-      ],
+      ,
+{
+  "timestamp": "2026-11-18T22:29:34.737870+08:00",
+  "summary": "NAV-065新版准备验收完成：保留旧G4 FAIL，仅研究准备通过，不宣称价值可靠",
+  "actions": [
+    "依据用户确认原位激活1.4.0与新版定义，旧标准另存acceptance_definition_history，67任务/依赖/历史保留。",
+    "按已有18份开发候选结果固定六身份和最优配对；CPU重载六组并核对张量，33项v2及原契约/源码锁匹配。",
+    "保护规则13项基础测试通过；9图几何/45秒准入、历史种子/实例及元数据暴露审计通过，派生参考成本已冻结。",
+    "纠正草案30秒笔误为模型原冻结45秒，90回合上限不变，导出40500步上限；不改模型或目标。"
+  ],
+  "files_changed": [
+    "doc/plan/20261109_camra_navigation_implementation.json"
+  ],
+  "commands": [
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py ready",
+    "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
+  ],
+  "results": [
+    "NAV-065=true只表示PROVISIONAL_RESEARCH_READY；旧G4 FAIL与拟合错误保留。",
+    "截至收尾新W查询0、轨迹0、更新0；NAV-066独立验证未开始。"
+  ],
+  "evidence": [
+    "CaMRA/navigation/reports/nav065_budget_decision_readiness_v2.json",
+    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/readiness.json",
+    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/manifest.json",
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/basic-tests.log"
+  ],
+  "remaining_work": [
+    "完成所测配对的NAV-066实际独立决策验收；其它四候选和物理性能不继承。"
+  ],
+  "blockers": []
+}
+],
    "test_reports": [
     {
      "report_id": "NAV-065-MAIN-20261118-boundary-v1",
@@ -12631,36 +12748,94 @@
   },
   {
    "id": "NAV-066",
+"acceptance_definition_history": [
+  {
+    "version": "1.3.1",
+    "preserved_at": "2026-11-18T22:28:00.380820+08:00",
+    "goal": "接通部署双评价价值预算搜索，并在独立选择集验证安全可行性",
+    "constraints_and_notes": [
+      "以NAV-065同一actor/双critic构造初始状态W(z)=max(V_h,V_c-z_J/Z_REF_J)，按冻结beta调用budget/search.py；记录真实调用链与参数。旧NAV-041 label扫描保留为负结果/诊断，不称为价值搜索。",
+      "物理J、归一化输入、网络编码分字段。预算网格沿用五档0.70/0.85/1.00/1.15/1.30及E_ref定义，搜索边界/容差/最大query次数由NAV-061冻结；无根/非单调/NaN/临界零值均不得伪造答案或扩区间。",
+      "预算选择集仅在模型和规则冻结后使用，执行NAV-061数据暴露处置。独立名义轨迹验证同时检查时限内到达、y==0、原始几何/任务无失败、c_model_J<=z0_J；取消耗尽终止后仍只查goal_reached属于错误。",
+      "90回合=9图×2方法×5档×预先指定单种子，必须提前绑定候选，不能跑完再挑种子。critic前向query另记次数/时间；如需六候选或额外轨迹验证须在NAV-061明确新配额，未获准不增加。",
+      "分别报告critic预测预算、独立轨迹可行性、假可行/假不可行、物理J/归一化数值和无解；连续二分只在新协议明确允许且括根/单调满足时使用，五档证据不能宣称连续全局最小。",
+      "搜索与轨迹证据冲突按新门槛阻塞；不能用实测标签重新选一个好预算却仍称critic搜索。需要新一轮修正时保留本次结果并重新处理数据隔离与资源授权。",
+      "共同预算与自选预算独立标签和分母；旧v1结果只并列说明版本差异，不混作新候选验收。"
+    ],
+    "acceptance_criteria": [
+      "端到端证据证明正式预算入口实际调用同一双critic的W与search模块；β、J/归一化换算及h/y版本一致。",
+      "查询trace和90回合（或已另行授权的明确配额）逐行可复算；安全历史/预算/成功标签真值表拒绝超预算或危险后到达。",
+      "给出两方法预测可行与轨迹验证的对照、无解比例及选定预算，所选预算来源明确；无解记null，非单调与数值异常保留。",
+      "规则测试覆盖大于Z_REF的预算、负预算、中点无括根、false-feasible及候选/契约hash错配；未达NAV-061判定阈值保持false。",
+      "选择数据未反馈NAV-064调参，结果不进入最终性能分母；不跨种子外推90回合证据。"
+    ],
+    "planned_outputs": [
+      "src/camra_navigation/budget/search.py与scripts/run_budget_selection.py",
+      "config/budget_selection_v2.json及.sha256",
+      "reports/budget_selection_v2.json",
+      "tests/test_budget_search.py、test_budget_selection.py"
+    ]
+  }
+],
+"acceptance_version": "2.0.0-best",
    "phase": "预算与闭环",
-   "goal": "接通部署双评价价值预算搜索，并在独立选择集验证安全可行性",
+   "goal": "以冻结最优配对和一档保护规则独立验证实际预算决策",
    "status": false,
    "depends_on": [
     "NAV-065"
    ],
    "constraints_and_notes": [
-    "以NAV-065同一actor/双critic构造初始状态W(z)=max(V_h,V_c-z_J/Z_REF_J)，按冻结beta调用budget/search.py；记录真实调用链与参数。旧NAV-041 label扫描保留为负结果/诊断，不称为价值搜索。",
-    "物理J、归一化输入、网络编码分字段。预算网格沿用五档0.70/0.85/1.00/1.15/1.30及E_ref定义，搜索边界/容差/最大query次数由NAV-061冻结；无根/非单调/NaN/临界零值均不得伪造答案或扩区间。",
-    "预算选择集仅在模型和规则冻结后使用，执行NAV-061数据暴露处置。独立名义轨迹验证同时检查时限内到达、y==0、原始几何/任务无失败、c_model_J<=z0_J；取消耗尽终止后仍只查goal_reached属于错误。",
-    "90回合=9图×2方法×5档×预先指定单种子，必须提前绑定候选，不能跑完再挑种子。critic前向query另记次数/时间；如需六候选或额外轨迹验证须在NAV-061明确新配额，未获准不增加。",
-    "分别报告critic预测预算、独立轨迹可行性、假可行/假不可行、物理J/归一化数值和无解；连续二分只在新协议明确允许且括根/单调满足时使用，五档证据不能宣称连续全局最小。",
-    "搜索与轨迹证据冲突按新门槛阻塞；不能用实测标签重新选一个好预算却仍称critic搜索。需要新一轮修正时保留本次结果并重新处理数据隔离与资源授权。",
-    "共同预算与自选预算独立标签和分母；旧v1结果只并列说明版本差异，不混作新候选验收。"
-   ],
+  "依赖新版NAV-065研究准备；同一actor/双critic与已批准登记，先封存18个决策/90个W查询，再执行至多90条名义轨迹。",
+  "5档乘以按方法一致的政策无关E_ref；初始J预算和z/550分字段；拒绝无fallback、不延长区间、不用标签择优。",
+  "每方法9图45网格行；选中行先执行且复用网格行。未选/拒绝图的诊断轨迹不影响封存决策。",
+  "只检验未见任务实例，level布局共享；final_*封存。结果不反馈训练、选择模型或调整规则；失败保留，不自动重跑。",
+  "旧G4不改写；按方法分别判定，不混合掩盖失败；只限已测单种子名义配对，不进入最终性能分母。"
+],
    "acceptance_criteria": [
-    "端到端证据证明正式预算入口实际调用同一双critic的W与search模块；β、J/归一化换算及h/y版本一致。",
-    "查询trace和90回合（或已另行授权的明确配额）逐行可复算；安全历史/预算/成功标签真值表拒绝超预算或危险后到达。",
-    "给出两方法预测可行与轨迹验证的对照、无解比例及选定预算，所选预算来源明确；无解记null，非单调与数值异常保留。",
-    "规则测试覆盖大于Z_REF的预算、负预算、中点无括根、false-feasible及候选/契约hash错配；未达NAV-061判定阈值保持false。",
-    "选择数据未反馈NAV-064调参，结果不进入最终性能分母；不跨种子外推90回合证据。"
-   ],
+  "生产调用链、模型/规则/数据身份、18决策及90查询封存可复算；90网格行均有原始轨迹、安全历史、成本J和独立oracle核验。",
+  "每方法全部放行均45秒内安全且预算内到达，放行失败0、允许超支0J；按原标签判定，不要求全部原始W预测正确。",
+  "每方法至少6/9图放行且每level至少2/3；对有任一网格真实可行图的正确放行召回至少80%，无可行图不通过。",
+  "每放行图所选索引不高于该冻结actor真实网格最低可行索引+1；完整报告拒绝率、误拒绝、原W混淆、超支及预算利用率。",
+  "无训练、无反馈调参、无物理回合、无final访问；90条及40500步上限内，业务失败完整保留；任何一方法未达本轮门槛则false。"
+],
    "verification_result": "",
    "planned_outputs": [
-    "src/camra_navigation/budget/search.py与scripts/run_budget_selection.py",
-    "config/budget_selection_v2.json及.sha256",
-    "reports/budget_selection_v2.json",
-    "tests/test_budget_search.py、test_budget_selection.py"
-   ],
-   "work_records": [],
+  "config/nav066_decision_prereg_v2.json",
+  "reports/nav066_budget_decision_validation_v2.json",
+  "docs/nav066_budget_decision_review_v2_20261118.md",
+  "外部独立目录manifest/decisions/episodes/decision_validation"
+],
+   "work_records": [
+{
+  "timestamp": "2026-11-18T22:29:44.082002+08:00",
+  "summary": "NAV-066开工：冻结最优现有配对的五档价值决策，之后独立执行90名义回合",
+  "actions": [
+    "切换任务前重新完整读取根AGENTS和计划全文；核对NAV-065准备及全部上游来源有效。",
+    "绑定已批准登记pin、9图清单、两方法各一个最优现有模型；沿用W/beta/原目标和45秒任务。"
+  ],
+  "files_changed": [
+    "doc/plan/20261109_camra_navigation_implementation.json"
+  ],
+  "commands": [
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py open",
+    "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
+  ],
+  "results": [
+    "本项作用是检验实际预算决策能否安全及时预算内到达，同时限制拒绝和预算浪费。",
+    "只允许90查询/90名义回合，更新0/物理0/final封存；先封存全部18决策，再执行轨迹，选中行复用。",
+    "允许输出新验证日志和审阅；不改模型、规则、阈值、地图或v2；失败保持false并原样记录。"
+  ],
+  "evidence": [
+    "CaMRA/navigation/config/nav066_decision_prereg_v2.json",
+    "CaMRA/navigation/reports/nav065_budget_decision_readiness_v2.json",
+    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/manifest.json"
+  ],
+  "remaining_work": [
+    "执行封存决策和90行独立验证，按每方法安全/召回/拒绝/效率门槛验收。"
+  ],
+  "blockers": []
+}
+],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
    "reference_ids": [
     "R03",

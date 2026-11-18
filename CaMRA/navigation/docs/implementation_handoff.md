@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-18 新协议已激活：最优现有模型独立决策验证
+
+用户确认采用现有最好模型检验；已按既有development固定无校准seed2 guarded-v4、完整方法seed0 original，见[身份与完整历史排序](../reports/nav065_best_existing_model_binding_v2.json)。原G4 FAIL、训练错判及旧标准保留，本轮不再以训练起点清零为默认方向。主计划1.4.0原位分离NAV-065准备与NAV-066实际决策，67项顺序/依赖不变。NAV-065仅研究准备通过，53/67；[准备证据](../reports/nav065_budget_decision_readiness_v2.json)包括六组CPU张量核验、13基本测试和9图准入，新查询/轨迹均0。
+
+[批准登记](../config/nav066_decision_prereg_v2.json)冻结五档W查询加一档预算保护，异常/非单调/无留量拒绝。全部18决策先封存，再执行90条独立名义网格轨迹；选中行复用，每方法9个实际决策，不能声称90独立决策。按方法检查零放行失败、80%可行图召回、至少6/9放行且各level至少2/3，以及不超过真实网格最低可行档一档。当前独立检验待执行，不预告通过。
+
+旧草案30秒系笔误，本次保持训练模型原冻结45秒任务（含观测及E_ref）；90回合上限不变，最多40500名义步。新917001–003任务实例/几何与历史分片互斥，布局共享；final_*封存。输出目录`/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best`，执行入口`scripts/run_nav066_decision_validation.py`，tmux `nav064-r14-repair-20261115`，Python `/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python`。主agent按legacy核验、不派专用测试子agent；更新/物理回合0，失败不自动重跑或调模型。下方未激活/30秒/旧来源为历史时点，由本次已批准登记限定覆盖。
+
 ## 2026-11-18 NAV-065 新版预算决策验收草案：停止默认重训，尚未激活
 
 用户批准先复审验收设计。已写入[新版说明](nav065_budget_decision_protocol_v2_20261118.md)和[机器协议](../config/nav065_budget_decision_protocol_v2.json)：全量训练误差、全部边界错判保留诊断；拟用固定双critic五档查询、首个预测可行档再加一档预算，无留量/零点/非单调/非有限值返回null。经验保护不称理论保证，原目标、beta=0、v2/alpha/delta不改。

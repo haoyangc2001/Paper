@@ -1,0 +1,42 @@
+{
+  "status": "PROVISIONAL_RESEARCH_READY",
+  "scientific_validation": false,
+  "old_G4": "FAIL",
+  "registration_pin": "6e783599f76e68cc483bfc9f4d3e7649e4b312f48335a5c7c578f974ab9d126c",
+  "source_binding": "reports/nav065_best_existing_model_binding_v2.json",
+  "historical_fit_disclosure": "原original/refit-v1/v4全量训练/开发指标和失败继续由原始报告记录；此次按已暴露development择优不是拟合已清零。后续v5-v11仅离线/单候选诊断，不以无匹配开发证据替换所测配对。",
+  "historical_reports": {
+    "/pub/data/caohy/work/camra_navigation/nav065_deployment_v1/deployment_critic_validation_v2.json": "b1cbf8dea00013d77cc4be57b257af609e503d40e52bd50f086d65f45e2c134d",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav065_deployment_source_binding_v1.json": "2019ee5949ba2abadbca6ba3aa854bcd9032d1756151a0bb57d3e9b6493538eb",
+    "/pub/data/caohy/work/camra_navigation/nav065_refit_v1/deployment_critic_validation_v2.json": "163856057558d322d40246ce31fd4a0d3e6dd984eb8c10e3469f483f1ce9ebd5",
+    "/pub/data/caohy/work/camra_navigation/nav065_refit_v1/fitted_candidates.json": "4609bd3176230d5195c0b8915f30d06b5504875fda30ac286bd862c5771e2e43",
+    "/pub/data/caohy/work/camra_navigation/nav065_guarded_refit_v4/deployment_critic_validation_v2.json": "a896ff5628ec1523898f9c1b3ff4747eb79d7adea9e79433aeb76c73ab607f5a",
+    "/pub/data/caohy/work/camra_navigation/nav065_guarded_refit_v4/fitted_candidates.json": "30852aa80906da1d00f748ed58a13e96f8d0336553949b83df5c0934407f3972"
+  },
+  "test_count": 13,
+  "test_log_sha256": "50ea885405f43025cd014ad4446ab8ee2b284188553a0432dc91f610934b7424",
+  "implementation_files": 123,
+  "protected_files": 166,
+  "new_maps": 9,
+  "initial_W_queries": 0,
+  "new_episodes": 0,
+  "updates": 0,
+  "cpu_reload": "prepare phase loaded every six_candidates checkpoint and verified policy/critic_cost/critic_reach tensor digests; selected pair alone is later used",
+  "production_chain": "run_nav066_decision_validation.decide -> select_guarded_budget(query) -> registered CPU dual critics; evaluate -> same frozen actor -> rollout -> reconstruct_truth -> summarize_decisions",
+  "manifest_sha256": "526bad6aeaca8531d302b9bb389c2b340b33fc8fc5b203c738a959954b1c743a",
+  "readiness_sha256": "996dc2f81523afa95fe1e69f9e4c95d0d156071a787fc0e466cf163e213611ef",
+  "execution": "tiger11; tmux nav064-r14-repair-20261115:nav065-ready-v2; absolute Python3.11.15",
+  "limits": {
+    "episodes": 90,
+    "optimizer_updates": 0,
+    "physical_episodes": 0,
+    "queries": 90
+  },
+  "horizon_s": 45,
+  "max_nominal_steps": 40500,
+  "limitations": [
+    "No probability guarantee for unknown inputs; at most 9 decisions per method, not 45/90 independent decisions.",
+    "Nominal internal cost is not physical joint work; fixed v2 calibration applicability at 45s still requires NAV-043 before physical scientific claims.",
+    "Best selection uses reused/exposed development; independent validation cannot support unrestricted multi-seed method performance."
+  ]
+}
