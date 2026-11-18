@@ -1,0 +1,148 @@
+{
+  "schema": "camra-navigation-budget-decision-proposal-v2",
+  "version": "2.0.0-draft.1",
+  "date": "2026-11-18",
+  "owner_task": "NAV-065",
+  "authorization": {
+    "status": "DRAFT_NOT_ACTIVATED",
+    "preparation_authorized": true,
+    "execution_enabled": false,
+    "training_authorized": false,
+    "evaluation_authorized": false,
+    "rule": "用户本次授权制定新版协议；新数值门槛、独立数据与执行配额待整体确认。原协议及G4 FAIL仍有效。"
+  },
+  "purpose": "研究阶段验证固定价值规则所作预算决策的经验可用性；不要求全部训练点符号正确，不宣称未知场景安全证书。",
+  "sources": [
+    "manuscripts/CORL/references/Solving Minimum-Cost Reach Avoid using Reinforcement Learning.pdf",
+    "RC-PPO/rl/root_finding.py",
+    "CaMRA/navigation/reports/nav064_terminal_tail_acceptance_v1.json",
+    "CaMRA/navigation/reports/nav065_staged_refit_v7_review.json",
+    "CaMRA/navigation/reports/nav065_ridge_probe_v11_review.json",
+    "CaMRA/navigation/config/budget_selection_v1.json",
+    "CaMRA/navigation/config/split_manifest_v1.json"
+  ],
+  "unchanged": {
+    "controller": "camra_go2_velocity_it2999_v2",
+    "cost_unit": "J",
+    "z_ref_J": 550.0,
+    "beta": 0.0,
+    "horizon_seconds": 30.0,
+    "targets": "原预算增广、不可逆安全历史、共同停止、同目标双critic和RC-PPO联合目标保持。",
+    "protected": "actor/critic张量、obs-v7、冻结v2/功率模型/足迹/alpha/delta/数据锁、旧协议/门禁及论文不修改。"
+  },
+  "fit_diagnostics": {
+    "hard_zero_sign_gate_proposed_removed": true,
+    "report": ["每组MAE、relative_MAE、Pearson及目标尺度", "全起点/五档/临界预算/沿途边界混淆矩阵", "旧与新增train分列，development单列并标注模型版本", "真实可行/不可行、误放行/误拒绝的计数与完整逐行记录", "无定义相关性、非有限数、原策略真实失败及所有退化"],
+    "interpretation": "诊断错误率不能充当部署风险；不要求按这套诊断再训到清零，不删除原35%/0.70及零误判门禁的历史结果。"
+  },
+  "candidate_proposal": {
+    "basis": "截至本次协议准备最近一个完整六候选统一阶段为v7 boundary-300；按时间和统一阶段固定，不按开发或新选择表现择优。v8-v11为单候选诊断，不拼入正式配对。",
+    "six_candidate_binding_required_before_activation_run": true,
+    "selection_seed": 0,
+    "selection_seed_basis": "沿用既有每方法最小策略种子索引规则，不选择表现最好的种子。",
+    "selected_candidates": [
+      {
+        "method": "uncalibrated",
+        "candidate_id": "nav064_terminal_tail_v1_uncalibrated_s0",
+        "path": "/pub/data/caohy/work/camra_navigation/nav065_staged_refit_v7/nav064_terminal_tail_v1_uncalibrated_s0.boundary-300.pt",
+        "sha256": "695ec09c88db8252a6cd26976b8ac53fe69ea80a0cee1fcceda9bfff0fee49cc"
+      },
+      {
+        "method": "full",
+        "candidate_id": "nav064_terminal_tail_v1_full_s0",
+        "path": "/pub/data/caohy/work/camra_navigation/nav065_staged_refit_v7/nav064_terminal_tail_v1_full_s0.boundary-300.pt",
+        "sha256": "eaec86636ca31e8690a297f6e268ae9fddcbd592ed8925da863aeafa2b975ad2"
+      }
+    ],
+    "readiness_not_established": true,
+    "limitations": "v7原完整train失败且没有匹配新版development通过证据；这是待评估研究来源，不是已通过部署模型。其它四候选不由单种子结果获得放行。"
+  },
+  "decision_rule": {
+    "id": "critic_grid_plus_one_reserve_v2",
+    "implemented_in_production": false,
+    "k_grid": [0.70, 0.85, 1.00, 1.15, 1.30],
+    "budget_definition": "z0_J = k * E_ref(map)；E_ref只由冻结参考路径和成本定义计算，不读取待评估策略结果。",
+    "criterion": "W(k) = max(V_h(x0,y0,z0), V_c(x0,y0,z0) - z0_J/550)",
+    "raw_feasible": "W <= 0，与原beta=0保持；零点在保护规则中按不确定拒绝。",
+    "max_W_queries_per_decision": 5,
+    "algorithm": [
+      "先在同一初始状态查询全部五档W，保存双critic输出、原始J预算及完整obs编码。",
+      "任一非有限值、W精确等于0、身份/单位/输入编码不匹配，返回null及原因。",
+      "按W<0生成五档可行标志；出现可行后又不可行则返回null，不假设未检验的连续单调性。",
+      "无预测可行档返回null；否则j为第一个预测可行档的0起索引。",
+      "j=4时无留量返回null；否则只选j+1档，仍须W<0；不扩展到1.30以上，不连续二分。",
+      "冻结全部18条决策及其trace/hash之后，才开始任何独立轨迹执行或查看结果。"
+    ],
+    "reserve_steps": 1,
+    "reserve_k": 0.15,
+    "reserve_interpretation": "在既有网格分辨率上多留一档0.15*E_ref J，是额外预算保护，不改alpha/delta/beta，不是NN误差上界或理论保证。",
+    "no_fallback": "拒绝不自动改成1.15/1.30，不用实测标签替代critic选择；保护规则也可能失败。"
+  },
+  "independent_data_proposal": {
+    "split_id": "budget_selection_decision_v2",
+    "seed_family": [917001, 917002, 917003],
+    "levels": ["L1_empty", "L2_single_detour", "L3_multi_path"],
+    "n_maps": 9,
+    "manifest_created": false,
+    "old_selection_exposed": true,
+    "old_selection_seeds": [3001, 3002, 3003],
+    "before_execution": ["生成独立派生清单并绑定设计、生成器、geometry/layout hash、E_ref和版本", "核对与所有既有split的种子/任务实例及全部历史run暴露账本无重合；近重复如实记录", "固定模型、规则、指标、完整命令、输出目录及hash后锁定；不得按策略表现挑地图或重采", "仅按冻结地图几何和30秒可达性规则作事前准入，任何失败暂停，不替换失败种子"],
+    "claim_limit": "当前生成器同level共享布局，只检验未见任务实例，不能声称未见布局或统计独立同分布。",
+    "final_splits": "final_nominal/final_clean/final_perturbed继续封存；仅读取原清单元数据做互斥检查，不运行或查看最终结果。",
+    "feedback_rule": "此次选择集结果不得反馈训练、选checkpoint或调保护规则；失败保留。下一次实质修改需要新版本/新数据/新额度。"
+  },
+  "evaluation_proposal": {
+    "phase": "NAV-066，仅在新版NAV-065准备验收和协议激活后执行",
+    "new_training_episodes": 0,
+    "optimizer_updates": 0,
+    "new_nominal_episodes_max": 90,
+    "max_steps_per_episode": 300,
+    "max_nominal_steps": 27000,
+    "physical_episodes": 0,
+    "formula": "9 maps * 2 methods * 5 budget levels * 1 policy seed = 90 grid rows",
+    "max_actual_decisions": 18,
+    "decisions_per_method": 9,
+    "max_W_queries": 90,
+    "execution_order": "全部决策预先封存；逐(method,map)先执行选中档，再执行其它四档。拒绝场景仍执行五档用于离线分母诊断。全部90行是独立于拟合的验证数据，不能反馈决策。",
+    "reuse": "选中档执行行同时计入五档90行，不额外重跑；固定确定性actor、名义初态及版本。其它四档仅供事后召回率/预算效率审计。",
+    "failure_handling": "不删业务失败、不补种子或自动重试；基础设施异常保留attempt并暂停，未完成验证不写成通过。",
+    "cost_accounting": "可行性用现有方法内部c_model_J（full含冻结成本裕度）与初始z0_J比较；c_nom_J单列。此处没有物理执行功，不冒称实际机器狗能耗。"
+  },
+  "proposed_acceptance": {
+    "scope": "每种方法各自验收，不汇总掩盖任一失败；只允许单种子名义阶段经验通过。",
+    "safety_time_budget": {
+      "accepted_failure_count_max": 0,
+      "permitted_overspend_J": 0.0,
+      "definition": "所有实际放行：30秒内到达、不可逆危险历史y==0、无原始几何/任务失败、终点累计内部c_model_J<=z0_J；使用原事件及浮点比较，不新增超支宽限。",
+      "rationale": "研究任务仍是安全且预算内到达；可保守拒绝，不把超支或危险后到达重新定义为成功。零错误仅针对冻结规则实际作出的有限决策，不要求全部原始预测正确。"
+    },
+    "usefulness": {
+      "minimum_accepted_per_method": 6,
+      "minimum_accepted_per_level_per_method": 2,
+      "feasible_map_recall_min": 0.8,
+      "false_rejection_rate_among_feasible_max": 0.2,
+      "definition": "一图任一五档真实可行则计入N_feasible。召回=正确放行地图数/N_feasible，要求5*N_correct>=4*N_feasible；至少6/9图放行且每level至少2/3。N_feasible=0不作通过。",
+      "rationale": "小规模研究筛查预先容忍最多20%可行任务被保守拒绝，并确保每类地图有实质执行覆盖；数值为项目用途建议，不由旧13次误判拟合，也不是论文给定指标。"
+    },
+    "budget_efficiency": {
+      "max_grid_steps_above_actual_minimum": 1,
+      "definition": "对每个放行图，i_star为同一冻结actor在该图五档中真实可行的最小索引，要求i_selected<=i_star+1。标签只事后算效率，不能重新选择。",
+      "rationale": "只允许既定一档保护成本；若较低档实际可行而选大于其两档的预算，则效率失败，不能靠总给1.30通过。不是全局最优路径证明。"
+    },
+    "mandatory_reports": ["90网格行与最多18决策分母分别报告，每方法/level分列", "原始W混淆、保护后实际误放行和错误拒绝、所有null原因", "超支次数、每行max(C-z0,0) J及比例、最坏超支、到达时间、安全历史/失败原因", "所选k/J、真实网格最低可行k、留量J、内部预算利用率和额外预算", "按准入地图总分母报告成功与拒绝，不能只报接受后的成功率", "样本小、配对地图/共享布局/单种子依赖限制，不能称90次独立决策或推广风险保证"],
+    "statistical_claim": "不设置已证明的总体5%风险目标。即便同一方法9个放行全成功，假设IID时零失败的一侧95%二项上界仍约28.3%；实际相关性使该界只能作说明，不能作认证。少于9次放行则更弱。"
+  },
+  "proposed_plan_amendment_not_applied": {
+    "NAV-065": "改为六候选身份与接口完整、拟合诊断披露、保护规则生产接线/基础测试及独立验证预注册的准备验收；完成只产生provisional_research_ready，不能称价值可靠或科学通过。匹配新版development尚无的事实必须披露。",
+    "NAV-066": "按独立数据和上述实际决策/拒绝/效率标准作验证；失败保持false。通过仅放行所测两方法seed0用于后续接线，未验证四候选不得自动继承。",
+    "G4": "保留原G4 FAIL及旧协议；新版准备门禁与独立预算决策门禁分列，不复用或覆盖旧G4，不把准备通过称科学通过。",
+    "dependencies": "保留67任务顺序、ID及NAV-066依赖NAV-065；本次不改任何状态、验收定义或verification_result。激活后才原位追加版本修订并实现，不倒填旧通过。",
+    "downstream": "NAV-067/043和物理clean仍须各自门禁，alpha/delta适用性及200Hz事件独立验收；单种子名义结果不证明物理/多种子性能。"
+  },
+  "next_steps_after_explicit_activation": [
+    "先原位登记批准的新协议/数值/来源/90回合独立数据额度及计划验收修订，原状态和历史保留。",
+    "实现并核验实际生产预算调用链，绑定六模型及选中配对，完成NAV-065新版准备验收，不做训练。",
+    "生成并审计新任务清单及冻结E_ref；封存全部预测决策后，NAV-066执行一次最多90回合。",
+    "按独立结果决定继续下游还是定位具体失败；不预设再训练或放宽门槛。"
+  ]
+}
