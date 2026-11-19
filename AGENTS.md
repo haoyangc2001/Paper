@@ -1,5 +1,9 @@
 # Agent 接手说明
 
+## 当前运行（2026-11-19，NAV-043一次探索执行中）
+
+封存实现已提交04c4cb3；独立协调器PID38516、首L1应用PID38860在tiger11/tmux %599、GPU6运行。首无校准实际初态5次W查询封存，选择k1.15、391.974928J，导航执行中，尚无完整回合结果。只读等待审阅器在%601，等本次唯一输出`/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1`出现FINISHED/HELD后审阅一次；不重复启动、不挪目录、不重试。启动仅传GPU，遗漏旧启动器EULA/缓存/LD/OMP变量，原进程确认既有EULA后继续；libXt/可选渲染插件消息保留，不能拿启动成功当方法通过。实际clean读回已落盘，完整数据及工程有效性待保存轨迹复核。见`.worklog-testing/NAV-043/exploration-v1/launched.json`、执行/审阅日志及原协议；NAV-043=false、55/67，G5与原裕度缺口保持。后续先接原进程终态并复核，不另起新试验。
+
 ## 最新推进（2026-11-19，NAV-043有限探索性自选预算验证）
 
 用户已委托选择路线并继续，现选此前提出的有限探索性预算验证。隔离入口/独立协议及pin见`CaMRA/navigation/config/nav043_exploration_v1.json`与`scripts/run_nav043_exploration.py`；主agent5组基本检查及295保护身份核验通过。先本地提交，再按一次独立分配执行：3应用/6物理/6配对名义/30初始W/单GPU3小时，tiger11/tmux/GPU6；不重试、不训练、不改v2/alpha/delta、不推送。实际warmup初态先封存W预算再行动，拒绝保留，工程失败停下；检查唯一输出`/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1`及进程，不重复启动。NAV-043=false、55/67，原45秒/位置裕度适用性缺口保留、不签G5。见[协议](CaMRA/navigation/docs/nav043_exploration_protocol_20261119.md)；下方等待路线裁定为保留历史。

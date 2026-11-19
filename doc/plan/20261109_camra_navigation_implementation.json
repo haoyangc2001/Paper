@@ -14250,6 +14250,43 @@
             "本地提交已验证封存版本后，在同一tmux执行一次run_nav043_exploration.py；只读复核所有决定、实际事件/机械功、名义配对与资源台账，不能据此直接放行G5。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T18:55:09.222547+08:00",
+          "summary": "NAV-043一次独立探索已实际启动，首病例W决策封存后执行中，科学验收仍未通过",
+          "actions": [
+            "已先提交04c4cb3，再于tiger11/tmux %599、GPU6启动唯一独立协调器PID38516；首应用L1 PID38860，非旧协调器重启。",
+            "首应用完成实际clean配置/材质/质量/碰撞体位置读回及1秒warmup；无校准实际初态5次W查询封存后选择k1.15、391.9749283608448J，NAVIGATION_STARTED已保存。当前没有完整回合结案结果，不能宣称成功率或实际耗能。",
+            "启动命令仅显式传GPU，遗漏旧启动器的EULA/缓存/LD/OMP环境项；在原进程确认既有EULA后继续，没有重启。可选渲染库libXt启动错误保留，实际clean读回已生成；最终工程有效性须看保存轨迹/事件及机械功复算。",
+            "新增只读结束审阅器及等待器于%601，只等待本次原分配FINISHED/HELD后审阅一次，不加载网络推理、不启动仿真、不重试；主agent收尾仍须读取审阅结果。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/audit_nav043_exploration.py",
+            ".worklog-testing/NAV-043/exploration-v1/review_when_finished.py",
+            ".worklog-testing/NAV-043/exploration-v1/launched.json",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux %599：CUDA_VISIBLE_DEVICES=6 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B CaMRA/navigation/scripts/run_nav043_exploration.py > .worklog-testing/NAV-043/exploration-v1/execution.log 2>&1",
+            "%601：同绝对解释器运行review_when_finished.py，等待原分配终态后只读audit_nav043_exploration.py，日志saved-review.log；不重复启动协调器。"
+          ],
+          "results": [
+            "已实际启动应用1，首病例已保存5次真实W查询，首物理导航回合进行中、名义配对尚未生成；仅按现有产物计数，不把未完成算成功。",
+            "启动证据10份独立hash索引写入launched.json；完整执行与审阅结果未产生，55/67、NAV-043=false、G5未通过，原适用性及旧科学失败保持。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/exploration-v1/launched.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/OWNER.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated/decision.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated/NAVIGATION_STARTED.json"
+          ],
+          "remaining_work": [
+            "观察本次同一进程/分配的终态及只读审阅输出，不重复启动或移动输出目录；核验全部预算决定、物理事件、实际能量、名义配对及资源台账后追加结果并提交。",
+            "当前已有适用性缺口仍不能签NAV-043/G5；本次仅有限探索，无final/训练/重校准/αδ变更或推送。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
