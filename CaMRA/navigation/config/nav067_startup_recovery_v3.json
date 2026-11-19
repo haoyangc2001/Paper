@@ -1,0 +1,93 @@
+{
+  "schema": "camra-nav067-startup-recovery-v3",
+  "status": "APPROVED",
+  "created_at": "2026-11-19T08:32:04.024509+08:00",
+  "task": "NAV-067",
+  "original_manifest_sha256": "f33d829896347b4efef4217ba4ec191d4b9b24f69f7576d7b77120003cb02402",
+  "change": "Bind local locomotion and persist pre-cleanup failures; independently copy the sealed simulator with RigidBodyView.get_transforms and initialize the missing direct-loop reset buffer.",
+  "authorization_needed": "One explicit L1 startup-recovery exception to the original no-automatic-restart policy; four original unstarted L2/L3 slots remain available.",
+  "limits": {
+    "total_navigation_episodes": 6,
+    "horizon_s": 45.0,
+    "warmup_s": 1.0,
+    "training_updates": 0,
+    "W_queries": 0,
+    "automatic_retries": 0
+  },
+  "slots": [
+    {
+      "level": "L1_empty",
+      "relative_output": "L1_empty/attempt2",
+      "methods": [
+        "uncalibrated",
+        "full"
+      ],
+      "mode": "one explicit recovery of the two previously claimed slots"
+    },
+    {
+      "level": "L2_single_detour",
+      "relative_output": "L2_single_detour",
+      "methods": [
+        "uncalibrated",
+        "full"
+      ],
+      "mode": "two original unstarted slots"
+    },
+    {
+      "level": "L3_multi_path",
+      "relative_output": "L3_multi_path",
+      "methods": [
+        "uncalibrated",
+        "full"
+      ],
+      "mode": "two original unstarted slots"
+    }
+  ],
+  "original_attempt_policy": "Keep original L1 STARTED, logs, exit and quota claim unchanged. Never automatically retry any amended attempt or change its output path.",
+  "source_hashes": {
+    "scripts/nav067_runtime.py": "f0719aa15e46879c221633ccec292d3eae4ba86f11348c65944227546e54791c",
+    "scripts/evaluate_navigation_v4.py": "afdb18aa402186b9759bcd4af843dfd5a933466dcce72a4b91bd782ec4d86174",
+    "scripts/nav067_simulation_v3.py": "ea2402e82bb07f1eab7014a7c944189584ebd7b0b9133cd1df4a5c5e023c6849",
+    "src/camra_navigation/envs/clean_v3.py": "2dc118aa351fa8e97858f485d1776ecbfa52eade0746a5f8df191960ab975b09"
+  },
+  "evidence_hashes": {
+    "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/manifest.json": "f33d829896347b4efef4217ba4ec191d4b9b24f69f7576d7b77120003cb02402",
+    "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/STARTED.json": "7a63437465236a949273b14c2b0f170794223e3d241ecf8ef1b648b4c8e43244",
+    "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/exit-L1_empty.json": "87733f401ecb7343b9ab78408c9673997c13b6f091bae58c28130c4cfd55a7a9",
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-067/startup-recovery-v2/preflight.json": "adb20d7348caa422eacb211e0e9f62f16bf482f590499a097c7102d3b9cb4b6c",
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-067/startup-recovery-v2/probe-attempt1/RESULT.json": "8640165e40078b5e1d36669472cefe77ee159ded18813b8a2d858c8bf95a5491",
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-067/api-repair-v3/verification.json": "f3c7548f1d48c91116061b40b20316f5fa365a41fed8dd83d5049f0452358204",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/config/nav067_startup_recovery_proposal_v2.json": "241fcff15a15003e9e0f4fb621e8576b9dc441899918b55b385b5bc45cc04436"
+  },
+  "unchanged": [
+    "original manifest and its four sealed sources",
+    "selected actors/critics",
+    "fixed v2 and calibration",
+    "45s/obs-v7 objective",
+    "map/budget identities",
+    "200/50/10Hz timing",
+    "joint mechanical work definition",
+    "old scientific FAIL"
+  ],
+  "not_authorized": [
+    "extra repetitions",
+    "controlled physical counterexamples",
+    "shared framework/dependency edits",
+    "NAV-043 or final_*"
+  ],
+  "failure_policy": "On any entry/runtime/trace error, persist ERROR and stop; no automatic retry or replacement. Performance failures remain in reports.",
+  "supersedes_for_execution": {
+    "path": "config/nav067_startup_recovery_proposal_v2.json",
+    "sha256": "241fcff15a15003e9e0f4fb621e8576b9dc441899918b55b385b5bc45cc04436",
+    "old_proposal_preserved": true,
+    "old_PROPOSED_was_not_approval": true
+  },
+  "production_entry": "scripts/evaluate_navigation_v4.py",
+  "approved_at": "2026-11-19T08:54:52.758596+08:00",
+  "approval": {
+    "source": "User reply 确认 to the immediately preceding request for the v3 recovery",
+    "scope": "One L1 startup recovery plus the original unstarted L2/L3 slots, at most six 45s episodes; no automatic retry or extra repetitions.",
+    "proposal_sha256": "7fb223bdef1db1d884fb7973610f727c9cd62462bee9b2fcbaad261205083be7",
+    "same_host_execution_exception": "Existing tiger11 direct-session authorization remains in force."
+  }
+}
