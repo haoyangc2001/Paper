@@ -14545,6 +14545,70 @@
             "原位置/45秒适用性缺口保持，当前不能签NAV-043/G5或进入final；不默认再次训练或增加试验。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T20:07:00+08:00",
+          "summary": "NAV-043续跑开工：在原L3运行等待期间复核已完成L2的跟踪与时间余量，不增加试验",
+          "actions": [
+            "上一目标轮将L1/L2结果及仅追加记录检查提交为9d206a3；本轮现场确认原协调器38516、L3应用338561和两步只读等待器59048/317768存活，无终态则不重启。",
+            "继续计划1.4.1/NAV-043，依赖NAV-066/NAV-067有效；本项服务于预算内安全到达的物理闭环目标，区分W预算判定、名义可行及真实执行跟踪差距。消费已保存L2原始状态/实际命令、同初态名义闭环及历史k1跟踪报告，只做描述性数值整理。",
+            "允许新增隔离只读分析和证据；不重新执行原全事件/适用性入口，不调用策略/critic，不拟合或改预算、45秒、v2、alpha/delta、评分和数据用途。主agent核对时钟/命令索引/来源hash及统计恒等式；未解决缺口仍保持NAV-043/G5未通过。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11现场只读检查原PID和输出；在独立tmux窗口使用原绝对解释器进行L2保存轨迹的速度/转向/目标距离描述性复算，基本检查通过后本地提交，不推送。"
+          ],
+          "results": [
+            "L2完整方法已知预算有余仍超时，名义仅2.4秒余量；本次只补充机制证据，不先认定唯一根因、可修复比例或新参数。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/exploration-v1/L2-completed-progress.json",
+            "CaMRA/navigation/config/nav043_exploration_v1.json",
+            "CaMRA/navigation/reports/nav043_saved_tracking_diagnostic_v1.json"
+          ],
+          "remaining_work": [
+            "完成L2描述性核对并保存来源/限制；继续接收同一L3及原两步只读审阅终态，不把部分结果当全分配结论。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T20:08:50+08:00",
+          "summary": "NAV-043 L2只读跟踪核对通过，预算有余而速度/航向差距仍在；不新增试验",
+          "actions": [
+            "主agent在独立tiger11/tmux窗口调用analyze_L2_tracking.py，读取已完成L2两方法各9000个200Hz状态和450个10Hz命令，保存15直接输入hash及历史k1来源。核对实际时钟/tick、每20子步持有命令、初态/预算/决定pin、净转向解缠恒等式及封存16来源通过；没有模型推理、轨迹再采集或拟合。",
+            "新增说明区分同命令理想参考、另行执行的名义闭环与物理距目标，不补齐已结束名义前缀。历史k1仅作描述，不能证明预算单变量因果作用；本轮不拟合补偿增益、改变原alpha/delta或按失败选新线。",
+            "同步当前AGENTS和交接，保留计划定义/依赖/状态及旧工作记录。原L3应用和两步自动只读审阅继续，不手动重复入口；本次数据整理不替代最终全事件/适用性验收。"
+          ],
+          "files_changed": [
+            ".worklog-testing/NAV-043/exploration-v1/analyze_L2_tracking.py",
+            ".worklog-testing/NAV-043/exploration-v1/L2-tracking-diagnostic.json",
+            ".worklog-testing/NAV-043/exploration-v1/L2-tracking-diagnostic.log",
+            "CaMRA/navigation/docs/nav043_L2_budget_tracking_review_20261119.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "AGENTS.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav043-L2-tracking；cwd=/home/caohy/repositories/Paper；OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/exploration-v1/analyze_L2_tracking.py > .worklog-testing/NAV-043/exploration-v1/L2-tracking-diagnostic.log 2>&1。",
+            "提交前legacy update、与9d206a3相比仅两条NAV-043记录追加/状态定义历史不变、原封存hash及受保护路径检查、git diff --check；只作本地提交。"
+          ],
+          "results": [
+            "两条L2基本核对通过，诊断状态DESCRIPTIVE_COMPLETED_L2_TRACKING_NOT_FINAL_REVIEW。完整方法前向指令/实际均值0.398118/0.324498m/s、净转向129.752793°/38.835563°；预算利用75.41%但仍45秒超时，同初态名义42.6秒到达只有2.4秒余量。",
+            "完整方法物理20/30/40秒距目标10.076/7.455/4.410m，名义对应8.865/5.495/1.520m，物理45秒仍距目标2.750m。终态同命令参考位置偏差8.773m是不同量；未把提前名义末态填到45秒。",
+            "新增应用/回合/W/拟合/训练0，legacy主agent基本检查，无子agent。NAV-043=false、55/67、G5与原位置/45秒适用性缺口保持，方法目标、生产源码/版本、v2及上下游接口不改。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/exploration-v1/L2-tracking-diagnostic.json",
+            ".worklog-testing/NAV-043/exploration-v1/L2-tracking-diagnostic.log",
+            "CaMRA/navigation/docs/nav043_L2_budget_tracking_review_20261119.md"
+          ],
+          "remaining_work": [
+            "接收原L3、完整物理事件复核及自动适用性报告，核验全量结果/额度后追加结论并提交。",
+            "若继续原G5目标，准备针对模型跟踪与45秒指令域的新方案；新校准、模型/控制/训练或额度不能由本次描述性结果自动授权。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
