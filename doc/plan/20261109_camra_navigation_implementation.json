@@ -14763,6 +14763,91 @@
             "下一模型拟合、校准或上层训练仍待单独范围决定，不能按本提案自动执行或使用旧试验余量。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T22:01:20+08:00",
+          "summary": "NAV-043原事件与适用性审阅已完成，恢复最终证据收口及本地提交",
+          "actions": [
+            "重新读取根AGENTS、legacy执行规则、当前计划/依赖和交接；确认首个可执行项仍为1.4.1/NAV-043、55/67。原物理与59048/534400/317768审阅链均已退出，不重启。",
+            "本项仍服务于固定v2、RC-PPO预算内安全到达的闭环适用性；消费原分配6物理/6配对名义、W封存决定与两份最终只读报告，只更新证据、计划和交接，不改目标/评分/数据用途/冻结系统。",
+            "在tiger11原tmux会话新窗口%623启动一次已准备verify_exploration_close.py，核对报告来源、16封存来源、295保护身份、原始结果计数及仅追加计划；未重新运行全事件或适用性入口。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav043_exploration_final_review_20261119.md",
+            "CaMRA/navigation/docs/nav043_exploration_execution_review_20261119.md",
+            "CaMRA/navigation/docs/nav043_motion_model_route_proposal_20261119.md"
+          ],
+          "commands": [
+            "tiger11/tmux %623：OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/exploration-v1/verify_exploration_close.py > .worklog-testing/NAV-043/exploration-v1/exploration-close-basic.log 2>&1"
+          ],
+          "results": [
+            "原两报告已生成且无缺失/拒绝；六条200Hz事件/能量及2257名义保存动作核验通过。完整方法1/3、无校准0/3物理安全及时预算内到达；两方法名义各3/3。",
+            "六条同命令费用偏差在原alpha内，但累计位置偏差均超原delta；旧表只到30秒/vy=0而当前45秒/横向命令域不匹配。NAV-043/G5未通过，不进入下游；新模型拟合仅PROPOSED。",
+            "收尾检查此记录时已启动，实际结果待后续追加；本次新增应用/回合/W/训练/校准及响应模型拟合0。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_exploration_review_v1.json",
+            "CaMRA/navigation/reports/nav043_exploration_applicability_v1.json",
+            ".worklog-testing/NAV-043/exploration-v1/applicability-followup-finished.json"
+          ],
+          "remaining_work": [
+            "收尾检查终态后追加逐项及全局验收证据，运行legacy/仅追加/受保护路径检查并白名单本地提交。",
+            "新响应模型研究、校准及训练须明确新范围及独立额度，不转用本轮余量。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T22:05:00+08:00",
+          "summary": "NAV-043有限探索与最终保存审阅收口：证据完整性通过，物理可用性及裕度适用性未通过",
+          "actions": [
+            "接收原两步审阅终态并完成主agent一次收尾检查，未重新运行任何审阅或物理入口。%623核对105项报告来源、16封存来源、295保护身份及原计数；PASS_SAVED_EXPLORATION_CLOSURE_NOT_G5。",
+            "新增最终审阅，按NAV-043四条验收逐项区分完整trace/接线已证与真实闭环放行/裕度适用性未满足；同步AGENTS、README及交接，保留全部历史运行中快照并注明终态。",
+            "复查全局链路：RC-PPO原理和生产actor/critic价值预算决定、观测/命令/时序/J计量均保持，v2/旧alpha/delta/45秒/评分/数据隔离不改。原G4/效率FAIL及接受局限不相互替代，不推进NAV-044。",
+            "推荐固定v2响应模型有界离线可行性诊断，具体18条暴露轨迹/三折/九求解/CPU1小时见PROPOSED提案；本轮未做新拟合，不自动授权新模型、校准、上层训练或物理额度。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav043_exploration_final_review_20261119.md",
+            "CaMRA/navigation/docs/nav043_exploration_execution_review_20261119.md",
+            "CaMRA/navigation/docs/nav043_motion_model_route_proposal_20261119.md",
+            "CaMRA/navigation/reports/nav043_exploration_review_v1.json",
+            "CaMRA/navigation/reports/nav043_exploration_applicability_v1.json",
+            ".worklog-testing/NAV-043/exploration-v1/applicability-followup-finished.json",
+            ".worklog-testing/NAV-043/exploration-v1/exploration-close-basic.json",
+            ".worklog-testing/NAV-043/exploration-v1/commit_final_review.sh"
+          ],
+          "commands": [
+            "tiger11/tmux %623：/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/exploration-v1/verify_exploration_close.py",
+            "提交前以同一绝对解释器运行legacy validate_worklog.py --mode update，并由commit_final_review.sh核对8526830之后仅追加本项两记录/保护路径/差分/白名单，结果另存final-review-ready.json及日志后本地提交；不推送。"
+          ],
+          "results": [
+            "最终六条完整200Hz事件/能量及2257步名义保存动作重放通过；无碰撞/危险/跌倒。完整方法物理1/3、无校准0/3安全及时且实际预算内到达，两方法名义各3/3，未建立最小预算效率。",
+            "完整方法L2/L3预算使用75.41%/90.88%但45秒超时，距目标2.750/0.732米。六条同命令费用偏差4.75%–11.42%在原alpha内，最大位置偏差7.90–10.26米均超delta；旧30秒/vy=0拟合表不覆盖当前指令，不能外推放行。",
+            "实际原分配3应用/6物理/6名义/30W/54581显式步，GPU进程墙钟6893.246332秒；无重试，原分配及两审阅链均结束。本次审阅新增应用/回合/W/拟合/训练0。",
+            "每配置n=1且地图已暴露，只作探索描述，不定位唯一物理根因；NAV-043=false、55/67、G5未通过，下游未启动。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/nav043_exploration_final_review_20261119.md",
+            "CaMRA/navigation/reports/nav043_exploration_review_v1.json：37ae5020796809ba6c3692904c8d5c999b93f6679c8c302dc50b6814699b99b2",
+            "CaMRA/navigation/reports/nav043_exploration_applicability_v1.json：1f58cfe1608343792cac02a5a9f227bd9d5cb2badc10c26113273363a8f5395c",
+            ".worklog-testing/NAV-043/exploration-v1/exploration-close-basic.json",
+            ".worklog-testing/NAV-043/exploration-v1/applicability-followup-finished.json",
+            ".worklog-testing/NAV-043/exploration-v1/final-review-ready.json及final-review-plan.log由提交前守卫实际生成"
+          ],
+          "remaining_work": [
+            "NAV-043真实闭环可用性及45秒/横向运动的残余位置误差适用性未解决，不签G5；原冻结值不覆盖新候选条件，不能靠文档或基本检查放行。",
+            "先明确响应模型诊断新范围；获授权后实现精确隔离入口/数据清单/数值规则/封存和基本检查，再进行有限拟合。其后的新名义接口、独立校准、上层训练及物理验证分别登记，不自动扩大。"
+          ],
+          "blockers": [
+            "当前有限分配已经结束，新的真实响应模型拟合与校准范围尚未批准；按主计划uncertainty_policy及AGENTS固定系统规则等待具体范围裁定。"
+          ]
         }
       ],
       "constraints_and_notes": [
