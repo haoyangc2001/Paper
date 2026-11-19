@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="19" time="2.767" timestamp="2026-11-20T00:33:54.850437+08:00" hostname="tiger11.ios.ac.cn"><testcase classname="tests.test_nav043_affine_audit" name="test_saved_solution_checked_without_any_fit" time="0.050" /><testcase classname="tests.test_nav043_affine_audit" name="test_saved_parameter_or_solver_metadata_tampering_rejected[a-0.6]" time="0.077" /><testcase classname="tests.test_nav043_affine_audit" name="test_saved_parameter_or_solver_metadata_tampering_rejected[d-0.01]" time="0.073" /><testcase classname="tests.test_nav043_affine_audit" name="test_saved_parameter_or_solver_metadata_tampering_rejected[rows-5]" time="0.058" /><testcase classname="tests.test_nav043_affine_audit" name="test_saved_parameter_or_solver_metadata_tampering_rejected[residual_sum-value3]" time="0.077" /><testcase classname="tests.test_nav043_affine_audit" name="test_saved_parameter_or_solver_metadata_tampering_rejected[singular_values-value4]" time="0.065" /><testcase classname="tests.test_nav043_affine_audit" name="test_saved_parameter_or_solver_metadata_tampering_rejected[rank-2]" time="0.045" /><testcase classname="tests.test_nav043_affine_audit" name="test_numeric_comparison_rejects_invalid_saved_values[nan]" time="0.040" /><testcase classname="tests.test_nav043_affine_audit" name="test_numeric_comparison_rejects_invalid_saved_values[inf]" time="0.046" /><testcase classname="tests.test_nav043_affine_audit" name="test_numeric_comparison_rejects_invalid_saved_values[True]" time="0.050" /><testcase classname="tests.test_nav043_affine_audit" name="test_numeric_comparison_rejects_invalid_saved_values[0.01]" time="0.052" /><testcase classname="tests.test_nav043_affine_audit" name="test_replay_preserves_partial_tail_and_missing_prefix" time="0.049" /><testcase classname="tests.test_nav043_affine_audit" name="test_expected_output_inventory_has_exactly_nine_solves" time="0.049" /><testcase classname="tests.test_nav043_affine_audit" name="test_missing_approval_cannot_create_marker_or_launch" time="0.055" /><testcase classname="tests.test_nav043_affine_audit" name="test_existing_output_or_prior_attempt_cannot_start[output]" time="0.056" /><testcase classname="tests.test_nav043_affine_audit" name="test_existing_output_or_prior_attempt_cannot_start[lock]" time="0.148" /><testcase classname="tests.test_nav043_affine_audit" name="test_supporting_source_change_rejected" time="0.071" /><testcase classname="tests.test_nav043_affine_audit" name="test_timeout_preserves_lock_and_never_retries" time="0.045"><failure message="assert (not False and 'TimeoutExpired' in &quot;FileNotFoundError(2, 'No such file or directory')&quot;)">launch_scope = {'limits': {'cpu_wall_s': 3600}, 'output_root': '/tmp/pytest-of-caohy/pytest-26/test_timeout_preserves_lock_an0/output'}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7da9fca0cc90&gt;
+
+    def test_timeout_preserves_lock_and_never_retries(launch_scope, monkeypatch):
+        calls = []
+        class FakeProcess:
+            pid = 1
+            returncode = None
+            def poll(self):
+                return self.returncode
+            def wait(self, timeout=None):
+                if timeout is not None:
+                    assert timeout == 3600
+                    raise subprocess.TimeoutExpired('synthetic', timeout)
+                return self.returncode
+            def kill(self):
+                self.returncode = -9
+        def popen(*args, **kwargs):
+            calls.append((args, kwargs))
+            assert kwargs['env']['CUDA_VISIBLE_DEVICES'] == ''
+            return FakeProcess()
+        monkeypatch.setattr(launcher.subprocess, 'Popen', popen)
+        assert launcher.main() == -9
+        assert len(calls) == 1 and (launcher.HERE/'launch.lock').is_file()
+        record = launcher.base.load(launcher.HERE/'exit.json')
+&gt;       assert not record['retry_performed'] and 'TimeoutExpired' in record['error']
+E       assert (not False and 'TimeoutExpired' in "FileNotFoundError(2, 'No such file or directory')")
+
+CaMRA/navigation/tests/test_nav043_affine_audit.py:154: AssertionError</failure></testcase><testcase classname="tests.test_nav043_affine_audit" name="test_auditor_refuses_before_loading_trajectories" time="0.043" /></testsuite></testsuites>

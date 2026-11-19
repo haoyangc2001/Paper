@@ -15136,6 +15136,68 @@
           "blockers": [
             "仿射v2新模型及九求解范围尚未确认，不执行真实拟合；旧delta/90秒科学适用性仍无证据。"
           ]
+        },
+        {
+          "timestamp": "2026-11-20T00:32:00+08:00",
+          "summary": "NAV-043续行开工：补齐仿射v2保存输出复核与一次性启动准备，不执行新拟合",
+          "actions": [
+            "重新读取根AGENTS、legacy技能及执行规则、计划政策/当前任务/依赖、导航README与交接及封存仿射源码；计划1.5.0的首个可执行false仍为NAV-043，NAV-066/067历史依赖true。",
+            "消费55b5c5b/0bd8fae及pin98fe679c的PROPOSED；批准登记仍不存在。仅新增支持脚本、合成反例与准备证据，不改已封存提案/拟合源码，不调用真实数据求解。",
+            "为上游模型真实性与后续90秒链提供可审查输出核验和防重复执行措施；验收为无求解法方程/保存指标复核反例、缺批准和重复启动拒绝、旧身份/历史记录与计划校验。",
+            "固定v2、旧功率/足迹/alpha/delta及RC-PPO目标；生产链仍45秒。支持工具只是准备交付，无实际仿射输出可验，不替代NAV-043/G5或授权新试验。"
+          ],
+          "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["read AGENTS/legacy execution rules/current task and pinned source; hostname; tmux list-sessions"],
+          "results": ["tiger11.ios.ac.cn和既有tmux可用；55/67历史完成、NAV-043=false；本轮尚未修改模型、执行拟合或启动训练。"],
+          "evidence": ["CaMRA/navigation/config/nav043_affine_response_proposal_v2.json", "CaMRA/navigation/reports/nav043_response_residuals_v1.json"],
+          "remaining_work": ["实现并基本验证只读复核器与一次性启动器；封存准备清单、追加实际检查并本地提交。"],
+          "blockers": ["九次仿射真实求解的新范围尚待明确批准；不能通过准备工具自动启动或复用旧额度。"]
+        },
+        {
+          "timestamp": "2026-11-20T00:36:00+08:00",
+          "summary": "NAV-043仿射v2一次性启动/保存输出复核准备通过，真实拟合仍未执行",
+          "actions": [
+            "新增持久锁的一次性启动器与只乘法核验既有解的保存输出复核器，不改原98fe679c提案或8378e789拟合源码；支持来源另行封存为PREPARED_ONLY。",
+            "%647首次19项中18通过、1项合成夹具漏建批准文件失败，日志保留；只修复测试夹具并增加缺输出拒绝，%648最终20项通过，无任何新合成/真实求解。",
+            "%648核验295保护身份、90原始输入及全部67任务定义/旧记录前缀；%649封存支持清单pin70869ac8，并实际执行两个入口的缺批准拒绝，均退出1且未建正式锁/输出/审阅报告。",
+            "同步当前方案/AGENTS/README/交接，明确准备、实际保存输出验收、诊断和G5的边界，未向下游或生产激活新90秒模型。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/audit_nav043_affine_response.py",
+            "CaMRA/navigation/scripts/launch_nav043_affine_response_once.py",
+            "CaMRA/navigation/tests/test_nav043_affine_audit.py",
+            "CaMRA/navigation/config/nav043_affine_response_readiness_v2.json",
+            "CaMRA/navigation/config/nav043_affine_response_readiness_v2.json.sha256",
+            ".worklog-testing/NAV-043/affine-response-v2/",
+            "AGENTS.md", "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav043_response_model_v2_plan_20261120.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tmux %647: registered Python pytest basic checks and legacy update validator",
+            "tmux %648: check-final.sh; 20 basic checks; registered Python check_identities.py",
+            "tmux %649: seal_and_refuse.sh; exact launcher/auditor calls without approval"
+          ],
+          "results": [
+            "20基本检查通过；295保护身份/90输入及旧任务和记录保持。真实/合成轴求解0，新增业务回合/W/actor或critic更新/校准/GPU均0，无测试子agent。",
+            "支持准备清单70869ac8已封存，但独立APPROVED不存在；两个入口缺批准均拒绝。真实仿射输出及全输出审阅报告不存在，未把基本检查视为实际诊断通过。",
+            "计划1.5.0、55/67历史完成、NAV-043=false/G5未通过。原45秒生产链和固定v2/alpha/delta不变，90秒仍是未验证候选；下游NAV-044/final_*不开启。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/affine-response-v2/basic.log",
+            ".worklog-testing/NAV-043/affine-response-v2/final-basic.xml",
+            ".worklog-testing/NAV-043/affine-response-v2/identities.json",
+            ".worklog-testing/NAV-043/affine-response-v2/sealed-readiness.json",
+            ".worklog-testing/NAV-043/affine-response-v2/launcher-refusal.log",
+            ".worklog-testing/NAV-043/affine-response-v2/auditor-refusal.log",
+            ".worklog-testing/NAV-043/affine-response-v2/refusal.exit"
+          ],
+          "remaining_work": [
+            "确认原18条/三折九次仿射求解/CPU1小时的新具体范围后，单独APPROVED及pin登记、先提交，再只启动一次；保存输出后主agent完整复核，不复用旧额度。",
+            "根据实际诊断再决定状态/参考成本/90秒残余方案与训练/物理的具体范围；不以准备工具代替生产链或G5。"
+          ],
+          "blockers": ["新仿射拟合尚未获确认；旧delta和90秒科学适用性仍无证据，不能继续依赖它的训练或物理验证。"]
         }
       ],
       "constraints_and_notes": [

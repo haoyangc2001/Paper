@@ -1,0 +1,36 @@
+.................F.                                                      [100%]
+=================================== FAILURES ===================================
+________________ test_timeout_preserves_lock_and_never_retries _________________
+
+launch_scope = {'limits': {'cpu_wall_s': 3600}, 'output_root': '/tmp/pytest-of-caohy/pytest-26/test_timeout_preserves_lock_an0/output'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7da9fca0cc90>
+
+    def test_timeout_preserves_lock_and_never_retries(launch_scope, monkeypatch):
+        calls = []
+        class FakeProcess:
+            pid = 1
+            returncode = None
+            def poll(self):
+                return self.returncode
+            def wait(self, timeout=None):
+                if timeout is not None:
+                    assert timeout == 3600
+                    raise subprocess.TimeoutExpired('synthetic', timeout)
+                return self.returncode
+            def kill(self):
+                self.returncode = -9
+        def popen(*args, **kwargs):
+            calls.append((args, kwargs))
+            assert kwargs['env']['CUDA_VISIBLE_DEVICES'] == ''
+            return FakeProcess()
+        monkeypatch.setattr(launcher.subprocess, 'Popen', popen)
+        assert launcher.main() == -9
+        assert len(calls) == 1 and (launcher.HERE/'launch.lock').is_file()
+        record = launcher.base.load(launcher.HERE/'exit.json')
+>       assert not record['retry_performed'] and 'TimeoutExpired' in record['error']
+E       assert (not False and 'TimeoutExpired' in "FileNotFoundError(2, 'No such file or directory')")
+
+CaMRA/navigation/tests/test_nav043_affine_audit.py:154: AssertionError
+=========================== short test summary info ============================
+FAILED CaMRA/navigation/tests/test_nav043_affine_audit.py::test_timeout_preserves_lock_and_never_retries
+1 failed, 18 passed in 2.86s
