@@ -14103,6 +14103,84 @@
           "blockers": [
             "当前科学范围和新资源分配仍待明确，未授权新试验。"
           ]
+        },
+        {
+          "timestamp": "2026-11-19T13:57:29.820711+08:00",
+          "summary": "NAV-043补充离线跟踪诊断开工：范围裁定未收到，仍不执行依赖试验",
+          "actions": [
+            "重新完整读取根AGENTS、legacy技能/执行规则，全文解析当前计划及NAV-043定义/记录/依赖，核对24b0e35及干净工作树；原/重复证据和上一轮审阅报告是唯一来源。",
+            "上轮完成保存轨迹审阅与提交，属于有效进展；当前范围/资源未决仍相同。只分析原始实际位姿/体坐标速度/命令，以便解释累计位置偏差；不拟合模型、不选择预算、不启动新名义或物理回合。",
+            "保持固定v2、RC-PPO目标、两候选/critic、45秒obs-v7、时序/J/原alpha-delta、旧失败及final封存；允许新增只读分析代码、描述性报告和当前追加记录。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "读取AGENTS、legacy SKILL/execution-rules、当前完整计划、nav043_saved_applicability_review、clean_v2/v3真实状态读出来源及现有tmux pane %599。"
+          ],
+          "results": [
+            "NAV-043仍false、55/67；现有tmux %599为bash，无正在运行的本任务应用。范围裁定未收到，不能把自动续行当用户同意。",
+            "本项补充验收是保存证据来源一致、几何位移分解可闭合、描述性速度/转向统计可追溯；不替代新物理性能或裕度验证。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+            "CaMRA/navigation/src/camra_navigation/envs/clean_v2.py",
+            "CaMRA/navigation/docs/nav043_saved_applicability_review_20261119.md"
+          ],
+          "remaining_work": [
+            "仅补充已保存证据的速度/转向统计和位移恒等分解，完成后等待同一科学范围决定。"
+          ],
+          "blockers": [
+            "科学范围/资源决定未收到；任何新的应用/回合/W/拟合/训练与NAV-043/G5放行仍禁止。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-19T14:03:10.990866+08:00",
+          "summary": "NAV-043保存跟踪诊断及主agent基本核验通过；保持闭环验收未完成",
+          "actions": [
+            "只读取NAV-067原/重复12轨迹的实际命令、warmup初态、200Hz位姿和机身速度；分别统计前向/横向/转向及净航向变化，机身wz与Euler yaw不混用。",
+            "使用原冻结step_exact与保存实际航向，逐步将终态位置差作平移和航向位移的向量恒等分解；仅作几何记账，允许抵消，不解释为因果贡献百分比或新模型。",
+            "主agent验证60原始输入hash、295项保护身份、另一种累积方式的转向/速度统计、保存参考与终态、原计划记录及保护路径；没有测试子agent、模型拟合或物理应用。",
+            "局部交付为可追溯的保存跟踪诊断，不修改任何生产实现、预算规则、actor/双critic、v2或α/δ；全局RC-PPO目标、45秒obs-v7、200/50/10Hz与机械功J保持。NAV-067工程通过仍有效，NAV-043/G5及依赖下游仍未放行。"
+          ],
+          "files_changed": [
+            ".worklog-testing/NAV-043/tracking-v1/analyze.py",
+            ".worklog-testing/NAV-043/tracking-v1/verify.py",
+            ".worklog-testing/NAV-043/tracking-v1/analysis.log",
+            ".worklog-testing/NAV-043/tracking-v1/verification.log",
+            ".worklog-testing/NAV-043/tracking-v1/verification.json",
+            "CaMRA/navigation/reports/nav043_saved_tracking_diagnostic_v1.json",
+            "CaMRA/navigation/docs/nav043_saved_tracking_review_20261119.md",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-evidence-close %599；cwd=/home/caohy/repositories/Paper；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/tracking-v1/analyze.py > .worklog-testing/NAV-043/tracking-v1/analysis.log 2>&1",
+            "同一tmux/cwd/解释器：/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/tracking-v1/verify.py > .worklog-testing/NAV-043/tracking-v1/verification.log 2>&1",
+            "同一tmux/cwd/解释器：/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/.codex/skills/create-plan-worklog-legacy/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update；最终日志.worklog-testing/NAV-043/tracking-v1/final-plan-validation.log。git diff --check；本地提交，不推送。"
+          ],
+          "results": [
+            "保存诊断报告SHA256=1b73fef09778da40d5fc4896061bf08023085e536ef583378dfad655de32cba3；主agent基本检查PASS。12保存轨迹、60输入、295身份匹配，最大向量恒等残差3.73035e-14米。",
+            "完整方法L1/L2/L3平均机身前向速度约0.348/0.349/0.318m/s，指令约0.417/0.417/0.387m/s；指令/实际净转向61.1/-8.8、124.8/38.9、122.9/43.5度。支持跟踪偏差的描述，不证明唯一根因。",
+            "每方法仅3种不同配置，重复不作为新独立场景；没有重新执行名义闭环策略，所有原共同预算超支和旧失败保留。",
+            "55/67、NAV-043=false；新增应用/物理或名义回合/W查询/拟合/训练/final访问0。当前等待同一科学范围和独立额度决定，不以离线基本核验替代闭环性能或裕度适用性验收。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_saved_tracking_diagnostic_v1.json",
+            ".worklog-testing/NAV-043/tracking-v1/verification.json",
+            ".worklog-testing/NAV-043/tracking-v1/analysis.log",
+            ".worklog-testing/NAV-043/tracking-v1/verification.log",
+            "CaMRA/navigation/docs/nav043_saved_tracking_review_20261119.md",
+            "CaMRA/navigation/docs/nav043_saved_applicability_review_20261119.md"
+          ],
+          "remaining_work": [
+            "待用户明确选择有限探索性预算物理验证或先制定新范围校准方案，再按所选路线落实独立资源、实现/封存入口及必要验证；不继续堆叠旁支诊断或默认重训critic。",
+            "真实初态W选择预算的物理闭环与45秒/学习指令的裕度适用性仍未验收，G5及依赖下游保持未放行。"
+          ],
+          "blockers": [
+            "上一轮已请求的科学范围及新增NAV-043额度决定仍未收到；自动目标续行不是批准。已授权独立离线补充完成，不启动依赖该决定的试验或修改冻结值。"
+          ]
         }
       ],
       "constraints_and_notes": [
