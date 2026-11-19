@@ -13104,6 +13104,31 @@
      "evidence": ["CaMRA/navigation/reports/nav067_pilot_binding_v1.json", "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/manifest.json", ".worklog-testing/NAV-067/entry-v1/basic-tests.log", ".worklog-testing/NAV-067/entry-v1/legacy-format-failure.log"],
      "remaining_work": ["现场GPU核验后执行已登记6回合pilot，检查实际clean参数/命令观测/复位/地图碰撞体/200Hz计量与部分周期。", "真实受控反例及同配置重复须独立明确额度；不能默认在6回合之外加跑。", "逐条完成本项局部和全局验收后才允许进入NAV-043。"],
      "blockers": []
+   },
+   {
+     "timestamp": "2026-11-19T08:11:44.503579+08:00",
+     "summary": "NAV-067首次物理入口启动未产生有效轨迹；保留attempt1并核对阶段提交，不据退出0放行",
+     "actions": [
+       "在tiger11原tmux窗口@587/%587用绝对Python3.11.15、GPU6和原封存清单启动一次L1入口；保留PID1232883、原命令、启动/退出标记及日志。",
+       "恢复后重读根AGENTS、legacy技能及执行/字段规则，完整解析当前1.4.1计划，核对NAV-067任务约束和原4条记录，保留NAV-066接受局限及旧科学FAIL。",
+       "核对进程已退出、有效runtime/结果/子步及FINISHED均未生成；登记材质插件缺失错误，未将其未经证实地认定为退出直接根因。",
+       "原launch记录tmux窗口取值未指定pane，另以实际@587/%587记录更正，不改写原启动记录；保留原始证据并做主agent只读绑定及追加式检查。"
+     ],
+     "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json", "CaMRA/navigation/docs/implementation_handoff.md", ".worklog-testing/NAV-067/entry-v1/launch.py", ".worklog-testing/NAV-067/entry-v1/diagnose.py", ".worklog-testing/NAV-067/entry-v1/checkpoint_startup.py", ".worklog-testing/NAV-067/entry-v1/startup-attempt1/"],
+     "commands": [
+       "tmux=nav064-r14-repair-20261115:nav067-clean-v2 @587/%587; cwd=/home/caohy/repositories/Paper; PYTHONPATH=CaMRA/navigation/src:CaMRA/navigation/scripts:CaMRA/calibration/src PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-067/entry-v1/launch.py L1_empty",
+       "实际子命令：/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/CaMRA/navigation/scripts/evaluate_navigation_v2.py --level L1_empty --device cuda:0",
+       "同机tmux运行diagnose.py及checkpoint_startup.py；legacy validate_worklog.py --mode update。"
+     ],
+     "results": [
+       "本地阶段提交28f5b7c及22a23cc存在，未推送；源码和清单未因本次启动检查而修改。",
+       "启动attempt1一次，退出码0但有效物理回合完成0；L1两槽保留占用，L2/L3四槽未启动，无自动重试或额度释放。",
+       "Isaac原日志确认材质插件库缺失和omni.UsdMdl导入错误；Kit随后到达app ready再关闭，缺少有效轨迹的直接根因仍待定位，不归因为策略性能。",
+       "无新训练、W查询或恢复试跑；24项基本测试仍仅证明代码准备。实际生产调用链/clean参数/200Hz证据未验收，NAV-067保持false、54/67，下游不开启。"
+     ],
+     "evidence": ["22a23ccbe552b5d80f171da3590bcd849ae886ed", "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/launch-L1_empty.json", "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/exit-L1_empty.json", ".worklog-testing/NAV-067/entry-v1/diagnostic-1.json", ".worklog-testing/NAV-067/entry-v1/startup-attempt1/verification.json"],
+     "remaining_work": ["先定位真实入口/启动故障并保留原版后回修；核对恢复授权和清单/两槽状态，不自动重跑或更改共享Isaac依赖。", "有效6回合接线、实际适配器受控反例、同配置重复及本项全部验收仍待完成；额外额度不明时先报告。"],
+     "blockers": ["L1首次入口只有启动证据，真实接线尚未验收；原失败策略禁止自动重跑。", "真实受控反例与同配置重复的独立额度尚未分配。"]
    }
   ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

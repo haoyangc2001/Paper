@@ -1,0 +1,77 @@
+{
+  "task": "NAV-067",
+  "status": "HELD_STARTUP_NO_VALID_TRACE",
+  "timestamp": "2026-11-19T08:16:24.092647+08:00",
+  "launch_attempts": 1,
+  "completed_physical_episodes": 0,
+  "reserved_episode_slots": 2,
+  "unstarted_episode_slots": 4,
+  "reserved_slots_automatically_released": false,
+  "original_exit_record": {
+    "pid": 1232883,
+    "returncode": 0,
+    "ended_at": "2026-11-19T08:11:44.503579+08:00"
+  },
+  "exit_zero_is_acceptance": false,
+  "missing_outputs": [
+    "runtime.json",
+    "episode result.json",
+    "substeps.json",
+    "FINISHED.json"
+  ],
+  "launch_metadata_correction": {
+    "original_record_retained": true,
+    "original_window_field": "nav065-v11-preparation",
+    "authoritative_runner_pane": "nav064-r14-repair-20261115:nav067-clean-v2 @587 %587 1127901",
+    "cause": "Launcher queried tmux display-message without an explicit pane target.",
+    "evidence": ".worklog-testing/NAV-067/entry-v1/startup-attempt1/runner-pane.txt"
+  },
+  "observed_errors": [
+    "Isaac material extension native library absent.",
+    "ModuleNotFoundError: No module named 'omni.UsdMdl'."
+  ],
+  "root_cause_of_missing_runtime_trace": "Not established; Kit reached app ready and then closed. No policy-performance conclusion is supported.",
+  "kit_log": {
+    "path": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20261119_081036.log",
+    "sha256": "2ff5ef4e87b6dbcd5915f4bce8842a447c264ed6b2e2451fa7b90e51e1ab8fc1",
+    "tail_copy": ".worklog-testing/NAV-067/entry-v1/startup-attempt1/kit-tail.txt"
+  },
+  "preserved_artifacts": {
+    "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/launch-L1_empty.json": {
+      "copy": ".worklog-testing/NAV-067/entry-v1/startup-attempt1/launch-L1_empty.json",
+      "sha256": "69f5f8b6e1568350893949f877d7e64376d6b6eb329100f65a52e23c0e11b8cc"
+    },
+    "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/exit-L1_empty.json": {
+      "copy": ".worklog-testing/NAV-067/entry-v1/startup-attempt1/exit-L1_empty.json",
+      "sha256": "87733f401ecb7343b9ab78408c9673997c13b6f091bae58c28130c4cfd55a7a9"
+    },
+    "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/launch-L1_empty.log": {
+      "copy": ".worklog-testing/NAV-067/entry-v1/startup-attempt1/launch-L1_empty.log",
+      "sha256": "95755d00dd21dd82844db96acdd3a836e04e36146b7ca63a3204932613b58f75"
+    },
+    "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/STARTED.json": {
+      "copy": ".worklog-testing/NAV-067/entry-v1/startup-attempt1/L1_empty-STARTED.json",
+      "sha256": "7a63437465236a949273b14c2b0f170794223e3d241ecf8ef1b648b4c8e43244"
+    }
+  },
+  "binding": {
+    "decision_prereg_sha256": "6e783599f76e68cc483bfc9f4d3e7649e4b312f48335a5c7c578f974ab9d126c",
+    "training_prereg_sha256": "6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4",
+    "protected_hashes_checked": 295,
+    "plan_version": "1.4.1",
+    "controller": {
+      "id": "camra_go2_velocity_it2999_v2",
+      "bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+      "bundle_tree_sha256": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+      "checkpoint_sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+      "policy_entry": "exported/policy.pt (RecursiveScriptModule, 45 -> 12)"
+    },
+    "accepted_scientific_verdict": "FAIL_BUDGET_EFFICIENCY"
+  },
+  "manifest_sha256": "f33d829896347b4efef4217ba4ec191d4b9b24f69f7576d7b77120003cb02402",
+  "source_or_model_changes": false,
+  "new_training_updates": 0,
+  "new_W_queries": 0,
+  "plan_prefix_and_status_preserved": true,
+  "next": "Diagnose the startup/entry failure before any recovery attempt; retain the two claimed slots. No automatic pilot rerun, dependency replacement or NAV-043 execution."
+}

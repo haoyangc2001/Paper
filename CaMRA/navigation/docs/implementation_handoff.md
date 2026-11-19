@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-19 NAV-067首次启动未产生有效轨迹，保留attempt1
+
+代码和清单已在本地提交`28f5b7c`、`22a23cc`，未推送。随后在tiger11/tmux `nav064-r14-repair-20261115:nav067-clean-v2`（@587/%587）启动L1的attempt1，PID1232883于08:11:44退出，退出码0；只有STARTED及启动日志，没有runtime、回合结果、200Hz轨迹或FINISHED，不能作为物理接线通过或策略失败。日志确认Isaac材质插件缺失并报`omni.UsdMdl`导入错误；Kit之后仍到达app ready再关闭，因此尚未确认缺少有效轨迹的直接根因。
+
+原始启动记录的tmux窗口字段因未指定pane错误写为`nav065-v11-preparation`，原记录保持不变；以@587/%587的pane记录另行更正。L1两个槽仍占用且不自动释放，L2/L3四个槽未启动；完成的有效物理回合为0，不以此推断所有初始化物理工作均为0。已保留原启动/退出记录、原始日志副本及Kit日志hash，见`.worklog-testing/NAV-067/entry-v1/startup-attempt1/verification.json`。本次没有新增训练、W查询、试跑或修改冻结环境/源码/清单。
+
+NAV-067仍false、54/67。下一步先定位启动/入口故障，必要回修保留原版本，明确恢复和额度后再执行；不自动重跑L1或消耗L2/L3。真实受控反例及同配置重复的独立额度仍未解决，NAV-043及final_*不开启。以下为启动前的历史时点。
+
 ## 2026-11-19 NAV-067新版生产入口准备：24项基本检查、295项保护身份核验
 
 已新增隔离入口`navigation/scripts/evaluate_navigation_v2.py`及身份/额度绑定`nav067_sources.py`，使用NAV-066已选两模型、原45秒/obs-v7和固定v2。新的物理链明确使用原归一化动作映射、实际50Hz重新观测和200Hz子步事件/机械功，绕过gym自动复位。主agent24项基本检查通过，实际CPU重载两套actor/双critic及295项保护输入hash匹配；未派测试子agent。代码检查不证明真实Isaac接入通过，NAV-067仍false，54/67。
