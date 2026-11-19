@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-19 NAV-067新版生产入口准备：24项基本检查、295项保护身份核验
+
+已新增隔离入口`navigation/scripts/evaluate_navigation_v2.py`及身份/额度绑定`nav067_sources.py`，使用NAV-066已选两模型、原45秒/obs-v7和固定v2。新的物理链明确使用原归一化动作映射、实际50Hz重新观测和200Hz子步事件/机械功，绕过gym自动复位。主agent24项基本检查通过，实际CPU重载两套actor/双critic及295项保护输入hash匹配；未派测试子agent。代码检查不证明真实Isaac接入通过，NAV-067仍false，54/67。
+
+唯一pilot清单已封存于`/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/manifest.json`，三图seed3001各两方法，共6回合，来自NAV-061既有clean配额。沿用原接线共同预算k=1.0，按冻结45秒独立派生的参考为L1 340.847764J、L2 413.776269J、L3 340.961039J，两方法使用相同J；非价值预算选择、非科学性能分母，不冒充独立新地图。每level启动前独占两个槽，不得换根目录或自动重跑。尚无新增物理、训练或W查询。
+
+下一步：在tiger11/tmux现场核GPU后，以绝对Python3.11.15和`PYTHONPATH=src:scripts:../calibration/src`执行`-B scripts/evaluate_navigation_v2.py --level L1_empty --device cuda:0`，随后按清单L2/L3，先检查实际clean/碰撞体/时钟及原始trace；同配置重复和真实受控反例需要单独明确额度。旧NAV-042入口和报告全部保留，不能用其旧候选/30秒默认值替代新版证据。[准备核验](../reports/nav067_pilot_binding_v1.json)及`.worklog-testing/NAV-067/entry-v1/`记录测试、绑定和旧协议解析失败：原冻结协议在无关总数字段含算式，保留原文及hash，新读取器仅取唯一已登记6回合标量。以下为历史时点。
+
 ## 2026-11-19 用户接受预算效率局限，下一入口NAV-067
 
 用户同意此前建议：接受已知预算效率局限，继续研究流程，暂不围绕单例反复重训。[独立处置记录](../reports/nav066_efficiency_limitation_acceptance_v1.json)绑定原注册和结果hash；NAV-066按`ACCEPTED_WITH_LIMITATION`流程结案，原完整方法效率8/9和科学FAIL、旧G4 FAIL、原代码/模型/阈值/报告均不改。计划原位升1.4.1，仅NAV-066 false→true，其余66项、依赖和全部历史记录保持；当前54/67，下一项NAV-067尚未开始。

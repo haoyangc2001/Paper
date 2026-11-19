@@ -13071,6 +13071,39 @@
        "依照所有局部及全局标准验收后再进入NAV-043。"
      ],
      "blockers": []
+   },
+   {
+     "timestamp": "2026-11-19T08:03:09+08:00",
+     "summary": "NAV-067续跑：补齐冻结候选绑定、唯一pilot清单和物理生产入口",
+     "actions": [
+       "重新读取根AGENTS、legacy执行规则和实际1.4.1计划，核对NAV-066接受局限记录及NAV-067两条历史记录；54/67不变。",
+       "本次把已测两候选、原45秒/obs-v7及固定v2接到新的200Hz物理链；只新增隔离文件，保护原注册绑定源码、模型及校准输入。",
+       "仅沿用NAV-061 resource_ledger.physical_pilot.clean_6_episodes=6，按旧接线三图seed3001、每方法一次准备唯一清单；common_budget沿用k=1.0锚点，45秒参考单独派生、相同J供两方法，明确不是价值搜索结果。",
+       "生产入口须核验hash/候选/依赖/额度，输出实际clean读回、子步trace与机械功复算；同配置重复和受控物理反例不能自动扩额。"
+     ],
+     "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+     "commands": ["只读核对当前计划/原NAV-042入口/NAV-066注册/保护清单及固定v2资源路径；执行继续tiger11/tmux和绝对Python3.11.15。"],
+     "results": ["上一轮仅核实28f5b7c提交，本轮继续实现；无新增训练、价值查询或物理回合。"],
+     "evidence": ["CaMRA/navigation/config/training_loop_protocol_v1.json", "CaMRA/navigation/config/nav066_decision_prereg_v2.json", "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"],
+     "remaining_work": ["冻结候选及唯一清单；主agent基本验证；实际6回合接线与clean参数、子步及能量核验；额外受控/重复额度仍需独立确定。"],
+     "blockers": []
+   },
+   {
+     "timestamp": "2026-11-19T08:08:08+08:00",
+     "summary": "NAV-067阶段保存：新候选与6回合唯一清单已绑定，24项基本检查通过，尚未运行物理",
+     "actions": [
+       "新增nav067_sources.py，单独消费NAV-066已测身份和接受处置，不调用已结束的NAV-066入口或复用其额度；实际核验295项受保护源码/资源/六模型hash并CPU重载选定actor和双critic。",
+       "新增evaluate_navigation_v2.py，把obs-v7/45秒、原归一化动作映射、固定v2低层、50/200Hz适配、200Hz事件与机械功记录连接到实际入口；每level独占两槽、拒绝重复目录。",
+       "封存三图seed3001的唯一6回合清单：共同预算340.847764/413.776269/340.961039J由45秒名义参考独立派生，相同J供两方法，非W选择、非独立科学评估。",
+       "发现原冻结training_loop_protocol_v1.json的无关development总数字段含算式，标准JSON解析失败；保留失败日志及原hash不改，只读取散列匹配文件里唯一的clean_6_episodes=6标量，不执行算式。",
+       "主agent完成24项基本检查、真实绑定重载/保护核验、生产动作映射和计划追加/状态保留检查，无测试子agent。"
+     ],
+     "files_changed": ["CaMRA/navigation/scripts/nav067_sources.py", "CaMRA/navigation/scripts/evaluate_navigation_v2.py", "CaMRA/navigation/tests/test_nav067_binding.py", "CaMRA/navigation/reports/nav067_pilot_binding_v1.json", "CaMRA/navigation/docs/implementation_handoff.md", "doc/plan/20261109_camra_navigation_implementation.json"],
+     "commands": ["tmux nav064-r14-repair-20261115:nav067-clean-v2; cwd=/home/caohy/repositories/Paper/CaMRA/navigation; PYTHONPATH=src:scripts:../calibration/src OMP_NUM_THREADS=1 <absolute Python3.11.15> -B -m pytest -q tests/test_nav067_binding.py tests/test_physical_v2.py", "同tmux/解释器执行scripts/nav067_sources.py及.worklog-testing/NAV-067/entry-v1/review.py；legacy validate_worklog --mode update通过。"],
+     "results": ["24项通过；295项保护身份不变；原actor/critic/目标/校准不变；物理0、训练0、W查询0。", "新生产入口尚待真实Isaac证明，NAV-067保持false；正式性能/闭环裕度与下游门禁均未通过。"],
+     "evidence": ["CaMRA/navigation/reports/nav067_pilot_binding_v1.json", "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/manifest.json", ".worklog-testing/NAV-067/entry-v1/basic-tests.log", ".worklog-testing/NAV-067/entry-v1/legacy-format-failure.log"],
+     "remaining_work": ["现场GPU核验后执行已登记6回合pilot，检查实际clean参数/命令观测/复位/地图碰撞体/200Hz计量与部分周期。", "真实受控反例及同配置重复须独立明确额度；不能默认在6回合之外加跑。", "逐条完成本项局部和全局验收后才允许进入NAV-043。"],
+     "blockers": []
    }
   ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
