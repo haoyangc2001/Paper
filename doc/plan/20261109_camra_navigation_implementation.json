@@ -13798,6 +13798,38 @@
             "实际终态及完整离线审阅报告生成后再提交；本次不执行NAV-043或额外物理/训练/W查询/final_*。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T12:13:07.025174+08:00",
+          "summary": "NAV-067补齐旧NAV-042 clean声明的独立amendment：不覆盖原报告，重复仍在运行",
+          "actions": [
+            "逐项核对旧入口、六原始trace身份及新版clean/子步生产链，明确旧报告只能支持当时接线，不能支持本轮clean/200Hz全程事件结论。",
+            "新增独立JSON与通俗说明，绑定原报告/hash、实际新版六pilot/六受控证据、版本差异及受影响任务/门禁。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav042_report_amendment_nav067_v1.json",
+            "CaMRA/navigation/docs/nav042_clean_claim_amendment_20261119.md",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/write_clean_amendment.py",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-evidence-close %599；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-067/remaining-recovery-v2-execution/write_clean_amendment.py"
+          ],
+          "results": [
+            "amendment按原NAV-067第4条验收补齐来源与解释；原报告/六trace/冻结v2未改，旧科学FAIL保持。",
+            "旧新差异包含actor/观测/预算与终止契约，不都归因于clean；不替代同配置重复。",
+            "六导航重复仍在执行，NAV-067=false、54/67，NAV-043/G5未执行；新增物理/训练/W查询0。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav042_report_amendment_nav067_v1.json",
+            "CaMRA/navigation/docs/nav042_clean_claim_amendment_20261119.md",
+            "CaMRA/navigation/reports/nav067_recovery_v3_execution_review.json",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/actual-controlled-review.json"
+          ],
+          "remaining_work": [
+            "同一分配六导航重复结束后，审阅完整原/新12回合和偏差，完成局部及全局双重验收后再判NAV-067。"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

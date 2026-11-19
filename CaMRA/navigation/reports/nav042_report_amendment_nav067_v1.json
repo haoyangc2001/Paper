@@ -1,0 +1,530 @@
+{
+  "schema": "camra-nav042-clean-claim-amendment-nav067-v1",
+  "at": "2026-11-19T12:13:06.985800+08:00",
+  "discovered_in_task": "NAV-067",
+  "correction_id": "NAV-067-CLEAN-CLAIM-AMENDMENT-V1",
+  "status": "AMENDMENT_DOCUMENTED_NAV067_REPETITIONS_PENDING",
+  "old_report_retained": "CaMRA/navigation/reports/nav042_online_loop.json",
+  "old_report_sha256": "e6f9593f094afa1e259a9f70d548813ce9313fa6f71841d38775677cb58eaeeb",
+  "old_claim": "no perturbation profile; clean-physics only",
+  "corrected_interpretation": "The old runner disables observation corruption but does not establish that inherited startup/reset/interval randomization is disabled. Its saved wiring report is not sufficient evidence of the current clean profile or complete 200 Hz events.",
+  "specific_source_findings": [
+    {
+      "path": "scripts/evaluate_navigation.py",
+      "lines": [
+        266,
+        271,
+        299,
+        302
+      ],
+      "finding": "Constructs the training environment, sets seed and observation corruption, then gym.make. No complete event/material/mass/command-resampling clean override or matching runtime readback is established."
+    },
+    {
+      "path": "scripts/evaluate_navigation.py",
+      "lines": [
+        133,
+        139,
+        142,
+        148
+      ],
+      "finding": "Calls gym/env.step and reads fall state after the 50 Hz policy step. This does not give the new event monitor an actual pose at every 200 Hz substep."
+    },
+    {
+      "path": "src/camra_navigation/envs/physical.py",
+      "lines": [
+        494,
+        514,
+        532
+      ],
+      "finding": "Allows absent command observation to fall back to applied rows and updates navigation geometry after the 10 Hz interval. The old successful command comparisons do not prove a missing-observation rejection path or complete 200 Hz event coverage."
+    }
+  ],
+  "what_is_not_claimed": "No retrospective estimate of how much randomization occurred or which old trajectory was changed by it. Missing actual evidence is not filled with expected values.",
+  "corrected_production_chain": [
+    "scripts/evaluate_navigation_v2.py",
+    "scripts/nav067_simulation_v3.py",
+    "src/camra_navigation/envs/clean_v3.py -> clean_v2.py IsaacSubstepAdapter",
+    "src/camra_navigation/envs/physical_v2.py SubstepNavigation",
+    "evaluation.recorder offline energy recomputation"
+  ],
+  "actual_new_evidence": {
+    "six_original_corrected_pilot_report": "CaMRA/navigation/reports/nav067_recovery_v3_execution_review.json",
+    "six_original_corrected_pilot_sha256": "a837518ec6d8e289d70f319d21bbbf8042fe5117cd63fa46485ca6ec2da2e47e",
+    "pilot_runtime_reviews": [
+      {
+        "status": "PASS_SAVED_RUNTIME_READBACK_ONLY",
+        "at": "2026-11-19T09:59:33.402588+08:00",
+        "level": "L1_empty",
+        "runtime": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/runtime.json",
+        "runtime_sha256": "177ea8e04899da322599f8e8498314d41022c29e2caf91147286bfc7dbfbc161",
+        "tmux": "nav064-r14-repair-20261115:nav067-runtime-review @596 %596",
+        "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+        "enabled_colliders": 4,
+        "event_terms": {
+          "reset": [
+            "reset_base",
+            "reset_robot_joints"
+          ]
+        },
+        "new_simulation_starts": 0,
+        "training_updates": 0,
+        "W_queries": 0,
+        "limitations": [
+          "Saved config plus runtime material/mass and collider pose/enabled readbacks only.",
+          "Collider size and actual controlled collision responses are not independently measured by this check.",
+          "This is not repeatability or NAV-043 physical applicability acceptance."
+        ]
+      },
+      {
+        "status": "PASS_SAVED_RUNTIME_READBACK_ONLY",
+        "at": "2026-11-19T09:59:33.457226+08:00",
+        "level": "L2_single_detour",
+        "runtime": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/runtime.json",
+        "runtime_sha256": "5a3f1cc2135a078ff23b39a8945a47027121b5164d47e61dbbac0b8a594d3274",
+        "tmux": "nav064-r14-repair-20261115:nav067-runtime-review @596 %596",
+        "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+        "enabled_colliders": 5,
+        "event_terms": {
+          "reset": [
+            "reset_base",
+            "reset_robot_joints"
+          ]
+        },
+        "new_simulation_starts": 0,
+        "training_updates": 0,
+        "W_queries": 0,
+        "limitations": [
+          "Saved config plus runtime material/mass and collider pose/enabled readbacks only.",
+          "Collider size and actual controlled collision responses are not independently measured by this check.",
+          "This is not repeatability or NAV-043 physical applicability acceptance."
+        ]
+      },
+      {
+        "status": "PASS_SAVED_RUNTIME_READBACK_ONLY",
+        "at": "2026-11-19T10:05:52.999681+08:00",
+        "level": "L3_multi_path",
+        "runtime": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/runtime.json",
+        "runtime_sha256": "d0f28d021bdf297457105192bf932c9b6261d0a127a4cb2cbfc88736ac825c7d",
+        "tmux": "nav064-r14-repair-20261115:nav067-final-trace-precheck @597 %597",
+        "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+        "enabled_colliders": 6,
+        "event_terms": {
+          "reset": [
+            "reset_base",
+            "reset_robot_joints"
+          ]
+        },
+        "new_simulation_starts": 0,
+        "training_updates": 0,
+        "W_queries": 0,
+        "limitations": [
+          "Saved config plus runtime material/mass and collider pose/enabled readbacks only.",
+          "Collider size and actual controlled collision responses are not independently measured by this check.",
+          "This is not repeatability or NAV-043 physical applicability acceptance."
+        ]
+      }
+    ],
+    "pilot_trace_count": 6,
+    "controlled_cases": [
+      {
+        "case": "C01",
+        "status": "PASS_ACTUAL_READBACK_AND_OFFLINE_REPLAY",
+        "environment_ticks": 408,
+        "measurement_ticks": 4,
+        "labels": [
+          "collision",
+          "goal_reached"
+        ],
+        "env_active_steps": [
+          2,
+          4
+        ],
+        "native_filtered_contact_max_N": null,
+        "evidence_kind": "deliberately-written-fixture-with-actual-readback",
+        "performance_evidence": false,
+        "raw_sha256": "e7fbc7ad576040b1057f3f34e101cfbacd6dd2cc8b6c2dc593a34374ea897724",
+        "finished_sha256": "cca71d98f8a559f34a0b23a870bdd53320f4a1aa840577fd6f7b468b76b769e0",
+        "offline_energy_relative_error_max": 0.0
+      },
+      {
+        "case": "C02",
+        "status": "PASS_ACTUAL_READBACK_AND_OFFLINE_REPLAY",
+        "environment_ticks": 204,
+        "measurement_ticks": 4,
+        "labels": [
+          null
+        ],
+        "env_active_steps": [
+          4
+        ],
+        "native_filtered_contact_max_N": null,
+        "evidence_kind": "deliberately-written-fixture-with-actual-readback",
+        "performance_evidence": false,
+        "raw_sha256": "e0c77b89a363f5c20d461fc1b27cfe7d68d730b1198b71a023e19e1cdbcad3b9",
+        "finished_sha256": "ec690c186a16896c99f60856f47de09c2faf738b6452dc3b2f9edd6a2ee1e1a2",
+        "offline_energy_relative_error_max": 0.0
+      },
+      {
+        "case": "C03",
+        "status": "PASS_ACTUAL_READBACK_AND_OFFLINE_REPLAY",
+        "environment_ticks": 202,
+        "measurement_ticks": 2,
+        "labels": [
+          "collision"
+        ],
+        "env_active_steps": [
+          2
+        ],
+        "native_filtered_contact_max_N": null,
+        "evidence_kind": "deliberately-written-fixture-with-actual-readback",
+        "performance_evidence": false,
+        "raw_sha256": "29c54b9c94afce75e53b0ad43957aac36bd093c15122b3a583b6c730aa02bcf3",
+        "finished_sha256": "ea5d5a827adcdea3e2c83ab45d93c67a99f57a1666637dafe89974b2aed9d4a6",
+        "offline_energy_relative_error_max": 0.0
+      },
+      {
+        "case": "C04",
+        "status": "PASS_ACTUAL_READBACK_AND_OFFLINE_REPLAY",
+        "environment_ticks": 202,
+        "measurement_ticks": 2,
+        "labels": [
+          "collision"
+        ],
+        "env_active_steps": [
+          2
+        ],
+        "native_filtered_contact_max_N": null,
+        "evidence_kind": "deliberately-written-fixture-with-actual-readback",
+        "performance_evidence": false,
+        "raw_sha256": "ad8aded62ad2d6564824b45a4e8847b8602b205a2f4391f2786a32e0dd6031b8",
+        "finished_sha256": "11bc50fc0e705c48dce4f615d62ef4a58c7ed24c36cee97e6162e816bb56644f",
+        "offline_energy_relative_error_max": 2.0229842669759385e-16
+      },
+      {
+        "case": "C05",
+        "status": "PASS_ACTUAL_READBACK_AND_OFFLINE_REPLAY",
+        "environment_ticks": 406,
+        "measurement_ticks": 3,
+        "labels": [
+          "goal_reached",
+          "goal_reached"
+        ],
+        "env_active_steps": [
+          2,
+          3
+        ],
+        "native_filtered_contact_max_N": null,
+        "evidence_kind": "deliberately-written-fixture-with-actual-readback",
+        "performance_evidence": false,
+        "raw_sha256": "7bea0c2fbbdfbac4a9dea06a4d289546618a9238135f4ece77af9c58980230fd",
+        "finished_sha256": "084cc1b5dd91a529a9014207d04d696fcf3310f37ba939777044dcd510327784",
+        "offline_energy_relative_error_max": 1.7252607806069248e-16
+      },
+      {
+        "case": "C06",
+        "status": "PASS_ACTUAL_READBACK_AND_OFFLINE_REPLAY",
+        "environment_ticks": 800,
+        "measurement_ticks": 200,
+        "labels": [
+          "collision",
+          null
+        ],
+        "env_active_steps": [
+          1,
+          200
+        ],
+        "native_filtered_contact_max_N": 37434.66015625,
+        "evidence_kind": "native-contact-response-after-initial-placement",
+        "performance_evidence": false,
+        "raw_sha256": "ac5c273801f7c255ffbfc1299aa4e9f167560febf50efbadeefca6b24cf5b1f9",
+        "finished_sha256": "6f6dc864bb7c56b126dfc8659884c84fdab4ef508e74576b7d6c30ae55fab65e",
+        "offline_energy_relative_error_max": 3.450095823833025e-16
+      }
+    ],
+    "controlled_kind": "C01-C05 deliberate fixture pose writes with actual post-physics readback; C06 native filtered robot-obstacle contact after initial placement.",
+    "repetitions": "Still running in the original approved allocation; not part of a completed repetition claim in this amendment."
+  },
+  "old_six_episodes": [
+    {
+      "level": "L1_empty",
+      "method": "uncalibrated",
+      "label": "budget_exhausted",
+      "candidate_id": "uncalibrated_s0",
+      "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+      "time_s": 8.5,
+      "measured_joint_work_J": 280.653,
+      "budget_J": 363.232
+    },
+    {
+      "level": "L1_empty",
+      "method": "full",
+      "label": "budget_exhausted",
+      "candidate_id": "full_s0",
+      "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+      "time_s": 11.7,
+      "measured_joint_work_J": 246.589,
+      "budget_J": 363.232
+    },
+    {
+      "level": "L2_single_detour",
+      "method": "uncalibrated",
+      "label": "stagnation",
+      "candidate_id": "uncalibrated_s0",
+      "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+      "time_s": 14.3,
+      "measured_joint_work_J": 332.224,
+      "budget_J": 476.74
+    },
+    {
+      "level": "L2_single_detour",
+      "method": "full",
+      "label": "stagnation",
+      "candidate_id": "full_s0",
+      "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+      "time_s": 10.2,
+      "measured_joint_work_J": 112.598,
+      "budget_J": 476.74
+    },
+    {
+      "level": "L3_multi_path",
+      "method": "uncalibrated",
+      "label": "budget_exhausted",
+      "candidate_id": "uncalibrated_s0",
+      "actor_sha256": "82e88418d2de11af35268c8f76ed1ebbf3af17ed30c75c5bba57496684eff38f",
+      "time_s": 8.7,
+      "measured_joint_work_J": 283.838,
+      "budget_J": 368.132
+    },
+    {
+      "level": "L3_multi_path",
+      "method": "full",
+      "label": "stagnation",
+      "candidate_id": "full_s0",
+      "actor_sha256": "c143ec71b72044e99ed865518061ae593315f5edbdd730c184b998ad15cc069c",
+      "time_s": 16.8,
+      "measured_joint_work_J": 225.073,
+      "budget_J": 368.132
+    }
+  ],
+  "new_corrected_pilot_six_episodes": [
+    {
+      "map_id": "l1_empty-s3001",
+      "method": "full",
+      "budget_mode": "common_budget",
+      "label": "goal_reached",
+      "duration_s": 39.030000000001515,
+      "safety_y": 0.0,
+      "terminal_goal_distance_m": 0.4998200797841232,
+      "common_budget_J": 340.84776379203896,
+      "actual_joint_work_J": 426.4730200564335,
+      "actual_budget_overrun_J": 85.62525626439452,
+      "actual_budget_overrun_fraction": 0.25121260973458215,
+      "internal_model_cost_J": 498.2216507942061,
+      "internal_safe_and_budget_feasible": false,
+      "terminal_events": {
+        "fall": false,
+        "collision": false,
+        "out_of_bounds": false,
+        "goal_reached": true,
+        "stagnation": false,
+        "timeout": false
+      },
+      "selected_budget_performance_evidence": false
+    },
+    {
+      "map_id": "l1_empty-s3001",
+      "method": "uncalibrated",
+      "budget_mode": "common_budget",
+      "label": "timeout",
+      "duration_s": 45.00000000000457,
+      "safety_y": 0.0,
+      "terminal_goal_distance_m": 2.8703030981279567,
+      "common_budget_J": 340.84776379203896,
+      "actual_joint_work_J": 453.4231258101115,
+      "actual_budget_overrun_J": 112.57536201807255,
+      "actual_budget_overrun_fraction": 0.3302804770248047,
+      "internal_model_cost_J": 407.8928755413556,
+      "internal_safe_and_budget_feasible": false,
+      "terminal_events": {
+        "fall": false,
+        "collision": false,
+        "out_of_bounds": false,
+        "goal_reached": false,
+        "stagnation": false,
+        "timeout": true
+      },
+      "selected_budget_performance_evidence": false
+    },
+    {
+      "map_id": "l2_single_detour-s3001",
+      "method": "full",
+      "budget_mode": "common_budget",
+      "label": "timeout",
+      "duration_s": 45.00000000000457,
+      "safety_y": 0.0,
+      "terminal_goal_distance_m": 1.6977186579854788,
+      "common_budget_J": 413.7762685491898,
+      "actual_joint_work_J": 509.39427474851465,
+      "actual_budget_overrun_J": 95.61800619932484,
+      "actual_budget_overrun_fraction": 0.2310862499064703,
+      "internal_model_cost_J": 578.5740805342641,
+      "internal_safe_and_budget_feasible": false,
+      "terminal_events": {
+        "fall": false,
+        "collision": false,
+        "out_of_bounds": false,
+        "goal_reached": false,
+        "stagnation": false,
+        "timeout": true
+      },
+      "selected_budget_performance_evidence": false
+    },
+    {
+      "map_id": "l2_single_detour-s3001",
+      "method": "uncalibrated",
+      "budget_mode": "common_budget",
+      "label": "timeout",
+      "duration_s": 45.00000000000457,
+      "safety_y": 0.0,
+      "terminal_goal_distance_m": 0.7216982832319373,
+      "common_budget_J": 413.7762685491898,
+      "actual_joint_work_J": 492.39910594711495,
+      "actual_budget_overrun_J": 78.62283739792514,
+      "actual_budget_overrun_fraction": 0.19001292092849553,
+      "internal_model_cost_J": 444.4731066559013,
+      "internal_safe_and_budget_feasible": false,
+      "terminal_events": {
+        "fall": false,
+        "collision": false,
+        "out_of_bounds": false,
+        "goal_reached": false,
+        "stagnation": false,
+        "timeout": true
+      },
+      "selected_budget_performance_evidence": false
+    },
+    {
+      "map_id": "l3_multi_path-s3001",
+      "method": "full",
+      "budget_mode": "common_budget",
+      "label": "goal_reached",
+      "duration_s": 44.51000000000432,
+      "safety_y": 0.0,
+      "terminal_goal_distance_m": 0.499022231203813,
+      "common_budget_J": 340.9610390068706,
+      "actual_joint_work_J": 482.3176654815629,
+      "actual_budget_overrun_J": 141.35662647469235,
+      "actual_budget_overrun_fraction": 0.414582929728355,
+      "internal_model_cost_J": 525.5498684471745,
+      "internal_safe_and_budget_feasible": false,
+      "terminal_events": {
+        "fall": false,
+        "collision": false,
+        "out_of_bounds": false,
+        "goal_reached": true,
+        "stagnation": false,
+        "timeout": false
+      },
+      "selected_budget_performance_evidence": false
+    },
+    {
+      "map_id": "l3_multi_path-s3001",
+      "method": "uncalibrated",
+      "budget_mode": "common_budget",
+      "label": "timeout",
+      "duration_s": 45.00000000000457,
+      "safety_y": 0.0,
+      "terminal_goal_distance_m": 1.730784295479754,
+      "common_budget_J": 340.9610390068706,
+      "actual_joint_work_J": 473.7262567639879,
+      "actual_budget_overrun_J": 132.76521775711734,
+      "actual_budget_overrun_fraction": 0.3893853037984263,
+      "internal_model_cost_J": 424.32767879139186,
+      "internal_safe_and_budget_feasible": false,
+      "terminal_events": {
+        "fall": false,
+        "collision": false,
+        "out_of_bounds": false,
+        "goal_reached": false,
+        "stagnation": false,
+        "timeout": true
+      },
+      "selected_budget_performance_evidence": false
+    }
+  ],
+  "comparison_limits": [
+    "Old and new candidates/actor identities differ.",
+    "The new candidates use the original frozen 45 second obs-v7 task, revised budget/time/terminal contracts and separately registered common-budget references.",
+    "New runtime clean settings and event/partial-cycle accounting differ from the old runner.",
+    "Old versus new differences are not same-configuration repetition and cannot all be causally attributed to clean settings.",
+    "The new six pilot episodes all exceed the common budget; full reaches L1/L3 and times out on L2, uncalibrated times out on all three. These are wiring outcomes, not W-selected physical performance."
+  ],
+  "affected_tasks": [
+    "NAV-042 historical interpretation",
+    "NAV-067",
+    "NAV-043",
+    "NAV-044",
+    "NAV-045",
+    "NAV-046",
+    "NAV-047",
+    "NAV-048"
+  ],
+  "affected_gates": [
+    "G5 future applicability/physical release",
+    "G6 future final audit"
+  ],
+  "status_disposition": "Keep original NAV-042 reports/status as historical wiring evidence; the rebased chain consumes NAV-067 actual clean evidence. NAV-067 stays false until its remaining criteria are verified. NAV-043/G5 have not been executed or passed.",
+  "historical_FAIL_preserved": true,
+  "original_report_and_source_files_unchanged": true,
+  "source_hashes": {
+    "CaMRA/navigation/scripts/evaluate_navigation.py": "d2b76f8dcbeba0805d4daf6f2f6667496a05e3f9d3560381985dfac468d34cb7",
+    "CaMRA/navigation/src/camra_navigation/envs/physical.py": "4bd32e74d7584dc612c2cb40ff39941be8f914d80f4ebff70fc0d866678abbea",
+    "CaMRA/navigation/src/camra_navigation/envs/clean_v2.py": "848ca77b45772e64bd7ae11275e7e7cfce78f6f3e1247d9d1f3b01b7e90bd859",
+    "CaMRA/navigation/src/camra_navigation/envs/clean_v3.py": "2dc118aa351fa8e97858f485d1776ecbfa52eade0746a5f8df191960ab975b09",
+    "CaMRA/navigation/src/camra_navigation/envs/physical_v2.py": "c04249573fd15f89751d1dd20aa9e35c94fbce88278d41e2d437854b25afba07",
+    "CaMRA/navigation/scripts/nav067_simulation_v3.py": "ea2402e82bb07f1eab7014a7c944189584ebd7b0b9133cd1df4a5c5e023c6849",
+    "CaMRA/navigation/reports/nav042_online_loop.json": "e6f9593f094afa1e259a9f70d548813ce9313fa6f71841d38775677cb58eaeeb",
+    "CaMRA/navigation/reports/nav067_recovery_v3_execution_review.json": "a837518ec6d8e289d70f319d21bbbf8042fe5117cd63fa46485ca6ec2da2e47e",
+    ".worklog-testing/NAV-067/remaining-recovery-v2-execution/actual-controlled-review.json": "9bf0df13dfd7106e9407321ba6cff6ac7910f648524cbd39b50dff2412dbbc3d",
+    "CaMRA/navigation/reports/nav042_L1_empty.json": "21d91486a51ba5397f49ed0e57cc6164c5bc7c81690cd71c76b64610cda21907",
+    "CaMRA/navigation/reports/nav042_L2_single_detour.json": "7b19e3e7064138cffc8751b030531527ba57daff5ae5484d267f52c9369887a3",
+    "CaMRA/navigation/reports/nav042_L3_multi_path.json": "91670b609b7510573a2cd109b1e0d56f3456932846663151ece6ae410927f249"
+  },
+  "old_trace_identity_checks": [
+    {
+      "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L1_empty_uncalibrated_l1_empty-s3001.json",
+      "sha256": "73c000884beace2373ac332998e0aff7d7defd6d827c08a9ffc41e3b2b577cba",
+      "bytes": 205778
+    },
+    {
+      "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L1_empty_full_l1_empty-s3001.json",
+      "sha256": "15fb767bfeae5c9106504289dcfece0822428b103911e2e947a122bf758d382e",
+      "bytes": 284144
+    },
+    {
+      "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L2_single_detour_uncalibrated_l2_single_detour-s3001.json",
+      "sha256": "81691cc51c3eda5e9e4352936c289e751f15cd916a053d38f0782feb47f82111",
+      "bytes": 350622
+    },
+    {
+      "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L2_single_detour_full_l2_single_detour-s3001.json",
+      "sha256": "ab97675bf322e5f2c32f2508c32f121b100c80deb83953d18a5b474a19dafe6f",
+      "bytes": 252230
+    },
+    {
+      "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L3_multi_path_uncalibrated_l3_multi_path-s3001.json",
+      "sha256": "c89fe9f730f0fb0a8fe5b0d240e512f88abcd66e05e42dc356c26e7649291925",
+      "bytes": 211350
+    },
+    {
+      "path": "/pub/data/caohy/work/camra_navigation/nav042_traces/nav042_L3_multi_path_full_l3_multi_path-s3001.json",
+      "sha256": "d2ab46e8eb087bb8ab92164b28e0139be1f2ec12590d2232d628f614600c60e2",
+      "bytes": 412456
+    }
+  ],
+  "training_updates": 0,
+  "W_queries": 0,
+  "new_simulator_applications": 0,
+  "new_physical_episodes": 0,
+  "final_data_access": false
+}
