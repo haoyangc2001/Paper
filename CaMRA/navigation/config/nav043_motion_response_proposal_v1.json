@@ -1,0 +1,363 @@
+{
+  "schema": "nav043-motion-response-v1",
+  "status": "PROPOSED",
+  "task": "NAV-043",
+  "prepared_at": "2026-11-19T22:22:53.523435+08:00",
+  "source_commit": "77cd7376c200bf8a18bf4672e75d040f01b7e7a4",
+  "output_root": "/pub/data/caohy/work/camra_navigation/nav043_motion_response_probe_v1",
+  "data_use": "Eighteen already-exposed integration traces; grouped feasibility diagnosis, not independent unseen validation.",
+  "limits": {
+    "models": 3,
+    "axis_solves": 9,
+    "cpu_wall_s": 3600,
+    "new_physical_episodes": 0,
+    "new_nominal_episodes": 0,
+    "W_queries": 0,
+    "actor_critic_updates": 0,
+    "calibration_fits": 0
+  },
+  "model": {
+    "axes": [
+      "vx",
+      "vy",
+      "Euler_yaw_rate"
+    ],
+    "parameters": 6,
+    "recurrence": "q_n = a*q_(n-1) + b*u_n per axis; zero intercept, no cross-axis terms",
+    "response_definition": "SE(2) logarithm of each complete actual 0.1 s planar pose increment divided by 0.1 s; not body wz",
+    "physics_dt_s": 0.005,
+    "navigation_dt_s": 0.1,
+    "fit_pairs": "n>=1 in each trace, complete consecutive intervals only; first measured q_0 only supplies lagged training regressor; partial last interval excluded",
+    "fit_weight": "one equal row per complete adjacent interval, no weighting/tuning by outcome",
+    "solver": "one numpy.linalg.lstsq per axis, float64, rcond=1e-12",
+    "numerical_guards": {
+      "rank": 2,
+      "condition_max": 100000000.0,
+      "a_min_inclusive": 0.0,
+      "a_max_exclusive": 1.0,
+      "b_strictly_positive": true
+    },
+    "invalid_axis": "retain result and stop whole allocation; no clipping, regularization, model switch or retry",
+    "free_replay": "align only actual warmup planar pose at t=0; q_-1=0 on every heldout trace; saved commands only, no future state or observed q_0 initialization",
+    "partial_last_interval": "one ordinary navigation response update at interval start; integrate saved duration only, no fitting/padding/extrapolation",
+    "replay_grid_hz": 200,
+    "prefixes_s": [
+      5,
+      10,
+      20,
+      30,
+      45
+    ]
+  },
+  "folds": [
+    {
+      "heldout_level": "L1_empty",
+      "fit_traces": 12,
+      "heldout_traces": 6
+    },
+    {
+      "heldout_level": "L2_single_detour",
+      "fit_traces": 12,
+      "heldout_traces": 6
+    },
+    {
+      "heldout_level": "L3_multi_path",
+      "fit_traces": 12,
+      "heldout_traces": 6
+    }
+  ],
+  "diagnostic_gate": {
+    "per_map": "time-weighted full-window heldout planar position RMSE <= ideal baseline + 1e-10 m for each of three maps",
+    "aggregate": "time-weighted all-eighteen heldout planar position RMSE < ideal baseline - 1e-10 m",
+    "report_all": "each trace terminal/max/RMSE and complete prefixes, heading and complete-interval response error; do not drop a failure",
+    "interpretation": "diagnostic only, does not validate old delta, physical success, independent generalization, NAV-043 or G5"
+  },
+  "approval_required": "/home/caohy/repositories/Paper/CaMRA/navigation/config/nav043_motion_response_approval_v1.json",
+  "protected_registry": {
+    "path": "/home/caohy/repositories/Paper/CaMRA/navigation/config/nav066_decision_prereg_v2.json",
+    "sha256": "6e783599f76e68cc483bfc9f4d3e7649e4b312f48335a5c7c578f974ab9d126c",
+    "identity_count": 295
+  },
+  "report_hashes": {
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json": "ef070cc069d72cc00fcac61bccd9c819f30dfbec2f0441307bfc1eae83b6a1ef",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_exploration_applicability_v1.json": "1f58cfe1608343792cac02a5a9f227bd9d5cb2badc10c26113273363a8f5395c",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_exploration_review_v1.json": "37ae5020796809ba6c3692904c8d5c999b93f6679c8c302dc50b6814699b99b2",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json": "54da0a72821f31dffe8dd5c6c4f314430ece66fb048a6adcde3a7a570d46a530"
+  },
+  "implementation_hashes": {
+    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav043_motion_response.py": "8c17c9e9ff2af9b2a02b1f869c79431fa7fcecb068a849199f0e1ab9df36a221",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/tests/test_nav043_motion_response.py": "454616cd974263590c6d56dd8f003f1795fff97a6992f3546bc10d5e47e27cc8"
+  },
+  "traces": [
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/full",
+      "level": "L1_empty",
+      "method": "full",
+      "map_id": "l1_empty-s3001",
+      "kind": "W_selected",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_exploration_applicability_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/full/result.json": "fc7bd43fd67daa611ad5da09d01169058471b750c2ddb31f451ebd4143abdebc",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/full/substeps.json": "eb56b53cb176a250963e2290d0a0621af0ebde61b0cea8e1ce2cc4d4b65fadbd",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/full/commands.json": "fac137596ba32d5b7b6769094059159191001a660742e9ed4acc6b75b1bb5dd2",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/full/navigation.json": "8acfde34d631a1de8b28fa069171d052d896ea00cf8eb8de89323f4d3d28d675",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/full/energy.npz": "5142a31ba7090c8eaa8890175f5cca7f15bbef89d9cda32e786d530e5fcfce8a"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated",
+      "level": "L1_empty",
+      "method": "uncalibrated",
+      "map_id": "l1_empty-s3001",
+      "kind": "W_selected",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_exploration_applicability_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated/result.json": "8ab626bf21e924dc1d1e70664d09415d359bfaee5b951d95a8a2cd82ed64ddb8",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated/substeps.json": "ad156021dc364aeb23105c8ae9f0e8c9e12cc181ecb008951ce7a8f9d59da8b1",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated/commands.json": "04871b9165b16d8a21d1360adfcce590f8809f152da68d382192d1d96cc501fb",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated/navigation.json": "360e8582c3ee50bcdd5df37079c6a3bd33def4c5436d88be90217d2da0ebec06",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated/energy.npz": "649c792d6beb1a8901bf979d36f92572d358ed5cccb255938f8313c2db79a7f9"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/full",
+      "level": "L1_empty",
+      "method": "full",
+      "map_id": "l1_empty-s3001",
+      "kind": "baseline",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/full/result.json": "c5f1188e8f414aac78974a37652de4b0592833a57e1ccb13e8941bf934d53f4d",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/full/substeps.json": "274ad99adce118017411357741c414ee01a2005ff54b3730d603de8b5d6d6305",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/full/commands.json": "556639387b540232507c4468dc5f6c1df63e98456786e337c4eb6ce387f30354",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/full/navigation.json": "35cef2fe9d8ff3cc8a0cb07bc1b766a679d834ae8fcb496932ae7f6e76cb78f1",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/full/energy.npz": "51f5a614764af1ce3d86e2813446224092879703ec1ff36c04ecf0681ad46057"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/uncalibrated",
+      "level": "L1_empty",
+      "method": "uncalibrated",
+      "map_id": "l1_empty-s3001",
+      "kind": "baseline",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/uncalibrated/result.json": "e97f1ee64df5b9dc9d9d36f3cfe8117fac8557ff93d9c596efbaa95cfaa8c5f0",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/uncalibrated/substeps.json": "42aacebf9ae81e035120407f6297344d35895fbbf600a435ff54dcbca2a4d6b3",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/uncalibrated/commands.json": "72004c9e8eaca3759fd1507cad3dc5a395aa41d97a142d693579b6e21468c9b9",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/uncalibrated/navigation.json": "489e6158b71225209bb5b0c728474436ad4694e1d152e74b07fb0a7360c9dc28",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L1_empty/attempt2/uncalibrated/energy.npz": "76834e967dbee963e565aab28d05576bec0f1aafaf44a96dd536772e7c409156"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/full",
+      "level": "L1_empty",
+      "method": "full",
+      "map_id": "l1_empty-s3001",
+      "kind": "repeat",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/full/result.json": "c5f1188e8f414aac78974a37652de4b0592833a57e1ccb13e8941bf934d53f4d",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/full/substeps.json": "274ad99adce118017411357741c414ee01a2005ff54b3730d603de8b5d6d6305",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/full/commands.json": "556639387b540232507c4468dc5f6c1df63e98456786e337c4eb6ce387f30354",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/full/navigation.json": "35cef2fe9d8ff3cc8a0cb07bc1b766a679d834ae8fcb496932ae7f6e76cb78f1",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/full/energy.npz": "51f5a614764af1ce3d86e2813446224092879703ec1ff36c04ecf0681ad46057"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/uncalibrated",
+      "level": "L1_empty",
+      "method": "uncalibrated",
+      "map_id": "l1_empty-s3001",
+      "kind": "repeat",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/uncalibrated/result.json": "e97f1ee64df5b9dc9d9d36f3cfe8117fac8557ff93d9c596efbaa95cfaa8c5f0",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/uncalibrated/substeps.json": "42aacebf9ae81e035120407f6297344d35895fbbf600a435ff54dcbca2a4d6b3",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/uncalibrated/commands.json": "72004c9e8eaca3759fd1507cad3dc5a395aa41d97a142d693579b6e21468c9b9",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/uncalibrated/navigation.json": "489e6158b71225209bb5b0c728474436ad4694e1d152e74b07fb0a7360c9dc28",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L1_empty/uncalibrated/energy.npz": "76834e967dbee963e565aab28d05576bec0f1aafaf44a96dd536772e7c409156"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full",
+      "level": "L2_single_detour",
+      "method": "full",
+      "map_id": "l2_single_detour-s3001",
+      "kind": "W_selected",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_exploration_applicability_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/result.json": "0ead807e5f3f9b3e91d964e7c32211d8575411a2d38383e1fed267872101235a",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/substeps.json": "f415c593291d6a6ca015318997897da2b0a6d5b7cbfb59f05082756f695d9d56",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/commands.json": "ee3990a71623a1c379abadb4ecfb59f0c42601e7630a4ca514f87e06fd50110c",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/navigation.json": "c92bd3209c57aadd0884e87f949c197726dd782414c5d7cbe24260e074ab9680",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/energy.npz": "ae2661f6b10cf2f3d329d9ad0f36a8ff457724a65c17bcea2dfdbe4ce6ba3616"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/uncalibrated",
+      "level": "L2_single_detour",
+      "method": "uncalibrated",
+      "map_id": "l2_single_detour-s3001",
+      "kind": "W_selected",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_exploration_applicability_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/uncalibrated/result.json": "31ba1131894ee288fa24c609cc2302ec0a6a8b8552866065d3293f44c3923eb9",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/uncalibrated/substeps.json": "751e9d7dc1c4683e872fd1b54d6fe2067f689206a0609479065737e3e4c3c2a8",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/uncalibrated/commands.json": "5a3c102f53730e7731674a00af3d2f9e34c46ac64d2a9f6eaeb47141b5e96f03",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/uncalibrated/navigation.json": "1ca311ebea48a5ee8e9d1edfc4e80e47025978c65c58034e25ffc9309ba39a8b",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/uncalibrated/energy.npz": "c92a794b8bffbb21daa59029dfa7fe5a1d9b3cfdfd20aaa150bc744396c54393"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/full",
+      "level": "L2_single_detour",
+      "method": "full",
+      "map_id": "l2_single_detour-s3001",
+      "kind": "baseline",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/full/result.json": "dc454cdfb4a2edee6e1576f3fa69c950e71b4999e6eaf777263cab93ec92a227",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/full/substeps.json": "08a06dc8cf59a6b0765c4230a9701eb776d5d2bb739d4087cba04dc362ef8ef6",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/full/commands.json": "929e291f09f3825eab6d17b54e4d54ac1f0671c244e1e72be3ca78615d0a5dc6",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/full/navigation.json": "5ae1e21e0d61a9583ed4c7883136f550205828ac4e492f8fb10d93e181eaae59",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/full/energy.npz": "b258313b71f30abcf674f868c024055a7615ca10c32b2b88a5e3341415f48fe2"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/uncalibrated",
+      "level": "L2_single_detour",
+      "method": "uncalibrated",
+      "map_id": "l2_single_detour-s3001",
+      "kind": "baseline",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/uncalibrated/result.json": "58ea9e22a7755dcb31591887e09c55c0045977292151798aacf323f5697ecd1e",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/uncalibrated/substeps.json": "f92cf81d6b540d9fbcdab7b520a7b0b3a6c1762d17051f004f097695a8a4fc40",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/uncalibrated/commands.json": "499c0e252897812468571999162a39d5137b06aba8ddf779525730c0989e896f",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/uncalibrated/navigation.json": "48903d2a58be9b7c5f2bb692fdc08e55e782c7000bb9f03014582d89a99678e0",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L2_single_detour/uncalibrated/energy.npz": "5cdf189661a4f789396c6cd7f88df4244836fdddc5d84a21785b4b896623c3ad"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/full",
+      "level": "L2_single_detour",
+      "method": "full",
+      "map_id": "l2_single_detour-s3001",
+      "kind": "repeat",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/full/result.json": "dc454cdfb4a2edee6e1576f3fa69c950e71b4999e6eaf777263cab93ec92a227",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/full/substeps.json": "08a06dc8cf59a6b0765c4230a9701eb776d5d2bb739d4087cba04dc362ef8ef6",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/full/commands.json": "929e291f09f3825eab6d17b54e4d54ac1f0671c244e1e72be3ca78615d0a5dc6",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/full/navigation.json": "5ae1e21e0d61a9583ed4c7883136f550205828ac4e492f8fb10d93e181eaae59",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/full/energy.npz": "b258313b71f30abcf674f868c024055a7615ca10c32b2b88a5e3341415f48fe2"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/uncalibrated",
+      "level": "L2_single_detour",
+      "method": "uncalibrated",
+      "map_id": "l2_single_detour-s3001",
+      "kind": "repeat",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/uncalibrated/result.json": "58ea9e22a7755dcb31591887e09c55c0045977292151798aacf323f5697ecd1e",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/uncalibrated/substeps.json": "f92cf81d6b540d9fbcdab7b520a7b0b3a6c1762d17051f004f097695a8a4fc40",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/uncalibrated/commands.json": "499c0e252897812468571999162a39d5137b06aba8ddf779525730c0989e896f",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/uncalibrated/navigation.json": "48903d2a58be9b7c5f2bb692fdc08e55e782c7000bb9f03014582d89a99678e0",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L2_single_detour/uncalibrated/energy.npz": "5cdf189661a4f789396c6cd7f88df4244836fdddc5d84a21785b4b896623c3ad"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/full",
+      "level": "L3_multi_path",
+      "method": "full",
+      "map_id": "l3_multi_path-s3001",
+      "kind": "W_selected",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_exploration_applicability_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/full/result.json": "b14c6a443a76842dc5d44d7091f6c6ac72a4f80ce1dc3429e979faeb5e957834",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/full/substeps.json": "97e61611988b958e0020754d0ba60666a63f0a9afb233f70d5707a100e98bb33",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/full/commands.json": "5e9b86f3bc4069861d475898590a161cbfce7ac0242ee7d715d67aeaaa048dc8",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/full/navigation.json": "e52f27adfc53a106bdf1aa9f9205be2aeeadeefeed9570811663c4f3bcf9f260",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/full/energy.npz": "266de86e52acd11a2dcf10ec6a61508a6c3ec61009277b75201d4609a644ffb8"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/uncalibrated",
+      "level": "L3_multi_path",
+      "method": "uncalibrated",
+      "map_id": "l3_multi_path-s3001",
+      "kind": "W_selected",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_exploration_applicability_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/uncalibrated/result.json": "965b1258f56e62e5ecd4b2b8d3363b07514087ad54c46867e9cdd433f80aba1c",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/uncalibrated/substeps.json": "e87432c344aa8a3a13108be4b509cf7d1e7527598b5eeda481a75a8aff666060",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/uncalibrated/commands.json": "7e5d3c419b56c16ab1240fa4e7c1df70575eaf737dbd9e9557d2df34cf43c1a4",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/uncalibrated/navigation.json": "89862c1ba151e0f8651ad02bd9811538ee74eebf6df0a1d73cc09f6ae26511a4",
+        "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/uncalibrated/energy.npz": "778aed5280350bc8c219aa00cc2aa17b58db673407e5c743e7e770a21ee15776"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/full",
+      "level": "L3_multi_path",
+      "method": "full",
+      "map_id": "l3_multi_path-s3001",
+      "kind": "baseline",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/full/result.json": "ad608893eb69ebdc7d44295dd7e83e3ec377d70265988a0479497bc55a69eac9",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/full/substeps.json": "3b81c435cbb7fa160d29ae195d6fe85432519774f26dd2ff6ca830bae8a3ac2f",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/full/commands.json": "847eeeb178696efc4c0f02beea734ed075f2685d676c9d260d7bd82cc7511579",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/full/navigation.json": "7342809c424f7d2401abac0cde1800a8548e6b21c8e519424f1d3c535784b62d",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/full/energy.npz": "715fe034fadc335f7d3f7adcd236074a450dbcbdfdc607f69510c7c8a66fb5ee"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/uncalibrated",
+      "level": "L3_multi_path",
+      "method": "uncalibrated",
+      "map_id": "l3_multi_path-s3001",
+      "kind": "baseline",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/uncalibrated/result.json": "622524b4b384fb478924d1628eec5f90bb607abf5f8f3a3c746b0b7a61f0eed9",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/uncalibrated/substeps.json": "2e2cb97cef194d65996d9b3cf5f6d217518b724ee7b7de331abf461234b68efb",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/uncalibrated/commands.json": "0c0bee3c2a2d6b7fa1725e4806bb5fd1caee2d9c75ecba701b041cdca80b0e26",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/uncalibrated/navigation.json": "e99836555a5cf49b1424da716e7df2d8486ccb5f4b6bf7b3d2280bdbcf6e3d6a",
+        "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/L3_multi_path/uncalibrated/energy.npz": "5f397d8d9cffac5feebe573afdfccbc6d13d5ce409353e21d5296e86b9da3de4"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/full",
+      "level": "L3_multi_path",
+      "method": "full",
+      "map_id": "l3_multi_path-s3001",
+      "kind": "repeat",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/full/result.json": "ad608893eb69ebdc7d44295dd7e83e3ec377d70265988a0479497bc55a69eac9",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/full/substeps.json": "3b81c435cbb7fa160d29ae195d6fe85432519774f26dd2ff6ca830bae8a3ac2f",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/full/commands.json": "847eeeb178696efc4c0f02beea734ed075f2685d676c9d260d7bd82cc7511579",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/full/navigation.json": "7342809c424f7d2401abac0cde1800a8548e6b21c8e519424f1d3c535784b62d",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/full/energy.npz": "715fe034fadc335f7d3f7adcd236074a450dbcbdfdc607f69510c7c8a66fb5ee"
+      }
+    },
+    {
+      "trial": "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/uncalibrated",
+      "level": "L3_multi_path",
+      "method": "uncalibrated",
+      "map_id": "l3_multi_path-s3001",
+      "kind": "repeat",
+      "audited_report": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+      "hashes": {
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/uncalibrated/result.json": "622524b4b384fb478924d1628eec5f90bb607abf5f8f3a3c746b0b7a61f0eed9",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/uncalibrated/substeps.json": "2e2cb97cef194d65996d9b3cf5f6d217518b724ee7b7de331abf461234b68efb",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/uncalibrated/commands.json": "0c0bee3c2a2d6b7fa1725e4806bb5fd1caee2d9c75ecba701b041cdca80b0e26",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/uncalibrated/navigation.json": "e99836555a5cf49b1424da716e7df2d8486ccb5f4b6bf7b3d2280bdbcf6e3d6a",
+        "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/L3_multi_path/uncalibrated/energy.npz": "5f397d8d9cffac5feebe573afdfccbc6d13d5ce409353e21d5296e86b9da3de4"
+      }
+    }
+  ]
+}
