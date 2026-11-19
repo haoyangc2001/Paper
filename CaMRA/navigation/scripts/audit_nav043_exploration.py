@@ -140,7 +140,7 @@ def main():
             assert nom['initial_state']==saved['initial_state'] and nom['z0_J']==z and len(nom['trace'])<=450
             chosen=repeated['selected_index']
             np.testing.assert_array_equal(np.asarray(nom['trace'][0]['observation'],dtype=np.float32),saved['query_observations'][chosen])
-            np.testing.assert_array_equal(load(trial/'navigation.json')[0]['observation'][0],saved['query_observations'][chosen])
+            np.testing.assert_array_equal(load(trial/'navigation.json')[0]['observation'],saved['query_observations'][chosen])
             assert abs(nom['cost_model_J']-(z-nom['trace'][-1]['z_J']))<1e-8
             assert nom['feasible']==(nom['label']=='goal_reached' and nom['trace'][-1]['safety_y']==0. and nom['trace'][-1]['z_J']>=0.)
             # Saved actions only: no actor/critic inference or new sample.

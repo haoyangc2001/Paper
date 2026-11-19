@@ -14609,6 +14609,93 @@
             "若继续原G5目标，准备针对模型跟踪与45秒指令域的新方案；新校准、模型/控制/训练或额度不能由本次描述性结果自动授权。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T20:19:26+08:00",
+          "summary": "NAV-043审阅器回修开工：已保存61维观测被多取一层索引，物理执行不变",
+          "actions": [
+            "上一目标轮属于已核实等待，原38516/338561/59048/317768均存活；主agent静态核查发现audit_nav043_exploration.py在初始物理观测比较处用observation[0]将61维向量缩成标量。原生产next_command返回一维观测，L1/L2四份真实navigation初始完整向量都与选中W查询观测相等，来源无歧义。",
+            "继续计划1.4.1/NAV-043；此确定的只读审阅缺陷会阻断后续证据复算，按upstream_correction_policy修复。先保留当前d56a8c86审阅源码，再只删除错误的额外索引，使用四份真实保存输入执行实际比较表达式，并检验不一致输入仍拒绝。",
+            "现场确认原审阅等待器59048无子进程，原分配尚无终态，审阅入口尚未运行；不重启等待器或物理应用。生产封存16源码、模型、预算、v2、alpha/delta、评分、全部旧失败及原G5缺口不改，无新回合/推理/拟合。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "只读核对实际next_command返回值与四份navigation/decision、PID59048子进程及原审阅源码hash；修复后在tiger11/tmux使用原绝对解释器做基本验证，不启动完整事件重放。"
+          ],
+          "results": [
+            "确定缺陷只在只读审阅的观测索引，原保存数据完整且四份真实61维输入全量相等；不据此宣称全轨迹、科学或NAV-043通过。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/scripts/evaluate_navigation_v2.py:next_command",
+            "CaMRA/navigation/scripts/audit_nav043_exploration.py:143",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/uncalibrated/navigation.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/navigation.json"
+          ],
+          "remaining_work": [
+            "保留旧审阅源码，完成一处索引修复和实际表达式基本检查；记录新旧身份并提交，再接原分配及原两步审阅终态。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T20:24:38+08:00",
+          "summary": "NAV-043只读审阅初始观测索引修复通过基本验证，原物理分配不重启",
+          "actions": [
+            "保留旧审阅源码d56a8c86，仅删除初始物理观测比较多余的[0]，新审阅器afa95544。主agent从新旧AST提取实际表达式，核对L1/L2四份真实61维输入与四份内存预算字段扰动反例。",
+            "tiger11/tmux %618基本验证通过；决定pin、所有输入hash及16项封存来源不变。旧式误拒绝相同完整向量，新式接受且仍拒绝不一致预算字段。此缺陷未触发实际全量审阅，不记为物理失败。",
+            "同步AGENTS/交接；原协调器及L3、原两步审阅等待器继续，不重启或手动重复入口。生产源码/模型/预算/v2/alpha/delta/评分与旧失败不改。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/audit_nav043_exploration.py",
+            ".worklog-testing/NAV-043/exploration-v1/audit_nav043_exploration_pre_flat_observation.py",
+            ".worklog-testing/NAV-043/exploration-v1/verify_review_observation.py",
+            ".worklog-testing/NAV-043/exploration-v1/review-observation-basic.json",
+            ".worklog-testing/NAV-043/exploration-v1/review-observation-basic.log",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav043-review-obs-check %618；cwd=/home/caohy/repositories/Paper；OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/exploration-v1/verify_review_observation.py > .worklog-testing/NAV-043/exploration-v1/review-observation-basic.log 2>&1。",
+            "提交前legacy update、对d99c7b1的仅追加/受保护路径及封存来源检查、git diff --check；仅本地提交，不推送。"
+          ],
+          "results": [
+            "PASS_SAVED_INITIAL_OBSERVATION_COMPARE：4真实输入及4反例通过；源码精确单处替换与编译检查通过。",
+            "没有完整事件重放或模型推理，新应用/回合/W/训练/校准0；NAV-043=false、55/67，G5及45秒/位置适用性缺口保持。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/exploration-v1/review-observation-basic.json",
+            ".worklog-testing/NAV-043/exploration-v1/review-observation-basic.log",
+            ".worklog-testing/NAV-043/exploration-v1/audit_nav043_exploration_pre_flat_observation.py"
+          ],
+          "remaining_work": [
+            "接收同一L3及原全事件/适用性审阅的实际终态，核验全量结果/身份/额度后追加结论并提交；不自动重试、训练或改裕度。"
+          ],
+          "blockers": [],
+          "correction": {
+            "correction_id": "NAV-043-review-flat-observation-v1",
+            "discovered_in_task": "NAV-043",
+            "upstream_task_ids": [],
+            "problem_and_evidence": "完整61维初始观测被额外[0]变成标量，四份真实保存输入复现旧式误拒绝。",
+            "original_artifact_references": [
+              ".worklog-testing/NAV-043/exploration-v1/audit_nav043_exploration_pre_flat_observation.py; sha256=d56a8c86d293eda3fe7bfc7965d7bb37925f22d14deaca43cec8ef9eca4df42b"
+            ],
+            "affected_task_ids": [
+              "NAV-043"
+            ],
+            "affected_gate_ids": [],
+            "authorization_basis": "upstream_correction_policy，既定范围内且依据明确的导航只读实现缺陷回修。",
+            "changes_and_versions": [
+              "仅删除一处多余索引; sha256=afa95544117bad1cf45919717a82e28c1fbf7c464c2ae8c0156ab1748f0c1d4c"
+            ],
+            "revalidation_evidence": [
+              ".worklog-testing/NAV-043/exploration-v1/review-observation-basic.json"
+            ],
+            "status_changes": [],
+            "downstream_disposition": "原等待器后续读取修复审阅器，无需重启；全事件及G5仍待验。",
+            "closure_state": "validated"
+          }
         }
       ],
       "constraints_and_notes": [
