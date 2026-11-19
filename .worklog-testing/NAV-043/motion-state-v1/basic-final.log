@@ -1,0 +1,34 @@
+....F...............                                                     [100%]
+=================================== FAILURES ===================================
+_____ test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q4] _____
+
+q = (0.3, 0.1, 1e-08)
+
+    @pytest.mark.parametrize('q',[(0.,0.,0.),(.3,0.,0.),(.3,-.1,.4),(-.2,.1,-.5),(.3,.1,1.e-8)])
+    def test_se2_log_recovers_known_frozen_arc_including_wrapped_heading(q):
+>       np.testing.assert_allclose(motion(q).q, q, atol=1.e-12, rtol=0.)
+
+CaMRA/navigation/tests/test_motion_state.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (<function assert_allclose.<locals>.compare at 0x77286e1c5800>, array([3.00000025e-01, 1.00000008e-01, 1.00000008e-08]), array([3.e-01, 1.e-01, 1.e-08]))
+kwds = {'equal_nan': True, 'err_msg': '', 'header': 'Not equal to tolerance rtol=0, atol=1e-12', 'verbose': True}
+
+    @wraps(func)
+    def inner(*args, **kwds):
+        with self._recreate_cm():
+>           return func(*args, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^
+E           AssertionError: 
+E           Not equal to tolerance rtol=0, atol=1e-12
+E           
+E           Mismatched elements: 2 / 3 (66.7%)
+E           Max absolute difference: 2.46145138e-08
+E           Max relative difference: 8.430962e-08
+E            x: array([3.e-01, 1.e-01, 1.e-08])
+E            y: array([3.e-01, 1.e-01, 1.e-08])
+
+/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/contextlib.py:81: AssertionError
+=========================== short test summary info ============================
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q4]
+1 failed, 19 passed in 0.54s

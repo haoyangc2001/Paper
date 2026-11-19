@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="20" time="0.535" timestamp="2026-11-20T07:28:18.018028+08:00" hostname="tiger11.ios.ac.cn"><testcase classname="tests.test_motion_state" name="test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q0]" time="0.124" /><testcase classname="tests.test_motion_state" name="test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q1]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q2]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q3]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q4]" time="0.002"><failure message="AssertionError: &#10;Not equal to tolerance rtol=0, atol=1e-12&#10;&#10;Mismatched elements: 2 / 3 (66.7%)&#10;Max absolute difference: 2.46145138e-08&#10;Max relative difference: 8.430962e-08&#10; x: array([3.e-01, 1.e-01, 1.e-08])&#10; y: array([3.e-01, 1.e-01, 1.e-08])">q = (0.3, 0.1, 1e-08)
+
+    @pytest.mark.parametrize('q',[(0.,0.,0.),(.3,0.,0.),(.3,-.1,.4),(-.2,.1,-.5),(.3,.1,1.e-8)])
+    def test_se2_log_recovers_known_frozen_arc_including_wrapped_heading(q):
+&gt;       np.testing.assert_allclose(motion(q).q, q, atol=1.e-12, rtol=0.)
+
+CaMRA/navigation/tests/test_motion_state.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (&lt;function assert_allclose.&lt;locals&gt;.compare at 0x77286e1c5800&gt;, array([3.00000025e-01, 1.00000008e-01, 1.00000008e-08]), array([3.e-01, 1.e-01, 1.e-08]))
+kwds = {'equal_nan': True, 'err_msg': '', 'header': 'Not equal to tolerance rtol=0, atol=1e-12', 'verbose': True}
+
+    @wraps(func)
+    def inner(*args, **kwds):
+        with self._recreate_cm():
+&gt;           return func(*args, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^
+E           AssertionError: 
+E           Not equal to tolerance rtol=0, atol=1e-12
+E           
+E           Mismatched elements: 2 / 3 (66.7%)
+E           Max absolute difference: 2.46145138e-08
+E           Max relative difference: 8.430962e-08
+E            x: array([3.e-01, 1.e-01, 1.e-08])
+E            y: array([3.e-01, 1.e-01, 1.e-08])
+
+/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/contextlib.py:81: AssertionError</failure></testcase><testcase classname="tests.test_motion_state" name="test_partial_or_wrong_length_interval_is_rejected[0]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_partial_or_wrong_length_interval_is_rejected[1]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_partial_or_wrong_length_interval_is_rejected[19]" time="0.004" /><testcase classname="tests.test_motion_state" name="test_partial_or_wrong_length_interval_is_rejected[21]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_nonfinite_pose_bad_tick_and_ambiguous_turn_rejected" time="0.002" /><testcase classname="tests.test_motion_state" name="test_tracker_never_uses_future_or_partial_interval_as_current_q" time="0.003" /><testcase classname="tests.test_motion_state" name="test_tracker_rejects_gaps_and_keeps_terminal_partial_tail_without_padding" time="0.002" /><testcase classname="tests.test_motion_state" name="test_no_policy_decision_at_ninety_seconds_even_if_caller_omits_terminal_flag" time="0.046" /><testcase classname="tests.test_motion_state" name="test_candidate_observation_encodes_completed_q_and_preserves_map_budget_fields" time="0.002" /><testcase classname="tests.test_motion_state" name="test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides0]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides1]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides2]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides3]" time="0.003" /><testcase classname="tests.test_motion_state" name="test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides4]" time="0.002" /><testcase classname="tests.test_motion_state" name="test_same_shape_old_checkpoint_and_changed_motion_identity_are_rejected" time="0.004" /></testsuite></testsuites>

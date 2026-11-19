@@ -15266,6 +15266,72 @@
             "后续有限训练/双critic/独立预算选择/物理小批需新的具体来源、门槛及额度；不因本次诊断通过沿用旧45秒actor/critic或挑选留出折部署。"
           ],
           "blockers": ["90秒生产模型/状态/参考成本及残余证据尚未建立；本次有限九求解已经结束，不含下一阶段新拟合、校准、GPU或物理授权。"]
+        },
+        {
+          "timestamp": "2026-11-20T07:27:00+08:00",
+          "summary": "NAV-043续行开工：准备完成区间运动状态及90秒观测接口，不新增科学运行",
+          "actions": [
+            "重新读取根AGENTS、legacy技能/执行规则、完整计划JSON及当前任务/依赖/记录、导航README/交接与90秒接口、观测、名义/物理调用链；工作树10d9259干净，当前仍NAV-043、计划1.5.0、55/67。",
+            "前一目标回合完成仿射v2诊断及保存审阅，属于有实际证据的进展；本轮在已授权导航工程准备内补齐已完成0.1秒SE(2)状态/因果采集和独立obs-v9-t90-q候选，不选择部署折、不启动新拟合/训练/回合。",
+            "检查截距的静止外推和候选命令域边界，仅对保存参数作确定性代数记账；为后续参考程序/残余协议提供依据，不能把旧数据最大误差当90秒保证。",
+            "新增隔离模块与基本数学/时序反例检查，原观测、生产环境、v2/alpha/delta及所有封存源码保持；仅准备接口，真实物理warmup和新训练消费链尚未激活。"
+          ],
+          "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["read AGENTS/skill/rules/current plan/handoff; inspect horizon90, observation, nominal, physical_v2 and response source"],
+          "results": ["NAV-066/NAV-067历史依赖true，当前首个可执行false为NAV-043；固定v2与旧45秒生产链保持，NAV-044/final_*不进入。"],
+          "evidence": ["CaMRA/navigation/docs/nav043_affine_response_result_20261120.md", "CaMRA/navigation/config/navigation_horizon_v2.json"],
+          "remaining_work": ["实现并基本验证候选状态/观测的因果时序，保存参数外推检查及新参考成本/残余协议的具体边界，记录验证和提交。"],
+          "blockers": ["新模型全域适用性及90秒生产/裕度证据仍缺失；新拟合、GPU、物理和校准范围没有因自动续行而获准。"]
+        },
+        {
+          "timestamp": "2026-11-20T07:34:00+08:00",
+          "summary": "NAV-043完成区间状态及90秒观测隔离准备通过基本检查，保存命令未覆盖静止低速，不放行生产",
+          "actions": [
+            "新增motion_state.py和PREPARED_ONLY契约，只由已完成0.1秒实际位姿计算SE(2)q；要求真实warmup两个端点和逐200Hz样本，拒绝漏步/重复/未完成区间/旧观测版本/时钟错配/终止后或90秒末端决策。",
+            "主agent按legacy执行合成数学/时序基本检查，无测试子agent。保留首次夹具字段误用的14次失败、随后极小转速oracle消减的1次失败及两份源码快照；只修合成夹具，不改冻结校准或放宽1e-12容差。%663先20过，补编码器时钟拒绝后%664最终22过。",
+            "%663只读核对18条原测量命令和三折保存系数的零命令代数外推，无新求解/重放/策略查询；%665核对295保护身份、90输入、67任务定义和全部历史前缀并运行legacy计划校验。",
+            "同步AGENTS/README/交接，明确本模块尚无生产消费者、真实warmup及新运动环境未接通、参考命令/J成本仅定义要求；按当前任务逐项验收及全局链路检查保留false/G5缺口。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/motion_state.py",
+            "CaMRA/navigation/tests/test_motion_state.py",
+            "CaMRA/navigation/config/motion_state_candidate_v1.json",
+            "CaMRA/navigation/reports/nav043_affine_support_review_v1.json",
+            "CaMRA/navigation/docs/nav043_motion_state_preparation_20261120.md",
+            ".worklog-testing/NAV-043/motion-state-v1/",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %661: bash .worklog-testing/NAV-043/motion-state-v1/basic.sh (fixture failure retained)",
+            "tiger11/tmux %662: bash .worklog-testing/NAV-043/motion-state-v1/basic-final.sh (tiny-angle oracle failure retained)",
+            "tiger11/tmux %663: bash .worklog-testing/NAV-043/motion-state-v1/basic-v3.sh -> 20 PASS and saved support report",
+            "tiger11/tmux %664: bash .worklog-testing/NAV-043/motion-state-v1/basic-v4.sh -> 22 PASS",
+            "tiger11/tmux %665: bash .worklog-testing/NAV-043/motion-state-v1/verify-preparation.sh -> preparation/history/identity PASS and legacy update VALID; absolute Python /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python"
+          ],
+          "results": [
+            "最终22项基本检查全部通过；295保护身份/90输入不变，67项定义/status/verification_result、顶层协议及全部历史记录保留，仍计划1.5.0、55/67、NAV-043=false/G5未过。",
+            "18条测量轨迹7944行指令（含部分尾段，不含warmup）前向0.227625～0.462510m/s，静止/近零/前向<0.1样本均0。三折模型零指令稳态前向q预测-0.2614/-0.3583/-0.3912m/s只是代数外推，不是物理漂移或补偿命令，命令包围范围不是联合支持域。",
+            "无新拟合、重放、业务回合、W查询、网络更新、校准或GPU；未选择部署折。旧45秒生产链/固定v2/功率/足迹/alpha/delta、RC-PPO核心目标及全部原失败保持。",
+            "完成区间q可因果获得不等于马尔可夫状态充分；新61维语义不兼容旧模型。无生产消费者，真实warmup和新名义环境/参考程序/J成本尚未实现，基本准备通过不作闭环或90秒适用性通过。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/motion_state_candidate_v1.json",
+            "CaMRA/navigation/reports/nav043_affine_support_review_v1.json",
+            ".worklog-testing/NAV-043/motion-state-v1/basic-v4.xml",
+            ".worklog-testing/NAV-043/motion-state-v1/preparation-review.json",
+            ".worklog-testing/NAV-043/motion-state-v1/plan-before-close.log"
+          ],
+          "remaining_work": [
+            "具体登记静止/低速/转向覆盖及新运动模型验证范围，不能原样部署任一诊断折或把截距直接当补偿。",
+            "接真实warmup/独立运动环境和已声明命令程序的参考J成本，制定90秒残余适用性及数据隔离协议；不使用L/90或自动预算翻倍。",
+            "新训练/双critic/独立价值预算/物理及G5按依赖重验，涉及新拟合/回合/GPU/校准时先明确限额；当前不进入NAV-044或final_*。"
+          ],
+          "blockers": [
+            "尚无覆盖静止低速的新模型、真实新状态采集/消费链、参考程序或90秒独立残余证据；新科学运行及额度仍未分配。"
+          ]
         }
       ],
       "constraints_and_notes": [

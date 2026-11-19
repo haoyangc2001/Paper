@@ -1,0 +1,329 @@
+FFFFF.....FFFFFFFFF.                                                     [100%]
+=================================== FAILURES ===================================
+_____ test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q0] _____
+
+q = (0.0, 0.0, 0.0)
+
+    @pytest.mark.parametrize('q',[(0.,0.,0.),(.3,0.,0.),(.3,-.1,.4),(-.2,.1,-.5),(.3,.1,1.e-8)])
+    def test_se2_log_recovers_known_frozen_arc_including_wrapped_heading(q):
+>       np.testing.assert_allclose(motion(q).q, q, atol=1.e-12, rtol=0.)
+                                   ^^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.0, 0.0, 0.0)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_____ test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q1] _____
+
+q = (0.3, 0.0, 0.0)
+
+    @pytest.mark.parametrize('q',[(0.,0.,0.),(.3,0.,0.),(.3,-.1,.4),(-.2,.1,-.5),(.3,.1,1.e-8)])
+    def test_se2_log_recovers_known_frozen_arc_including_wrapped_heading(q):
+>       np.testing.assert_allclose(motion(q).q, q, atol=1.e-12, rtol=0.)
+                                   ^^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, 0.0, 0.0)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_____ test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q2] _____
+
+q = (0.3, -0.1, 0.4)
+
+    @pytest.mark.parametrize('q',[(0.,0.,0.),(.3,0.,0.),(.3,-.1,.4),(-.2,.1,-.5),(.3,.1,1.e-8)])
+    def test_se2_log_recovers_known_frozen_arc_including_wrapped_heading(q):
+>       np.testing.assert_allclose(motion(q).q, q, atol=1.e-12, rtol=0.)
+                                   ^^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_____ test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q3] _____
+
+q = (-0.2, 0.1, -0.5)
+
+    @pytest.mark.parametrize('q',[(0.,0.,0.),(.3,0.,0.),(.3,-.1,.4),(-.2,.1,-.5),(.3,.1,1.e-8)])
+    def test_se2_log_recovers_known_frozen_arc_including_wrapped_heading(q):
+>       np.testing.assert_allclose(motion(q).q, q, atol=1.e-12, rtol=0.)
+                                   ^^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (-0.2, 0.1, -0.5)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_____ test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q4] _____
+
+q = (0.3, 0.1, 1e-08)
+
+    @pytest.mark.parametrize('q',[(0.,0.,0.),(.3,0.,0.),(.3,-.1,.4),(-.2,.1,-.5),(.3,.1,1.e-8)])
+    def test_se2_log_recovers_known_frozen_arc_including_wrapped_heading(q):
+>       np.testing.assert_allclose(motion(q).q, q, atol=1.e-12, rtol=0.)
+                                   ^^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, 0.1, 1e-08)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_______ test_tracker_never_uses_future_or_partial_interval_as_current_q ________
+
+    def test_tracker_never_uses_future_or_partial_interval_as_current_q():
+>       warmup = motion()
+                 ^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+__ test_tracker_rejects_gaps_and_keeps_terminal_partial_tail_without_padding ___
+
+    def test_tracker_rejects_gaps_and_keeps_terminal_partial_tail_without_padding():
+>       warmup = motion()
+                 ^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_ test_no_policy_decision_at_ninety_seconds_even_if_caller_omits_terminal_flag _
+
+    def test_no_policy_decision_at_ninety_seconds_even_if_caller_omits_terminal_flag():
+>       warmup = motion((0.,0.,0.))
+                 ^^^^^^^^^^^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.0, 0.0, 0.0)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_ test_candidate_observation_encodes_completed_q_and_preserves_map_budget_fields _
+
+    def test_candidate_observation_encodes_completed_q_and_preserves_map_budget_fields():
+>       interval = motion()
+                   ^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_ test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides0] _
+
+overrides = {'decision_tick': 199}
+
+    @pytest.mark.parametrize('overrides',[
+        {'decision_tick':199},{'decision_tick':201},{'window_start_tick':201},
+        {'window_start_tick':0},{'task':O.TaskState(7.,0.,0.,550.,45.)}])
+    def test_candidate_observation_rejects_future_stale_or_inconsistent_clock(overrides):
+        with pytest.raises(ValueError):
+>           encode(motion(),**overrides)
+                   ^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_ test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides1] _
+
+overrides = {'decision_tick': 201}
+
+    @pytest.mark.parametrize('overrides',[
+        {'decision_tick':199},{'decision_tick':201},{'window_start_tick':201},
+        {'window_start_tick':0},{'task':O.TaskState(7.,0.,0.,550.,45.)}])
+    def test_candidate_observation_rejects_future_stale_or_inconsistent_clock(overrides):
+        with pytest.raises(ValueError):
+>           encode(motion(),**overrides)
+                   ^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_ test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides2] _
+
+overrides = {'window_start_tick': 201}
+
+    @pytest.mark.parametrize('overrides',[
+        {'decision_tick':199},{'decision_tick':201},{'window_start_tick':201},
+        {'window_start_tick':0},{'task':O.TaskState(7.,0.,0.,550.,45.)}])
+    def test_candidate_observation_rejects_future_stale_or_inconsistent_clock(overrides):
+        with pytest.raises(ValueError):
+>           encode(motion(),**overrides)
+                   ^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_ test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides3] _
+
+overrides = {'window_start_tick': 0}
+
+    @pytest.mark.parametrize('overrides',[
+        {'decision_tick':199},{'decision_tick':201},{'window_start_tick':201},
+        {'window_start_tick':0},{'task':O.TaskState(7.,0.,0.,550.,45.)}])
+    def test_candidate_observation_rejects_future_stale_or_inconsistent_clock(overrides):
+        with pytest.raises(ValueError):
+>           encode(motion(),**overrides)
+                   ^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+_ test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides4] _
+
+overrides = {'task': TaskState(goal_x=7.0, goal_y=0.0, safety_y=0.0, z_J=550.0, time_remaining_s=45.0)}
+
+    @pytest.mark.parametrize('overrides',[
+        {'decision_tick':199},{'decision_tick':201},{'window_start_tick':201},
+        {'window_start_tick':0},{'task':O.TaskState(7.,0.,0.,550.,45.)}])
+    def test_candidate_observation_rejects_future_stale_or_inconsistent_clock(overrides):
+        with pytest.raises(ValueError):
+>           encode(motion(),**overrides)
+                   ^^^^^^^^
+
+CaMRA/navigation/tests/test_motion_state.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+q = (0.3, -0.1, 0.4)
+
+    def motion(q=(.3, -.1, .4), *, initial=(1., 2., 3.13), tick=180):
+        end = step_exact(PlanarState(*initial), q, .1)
+        return CompletedInterval(PoseSample(tick, initial), PoseSample(tick+20,
+>           (end.x, end.y, math.atan2(math.sin(end.yaw), math.cos(end.yaw)))))
+             ^^^^^
+E       AttributeError: 'PlanarState' object has no attribute 'x'
+
+CaMRA/navigation/tests/test_motion_state.py:18: AttributeError
+=========================== short test summary info ============================
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q0]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q1]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q2]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q3]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_se2_log_recovers_known_frozen_arc_including_wrapped_heading[q4]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_tracker_never_uses_future_or_partial_interval_as_current_q
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_tracker_rejects_gaps_and_keeps_terminal_partial_tail_without_padding
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_no_policy_decision_at_ninety_seconds_even_if_caller_omits_terminal_flag
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_candidate_observation_encodes_completed_q_and_preserves_map_budget_fields
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides0]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides1]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides2]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides3]
+FAILED CaMRA/navigation/tests/test_motion_state.py::test_candidate_observation_rejects_future_stale_or_inconsistent_clock[overrides4]
+14 failed, 6 passed in 0.37s

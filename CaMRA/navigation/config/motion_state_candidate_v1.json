@@ -1,0 +1,67 @@
+{
+  "status": "PREPARED_ONLY",
+  "task_id": "NAV-043",
+  "production_enabled": false,
+  "state_version": "se2-completed-interval-v1",
+  "observation_version": "obs-v9-t90-q",
+  "observation_dimension": 61,
+  "time_profile": "navigation-t90-v1",
+  "t_max_s": 90,
+  "time_profile_path": "CaMRA/navigation/config/navigation_horizon_v2.json",
+  "time_profile_sha256": "c597d82b1888240159e1beb7831dd63416a9229ef35510e6e96c8f7806aacc5e",
+  "implementation": "CaMRA/navigation/src/camra_navigation/motion_state.py",
+  "state_definition": {
+    "q": "SE(2) logarithm of an already completed 0.1-second planar pose increment, divided by its duration",
+    "units": ["m/s", "m/s", "rad/s"],
+    "physics_dt_s": 0.005,
+    "interval_ticks": 20,
+    "initial_state": "two actual final warmup endpoints twenty ticks apart; measurement begins at the second endpoint",
+    "future_samples": "every consecutive 200Hz pose sample; no gap, duplicate or future endpoint",
+    "partial_terminal_interval": "retain the actual tail and last completed q separately; never pad, query again or fabricate q",
+    "observation_slots": "indices 2:5 carry completed q; remaining time is real seconds divided by 90",
+    "compatibility": "same 61D shape does not permit legacy obs-v7 or obs-v8-t90 checkpoints",
+    "limitations": [
+      "This state is not instantaneous body velocity, angular velocity or the requested command.",
+      "Completed q is observable after its interval, but sufficiency as a Markov state is not proven.",
+      "Old saved traces lack the needed earlier warmup endpoint; future truth cannot repair it.",
+      "A frozen motion model SHA256, state version, observation version and time profile must be bound together."
+    ]
+  },
+  "saved_support_review": {
+    "path": "CaMRA/navigation/reports/nav043_affine_support_review_v1.json",
+    "sha256": "65dab10e8e2fc89a797ecb84526186e15d4290019d44b4ef5788fea9f89a94c9",
+    "scope": "18 exposed measurement traces; warmup commands excluded; not independent new data",
+    "measurement_command_rows": 7944,
+    "forward_command_range_m_s": [0.22762489318847656, 0.4625101685523987],
+    "zero_or_near_zero_measurement_command_rows": 0,
+    "interpretation": "Marginal ranges are descriptive only; they do not define joint support or a deployment envelope.",
+    "affine_models": "Three held-out diagnostic models remain unselected. Nonzero intercepts must not be extrapolated into measured zero-command behavior or compensation commands."
+  },
+  "reference_cost_preparation": {
+    "status": "NOT_IMPLEMENTED_OR_ACTIVATED",
+    "motion_model_selected": false,
+    "reference_program": "declare initial pose/q, waypoint/heading switching, applied command bounds and termination before generating a trajectory",
+    "geometry": "same raw obstacles, footprint and delta counted once; validate the whole simulated path, including turns and boundary",
+    "nominal_cost_J": "sum frozen positive mechanical power model(applied command) times actual duration, including any terminal partial interval",
+    "internal_budget_consumption_J": "(1 + frozen alpha) times nominal_cost_J; physical positive mechanical work logged separately",
+    "time_rule": "one common 90-second candidate; no L/90 substitution or automatic budget doubling",
+    "failure_rule": "retain unreachable, unsafe, out-of-support and incomplete programs as failures; do not drop difficult maps"
+  },
+  "downstream_pending": [
+    "choose and validate a physically sensible motion model over its declared state/command domain using a separately specified finite protocol",
+    "implement real warmup sampling and a state/model-bound candidate nominal environment; keep original instantaneous measurements",
+    "implement the reference command program and its J costs after motion-model identity is explicit",
+    "pre-register 90-second residual applicability and independent data separation; original alpha/delta remain frozen",
+    "revalidate affected estimator/training/deployment/budget-search/physics gates before G5"
+  ],
+  "new_scientific_allocation": {
+    "fits": 0,
+    "network_updates": 0,
+    "business_episodes": 0,
+    "W_queries": 0,
+    "calibration_fits": 0,
+    "gpu_hours": 0
+  },
+  "NAV043_passed": false,
+  "G5_passed": false
+}
