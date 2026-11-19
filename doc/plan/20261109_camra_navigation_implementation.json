@@ -13722,6 +13722,42 @@
           "blockers": [
             "本包已按首次实际失败规则停止；原批准不含自动重试且9应用上限不足以含失败再完成全部项，新恢复例外尚未获批准。"
           ]
+        },
+        {
+          "timestamp": "2026-11-19T11:52:10.290484+08:00",
+          "summary": "NAV-067恢复v2开工：用户已确认一次C01恢复及累计10应用；同时核对并补交历史未跟踪证据",
+          "actions": [
+            "完整解析当前1.4.1计划、67任务及历史记录，重读根约束/legacy/当前交接及实际恢复代码；按依赖继续NAV-067。",
+            "依据用户明确确认，单独登记APPROVED及pin，原PROPOSED/失败/源代码保持；本项用于补齐固定v2物理事件接入验收，不重训。",
+            "现场核对tiger11/tmux/绝对Python/GPU6及既有输出；记录未跟踪文件逐项路径、大小、hash，后续补交必要报告与归档索引。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/nav067_remaining_validation_recovery_v2.json",
+            "CaMRA/navigation/config/nav067_remaining_validation_recovery_v2.json.sha256",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-remaining-plan %600；cwd=/home/caohy/repositories/Paper；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-067/remaining-recovery-v2-execution/prepare_launch.py",
+            "新批准后先run_nav067_remaining_recovery_v2.py --check、legacy update校验并提交，再执行同入口一次。"
+          ],
+          "results": [
+            "上游NAV-066为明确接受局限后的true，旧科学FAIL保留；NAV-067仍false、54/67。",
+            "累计最多10应用/单GPU串行4小时/60000环境子步，含原失败118.444秒和408预留；精确57830，受控全过后才六导航重复。",
+            "固定原两模型/45秒/obs-v7/200-50-10Hz/J/全套v2，原三生产源码和295保护输入由生产context复核；本次批准不含NAV-043/final_*、训练/W查询/共享框架变更/推送。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/nav067_remaining_validation_recovery_proposal_v2.json",
+            "CaMRA/navigation/config/nav067_remaining_validation_recovery_v2.json",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/initial-untracked-inventory.json",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/preflight.json"
+          ],
+          "remaining_work": [
+            "核验新批准、提交后只启动一次恢复；逐项审阅实际受控/重复证据和上下游一致性后才判NAV-067。",
+            "核对历史未提交文件，补交应保留的报告，解释大快照及备份的保留方式。"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
