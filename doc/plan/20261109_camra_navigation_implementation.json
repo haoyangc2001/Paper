@@ -13992,6 +13992,117 @@
             "冻结45秒新版候选闭环及适用性判据，保留所有失败、拒绝及旧科学FAIL；不得按新结果反推过关阈值。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T13:47:52.683965+08:00",
+          "summary": "NAV-043续行开工：先复算已保存轨迹的适用性与旧诊断额度，不新增试验",
+          "actions": [
+            "已重读根AGENTS、legacy技能与执行规则，全文解析1.4.1计划67任务245记录并核对NAV-043的全部定义和上游NAV-066/067证据；HEAD=df7b64a，55/67，NAV-043仍false。",
+            "本项为固定v2的RC-PPO部署预算与真实物理闭环衔接；当前允许新增隔离的只读审阅器、资源对账和报告，保持actor/双critic、数学目标、45秒obs-v7、200/50/10Hz、机械功J、冻结模型/资产/α/δ与全部旧证据。",
+            "优先复用NAV-067原始200Hz保存轨迹，逐5/10/20/30/45秒前缀计算实际命令下的费用和位置偏差；预算仍标记原k=1，不改写成自选预算或独立验证。",
+            "核对NAV-021旧诊断与真实运行；未知余量不算可用额度，不启动新应用/物理或名义回合/W查询/训练，不访问final_*。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "只读核对AGENTS、legacy SKILL/execution-rules、当前计划、NAV-043 scope、NAV-021与NAV-059/060/034历史记录、资源及旧适用性登记。"
+          ],
+          "results": [
+            "本次验收为保存证据可复算性、适用范围和额度事实；不能单凭新审阅器测试通过将NAV-043或G5标通过。",
+            "主agent基本验证，不安排专门测试子agent；必要修改本地提交，不推送。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json",
+            "CaMRA/navigation/config/calibration_applicability_prereg_v1.json",
+            "CaMRA/navigation/config/geometry_margin_closedloop_v1.json",
+            "CaMRA/navigation/config/resource_budget_v1.json"
+          ],
+          "remaining_work": [
+            "完成保存轨迹适用性及实际旧额度对账；依据缺口决定后续具体协议和必要授权，保持NAV-043=false。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T13:53:28.981224+08:00",
+          "summary": "NAV-043保存轨迹适用性与旧额度审阅完成：成本留量覆盖已测费用误差，位置及45秒适用性未解决，待范围裁定",
+          "actions": [
+            "新增隔离只读入口，核验原NAV-067验收及60份原/重复轨迹输入hash和295项保护身份；从200Hz施加力矩与关节速度复算机械功，用冻结积分器重放同一实际命令，全部保存参考位姿误差<1e-9。没有新模型推理或回合。",
+            "12条分别审阅；每方法仅3种不同配置，重复不池化。保留提前结束的45秒前缀缺失分母，不修改终态、预算、阈值、旧报告或科学FAIL。",
+            "对账旧75诊断总额和实际报告：当前低速51加适用性48=99，仅为最新保留报告计数；旧重跑/启动/失败墙钟无法在本轮完全去重，不推断历史越权或剩余额度。当前可用NAV-043额度记unknown，恢复额度不转移。",
+            "主agent完成真实保存证据与基本检查、输出覆盖拒绝、历史/冻结边界及legacy校验；形成两种具体范围路线，不安排测试子agent，不改变任务定义或验收标准。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/audit_nav043_saved_applicability.py",
+            "CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+            "CaMRA/navigation/docs/nav043_saved_applicability_review_20261119.md",
+            ".worklog-testing/NAV-043/preparation-v1/verify_saved_audit.py",
+            ".worklog-testing/NAV-043/preparation-v1/saved-audit-verification.json",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-evidence-close %599；cwd=/home/caohy/repositories/Paper；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B CaMRA/navigation/scripts/audit_nav043_saved_applicability.py --out CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json；日志.worklog-testing/NAV-043/preparation-v1/saved-audit.log。",
+            "同一tmux：/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/preparation-v1/verify_saved_audit.py；日志saved-audit-verification.log；只CPU保存证据复算，不加载Isaac或网络。",
+            "legacy validate_worklog.py <current NAV plan> --mode update；本地提交，不推送。"
+          ],
+          "results": [
+            "报告SHA256=ef070cc069d72cc00fcac61bccd9c819f30dfbec2f0441307bfc1eae83b6a1ef；70个来源hash条目及非填充/非池化/拒绝覆盖/历史保留等基本检查通过。",
+            "完整方法L1/L2/L3终态费用偏差1.90%/4.81%/9.26%均在原alpha19.05%以内；共同初始预算仍全部超支，未证明价值自选预算物理性能。",
+            "完整方法30秒三配置10Hz最大位置偏差5.690m；全程200Hz最大9.318/9.269/9.998m。原delta2.614m不覆盖，旧拟合表只到30秒且vy=0；当前非零vy全程超其适用域，不能用表值或零碰撞放行。",
+            "旧控制器/actor/critic/45秒obs-v7/200-50-10Hz/J及RC-PPO数学目标保持；NAV-067工程验收有效，NAV-043与G5仍未通过，计划55/67。新应用/物理或名义回合/W查询/训练/final访问0。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_saved_applicability_audit_v1.json",
+            ".worklog-testing/NAV-043/preparation-v1/saved-audit-verification.json",
+            "CaMRA/navigation/docs/nav043_saved_applicability_review_20261119.md",
+            "CaMRA/navigation/config/geometry_margin_closedloop_v1.json",
+            "CaMRA/navigation/config/experiment_prereg_v1.json"
+          ],
+          "remaining_work": [
+            "请用户裁定先继续有限探索性预算物理验证（保留裕度缺口、不签G5），还是先制定新范围导航校准及独立检验方案；科学范围未决前不执行依赖动作。",
+            "若选择有限探索路线，再隔离实现并封存实际初态W决策/配对执行入口与独立资源登记，拟3应用/6物理/6名义/30W/单GPU3小时仅是建议，尚非可执行批准。"
+          ],
+          "blockers": [
+            "uncertainty_policy明确要求闭环指令超出原校准适用条件、需改变科学范围或资源无法确定时先裁定；当前45秒及横向命令适用性、可用新额度未获独立授权。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-19T13:55:35.905322+08:00",
+          "summary": "NAV-043本轮收尾基本核验通过，保存审阅器v1快照及拒绝覆盖日志，不改变科学状态",
+          "actions": [
+            "补强核验器的覆盖拒绝检查为真正的运行前后hash比较；首次重跑在全部检查后因已有输出被open(x)拒绝，原结果未覆盖。",
+            "保存初版核验器精确源码快照，hash与第一份结果匹配；为当前核验器新增独立输出名并运行v2验证，保留首次输出、拒绝日志与v2结果。",
+            "整理本次记录和交接，核对相对df7b64a仅当前任务追加记录，任务定义/状态、所有旧work_records、保护路径均不变；本地提交，不推送。"
+          ],
+          "files_changed": [
+            ".worklog-testing/NAV-043/preparation-v1/verify_saved_audit_v1_snapshot.py",
+            ".worklog-testing/NAV-043/preparation-v1/verify_saved_audit.py",
+            ".worklog-testing/NAV-043/preparation-v1/saved-audit-verification-v2.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %599：/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/preparation-v1/verify_saved_audit.py --output saved-audit-verification-v2.json；日志saved-audit-verification-v2.log。",
+            "git diff --check；legacy validate_worklog.py <NAV plan> --mode update。"
+          ],
+          "results": [
+            "v2基本核验PASS，70来源hash条目、12保存轨迹、重复不池化/缺失不填充/输出不覆盖/保护路径及旧计划保留通过；这不是NAV-043或G5通过。",
+            "初次重复写出被拒绝是证据保护行为，日志saved-audit-verification-final.log保留；没有重跑物理应用、网络查询或改变原审阅报告。",
+            "55/67、NAV-043=false及前条范围/资源未决点保持。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/preparation-v1/saved-audit-verification.json",
+            ".worklog-testing/NAV-043/preparation-v1/saved-audit-verification-v2.json",
+            ".worklog-testing/NAV-043/preparation-v1/verify_saved_audit_v1_snapshot.py",
+            ".worklog-testing/NAV-043/preparation-v1/saved-audit-verification-final.log"
+          ],
+          "remaining_work": [
+            "按前条两路线与uncertainty_policy取得科学范围裁定后，再推进隔离入口及独立资源协议。"
+          ],
+          "blockers": [
+            "当前科学范围和新资源分配仍待明确，未授权新试验。"
+          ]
         }
       ],
       "constraints_and_notes": [
