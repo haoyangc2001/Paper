@@ -1,0 +1,157 @@
+{
+  "schema": "camra-nav067-remaining-validation-proposal-v1",
+  "status": "PROPOSED",
+  "approved": false,
+  "task": "NAV-067",
+  "plan_version": "1.4.1",
+  "created_at": "2026-11-19T11:00:00+08:00",
+  "purpose": "Complete controlled physical event/readback checks and measure same-configuration repeatability; no method-performance acceptance.",
+  "baseline_git_head": "bcdfa8d31759d5985b736d6c55909bffde0dd97a",
+  "inputs": {
+    "manifest": {
+      "path": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/manifest.json",
+      "sha256": "f33d829896347b4efef4217ba4ec191d4b9b24f69f7576d7b77120003cb02402"
+    },
+    "completed_recovery_registration": {
+      "path": "CaMRA/navigation/config/nav067_startup_recovery_v3.json",
+      "sha256": "3ac6cea31e1a617d018faa0b423b0f3112b5fe41523613d63096cf93edf32a1c"
+    },
+    "completed_execution_review": {
+      "path": "CaMRA/navigation/reports/nav067_recovery_v3_execution_review.json",
+      "sha256": "a837518ec6d8e289d70f319d21bbbf8042fe5117cd63fa46485ca6ec2da2e47e"
+    }
+  },
+  "selected_model_sha256": {
+    "uncalibrated_seed2_guarded_v4": "da13e365ac06f7638657d89e95cece3df93ebc010888df60d4a87e1e9891e24b",
+    "full_seed0_original": "f668111574ac03bb1f39e3e5cef79af645daf30c1fab6ffeda39c5832f204dfa"
+  },
+  "sealed_sources": {
+    "CaMRA/navigation/src/camra_navigation/envs/physical_v2.py": "c04249573fd15f89751d1dd20aa9e35c94fbce88278d41e2d437854b25afba07",
+    "CaMRA/navigation/src/camra_navigation/envs/clean_v3.py": "2dc118aa351fa8e97858f485d1776ecbfa52eade0746a5f8df191960ab975b09",
+    "CaMRA/navigation/scripts/nav067_simulation_v3.py": "ea2402e82bb07f1eab7014a7c944189584ebd7b0b9133cd1df4a5c5e023c6849"
+  },
+  "execution": {
+    "host": "tiger11",
+    "ip": "192.168.20.11",
+    "tmux_required": true,
+    "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "max_concurrent_gpu_processes": 1,
+    "max_allocated_gpus": 1,
+    "gpu_wall_clock_cap_s": 14400,
+    "max_kit_starts": 9,
+    "new_output_root": "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1",
+    "automatic_retries": 0,
+    "new_training_updates": 0,
+    "new_W_queries": 0,
+    "new_nominal_episodes": 0,
+    "final_data_access": false,
+    "NAV_043_execution": false,
+    "remote_push": false
+  },
+  "repetitions": {
+    "new_navigation_episodes": 6,
+    "new_repetitions_per_existing_configuration": 1,
+    "total_runs_per_configuration_including_baseline": 2,
+    "seed": 3001,
+    "simulator_seed": 100,
+    "horizon_s": 45.0,
+    "warmup_s": 1.0,
+    "physics_hz": 200,
+    "low_level_hz": 50,
+    "high_level_hz": 10,
+    "budget_mode": "original common_budget k=1.0, not W-selected budgets",
+    "configuration_changes": "none; extra passive collider geometry readback must be isolated and versioned without changing stepping, reset, actions or event semantics",
+    "slots": [
+      {"level": "L1_empty", "methods_in_order": ["uncalibrated", "full"], "baseline_relative_directory": "L1_empty/attempt2"},
+      {"level": "L2_single_detour", "methods_in_order": ["uncalibrated", "full"], "baseline_relative_directory": "L2_single_detour"},
+      {"level": "L3_multi_path", "methods_in_order": ["uncalibrated", "full"], "baseline_relative_directory": "L3_multi_path"}
+    ],
+    "required_reports": [
+      "all 12 baseline-plus-new results, 2 runs per configuration, attempts/missing/failed denominators retained",
+      "terminal labels, all event flags and safety_y, goal distance, active duration, internal model J and actual mechanical work J",
+      "per-configuration paired duration/work/goal-distance differences and maximum/RMS position differences on the common active time interval; no alignment after the initial alignment",
+      "actual clocks, applied/observed commands, clean parameters, collider local/world transforms, shape dimensions, collision-enabled state and cloned environment origins",
+      "descriptive differences only; two runs do not establish general reliability or bitwise deterministic physics"
+    ]
+  },
+  "controlled_cases": {
+    "cases": 6,
+    "max_environments_per_case": 2,
+    "max_total_s_per_case_including_warmup": 2.0,
+    "warmup_s": 1.0,
+    "max_measurement_s_per_case": 1.0,
+    "physics_hz": 200,
+    "fixture_scope": "isolated synthetic fixtures only; original benchmark maps, selected models and frozen v2 resources stay unchanged",
+    "cases_in_order": [
+      {
+        "id": "C01",
+        "name": "intermediate collision then raw-pose exit",
+        "required_observation": "Actual root readbacks cross a raw obstacle in an inner 200Hz substep of a 50Hz interval, then exit; a second active environment allows remaining substeps to execute.",
+        "assertion": "The first collision latches at its actual tick; terminal state/time/model budget/work freeze for that episode while later raw poses and the companion episode are separately retained."
+      },
+      {
+        "id": "C02",
+        "name": "inflated danger entry and exit without raw collision",
+        "required_observation": "Actual root readbacks enter and exit the frozen footprint-plus-delta danger set while avoiding the raw collision set.",
+        "assertion": "danger becomes true and irreversible safety_y remains positive after exit; danger alone does not invent a terminal collision."
+      },
+      {
+        "id": "C03",
+        "name": "turning footprint sweep",
+        "required_observation": "Actual position/yaw readbacks create an oriented frozen-footprint corner sweep intersecting a raw obstacle, with a nonintersecting center chord.",
+        "assertion": "The production geometry/event path detects the sweep; requested poses alone are not evidence."
+      },
+      {
+        "id": "C04",
+        "name": "simultaneous goal and collision",
+        "required_observation": "An isolated synthetic target and raw collider produce both flags on the same actual readback tick.",
+        "assertion": "Both flags are saved and the existing production LABELS priority wins; the case is not counted as a navigation success."
+      },
+      {
+        "id": "C05",
+        "name": "asynchronous batch termination and active masking",
+        "required_observation": "Two actual environments at distinct measured clone origins terminate at different inner substeps, including an incomplete low-level interval.",
+        "assertion": "No cross-environment coordinate leakage; each event step is charged once, later inactive steps are excluded, and the still-active episode continues with actual clock and command evidence."
+      },
+      {
+        "id": "C06",
+        "name": "native physical contact and collider geometry",
+        "required_observation": "A separately marked contact fixture uses the actual unchanged robot and an enabled cuboid; save measured world/local transforms, composed shape dimensions and native obstacle-contact evidence over stepped physics.",
+        "assertion": "Robot-obstacle pair-specific contact evidence is present; ground support forces or pose writes cannot substitute. Record physical response separately from pose-injected event cases."
+      }
+    ],
+    "pose_injection_disclosure": "C01-C05 may deliberately write fixture root poses between physical ticks, always logging requested and actual states separately; these validate readback/event/accounting, not natural locomotion or collision response. C06 must obtain native contact evidence independently.",
+    "numeric_audit": "Reuse existing trace-audit tolerances where applicable; declare any additional readback/round-trip numeric tolerances and exact fixture schedules in the sealed harness before its first simulation.",
+    "failure_policy": "A missing required actual event/contact, assertion failure or invalid readback is NOT a pass; save evidence and stop, without changing the fixture or retrying within this authorization."
+  },
+  "resource_upper_bound": {
+    "repeat_environment_seconds_including_warmup": 276,
+    "controlled_environment_seconds_including_warmup": 24,
+    "total_environment_seconds_including_warmup": 300,
+    "total_environment_ticks_including_warmup": 60000,
+    "quota_transfer_allowed": false
+  },
+  "implementation_readiness": {
+    "controlled_physical_runner_implemented": false,
+    "executable_entry": null,
+    "before_first_simulation": [
+      "Implement isolated controlled runner and repetition binding; preserve all sealed baseline sources and old outputs.",
+      "Main agent performs tailored basic tests, including missing-approval refusal; no subagents or real simulation for preparation.",
+      "Freeze exact fixture maps/targets/schedules, numeric audit tolerances, source hashes, attempt slots, resource ledger and command before running; no adaptive case design after observing new outputs.",
+      "An explicit confirmation may authorize implementing and executing this bounded package; changes to meaning, quotas, controller, data use or framework still require separate resolution.",
+      "Create a separate APPROVED registration and hash only after user confirmation; PROPOSED is never accepted by an executable entry."
+    ]
+  },
+  "execution_order": ["C01", "C02", "C03", "C04", "C05", "C06", "L1_empty repetitions", "L2_single_detour repetitions", "L3_multi_path repetitions"],
+  "stop_conditions": [
+    "Any protected identity, host, dependency, GPU availability, actual clean configuration or coordinate evidence fails.",
+    "An entry/runtime/trace assertion fails, actual controlled evidence is absent, or physical and business failures cannot be distinguished.",
+    "The cumulative 4-hour GPU wall-clock allocation, 9 application starts, episode/case/time/tick cap or claimed slot would be exceeded.",
+    "No automatic retries, replacing failed attempts, extending measurement windows, reallocating unused slots, or changing scores to pass."
+  ],
+  "acceptance_disposition": {
+    "NAV_067_may_be_true_only_after": "All original six acceptance criteria have actual evidence, every controlled case passes, repeatability denominators/deviations are reported, and the main agent completes local plus end-to-end consistency review. No automatic PASS based on this protocol or script exit.",
+    "repetition_performance_failures": "Timeout, over-budget or other business outcomes are retained and do not become event-wiring failures by themselves. Unexplained implementation/configuration differences stop sign-off.",
+    "performance_gate": "No new physical success threshold here; NAV-043 remains separate, false and unexecuted. Prior G4/efficiency FAIL and accepted limitations are retained."
+  }
+}
