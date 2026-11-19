@@ -11,7 +11,7 @@ from nav067_runtime import persist
 from nav067_remaining_audit import audit_episode
 from prepare_nav065_sources import REGISTRATION
 from train_formal import verify_prereg
-from nav043_budget import outcome
+from nav043_budget import actual_start_env, outcome
 from camra_navigation.budget.accounting import consistent_e_ref
 from camra_navigation.budget.guarded import select_guarded_budget
 from camra_navigation.envs.physical_v2 import PhysicalState, SubstepNavigation
@@ -122,6 +122,20 @@ def main():
             np.testing.assert_array_equal(load(trial/'navigation.json')[0]['observation'][0],saved['query_observations'][chosen])
             assert abs(nom['cost_model_J']-(z-nom['trace'][-1]['z_J']))<1e-8
             assert nom['feasible']==(nom['label']=='goal_reached' and nom['trace'][-1]['safety_y']==0. and nom['trace'][-1]['z_J']>=0.)
+            # Replay saved actions only: no actor/critic inference or new sample.
+            replay=actual_start_env(spec,ctx,z,prereg,initial)
+            for index,r in enumerate(nom['trace']):
+                assert r['step']==index
+                np.testing.assert_array_equal(replay.observation[0],r['observation'])
+                transition=replay.step(np.asarray([r['action']],dtype=np.float32))
+                np.testing.assert_array_equal(replay.pose[0],r['pose'])
+                assert float(transition.z_J[0])==r['z_J']
+                assert float(transition.safety_y[0])==r['safety_y']
+                assert bool(transition.danger_violation[0])==r['danger_violation']
+                assert float(transition.goal_distance_m[0])==r['goal_distance_m']
+            assert replay.done[0] and replay._label[0]==nom['label']
+            assert float(replay.result(0).t_s)==nom['t_s']
+            assert float(replay.result(0).cost_model_J)==nom['cost_model_J']
             reports.append({'level':level,'method':method,'rejected':False,'selected_k':repeated['selected_k'],
                 **traced,**metrics,'nominal_label':nom['label'],'nominal_feasible':nom['feasible'],
                 'nominal_t_s':nom['t_s'],'nominal_cost_J':nom['cost_model_J'],
@@ -139,8 +153,15 @@ def main():
         'allocation_terminal':terminal.name,'allocation_resource_ledger':load(terminal),
         'protocol_sha256':sha(protocol_path),
         'protected_hashes_checked':len(protected),'methods':methods,'episodes':reports,'incomplete':missing,
-        'applications':apps,'completed_initial_W_queries':queries,'completed_physical_episodes':physical,
-        'completed_nominal_episodes':nominal,'observed_explicit_step_calls_finished_apps':steps,
+        'applications':apps,'verified_initial_W_queries_in_finished_apps':queries,
+        'verified_physical_episodes_in_finished_apps':physical,
+        'verified_nominal_episodes_in_finished_apps':nominal,
+        'completed_initial_W_queries_all_saved_decisions':sum(load(p)['query_count'] for p in OUTPUT.glob('*/*/decision.json')),
+        'physical_navigation_starts':len(list(OUTPUT.glob('*/*/NAVIGATION_STARTED.json'))),
+        'nominal_starts':len(list(OUTPUT.glob('*/*/NOMINAL_STARTED.json'))),
+        'saved_physical_results':sum(not load(p)['rejected'] for p in OUTPUT.glob('*/*/result.json')),
+        'saved_nominal_results':len(list(OUTPUT.glob('*/*/nominal.json'))),
+        'observed_explicit_step_calls_finished_apps':steps,
         'gpu_wall_s_finished_apps':wall,'raw_sources':sources,'NAV_043_pass':False,'G5_pass':False,
         'limitations':['already exposed integration maps; one run/configuration',
             'old delta and <=30s vy=0 applicability gap unresolved',
