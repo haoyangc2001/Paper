@@ -13924,7 +13924,76 @@
         "NAV-066",
         "NAV-067"
       ],
-      "work_records": [],
+      "work_records": [
+        {
+          "timestamp": "2026-11-19T13:40:54+08:00",
+          "summary": "NAV-043准备开工：上游工程接入已结案，仅梳理新版候选闭环适用性与执行缺口",
+          "actions": [
+            "切换任务后重读根AGENTS、legacy执行规则、当前1.4.1计划约束及NAV-043；依赖NAV-066与NAV-067均true，55/67，NAV-067提交6125043。",
+            "本项需把固定v2、新版两候选、价值预算选择和真实clean执行接成可验收闭环；当前只准备具体范围、来源和资源差异，不启动新的NAV-043应用、轨迹或W查询。",
+            "允许新增导航准备文档；保持数学目标、actor/双critic、45秒obs-v7、200/50/10Hz、机械功J、v2整套及校准原值，原科学FAIL与全部历史结果不改。",
+            "核对旧30秒校准/闭环表、NAV-021旧诊断额度与已结束的NAV-067授权边界；不把旧表外推到45秒，不把已用额度当作新增试验授权。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "只读核对AGENTS、legacy execution-rules、当前计划、NAV-067工程验收报告、NAV-066固定决策规则、resource_budget_v1及旧闭环裕度配置。"
+          ],
+          "results": [
+            "首个依赖满足的未完成任务为NAV-043，保持false；新物理/名义回合、W查询、训练均0。",
+            "准备交付为下阶段范围及未决证据清单；不是NAV-043/G5通过或新增试验批准。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json",
+            "CaMRA/navigation/config/nav066_decision_prereg_v2.json",
+            "CaMRA/navigation/config/geometry_margin_closedloop_v1.json",
+            "CaMRA/navigation/config/resource_budget_v1.json"
+          ],
+          "remaining_work": [
+            "整理旧裕度覆盖范围、现候选与旧来源差异，以及下一次有限验证应登记的输入、预算决策、指标和资源。",
+            "正式执行前须具备独立执行登记、实际入口及基本验证；本次NAV-067恢复额度不转移。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T13:42:55+08:00",
+          "summary": "NAV-043下一阶段范围已整理：分开自选预算物理效果与旧裕度适用性，未启动新试验",
+          "actions": [
+            "交付具体顺序：先对账旧诊断额度，再隔离实现新入口及登记，封存实际初态的预算决策，配对名义/物理执行并逐前缀检查。",
+            "明确已有12条共同预算轨迹均为已暴露接线资料；预算输入会改变策略动作，不能放大旧分母冒充新运行或独立验证。",
+            "核实旧闭环表仅5–30秒且为规则pilot拟合，现任务45秒不能外推；未解决当前候选适用性不签NAV-043/G5。",
+            "有限小批建议两方法三图，最多6物理/6名义及30初始W查询；只是待核额度的范围建议，不是执行批准，精确应用/墙钟/子步尚未登记。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/nav043_next_stage_scope_20261119.md",
+            ".worklog-testing/NAV-043/preparation-v1/verify_preparation.py",
+            ".worklog-testing/NAV-043/preparation-v1/verification.json",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-evidence-close %599；cwd=/home/caohy/repositories/Paper；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/preparation-v1/verify_preparation.py",
+            "legacy validate_worklog.py <current NAV plan> --mode update；只本地提交，不推送。"
+          ],
+          "results": [
+            "NAV-043保持false、计划55/67；本次只作来源和执行范围准备，不能表示闭环性能或裕度适用性已通过。",
+            "新物理/名义回合、W查询、训练均0；没有批准或移用旧额度，final_*及冻结系统不变。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/nav043_next_stage_scope_20261119.md",
+            ".worklog-testing/NAV-043/preparation-v1/verification.json",
+            "CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json",
+            "CaMRA/navigation/config/geometry_margin_closedloop_v1.json"
+          ],
+          "remaining_work": [
+            "核对旧诊断总额度消耗，落实独立NAV-043资源协议、可执行隔离入口和基本验证后再申请新增试验。",
+            "冻结45秒新版候选闭环及适用性判据，保留所有失败、拒绝及旧科学FAIL；不得按新结果反推过关阈值。"
+          ],
+          "blockers": []
+        }
+      ],
       "constraints_and_notes": [
         "仅用integration_pilot，依次验证无障碍、绕行和多路径，使用固定actor/critics/预算规则。",
         "核查低速停滞、30秒任务长度与地图尺度的实际影响；问题不能靠换控制器或缩δ解决。",
