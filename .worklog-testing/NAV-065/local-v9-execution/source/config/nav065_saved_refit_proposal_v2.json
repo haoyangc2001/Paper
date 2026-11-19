@@ -1,0 +1,52 @@
+{
+  "schema": "camra-nav065-saved-refit-proposal-v2",
+  "task": "NAV-065",
+  "approved": false,
+  "status": "PROPOSED_NOT_EXECUTED",
+  "purpose": "Improve fixed-actor common-stop critic fitting near the budget boundary, with a train-only gate before rescoring development.",
+  "fit_split": "train",
+  "evaluation_split": "development",
+  "source_run": "nav065_refit_v1",
+  "source_manifest_sha256": "4609bd3176230d5195c0b8915f30d06b5504875fda30ac286bd862c5771e2e43",
+  "source_train_journal_sha256": "62402f3ea93c963e60dd981ef41611d8b3ddd0c3fff38366b3de995aaf03c68f",
+  "source_refit_pin": "c971caacec4ce84280028d3256258fb284bb54bddd7a49ebf1824bdf1241cc25",
+  "evaluation_pin": "7a5a989137baa0f91c069015572878a4e101404841c6d9da3afda247cc2cd874",
+  "resource_limit": {
+    "new_rollouts": 0,
+    "existing_train_episodes": 540,
+    "existing_development_episodes": 180,
+    "candidates": 6,
+    "additional_updates_per_candidate_max": 300,
+    "additional_updates_total_max": 1800,
+    "development_scoring_rounds_max": 1
+  },
+  "fit": {
+    "initial_checkpoint": "All six saved nav065_refit_v1 checkpoints; no selection among old candidates.",
+    "optimizer": "Adam with a fresh optimizer state",
+    "learning_rate": 0.0001,
+    "interior_samples_per_episode": 8,
+    "sampling_seed": 6502,
+    "boundary_absolute_W_max": 0.05,
+    "loss": "(L_start + L_interior + L_boundary)/3. Each term is the mean squared error of the two existing critics against their unchanged common-stop targets. L_start covers all 90 episode starts; L_interior covers eight uniformly sampled later steps per episode; L_boundary covers all starts with absolute true W <= 0.05, selected solely from train. If the boundary set is empty, use (L_start+L_interior)/2 and record it.",
+    "checkpoint_rule": "Check train every 10 updates; freeze the first checkpoint satisfying all train checks, or retain the final failed attempt at update 300. No development-based checkpoint choice.",
+    "notes": "Boundary weighting changes the regression sampling emphasis, not the value target, policy reward, feasibility threshold, or common stop. Proposed numerical settings are engineering hypotheses; success is not guaranteed."
+  },
+  "train_gate": {
+    "required_candidates": 6,
+    "starts_per_candidate": 90,
+    "max_false_feasible_per_candidate": 0,
+    "primary_k": 1.15,
+    "min_primary_true_feasible_per_candidate": 18,
+    "error_criteria": "Apply the unchanged registered relative-MAE and variance-conditional Pearson criteria to aligned full train trajectories.",
+    "budget_feature_clipping_max": 0
+  },
+  "development_gate": "After all six train gates pass and all checkpoints are frozen, rescore the same 180 saved development episodes once using the unchanged evaluation pin. Preserve prior exposure. Require all six original candidate checks to pass before emitting any G4 PASS or deployment bundle.",
+  "failure_policy": "If any train candidate reaches its cap without passing, do not score development. If development fails, retain FAIL and all outputs; do not change beta, thresholds, maps, targets or update count to retry.",
+  "protected": [
+    "actor tensors and deterministic deployment action",
+    "fixed camra_go2_velocity_it2999_v2 and its complete frozen inputs",
+    "common stopping, failure tails, value targets and beta=0",
+    "existing maps, budgets, splits, final data seals and prior artifacts",
+    "read-only RC-PPO, HiRA and manuscripts"
+  ]
+}

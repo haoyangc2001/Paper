@@ -1,0 +1,61 @@
+{
+  "schema": "camra-nav065-boundary-refit-v3",
+  "task": "NAV-065",
+  "approved": false,
+  "status": "PROPOSED_NOT_EXECUTED",
+  "fit_split": "train",
+  "evaluation_split": "development",
+  "output_name": "nav065_boundary_refit_v3",
+  "source_run": "nav065_saved_refit_v2",
+  "source_manifest_sha256": "3d20a6336cfaeeba7cd5ca5fb4a0be94d8fe41660085b0672a963986ae852b93",
+  "source_saved_refit_pin": "a6fe42eb12e94fa857af86702a8b617d2a93d02561e763620d887178afc4705f",
+  "source_refit_pin": "c971caacec4ce84280028d3256258fb284bb54bddd7a49ebf1824bdf1241cc25",
+  "train_source_run": "nav065_refit_v1",
+  "train_manifest_sha256": "4609bd3176230d5195c0b8915f30d06b5504875fda30ac286bd862c5771e2e43",
+  "train_journal_sha256": "62402f3ea93c963e60dd981ef41611d8b3ddd0c3fff38366b3de995aaf03c68f",
+  "evaluation_pin": "7a5a989137baa0f91c069015572878a4e101404841c6d9da3afda247cc2cd874",
+  "resource_limit": {
+    "new_rollouts": 0,
+    "existing_train_episodes": 540,
+    "existing_development_episodes": 180,
+    "additional_updates_per_candidate_max": 300,
+    "additional_updates_total_max": 600,
+    "development_scoring_rounds_max": 1,
+    "update_candidates": ["nav064_terminal_tail_v1_full_s1", "nav064_terminal_tail_v1_full_s2"]
+  },
+  "fit": {
+    "learning_rate": 0.0001,
+    "optimizer": "fresh Adam for each failed candidate",
+    "sampling_seed": 6503,
+    "interior_samples_per_episode": 8,
+    "boundary_absolute_W_max": 0.05,
+    "sign_boundary_absolute_max": 0.05,
+    "sign_margin_cap": 0.01,
+    "sign_normalization": 0.01,
+    "sign_weight": 0.1,
+    "gate_interval": 10,
+    "loss": "L_v2_regression + 0.1 * mean(two component sign losses). At all train starts, r_c=V_c-z/550 and r_h=V_h; targets use the unchanged common stop. For each component with abs(target)<=0.05, use (relu(min(abs(target),0.01)-sign(target)*prediction)/0.01)^2. For exact zero targets use (relu(prediction)/0.01)^2. A component with no selected starts contributes zero. Selection uses target values only. Exact original targets incur zero sign loss.",
+    "checkpoint_rule": "Check update 0; preserve passing source tensors. Only the two named failed candidates may update. Check every 10, freeze first train pass; retain final failed checkpoint at 300. No quota transfer, resume, repeated attempt, or development-based choice."
+  },
+  "train_gate": {
+    "required_candidates": 6,
+    "starts_per_candidate": 90,
+    "primary_k": 1.15,
+    "max_false_feasible_per_candidate": 0,
+    "primary_false_infeasible_max": 0,
+    "primary_policy_feasible_by_candidate": {
+      "nav064_terminal_tail_v1_uncalibrated_s0": 18,
+      "nav064_terminal_tail_v1_uncalibrated_s1": 18,
+      "nav064_terminal_tail_v1_uncalibrated_s2": 18,
+      "nav064_terminal_tail_v1_full_s0": 18,
+      "nav064_terminal_tail_v1_full_s1": 18,
+      "nav064_terminal_tail_v1_full_s2": 17
+    },
+    "recognition_rule": "Accept every actually feasible primary start and reject every actually infeasible start across all five budgets. Report actual fixed-policy outcomes separately; the full_s2 timeout must be rejected. False-infeasible counts outside the primary budget remain diagnostics as in v2, not a new hidden perfect-recognition requirement.",
+    "error_criteria": "unchanged relative MAE<=0.35 and variance-conditional Pearson>=0.70, variance ratio 0.50",
+    "budget_feature_clipping_max": 0
+  },
+  "development_gate": "Freeze all six checkpoints after all six train gates pass; call the original evaluator once on the same 180 saved development trajectories. Original primary 6/6 per candidate, zero false-feasible, beta=0 and error criteria remain unchanged. Only original G4 checks may release a bundle.",
+  "failure_policy": "Any train failure blocks development. Development failure retains FAIL with no retry or automatic extra updates. Preserve all journals, models and old attempts.",
+  "protected": ["actor tensors and deterministic action", "common stop and original value targets", "zero feasibility threshold and beta=0", "fixed complete v2 controller and calibration", "maps, budgets, timing, splits and final data seals", "read-only RC-PPO, HiRA, manuscripts and all prior artifacts"]
+}

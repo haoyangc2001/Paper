@@ -1,0 +1,81 @@
+NAV-065-R1 independent test evidence
+Project root: /home/caohy/repositories/Paper
+Implementation agent: /root
+Tester agent: /root/nav065_refit_tester
+Production implementation and plan were read-only throughout.
+
+CHECK-001 command: read-only inline Python audit at project root using
+PYTHONPATH=CaMRA/navigation/scripts:CaMRA/navigation/src and
+/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python.
+Expected: frozen preregistration/input hashes match; train-only fit and
+development-only evaluation; 540 unique train map x budget x candidate keys;
+actor unchanged and both critics updated for all six checkpoints.
+Actual:
+PREREG PASS pin=c971caacec4ce84280028d3256258fb284bb54bddd7a49ebf1824bdf1241cc25 inputs=11 previous=3 split=train/development max_train=540 new_dev=0
+TRAIN PASS records=540 unique=540 grid=6 candidates x 18 maps x 5 budgets steps=207298 fits=6x90
+TENSORS PASS policy byte-identical; critic_cost and critic_reach each changed for all six; source/output hashes verified
+Exit code: 0.
+
+CHECK-002 and cross-validation command: read-only inline Python audit using the
+same interpreter and PYTHONPATH. It joined the 108 NAV-064 source trajectories
+and 72 frozen supplemental trajectories to the 180 rescored keys, parsed every
+complete trace, independently calculated feasibility from terminal event,
+full safety history, and remaining J, checked per-step remaining-J accounting,
+recomputed finite-horizon path W from the bound objective, loaded each fitted
+CPU checkpoint, and recomputed per-step critic values and predicted W.
+Expected: exactly the frozen 180 development records, zero new rollouts, exact
+old feasibility labels, and critic predictions matching the fitted checkpoints.
+Actual:
+DEV CROSS-CHECK PASS: 108 frozen source + 72 frozen supplemental = 180 unique keys; no new rollouts; 69586 trace steps
+RAW J/TRACE PASS: per-step remaining-J ledger and terminal labels match all 180; max ledger error=0 J; independent full-trace path W matches 180 cases
+PREDICTED W PASS: CPU-loaded checkpoint values match saved per-step values; max value error=2.38e-07; max W error=5.96e-08
+FALSE_FEASIBLE independent: total=9 by_candidate={"nav064_terminal_tail_v1_full_s0": 3, "nav064_terminal_tail_v1_full_s1": 1, "nav064_terminal_tail_v1_full_s2": 2, "nav064_terminal_tail_v1_uncalibrated_s0": 1, "nav064_terminal_tail_v1_uncalibrated_s1": 1, "nav064_terminal_tail_v1_uncalibrated_s2": 1} by_budget={"0.85": 3, "1.0": 6}
+At primary k=1.15, all six candidates independently have 6/6 true-feasible and
+6/6 predicted true-feasible starts; zero false feasible at that primary budget.
+Exit code: 0.
+
+CHECK-003 command: jq inspection of the attempt validation report and prior
+episode journal plus sha256sum verification of prior protected artifacts.
+Expected: development_episodes=180, reused_development_episodes=180,
+new_episodes=0; prior journal and validation/G4 hashes remain pinned.
+Actual: report fields match; prior episodes.jsonl SHA256 is
+564ed49aec5f3deb58ae1cd30421c862470238d4254e5b8d3d7ded57a2f70592,
+prior validation SHA256 is b1cbf8dea00013d77cc4be57b257af609e503d40e52bd50f086d65f45e2c134d,
+prior G4 SHA256 is 3c0f77661a90adf3d6dd62a251c5a38895c5b6a789dd78591f39b21a0c2be507.
+Exit code: 0.
+
+CHECK-004 command: jq inspection and filesystem test for the new G4 and bundle.
+Expected: deployment_values passes only if all six candidate summaries pass;
+with failed candidates G4 must fail and no deployment bundle may be emitted.
+Actual: 0/6 candidates pass; all six have false-feasible budget failures;
+gate verdict=FAIL, checks.deployment_values=false, checks.evaluation_coverage=true,
+and deployment_candidates_v2.json is absent. Existing v1 deployment files are
+hash-pinned and unchanged.
+Exit code: 0.
+
+Isolated reader fixture command: inline Python using refit_nav065_deployment.fixed_dev,
+with six synthetic candidates, six maps, five budgets, 18 original keys per
+candidate, 12 supplemental keys per candidate, and 180 scored keys.
+Expected: the valid original fixture passes, duplicate/unknown rollout keys
+are rejected by the targeted input guard, and the restored valid fixture passes.
+Actual:
+ORIGINAL PASS: 180 scored keys and 30 full-grid keys per candidate
+DUPLICATE INPUT MUTATION REJECTED: duplicate or unexpected saved development trajectory
+UNKNOWN INPUT MUTATION REJECTED: duplicate or unexpected saved development trajectory
+RESTORED PASS: original fixture again accepted
+Exit code: 0.
+
+Code-level mutation testing remains blocked: no implementation mutant was run
+to verify an assertion against a deliberately weakened production guard. The
+input-mutation fixture above passed, but it does not satisfy the required
+implementation-mutation criterion; no mutation pass is claimed.
+
+Harness note: the first trace audit attempt stopped before trace checks because
+the audit harness looked for r_goal_m in the evaluation preregistration. The
+field is in the bound training preregistration. After correcting the harness,
+the complete trace/W audit passed; no production files were changed.
+
+End-of-test snapshot command:
+python /home/caohy/.codex/skills/create-plan-worklog/scripts/capture_test_snapshot.py doc/plan/20261109_camra_navigation_implementation.json --task NAV-065
+Earlier snapshot before report creation: content_sha256=825a279b63dbbe6dcc8f28983ec59e39e89c949f6339d0f3f143f24b60104cb1
+Earlier snapshot contract_sha256=88e1392e70aa0b447c4537befc6665aef314c10290207c4d413073436b76622b

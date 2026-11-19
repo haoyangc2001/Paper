@@ -1,0 +1,41 @@
+{
+  "schema": "camra-nav065-pilot-refit-v8",
+  "task": "NAV-065",
+  "approved": false,
+  "status": "PROPOSED_NOT_EXECUTED",
+  "fit_split": "train",
+  "output_name": "nav065_pilot_refit_v8",
+  "source_run": "nav065_staged_refit_v7",
+  "source_manifest_sha256": "7eaefd8b411897f40e3873b222b313427e42fa008ae41927a8664af6c4f22db1",
+  "candidate_choice": "full_s0 is fixed before any new optimizer step: it supplies the recorded L3 adjacent-budget target example, has three false-feasible starts in v7, and all 18 actual primary train cases are feasible. This is a mechanism pilot, not a best-model or development selection.",
+  "resource_limit": {
+    "available_saved_train_episodes": 972,
+    "available_saved_train_steps": 372471,
+    "pilot_train_episodes": 162,
+    "update_candidates": ["nav064_terminal_tail_v1_full_s0"],
+    "new_train_episodes_max": 0,
+    "new_development_episodes": 0,
+    "optimizer_trials_total_max": 400,
+    "development_scoring_rounds_max": 0
+  },
+  "fit": {
+    "numeric_steps_max": 300,
+    "boundary_steps_max": 100,
+    "numeric_learning_rate": 0.0001,
+    "boundary_learning_rate": 0.0001,
+    "correction_fraction_max": 0.25,
+    "numeric_review_interval": 10,
+    "sampling_seed": 6511,
+    "interior_samples_per_episode": 8,
+    "boundary_absolute_W_max": 0.05,
+    "sign_boundary_absolute_max": 0.05,
+    "sign_margin_cap": 0.01,
+    "sign_normalization": 0.01,
+    "rule": "Use the unchanged stratified squared regression and unchanged component/joint sign targets. Numeric Adam runs at most 300 steps and must pass the original separate old/new numeric checks before boundary fitting; otherwise hold, never force a transition. Boundary uses plain SGD without momentum, retains the numerical gradient, projects only the sign component opposing it, and caps correction to at most 0.25 of the regression norm without amplifying a small sign gradient. This bounds only the first-order sampled-MSE direction, not finite-step metrics. Stop at the first unchanged full train pass. Review original numeric metrics every 10 boundary steps and stop on regression; no rollback, retry, stage quota transfer or restart. Save stages, every start prediction and classification changes. Keep all failed results."
+  },
+  "train_gate": "Directly call the unchanged v5 train_gate for the pilot's 90 old plus 72 additional train episodes after every step. Separate old/new relative MAE<=0.35 and required Pearson>=0.70, original primary recognition, beta=0, zero false-feasible and selected boundary signs remain mandatory. Do not change any target or label.",
+  "pilot_acceptance": "The source and pilot actor/other five models remain unchanged. Report numerical checks, false-feasible/false-infeasible and selected signs together. A pilot pass is only the fixed candidate's original complete train pass; lower error or fewer false-feasible alone is partial progress. Failure or insufficient evidence holds the pilot; it cannot be called NAV-065 scientific pass.",
+  "downstream": "Never call development or produce a deployment bundle in this pilot, even on success. Any six-candidate expansion needs a separately reviewed bounded registration; all six unchanged train gates, saved/reloaded models and the original development/G4 are still required before NAV-066.",
+  "failure_policy": "A separately approved, pinned one-candidate run only. Proposed settings are not permission for optimizer steps. Nonfinite loss/gradient/parameter stops with evidence; preserve source, stage/final checkpoints and logs. No new rollouts, source/intermediate selection, automatic continuation/expansion, quota transfer, relaxed gates, budget_selection/final access or protected edits.",
+  "protected": ["six actors", "common-stop cost/reach targets and W", "beta=0 and original v5 train/G4", "network architecture and obs-v7", "complete frozen v2 and calibration", "map/time/J/split contracts", "all historical artifacts", "RC-PPO, HiRA and manuscripts"]
+}

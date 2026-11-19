@@ -1,0 +1,56 @@
+*** Begin Patch
+*** Update File: /home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json
+@@
+    "phase": "预算与闭环",
+    "goal": "冻结最优现有候选及预算规则，披露拟合局限，完成独立决策验证的研究准备",
+-   "status": false,
++   "status": true,
+    "depends_on": [
+     "NAV-064"
+@@
+   "v2/校准及原来源锁未变；模型无更新，尚无新轨迹；只产生研究准备证据，不覆盖旧G4。"
+ ],
+-   "verification_result": "NAV-065边界回修v3：主agent复核完整性PASS；310新增critic更新、5/6 train通过、假可行4→1。HELD_TRAIN_GATE，无开发重评/新G4/部署包，原G4 FAIL有效；NAV-065=false。",
++   "verification_result": "v2.0.0-best准备验收通过；六身份与CPU张量核验、13基础测试、9独立任务实例准入和协议冻结完成。PROVISIONAL_RESEARCH_READY；旧G4 FAIL，未声明价值无误或科学通过。证据reports/nav065_budget_decision_readiness_v2.json。",
+    "planned_outputs": [
+   "config/nav066_decision_prereg_v2.json及.sha256",
+@@
+   "blockers": []
+ }
+-      ],
++      ,
++{
++  "timestamp": "2026-11-18T22:29:34.737870+08:00",
++  "summary": "NAV-065新版准备验收完成：保留旧G4 FAIL，仅研究准备通过，不宣称价值可靠",
++  "actions": [
++    "依据用户确认原位激活1.4.0与新版定义，旧标准另存acceptance_definition_history，67任务/依赖/历史保留。",
++    "按已有18份开发候选结果固定六身份和最优配对；CPU重载六组并核对张量，33项v2及原契约/源码锁匹配。",
++    "保护规则13项基础测试通过；9图几何/45秒准入、历史种子/实例及元数据暴露审计通过，派生参考成本已冻结。",
++    "纠正草案30秒笔误为模型原冻结45秒，90回合上限不变，导出40500步上限；不改模型或目标。"
++  ],
++  "files_changed": [
++    "doc/plan/20261109_camra_navigation_implementation.json"
++  ],
++  "commands": [
++    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py ready",
++    "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
++  ],
++  "results": [
++    "NAV-065=true只表示PROVISIONAL_RESEARCH_READY；旧G4 FAIL与拟合错误保留。",
++    "截至收尾新W查询0、轨迹0、更新0；NAV-066独立验证未开始。"
++  ],
++  "evidence": [
++    "CaMRA/navigation/reports/nav065_budget_decision_readiness_v2.json",
++    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/readiness.json",
++    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/manifest.json",
++    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/basic-tests.log"
++  ],
++  "remaining_work": [
++    "完成所测配对的NAV-066实际独立决策验收；其它四候选和物理性能不继承。"
++  ],
++  "blockers": []
++}
++],
+    "test_reports": [
+     {
+*** End Patch

@@ -1,0 +1,41 @@
+NAV-065-R2 mutation evidence
+Project root: /home/caohy/repositories/Paper
+Tester: /root/nav065_refit_tester
+Implementation: /root
+
+The isolated copy was made from the current uncommitted production file before
+mutation. Original and copied SHA256 before mutation:
+f2a699209433cf63f84b3a8c03ad206cc48153a396ba3e34081110bc89240061
+
+Command (project root):
+PYTHONPATH=CaMRA/navigation/scripts:CaMRA/navigation/src PYTHONDONTWRITEBYTECODE=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python .worklog-testing/NAV-065/NAV-065-R2/mutation_test.py green CaMRA/navigation/scripts/refit_nav065_deployment.py --label ORIGINAL
+Exit code: 0
+ORIGINAL PASS: valid fixture accepted; duplicate and unknown keys rejected by targeted guard
+
+Command (project root):
+PYTHONPATH=CaMRA/navigation/scripts:CaMRA/navigation/src PYTHONDONTWRITEBYTECODE=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python .worklog-testing/NAV-065/NAV-065-R2/mutation_test.py green .worklog-testing/NAV-065/NAV-065-R2/mutant/refit_nav065_deployment.py --label ISOLATED-COPY
+Exit code: 0
+ISOLATED-COPY PASS: valid fixture accepted; duplicate and unknown keys rejected by targeted guard
+
+Targeted mutation diff: disable the single duplicate/unknown key guard in
+fixed_dev, as recorded in mutation.diff. No production file was changed.
+
+Command (project root):
+PYTHONPATH=CaMRA/navigation/scripts:CaMRA/navigation/src PYTHONDONTWRITEBYTECODE=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python .worklog-testing/NAV-065/NAV-065-R2/mutation_test.py mutant .worklog-testing/NAV-065/NAV-065-R2/mutant/refit_nav065_deployment.py
+Exit code: 0 (the harness catches the expected assertion failures and reports mutant-killed).
+MUTANT KILLED (duplicate): targeted assertion failed: duplicate key passed the duplicate/unknown guard
+MUTANT KILLED (unknown): targeted assertion failed: unknown guard bypassed; later error was 'incomplete saved development grid'
+MUTANT FAILED TARGET ASSERTIONS: weakened guard no longer raises the expected validation error
+
+Restoration command (project root):
+cp CaMRA/navigation/scripts/refit_nav065_deployment.py .worklog-testing/NAV-065/NAV-065-R2/mutant/refit_nav065_deployment.py
+Restored and production SHA256:
+f2a699209433cf63f84b3a8c03ad206cc48153a396ba3e34081110bc89240061
+
+Restored assertion command (project root):
+PYTHONPATH=CaMRA/navigation/scripts:CaMRA/navigation/src PYTHONDONTWRITEBYTECODE=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python .worklog-testing/NAV-065/NAV-065-R2/mutation_test.py green .worklog-testing/NAV-065/NAV-065-R2/mutant/refit_nav065_deployment.py --label RESTORED
+Exit code: 0
+RESTORED PASS: valid fixture accepted; duplicate and unknown keys rejected by targeted guard
+
+All temp JSONL fixtures were created under this report directory and removed
+after each assertion run. Mutation test code and diff are retained here.

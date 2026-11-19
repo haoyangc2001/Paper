@@ -1,0 +1,40 @@
+{
+  "schema": "camra-nav065-block-refit-v6",
+  "task": "NAV-065",
+  "approved": false,
+  "status": "PROPOSED_NOT_EXECUTED",
+  "fit_split": "train",
+  "evaluation_split": "development",
+  "output_name": "nav065_block_refit_v6",
+  "source_run": "nav065_adaptive_refit_v5",
+  "source_manifest_sha256": "a62b9099612b95d512128a5f01249fe9d0647d893374aa762bdb1be744dd0637",
+  "base_evaluation_pin": "7a5a989137baa0f91c069015572878a4e101404841c6d9da3afda247cc2cd874",
+  "resource_limit": {
+    "existing_train_episodes": 972,
+    "existing_train_steps": 372471,
+    "new_train_episodes_max": 0,
+    "new_development_episodes": 0,
+    "optimizer_trials_per_candidate_max": 300,
+    "optimizer_trials_total_max": 1800,
+    "development_scoring_rounds_max": 1
+  },
+  "fit": {
+    "learning_rate": 0.00001,
+    "sampling_seed": 6509,
+    "interior_samples_per_episode": 8,
+    "boundary_absolute_W_max": 0.05,
+    "sign_boundary_absolute_max": 0.05,
+    "sign_margin_cap": 0.01,
+    "sign_normalization": 0.01,
+    "steps_per_block": 4,
+    "block_backtracks_max": 4,
+    "backtrack_factor": 0.5,
+    "working_relative_mae_slack": 0.05,
+    "working_pearson_slack": 0.02,
+    "rule": "Equal weight to nonempty old/new x start/interior/boundary x reach-target-sign strata; exact original cost/reach labels. Retain component/joint sign loss and per-critic gradient projection. A block has at most four actual optimizer steps. Temporary intermediate regression or sign changes are permitted. At block commit require original five-grid gate, every previously correct start, nonincreasing additional false-feasible and selected boundary mismatch counts. New metrics stay within fixed source-anchored working bounds (relative MAE <= max(source, original limit)*1.05; Pearson >= min(source, original limit)-0.02). These are working guards only, never final criteria. A rejected block restores model, optimizer and sampling RNG, then retries at half LR; every actual step counts. Freeze the first step satisfying the complete unchanged v5 train gate."
+  },
+  "train_gate": "Call the unchanged v5 train_gate on 540 old plus 432 additional train trajectories. Original numeric limits (relative MAE<=0.35 and required Pearson>=0.70), primary recognition, beta=0, zero false-feasible and all selected boundary signs must pass. Do not dilute old/new errors or replace targets. Preserve full_s2 true primary 17/18 and reject its timeout.",
+  "development_gate": "Save and CPU-reload all six frozen candidates only after train checks; call the unchanged original evaluator once on all 180 saved development episodes only if all six pass train. Primary 6/6 and zero false-feasible unchanged; publish only through original G4. Repeatedly viewed development is not an independent final test.",
+  "failure_policy": "Keep all trials and rejected block logs. No automatic restart, leftover-quota reuse/transfer, new rollouts, final/budget_selection access or threshold changes. Exhausted block search or any train failure holds development. This proposal needs separate approval including the working-guard change and new optimizer quota.",
+  "protected": ["six actors", "common-stop cost/reach targets and W", "beta=0 and final G4/v5 train criteria", "complete frozen v2 and calibration", "map/time/unit/split contracts", "all old artifacts", "RC-PPO, HiRA and manuscripts"]
+}

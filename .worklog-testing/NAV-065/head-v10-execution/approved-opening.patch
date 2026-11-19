@@ -1,0 +1,142 @@
+*** Begin Patch
+*** Add File: /home/caohy/repositories/Paper/CaMRA/navigation/config/nav065_head_probe_prereg_v10.json
++{
++  "schema": "camra-nav065-head-probe-v10",
++  "task": "NAV-065",
++  "approved": true,
++  "status": "APPROVED",
++  "fit_split": "train",
++  "candidate": "nav064_terminal_tail_v1_full_s0",
++  "source_checkpoint_sha256": "b6eecf29f35cc1aa20a5fdd2216b0d30425cb044efae325f11a8c86533646bc7",
++  "source_rule": "Fixed v8 final, identical to the v9 starting checkpoint; never pick a v9 intermediate or best checkpoint. Reuse the exact v9 selection of 25 starts from this actor's 162 saved train episodes.",
++  "output_name": "nav065_head_probe_v10",
++  "resource_limit": {
++    "update_candidates": [
++      "nav064_terminal_tail_v1_full_s0"
++    ],
++    "head_linear_solves_total_max": 2,
++    "solves_per_original_critic_head": 1,
++    "optimizer_steps_total_max": 0,
++    "new_train_episodes_max": 0,
++    "development_scoring_rounds_max": 0,
++    "cpu_threads": 1
++  },
++  "solve": {
++    "method": "numpy.linalg.lstsq float64, one solve per original linear head, minimum Euclidean displacement from that source head on the fixed float32 body features plus bias",
++    "rcond": 1e-12,
++    "rule": "Freeze actor and both original critic bodies. Deep-copy source, solve A*delta=target-A*head_source once for each head, cast the new head to the original float32 dtype, and evaluate through the unchanged production network. No epsilon/label/sign shift, retry, tolerance sweep, alternate source, architecture change or extra data. Report precision errors and all local signs even if the solve appears exact in float64."
++  },
++  "acceptance": "Use unchanged v9 local numeric/component/joint sign checks and unchanged original v5 full 90+72 episode train_gate before and after. Report all regressions. Local success shows only finite known-start expressibility; full train failure remains failure. Neither result allows development evaluation, G4, NAV-066 or deployment.",
++  "failure_policy": "Any actual candidate head solve is model fitting, including this non-iterative method, and requires a new approved/hash-pinned registration. Exclusive output; preserve partial attempts/checkpoints and failures. No automatic continuation, transfer, enlargement or reuse of ended optimizer quotas.",
++  "downstream": "Diagnostic-only checkpoint and full-train impact review. If local solve passes, prioritize global fitting/stability on original plus boundary/along-path data; if it fails, diagnose numeric representation. No automatic architectural change or six-candidate expansion.",
++  "protected": [
++    "six original models and actors",
++    "original architecture and obs-v7",
++    "critic bodies during this probe",
++    "common-stop cost/reach targets and W",
++    "beta=0 and original v5 train/G4",
++    "complete frozen v2 and calibration",
++    "map/time/J/split contracts",
++    "all history",
++    "RC-PPO/HiRA/manuscripts"
++  ],
++  "authorization_reference": "用户在v10单模型副本、两个原输出层各求解一次/合计2次、新采样0、开发评分0的具体提案后明确回复“确认”；本次单次尝试，不授权追加、重试、参数扫描、开发评分或下游。",
++  "implementation_hashes": {
++    "scripts/refit_nav065_saved.py": "9cf2f93b802c8eac0367f96bc2cf5d41cd5afab3a9cc7680c47353971193562e",
++    "scripts/analyze_nav065_boundary.py": "3c90e6015fabdfe611d45474cbc8daf0050b22e304a15c696edf6d440d442878",
++    "tests/test_nav065_saved_refit.py": "c712d5e72fd02f13913a42b9ded4f82dc607c9037c32dc64456eb2f34b7cc293",
++    "config/nav065_saved_refit_proposal_v2.json": "7075c816be925ed38781f08375c54aa90a99721075c4ee6b454a4ee4e38e616c",
++    "scripts/refit_nav065_boundary.py": "2767b88a163a23b45fcfbf94ed56bcc26407486e15f0779d7fed145b482ec463",
++    "tests/test_nav065_boundary_refit.py": "610dd27ccd76d4f53316de92ce1ae43072d0bb7caa2c653edc14bed7fb89cc53",
++    "config/nav065_boundary_refit_proposal_v3.json": "df2b6de90867461fb1382635f88a836600f98365da5acd3a1398e665fc210da2",
++    "scripts/refit_nav065_guarded.py": "245792ec2cbb119a1d3c81ae5a1c8f71319d62b8acf1ee55b471903f84d67199",
++    "tests/test_nav065_guarded_refit.py": "43c35b58d10a478a777e4108827f63d1fb46c9552c1f63f3be3d16ab0ff93526",
++    "scripts/refit_nav065_adaptive.py": "5c3172db34e7663a50d8d7c3d45560a784bcc89972bfd9138788b25edc875bf4",
++    "tests/test_nav065_adaptive_refit.py": "89931eb9b4bd786c3d3588dd48cd4626eead3486fe2ce7206a35572dd1f585ad",
++    "config/nav065_adaptive_refit_proposal_v5.json": "c5761be9701a7bc2bb0a0e0be9e7d3ae9cc9c6173e92a3792dae6153c2db08c7",
++    "config/nav065_guarded_refit_prereg_v4.json": "0c25e6a3bcabf5cae14a428b4786147521130ced657d2b6220ff065e9fcb2d5c",
++    "reports/nav065_guarded_refit_v4_review.json": "3d2ae0b9850d5a6f9b7074053cf46e2567706e9e8db59221c0cd83de933bbad6",
++    "scripts/refit_nav065_deployment.py": "f2a699209433cf63f84b3a8c03ad206cc48153a396ba3e34081110bc89240061",
++    "scripts/evaluate_nav065_deployment.py": "d0c0127144801c7d7dcad5f228251dfd63744330ffed9f4d35ebd7d297a8adb9",
++    "src/camra_navigation/algorithm/deployment_oracle.py": "551eabf6c9593611ceafbbf7560cf9738b1a08db6b065d801b6a2961e802d01a",
++    "config/nav065_adaptive_refit_prereg_v5.json": "89d46ae22b7b2b4ec58a1d638052f9c2c26fd8f6f6a9c4432a9fcc6019b74f08",
++    "reports/nav065_adaptive_refit_v5_review.json": "631143e9e696d7a33e53c6d7f9ae7022067ac5911b4ca5c29158df10d85464d5",
++    "scripts/refit_nav065_blocks.py": "71b2eaf6582166c4d08399c79f6adfc781c73b316947367190e3963da4a65da6",
++    "tests/test_nav065_block_refit.py": "e566e2d2c2a7deb0123cf24d4e6dfad71dc94ecb0b6a58695652917566aa4cc5",
++    "config/nav065_block_refit_proposal_v6.json": "770735c21a32d1c535c78d5fc9d2ce61391c7a874198f04ec340df1643b9da46",
++    "config/nav065_block_refit_prereg_v6.json": "71fc28b406a377b5d1c07e90df14acf1a9ae02e64f32a067f71868ab59ce9d78",
++    "reports/nav065_block_refit_v6_review.json": "222b27f92eae7e298c2efec7ffa82e4b88d2681743d310ade4606ee0f291cb19",
++    "scripts/refit_nav065_staged.py": "dbd4ab7c18da1fdcc6fb86c3dc0f5c2d45aa828efbfc50855043565583036b0a",
++    "tests/test_nav065_staged_refit.py": "04dc08a62fb175fe4043a4a9b807dc84791b561842a751f8d34729f0652c9bbd",
++    "config/nav065_staged_refit_proposal_v7.json": "40db3535945486ab3ff8e5ddd9f42b2d50896fccfd6e9fe0baa398db0856d346",
++    "config/nav065_staged_refit_prereg_v7.json": "5376811a5b0345f526de1ab33f0e7c152fa2998e8303b9ef09f23e0128180b09",
++    "reports/nav065_staged_refit_v7_review.json": "e068b0c5c1995e3f53ce505fdaee39f640dfb4613d55b69ae2ec1f329df3ae86",
++    "scripts/refit_nav065_pilot.py": "bf71abe45057d5715bf976581c148e5ab48bb11d4b3843cb755796685819457e",
++    "tests/test_nav065_pilot_refit.py": "bae182c826e98e06ad72662ade822bd7d4c89b35a64f8e80c36eb1a370ad482e",
++    "config/nav065_pilot_refit_proposal_v8.json": "cb3d30d2567099fd2d5dad923035a43cf83a508b086a4a2de315a927bb021049",
++    "config/nav065_pilot_refit_prereg_v8.json": "d1a6b6c5493b31dcd8cb16d5e0efc54f5f9e2f31ae7f1d40fee029328b8b83f6",
++    "reports/nav065_pilot_refit_v8_review.json": "2c03e9e536979d37c25485148fd1ab177af9bf46b31a448cabb44f3426ae472e",
++    "scripts/probe_nav065_local.py": "a389c9572c5d2e4499432d44c462d8e1dec8070c88afc7fe909ee3e01689ec91",
++    "tests/test_nav065_local_probe.py": "430503652cce03d1d717e8fb245e61b7f42ccadfb5b618efdb2a97cf6e81e28a",
++    "config/nav065_local_probe_proposal_v9.json": "08cd3e903288452ec7f1748f0ea476cabd3608f307fa75370030dde9130a0101",
++    "config/nav065_local_probe_prereg_v9.json": "6a9647853c8c881d046ff255399b49a38ad9987fce77529100ed1f44822a9b7e",
++    "reports/nav065_local_probe_v9_review.json": "3b9ee217885f02636e1c2f52accb2e4c0fbb5ca0e738ab75966930a3cbbb8a1a",
++    "scripts/probe_nav065_head.py": "8d5602b28a20caa5dfffe86c690ea26094c322e192c6f1236cc9274fbe0df81d",
++    "tests/test_nav065_head_probe.py": "1dbfdd29095c8bcbc2b682d3be1bce2c26796f5e5cf012db02c7861bd210e1ce",
++    "config/nav065_head_probe_proposal_v10.json": "e5e69b1ec6dc548599747abe983b04f47bca43d545eb4b33752454e736bb8589"
++  }
++}
+*** Add File: /home/caohy/repositories/Paper/CaMRA/navigation/config/nav065_head_probe_prereg_v10.json.sha256
++ab7962f3fe8d1bccfd1498293a277c3065c773fe651366eedd73986879378b21
+*** Update File: /home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json
+@@
+-  "blockers": [
+-    "v9单次400更新已结束，新的真实输出层求解仍是模型拟合；主计划uncertainty_policy的正式试验/资源额度变化尚待明确确认，不重用旧额度。",
+-    "NAV-065原科学验收缺口未关，真实float32求解及全量影响尚未验证；原G4 FAIL保留。"
+-  ]
+-}
+-      ],
+-   "test_reports": [
++  "blockers": [
++    "v9单次400更新已结束，新的真实输出层求解仍是模型拟合；主计划uncertainty_policy的正式试验/资源额度变化尚待明确确认，不重用旧额度。",
++    "NAV-065原科学验收缺口未关，真实float32求解及全量影响尚未验证；原G4 FAIL保留。"
++  ]
++},
++{
++  "timestamp": "2026-11-18T20:57:16.530735+08:00",
++  "summary": "NAV-065/1.3.1 v10批准执行开工：固定一个副本，两个原输出层各一次求解",
++  "actions": [
++    "用户确认具体v10提案后重新读取AGENTS、legacy技能/规则、主计划及最新交接；核对NAV-064上游证据、NAV-065依赖和全部历史。",
++    "现场核验tiger11/tmux、绝对Python3.11.15、GPU、v2冻结33项、源码和准备证据散列；SSH publickey拒绝沿用已有同机执行授权，不换主机。",
++    "按原未批准提案生成独立批准登记、全实现散列和pin；原提案与旧v8/v9登记及产物保持原样。"
++  ],
++  "files_changed": [
++    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json",
++    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json.sha256",
++    "doc/plan/20261109_camra_navigation_implementation.json",
++    ".worklog-testing/NAV-065/head-v10-execution/"
++  ],
++  "commands": [
++    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u /home/caohy/repositories/Paper/.worklog-testing/NAV-065/head-v10-execution/context.py",
++    "tmux=nav064-r14-repair-20261115:nav065-v10-execution; cwd=/home/caohy/repositories/Paper/CaMRA/navigation"
++  ],
++  "results": [
++    "本项仍为RC-PPO固定actor后双critic估值诊断，为后续可靠价值预算搜索查明局部拟合和全量退化原因；NAV-065=false、52/67、原G4 FAIL不变。",
++    "批准一个full_s0深拷贝，固定v8末次源与原25起点、actor和两个body；原两个输出层各一次float64最小改变量求解，总2次，转回原float32执行原局部及原v5全train检查。",
++    "梯度更新0、新回合0、开发评分0；原目标/架构/W/beta/v2/评分不改。局部通过也不构成NAV-065科学通过，不生成部署包或执行NAV-066，不重用旧额度。",
++    "双重验收为实际求解计数、原标签与生产前向/原门禁、CPU重载/原非head与六模型保护及全量影响复核；完成后交付诊断模型、报告、追加记录和Git提交。"
++  ],
++  "evidence": [
++    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/head-v10-execution/baseline.json",
++    "CaMRA/navigation/reports/nav065_head_probe_v10_preparation_review.json",
++    "CaMRA/navigation/config/nav065_head_probe_prereg_v10.json",
++    "registration_sha256=ab7962f3fe8d1bccfd1498293a277c3065c773fe651366eedd73986879378b21"
++  ],
++  "remaining_work": [
++    "应用批准登记和追加开工记录后执行一次原隔离入口；按legacy由主agent复核实际产物和科学限制，保留全部失败。"
++  ],
++  "blockers": []
++}
++      ],
++   "test_reports": [
+*** End Patch

@@ -1,0 +1,4513 @@
+{
+  "schema": "camra-avoidance-prior-gate-v1",
+  "verdict": "PASS",
+  "implementation_versions": {
+    "observation": "obs-v7",
+    "estimator": "rcppo-feedback-v4"
+  },
+  "checks": [
+    {
+      "check": "constant_N1_lambda0.0",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "constant_N1_lambda0.5",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "constant_N1_lambda0.95",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "constant_N2_lambda0.0",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "constant_N2_lambda0.5",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "constant_N2_lambda0.95",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "constant_N7_lambda0.0",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "constant_N7_lambda0.5",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "constant_N7_lambda0.95",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "distinct_critic_two_step_manual",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "independent_scalar_oracles_all_stops",
+      "ok": true,
+      "detail": {
+        "cases": 66
+      }
+    },
+    {
+      "check": "reference_common_constant_scan_horizon",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "first_arrival_after_action_N1",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "true_success_ignores_learned_terminal_N1",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "first_arrival_after_action_N4",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "true_success_ignores_learned_terminal_N4",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "light_violation_not_feasible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "deep_violation_not_feasible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "negative_budget_not_feasible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "slice_actual_reach_bootstrap_consumed",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "slice_actual_cost_bootstrap_consumed",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "failure_shared_stop_and_penalty",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_gamma_joint_is_independent",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_gamma_joint_changes_target",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_close_segment_terminal_consumer",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "graded_observation_and_legacy_replay",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "actual_minimizing_ppo_probability_update",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "ppo_clipped_pessimistic_branch",
+      "ok": true,
+      "detail": [
+        -1.2000000476837158,
+        0.800000011920929
+      ]
+    },
+    {
+      "check": "startup_matching_fixture_accepted",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_source",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_gate_fail",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_observation",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_missing",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_sha",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_estimator_flags",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_discount",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "evaluation_production_constructor_and_trace",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "actual_schedule_update_0",
+      "ok": true,
+      "detail": [
+        0.999,
+        0.999
+      ]
+    },
+    {
+      "check": "actual_schedule_update_50",
+      "ok": true,
+      "detail": [
+        0.999165,
+        0.999165
+      ]
+    },
+    {
+      "check": "actual_schedule_update_149",
+      "ok": true,
+      "detail": [
+        0.9994917,
+        0.9994917
+      ]
+    },
+    {
+      "check": "actual_schedule_update_150",
+      "ok": true,
+      "detail": [
+        0.999495,
+        0.999495
+      ]
+    },
+    {
+      "check": "actual_schedule_update_299",
+      "ok": true,
+      "detail": [
+        0.9999867,
+        0.9999867
+      ]
+    },
+    {
+      "check": "actual_schedule_update_300",
+      "ok": true,
+      "detail": [
+        0.99999,
+        0.99999
+      ]
+    },
+    {
+      "check": "actual_schedule_update_599",
+      "ok": true,
+      "detail": [
+        0.99999,
+        0.99999
+      ]
+    },
+    {
+      "check": "reach_contracts_and_joint_discount_preserved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "invalid_schedule_arguments_rejected",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "scheduled_gamma_changes_production_reach_target",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "joint_and_cost_targets_unaffected_by_reach_schedule",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "actual_writer_keeps_old_episode_after_reset",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "actual_writer_keeps_old_budget_after_reset",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "actual_writer_logs_update_and_discounts",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "runtime_schedule_reaches_final_halfway",
+      "ok": true
+    },
+    {
+      "check": "runtime_writer_snapshot_before_reset",
+      "ok": true
+    },
+    {
+      "check": "runtime_auditor_rejects_episode_id",
+      "ok": true
+    },
+    {
+      "check": "runtime_auditor_rejects_episode_z0_J",
+      "ok": true
+    },
+    {
+      "check": "runtime_auditor_rejects_episode_k",
+      "ok": true
+    },
+    {
+      "check": "runtime_auditor_rejects_update_idx",
+      "ok": true
+    },
+    {
+      "check": "runtime_auditor_rejects_gamma_h",
+      "ok": true
+    },
+    {
+      "check": "runtime_auditor_rejects_gamma_joint",
+      "ok": true
+    },
+    {
+      "check": "runtime_auditor_rejects_stale_identity",
+      "ok": true
+    },
+    {
+      "check": "runtime_registry_selects_current_attempt",
+      "ok": true
+    },
+    {
+      "check": "runtime_registry_missing_or_duplicate_refused",
+      "ok": true
+    },
+    {
+      "check": "runtime_registry_missing_or_duplicate_refused",
+      "ok": true
+    },
+    {
+      "check": "runtime_evaluator_consumes_registry",
+      "ok": true
+    },
+    {
+      "check": "runtime_auditor_consumes_schedule",
+      "ok": true
+    },
+    {
+      "check": "production_ending_timeout",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_ending_stagnation",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_ending_goal_reached",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_ending_collision",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_ending_out_of_bounds",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "task_deadline_no_learned_future",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "window_consumes_actual_reach",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "window_consumes_actual_cost",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "reject_deadline_as_slice",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "reject_reversed_history",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "unsafe_arrival_infeasible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "overspent_arrival_infeasible",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "independent_bounded_n_step_enumeration",
+      "ok": true,
+      "detail": {
+        "cases": 66
+      }
+    },
+    {
+      "check": "unsafe_targets_respect_irreversible_bound",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "absorbing_failure_has_no_stopping_upper_bound",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "raw_reach_regression_has_correct_gradient",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "joint_gamma_finite_zero_threshold",
+      "ok": true,
+      "detail": {
+        "gamma1": 0.0,
+        "gamma0999": 0.0002000000000000002,
+        "mechanical_cost_discount": 1.0
+      }
+    },
+    {
+      "check": "production_three_estimators_oracle_none",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_three_estimators_oracle_timeout",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_three_estimators_oracle_goal_reached",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_three_estimators_oracle_collision",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "crossing_action_bad_probability_decreases",
+      "ok": true,
+      "detail": {
+        "bad_advantage": -0.16666666666666669,
+        "safe_advantage": -0.6945299145299146,
+        "probability_before": 0.5,
+        "probability_after": 0.4258607628452194
+      }
+    },
+    {
+      "check": "all_graded_states_in_loss",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "legacy_mask_preserved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "legacy_r14a2_stored_targets_unchanged",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "train_replay_feedback_bounds",
+      "ok": true,
+      "detail": {
+        "runs": 6,
+        "samples": 73548,
+        "report": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/parent_gate_attempt2.clearance.time.feedback.replay.json",
+        "sha256": "df7ee5078316329cf198f9f0f26980653adf4eedff80457e99ff3a906bd2ea80"
+      }
+    },
+    {
+      "check": "feedback_runner_current_registry_and_prereg",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "feedback_auditor_consumes_selected_prereg",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_feedback_approval",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_feedback_mask",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_feedback_policy",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_reject_feedback_source",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "time_450_steps_strictly_decreasing",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "time_distinguishes_45_40_30",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "legacy_first15_alias_reproduced",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "only_time_field_changes",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "graded_history_preserved_v6",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "legacy_time_reproduced_obs-v2",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "legacy_time_reproduced_obs-v3",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "legacy_time_reproduced_obs-v4",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "legacy_time_reproduced_obs-v5",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "time_reject_invalid_46.0",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "time_reject_invalid_inf",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "time_reject_invalid_nan",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_build18_train_time_v6",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_step_time_decreases",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_development_constructor_time_v6",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_coordinator_time_v6",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_coordinator_rejects_old_prefix",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v6_full_chain_accepted_in_memory",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v6_reject_missing_time_evidence",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v6_reject_unapproved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v6_reject_wrong_scale",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v6_reject_wrong_horizon",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v6_reject_old_observation",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_independent_signed_geometry",
+      "ok": true,
+      "detail": {
+        "cases": 144
+      }
+    },
+    {
+      "check": "clearance_empty_bin_positive_sentinel",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_preserves_raw_sensing_range",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_obstacle_permutation",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_four_wall_boundary_signs",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_reject_invalid_radius_None",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_reject_invalid_radius_nan",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_reject_invalid_radius_inf",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_reject_invalid_radius_-1.0",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_deep_interior_clips_negative",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_body_bearing_rotation",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_physical_encoder_identity",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_time_and_history_retained",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_legacy_bitwise_replay",
+      "ok": true,
+      "detail": {
+        "cases": 250,
+        "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_clearance_feedback_repair_20261116_v1/source_before/CaMRA/navigation/src/camra_navigation/observation.py",
+        "sha256": "1836cb7dab0984398a9611d23e6ed6e11bc0136924dd85da35c24e59d5e7fc31"
+      }
+    },
+    {
+      "check": "clearance_original41_named_values_preserved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_default_unchanged",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_actual_method_radius",
+      "ok": true,
+      "detail": {
+        "uncalibrated": 0.5055013879783843,
+        "full": 3.119367799506481
+      }
+    },
+    {
+      "check": "production_train_dev_clearance_v7",
+      "ok": true,
+      "detail": {
+        "train_constructors": 36,
+        "development_constructors": 12,
+        "development_steps": 0
+      }
+    },
+    {
+      "check": "production_auditor_clearance_v7",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "auditor_reject_clearance_wrong_radius",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "auditor_reject_clearance_wrong_sign",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "auditor_reject_clearance_old_dimension",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_coordinator_clearance_v7",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "clearance_outputs_absent",
+      "ok": true,
+      "detail": {
+        "historical_conflict": true,
+        "coordinator_rejected_before_write": true
+      }
+    },
+    {
+      "check": "clearance_actual_pre_crossing_action",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "production_three_networks_clearance_v7",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "crossing_v7_probability_decreases",
+      "ok": true,
+      "detail": {
+        "crossing_advantage": -0.37343737483024597,
+        "safe_advantage": -1.2999999523162842,
+        "relative_density_before": 0.8413441181182861,
+        "relative_density_after": 0.7081551551818848,
+        "limit": "Relative density of two bounded continuous actions, not integrated event probability."
+      }
+    },
+    {
+      "check": "startup_v7_full_chain_accepted_in_memory",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v7_reject_unapproved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v7_reject_old_prefix",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v7_reject_missing_check",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v7_reject_wrong_radius_contract",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "startup_v7_reject_wrong_layout",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_production_complete_batches",
+      "ok": true,
+      "detail": {
+        "run": "/pub/data/caohy/work/camra_navigation/parent_mech_attempt2_onpolicy_mechanical",
+        "updates": 2,
+        "episodes": 36,
+        "samples": [
+          4211,
+          4228
+        ],
+        "limit": "Mechanical current-policy fixture, not performance/selection evidence."
+      }
+    },
+    {
+      "check": "episode_old_log_prob_fixed",
+      "ok": true,
+      "detail": {
+        "minibatches": 180,
+        "max_log_prob_error": 0.0,
+        "critics_replayed": true
+      }
+    },
+    {
+      "check": "episode_auditor_variable_samples",
+      "ok": true,
+      "detail": {
+        "run_id": "parent_mech_attempt2_onpolicy_mechanical",
+        "updates_audited": 2,
+        "checks_pass": true,
+        "counts": {
+          "clearance_angular_ambiguous_fields": 20,
+          "clearance_states_checked": 16878,
+          "negative_budget_samples": 372,
+          "saturated_budget_samples": 0,
+          "graded_safety_samples": 370,
+          "clipped_actions": 0,
+          "samples": 8439,
+          "chunks": 36,
+          "recomputed_chunks": 36,
+          "completed_episodes": 36,
+          "manifest_metadata_mismatches": 0
+        },
+        "target_kinds": {
+          "success": 24,
+          "failure": 12
+        },
+        "numerical_differences": {},
+        "stability": {
+          "loss_policy": {
+            "min": 0.04819,
+            "p05": 0.048918699999999996,
+            "median": 0.055477,
+            "p95": 0.0620353,
+            "max": 0.062764
+          },
+          "loss_cost": {
+            "min": 0.004287,
+            "p05": 0.00677935,
+            "median": 0.0292105,
+            "p95": 0.05164165,
+            "max": 0.054134
+          },
+          "loss_reach": {
+            "min": 0.009093,
+            "p05": 0.01128635,
+            "median": 0.0310265,
+            "p95": 0.050766649999999997,
+            "max": 0.05296
+          },
+          "grad_norm_policy": {
+            "min": 5.132703,
+            "p05": 5.5650396,
+            "median": 9.456069,
+            "p95": 13.347098399999998,
+            "max": 13.779435
+          },
+          "grad_norm_cost": {
+            "min": 0.104054,
+            "p05": 0.11653315,
+            "median": 0.22884549999999998,
+            "p95": 0.34115785,
+            "max": 0.353637
+          },
+          "grad_norm_reach": {
+            "min": 0.100763,
+            "p05": 0.12061945,
+            "median": 0.29932749999999997,
+            "p95": 0.47803555,
+            "max": 0.497892
+          },
+          "entropy": {
+            "min": -4.9876,
+            "p05": -4.98683605,
+            "median": -4.9799605,
+            "p95": -4.97308495,
+            "max": -4.972321
+          },
+          "clipped_ratio_fraction": {
+            "min": 0.140076,
+            "p05": 0.14554205,
+            "median": 0.1947365,
+            "p95": 0.24393095,
+            "max": 0.249397
+          },
+          "adv_mean": {
+            "min": 0.05177,
+            "p05": 0.06051685,
+            "median": 0.1392385,
+            "p95": 0.21796015,
+            "max": 0.226707
+          },
+          "adv_std": {
+            "min": 0.179489,
+            "p05": 0.1907055,
+            "median": 0.29165399999999997,
+            "p95": 0.39260249999999997,
+            "max": 0.403819
+          },
+          "grad_adv_norm": {
+            "min": 5.132681,
+            "p05": 5.5649948,
+            "median": 9.455819,
+            "p95": 13.346643199999999,
+            "max": 13.778957
+          },
+          "grad_ent_norm": {
+            "min": 0.026094,
+            "p05": 0.02693535,
+            "median": 0.034507499999999997,
+            "p95": 0.04207965,
+            "max": 0.042921
+          }
+        },
+        "empirical_post_update_kl": {},
+        "budget_coverage": [
+          {
+            "env": 0,
+            "map_id": "l1_empty-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.7888506996347092,
+              1.045873181125018
+            ],
+            "k_mean": 0.9173619403798636,
+            "k_bins": [
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 1,
+            "map_id": "l1_empty-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.9899966351443584,
+              1.222817153894694
+            ],
+            "k_mean": 1.1064068945195262,
+            "k_bins": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 2,
+            "map_id": "l1_empty-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              0.6565768274212312,
+              0.8817064543955111
+            ],
+            "k_mean": 0.7691416409083711,
+            "k_bins": [
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 3,
+            "map_id": "l1_empty-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              1.2022901057424562,
+              1.226480918552887
+            ],
+            "k_mean": 1.2143855121476717,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              2
+            ]
+          },
+          {
+            "env": 4,
+            "map_id": "l1_empty-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              0.760014870256207,
+              1.2181503549254105
+            ],
+            "k_mean": 0.9890826125908088,
+            "k_bins": [
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 5,
+            "map_id": "l1_empty-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.8674952709086897,
+              0.9834243421168415
+            ],
+            "k_mean": 0.9254598065127656,
+            "k_bins": [
+              0,
+              0,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 6,
+            "map_id": "l2_single_detour-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.7493065981339205,
+              0.888464643251089
+            ],
+            "k_mean": 0.8188856206925048,
+            "k_bins": [
+              0,
+              1,
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 7,
+            "map_id": "l2_single_detour-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.6272027434682612,
+              1.1439892340120559
+            ],
+            "k_mean": 0.8855959887401585,
+            "k_bins": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "env": 8,
+            "map_id": "l2_single_detour-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              1.1317807264443585,
+              1.1431283771898886
+            ],
+            "k_mean": 1.1374545518171235,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0
+            ]
+          },
+          {
+            "env": 9,
+            "map_id": "l2_single_detour-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              0.996964395018501,
+              1.2895474394449677
+            ],
+            "k_mean": 1.1432559172317345,
+            "k_bins": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 10,
+            "map_id": "l2_single_detour-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              0.7437339203011746,
+              0.9490071872957568
+            ],
+            "k_mean": 0.8463705537984657,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 11,
+            "map_id": "l2_single_detour-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.7238689640644322,
+              0.9639286687595618
+            ],
+            "k_mean": 0.843898816411997,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 12,
+            "map_id": "l3_multi_path-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.8965631125602034,
+              1.041424379364645
+            ],
+            "k_mean": 0.9689937459624242,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 13,
+            "map_id": "l3_multi_path-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.6788826698120113,
+              1.0041074901988811
+            ],
+            "k_mean": 0.8414950800054461,
+            "k_bins": [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 14,
+            "map_id": "l3_multi_path-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              0.7122711302997897,
+              0.9881901666105706
+            ],
+            "k_mean": 0.8502306484551801,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 15,
+            "map_id": "l3_multi_path-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              0.8036981562353951,
+              1.0354140675168382
+            ],
+            "k_mean": 0.9195561118761166,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 16,
+            "map_id": "l3_multi_path-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              1.000297819745879,
+              1.1453294076532503
+            ],
+            "k_mean": 1.0728136136995645,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "env": 17,
+            "map_id": "l3_multi_path-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.8525042110593128,
+              1.2136653451618136
+            ],
+            "k_mean": 1.0330847781105632,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "canonical_index": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/parent_mech_attempt2/audit/parent_mech_attempt2_onpolicy_mechanical_canonical_index.jsonl",
+        "canonical_index_sha256": "88a3c8e595a3399b29bd3d66083d5ede5574ded75450dc7e1ef59d0075eec191",
+        "metadata_validation": "Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion."
+      }
+    },
+    {
+      "check": "episode_auditor_reject_sample_count",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_auditor_reject_missing_episode",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_auditor_reject_stale_update",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_all_terminal_kinds_retained",
+      "ok": true,
+      "detail": {
+        "goal_reached": {
+          "kind": "success",
+          "finite": true
+        },
+        "collision": {
+          "kind": "failure",
+          "finite": true
+        },
+        "out_of_bounds": {
+          "kind": "failure",
+          "finite": true
+        },
+        "budget_exhausted": {
+          "kind": "failure",
+          "finite": true
+        },
+        "timeout": {
+          "kind": "task_end",
+          "finite": true
+        },
+        "stagnation": {
+          "kind": "task_end",
+          "finite": true
+        }
+      }
+    },
+    {
+      "check": "episode_horizon_feedback_18_of_18",
+      "ok": true,
+      "detail": {
+        "path": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_detour_horizon_v1.json",
+        "sha256": "923852ac09136e7b9b0b154fdce05fbf078cb5d6a7c4c9c0d726265840f11818",
+        "limit": "Controlled interventions with frozen parent critics; no exploration/learning claim."
+      }
+    },
+    {
+      "check": "episode_three_estimators_lambda",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_coordinator_allocation",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_formal_outputs_absent",
+      "ok": true,
+      "detail": {
+        "historical_conflict": true,
+        "coordinator_rejected_before_write": true
+      }
+    },
+    {
+      "check": "episode_startup_candidate_accepted_in_memory",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_startup_reject_unapproved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_startup_reject_old_collection",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_startup_reject_old_calls",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_startup_reject_old_updates",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_startup_reject_missing_gate",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_startup_reject_old_lambda",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_default_bitwise",
+      "ok": true,
+      "detail": {
+        "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_repair_20261117_v1/source_before/src/camra_navigation/algorithm/networks.py",
+        "sha256": "635c9689f86cdafc75c0d4c928d5e254b6569508a1a596f04345e8ae8862a6ab"
+      }
+    },
+    {
+      "check": "prior_direction_and_walls",
+      "ok": true,
+      "detail": {
+        "clear": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "obstacle_left": [
+          -0.2234722077846527,
+          -0.7647010087966919,
+          -0.6572811007499695
+        ],
+        "obstacle_right": [
+          -0.2234722077846527,
+          0.7647010087966919,
+          0.6572811007499695
+        ],
+        "behind": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "beyond_goal": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "right_wall": [
+          -0.7647320628166199,
+          0.0,
+          0.0
+        ],
+        "right_wall_rotated": [
+          -0.38236603140830994,
+          0.8340192437171936,
+          0.6821878552436829
+        ]
+      }
+    },
+    {
+      "check": "prior_actual_method_clearance",
+      "ok": true,
+      "detail": {
+        "uncalibrated": {
+          "radius": 0.5055013879783843,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "full": {
+          "radius": 3.119367799506481,
+          "offset": [
+            -0.2234722077846527,
+            -0.7647010087966919,
+            -0.6572811007499695
+          ]
+        }
+      }
+    },
+    {
+      "check": "prior_observation_only",
+      "ok": true,
+      "detail": {
+        "fields": [
+          "obstacle_bins",
+          "safety_margin_bins",
+          "wall_margin_n",
+          "goal_dir_x_body",
+          "goal_dir_y_body",
+          "goal_dist_n",
+          "sin_yaw",
+          "cos_yaw"
+        ],
+        "hidden_state": false,
+        "oracle_route": false
+      }
+    },
+    {
+      "check": "prior_probability_and_residual",
+      "ok": true,
+      "detail": {
+        "max_log_prob_error": 0.0,
+        "residual_cancels": true,
+        "finite_gradient": true
+      }
+    },
+    {
+      "check": "prior_actual_development_build",
+      "ok": true,
+      "detail": "Actual factory called by development main; no development trajectories evaluated."
+    },
+    {
+      "check": "prior_omitted_density_detected",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_production_complete_batches",
+      "ok": true,
+      "detail": {
+        "run": "/pub/data/caohy/work/camra_navigation/v1_mech_attempt2_onpolicy_mechanical",
+        "updates": 2,
+        "episodes": 36,
+        "samples": [
+          3453,
+          3416
+        ],
+        "limit": "Mechanical current-policy fixture, not performance/selection evidence."
+      }
+    },
+    {
+      "check": "episode_old_log_prob_fixed",
+      "ok": true,
+      "detail": {
+        "minibatches": 140,
+        "max_log_prob_error": 6.67572021484375e-06,
+        "critics_replayed": true
+      }
+    },
+    {
+      "check": "episode_auditor_variable_samples",
+      "ok": true,
+      "detail": {
+        "run_id": "v1_mech_attempt2_onpolicy_mechanical",
+        "updates_audited": 2,
+        "checks_pass": true,
+        "counts": {
+          "clearance_angular_ambiguous_fields": 30,
+          "clearance_states_checked": 13738,
+          "negative_budget_samples": 198,
+          "saturated_budget_samples": 0,
+          "graded_safety_samples": 315,
+          "clipped_actions": 0,
+          "samples": 6869,
+          "chunks": 36,
+          "recomputed_chunks": 36,
+          "completed_episodes": 36,
+          "manifest_metadata_mismatches": 0
+        },
+        "target_kinds": {
+          "task_end": 24,
+          "success": 12
+        },
+        "numerical_differences": {},
+        "stability": {
+          "loss_policy": {
+            "min": 0.052168,
+            "p05": 0.05279545,
+            "median": 0.058442499999999994,
+            "p95": 0.06408955,
+            "max": 0.064717
+          },
+          "loss_cost": {
+            "min": 0.000438,
+            "p05": 0.00132065,
+            "median": 0.0092645,
+            "p95": 0.017208349999999997,
+            "max": 0.018091
+          },
+          "loss_reach": {
+            "min": 0.015546,
+            "p05": 0.01798425,
+            "median": 0.0399285,
+            "p95": 0.06187274999999999,
+            "max": 0.064311
+          },
+          "grad_norm_policy": {
+            "min": 7.690939,
+            "p05": 8.08002505,
+            "median": 11.581799499999999,
+            "p95": 15.08357395,
+            "max": 15.47266
+          },
+          "grad_norm_cost": {
+            "min": 0.026405,
+            "p05": 0.053326700000000005,
+            "median": 0.295622,
+            "p95": 0.5379172999999999,
+            "max": 0.564839
+          },
+          "grad_norm_reach": {
+            "min": 0.210656,
+            "p05": 0.22371305000000002,
+            "median": 0.3412265,
+            "p95": 0.45873995,
+            "max": 0.471797
+          },
+          "entropy": {
+            "min": -5.20355,
+            "p05": -5.20233095,
+            "median": -5.1913595,
+            "p95": -5.18038805,
+            "max": -5.179169
+          },
+          "clipped_ratio_fraction": {
+            "min": 0.147416,
+            "p05": 0.15111149999999998,
+            "median": 0.184371,
+            "p95": 0.2176305,
+            "max": 0.221326
+          },
+          "adv_mean": {
+            "min": 0.150952,
+            "p05": 0.16394985,
+            "median": 0.2809305,
+            "p95": 0.39791115,
+            "max": 0.410909
+          },
+          "adv_std": {
+            "min": 0.240191,
+            "p05": 0.24805224999999997,
+            "median": 0.3188035,
+            "p95": 0.38955475,
+            "max": 0.397416
+          },
+          "grad_adv_norm": {
+            "min": 7.690515,
+            "p05": 8.07959265,
+            "median": 11.5812915,
+            "p95": 15.08299035,
+            "max": 15.472068
+          },
+          "grad_ent_norm": {
+            "min": 0.025484,
+            "p05": 0.0258592,
+            "median": 0.029236,
+            "p95": 0.032612800000000004,
+            "max": 0.032988
+          }
+        },
+        "empirical_post_update_kl": {},
+        "budget_coverage": [
+          {
+            "env": 0,
+            "map_id": "l1_empty-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.7888506996347092,
+              1.045873181125018
+            ],
+            "k_mean": 0.9173619403798636,
+            "k_bins": [
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 1,
+            "map_id": "l1_empty-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.9899966351443584,
+              1.222817153894694
+            ],
+            "k_mean": 1.1064068945195262,
+            "k_bins": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 2,
+            "map_id": "l1_empty-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              0.6565768274212312,
+              0.8817064543955111
+            ],
+            "k_mean": 0.7691416409083711,
+            "k_bins": [
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 3,
+            "map_id": "l1_empty-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              1.2022901057424562,
+              1.226480918552887
+            ],
+            "k_mean": 1.2143855121476717,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              2
+            ]
+          },
+          {
+            "env": 4,
+            "map_id": "l1_empty-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              0.760014870256207,
+              1.2181503549254105
+            ],
+            "k_mean": 0.9890826125908088,
+            "k_bins": [
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 5,
+            "map_id": "l1_empty-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.8674952709086897,
+              0.9834243421168415
+            ],
+            "k_mean": 0.9254598065127656,
+            "k_bins": [
+              0,
+              0,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 6,
+            "map_id": "l2_single_detour-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.7493065981339205,
+              0.888464643251089
+            ],
+            "k_mean": 0.8188856206925048,
+            "k_bins": [
+              0,
+              1,
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 7,
+            "map_id": "l2_single_detour-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.6272027434682612,
+              1.1439892340120559
+            ],
+            "k_mean": 0.8855959887401585,
+            "k_bins": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "env": 8,
+            "map_id": "l2_single_detour-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              1.1317807264443585,
+              1.1431283771898886
+            ],
+            "k_mean": 1.1374545518171235,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0
+            ]
+          },
+          {
+            "env": 9,
+            "map_id": "l2_single_detour-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              0.996964395018501,
+              1.2895474394449677
+            ],
+            "k_mean": 1.1432559172317345,
+            "k_bins": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 10,
+            "map_id": "l2_single_detour-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              0.7437339203011746,
+              0.9490071872957568
+            ],
+            "k_mean": 0.8463705537984657,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 11,
+            "map_id": "l2_single_detour-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.7238689640644322,
+              0.9639286687595618
+            ],
+            "k_mean": 0.843898816411997,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 12,
+            "map_id": "l3_multi_path-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.8965631125602034,
+              1.041424379364645
+            ],
+            "k_mean": 0.9689937459624242,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 13,
+            "map_id": "l3_multi_path-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.6788826698120113,
+              1.0041074901988811
+            ],
+            "k_mean": 0.8414950800054461,
+            "k_bins": [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 14,
+            "map_id": "l3_multi_path-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              0.7122711302997897,
+              0.9881901666105706
+            ],
+            "k_mean": 0.8502306484551801,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 15,
+            "map_id": "l3_multi_path-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              0.8036981562353951,
+              1.0354140675168382
+            ],
+            "k_mean": 0.9195561118761166,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 16,
+            "map_id": "l3_multi_path-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              1.000297819745879,
+              1.1453294076532503
+            ],
+            "k_mean": 1.0728136136995645,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "env": 17,
+            "map_id": "l3_multi_path-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.8525042110593128,
+              1.2136653451618136
+            ],
+            "k_mean": 1.0330847781105632,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "canonical_index": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/v1_mech_attempt2/audit/v1_mech_attempt2_onpolicy_mechanical_canonical_index.jsonl",
+        "canonical_index_sha256": "4fed7b6259505afa197168efa8ad4e984d2c15e86b43b5a9e5b08273a22d4cc9",
+        "metadata_validation": "Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion."
+      }
+    },
+    {
+      "check": "episode_auditor_reject_sample_count",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_auditor_reject_missing_episode",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_auditor_reject_stale_update",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_actual_producer",
+      "ok": true,
+      "detail": {
+        "run": "/pub/data/caohy/work/camra_navigation/v1_mech_attempt2_onpolicy_mechanical",
+        "log_sha256": "a33814093ff8763c0a95411fc1dcf66dee8269e0aa337b18bb431407bd125984",
+        "audit": {
+          "run_id": "v1_mech_attempt2_onpolicy_mechanical",
+          "updates_audited": 2,
+          "checks_pass": true,
+          "counts": {
+            "clearance_angular_ambiguous_fields": 30,
+            "clearance_states_checked": 13738,
+            "negative_budget_samples": 198,
+            "saturated_budget_samples": 0,
+            "graded_safety_samples": 315,
+            "clipped_actions": 0,
+            "samples": 6869,
+            "chunks": 36,
+            "recomputed_chunks": 36,
+            "completed_episodes": 36,
+            "manifest_metadata_mismatches": 0
+          },
+          "target_kinds": {
+            "task_end": 24,
+            "success": 12
+          },
+          "numerical_differences": {},
+          "stability": {
+            "loss_policy": {
+              "min": 0.052168,
+              "p05": 0.05279545,
+              "median": 0.058442499999999994,
+              "p95": 0.06408955,
+              "max": 0.064717
+            },
+            "loss_cost": {
+              "min": 0.000438,
+              "p05": 0.00132065,
+              "median": 0.0092645,
+              "p95": 0.017208349999999997,
+              "max": 0.018091
+            },
+            "loss_reach": {
+              "min": 0.015546,
+              "p05": 0.01798425,
+              "median": 0.0399285,
+              "p95": 0.06187274999999999,
+              "max": 0.064311
+            },
+            "grad_norm_policy": {
+              "min": 7.690939,
+              "p05": 8.08002505,
+              "median": 11.581799499999999,
+              "p95": 15.08357395,
+              "max": 15.47266
+            },
+            "grad_norm_cost": {
+              "min": 0.026405,
+              "p05": 0.053326700000000005,
+              "median": 0.295622,
+              "p95": 0.5379172999999999,
+              "max": 0.564839
+            },
+            "grad_norm_reach": {
+              "min": 0.210656,
+              "p05": 0.22371305000000002,
+              "median": 0.3412265,
+              "p95": 0.45873995,
+              "max": 0.471797
+            },
+            "entropy": {
+              "min": -5.20355,
+              "p05": -5.20233095,
+              "median": -5.1913595,
+              "p95": -5.18038805,
+              "max": -5.179169
+            },
+            "clipped_ratio_fraction": {
+              "min": 0.147416,
+              "p05": 0.15111149999999998,
+              "median": 0.184371,
+              "p95": 0.2176305,
+              "max": 0.221326
+            },
+            "adv_mean": {
+              "min": 0.150952,
+              "p05": 0.16394985,
+              "median": 0.2809305,
+              "p95": 0.39791115,
+              "max": 0.410909
+            },
+            "adv_std": {
+              "min": 0.240191,
+              "p05": 0.24805224999999997,
+              "median": 0.3188035,
+              "p95": 0.38955475,
+              "max": 0.397416
+            },
+            "grad_adv_norm": {
+              "min": 7.690515,
+              "p05": 8.07959265,
+              "median": 11.5812915,
+              "p95": 15.08299035,
+              "max": 15.472068
+            },
+            "grad_ent_norm": {
+              "min": 0.025484,
+              "p05": 0.0258592,
+              "median": 0.029236,
+              "p95": 0.032612800000000004,
+              "max": 0.032988
+            }
+          },
+          "empirical_post_update_kl": {},
+          "budget_coverage": [
+            {
+              "env": 0,
+              "map_id": "l1_empty-s1001",
+              "budget_draws": 2,
+              "k_range": [
+                0.7888506996347092,
+                1.045873181125018
+              ],
+              "k_mean": 0.9173619403798636,
+              "k_bins": [
+                0,
+                1,
+                0,
+                0,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 1,
+              "map_id": "l1_empty-s1002",
+              "budget_draws": 2,
+              "k_range": [
+                0.9899966351443584,
+                1.222817153894694
+              ],
+              "k_mean": 1.1064068945195262,
+              "k_bins": [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                1
+              ]
+            },
+            {
+              "env": 2,
+              "map_id": "l1_empty-s1003",
+              "budget_draws": 2,
+              "k_range": [
+                0.6565768274212312,
+                0.8817064543955111
+              ],
+              "k_mean": 0.7691416409083711,
+              "k_bins": [
+                1,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 3,
+              "map_id": "l1_empty-s1004",
+              "budget_draws": 2,
+              "k_range": [
+                1.2022901057424562,
+                1.226480918552887
+              ],
+              "k_mean": 1.2143855121476717,
+              "k_bins": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                2
+              ]
+            },
+            {
+              "env": 4,
+              "map_id": "l1_empty-s1005",
+              "budget_draws": 2,
+              "k_range": [
+                0.760014870256207,
+                1.2181503549254105
+              ],
+              "k_mean": 0.9890826125908088,
+              "k_bins": [
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ]
+            },
+            {
+              "env": 5,
+              "map_id": "l1_empty-s1006",
+              "budget_draws": 2,
+              "k_range": [
+                0.8674952709086897,
+                0.9834243421168415
+              ],
+              "k_mean": 0.9254598065127656,
+              "k_bins": [
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 6,
+              "map_id": "l2_single_detour-s1001",
+              "budget_draws": 2,
+              "k_range": [
+                0.7493065981339205,
+                0.888464643251089
+              ],
+              "k_mean": 0.8188856206925048,
+              "k_bins": [
+                0,
+                1,
+                1,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 7,
+              "map_id": "l2_single_detour-s1002",
+              "budget_draws": 2,
+              "k_range": [
+                0.6272027434682612,
+                1.1439892340120559
+              ],
+              "k_mean": 0.8855959887401585,
+              "k_bins": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0
+              ]
+            },
+            {
+              "env": 8,
+              "map_id": "l2_single_detour-s1003",
+              "budget_draws": 2,
+              "k_range": [
+                1.1317807264443585,
+                1.1431283771898886
+              ],
+              "k_mean": 1.1374545518171235,
+              "k_bins": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                2,
+                0
+              ]
+            },
+            {
+              "env": 9,
+              "map_id": "l2_single_detour-s1004",
+              "budget_draws": 2,
+              "k_range": [
+                0.996964395018501,
+                1.2895474394449677
+              ],
+              "k_mean": 1.1432559172317345,
+              "k_bins": [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                1
+              ]
+            },
+            {
+              "env": 10,
+              "map_id": "l2_single_detour-s1005",
+              "budget_draws": 2,
+              "k_range": [
+                0.7437339203011746,
+                0.9490071872957568
+              ],
+              "k_mean": 0.8463705537984657,
+              "k_bins": [
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 11,
+              "map_id": "l2_single_detour-s1006",
+              "budget_draws": 2,
+              "k_range": [
+                0.7238689640644322,
+                0.9639286687595618
+              ],
+              "k_mean": 0.843898816411997,
+              "k_bins": [
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 12,
+              "map_id": "l3_multi_path-s1001",
+              "budget_draws": 2,
+              "k_range": [
+                0.8965631125602034,
+                1.041424379364645
+              ],
+              "k_mean": 0.9689937459624242,
+              "k_bins": [
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 13,
+              "map_id": "l3_multi_path-s1002",
+              "budget_draws": 2,
+              "k_range": [
+                0.6788826698120113,
+                1.0041074901988811
+              ],
+              "k_mean": 0.8414950800054461,
+              "k_bins": [
+                1,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 14,
+              "map_id": "l3_multi_path-s1003",
+              "budget_draws": 2,
+              "k_range": [
+                0.7122711302997897,
+                0.9881901666105706
+              ],
+              "k_mean": 0.8502306484551801,
+              "k_bins": [
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 15,
+              "map_id": "l3_multi_path-s1004",
+              "budget_draws": 2,
+              "k_range": [
+                0.8036981562353951,
+                1.0354140675168382
+              ],
+              "k_mean": 0.9195561118761166,
+              "k_bins": [
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 16,
+              "map_id": "l3_multi_path-s1005",
+              "budget_draws": 2,
+              "k_range": [
+                1.000297819745879,
+                1.1453294076532503
+              ],
+              "k_mean": 1.0728136136995645,
+              "k_bins": [
+                0,
+                0,
+                0,
+                0,
+                1,
+                1,
+                0
+              ]
+            },
+            {
+              "env": 17,
+              "map_id": "l3_multi_path-s1006",
+              "budget_draws": 2,
+              "k_range": [
+                0.8525042110593128,
+                1.2136653451618136
+              ],
+              "k_mean": 1.0330847781105632,
+              "k_bins": [
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                1
+              ]
+            }
+          ],
+          "canonical_index": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/v1_mech_attempt2/audit/v1_mech_attempt2_onpolicy_mechanical_canonical_index.jsonl",
+          "canonical_index_sha256": "4fed7b6259505afa197168efa8ad4e984d2c15e86b43b5a9e5b08273a22d4cc9",
+          "metadata_validation": "Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion."
+        }
+      }
+    },
+    {
+      "check": "prior_actual_auditor",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_corrupt_replay_rejected",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_exploration_prefix_gate",
+      "ok": true,
+      "detail": {
+        "cases": {
+          "pass": {
+            "result": "PASS",
+            "reports": 1
+          },
+          "unsafe": {
+            "result": "HELD",
+            "reports": 1
+          },
+          "incomplete": {
+            "result": "REJECTED",
+            "reports": 0
+          },
+          "tampered": {
+            "result": "REJECTED",
+            "reports": 0
+          }
+        },
+        "limit": "Synthetic raw fixtures; no new formal rollout. Real coordinator enforces this after50-update audit and before resuming."
+      }
+    },
+    {
+      "check": "prior_startup_accepted_in_memory",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_startup_reject_unapproved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_startup_reject_omitted_prior",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_startup_reject_wrong_prior",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_startup_reject_old_namespace",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_startup_reject_missing_production_check",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_startup_reject_wrong_gate_prior",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_startup_reject_missing_exploration_gate",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_v2_coordinator",
+      "ok": true,
+      "detail": {
+        "coordinator": "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2",
+        "audit50": "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2_audit_u50",
+        "audit300": "/pub/data/caohy/work/camra_navigation/nav064_avoidance_prior_v2_audit_u300",
+        "development": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_avoidance_prior_v2_development.json",
+        "closure": "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav064_avoidance_prior_v2_closure.json"
+      }
+    },
+    {
+      "check": "prior_v1_bitwise_replay",
+      "ok": true,
+      "detail": {
+        "snapshot": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/source_before/src/camra_navigation/algorithm/policy_prior.py",
+        "sha256": "59dd08611b23bd17a0900751d3c96b6ae5e94ba41e2359f2132774337be7abf8"
+      }
+    },
+    {
+      "check": "prior_v2_all_wall_normals",
+      "ok": true,
+      "detail": {
+        "cases": 64,
+        "minimum_inward_velocity_m_s": 0.27322519657810873
+      }
+    },
+    {
+      "check": "prior_v2_quantized_side_replay",
+      "ok": true,
+      "detail": {
+        "episodes": 900,
+        "old_total": 108036,
+        "new_total": 0,
+        "old_median": 103.0,
+        "new_median": 0.0,
+        "limit": "Same recorded observations; no counterfactual rollout."
+      }
+    },
+    {
+      "check": "prior_v2_train_closed_loop",
+      "ok": true,
+      "detail": {
+        "episodes": 36,
+        "rows": [
+          {
+            "variant": "uncalibrated",
+            "map_id": "l1_empty-s1001",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 99.13102278711068,
+            "distance_m": 0.4822604726575751
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l1_empty-s1002",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 98.6809511575446,
+            "distance_m": 0.45988207423462624
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l1_empty-s1003",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 98.57355674937656,
+            "distance_m": 0.45467616005175066
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l1_empty-s1004",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 99.42160931796263,
+            "distance_m": 0.47950916245326236
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l1_empty-s1005",
+            "label": "goal_reached",
+            "steps": 289,
+            "safe": true,
+            "remaining_J": 99.7086691932995,
+            "distance_m": 0.4974166460727101
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l1_empty-s1006",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 98.8883818389616,
+            "distance_m": 0.46751467840865624
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l2_single_detour-s1001",
+            "label": "goal_reached",
+            "steps": 337,
+            "safe": true,
+            "remaining_J": 148.098172502291,
+            "distance_m": 0.46135121120704664
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l2_single_detour-s1002",
+            "label": "goal_reached",
+            "steps": 333,
+            "safe": true,
+            "remaining_J": 150.95108534093407,
+            "distance_m": 0.4667266579247952
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l2_single_detour-s1003",
+            "label": "goal_reached",
+            "steps": 329,
+            "safe": true,
+            "remaining_J": 145.9481489559618,
+            "distance_m": 0.48709130008011586
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l2_single_detour-s1004",
+            "label": "goal_reached",
+            "steps": 323,
+            "safe": true,
+            "remaining_J": 144.37641339998692,
+            "distance_m": 0.47867053856692243
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l2_single_detour-s1005",
+            "label": "goal_reached",
+            "steps": 328,
+            "safe": true,
+            "remaining_J": 147.62865918258376,
+            "distance_m": 0.4691235531639177
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l2_single_detour-s1006",
+            "label": "goal_reached",
+            "steps": 347,
+            "safe": true,
+            "remaining_J": 124.7050768896766,
+            "distance_m": 0.48765858565451914
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l3_multi_path-s1001",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 99.84995966249306,
+            "distance_m": 0.49525155061926357
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l3_multi_path-s1002",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 100.05749403114521,
+            "distance_m": 0.49679199659436535
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l3_multi_path-s1003",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 99.62313842688417,
+            "distance_m": 0.4783829423799067
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l3_multi_path-s1004",
+            "label": "goal_reached",
+            "steps": 291,
+            "safe": true,
+            "remaining_J": 99.13241017363976,
+            "distance_m": 0.4554380308233367
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l3_multi_path-s1005",
+            "label": "goal_reached",
+            "steps": 291,
+            "safe": true,
+            "remaining_J": 98.9949784855454,
+            "distance_m": 0.454079466235682
+          },
+          {
+            "variant": "uncalibrated",
+            "map_id": "l3_multi_path-s1006",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 99.75201072546662,
+            "distance_m": 0.4851075163133694
+          },
+          {
+            "variant": "full",
+            "map_id": "l1_empty-s1001",
+            "label": "goal_reached",
+            "steps": 294,
+            "safe": true,
+            "remaining_J": 111.16327485071952,
+            "distance_m": 0.46706327956334376
+          },
+          {
+            "variant": "full",
+            "map_id": "l1_empty-s1002",
+            "label": "goal_reached",
+            "steps": 291,
+            "safe": true,
+            "remaining_J": 115.58151646954371,
+            "distance_m": 0.482907315246814
+          },
+          {
+            "variant": "full",
+            "map_id": "l1_empty-s1003",
+            "label": "goal_reached",
+            "steps": 290,
+            "safe": true,
+            "remaining_J": 117.14778399412705,
+            "distance_m": 0.4721822094222458
+          },
+          {
+            "variant": "full",
+            "map_id": "l1_empty-s1004",
+            "label": "goal_reached",
+            "steps": 296,
+            "safe": true,
+            "remaining_J": 108.38780160299791,
+            "distance_m": 0.47010102598110876
+          },
+          {
+            "variant": "full",
+            "map_id": "l1_empty-s1005",
+            "label": "goal_reached",
+            "steps": 291,
+            "safe": true,
+            "remaining_J": 115.52621836443865,
+            "distance_m": 0.4803067545729979
+          },
+          {
+            "variant": "full",
+            "map_id": "l1_empty-s1006",
+            "label": "goal_reached",
+            "steps": 293,
+            "safe": true,
+            "remaining_J": 112.14256888392799,
+            "distance_m": 0.47894929743046266
+          },
+          {
+            "variant": "full",
+            "map_id": "l2_single_detour-s1001",
+            "label": "goal_reached",
+            "steps": 387,
+            "safe": true,
+            "remaining_J": 98.06556760039143,
+            "distance_m": 0.4701733007335072
+          },
+          {
+            "variant": "full",
+            "map_id": "l2_single_detour-s1002",
+            "label": "goal_reached",
+            "steps": 383,
+            "safe": true,
+            "remaining_J": 101.06776457448234,
+            "distance_m": 0.49754487971114847
+          },
+          {
+            "variant": "full",
+            "map_id": "l2_single_detour-s1003",
+            "label": "goal_reached",
+            "steps": 378,
+            "safe": true,
+            "remaining_J": 96.55103299228438,
+            "distance_m": 0.49373083092121967
+          },
+          {
+            "variant": "full",
+            "map_id": "l2_single_detour-s1004",
+            "label": "goal_reached",
+            "steps": 370,
+            "safe": true,
+            "remaining_J": 97.50553592210565,
+            "distance_m": 0.479414729705663
+          },
+          {
+            "variant": "full",
+            "map_id": "l2_single_detour-s1005",
+            "label": "goal_reached",
+            "steps": 375,
+            "safe": true,
+            "remaining_J": 101.59955779698839,
+            "distance_m": 0.47466323182916687
+          },
+          {
+            "variant": "full",
+            "map_id": "l2_single_detour-s1006",
+            "label": "goal_reached",
+            "steps": 397,
+            "safe": true,
+            "remaining_J": 70.6205105398758,
+            "distance_m": 0.4973325655862066
+          },
+          {
+            "variant": "full",
+            "map_id": "l3_multi_path-s1001",
+            "label": "goal_reached",
+            "steps": 292,
+            "safe": true,
+            "remaining_J": 115.3907956667685,
+            "distance_m": 0.47958362245738906
+          },
+          {
+            "variant": "full",
+            "map_id": "l3_multi_path-s1002",
+            "label": "goal_reached",
+            "steps": 292,
+            "safe": true,
+            "remaining_J": 115.6632205819177,
+            "distance_m": 0.4602976974097997
+          },
+          {
+            "variant": "full",
+            "map_id": "l3_multi_path-s1003",
+            "label": "goal_reached",
+            "steps": 292,
+            "safe": true,
+            "remaining_J": 115.05235237087953,
+            "distance_m": 0.4638948295555535
+          },
+          {
+            "variant": "full",
+            "map_id": "l3_multi_path-s1004",
+            "label": "goal_reached",
+            "steps": 292,
+            "safe": true,
+            "remaining_J": 116.04926564319652,
+            "distance_m": 0.4698139182416431
+          },
+          {
+            "variant": "full",
+            "map_id": "l3_multi_path-s1005",
+            "label": "goal_reached",
+            "steps": 292,
+            "safe": true,
+            "remaining_J": 115.83275424389115,
+            "distance_m": 0.4667205836912239
+          },
+          {
+            "variant": "full",
+            "map_id": "l3_multi_path-s1006",
+            "label": "goal_reached",
+            "steps": 292,
+            "safe": true,
+            "remaining_J": 114.97931939282972,
+            "distance_m": 0.4574662108569886
+          }
+        ],
+        "limits": "Fresh deterministic seed0 train-only mechanism fixture. No optimization, parameter search or formal performance claim; budget failures retained."
+      }
+    },
+    {
+      "check": "prior_v2_density_and_factory",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_production_complete_batches",
+      "ok": true,
+      "detail": {
+        "run": "/pub/data/caohy/work/camra_navigation/v2_mech_attempt1_onpolicy_mechanical",
+        "updates": 2,
+        "episodes": 36,
+        "samples": [
+          5807,
+          5774
+        ],
+        "limit": "Mechanical current-policy fixture, not performance/selection evidence."
+      }
+    },
+    {
+      "check": "episode_old_log_prob_fixed",
+      "ok": true,
+      "detail": {
+        "minibatches": 240,
+        "max_log_prob_error": 2.6226043701171875e-06,
+        "critics_replayed": true
+      }
+    },
+    {
+      "check": "episode_auditor_variable_samples",
+      "ok": true,
+      "detail": {
+        "run_id": "v2_mech_attempt1_onpolicy_mechanical",
+        "updates_audited": 2,
+        "checks_pass": true,
+        "counts": {
+          "clearance_angular_ambiguous_fields": 78,
+          "clearance_states_checked": 23162,
+          "negative_budget_samples": 908,
+          "saturated_budget_samples": 0,
+          "graded_safety_samples": 0,
+          "clipped_actions": 0,
+          "samples": 11581,
+          "chunks": 36,
+          "recomputed_chunks": 36,
+          "completed_episodes": 36,
+          "manifest_metadata_mismatches": 0
+        },
+        "target_kinds": {
+          "success": 36
+        },
+        "numerical_differences": {},
+        "stability": {
+          "loss_policy": {
+            "min": 0.050294,
+            "p05": 0.05070615,
+            "median": 0.0544155,
+            "p95": 0.05812485,
+            "max": 0.058537
+          },
+          "loss_cost": {
+            "min": 0.000157,
+            "p05": 0.0013392,
+            "median": 0.011979,
+            "p95": 0.022618799999999998,
+            "max": 0.023801
+          },
+          "loss_reach": {
+            "min": 0.00517,
+            "p05": 0.00589035,
+            "median": 0.0123735,
+            "p95": 0.01885665,
+            "max": 0.019577
+          },
+          "grad_norm_policy": {
+            "min": 4.841729,
+            "p05": 5.1579961,
+            "median": 8.0044,
+            "p95": 10.850803899999999,
+            "max": 11.167071
+          },
+          "grad_norm_cost": {
+            "min": 0.021292,
+            "p05": 0.034844850000000004,
+            "median": 0.1568205,
+            "p95": 0.27879615,
+            "max": 0.292349
+          },
+          "grad_norm_reach": {
+            "min": 0.077322,
+            "p05": 0.0928244,
+            "median": 0.232346,
+            "p95": 0.37186759999999996,
+            "max": 0.38737
+          },
+          "entropy": {
+            "min": -5.005237,
+            "p05": -5.0043995500000005,
+            "median": -4.996862500000001,
+            "p95": -4.98932545,
+            "max": -4.988488
+          },
+          "clipped_ratio_fraction": {
+            "min": 0.136597,
+            "p05": 0.1399366,
+            "median": 0.169993,
+            "p95": 0.2000494,
+            "max": 0.203389
+          },
+          "adv_mean": {
+            "min": -0.013409,
+            "p05": -0.00869085,
+            "median": 0.0337725,
+            "p95": 0.07623585,
+            "max": 0.080954
+          },
+          "adv_std": {
+            "min": 0.052481,
+            "p05": 0.0565168,
+            "median": 0.092839,
+            "p95": 0.1291612,
+            "max": 0.133197
+          },
+          "grad_adv_norm": {
+            "min": 4.841619,
+            "p05": 5.15788365,
+            "median": 8.004265499999999,
+            "p95": 10.85064735,
+            "max": 11.166912
+          },
+          "grad_ent_norm": {
+            "min": 0.024359,
+            "p05": 0.02506835,
+            "median": 0.031452499999999994,
+            "p95": 0.03783665,
+            "max": 0.038546
+          }
+        },
+        "empirical_post_update_kl": {},
+        "budget_coverage": [
+          {
+            "env": 0,
+            "map_id": "l1_empty-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.7888506996347092,
+              1.045873181125018
+            ],
+            "k_mean": 0.9173619403798636,
+            "k_bins": [
+              0,
+              1,
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 1,
+            "map_id": "l1_empty-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.9899966351443584,
+              1.222817153894694
+            ],
+            "k_mean": 1.1064068945195262,
+            "k_bins": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 2,
+            "map_id": "l1_empty-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              0.6565768274212312,
+              0.8817064543955111
+            ],
+            "k_mean": 0.7691416409083711,
+            "k_bins": [
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 3,
+            "map_id": "l1_empty-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              1.2022901057424562,
+              1.226480918552887
+            ],
+            "k_mean": 1.2143855121476717,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              2
+            ]
+          },
+          {
+            "env": 4,
+            "map_id": "l1_empty-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              0.760014870256207,
+              1.2181503549254105
+            ],
+            "k_mean": 0.9890826125908088,
+            "k_bins": [
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 5,
+            "map_id": "l1_empty-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.8674952709086897,
+              0.9834243421168415
+            ],
+            "k_mean": 0.9254598065127656,
+            "k_bins": [
+              0,
+              0,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 6,
+            "map_id": "l2_single_detour-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.7493065981339205,
+              0.888464643251089
+            ],
+            "k_mean": 0.8188856206925048,
+            "k_bins": [
+              0,
+              1,
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 7,
+            "map_id": "l2_single_detour-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.6272027434682612,
+              1.1439892340120559
+            ],
+            "k_mean": 0.8855959887401585,
+            "k_bins": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "env": 8,
+            "map_id": "l2_single_detour-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              1.1317807264443585,
+              1.1431283771898886
+            ],
+            "k_mean": 1.1374545518171235,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0
+            ]
+          },
+          {
+            "env": 9,
+            "map_id": "l2_single_detour-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              0.996964395018501,
+              1.2895474394449677
+            ],
+            "k_mean": 1.1432559172317345,
+            "k_bins": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "env": 10,
+            "map_id": "l2_single_detour-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              0.7437339203011746,
+              0.9490071872957568
+            ],
+            "k_mean": 0.8463705537984657,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 11,
+            "map_id": "l2_single_detour-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.7238689640644322,
+              0.9639286687595618
+            ],
+            "k_mean": 0.843898816411997,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 12,
+            "map_id": "l3_multi_path-s1001",
+            "budget_draws": 2,
+            "k_range": [
+              0.8965631125602034,
+              1.041424379364645
+            ],
+            "k_mean": 0.9689937459624242,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 13,
+            "map_id": "l3_multi_path-s1002",
+            "budget_draws": 2,
+            "k_range": [
+              0.6788826698120113,
+              1.0041074901988811
+            ],
+            "k_mean": 0.8414950800054461,
+            "k_bins": [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 14,
+            "map_id": "l3_multi_path-s1003",
+            "budget_draws": 2,
+            "k_range": [
+              0.7122711302997897,
+              0.9881901666105706
+            ],
+            "k_mean": 0.8502306484551801,
+            "k_bins": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 15,
+            "map_id": "l3_multi_path-s1004",
+            "budget_draws": 2,
+            "k_range": [
+              0.8036981562353951,
+              1.0354140675168382
+            ],
+            "k_mean": 0.9195561118761166,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "env": 16,
+            "map_id": "l3_multi_path-s1005",
+            "budget_draws": 2,
+            "k_range": [
+              1.000297819745879,
+              1.1453294076532503
+            ],
+            "k_mean": 1.0728136136995645,
+            "k_bins": [
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "env": 17,
+            "map_id": "l3_multi_path-s1006",
+            "budget_draws": 2,
+            "k_range": [
+              0.8525042110593128,
+              1.2136653451618136
+            ],
+            "k_mean": 1.0330847781105632,
+            "k_bins": [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "canonical_index": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/v2_mech_attempt1/audit/v2_mech_attempt1_onpolicy_mechanical_canonical_index.jsonl",
+        "canonical_index_sha256": "35b9c9bbe0152099df341d0ba911f1761d400adb3317298adeb37bd7bcc30eb7",
+        "metadata_validation": "Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion."
+      }
+    },
+    {
+      "check": "episode_auditor_reject_sample_count",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_auditor_reject_missing_episode",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "episode_auditor_reject_stale_update",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "prior_actual_producer",
+      "ok": true,
+      "detail": {
+        "run": "/pub/data/caohy/work/camra_navigation/v2_mech_attempt1_onpolicy_mechanical",
+        "log_sha256": "58ef05e5e5c04c02bdec2077aa907f11de7fa9699765c531ed47329b9ef02bb4",
+        "audit": {
+          "run_id": "v2_mech_attempt1_onpolicy_mechanical",
+          "updates_audited": 2,
+          "checks_pass": true,
+          "counts": {
+            "clearance_angular_ambiguous_fields": 78,
+            "clearance_states_checked": 23162,
+            "negative_budget_samples": 908,
+            "saturated_budget_samples": 0,
+            "graded_safety_samples": 0,
+            "clipped_actions": 0,
+            "samples": 11581,
+            "chunks": 36,
+            "recomputed_chunks": 36,
+            "completed_episodes": 36,
+            "manifest_metadata_mismatches": 0
+          },
+          "target_kinds": {
+            "success": 36
+          },
+          "numerical_differences": {},
+          "stability": {
+            "loss_policy": {
+              "min": 0.050294,
+              "p05": 0.05070615,
+              "median": 0.0544155,
+              "p95": 0.05812485,
+              "max": 0.058537
+            },
+            "loss_cost": {
+              "min": 0.000157,
+              "p05": 0.0013392,
+              "median": 0.011979,
+              "p95": 0.022618799999999998,
+              "max": 0.023801
+            },
+            "loss_reach": {
+              "min": 0.00517,
+              "p05": 0.00589035,
+              "median": 0.0123735,
+              "p95": 0.01885665,
+              "max": 0.019577
+            },
+            "grad_norm_policy": {
+              "min": 4.841729,
+              "p05": 5.1579961,
+              "median": 8.0044,
+              "p95": 10.850803899999999,
+              "max": 11.167071
+            },
+            "grad_norm_cost": {
+              "min": 0.021292,
+              "p05": 0.034844850000000004,
+              "median": 0.1568205,
+              "p95": 0.27879615,
+              "max": 0.292349
+            },
+            "grad_norm_reach": {
+              "min": 0.077322,
+              "p05": 0.0928244,
+              "median": 0.232346,
+              "p95": 0.37186759999999996,
+              "max": 0.38737
+            },
+            "entropy": {
+              "min": -5.005237,
+              "p05": -5.0043995500000005,
+              "median": -4.996862500000001,
+              "p95": -4.98932545,
+              "max": -4.988488
+            },
+            "clipped_ratio_fraction": {
+              "min": 0.136597,
+              "p05": 0.1399366,
+              "median": 0.169993,
+              "p95": 0.2000494,
+              "max": 0.203389
+            },
+            "adv_mean": {
+              "min": -0.013409,
+              "p05": -0.00869085,
+              "median": 0.0337725,
+              "p95": 0.07623585,
+              "max": 0.080954
+            },
+            "adv_std": {
+              "min": 0.052481,
+              "p05": 0.0565168,
+              "median": 0.092839,
+              "p95": 0.1291612,
+              "max": 0.133197
+            },
+            "grad_adv_norm": {
+              "min": 4.841619,
+              "p05": 5.15788365,
+              "median": 8.004265499999999,
+              "p95": 10.85064735,
+              "max": 11.166912
+            },
+            "grad_ent_norm": {
+              "min": 0.024359,
+              "p05": 0.02506835,
+              "median": 0.031452499999999994,
+              "p95": 0.03783665,
+              "max": 0.038546
+            }
+          },
+          "empirical_post_update_kl": {},
+          "budget_coverage": [
+            {
+              "env": 0,
+              "map_id": "l1_empty-s1001",
+              "budget_draws": 2,
+              "k_range": [
+                0.7888506996347092,
+                1.045873181125018
+              ],
+              "k_mean": 0.9173619403798636,
+              "k_bins": [
+                0,
+                1,
+                0,
+                0,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 1,
+              "map_id": "l1_empty-s1002",
+              "budget_draws": 2,
+              "k_range": [
+                0.9899966351443584,
+                1.222817153894694
+              ],
+              "k_mean": 1.1064068945195262,
+              "k_bins": [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                1
+              ]
+            },
+            {
+              "env": 2,
+              "map_id": "l1_empty-s1003",
+              "budget_draws": 2,
+              "k_range": [
+                0.6565768274212312,
+                0.8817064543955111
+              ],
+              "k_mean": 0.7691416409083711,
+              "k_bins": [
+                1,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 3,
+              "map_id": "l1_empty-s1004",
+              "budget_draws": 2,
+              "k_range": [
+                1.2022901057424562,
+                1.226480918552887
+              ],
+              "k_mean": 1.2143855121476717,
+              "k_bins": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                2
+              ]
+            },
+            {
+              "env": 4,
+              "map_id": "l1_empty-s1005",
+              "budget_draws": 2,
+              "k_range": [
+                0.760014870256207,
+                1.2181503549254105
+              ],
+              "k_mean": 0.9890826125908088,
+              "k_bins": [
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ]
+            },
+            {
+              "env": 5,
+              "map_id": "l1_empty-s1006",
+              "budget_draws": 2,
+              "k_range": [
+                0.8674952709086897,
+                0.9834243421168415
+              ],
+              "k_mean": 0.9254598065127656,
+              "k_bins": [
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 6,
+              "map_id": "l2_single_detour-s1001",
+              "budget_draws": 2,
+              "k_range": [
+                0.7493065981339205,
+                0.888464643251089
+              ],
+              "k_mean": 0.8188856206925048,
+              "k_bins": [
+                0,
+                1,
+                1,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 7,
+              "map_id": "l2_single_detour-s1002",
+              "budget_draws": 2,
+              "k_range": [
+                0.6272027434682612,
+                1.1439892340120559
+              ],
+              "k_mean": 0.8855959887401585,
+              "k_bins": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0
+              ]
+            },
+            {
+              "env": 8,
+              "map_id": "l2_single_detour-s1003",
+              "budget_draws": 2,
+              "k_range": [
+                1.1317807264443585,
+                1.1431283771898886
+              ],
+              "k_mean": 1.1374545518171235,
+              "k_bins": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                2,
+                0
+              ]
+            },
+            {
+              "env": 9,
+              "map_id": "l2_single_detour-s1004",
+              "budget_draws": 2,
+              "k_range": [
+                0.996964395018501,
+                1.2895474394449677
+              ],
+              "k_mean": 1.1432559172317345,
+              "k_bins": [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                1
+              ]
+            },
+            {
+              "env": 10,
+              "map_id": "l2_single_detour-s1005",
+              "budget_draws": 2,
+              "k_range": [
+                0.7437339203011746,
+                0.9490071872957568
+              ],
+              "k_mean": 0.8463705537984657,
+              "k_bins": [
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 11,
+              "map_id": "l2_single_detour-s1006",
+              "budget_draws": 2,
+              "k_range": [
+                0.7238689640644322,
+                0.9639286687595618
+              ],
+              "k_mean": 0.843898816411997,
+              "k_bins": [
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 12,
+              "map_id": "l3_multi_path-s1001",
+              "budget_draws": 2,
+              "k_range": [
+                0.8965631125602034,
+                1.041424379364645
+              ],
+              "k_mean": 0.9689937459624242,
+              "k_bins": [
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 13,
+              "map_id": "l3_multi_path-s1002",
+              "budget_draws": 2,
+              "k_range": [
+                0.6788826698120113,
+                1.0041074901988811
+              ],
+              "k_mean": 0.8414950800054461,
+              "k_bins": [
+                1,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 14,
+              "map_id": "l3_multi_path-s1003",
+              "budget_draws": 2,
+              "k_range": [
+                0.7122711302997897,
+                0.9881901666105706
+              ],
+              "k_mean": 0.8502306484551801,
+              "k_bins": [
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 15,
+              "map_id": "l3_multi_path-s1004",
+              "budget_draws": 2,
+              "k_range": [
+                0.8036981562353951,
+                1.0354140675168382
+              ],
+              "k_mean": 0.9195561118761166,
+              "k_bins": [
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "env": 16,
+              "map_id": "l3_multi_path-s1005",
+              "budget_draws": 2,
+              "k_range": [
+                1.000297819745879,
+                1.1453294076532503
+              ],
+              "k_mean": 1.0728136136995645,
+              "k_bins": [
+                0,
+                0,
+                0,
+                0,
+                1,
+                1,
+                0
+              ]
+            },
+            {
+              "env": 17,
+              "map_id": "l3_multi_path-s1006",
+              "budget_draws": 2,
+              "k_range": [
+                0.8525042110593128,
+                1.2136653451618136
+              ],
+              "k_mean": 1.0330847781105632,
+              "k_bins": [
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                1
+              ]
+            }
+          ],
+          "canonical_index": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/v2_mech_attempt1/audit/v2_mech_attempt1_onpolicy_mechanical_canonical_index.jsonl",
+          "canonical_index_sha256": "35b9c9bbe0152099df341d0ba911f1761d400adb3317298adeb37bd7bcc30eb7",
+          "metadata_validation": "Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion."
+        }
+      }
+    },
+    {
+      "check": "prior_actual_auditor",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "code_files": {
+    "config/navigation_contract_clearance_feedback_v1.json": "b523eef6ecb6d4bc33800bbdd13a7c171f727f511fd30a57bc7c92abf8ff180a",
+    "config/navigation_contract_episode_feedback_v1.json": "233db3e5a78ff4b5efede7b16ad35f8e53dc81fa013f9a46858b351a3e68f682",
+    "config/navigation_contract_feedback_v1.json": "5b61517bc7f9278c6b3870f539af0b0a66078feba490d44c504d2f41a730a86f",
+    "config/navigation_contract_r14_repair_v2.json": "64cf4db1840ae90464ad1019584b1882e5ae763055bc99e86587a9efac21bb63",
+    "config/navigation_contract_time_feedback_v1.json": "177e165cc96eea8a031a5b440af35db28a057a41a0cf334e011516e891692067",
+    "config/value_objective_contract_episode_feedback_v1.json": "1d22661009764f93f7ed2985406cc8f8c37df7c0c7d3dfe97bcea9565f917d1b",
+    "config/value_objective_contract_feedback_v1.json": "1e7d87c03822d7b65c06afbfd04a5f8ad725892c7420d5da9f335eb1de5ee3ff",
+    "config/value_objective_contract_r14_repair_v1.json": "7f15173beab3cf4f8f64b934bcdfed7e1430a2d594b7d3e732cc5dd4b01c9ae9",
+    "docs/patches/verify_train_formal_r14_gamma_meta_v4.py": "4c673c8adf464abcfdb7c4029201c89db269c06c77efdff161fc63e1bb1e829b",
+    "scripts/audit_r14a2.py": "0a1b4f346b6f7be76aa40ef636a9a85b58b391919ceaee3c411403865bdf793d",
+    "scripts/build_r14a2_prereg.py": "587a9314f9e77826f161e4486cbf70706bb650a9b7a7f270b73def7c4902a7f3",
+    "scripts/check_detour_exploration.py": "e6e65a91de56fc5e6cffbdb4d3eac08063f4d7b988d3bfb693770fc5539e5e21",
+    "scripts/compare_detour_horizon.py": "a36599fd79c7348fac63e3b096b544d9082c3439f047c1bde7aac0c5a36a2bb1",
+    "scripts/contract_margin_eval.py": "4e0c670d0c293b19679e2a0f0796151a9d02fdf6781bec9e1082d5415507a171",
+    "scripts/diagnose_detour_feedback.py": "2b77ed7e5f00e1684a11994ac5225effc3dbbe11f386fd60dc31843b948ed556",
+    "scripts/diagnose_time_feedback.py": "761585046b21295e669062387334380bdc9d2f7c0a4c4201a2823b21c372d477",
+    "scripts/eval_r14_repair.py": "ad1c9d65083f2744403e7fd070c7a33c8f08269edbc7b3065e62c026de2dc0c4",
+    "scripts/eval_training_round.py": "e6645e6b291f0d75440cea89a332400ffd7162436ee277e11b620eae39b333dc",
+    "scripts/run_feedback_round.py": "c5e6e596e3aac7d677f45b9424f69d6cc805e7ff7d53b86a8c230fe05c3bfc6d",
+    "scripts/run_round14a2.py": "6ade1bc09a0c945988c34308d2b83576c2768bdb07181a6f9262235443711e60",
+    "scripts/train_formal.py": "021949ba1bdd6b04ee8c9f32f1d85eb80a3d106f0e5e130e3b006c178cf2f9ab",
+    "src/camra_navigation/__init__.py": "2ac9ea55fc3e4e3927f2fb8b7ae7a77453c9ad1f499105be4632d7051dfd4098",
+    "src/camra_navigation/algorithm/__init__.py": "fe54134928610888966883462dbc307c8f7893fedb1be8447951b340a6a4cd4b",
+    "src/camra_navigation/algorithm/networks.py": "28a32e86b761ece0e620d679fbff9c84081b0c7f4d14dd5ee580bde3c834cfba",
+    "src/camra_navigation/algorithm/policy_prior.py": "e6f6d03a5c4e97d9285d7f9f7a96caf4677d5351ed8bd78100e30591987d35e5",
+    "src/camra_navigation/algorithm/ppo.py": "63e20e1d457e13a8e1037a5814972cff63fa10c090f3203904bd6a26eba5bbd3",
+    "src/camra_navigation/algorithm/storage.py": "37c7b4f628740085d0ea85ad0a05367e92ed9eaaa18d99f867b7625b6bd24bbf",
+    "src/camra_navigation/algorithm/targets.py": "dd1be31009e2f73983fd45ffc31d8f865f35c2dacfb2523d669909f21159cda5",
+    "src/camra_navigation/algorithm/validation.py": "dfcdb230c479eac25a9e8af070d33815fc71b373df2032773d5f986b370fbe0a",
+    "src/camra_navigation/budget/__init__.py": "2478819eaced9c56e4503c29dbbde77da35f7119bbb9120c29fac556d4fee444",
+    "src/camra_navigation/budget/accounting.py": "daa2ba9b363aeeaccec382a708022e0c4012a0858727d6f7289661db9cc34444",
+    "src/camra_navigation/budget/search.py": "9277418b2d4669a8e1f8a8faac3b8f8b251ea787872829561bfcc97b993b14af",
+    "src/camra_navigation/control/__init__.py": "90f8814371f8a50fd297fd145ab970362ca1273a93cb25c11fc1e3b8c9d26cfc",
+    "src/camra_navigation/control/v2_policy.py": "224cb2800d2106d21249b8ecd74eedab807c3319253f3618dfe9152328338736",
+    "src/camra_navigation/control/velocity_bridge.py": "396723e36cbc436de3d1029ccb6181f04695319903147d24891ce8e228c123e3",
+    "src/camra_navigation/costs.py": "e8fb432fdf116fd83e4a948e7c950cad573062ad5a87c7af0cedf6aae2a9b323",
+    "src/camra_navigation/envs/__init__.py": "c169ca558e1f1a82bd093eddc160744b75e8d2df8829745e2e25a2aea05bbd9c",
+    "src/camra_navigation/envs/nominal.py": "b20bebeb1e3e45a426b977cd8d253d8ae0b8e826008a550c7c06e324356cb922",
+    "src/camra_navigation/envs/physical.py": "4bd32e74d7584dc612c2cb40ff39941be8f914d80f4ebff70fc0d866678abbea",
+    "src/camra_navigation/envs/vector.py": "7c1cdf901bc8cc6d51de0283c6564e734ab004977f672c7e94cf16badac99357",
+    "src/camra_navigation/evaluation/__init__.py": "bf2b930f66eca529fc65da8d6dde340b0fbdd903f72d0386e686af477fbc5dbd",
+    "src/camra_navigation/evaluation/recorder.py": "2f18d4773c68600f0ad78ef0dd7720453bde640de1ba3f674caee7d5231049ab",
+    "src/camra_navigation/frames.py": "f81fc8690bf825bd5b598f71c0c279fb5ac075f00922815ad94e6cb948f4da23",
+    "src/camra_navigation/maps/__init__.py": "e3c83783e6ef71d608e44c2fc1888fd19dd7f2e3813501980f16d0a668cc6130",
+    "src/camra_navigation/maps/feasibility.py": "f6b1ea8747a47efaff2ae0ee9fd2b49f279d37f7860f5d9d127d7c1ee758e2f4",
+    "src/camra_navigation/maps/generator.py": "dc9b336e3cabe57f0a392c8f60f896ff621b25eda2f743ecde107912d633547a",
+    "src/camra_navigation/maps/geometry.py": "1218b7aaa80a577befbd6157423c75fc7b987d17884af0e66b8c109edbab952e",
+    "src/camra_navigation/maps/scene_adapter.py": "a72fd7fdb5de0ac897442661ff77f85da726d1cddb4975f4ef1bb97cd0c238b7",
+    "src/camra_navigation/observation.py": "c00d4be40bea875c9371a70458aa3e4c22f179d3474f8916ffa2311e17ae89ef",
+    "src/camra_navigation/runs.py": "f835a345bc34a8bf952b3f1f3e756ab5c3f8e38632757703b15a7672e6481810",
+    "tests/test_avoidance_prior_gate.py": "431973d1b892e0848f5bb82fbb74166b29483dc68a9c7ccf391df46868a16fdf",
+    "tests/test_avoidance_prior_v2_gate.py": "30cbf2abf5db81aba4b8a2d9800922c3e0318d6d6742c35b869b64fc80cc4b6c",
+    "tests/test_clearance_feedback_gate.py": "bcfd6e624d971ff6b3531eb10b5c477a3173858326d6f1a39a2b85f4bbd1f8a6",
+    "tests/test_episode_feedback_gate.py": "0901ee0eee2a58c9c6775e1a372380f62953734686f78a9febf38083a3d08e7b",
+    "tests/test_feedback_gate.py": "58fff2d8735851adaa56a3fa6a1d5ec89f18d466f9b9da566e9f8a5e00bf8abb",
+    "tests/test_r14_repair_gate.py": "db7b5885109d28d54521ddd1a914f23f86c8e4a53e4e1a2bd6a7fc3a286bbc16",
+    "tests/test_r14a2_gate.py": "0dfb350c7f53abe149a9ab2cfb44ba27e9621fe18f60e5e89885aa570278fc52",
+    "tests/test_time_feedback_gate.py": "af1f54bed0deabad452c6caeaa29654b7b8cbc5b8076308a62e27cb23e851522"
+  },
+  "protocol": {
+    "path": "config/avoidance_prior_numerical_protocol_v2.json",
+    "sha256": "6abf95691586cfbb8f0bd5c1e46bc65525c8afbe7295b4216c369fb22d5cdde2"
+  },
+  "reference_limitations": [
+    "Original JAX dependency remains outside this environment; no dependency installed. Common constant case uses the source-checked transcription; independent scalar enumeration is the primary oracle.",
+    "Distinct-baseline insertion, absorbing-failure continuation and explicit boundary table are recorded Go2 correctness adaptations; no claim of bitwise identity with all original JAX outputs."
+  ],
+  "component_reports": {
+    "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/parent_gate_attempt2.json": "d85a6383085677c326d5587239df6255bbcfae1bbfc57975820cbc0cb7be3e11"
+  },
+  "limits": [
+    "Synthetic cases and36 train-map on-policy mechanical episodes; no performance claim or formal training allocation.",
+    "Reactive tangent prior may fail; NAV-064=false until separately approved training passes all original criteria."
+  ],
+  "production_fixture": {
+    "run": "/pub/data/caohy/work/camra_navigation/v1_mech_attempt2_onpolicy_mechanical",
+    "log_sha256": "a33814093ff8763c0a95411fc1dcf66dee8269e0aa337b18bb431407bd125984",
+    "audit": {
+      "run_id": "v1_mech_attempt2_onpolicy_mechanical",
+      "updates_audited": 2,
+      "checks_pass": true,
+      "counts": {
+        "clearance_angular_ambiguous_fields": 30,
+        "clearance_states_checked": 13738,
+        "negative_budget_samples": 198,
+        "saturated_budget_samples": 0,
+        "graded_safety_samples": 315,
+        "clipped_actions": 0,
+        "samples": 6869,
+        "chunks": 36,
+        "recomputed_chunks": 36,
+        "completed_episodes": 36,
+        "manifest_metadata_mismatches": 0
+      },
+      "target_kinds": {
+        "task_end": 24,
+        "success": 12
+      },
+      "numerical_differences": {},
+      "stability": {
+        "loss_policy": {
+          "min": 0.052168,
+          "p05": 0.05279545,
+          "median": 0.058442499999999994,
+          "p95": 0.06408955,
+          "max": 0.064717
+        },
+        "loss_cost": {
+          "min": 0.000438,
+          "p05": 0.00132065,
+          "median": 0.0092645,
+          "p95": 0.017208349999999997,
+          "max": 0.018091
+        },
+        "loss_reach": {
+          "min": 0.015546,
+          "p05": 0.01798425,
+          "median": 0.0399285,
+          "p95": 0.06187274999999999,
+          "max": 0.064311
+        },
+        "grad_norm_policy": {
+          "min": 7.690939,
+          "p05": 8.08002505,
+          "median": 11.581799499999999,
+          "p95": 15.08357395,
+          "max": 15.47266
+        },
+        "grad_norm_cost": {
+          "min": 0.026405,
+          "p05": 0.053326700000000005,
+          "median": 0.295622,
+          "p95": 0.5379172999999999,
+          "max": 0.564839
+        },
+        "grad_norm_reach": {
+          "min": 0.210656,
+          "p05": 0.22371305000000002,
+          "median": 0.3412265,
+          "p95": 0.45873995,
+          "max": 0.471797
+        },
+        "entropy": {
+          "min": -5.20355,
+          "p05": -5.20233095,
+          "median": -5.1913595,
+          "p95": -5.18038805,
+          "max": -5.179169
+        },
+        "clipped_ratio_fraction": {
+          "min": 0.147416,
+          "p05": 0.15111149999999998,
+          "median": 0.184371,
+          "p95": 0.2176305,
+          "max": 0.221326
+        },
+        "adv_mean": {
+          "min": 0.150952,
+          "p05": 0.16394985,
+          "median": 0.2809305,
+          "p95": 0.39791115,
+          "max": 0.410909
+        },
+        "adv_std": {
+          "min": 0.240191,
+          "p05": 0.24805224999999997,
+          "median": 0.3188035,
+          "p95": 0.38955475,
+          "max": 0.397416
+        },
+        "grad_adv_norm": {
+          "min": 7.690515,
+          "p05": 8.07959265,
+          "median": 11.5812915,
+          "p95": 15.08299035,
+          "max": 15.472068
+        },
+        "grad_ent_norm": {
+          "min": 0.025484,
+          "p05": 0.0258592,
+          "median": 0.029236,
+          "p95": 0.032612800000000004,
+          "max": 0.032988
+        }
+      },
+      "empirical_post_update_kl": {},
+      "budget_coverage": [
+        {
+          "env": 0,
+          "map_id": "l1_empty-s1001",
+          "budget_draws": 2,
+          "k_range": [
+            0.7888506996347092,
+            1.045873181125018
+          ],
+          "k_mean": 0.9173619403798636,
+          "k_bins": [
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 1,
+          "map_id": "l1_empty-s1002",
+          "budget_draws": 2,
+          "k_range": [
+            0.9899966351443584,
+            1.222817153894694
+          ],
+          "k_mean": 1.1064068945195262,
+          "k_bins": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "env": 2,
+          "map_id": "l1_empty-s1003",
+          "budget_draws": 2,
+          "k_range": [
+            0.6565768274212312,
+            0.8817064543955111
+          ],
+          "k_mean": 0.7691416409083711,
+          "k_bins": [
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 3,
+          "map_id": "l1_empty-s1004",
+          "budget_draws": 2,
+          "k_range": [
+            1.2022901057424562,
+            1.226480918552887
+          ],
+          "k_mean": 1.2143855121476717,
+          "k_bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2
+          ]
+        },
+        {
+          "env": 4,
+          "map_id": "l1_empty-s1005",
+          "budget_draws": 2,
+          "k_range": [
+            0.760014870256207,
+            1.2181503549254105
+          ],
+          "k_mean": 0.9890826125908088,
+          "k_bins": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "env": 5,
+          "map_id": "l1_empty-s1006",
+          "budget_draws": 2,
+          "k_range": [
+            0.8674952709086897,
+            0.9834243421168415
+          ],
+          "k_mean": 0.9254598065127656,
+          "k_bins": [
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 6,
+          "map_id": "l2_single_detour-s1001",
+          "budget_draws": 2,
+          "k_range": [
+            0.7493065981339205,
+            0.888464643251089
+          ],
+          "k_mean": 0.8188856206925048,
+          "k_bins": [
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 7,
+          "map_id": "l2_single_detour-s1002",
+          "budget_draws": 2,
+          "k_range": [
+            0.6272027434682612,
+            1.1439892340120559
+          ],
+          "k_mean": 0.8855959887401585,
+          "k_bins": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "env": 8,
+          "map_id": "l2_single_detour-s1003",
+          "budget_draws": 2,
+          "k_range": [
+            1.1317807264443585,
+            1.1431283771898886
+          ],
+          "k_mean": 1.1374545518171235,
+          "k_bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0
+          ]
+        },
+        {
+          "env": 9,
+          "map_id": "l2_single_detour-s1004",
+          "budget_draws": 2,
+          "k_range": [
+            0.996964395018501,
+            1.2895474394449677
+          ],
+          "k_mean": 1.1432559172317345,
+          "k_bins": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "env": 10,
+          "map_id": "l2_single_detour-s1005",
+          "budget_draws": 2,
+          "k_range": [
+            0.7437339203011746,
+            0.9490071872957568
+          ],
+          "k_mean": 0.8463705537984657,
+          "k_bins": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 11,
+          "map_id": "l2_single_detour-s1006",
+          "budget_draws": 2,
+          "k_range": [
+            0.7238689640644322,
+            0.9639286687595618
+          ],
+          "k_mean": 0.843898816411997,
+          "k_bins": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 12,
+          "map_id": "l3_multi_path-s1001",
+          "budget_draws": 2,
+          "k_range": [
+            0.8965631125602034,
+            1.041424379364645
+          ],
+          "k_mean": 0.9689937459624242,
+          "k_bins": [
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 13,
+          "map_id": "l3_multi_path-s1002",
+          "budget_draws": 2,
+          "k_range": [
+            0.6788826698120113,
+            1.0041074901988811
+          ],
+          "k_mean": 0.8414950800054461,
+          "k_bins": [
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 14,
+          "map_id": "l3_multi_path-s1003",
+          "budget_draws": 2,
+          "k_range": [
+            0.7122711302997897,
+            0.9881901666105706
+          ],
+          "k_mean": 0.8502306484551801,
+          "k_bins": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 15,
+          "map_id": "l3_multi_path-s1004",
+          "budget_draws": 2,
+          "k_range": [
+            0.8036981562353951,
+            1.0354140675168382
+          ],
+          "k_mean": 0.9195561118761166,
+          "k_bins": [
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "env": 16,
+          "map_id": "l3_multi_path-s1005",
+          "budget_draws": 2,
+          "k_range": [
+            1.000297819745879,
+            1.1453294076532503
+          ],
+          "k_mean": 1.0728136136995645,
+          "k_bins": [
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0
+          ]
+        },
+        {
+          "env": 17,
+          "map_id": "l3_multi_path-s1006",
+          "budget_draws": 2,
+          "k_range": [
+            0.8525042110593128,
+            1.2136653451618136
+          ],
+          "k_mean": 1.0330847781105632,
+          "k_bins": [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "canonical_index": "/pub/data/caohy/work/camra_navigation/nav064_prior_v2_repair_20261117_v1/v1_mech_attempt2/audit/v1_mech_attempt2_onpolicy_mechanical_canonical_index.jsonl",
+      "canonical_index_sha256": "4fed7b6259505afa197168efa8ad4e984d2c15e86b43b5a9e5b08273a22d4cc9",
+      "metadata_validation": "Every chunk identity/budget/update/discount independently verified; no reconstructed replacement or sample deletion."
+    }
+  },
+  "avoidance_prior": {
+    "version": "clearance-tangent-v2",
+    "enabled": true,
+    "lookahead_m": 2.5,
+    "buffer_m": 0.25,
+    "repulsion_m": 0.75,
+    "tangent_weight": 2.0,
+    "yaw_gain": 0.8,
+    "max_lateral_action": 0.8,
+    "side_uncertainty_rad": 0.39269908169872414,
+    "ambiguous_side": "clockwise"
+  },
+  "synthetic": {
+    "radii": {
+      "uncalibrated": {
+        "radius": 0.5055013879783843,
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "full": {
+        "radius": 3.119367799506481,
+        "offset": [
+          -0.2234722077846527,
+          -0.7647010087966919,
+          -0.6572811007499695
+        ]
+      }
+    },
+    "offsets": {
+      "clear": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "obstacle_left": [
+        -0.2234722077846527,
+        -0.7647010087966919,
+        -0.6572811007499695
+      ],
+      "obstacle_right": [
+        -0.2234722077846527,
+        0.7647010087966919,
+        0.6572811007499695
+      ],
+      "behind": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "beyond_goal": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "right_wall": [
+        -0.7647320628166199,
+        0.0,
+        0.0
+      ],
+      "right_wall_rotated": [
+        -0.38236603140830994,
+        0.8340192437171936,
+        0.6821878552436829
+      ]
+    }
+  }
+}

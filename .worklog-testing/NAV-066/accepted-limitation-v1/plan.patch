@@ -1,0 +1,307 @@
+*** Begin Patch
+*** Update File: /home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json
+@@
+  "document": {
+   "name": "CaMRA 固定 v2 上层最小成本到达避障实施计划",
+-  "version": "1.4.0",
++  "version": "1.4.1",
+   "created_at": "2026-11-09",
+   "mode": "update",
+@@
+     "blockers"
+   ],
+-  "updated_at": "2026-11-18",
++  "updated_at": "2026-11-19",
+   "revisions": [
+     {
+@@
+       "added_task_ids": [],
+       "preserved_task_ids": "67项顺序、ID、依赖及全部历史记录保留；状态仅在逐项实际验收后更新。"
++    },
++    {
++      "version": "1.4.1",
++      "date": "2026-11-19",
++      "kind": "用户明确接受已测效率局限后的阶段流程结案；不修改原实验判定",
++      "summary": "NAV-066以ACCEPTED_WITH_LIMITATION结案，原科学FAIL及一例预算保守保留。只解除该已知名义效率阻塞，下一项NAV-067仍须其自身门禁和配额；本轮无训练/仿真。",
++      "added_task_ids": [],
++      "preserved_task_ids": "67项顺序、ID、依赖和全部历史记录保留；仅NAV-066 false→true表示经授权的流程结案。",
++      "authority": "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"
+     }
+   ]
+@@
+   "old_G4": "FAIL",
+   "downstream_scope": "only selected uncalibrated seed2 guarded-v4 + full seed0 original; no physical or other-seed inheritance"
++},
++ "budget_decision_stage_disposition_v1": {
++  "record": "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json",
++  "sha256": "c87d263eacb94741638d29e56fcd0679d0910dacdfacb373cb76776f77382505",
++  "disposition": "ACCEPTED_WITH_LIMITATION",
++  "scientific_status": "FAIL_BUDGET_EFFICIENCY",
++  "authority": {
++    "user_instruction": "那就按照你说的做，看一下后续任务都是什么 通俗简洁作答",
++    "accepted_recommendation": "接受已知预算效率局限，允许研究流程进入下一阶段；原协议效率FAIL及案例保留，不写成全部指标达标或整个项目完成。"
++  },
++  "precedence": "在NAV-066阶段流程结案及后续依赖判断中，明确用户接受取代原效率失败必须继续阻塞的规定。原事前科学标准和FAIL不改；只限本例/配对，不豁免其它门禁。G5/G6须分列该处置和原G4/NAV-066科学结果。"
+ },
+  "background": {
+@@
+   {
+    "id": "NAV-066",
++"completion_basis": {
++  "kind": "USER_ACCEPTED_KNOWN_LIMITATION",
++  "disposition": "ACCEPTED_WITH_LIMITATION",
++  "scientific_status": "FAIL_BUDGET_EFFICIENCY",
++  "evidence": "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"
++},
+ "acceptance_definition_history": [
+   {
+@@
+       "tests/test_budget_search.py、test_budget_selection.py"
+     ]
++  },
++  {
++    "version": "2.0.0-best",
++    "preserved_at": "2026-11-19T07:43:49.271311+08:00",
++    "reason": "事后明确接受已知局限；保留原科学失败，新增单独流程结案依据。",
++    "goal": "以冻结最优配对和一档保护规则独立验证实际预算决策",
++    "constraints_and_notes": [
++      "依赖新版NAV-065研究准备；同一actor/双critic与已批准登记，先封存18个决策/90个W查询，再执行至多90条名义轨迹。",
++      "5档乘以按方法一致的政策无关E_ref；初始J预算和z/550分字段；拒绝无fallback、不延长区间、不用标签择优。",
++      "每方法9图45网格行；选中行先执行且复用网格行。未选/拒绝图的诊断轨迹不影响封存决策。",
++      "只检验未见任务实例，level布局共享；final_*封存。结果不反馈训练、选择模型或调整规则；失败保留，不自动重跑。",
++      "旧G4不改写；按方法分别判定，不混合掩盖失败；只限已测单种子名义配对，不进入最终性能分母。"
++    ],
++    "acceptance_criteria": [
++      "生产调用链、模型/规则/数据身份、18决策及90查询封存可复算；90网格行均有原始轨迹、安全历史、成本J和独立oracle核验。",
++      "每方法全部放行均45秒内安全且预算内到达，放行失败0、允许超支0J；按原标签判定，不要求全部原始W预测正确。",
++      "每方法至少6/9图放行且每level至少2/3；对有任一网格真实可行图的正确放行召回至少80%，无可行图不通过。",
++      "每放行图所选索引不高于该冻结actor真实网格最低可行索引+1；完整报告拒绝率、误拒绝、原W混淆、超支及预算利用率。",
++      "无训练、无反馈调参、无物理回合、无final访问；90条及40500步上限内，业务失败完整保留；任何一方法未达本轮门槛则false。"
++    ],
++    "planned_outputs": [
++      "config/nav066_decision_prereg_v2.json",
++      "reports/nav066_budget_decision_validation_v2.json",
++      "docs/nav066_budget_decision_review_v2_20261118.md",
++      "外部独立目录manifest/decisions/episodes/decision_validation"
++    ],
++    "status": false,
++    "verification_result": ""
+   }
+ ],
+-"acceptance_version": "2.0.0-best",
++"acceptance_version": "2.0.0-best-accepted-limitation-v1",
+    "phase": "预算与闭环",
+    "goal": "以冻结最优配对和一档保护规则独立验证实际预算决策",
+-   "status": false,
++   "status": true,
+    "depends_on": [
+     "NAV-065"
+@@
+   "每方法9图45网格行；选中行先执行且复用网格行。未选/拒绝图的诊断轨迹不影响封存决策。",
+   "只检验未见任务实例，level布局共享；final_*封存。结果不反馈训练、选择模型或调整规则；失败保留，不自动重跑。",
+-  "旧G4不改写；按方法分别判定，不混合掩盖失败；只限已测单种子名义配对，不进入最终性能分母。"
++  "旧G4不改写；按方法分别判定，不混合掩盖失败；只限已测单种子名义配对，不进入最终性能分母。",
++  "用户已明确接受已测完整方法一图预算过保守的局限。流程可ACCEPTED_WITH_LIMITATION结案；原科学FAIL、阈值/结果不改，未测候选/物理与其它门禁不继承。证据reports/nav066_efficiency_limitation_acceptance_v1.json。"
+ ],
+    "acceptance_criteria": [
+-  "生产调用链、模型/规则/数据身份、18决策及90查询封存可复算；90网格行均有原始轨迹、安全历史、成本J和独立oracle核验。",
+-  "每方法全部放行均45秒内安全且预算内到达，放行失败0、允许超支0J；按原标签判定，不要求全部原始W预测正确。",
+-  "每方法至少6/9图放行且每level至少2/3；对有任一网格真实可行图的正确放行召回至少80%，无可行图不通过。",
+-  "每放行图所选索引不高于该冻结actor真实网格最低可行索引+1；完整报告拒绝率、误拒绝、原W混淆、超支及预算利用率。",
+-  "无训练、无反馈调参、无物理回合、无final访问；90条及40500步上限内，业务失败完整保留；任何一方法未达本轮门槛则false。"
++  "原注册独立验证90行/18决策与完整原始证据已完成并审计；原科学判定false及完整方法效率8/9失败保留，不追改阈值或报告。",
++  "以明确用户接受为单独阶段处置依据，限定为已测配对/该一例保守预算；两方法实际放行均9/9安全及时且预算内、误放行/拒绝0，其它本轮门槛满足。",
++  "模型/生产规则/固定v2/原契约与证据身份一致，无新增训练、查询或轨迹，不将事后接受称科学PASS。",
++  "后续NAV-067及NAV-043/044仍逐项验证接线、闭环适用性及正式数据锁；物理/final和资源边界保留，接受局限及原FAIL一并交付。"
+ ],
+-   "verification_result": "",
++   "verification_result": "用户明确接受完整方法一图预算过保守的已知局限，NAV-066按ACCEPTED_WITH_LIMITATION流程结案。原事前效率项8/9、科学FAIL及旧G4 FAIL保持；两方法所选预算各9/9安全及时预算内到达、误放行/拒绝0。仅允许已测配对继续NAV-067自身接线/物理门禁，不声明物理、未知场景或全部指标通过。证据reports/nav066_efficiency_limitation_acceptance_v1.json。",
+    "planned_outputs": [
+   "config/nav066_decision_prereg_v2.json",
+@@
+ ],
+    "work_records": [
+-{
+-  "timestamp": "2026-11-18T22:29:44.082002+08:00",
+-  "summary": "NAV-066开工：冻结最优现有配对的五档价值决策，之后独立执行90名义回合",
+-  "actions": [
+-    "切换任务前重新完整读取根AGENTS和计划全文；核对NAV-065准备及全部上游来源有效。",
+-    "绑定已批准登记pin、9图清单、两方法各一个最优现有模型；沿用W/beta/原目标和45秒任务。"
+-  ],
+-  "files_changed": [
+-    "doc/plan/20261109_camra_navigation_implementation.json"
+-  ],
+-  "commands": [
+-    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py open",
+-    "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
+-  ],
+-  "results": [
+-    "本项作用是检验实际预算决策能否安全及时预算内到达，同时限制拒绝和预算浪费。",
+-    "只允许90查询/90名义回合，更新0/物理0/final封存；先封存全部18决策，再执行轨迹，选中行复用。",
+-    "允许输出新验证日志和审阅；不改模型、规则、阈值、地图或v2；失败保持false并原样记录。"
+-  ],
+-  "evidence": [
+-    "CaMRA/navigation/config/nav066_decision_prereg_v2.json",
+-    "CaMRA/navigation/reports/nav065_budget_decision_readiness_v2.json",
+-    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/manifest.json"
+-  ],
+-  "remaining_work": [
+-    "执行封存决策和90行独立验证，按每方法安全/召回/拒绝/效率门槛验收。"
+-  ],
+-  "blockers": []
+-}
+-,
+-{
+-  "timestamp": "2026-11-18T22:33:52.814935+08:00",
+-  "summary": "NAV-066独立验证结束：实际决策门禁FAIL，保留结果并停止下游",
+-  "actions": [
+-    "封存18决策及90W查询后执行90条独立名义轨迹；主agent复核原始轨迹/J账本/不可逆安全/时间/oracle及网格效率。",
+-    "审计模型/规则/v2散列及历史记录，未训练、未改阈值/模型、未派测试子agent、未访问final或执行物理回合。"
+-  ],
+-  "files_changed": [
+-    "doc/plan/20261109_camra_navigation_implementation.json"
+-  ],
+-  "commands": [
+-    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py close",
+-    "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
+-  ],
+-  "results": [
+-    "{\"uncalibrated\": {\"pass\": true, \"checks\": {\"accepted_safety_time_budget\": true, \"nonvacuous_accepted_count\": true, \"each_level_coverage\": true, \"feasible_map_recall\": true, \"budget_efficiency\": true}, \"maps\": 9, \"grid_rows\": 45, \"accepted\": 9, \"rejected\": 0, \"actually_feasible_maps\": 9, \"correctly_accepted\": 9, \"accepted_failures\": 0, \"efficiency_failures\": 0, \"feasible_map_recall\": 1.0, \"false_rejections\": 0, \"level_accepted\": {\"L1_empty\": 3, \"L2_single_detour\": 3, \"L3_multi_path\": 3}, \"decision_reasons\": {\"selected\": 9}, \"raw_W_confusion\": {\"true_feasible\": 27, \"false_feasible\": 0, \"false_infeasible\": 0, \"true_infeasible\": 18}}, \"full\": {\"pass\": false, \"checks\": {\"accepted_safety_time_budget\": true, \"nonvacuous_accepted_count\": true, \"each_level_coverage\": true, \"feasible_map_recall\": true, \"budget_efficiency\": false}, \"maps\": 9, \"grid_rows\": 45, \"accepted\": 9, \"rejected\": 0, \"actually_feasible_maps\": 9, \"correctly_accepted\": 9, \"accepted_failures\": 0, \"efficiency_failures\": 1, \"feasible_map_recall\": 1.0, \"false_rejections\": 0, \"level_accepted\": {\"L1_empty\": 3, \"L2_single_detour\": 3, \"L3_multi_path\": 3}, \"decision_reasons\": {\"selected\": 9}, \"raw_W_confusion\": {\"true_feasible\": 18, \"false_feasible\": 0, \"false_infeasible\": 1, \"true_infeasible\": 26}}}",
+-    "总步数=33531，旧G4 FAIL保留；这只是所测单种子配对的有限名义验证。"
+-  ],
+-  "evidence": [
+-    "CaMRA/navigation/reports/nav066_budget_decision_validation_v2.json",
+-    "CaMRA/navigation/docs/nav066_budget_decision_review_v2_20261118.md",
+-    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/episodes.jsonl",
+-    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/final-audit.json"
+-  ],
+-  "remaining_work": [
+-    "先评审本次固定规则的具体拒绝/错误/效率原因，任何实质新规则需新版本和独立数据；不默认重训或重跑。"
+-  ],
+-  "blockers": [
+-    "独立实际决策未同时满足各方法全部预登记门槛，NAV-066保持false，下游不执行。"
+-  ]
+-}
++  {
++    "timestamp": "2026-11-18T22:29:44.082002+08:00",
++    "summary": "NAV-066开工：冻结最优现有配对的五档价值决策，之后独立执行90名义回合",
++    "actions": [
++      "切换任务前重新完整读取根AGENTS和计划全文；核对NAV-065准备及全部上游来源有效。",
++      "绑定已批准登记pin、9图清单、两方法各一个最优现有模型；沿用W/beta/原目标和45秒任务。"
++    ],
++    "files_changed": [
++      "doc/plan/20261109_camra_navigation_implementation.json"
++    ],
++    "commands": [
++      "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py open",
++      "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
++    ],
++    "results": [
++      "本项作用是检验实际预算决策能否安全及时预算内到达，同时限制拒绝和预算浪费。",
++      "只允许90查询/90名义回合，更新0/物理0/final封存；先封存全部18决策，再执行轨迹，选中行复用。",
++      "允许输出新验证日志和审阅；不改模型、规则、阈值、地图或v2；失败保持false并原样记录。"
++    ],
++    "evidence": [
++      "CaMRA/navigation/config/nav066_decision_prereg_v2.json",
++      "CaMRA/navigation/reports/nav065_budget_decision_readiness_v2.json",
++      "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/manifest.json"
++    ],
++    "remaining_work": [
++      "执行封存决策和90行独立验证，按每方法安全/召回/拒绝/效率门槛验收。"
++    ],
++    "blockers": []
++  },
++  {
++    "timestamp": "2026-11-18T22:33:52.814935+08:00",
++    "summary": "NAV-066独立验证结束：实际决策门禁FAIL，保留结果并停止下游",
++    "actions": [
++      "封存18决策及90W查询后执行90条独立名义轨迹；主agent复核原始轨迹/J账本/不可逆安全/时间/oracle及网格效率。",
++      "审计模型/规则/v2散列及历史记录，未训练、未改阈值/模型、未派测试子agent、未访问final或执行物理回合。"
++    ],
++    "files_changed": [
++      "doc/plan/20261109_camra_navigation_implementation.json"
++    ],
++    "commands": [
++      "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py close",
++      "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
++    ],
++    "results": [
++      "{\"uncalibrated\": {\"pass\": true, \"checks\": {\"accepted_safety_time_budget\": true, \"nonvacuous_accepted_count\": true, \"each_level_coverage\": true, \"feasible_map_recall\": true, \"budget_efficiency\": true}, \"maps\": 9, \"grid_rows\": 45, \"accepted\": 9, \"rejected\": 0, \"actually_feasible_maps\": 9, \"correctly_accepted\": 9, \"accepted_failures\": 0, \"efficiency_failures\": 0, \"feasible_map_recall\": 1.0, \"false_rejections\": 0, \"level_accepted\": {\"L1_empty\": 3, \"L2_single_detour\": 3, \"L3_multi_path\": 3}, \"decision_reasons\": {\"selected\": 9}, \"raw_W_confusion\": {\"true_feasible\": 27, \"false_feasible\": 0, \"false_infeasible\": 0, \"true_infeasible\": 18}}, \"full\": {\"pass\": false, \"checks\": {\"accepted_safety_time_budget\": true, \"nonvacuous_accepted_count\": true, \"each_level_coverage\": true, \"feasible_map_recall\": true, \"budget_efficiency\": false}, \"maps\": 9, \"grid_rows\": 45, \"accepted\": 9, \"rejected\": 0, \"actually_feasible_maps\": 9, \"correctly_accepted\": 9, \"accepted_failures\": 0, \"efficiency_failures\": 1, \"feasible_map_recall\": 1.0, \"false_rejections\": 0, \"level_accepted\": {\"L1_empty\": 3, \"L2_single_detour\": 3, \"L3_multi_path\": 3}, \"decision_reasons\": {\"selected\": 9}, \"raw_W_confusion\": {\"true_feasible\": 18, \"false_feasible\": 0, \"false_infeasible\": 1, \"true_infeasible\": 26}}}",
++      "总步数=33531，旧G4 FAIL保留；这只是所测单种子配对的有限名义验证。"
++    ],
++    "evidence": [
++      "CaMRA/navigation/reports/nav066_budget_decision_validation_v2.json",
++      "CaMRA/navigation/docs/nav066_budget_decision_review_v2_20261118.md",
++      "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/episodes.jsonl",
++      "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/final-audit.json"
++    ],
++    "remaining_work": [
++      "先评审本次固定规则的具体拒绝/错误/效率原因，任何实质新规则需新版本和独立数据；不默认重训或重跑。"
++    ],
++    "blockers": [
++      "独立实际决策未同时满足各方法全部预登记门槛，NAV-066保持false，下游不执行。"
++    ]
++  },
++  {
++    "timestamp": "2026-11-19T07:43:49.271311+08:00",
++    "summary": "NAV-066续办开工：登记用户接受已知效率局限，原始失败保持",
++    "actions": [
++      "完整重新读取根AGENTS、legacy技能/执行/字段规则和主计划，核对NAV-065依赖及NAV-066原报告/审计。",
++      "按用户授权范围仅复核已有证据、登记流程处置与后续任务，不修改模型/规则/原科学评分或启动新实验。"
++    ],
++    "files_changed": [
++      "doc/plan/20261109_camra_navigation_implementation.json",
++      "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"
++    ],
++    "commands": [
++      "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-066/accepted-limitation-v1/prepare.py",
++      "tmux=nav064-r14-repair-20261115:nav066-accept-limitation; cwd=/home/caohy/repositories/Paper"
++    ],
++    "results": [
++      "本项服务固定v2预算内安全到达研究，已测唯一缺口为一图预算预留偏保守；用户明确接受后允许进入下一阶段。",
++      "保持RC-PPO增广预算/安全历史/共同停止/价值目标及v2冻结；54项计数需本次处置完整验收后才生效。"
++    ],
++    "evidence": [
++      "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json",
++      "CaMRA/navigation/reports/nav066_budget_decision_validation_v2.json",
++      ".worklog-testing/NAV-065/best-decision-v2/final-audit.json"
++    ],
++    "remaining_work": [
++      "完成处置与计划/交接同步、静态一致性及append-only检查。"
++    ],
++    "blockers": []
++  },
++  {
++    "timestamp": "2026-11-19T07:43:49.271311+08:00",
++    "summary": "NAV-066经授权接受局限结案：科学FAIL保留，下一入口NAV-067",
++    "actions": [
++      "再次核对90行/18决策报告、原始文件hash、六候选身份、生产源码与保护配置；只读既有证据，没有重跑。",
++      "原位登记计划1.4.1、保留旧验收定义与历史记录；以单独处置ACCEPTED_WITH_LIMITATION关闭流程阻塞。",
++      "按真实依赖核对NAV-067→043→044→045→046→047→048–050→051–054，物理/最终集均未执行。"
++    ],
++    "files_changed": [
++      "doc/plan/20261109_camra_navigation_implementation.json",
++      "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"
++    ],
++    "commands": [
++      "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-066/accepted-limitation-v1/prepare.py",
++      "tmux=nav064-r14-repair-20261115:nav066-accept-limitation; cwd=/home/caohy/repositories/Paper"
++    ],
++    "results": [
++      "两方法9/9实际安全及时预算内；完整方法效率8/9、1例额外预留约60.81J接受，原G4/独立科学FAIL均保留。",
++      "仅NAV-066 false→true表示用户接受局限后的流程结案；其余66项状态不变，当前54/67，首个可执行NAV-067。",
++      "无新增训练/优化/W查询/名义或物理回合；后续不得沿用v1默认候选/30秒任务，必须核对本轮身份与45秒任务。"
++    ],
++    "evidence": [
++      "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json",
++      "CaMRA/navigation/reports/nav066_budget_decision_validation_v2.json",
++      ".worklog-testing/NAV-065/best-decision-v2/final-audit.json"
++    ],
++    "remaining_work": [
++      "NAV-067新版clean接线与200Hz事件；NAV-043物理可用性/裕度适用性；之后冻结正式评估，均不由本次接受自动通过。"
++    ],
++    "blockers": []
++  }
+ ],
+    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
+*** End Patch

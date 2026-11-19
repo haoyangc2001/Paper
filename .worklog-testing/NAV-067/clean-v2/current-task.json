@@ -1,0 +1,43 @@
+{
+  "id": "NAV-067",
+  "phase": "预算与闭环",
+  "goal": "修正clean物理配置与子步事件采集，用新版候选重验在线接入",
+  "status": false,
+  "depends_on": [
+    "NAV-066"
+  ],
+  "constraints_and_notes": [
+    "依赖NAV-066，绑定新版候选、观测/动作、预算和事件契约；修正旧NAV-042环境声明时同时保留旧代码/配置/报告，旧6回合不是新clean证据。",
+    "在创建环境前逐项固定/关闭启动与复位随机化、摩擦/质量/推搡、reset位姿/关节扰动、观测噪声及命令重采样；核对实际event_manager与运行参数。固定值来自同v2 clean协议，不改机器人资产/PD/策略或历史校准。",
+    "检查观测项是否含上一动作/历史buffer及wrapper自动reset，warmup后一次对齐名义起点。命令写入后重算观测；缺失obs_command/时钟/子步证据应拒绝，不能用期望命令伪造实际观测证明新鲜度。",
+    "物理200Hz保存用于事件的实际位姿/接触或几何证据并累计碰撞、边界、危险历史、到达、跌倒；不能只查0.1秒两端弦线或50Hz末态。事件顺序、结束快照、200Hz机械功和不足整周期区间遵循新契约，无跨自动复位污染。",
+    "核验地图世界/局部坐标往返、墙体/障碍真实碰撞体、物理与名义观测一致；覆盖中间子步穿障后退出、转弯扫掠、同刻到达/碰撞、批内异步结束。不能仅用桩测试证明实际Isaac适配器正确。",
+    "先做NAV-061预登记6回合修正pilot；method_selected无解不得伪造预算，接线可使用明确登记的common_budget。重复性需独立同配置样本和明确额外额度；旧带扰动与新clean结果的对照不算同配置重复性。"
+  ],
+  "acceptance_criteria": [
+    "clean事件开关和实际摩擦/质量/复位/噪声参数有可追溯证据，训练环境默认项不会泄漏；v2及校准hash不变。",
+    "新版候选6回合接入trace通过ID、命令真实观测、10/50/200Hz、完整复位、原始200Hz能量复算与事件检测；部分周期按真实时间和active掩码对账。",
+    "人工中间子步碰撞/危险后退出/同刻事件/终止后剩余子步反例及实际适配器受控验证通过；报告区分桩测试与真实仿真证据。",
+    "amendment说明原clean声明修正、受影响任务/门禁与新版结果，不覆盖原报告；与原pilot差异不能都归因于clean（候选/契约也已改变）。",
+    "同配置重复性按已授权配额测量并给分母/偏差，不承诺物理逐位一致；额度不足先报告，不静默在6回合外加跑。",
+    "工程接入与方法效果分开；新候选完整闭环适用性仍由NAV-043验证，不能以本任务接线通过直接签G5。"
+  ],
+  "verification_result": "",
+  "planned_outputs": [
+    "scripts/evaluate_navigation.py、src/camra_navigation/envs/physical.py及隔离clean配置",
+    "tests/test_physical_loop.py与真实子步验证入口",
+    "reports/nav042_clean_pilot.json",
+    "reports/nav042_report_amendment.json"
+  ],
+  "work_records": [],
+  "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
+  "reference_ids": [
+    "R05",
+    "R06",
+    "R07",
+    "R09",
+    "R11",
+    "R12",
+    "R16"
+  ]
+}

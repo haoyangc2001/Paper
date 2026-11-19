@@ -1,0 +1,11 @@
+--- original
++++ mutant
+@@ -61,7 +61,7 @@
+             if row["kind"] != "rollout_result":
+                 continue
+             rid, key = row["run_id"], (row["map_id"], row["k"])
+-            if rid not in raw or key not in expected or key in raw[rid]:
++            if False:
+                 raise ValueError("duplicate or unknown saved train key")
+             raw[rid][key] = row["episode"]
+     if any(set(episodes) != expected for episodes in raw.values()):

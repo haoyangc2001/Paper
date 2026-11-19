@@ -1,0 +1,37 @@
+NAV-065-R2 independent test continuation
+Project root: /home/caohy/repositories/Paper
+Tester agent: /root/nav065_refit_tester
+Implementation agent: /root
+The NAV-065 plan and all production files were read-only.
+
+CHECK-001 through CHECK-004 were independently completed and reported in R1.
+R1 report: .worklog-testing/NAV-065/NAV-065-R1/report.json
+R1 evidence: .worklog-testing/NAV-065/NAV-065-R1/check_results.txt
+R1 check_results SHA256: 27f5efbc83112ed0837843c5df825ab592cdd4cc40418546ca1b245daab31495
+R1 independently found: prereg pin c971caacec4ce84280028d3256258fb284bb54bddd7a49ebf1824bdf1241cc25;
+540 unique train trajectories over 6 candidates x 18 train maps x 5 budgets;
+207298 train steps; 90 updates each; exact actor tensors and both changed critics;
+180 unique development trajectories (108 source + 72 frozen supplemental), 0 new;
+69586 complete trace steps; max J-ledger error 0 J; max CPU critic value error
+2.38e-7 and W error 5.96e-8; 6/6 primary k=1.15 feasible starts accepted per
+candidate; false-feasible counts 1,1,1,3,1,2 (9 total, k=.85:3, k=1.0:6).
+G4 verdict FAIL, deployment_values=false, no deployment_candidates_v2.json.
+R1 cross-validation used raw traces, signed remaining J, frozen terminal-tail
+objective, and CPU checkpoint inference; details remain in the linked R1 log.
+
+CHECK-005 implementation mutation test was run for this R2 continuation.
+The original production module and byte-identical isolated copy passed valid,
+duplicate, and unknown-key assertions. A one-line mutation disabled the
+duplicate/unknown key guard in the isolated copy. The duplicate assertion then
+failed because the malformed key was accepted; the unknown assertion failed
+because the record bypassed the intended guard and reached a later incomplete
+grid error. The harness reported both as targeted assertion failures, not
+syntax or import failures. The isolated copy was restored from production,
+its SHA256 again matched f2a699209433cf63f84b3a8c03ad206cc48153a396ba3e34081110bc89240061,
+and the restored assertions passed.
+Commands, diff, and complete outputs are in mutation_output.txt,
+mutation.diff, and mutation_test.py.
+
+Current product outcome remains a scientific acceptance failure: 0/6
+deployment-value candidates pass, so G4 is correctly FAIL and no deployment
+bundle is emitted. Test infrastructure and mutation testing passed.

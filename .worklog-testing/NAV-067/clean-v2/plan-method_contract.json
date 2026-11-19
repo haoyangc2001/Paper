@@ -1,0 +1,66 @@
+{
+  "controller_id": "camra_go2_velocity_it2999_v2",
+  "frozen_inputs": [
+    "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+    "CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+    "CaMRA/calibration/config/power_model_v1.json",
+    "CaMRA/calibration/config/footprint_v1.json",
+    "CaMRA/calibration/config/margins_v1.json",
+    "CaMRA/calibration/config/data_lock_v1.json",
+    "CaMRA/calibration/config/step_cost_schema_v1.json"
+  ],
+  "control_timing": {
+    "physics_dt_s": 0.005,
+    "low_level_dt_s": 0.02,
+    "navigation_dt_s": 0.1,
+    "warmup_s_reference": 1,
+    "calibration_window_s": 30
+  },
+  "nominal_motion": "按同一实际施加命令做平面精确圆弧积分；训练转移不叠加物理扰动，随机采样与确定性动力学分开。",
+  "observation_requirements": [
+    "平面位姿/朝向、目标及足以定义本轮静态任务的地图几何",
+    "不可逆安全历史y、带符号剩余预算z、有限时域剩余时间",
+    "若命令限速或模型依赖历史则补齐所需状态；当前冻结功率模型history_k=0",
+    "首轮使用仿真真值，名义和物理两端同坐标/缩放/排列/掩码；不擅自改为部分可观测感知任务"
+  ],
+  "budget_semantics": [
+    "c_nom=P_nom(applied_command)*0.1s；c_model=(1+α)*c_nom；z_next=z-c_model，支出为正。",
+    "执行能量J_exec独立按200Hz积分sum_j max(tau_j*qdot_j,0)，不从执行能量反向重置内部预算。",
+    "BudgetState.z_ratio当前分母是本回合initial_J且下限截为0，不能直接当固定z_ref的z/z_ref；新的导航适配器保留负预算及固定归一化，并作逆变换测试。",
+    "RC-PPO.root_finding的[-1,1]为归一化区间，不是J区间；不能沿用旧a.u.或把搜索无括根的中点作为可行预算。",
+    "到达后的成本停止点、子步事件/部分区间、预算耗尽与时间截断bootstrap先写契约；不得悄悄修改冻结步成本单位或0.1s接口。",
+    "NAV-056先定义z_J、z_ref_J、归一化成本critic和V_h的尺度与正负号；组合残差、损失目标、停止分段及搜索阈值使用同一版本。",
+    "NAV-061/062修订中明确：数学状态与价值残差使用未裁剪z_J/Z_REF_J；网络输入若另作有界编码须可区分全部预登记预算并显式分字段。训练越过z<0的行为、停止/终端和预算内到达判据一起版本化。"
+  ],
+  "safety_semantics": [
+    "危险历史不可逆，退出危险区不能恢复安全；明确本项目y与原avoid=±1的映射及符号。",
+    "占地足迹与δ只各计一次；名义约束膨胀不改变物理碰撞体或各方法共用的真实成功判据。",
+    "核查跨边但无顶点包含的多边形交叠、旋转、边界接触和区间穿越；不能仅凭旧函数注释认定几何正确。",
+    "闭环执行期间累计子步到达/碰撞/跌倒/越界事件，不能只检查0.1秒终点或把自动复位后的新回合拼接进旧回合。",
+    "δ来自平面位置偏差，不直接包含航向差；NAV-057在实现几何前明确足迹外接圆或有依据的姿态处理。物理CR/MC仍按所有方法共同的冻结足迹与原始障碍定义。",
+    "NAV-061/063核验y=0/1与原avoid=-1/+1的映射、目标内负值和边界零值；h不能因C*y的零下界或成功标签覆盖安全历史而改变可行集合。内部膨胀违反与物理碰撞分别记账；名义算法可行必须满足自身安全历史。"
+  ],
+  "training_semantics": [
+    "根据RC-PPO当前实际调用链实现max(V_h,V_cost-z)及最小化PPO；训练目标停止分段与环境终止独立命名。",
+    "保留动作变换、log_prob、优势符号、熵符号、归一化和critic目标之间的一致性，用独立小例子核验。",
+    "先无裕度小批验证，再分别训练无校准/完整方法；不能把HiRA单价值ReachAvoidPPO直接称为CaMRA算法。",
+    "部署若从随机采样改为确定性均值动作，评价网络需在固定部署策略下重新核验/拟合；预算搜索使用对应版本。",
+    "累计机械功目标为未折扣J。NAV-056逐项核查GAMMA_ENERGY/REACH、GAE和bootstrap；不能把<1的成本折扣直接当未折扣总能量，也不能让双critic分别选择不同停止时刻。",
+    "在连续动作任务中，α统一乘正系数不自动改变同一可行集合内的路径成本排序；其预算缓冲作用与δ改变可行路径的作用分别解释，整体两方法比较不证明单项贡献。",
+    "NAV-063以实际EC-EFPPO调用链对齐三个估计器：共享停止分段的成本GAE、reach λ-return和基于max(h,-z)与max(V_h,V_c-z)的联合策略GAE。gamma_c=1对应未折扣J；reach/联合折扣及λ单列、传到真实训练入口。若保留不同估计器须给目标等价推导和反例，不以变量同名代替。",
+    "整回合成本回报、独立min的reach目标与W_sel−V_total并不因都使用max就自动等价于共享停止的参考目标。先消除t/t+1混用、失败尾项传播和有限时域/rollout截断混用，再评价训练表现。"
+  ],
+  "calibration_applicability": [
+    "沿用同一冻结v2及其校准值，不把覆盖率直接当导航成功率或严格随机安全保证。",
+    "在线策略比较与同命令配对不同：诊断误差重放真实施加指令、同初态同时间基准，只在warmup后窗口起点对齐一次，不能每步重新贴合实际位姿。",
+    "原30秒误差分位数对不同终止时刻、指令分布及额外延迟只作适用性诊断；如需新校准先询问，不反调旧裕度。",
+    "原命令程序每1s换目标、参考0.2s过渡，导航每0.1s可换命令；幅值落域不代表切换/转向/联合分布一致。NAV-060在G2后先诊断，NAV-034和043对实际学习候选复查。",
+    "完整30s的累计能量覆盖不蕴含任意提前到达前缀的能量覆盖；位置最大偏差的前缀关系仅限同一条已观测轨迹，不能推出新闭环策略覆盖。保存多时刻前缀与失败，旧α/δ不反调。"
+  ],
+  "command_domain_resolution": {
+    "task": "NAV-055",
+    "known_conflict": "margins applicability:2/1/2；protocol与power domain:约1/0.4/1，顺序为|vx|/|vy|/|wz|。",
+    "authority_rule": "以绑定版本的协议、生成器、真实applied命令及功率模型支持域交叉核实；未唯一确定时询问用户，不取各字段最大值。",
+    "output": "config/navigation_contract_v1.json中的validated_command_domain及reports/command_domain_resolution.json；旧文件不改。"
+  }
+}

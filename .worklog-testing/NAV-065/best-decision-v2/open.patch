@@ -1,0 +1,40 @@
+*** Begin Patch
+*** Update File: /home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json
+@@
+   "外部独立目录manifest/decisions/episodes/decision_validation"
+ ],
+-   "work_records": [],
++   "work_records": [
++{
++  "timestamp": "2026-11-18T22:29:44.082002+08:00",
++  "summary": "NAV-066开工：冻结最优现有配对的五档价值决策，之后独立执行90名义回合",
++  "actions": [
++    "切换任务前重新完整读取根AGENTS和计划全文；核对NAV-065准备及全部上游来源有效。",
++    "绑定已批准登记pin、9图清单、两方法各一个最优现有模型；沿用W/beta/原目标和45秒任务。"
++  ],
++  "files_changed": [
++    "doc/plan/20261109_camra_navigation_implementation.json"
++  ],
++  "commands": [
++    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/best-decision-v2/transition.py open",
++    "tmux=nav064-r14-repair-20261115; cwd=/home/caohy/repositories/Paper"
++  ],
++  "results": [
++    "本项作用是检验实际预算决策能否安全及时预算内到达，同时限制拒绝和预算浪费。",
++    "只允许90查询/90名义回合，更新0/物理0/final封存；先封存全部18决策，再执行轨迹，选中行复用。",
++    "允许输出新验证日志和审阅；不改模型、规则、阈值、地图或v2；失败保持false并原样记录。"
++  ],
++  "evidence": [
++    "CaMRA/navigation/config/nav066_decision_prereg_v2.json",
++    "CaMRA/navigation/reports/nav065_budget_decision_readiness_v2.json",
++    "/pub/data/caohy/work/camra_navigation/nav066_budget_decision_v2_best/manifest.json"
++  ],
++  "remaining_work": [
++    "执行封存决策和90行独立验证，按每方法安全/召回/拒绝/效率门槛验收。"
++  ],
++  "blockers": []
++}
++],
+    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
+    "reference_ids": [
+*** End Patch

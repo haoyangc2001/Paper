@@ -1,0 +1,57 @@
+{
+  "task": "NAV-065",
+  "reviewer": "main_agent",
+  "independent": false,
+  "skill": "create-plan-worklog-legacy",
+  "status": "BASIC_PASS_AWAITING_NEW_QUOTA",
+  "timestamp": "2026-11-18T15:37:37.794131+08:00",
+  "hostname": "tiger11.ios.ac.cn",
+  "basic_pass": true,
+  "scientific_pass": false,
+  "formal_optimizer_updates": 0,
+  "new_rollouts": 0,
+  "development_scoring_rounds": 0,
+  "synthetic_gradient_test": "one toy optimizer step; no production tensors updated",
+  "tests": {
+    "passed": 22,
+    "log": "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/boundary-v3-basic/tests-final.log"
+  },
+  "preflight": {
+    "train_episodes": 540,
+    "train_steps": 207298,
+    "passing_candidates": 4,
+    "false_feasible": 4,
+    "full_s2_policy_primary_actual_feasible": 17,
+    "primary_total": 18
+  },
+  "protected": {
+    "old_v2_bound_code_unchanged": true,
+    "fixed_v2_inputs": "33 files verified by pinned production preflight",
+    "actor_actions": "all 207298 saved train actions replayed within 1e-6",
+    "formal_run_directory_created": false
+  },
+  "source_hashes": {
+    "CaMRA/navigation/scripts/refit_nav065_boundary.py": "2767b88a163a23b45fcfbf94ed56bcc26407486e15f0779d7fed145b482ec463",
+    "CaMRA/navigation/config/nav065_boundary_refit_proposal_v3.json": "df2b6de90867461fb1382635f88a836600f98365da5acd3a1398e665fc210da2",
+    "CaMRA/navigation/tests/test_nav065_boundary_refit.py": "610dd27ccd76d4f53316de92ce1ae43072d0bb7caa2c653edc14bed7fb89cc53",
+    "CaMRA/navigation/docs/nav065_boundary_refit_v3_20261118.md": "d6ed56b9e3b283fb5fc8099db4c6b6828cd27ea40cd303c2998cad10477a0120",
+    "CaMRA/navigation/reports/nav065_boundary_refit_preflight_v3.json": "aed1e707ee4388daca483f25c81956edd32eb951ae0b0b38952a66673c0e2082"
+  },
+  "evidence_hashes": {
+    "tests.log": "c13f1e74186a1197aec66cb85a43177b9741d4112d3cf886b0ea49391942d530",
+    "tests-final.log": "7a7efdb8520524062ebba4cc97551dbe2879fccf857cd97d57af21c135680f08",
+    "preflight.log": "bf7354a8d1125fb9a5453fa0a33a451cb02ee6823468914128c1fa95de004706",
+    "validation-opening.log": "f5cd9d2aaf2eec0176f892cf99f6290e7748408985890f9818fd529c5b4d747d",
+    "validation-opening-attempt2.log": "929068cd39203bbdc0d8e3aee318699695674cfd9b562094970cb4167369e929",
+    "window-verified.log": "d712346573e6af34a8e18d9be683e56f3cff9ad4c1bab2be4fc3aa6656a5ad82",
+    "before-plan.json": "c90079d0388cf5e8500a89bfca932db9249ef3ce219fec8f4aab33f2f70fbccf"
+  },
+  "known_limitations": [
+    "No real v3 fitting or development scoring; convergence and G4 remain unproven.",
+    "Train recognition rule changed only in a new protocol; old failed attempt unchanged.",
+    "Four source passes include two nonprimary false-infeasibles, retained as diagnostics.",
+    "First validator invocation used unsupported --previous; error log retained.",
+    "Initial host log named the selected monitor window; window-verified.log records actual pane."
+  ],
+  "downstream": "NAV-065=false, 52/67, existing G4 FAIL; NAV-066 not started"
+}

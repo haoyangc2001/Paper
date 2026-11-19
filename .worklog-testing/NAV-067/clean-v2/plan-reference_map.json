@@ -1,0 +1,169 @@
+[
+  {
+    "id": "R01",
+    "paths": [
+      "AGENTS.md",
+      "README.md",
+      "CaMRA/README.md",
+      "CaMRA/navigation/README.md"
+    ],
+    "use": "当前授权、硬约束、模块边界与状态"
+  },
+  {
+    "id": "R02",
+    "paths": [
+      "manuscripts/CCDC/latex/1029/main.tex",
+      "RC-PPO/README.md"
+    ],
+    "use": "只读学习方法定义、原算法思想及论文与实现差异"
+  },
+  {
+    "id": "R03",
+    "paths": [
+      "RC-PPO/rl/EC-EFPPO.py",
+      "RC-PPO/rl/EFPPO_utils.py",
+      "RC-PPO/rl/gae.py",
+      "RC-PPO/model/actorcritic.py",
+      "RC-PPO/env/reach_avoid/wind_field.py",
+      "RC-PPO/env/env_list.py"
+    ],
+    "use": "实际训练调用链、双评价目标、停止分段、最小化符号和状态缩放；原副本缺失导入不能冒充可运行发行版"
+  },
+  {
+    "id": "R04",
+    "paths": [
+      "RC-PPO/rl/root_finding.py"
+    ],
+    "use": "预算搜索参考，补端点/单调性/无解检查与J单位转换"
+  },
+  {
+    "id": "R05",
+    "paths": [
+      "HiRA/legged_gym_go2/legged_gym/scripts/train_reach_avoid.py",
+      "HiRA/legged_gym_go2/legged_gym/envs/go2/hierarchical_go2_env.py",
+      "HiRA/legged_gym_go2/legged_gym/envs/go2/high_level_navigation_env.py",
+      "HiRA/rsl_rl/rsl_rl/algorithms/reach_avoid_ppo.py",
+      "HiRA/legged_gym_go2/legged_gym/scripts/test_reach_avoid.py"
+    ],
+    "use": "分层封装、状态组织、速度下发和轨迹评估结构；不是可直接替换的CaMRA算法或v2契约"
+  },
+  {
+    "id": "R06",
+    "paths": [
+      "CaMRA/locomotion/README.md",
+      "CaMRA/locomotion/docs/reproduction.md",
+      "CaMRA/locomotion/docs/frozen/camra_go2_velocity_it2999_v2.frozen_manifest.json",
+      "CaMRA/locomotion/config/repro.env",
+      "CaMRA/locomotion/scripts/verify_frozen_bundle.py"
+    ],
+    "use": "v2身份、恢复、历史局限与完整性检查"
+  },
+  {
+    "id": "R07",
+    "paths": [
+      "CaMRA/locomotion/scripts/rollout_exported_policy.py",
+      "CaMRA/locomotion/source/unitree_rl_lab/unitree_rl_lab/utils/external_command.py"
+    ],
+    "use": "build_policy、ExternalCommandBridge.set_command_batch、观测更新和导出策略运行；不要导入带脚本顶层参数解析的模块造成副作用"
+  },
+  {
+    "id": "R08",
+    "paths": [
+      "CaMRA/calibration/README.md",
+      "CaMRA/calibration/docs/implementation_handoff.md",
+      "CaMRA/calibration/docs/controller_comparison_status_20261109.md",
+      "doc/plan/20261103_camra_calibration_implementation.json",
+      "doc/plan/20261105_camra_hira_policy_calibration.json",
+      "CaMRA/calibration/delivery/bundle_manifest_v1.json"
+    ],
+    "use": "旧校准协议、例外、真实数据位置、来源界限和历史复核事项"
+  },
+  {
+    "id": "R09",
+    "paths": [
+      "CaMRA/calibration/config/calibration_protocol_v1.0.2.json",
+      "CaMRA/calibration/config/power_model_v1.json",
+      "CaMRA/calibration/config/footprint_v1.json",
+      "CaMRA/calibration/config/margins_v1.json",
+      "CaMRA/calibration/config/data_lock_v1.json",
+      "CaMRA/calibration/config/step_cost_schema_v1.json"
+    ],
+    "use": "固定v2消费契约与精确值/散列"
+  },
+  {
+    "id": "R10",
+    "paths": [
+      "CaMRA/calibration/src/camra_calibration/nominal.py",
+      "CaMRA/calibration/src/camra_calibration/power.py",
+      "CaMRA/calibration/src/camra_calibration/step_cost.py"
+    ],
+    "use": "step_exact、PowerModel、StepCost与BudgetState；适配归一化和有符号预算"
+  },
+  {
+    "id": "R11",
+    "paths": [
+      "CaMRA/calibration/src/camra_calibration/geometry.py",
+      "CaMRA/calibration/src/camra_calibration/obstacles.py",
+      "CaMRA/calibration/src/camra_calibration/near_obstacle.py",
+      "CaMRA/calibration/sim/obstacles_sim.py"
+    ],
+    "use": "膨胀、足迹/距离、地图与物理障碍生成参考，独立核对交叠/扫掠/尺寸假设"
+  },
+  {
+    "id": "R12",
+    "paths": [
+      "CaMRA/calibration/src/camra_calibration/profiles.py",
+      "CaMRA/calibration/sim/profiles_sim.py",
+      "CaMRA/calibration/sim/recorder.py",
+      "CaMRA/calibration/src/camra_calibration/energy.py",
+      "CaMRA/calibration/scripts/collect_trials.py",
+      "CaMRA/calibration/sim/batch_program.py"
+    ],
+    "use": "扰动采样/注入、复位、物理步计量和既有命令表采集；闭环需新在线适配，固定30秒记录器不能直接覆盖任意终止语义"
+  },
+  {
+    "id": "R13",
+    "paths": [
+      "CaMRA/calibration/src/camra_calibration/commands.py",
+      "CaMRA/calibration/src/camra_calibration/protocol.py"
+    ],
+    "use": "命令真实生成/限幅/变化节奏与协议加载，对照原始applied命令裁定速度域和闭环适用性。"
+  },
+  {
+    "id": "R14",
+    "paths": [
+      "CaMRA/navigation/src/camra_navigation/algorithm/targets.py",
+      "CaMRA/navigation/src/camra_navigation/algorithm/storage.py",
+      "CaMRA/navigation/src/camra_navigation/algorithm/ppo.py",
+      "CaMRA/navigation/src/camra_navigation/algorithm/networks.py",
+      "CaMRA/navigation/src/camra_navigation/envs/nominal.py",
+      "CaMRA/navigation/src/camra_navigation/envs/vector.py",
+      "CaMRA/navigation/src/camra_navigation/observation.py"
+    ],
+    "use": "现有目标、样本、共同停止、预算/安全/动作源码及回修入口"
+  },
+  {
+    "id": "R15",
+    "paths": [
+      "CaMRA/navigation/scripts/train_nominal.py",
+      "CaMRA/navigation/scripts/train_formal.py",
+      "CaMRA/navigation/scripts/freeze_deployment.py",
+      "CaMRA/navigation/scripts/run_budget_selection.py",
+      "CaMRA/navigation/src/camra_navigation/budget/search.py",
+      "CaMRA/navigation/reports/gate_G4.json",
+      "CaMRA/navigation/reports/budget_selection.json"
+    ],
+    "use": "生产训练/重拟合/搜索入口，现有多epoch、旧负结果和经验扫描用途"
+  },
+  {
+    "id": "R16",
+    "paths": [
+      "CaMRA/navigation/scripts/evaluate_navigation.py",
+      "CaMRA/navigation/src/camra_navigation/envs/physical.py",
+      "CaMRA/navigation/src/camra_navigation/evaluation/recorder.py",
+      "CaMRA/navigation/src/camra_navigation/maps/scene_adapter.py",
+      "CaMRA/navigation/reports/nav042_online_loop.json"
+    ],
+    "use": "clean事件、200Hz计量/状态、复位/坐标和历史接线证据"
+  }
+]

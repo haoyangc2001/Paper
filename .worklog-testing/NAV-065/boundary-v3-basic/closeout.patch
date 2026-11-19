@@ -1,0 +1,70 @@
+*** Begin Patch
+*** Update File: doc/plan/20261109_camra_navigation_implementation.json
+@@
+     "部署均值动作与value对应；重拟合未触及actor及v2。所有预算输入覆盖本轮搜索范围且不饱和混淆。",
+     "新G4门禁列学习可用性和部署价值可信度，全部达到预登记条件才通过；旧FAIL_WITH_STABILITY原报告不覆盖。"
+    ],
+-   "verification_result": "NAV-065-MAIN-20261118-saved-refit-v2：主agent直接验证，离线重拟合v2已结束；640新增更新、0新增采样，4/6 train通过、4次假可行。train门槛未过，development未重评，无新G4/交付包，原G4 FAIL有效；NAV-065=false、NAV-066未启动。",
++   "verification_result": "NAV-065边界回修v3：主agent基础22测试及540条train预检PASS；正式拟合0、开发重评0、新额度待确认。旧G4 FAIL有效，NAV-065=false。",
+    "planned_outputs": [
+     "delivery/deployment_candidates_v2.json",
+     "reports/deployment_critic_validation_v2.json",
+@@
+      ],
+      "blockers": [
+       "新正式优化额度未冻结；NAV-065=false，NAV-066不启动。"
++     ]
++    },
++    {
++     "timestamp": "2026-11-18T15:37:37.843105+08:00",
++     "summary": "NAV-065/1.3.1 边界符号回修v3入口及基础验证完成；仅准备，科学门禁未放行",
++     "actions": [
++      "按用户指定legacy执行，主agent直接测试，不安排专用测试子agent。",
++      "新增隔离v3，固定actor并保留共同停止原目标；增加训练起点分量符号辅助损失，部署W/beta和development判据不变。",
++      "train主预算识别要求按真实可行数分列；full s2须接受17并拒绝超时，不要求用critic使固定轨迹18/18成功，不回填旧v2 PASS。",
++      "tiger11/tmux实际预检540条train/207298步，源actor确定性动作及真值复算；校验原登记、源模型和33项v2资源。",
++      "维护独立未批准提案及来源绑定、零更新保留通过模型、首次通过即停、train失败阻断开发与单次重评调用链。"
++     ],
++     "files_changed": [
++      "CaMRA/navigation/scripts/refit_nav065_boundary.py",
++      "CaMRA/navigation/config/nav065_boundary_refit_proposal_v3.json",
++      "CaMRA/navigation/tests/test_nav065_boundary_refit.py",
++      "CaMRA/navigation/docs/nav065_boundary_refit_v3_20261118.md",
++      "CaMRA/navigation/reports/nav065_boundary_refit_preflight_v3.json",
++      "AGENTS.md",
++      "CaMRA/navigation/docs/implementation_handoff.md",
++      "doc/plan/20261109_camra_navigation_implementation.json",
++      "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/boundary-v3-basic"
++     ],
++     "commands": [
++      "tmux=nav064-r14-repair-20261115:nav065-boundary-v3, pane=%482; cwd=/home/caohy/repositories/Paper/CaMRA/navigation; Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
++      "PYTHONPATH=src:scripts PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -m pytest -q -p no:cacheprovider tests/test_nav065_boundary_refit.py tests/test_nav065_saved_refit.py",
++      "PYTHONPATH=src:scripts /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -u scripts/refit_nav065_boundary.py --preflight --report reports/nav065_boundary_refit_preflight_v3.json",
++      "legacy validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update；追加历史另与before-plan.json逐项比对。"
++     ],
++     "results": [
++      "22项基础测试通过；合成单步更新actor不变、两critic有梯度；正式优化0、新回合0、development重评0。",
++      "四组源模型train通过；full s1/s2各两次假可行仍失败。主档固定策略可行分别18/18与17/18，不能将统计门槛修正当作修复四次误判。",
++      "未批准提案拟只对两个失败候选各最多300、合计600新更新；其余四组零更新，全部train通过才复用180 development一次，未创建正式run。",
++      "旧v2绑定代码散列不变；新辅助项只改critic优化重心，原目标精确值辅助损失为0；Go2/v2/时序/预算单位/共同停止与开发评分保持。",
++      "首次legacy校验误用--previous参数，保留失败日志后改为其支持的--mode update通过；初始host日志窗口名取了当前选中monitor，另以实际pane更正记录。",
++      "局部基础检查PASS；全局端到端科学验收仍缺实际拟合、开发G4与交付，52/67、NAV-065=false，NAV-066不启动。",
++      "本次前verification_result保留：NAV-065-MAIN-20261118-saved-refit-v2：主agent直接验证，离线重拟合v2已结束；640新增更新、0新增采样，4/6 train通过、4次假可行。train门槛未过，development未重评，无新G4/交付包，原G4 FAIL有效；NAV-065=false、NAV-066未启动。"
++     ],
++     "evidence": [
++      "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/boundary-v3-basic/report.json",
++      "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/boundary-v3-basic/tests-final.log",
++      "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/boundary-v3-basic/preflight.log",
++      "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/boundary-v3-basic/window-verified.log",
++      "CaMRA/navigation/reports/nav065_boundary_refit_preflight_v3.json",
++      "CaMRA/navigation/docs/nav065_boundary_refit_v3_20261118.md"
++     ],
++     "remaining_work": [
++      "冻结新增优化额度及独立批准登记；执行有界拟合；六组train全通过后唯一开发复验，原G4通过才能交付NAV-066。"
++     ],
++     "blockers": [
++      "旧额度已耗尽，新提案approved=false，不能执行正式优化；两组仍有四次假可行，无新G4 PASS或部署包。"
+      ]
+     }
+    ],
+*** End Patch

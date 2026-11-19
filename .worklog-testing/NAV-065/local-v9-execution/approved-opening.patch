@@ -1,0 +1,134 @@
+*** Begin Patch
+*** Add File: /home/caohy/repositories/Paper/CaMRA/navigation/config/nav065_local_probe_prereg_v9.json
++{
++  "schema": "camra-nav065-local-probe-v9",
++  "task": "NAV-065",
++  "approved": true,
++  "status": "APPROVED",
++  "fit_split": "train",
++  "candidate": "nav064_terminal_tail_v1_full_s0",
++  "source_run": "nav065_pilot_refit_v8",
++  "source_checkpoint_sha256": "b6eecf29f35cc1aa20a5fdd2216b0d30425cb044efae325f11a8c86533646bc7",
++  "source_finished_sha256": "db2848bacecaaecec652c5f716ceff1655d6a10c39af178a804889cfd040d08d",
++  "output_name": "nav065_local_probe_v9",
++  "selection": "All v8 final false-feasible train starts and, for each, the nearest actually feasible saved start of the same map by absolute budget difference (tie: lower k). Deduplicate and sort map/k. Never infer monotonicity, use development, or replace labels with predictions.",
++  "resource_limit": {
++    "update_candidates": [
++      "nav064_terminal_tail_v1_full_s0"
++    ],
++    "optimizer_trials_total_max": 400,
++    "new_train_episodes_max": 0,
++    "new_development_episodes": 0,
++    "development_scoring_rounds_max": 0,
++    "cpu_threads": 1
++  },
++  "fit": {
++    "optimizer": "Adam",
++    "learning_rate": 0.001,
++    "rule": "One fresh deep copy of the fixed v8 final model. Full-batch MSE of unchanged common-stop cost/reach targets on the fixed selected starts, equally weight positive/nonpositive reach strata. Train only the two original critics. Evaluate all local rows after every update; stop at first local numerical-and-sign pass or the 400-step cap. No retry, stage transfer, intermediate selection or automatic expansion. The learning rate matches the original phase-II refit, but the subset/optimizer reset differ from v8; this is a local fitting probe, not a controlled attribution to any single change."
++  },
++  "local_acceptance": "Report separately both critics' original relative-MAE/Pearson checks, component signs, joint signs and false-feasible/false-infeasible counts. Local pass requires original applicable numerical thresholds and every selected component and joint sign correct. It only demonstrates fitting these known starts. It is not the full v5 train gate, G4, deployment or generalization acceptance.",
++  "full_train_review": "Directly call the unchanged v5 train_gate on the pilot's original 90+72 train episodes before and after the local probe, report all regressions, never substitute local metrics for this result. No development scoring even if either check passes.",
++  "downstream": "Save a diagnostic-only probe checkpoint with CPU reload, source/actor hashes and full logs. Never publish a deployment bundle, feed this checkpoint to NAV-066, expand to six models, or automatically train another architecture. Further action needs evidence review and a separately bounded registration.",
++  "failure_policy": "Proposed settings are not permission for optimizer steps. A new explicit approved, hash-pinned registration is required. Output directories are exclusive. Nonfinite loss/gradient/parameter stops and preserves failure evidence; retain the current diagnostic checkpoint. No additional data, relaxed gates, old quota reuse or overwritten historical artifacts.",
++  "protected": [
++    "six original models and actors",
++    "original common-stop targets and W",
++    "beta=0 and original v5 train/G4",
++    "network architecture and obs-v7",
++    "complete frozen v2 and calibration",
++    "map/time/J/split contracts",
++    "all historical artifacts",
++    "RC-PPO, HiRA and manuscripts"
++  ],
++  "authorization_reference": "用户2026-11-18本轮明确回复“确认”：批准已提交4c28613的NAV-065 v9一次full_s0副本/固定25个已有train起点、Adam lr=1e-3最多400新更新、0新回合/0开发评分；沿用legacy主agent验证和此前同机tiger11/tmux例外，不自动扩展。",
++  "implementation_hashes": {
++    "scripts/refit_nav065_saved.py": "9cf2f93b802c8eac0367f96bc2cf5d41cd5afab3a9cc7680c47353971193562e",
++    "scripts/analyze_nav065_boundary.py": "3c90e6015fabdfe611d45474cbc8daf0050b22e304a15c696edf6d440d442878",
++    "tests/test_nav065_saved_refit.py": "c712d5e72fd02f13913a42b9ded4f82dc607c9037c32dc64456eb2f34b7cc293",
++    "config/nav065_saved_refit_proposal_v2.json": "7075c816be925ed38781f08375c54aa90a99721075c4ee6b454a4ee4e38e616c",
++    "scripts/refit_nav065_boundary.py": "2767b88a163a23b45fcfbf94ed56bcc26407486e15f0779d7fed145b482ec463",
++    "tests/test_nav065_boundary_refit.py": "610dd27ccd76d4f53316de92ce1ae43072d0bb7caa2c653edc14bed7fb89cc53",
++    "config/nav065_boundary_refit_proposal_v3.json": "df2b6de90867461fb1382635f88a836600f98365da5acd3a1398e665fc210da2",
++    "scripts/refit_nav065_guarded.py": "245792ec2cbb119a1d3c81ae5a1c8f71319d62b8acf1ee55b471903f84d67199",
++    "tests/test_nav065_guarded_refit.py": "43c35b58d10a478a777e4108827f63d1fb46c9552c1f63f3be3d16ab0ff93526",
++    "scripts/refit_nav065_adaptive.py": "5c3172db34e7663a50d8d7c3d45560a784bcc89972bfd9138788b25edc875bf4",
++    "tests/test_nav065_adaptive_refit.py": "89931eb9b4bd786c3d3588dd48cd4626eead3486fe2ce7206a35572dd1f585ad",
++    "config/nav065_adaptive_refit_proposal_v5.json": "c5761be9701a7bc2bb0a0e0be9e7d3ae9cc9c6173e92a3792dae6153c2db08c7",
++    "config/nav065_guarded_refit_prereg_v4.json": "0c25e6a3bcabf5cae14a428b4786147521130ced657d2b6220ff065e9fcb2d5c",
++    "reports/nav065_guarded_refit_v4_review.json": "3d2ae0b9850d5a6f9b7074053cf46e2567706e9e8db59221c0cd83de933bbad6",
++    "scripts/refit_nav065_deployment.py": "f2a699209433cf63f84b3a8c03ad206cc48153a396ba3e34081110bc89240061",
++    "scripts/evaluate_nav065_deployment.py": "d0c0127144801c7d7dcad5f228251dfd63744330ffed9f4d35ebd7d297a8adb9",
++    "src/camra_navigation/algorithm/deployment_oracle.py": "551eabf6c9593611ceafbbf7560cf9738b1a08db6b065d801b6a2961e802d01a",
++    "config/nav065_adaptive_refit_prereg_v5.json": "89d46ae22b7b2b4ec58a1d638052f9c2c26fd8f6f6a9c4432a9fcc6019b74f08",
++    "reports/nav065_adaptive_refit_v5_review.json": "631143e9e696d7a33e53c6d7f9ae7022067ac5911b4ca5c29158df10d85464d5",
++    "scripts/refit_nav065_blocks.py": "71b2eaf6582166c4d08399c79f6adfc781c73b316947367190e3963da4a65da6",
++    "tests/test_nav065_block_refit.py": "e566e2d2c2a7deb0123cf24d4e6dfad71dc94ecb0b6a58695652917566aa4cc5",
++    "config/nav065_block_refit_proposal_v6.json": "770735c21a32d1c535c78d5fc9d2ce61391c7a874198f04ec340df1643b9da46",
++    "config/nav065_block_refit_prereg_v6.json": "71fc28b406a377b5d1c07e90df14acf1a9ae02e64f32a067f71868ab59ce9d78",
++    "reports/nav065_block_refit_v6_review.json": "222b27f92eae7e298c2efec7ffa82e4b88d2681743d310ade4606ee0f291cb19",
++    "scripts/refit_nav065_staged.py": "dbd4ab7c18da1fdcc6fb86c3dc0f5c2d45aa828efbfc50855043565583036b0a",
++    "tests/test_nav065_staged_refit.py": "04dc08a62fb175fe4043a4a9b807dc84791b561842a751f8d34729f0652c9bbd",
++    "config/nav065_staged_refit_proposal_v7.json": "40db3535945486ab3ff8e5ddd9f42b2d50896fccfd6e9fe0baa398db0856d346",
++    "config/nav065_staged_refit_prereg_v7.json": "5376811a5b0345f526de1ab33f0e7c152fa2998e8303b9ef09f23e0128180b09",
++    "reports/nav065_staged_refit_v7_review.json": "e068b0c5c1995e3f53ce505fdaee39f640dfb4613d55b69ae2ec1f329df3ae86",
++    "scripts/refit_nav065_pilot.py": "bf71abe45057d5715bf976581c148e5ab48bb11d4b3843cb755796685819457e",
++    "tests/test_nav065_pilot_refit.py": "bae182c826e98e06ad72662ade822bd7d4c89b35a64f8e80c36eb1a370ad482e",
++    "config/nav065_pilot_refit_proposal_v8.json": "cb3d30d2567099fd2d5dad923035a43cf83a508b086a4a2de315a927bb021049",
++    "config/nav065_pilot_refit_prereg_v8.json": "d1a6b6c5493b31dcd8cb16d5e0efc54f5f9e2f31ae7f1d40fee029328b8b83f6",
++    "reports/nav065_pilot_refit_v8_review.json": "2c03e9e536979d37c25485148fd1ab177af9bf46b31a448cabb44f3426ae472e",
++    "scripts/probe_nav065_local.py": "a389c9572c5d2e4499432d44c462d8e1dec8070c88afc7fe909ee3e01689ec91",
++    "tests/test_nav065_local_probe.py": "430503652cce03d1d717e8fb245e61b7f42ccadfb5b618efdb2a97cf6e81e28a",
++    "config/nav065_local_probe_proposal_v9.json": "08cd3e903288452ec7f1748f0ea476cabd3608f307fa75370030dde9130a0101"
++  }
++}
+*** Add File: /home/caohy/repositories/Paper/CaMRA/navigation/config/nav065_local_probe_prereg_v9.json.sha256
++6a9647853c8c881d046ff255399b49a38ad9987fce77529100ed1f44822a9b7e
+*** Update File: /home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json
+@@
+-  "blockers": [
+-    "新400步仅为未批准提案，不能将当前准备授权当作额外优化额度，不能挪用v8未执行边界预算。"
+-  ]
+-}
+-      ],
+-   "test_reports": [
++  "blockers": [
++    "新400步仅为未批准提案，不能将当前准备授权当作额外优化额度，不能挪用v8未执行边界预算。"
++  ]
++},
++{
++  "timestamp": "2026-11-18T20:29:26.230185+08:00",
++  "summary": "NAV-065/1.3.1 v9确认后开工：批准一次25点局部拟合、最多400新更新",
++  "actions": [
++    "重新完整读取AGENTS、legacy规则与计划JSON，核对首个可执行任务NAV-065、NAV-064依赖和既有记录；现场确认tiger11/tmux/绝对解释器、来源和33项v2身份。",
++    "登记用户本轮“确认”，冻结与4c28613提案完全一致的新批准文件、源码/配置hash和pin；本次仅在full_s0副本上执行一次。"
++  ],
++  "files_changed": [
++    "doc/plan/20261109_camra_navigation_implementation.json",
++    "CaMRA/navigation/config/nav065_local_probe_prereg_v9.json",
++    "CaMRA/navigation/config/nav065_local_probe_prereg_v9.json.sha256",
++    ".worklog-testing/NAV-065/local-v9-execution/"
++  ],
++  "commands": [
++    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-065/local-v9-execution/prepare.py",
++    "host=tiger11.ios.ac.cn；tmux=nav064-r14-repair-20261115:nav065-v9-execution；cwd=/home/caohy/repositories/Paper/CaMRA/navigation"
++  ],
++  "results": [
++    "服务于固定actor双critic预算判别可靠性，参考RC-PPO Phase II；不改actor/目标/W/beta/架构/数据划分/原v5 train/G4或固定v2。",
++    "复用已选25起点做原MSE局部诊断，最多400步，新增回合/开发评分0；拟合前后直接复用原162回合train_gate，局部成功不放行部署或NAV-066。",
++    "上游为v8末次checkpoint b6eecf29f35cc1aa20a5fdd2216b0d30425cb044efae325f11a8c86533646bc7；批准pin=6a9647853c8c881d046ff255399b49a38ad9987fce77529100ed1f44822a9b7e",
++    "16项基本检查证据及源码hash未变，不重复合成测试；后续验收检查真实更新次数、末次预测/门禁、CPU重载与六原模型/actor保护。"
++  ],
++  "evidence": [
++    "CaMRA/navigation/config/nav065_local_probe_proposal_v9.json",
++    "CaMRA/navigation/reports/nav065_local_probe_v9_preparation_review.json",
++    "/home/caohy/repositories/Paper/.worklog-testing/NAV-065/local-v9-execution/context.json"
++  ],
++  "remaining_work": [
++    "应用批准登记与开工记录，校验计划并按固定入口执行一次；主agent验收后追加结果和下游限制。"
++  ],
++  "blockers": []
++}
++      ],
++   "test_reports": [
+*** End Patch

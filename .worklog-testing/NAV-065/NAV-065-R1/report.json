@@ -1,0 +1,235 @@
+{
+  "report_id": "NAV-065-R1",
+  "task_id": "NAV-065",
+  "timestamp": "2026-11-18T14:02:47+08:00",
+  "tester": {
+    "agent_id": "/root/nav065_refit_tester",
+    "implementation_agent_id": "/root",
+    "independent": true
+  },
+  "verdict": "blocked",
+  "summary": "The fixed-actor refit artifacts pass input pin, train/development coverage, checkpoint identity, raw-J, trace-derived feasibility/W, and G4 suppression checks. All six candidates fail deployment-value criteria (0/6 pass); G4 is FAIL and no v2 bundle was emitted. Duplicate and unknown development keys were rejected by an isolated reader fixture. The required code-level mutation test was not run, so the overall report remains blocked. NAV-065 plan state was not changed.",
+  "task_contract": {
+    "id": "NAV-065",
+    "goal": "绑定新actor与同目标双critic，验证部署价值判据并重新放行",
+    "depends_on": [
+      "NAV-064"
+    ],
+    "constraints_and_notes": [
+      "按NAV-061固定checkpoint规则选择达标轮次六候选，不按预算选择或最终结果择优；旧bundle v1及旧重拟合结果保留。",
+      "固定actor的确定性动作变换后，使用train/development重新核验或拟合双critic；采样时序、共同停止、失败尾项、预算范围和目标函数必须使用NAV-062/063版本。",
+      "核验不能仅比较MAE/Pearson或复用旧amend：增加安全可行/不可行预算与失败状态的W符号/假可行检查；阈值在数据前冻结。目标方差退化时如实报告，不能以相关性无定义免除可行性判定。",
+      "绑定每候选源checkpoint、actor/双critic、观测/动作、z_ref、h/y、beta、估计器及契约hash；验证CPU重载与部署一致。六候选不意味着NAV-066的90回合覆盖所有种子。",
+      "目标/输入变化使旧G4科学放行不能继承；新门禁须同时引用NAV-063和064。critic未达到预算用途的要求则保持false，不以经验扫描自动绕过。"
+    ],
+    "acceptance_criteria": [
+      "deployment_candidates_v2六个候选身份唯一、hash可复算，采用同一新契约；v1字节和旧判定完整保留。",
+      "每候选固定actor的独立开发核验包含预测误差、符号混淆/假可行、边界预算和失败例；目标由独立轨迹/已核验oracle产生，非用同一网络给自己判对。",
+      "部署均值动作与value对应；重拟合未触及actor及v2。所有预算输入覆盖本轮搜索范围且不饱和混淆。",
+      "新G4门禁列学习可用性和部署价值可信度，全部达到预登记条件才通过；旧FAIL_WITH_STABILITY原报告不覆盖。"
+    ],
+    "test_requirements": {
+      "risk_level": "high",
+      "snapshot_paths": [
+        "CaMRA/navigation/scripts/refit_nav065_deployment.py",
+        "CaMRA/navigation/scripts/evaluate_nav065_deployment.py",
+        "CaMRA/navigation/scripts/eval_r14_repair.py",
+        "CaMRA/navigation/scripts/prepare_nav065_sources.py",
+        "CaMRA/navigation/scripts/audit_nav065_saved_trajectories.py",
+        "CaMRA/navigation/scripts/train_formal.py",
+        "CaMRA/navigation/scripts/eval_training_round.py",
+        "CaMRA/navigation/src/camra_navigation",
+        "CaMRA/navigation/tests/test_deployment_oracle.py",
+        "CaMRA/navigation/tests/test_nav065_deployment_gate.py",
+        "CaMRA/navigation/config/nav065_refit_prereg_v1.json",
+        "CaMRA/navigation/config/nav065_refit_prereg_v1.json.sha256",
+        "CaMRA/navigation/config/nav065_deployment_prereg_v1.json",
+        "CaMRA/navigation/config/nav065_deployment_prereg_v1.json.sha256",
+        "CaMRA/navigation/config/navigation_contract_terminal_tail_v1.json",
+        "CaMRA/navigation/config/value_objective_contract_terminal_tail_v1.json",
+        "CaMRA/navigation/config/training_loop_prereg_terminal_tail_v1.json",
+        "CaMRA/navigation/config/split_manifest_v1.json",
+        "CaMRA/navigation/config/map_design_v1.json",
+        "CaMRA/navigation/config/geometry_contract_v1.json",
+        "CaMRA/navigation/reports/train_map_reference_energy_t45.json",
+        "CaMRA/navigation/reports/nav065_deployment_source_binding_v1.json",
+        "CaMRA/navigation/reports/nav065_deployment_v1_review.json",
+        "CaMRA/calibration/config/power_model_v1.json",
+        "CaMRA/calibration/config/margins_v1.json",
+        "CaMRA/calibration/config/footprint_v1.json"
+      ],
+      "checks": [
+        {
+          "id": "CHECK-001",
+          "acceptance_criteria": [
+            "deployment_candidates_v2六个候选身份唯一、hash可复算，采用同一新契约；v1字节和旧判定完整保留。"
+          ],
+          "method": "严格CPU重载六组checkpoint并重算三个子网的hash，核对G4与bundle同一输入；检验失败时不能发布，旧bundle和报告散列不变。",
+          "expected_result": "候选身份唯一、版本锁匹配；只有通过并有交付包才通过验收。"
+        },
+        {
+          "id": "CHECK-002",
+          "acceptance_criteria": [
+            "每候选固定actor的独立开发核验包含预测误差、符号混淆/假可行、边界预算和失败例；目标由独立轨迹/已核验oracle产生，非用同一网络给自己判对。"
+          ],
+          "method": "独立从原始开发轨迹复算到达、安全、预算及初始W并重建180个组合的混淆和误差，检查硬失败、临界超预算和禁止非train数据参与拟合。",
+          "expected_result": "180个开发回合均来自原记录，五档覆盖完整，真值和指标可复算。"
+        },
+        {
+          "id": "CHECK-003",
+          "acceptance_criteria": [
+            "部署均值动作与value对应；重拟合未触及actor及v2。所有预算输入覆盖本轮搜索范围且不饱和混淆。"
+          ],
+          "method": "逐模型对照源权重和均值动作，确认两critic实际更新、actor字节一致；复核540个train键、45秒与预算编码以及33项冻结v2散列。",
+          "expected_result": "主链计算使用新价值且旧actor、整套v2、时序和单位一致；所有预算输入不裁剪。"
+        },
+        {
+          "id": "CHECK-004",
+          "acceptance_criteria": [
+            "新G4门禁列学习可用性和部署价值可信度，全部达到预登记条件才通过；旧FAIL_WITH_STABILITY原报告不覆盖。"
+          ],
+          "method": "重建六个候选的注册门槛，核对旧结论与当前G4的NAV-063/064引用及真假可行汇总。",
+          "expected_result": "全部六候选达到原门槛才发布；失败原样保留，旧报告不覆盖。"
+        }
+      ],
+      "mutation_testing": {
+        "required": true,
+        "reason": "在隔离副本验证将超预算起点当成功、或放过未知/重复回合时断言会失败。"
+      },
+      "cross_validation": {
+        "required": true,
+        "reason": "用原始轨迹与独立J账本和W复算验证端到端数据与价值，用手算短轨迹验证共同停止。"
+      }
+    }
+  },
+  "tested_snapshot": {
+    "root": "/home/caohy/repositories/Paper",
+    "paths": [
+      "CaMRA/navigation/scripts/refit_nav065_deployment.py",
+      "CaMRA/navigation/scripts/evaluate_nav065_deployment.py",
+      "CaMRA/navigation/scripts/eval_r14_repair.py",
+      "CaMRA/navigation/scripts/prepare_nav065_sources.py",
+      "CaMRA/navigation/scripts/audit_nav065_saved_trajectories.py",
+      "CaMRA/navigation/scripts/train_formal.py",
+      "CaMRA/navigation/scripts/eval_training_round.py",
+      "CaMRA/navigation/src/camra_navigation",
+      "CaMRA/navigation/tests/test_deployment_oracle.py",
+      "CaMRA/navigation/tests/test_nav065_deployment_gate.py",
+      "CaMRA/navigation/config/nav065_refit_prereg_v1.json",
+      "CaMRA/navigation/config/nav065_refit_prereg_v1.json.sha256",
+      "CaMRA/navigation/config/nav065_deployment_prereg_v1.json",
+      "CaMRA/navigation/config/nav065_deployment_prereg_v1.json.sha256",
+      "CaMRA/navigation/config/navigation_contract_terminal_tail_v1.json",
+      "CaMRA/navigation/config/value_objective_contract_terminal_tail_v1.json",
+      "CaMRA/navigation/config/training_loop_prereg_terminal_tail_v1.json",
+      "CaMRA/navigation/config/split_manifest_v1.json",
+      "CaMRA/navigation/config/map_design_v1.json",
+      "CaMRA/navigation/config/geometry_contract_v1.json",
+      "CaMRA/navigation/reports/train_map_reference_energy_t45.json",
+      "CaMRA/navigation/reports/nav065_deployment_source_binding_v1.json",
+      "CaMRA/navigation/reports/nav065_deployment_v1_review.json",
+      "CaMRA/calibration/config/power_model_v1.json",
+      "CaMRA/calibration/config/margins_v1.json",
+      "CaMRA/calibration/config/footprint_v1.json"
+    ],
+    "content_sha256": "825a279b63dbbe6dcc8f28983ec59e39e89c949f6339d0f3f143f24b60104cb1",
+    "contract_sha256": "88e1392e70aa0b447c4537befc6665aef314c10290207c4d413073436b76622b"
+  },
+  "checks": [
+    {
+      "id": "CHECK-001",
+      "kind": "command",
+      "result": "pass",
+      "invocation": "At project root, read-only inline Python audit using PYTHONPATH=CaMRA/navigation/scripts:CaMRA/navigation/src and /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python.",
+      "exit_code": 0,
+      "expected": "The preregistration pin and all frozen inputs match; fitting is limited to train, evaluation to development, and the 540 train keys are unique across six candidates, 18 maps, and five budgets.",
+      "actual": "Registration SHA256 c971caacec4ce84280028d3256258fb284bb54bddd7a49ebf1824bdf1241cc25 matched its pin; 11 registered inputs and 3 previous-run artifacts matched. All 540 map-budget-candidate keys were unique; 207,298 trace steps were accounted for; six candidates each had 90 updates.",
+      "evidence": [
+        {
+          "path": ".worklog-testing/NAV-065/NAV-065-R1/check_results.txt",
+          "sha256": "27f5efbc83112ed0837843c5df825ab592cdd4cc40418546ca1b245daab31495"
+        }
+      ]
+    },
+    {
+      "id": "CHECK-002",
+      "kind": "command",
+      "result": "pass",
+      "invocation": "At project root, read-only inline Python audit joined NAV-064 development traces and the frozen supplemental journal; raw J and finite-horizon W were recomputed independently.",
+      "exit_code": 0,
+      "expected": "Exactly 180 unique frozen development keys are rescored with no new rollouts; true feasibility and W are derivable from complete traces and match persisted labels/targets.",
+      "actual": "108 source plus 72 supplemental records gave 180 unique keys, zero new episodes, and 69,586 trace steps. Per-step remaining-J accounting matched with 0 J maximum ledger error. Independent path W matched all 180; CPU-loaded checkpoint values matched saved values with maximum error 2.38e-7 and W error 5.96e-8. All six candidates had 6/6 primary k=1.15 feasible starts accepted. Independent false-feasible totals were 1,1,1,3,1,2 respectively (9 total; k=0.85: 3, k=1.0: 6).",
+      "evidence": [
+        {
+          "path": ".worklog-testing/NAV-065/NAV-065-R1/check_results.txt",
+          "sha256": "27f5efbc83112ed0837843c5df825ab592cdd4cc40418546ca1b245daab31495"
+        }
+      ]
+    },
+    {
+      "id": "CHECK-003",
+      "kind": "command",
+      "result": "pass",
+      "invocation": "At project root, CPU-loaded each source and refit checkpoint with weights_only=True; compared state-dict tensors directly and verified file hashes. The formal attempt log and prereg-bound check_inputs audit were also inspected.",
+      "exit_code": 0,
+      "expected": "Each candidate retains the exact actor tensors while both critics change; all six checkpoints have 90 updates and the v2 frozen input binding remains intact.",
+      "actual": "All six policy tensor sets were byte-identical to source; every candidate changed at least one critic_cost and critic_reach tensor. Source and fitted checkpoint SHA256 values matched the fitted-candidate manifest. The formal log recorded 33 frozen v2 files verified and no budget clipping.",
+      "evidence": [
+        {
+          "path": ".worklog-testing/NAV-065/NAV-065-R1/check_results.txt",
+          "sha256": "27f5efbc83112ed0837843c5df825ab592cdd4cc40418546ca1b245daab31495"
+        }
+      ]
+    },
+    {
+      "id": "CHECK-004",
+      "kind": "command",
+      "result": "pass",
+      "invocation": "Inspected deployment_critic_validation_v2.json and gate_G4_alignment_v2.json with jq; tested that deployment_candidates_v2.json is absent; verified the old run hashes against the frozen refit preregistration.",
+      "exit_code": 0,
+      "expected": "The new G4 gate cannot pass or emit a bundle while any candidate fails; previous v1 outputs remain unchanged.",
+      "actual": "All six candidates failed deployment-value criteria (0/6 pass), with nine independent false-feasible decisions. G4 verdict is FAIL, deployment_values=false, numerical_alignment=true, learning_available=true, evaluation_coverage=true; no v2 bundle exists. Previous journal, validation, and G4 hashes match the registered values.",
+      "evidence": [
+        {
+          "path": ".worklog-testing/NAV-065/NAV-065-R1/check_results.txt",
+          "sha256": "27f5efbc83112ed0837843c5df825ab592cdd4cc40418546ca1b245daab31495"
+        }
+      ]
+    },
+    {
+      "id": "CHECK-005",
+      "kind": "command",
+      "result": "pass",
+      "invocation": "Inline Python fixture in an auto-cleaned temporary directory under the report path called refit_nav065_deployment.fixed_dev with a complete valid six-candidate grid, then mutated one saved rollout key to duplicate an original key and one to an unknown map.",
+      "exit_code": 0,
+      "expected": "The valid fixture passes; duplicate and unknown keys are rejected by the targeted input guard; restoring the valid fixture passes again.",
+      "actual": "Valid fixture passed with 180 scored keys and 30 complete keys per candidate. Duplicate and unknown key mutations both raised 'duplicate or unexpected saved development trajectory'; restored fixture passed.",
+      "evidence": [
+        {
+          "path": ".worklog-testing/NAV-065/NAV-065-R1/check_results.txt",
+          "sha256": "27f5efbc83112ed0837843c5df825ab592cdd4cc40418546ca1b245daab31495"
+        }
+      ]
+    }
+  ],
+  "mutation_testing": {
+    "status": "blocked",
+    "reason": "The duplicate/unknown input-mutation fixture passed, but no implementation-code mutant was run to verify the assertions fail against a deliberately weakened validation guard. The plan requires code-level mutation testing, so it remains incomplete.",
+    "evidence": [
+      {
+        "path": ".worklog-testing/NAV-065/NAV-065-R1/check_results.txt",
+        "sha256": "27f5efbc83112ed0837843c5df825ab592cdd4cc40418546ca1b245daab31495"
+      }
+    ]
+  },
+  "cross_validation": {
+    "status": "pass",
+    "method": "An independent Python audit parsed the full prior 180 development trajectories (108 NAV-064 source plus 72 pinned supplemental). It recomputed each episode's feasibility from terminal event, complete safety history, and signed remaining-J sequence; verified the per-step J ledger; calculated the finite-horizon joint path residual from the frozen objective; loaded each fitted CPU checkpoint and recomputed the per-step critic outputs and W; then independently regrouped false-feasible and primary-budget counts.",
+    "evidence": [
+      {
+        "path": ".worklog-testing/NAV-065/NAV-065-R1/check_results.txt",
+        "sha256": "27f5efbc83112ed0837843c5df825ab592cdd4cc40418546ca1b245daab31495"
+      }
+    ]
+  }
+}

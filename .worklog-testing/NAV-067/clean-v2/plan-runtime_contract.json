@@ -1,0 +1,53 @@
+{
+  "required_host": {
+    "ssh_target": "192.168.20.11",
+    "hostname": "tiger11",
+    "forbidden_nodes": [
+      "192.168.20.10",
+      "192.168.20.12"
+    ],
+    "login_precheck": "ssh 192.168.20.11 hostname"
+  },
+  "tmux": {
+    "session_name_prefix": "camra-nav-v2-",
+    "naming_rule": "执行时以新run_id组成唯一会话名；先列已有会话与活动任务，日志文件和PID可对应到会话窗口。",
+    "connection_loss_rule": "查看原会话、进程、锁及完成标记后续跑，禁止重复启动同一run。"
+  },
+  "resource_resolution": {
+    "repository_hint": "/home/caohy/repositories/Paper",
+    "python_hint": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "v2_bundle_hint": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+    "asset_root_hint": "/pub/data/caohy/unitree_model",
+    "proposed_navigation_work_root": "/pub/data/caohy/work/camra_navigation",
+    "proposed_navigation_output_root": "/pub/data/caohy/logs/camra_navigation",
+    "path_status": "上述路径为NAV-007–010和docs/runtime_environment.json记录的历史运行位置；NAV-061恢复时在tiger11/tmux再次核验可用性、占用、锁与版本，不假定本机有资源。",
+    "isolation_rule": "新导航环境和输出独立命名，旧v2/HiRA包体、原始数据、锁和共享运行目录不作写入目标。",
+    "shared_filesystem_rule": "/home共享NFS，文件可见不证明执行节点正确；每个run保存hostname和GPU身份。",
+    "dependency_rule": "优先复用经核验的兼容依赖；不静默升级共享环境、切仿真器或复制另一个节点的解释器路径。"
+  },
+  "launch_manifest_required_fields": [
+    "run_id",
+    "attempt_id",
+    "host",
+    "hostname",
+    "tmux_session",
+    "tmux_window",
+    "pid",
+    "cwd",
+    "python_absolute_path",
+    "gpu_identity",
+    "git_head",
+    "dirty_diff_identity",
+    "controller_id",
+    "controller_manifest_hash",
+    "asset_hashes",
+    "calibration_hashes",
+    "contract_hash",
+    "map_split_hash",
+    "prereg_hash",
+    "full_non_sensitive_command",
+    "started_at",
+    "log_paths",
+    "resume_state"
+  ]
+}
