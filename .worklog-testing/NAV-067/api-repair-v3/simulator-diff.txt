@@ -1,0 +1,20 @@
+--- sealed-v2
++++ api-repair-v3
+@@ -13,7 +13,7 @@
+     # The existing clean profile implementation stays byte-for-byte unchanged.
+     sys.path.insert(0, str(NAV.parent/'calibration/sim'))
+     from profiles_sim import configure_env_for_profile, apply_friction, apply_mass
+-    from camra_navigation.envs.clean_v2 import configure_clean, IsaacSubstepAdapter
++    from camra_navigation.envs.clean_v3 import configure_clean, IsaacSubstepAdapter, rigid_body_transform
+     from camra_navigation.envs.physical_v2 import SubstepNavigation
+     from camra_navigation.evaluation.recorder import NavEnergyRecorder, offline_recompute
+     from camra_navigation.maps.scene_adapter import build_scene
+@@ -62,7 +62,7 @@
+     stage = u.sim.stage
+     for j,box in enumerate(boxes):
+         body = u.scene['nav_box_'+str(j)]
+-        p = body.root_physx_view.get_root_transforms()[0].detach().cpu().numpy()
++        p = rigid_body_transform(body)
+         target=np.array([box.center_x+low.origins[0,0],box.center_y+low.origins[0,1],box.z_center])
+         error=float(np.max(np.abs(p[:3]-target)))
+         prim=stage.GetPrimAtPath('/World/envs/env_0/nav_box_'+str(j))

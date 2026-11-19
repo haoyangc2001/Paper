@@ -13166,6 +13166,43 @@
        "downstream_disposition": "保持NAV-067 false；真实接入和附加受控/重复验收完成前不进入NAV-043/G5。",
        "closure_state": "blocked"
      }
+   },
+   {
+     "timestamp": "2026-11-19T08:29:32+08:00",
+     "summary": "NAV-067/1.4.1真实适配器静态接口复查开工：保留已提交恢复v2，检查独立子步入口剩余阻断",
+     "actions": ["重新完整读取根AGENTS、legacy技能及执行规则，解析实际计划并核对NAV-067为首个依赖满足的false；已提交f0bd8c7及29项基本验证，不重跑已终态probe或原pilot。", "只读对照封存simulate/clean_v2与实际IsaacLab0.47.2源码：RigidObject的底层RigidBodyView使用get_transforms；ManagerBasedRLEnv的reset_buf在常规step中首次创建，直接子步入口此前没有该字段。", "本次只在导航范围新增隔离适配器/入口修复并基本验证，保留v2提案及原四源码、manifest、actor/critic、v2控制器/校准、45秒/obs-v7和200/50/10Hz；生产链/真实物理仍待独立证据，NAV-043不开启。"],
+     "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+     "commands": ["只读核对本机IsaacLab_v0472的rigid_object_data.py、manager_based_rl_env.py、manager_based_env.py及封存导航入口；后续基本验证固定tiger11/tmux @587/%587和绝对Python3.11.15。"],
+     "results": ["发现两个确定接口阻断，原启动异常栈仍缺失，不回填首次失败根因；本轮尚无新物理/训练/W查询。"],
+     "evidence": ["f0bd8c7976fdaa02d16f9be076157076993cf2f8", "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/assets/rigid_object/rigid_object_data.py:135", "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/envs/manager_based_rl_env.py:205"],
+     "remaining_work": ["独立版本修复并验证API/复位缺陷，保留旧版与新旧hash；完成真实pilot仍等待一次启动恢复决定，受控/重复额度另外待定。"],
+     "blockers": ["封存清单禁止自动重启，用户尚未确认一次恢复例外；不执行物理或下游。"]
+   },
+   {
+     "timestamp": "2026-11-19T08:32:04.033945+08:00",
+     "summary": "NAV-067接口回修v3准备完成：修正刚体读回和直接循环缺失复位字段，37项基本检查通过，真实恢复未执行",
+     "actions": ["独立新增clean_v3继承封存适配器，仅在首次直接复位前创建缺失的环境实例reset_buf；不通过隐藏gym.step初始化，不改Isaac源码或v2。", "独立派生nav067_simulation_v3，仅改变clean适配器导入和RigidBodyView.get_transforms读回；逐字差异复核其余仿真函数不变，旧四源码/manifest/v2提案和入口保持。", "新增evaluate_navigation_v4消费独立v3批准登记；主agent37基本测试通过，实际未批准入口在输出/应用之前拒绝。", "封存仍未批准的恢复提案v3与源码/安装接口证据hash，额度/地图/预算/模型/控制时序不变；同步交接，保留用户上一条恢复决定为待答。"],
+     "files_changed": ["CaMRA/navigation/src/camra_navigation/envs/clean_v3.py", "CaMRA/navigation/scripts/nav067_simulation_v3.py", "CaMRA/navigation/scripts/evaluate_navigation_v4.py", "CaMRA/navigation/tests/test_clean_v3.py", "CaMRA/navigation/config/nav067_startup_recovery_proposal_v3.json", "CaMRA/navigation/reports/nav067_api_repair_preparation_v3.json", "CaMRA/navigation/docs/implementation_handoff.md", "doc/plan/20261109_camra_navigation_implementation.json", ".worklog-testing/NAV-067/api-repair-v3/"],
+     "commands": ["tiger11/tmux nav064-r14-repair-20261115:nav067-clean-v2 @587/%587；PYTHONPATH=CaMRA/navigation/src:CaMRA/navigation/scripts:CaMRA/calibration/src PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u .worklog-testing/NAV-067/api-repair-v3/verify.py", "同环境prepare.py；其生产拒绝检查为绝对解释器 -B scripts/evaluate_navigation_v4.py --level L1_empty --device cuda:0，在缺批准登记处按预期退出1。"],
+     "results": ["37项基本检查通过；实际安装源码证明接口差异，但未创建应用/机器人或采集物理证据。", "295项保护身份、原四源码、manifest及v2恢复提案散列保持；actor/双critic/RC-PPO目标/45秒/obs-v7/校准/200Hz计量不变。", "新应用/物理步/回合/训练/W查询均0；两缺陷是静态接口事实，不能据此推断原attempt1曾到达这些行。", "NAV-067仍false、54/67；实际生产物理调用链未验收，保持下游与final_*未开启；未派测试子agent。"],
+     "evidence": ["CaMRA/navigation/reports/nav067_api_repair_preparation_v3.json", "CaMRA/navigation/config/nav067_startup_recovery_proposal_v3.json", ".worklog-testing/NAV-067/api-repair-v3/verification.json", ".worklog-testing/NAV-067/api-repair-v3/basic-tests.log", ".worklog-testing/NAV-067/api-repair-v3/simulator-diff.txt", ".worklog-testing/NAV-067/api-repair-v3/production-unapproved-refusal.log"],
+     "remaining_work": ["等待同一L1一次恢复决定，批准后以v3提案和v4入口执行原6回合并审计真实clean/命令/复位/子步及机械功。", "真实受控反例和同配置重复额度仍需单独确定；不以基本测试代替NAV-067完成。"],
+     "blockers": ["用户尚未答复一次启动恢复；原no-automatic-restart失败政策有效。", "真实受控/重复验收仍无独立额度，NAV-043不开启。"],
+     "correction": {
+       "correction_id": "NAV-067-C03-rigid-api-and-direct-reset",
+       "discovered_in_task": "NAV-067",
+       "upstream_task_ids": [],
+       "problem_and_evidence": "封存simulate对RigidBodyView误用关节视图get_root_transforms；直接适配器reset依赖仅由常规gym.step首次创建的reset_buf。安装Isaac0.47.2源码AST与counterexample证明接口缺口，原attempt1异常栈缺失保留。",
+       "original_artifact_references": ["f0bd8c7976fdaa02d16f9be076157076993cf2f8", "22a23ccbe552b5d80f171da3590bcd849ae886ed", "nav067_startup_recovery_proposal_v2.json SHA256 241fcff15a15003e9e0f4fb621e8576b9dc441899918b55b385b5bc45cc04436"],
+       "affected_task_ids": ["NAV-067", "NAV-043", "NAV-044", "NAV-045"],
+       "affected_gate_ids": ["G5"],
+       "authorization_basis": "明确的导航实现缺陷按既有回修授权修正；只新增隔离代码/基本验证，不授权pilot重启或共享依赖修改。",
+       "changes_and_versions": ["clean_v3.py、nav067_simulation_v3.py、evaluate_navigation_v4.py及PROPOSED恢复v3；所有旧文件保持。"],
+       "revalidation_evidence": ["37基本检查通过", "原封存simulate与新函数只差两处API引用", "真实v4入口缺批准登记时在应用/输出前拒绝"],
+       "status_changes": [],
+       "downstream_disposition": "实际接入与附加受控/重复验证尚未完成，NAV-067 false及下游阻塞保持。",
+       "closure_state": "blocked"
+     }
    }
   ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

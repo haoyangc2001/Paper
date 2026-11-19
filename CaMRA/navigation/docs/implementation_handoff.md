@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-19 NAV-067接口回修v3：补齐刚体读回与直接循环复位初始化
+
+继续只读核对实际IsaacLab0.47.2源码，发现旧循环还有两处确定的接口阻断：RigidObject的RigidBodyView应读`get_transforms()`，旧入口误用Articulation的`get_root_transforms()`；ManagerBasedRLEnv的`reset_buf`在常规`step()`才首次创建，直接子步循环不能提前读取它。新增`clean_v3.py`只补齐本次环境实例的复位记账，并按实际刚体接口读回；`nav067_simulation_v3.py`从封存函数独立派生，只有适配器导入和刚体读回两处变化。新入口为`evaluate_navigation_v4.py`，旧四源码、v2恢复提案及此前入口保持原样。
+
+主agent37项基本测试通过，另实际调用生产入口确认缺少批准登记时在创建目录/应用前拒绝。295项保护身份及旧清单不变；本轮新应用/物理步/导航回合/训练/W查询均0，未派子agent。这些证据只支持接口回修准备，不是实际Isaac物理接入通过，也不还原首次启动未保存的异常栈。
+
+[最新恢复提案v3](../config/nav067_startup_recovery_proposal_v3.json)替代v2作为未来执行依据，仍为PROPOSED；同一L1一次恢复加原L2/L3四槽、最多6个45秒回合，额度和评分不变。批准登记应另存`nav067_startup_recovery_v3.json`及pin；用户尚未确认，不能运行。原失败、旧版本/提案/hash全部保留；受控真实反例与同配置重复额度仍未分配，NAV-067保持false、54/67，NAV-043未执行。详见[准备审阅](../reports/nav067_api_repair_preparation_v3.json)及`.worklog-testing/NAV-067/api-repair-v3/`。
+
 ## 2026-11-19 NAV-067启动回修准备：路径缺陷已定位，恢复方案待确认
 
 原启动环境的`find_spec('unitree_rl_lab')`为null，但仓库内对应源码在位；旧生产函数在创建gym环境前会导入该模块，因此存在确定的入口路径缺陷。新增隔离`nav067_runtime.py`固定本仓库源码来源，并在Kit关闭前持久保存异常；`evaluate_navigation_v3.py`复用封存的v2仿真函数，保持旧四份源码及清单不改。29项主agent基本检查通过，覆盖关闭应用退出时异常仍能落盘和未批准恢复拒绝；无测试子agent。
