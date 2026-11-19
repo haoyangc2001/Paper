@@ -15332,6 +15332,65 @@
           "blockers": [
             "尚无覆盖静止低速的新模型、真实新状态采集/消费链、参考程序或90秒独立残余证据；新科学运行及额度仍未分配。"
           ]
+        },
+        {
+          "timestamp": "2026-11-20T07:40:00+08:00",
+          "summary": "NAV-043续行开工：核对已有低速数据可复用性并准备有限受控运动验证范围，不运行新物理",
+          "actions": [
+            "复读根AGENTS、legacy技能/执行规则、当前1.5.0计划/NAV-043验收及最新记录、导航交接/校准README和锁定来源；上一回合63a5bf6已完成状态接口准备，属于实际进展，当前工作树干净。",
+            "在已授权只读及隔离工程准备内核对原v2 baseline_fit清单/冻结命令生成器、已保存NAV-059报告和18条导航命令支持，区别存在的模板与可重建q的真实200Hz端点。",
+            "准备下一次有限受控物理诊断的明确命令表、warmup/真实状态/J记录要求及资源提案；只做静态/合成基本验证及来源核对，不把PROPOSED当APPROVED，不启动仿真、模型拟合或训练。"
+          ],
+          "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["read AGENTS/legacy/plan/handoff/calibration frozen metadata and existing low-speed collector source"],
+          "results": ["仍55/67、NAV-043=false/G5未过；原baseline_fit权威路径缺失，其Git模板副本散列与冻结训练清单ee178ad3一致，不以模板代替实测轨迹。"],
+          "evidence": ["CaMRA/navigation/config/motion_state_candidate_v1.json", "CaMRA/calibration/config/data_lock_v1.json", "CaMRA/navigation/reports/low_speed_energy_executability.json"],
+          "remaining_work": ["保存数据可用性核对、明确下一有限受控验证范围和未获授权事项，基本验证后同步并提交。"],
+          "blockers": ["没有新的物理应用/回合/GPU/拟合额度；旧完整率及命令模板不证明新的90秒模型或裕度可用。"]
+        },
+        {
+          "timestamp": "2026-11-20T07:46:00+08:00",
+          "summary": "NAV-043旧低速材料核对及12工况有限采集协议准备完成，保持PROPOSED，不新增物理或训练",
+          "actions": [
+            "%668主agent只读核验240条原v2 baseline_fit模板，逐条匹配program_sha256；确认模板/聚合报告不能替代实际200Hz位姿。仅核对原清单声明的路径，不搜索heldout/final或其它主机，不以HiRA执行数据替代。",
+            "新增PROPOSED采集协议/9eb3caf0 pin、只读核对器和解释文档，精确声明12恒定指令、各1秒warmup+10秒测量、单应用单环境/单GPU2小时、32000显式step总上限及26400正常/5600初始化复位预留；不转移旧额度。",
+            "%669核对命令域/顺序/时序/额度算术、9个来源、295保护身份/90原输入、67任务定义/status/全部历史前缀及legacy update VALID。同步根AGENTS/README/交接，明确无物理采集器、APPROVED或正式输出，不将准备检查当模型/闭环验收。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav043_motion_data_availability_v1.json",
+            "CaMRA/navigation/config/nav043_motion_probe_proposal_v1.json",
+            "CaMRA/navigation/config/nav043_motion_probe_proposal_v1.json.sha256",
+            "CaMRA/navigation/scripts/check_nav043_motion_probe_proposal.py",
+            "CaMRA/navigation/docs/nav043_motion_probe_proposal_20261120.md",
+            ".worklog-testing/NAV-043/motion-coverage-v1/",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %668: bash .worklog-testing/NAV-043/motion-coverage-v1/review-existing-data.sh -> PASS",
+            "tiger11/tmux %669: bash .worklog-testing/NAV-043/motion-coverage-v1/check-proposal.sh -> PROPOSED_PROTOCOL_AND_SOURCES_REVIEWED and legacy update VALID; absolute Python /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python"
+          ],
+          "results": [
+            "240命令模板共72000区间，静止9056、前向绝对值<0.1m/s共17401，但原权威实测路径当前缺失，NAV-059的51尝试只含汇总；当前不能从这些材料重建连续q或warmup前端点。",
+            "12工况只申请短时响应采集及保存数据审阅；数据角色为已暴露探索性，不是独立检验/校准。样本点不证明联合全域、稳态、90秒残余或G5。",
+            "仍计划1.5.0、55/67历史完成、NAV-043=false/G5未过；新应用/物理步/拟合/状态重放/业务回合/W/网络更新/校准/GPU均0。RC-PPO核心目标、冻结v2/旧功率/足迹/alpha/delta/锁、45秒旧链及所有旧失败保持。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_motion_data_availability_v1.json",
+            "CaMRA/navigation/config/nav043_motion_probe_proposal_v1.json",
+            ".worklog-testing/NAV-043/motion-coverage-v1/proposal-review.json",
+            ".worklog-testing/NAV-043/motion-coverage-v1/plan-review.log"
+          ],
+          "remaining_work": [
+            "取得这次12短工况/单应用/单环境/单GPU2小时及32000显式step新独立范围确认；上一仿射CPU确认不含物理采集。",
+            "确认后先实现隔离采集器/启动器/保存审阅、实际warmup端点及逐200Hz状态/J记录，主agent基本检查并封存来源，才在新额度内运行；不得提前运行或借旧余量。",
+            "根据实测情况再明确有界运动模型拟合/验证、参考程序/J成本、90秒独立残余协议和学习/部署/搜索/物理重验；不进入NAV-044/final_*。"
+          ],
+          "blockers": [
+            "新的物理采集范围尚未获确认，APPROVED和物理采集器/启动器不存在；当前准备不替代实际闭环和裕度适用性证据。"
+          ]
         }
       ],
       "constraints_and_notes": [
