@@ -15066,6 +15066,76 @@
           "blockers": [
             "残余误差超原delta，90秒模型/预算/残余校准无实测适用性证据；不能用旧45秒模型自动放行或直接扩大资源。"
           ]
+        },
+        {
+          "timestamp": "2026-11-20T00:13:49+08:00",
+          "summary": "NAV-043续行开工：仅用保存响应参数诊断残差与可观测状态，细化90秒后续方案",
+          "actions": [
+            "重新读取根AGENTS、legacy技能及执行规则、计划当前任务/政策和上游报告；仍按1.5.0数组选择NAV-043，NAV-066/067依赖已结案。",
+            "消费fb4b574保存的三折九求解及18条已暴露集成轨迹；只作误差向量记账和状态语义核对，不追加求解或选优部署模型。",
+            "允许新增导航诊断脚本、合成反例检查、候选契约和当前任务记录；保持固定v2、旧alpha/delta、45秒模型及RC-PPO目标不变。",
+            "验收为精确位移分解闭合、因果时序反例检查、18条/295保护身份核对和具体后续协议；本轮结果仅交付下一模型设计，不替代生产接入或G5。"
+          ],
+          "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["hostname; tmux list-sessions; read AGENTS/legacy execution rules/current plan and saved response sources"],
+          "results": ["tiger11.ios.ac.cn与既有tmux在位；90秒接口准备通过，但残余7.545米仍超旧delta，NAV-043保持false、55/67历史完成。"],
+          "evidence": ["CaMRA/navigation/reports/nav043_motion_response_review_v1.json", "CaMRA/navigation/config/navigation_horizon_v2.json"],
+          "remaining_work": ["诊断保存误差及实际/名义观测语义，准备可审核的新模型/参考成本/90秒适用性顺序。"],
+          "blockers": ["新增科学拟合/校准/训练或物理额度须独立具体登记；原九求解分配已结束，不复用余量。"]
+        },
+        {
+          "timestamp": "2026-11-20T00:20:56+08:00",
+          "summary": "NAV-043保存残差审阅结束：持续转向偏差值得检验，仿射v2有限提案与拒绝入口已准备",
+          "actions": [
+            "%640只读分析18条/158797保存tick，以固定顺序分解H/B位移并保留交叉项、部分尾段及完整前缀；核验295保护身份/90输入，与原自由递推RMSE一致，无新真实拟合。",
+            "新增隔离仿射响应入口，在每轴原模型中加一个截距，保留整图三折、原零初始化、自由递推和失败停下；%641首次8项及%642最终11项合成/拒绝检查保留。",
+            "%642核验fb4b574的全部旧任务定义/历史记录前缀及55/67不变；%643封存精确PROPOSED及pin98fe679c并实际验证缺少独立批准在轨迹读取/输出创建前拒绝。",
+            "具体登记完成区间q/缺失warmup端点/独立新观测候选、参考命令程序与J积分及90秒残余/训练/独立预算/物理的依赖；未将候选接入生产或宣称适用。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/analyze_nav043_response_residuals.py",
+            "CaMRA/navigation/scripts/nav043_affine_response.py",
+            "CaMRA/navigation/tests/test_nav043_response_residuals.py",
+            "CaMRA/navigation/tests/test_nav043_affine_response.py",
+            "CaMRA/navigation/config/nav043_affine_response_proposal_v2.json",
+            "CaMRA/navigation/config/nav043_affine_response_proposal_v2.json.sha256",
+            "CaMRA/navigation/reports/nav043_response_residuals_v1.json",
+            "CaMRA/navigation/docs/nav043_response_model_v2_plan_20261120.md",
+            ".worklog-testing/NAV-043/response-residual-v1/",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tmux %640: bash .worklog-testing/NAV-043/response-residual-v1/check.sh; registered Python legacy validator, pytest residual checks and analyze_nav043_response_residuals.py",
+            "tmux %641/%642: registered Python -B -m pytest -q -p no:cacheprovider CaMRA/navigation/tests/test_nav043_affine_response.py; final 11 checks; %642 prepare.py",
+            "tmux %643: registered Python -B .worklog-testing/NAV-043/response-residual-v1/seal.py; exact production --run missing-approval refusal, no fit/output"
+          ],
+          "results": [
+            "19个不同基本检查通过（8记账+11仿射），合成轴求解总10次单列；无测试子agent。18条/158797tick分解最大闭合误差2.398e-14m，295身份/90输入不变。",
+            "18条转向一步创新均负，全体均值-0.01474rad/s；完整方法自选预算L2预测99.3°/实际38.8°，H/B末端模长6.806/0.750m。只是顺序依赖的精确记账，不作因果百分比或唯一物理诊断。",
+            "瞬时body速度与完成区间SE(2)q三轴差值RMSE0.01890/0.02105m/s、0.03785rad/s；旧数据缺warmup末区间端点，不能虚构新初始化验证。",
+            "仿射v2仅PROPOSED；独立APPROVED和正式输出目录不存在，实际缺批准退出1/未读轨迹/未建正式输出。真实新增求解、业务回合、W、网络更新、校准及GPU均0。",
+            "申请原18条/三折九求解/CPU1小时，不含训练/物理或重校准；相对旧响应RMSE至少降15%、每图不差、航向MAE至少降20%只作事先工程筛选。",
+            "计划1.5.0、55/67历史状态及旧任务验收字段保留；NAV-043=false/G5未过。实际生产链仍45秒，新90秒模型/参考成本/观测和下游门禁未完成，NAV-044/final_*不进入。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_response_residuals_v1.json",
+            ".worklog-testing/NAV-043/response-residual-v1/basic.xml",
+            ".worklog-testing/NAV-043/response-residual-v1/affine-final-basic.xml",
+            ".worklog-testing/NAV-043/response-residual-v1/source-identities.json",
+            ".worklog-testing/NAV-043/response-residual-v1/sealed-preparation.json",
+            ".worklog-testing/NAV-043/response-residual-v1/missing-approval-refusal.log",
+            "CaMRA/navigation/docs/nav043_response_model_v2_plan_20261120.md"
+          ],
+          "remaining_work": [
+            "取得具体仿射v2新范围/九求解额度确认后，独立APPROVED登记、先提交再在唯一新目录运行一次并复核全部输出；不能借用旧额度。",
+            "诊断通过后再实现可观测q和新观测绑定、冻结适用模型及参考程序；新90秒残余方案/数据/训练/预算/物理额度仍须单独具体登记。"
+          ],
+          "blockers": [
+            "仿射v2新模型及九求解范围尚未确认，不执行真实拟合；旧delta/90秒科学适用性仍无证据。"
+          ]
         }
       ],
       "constraints_and_notes": [
