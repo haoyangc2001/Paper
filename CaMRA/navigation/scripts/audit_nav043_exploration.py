@@ -19,6 +19,24 @@ from camra_navigation.envs.physical_v2 import PhysicalState, SubstepNavigation
 OUTPUT=Path('/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1')
 
 
+def audit_nominal_trace(nom,spec,ctx,z,prereg,initial):
+    """Replay saved float32 actions through the original nominal transition."""
+    replay=actual_start_env(spec,ctx,z,prereg,initial)
+    for index,r in enumerate(nom['trace']):
+        assert r['step']==index
+        np.testing.assert_array_equal(replay.observation[0],r['observation'])
+        transition=replay.step(np.asarray([r['action']],dtype=np.float32))
+        np.testing.assert_array_equal(replay.pose[0],r['pose'])
+        assert float(transition.z_J[0])==r['z_J']
+        assert float(transition.safety_y[0])==r['safety_y']
+        assert bool(transition.danger_violation[0])==r['danger_violation']
+        assert float(transition.goal_distance_m[0])==r['goal_distance_m']
+    assert replay.done[0] and replay._label[0]==nom['label']
+    assert float(replay.result(0).t_s)==nom['t_s']
+    assert float(replay.result(0).cost_model_J)==nom['cost_model_J']
+    return len(nom['trace'])
+
+
 def review_runtime(runtime,row):
     c=runtime['config']
     assert c['profile_id']=='clean' and not c['obs_corruption_enabled'] and c['obs_noise'] is None
@@ -112,8 +130,11 @@ def main():
                 state=r['state']
                 mon.advance([PhysicalState(*state[:7],tuple(state[7:]))],physics_tick=r['physics_tick'])
                 assert mon.rows[-1]==r,(level,method,r['physics_tick'])
+            # audit_episode independently bounds offline/online integration error.
+            # Reproduce saved business fields with their original online sum;
+            # sum-order roundoff must not change the declared scoring source.
             metrics=outcome(result['label'],result['safety_y'],result['t_s'],
-                traced['actual_work_J'],result['internal_model_cost_J'],z)
+                result['measured_joint_work_J'],result['internal_model_cost_J'],z)
             assert all(result[k]==v for k,v in metrics.items())
             nom=load(trial/'nominal.json')
             assert nom['initial_state']==saved['initial_state'] and nom['z0_J']==z and len(nom['trace'])<=450
@@ -122,25 +143,15 @@ def main():
             np.testing.assert_array_equal(load(trial/'navigation.json')[0]['observation'][0],saved['query_observations'][chosen])
             assert abs(nom['cost_model_J']-(z-nom['trace'][-1]['z_J']))<1e-8
             assert nom['feasible']==(nom['label']=='goal_reached' and nom['trace'][-1]['safety_y']==0. and nom['trace'][-1]['z_J']>=0.)
-            # Replay saved actions only: no actor/critic inference or new sample.
-            replay=actual_start_env(spec,ctx,z,prereg,initial)
-            for index,r in enumerate(nom['trace']):
-                assert r['step']==index
-                np.testing.assert_array_equal(replay.observation[0],r['observation'])
-                transition=replay.step(np.asarray([r['action']],dtype=np.float32))
-                np.testing.assert_array_equal(replay.pose[0],r['pose'])
-                assert float(transition.z_J[0])==r['z_J']
-                assert float(transition.safety_y[0])==r['safety_y']
-                assert bool(transition.danger_violation[0])==r['danger_violation']
-                assert float(transition.goal_distance_m[0])==r['goal_distance_m']
-            assert replay.done[0] and replay._label[0]==nom['label']
-            assert float(replay.result(0).t_s)==nom['t_s']
-            assert float(replay.result(0).cost_model_J)==nom['cost_model_J']
+            # Saved actions only: no actor/critic inference or new sample.
+            nominal_steps=audit_nominal_trace(nom,spec,ctx,z,prereg,initial)
             reports.append({'level':level,'method':method,'rejected':False,'selected_k':repeated['selected_k'],
                 **traced,**metrics,'nominal_label':nom['label'],'nominal_feasible':nom['feasible'],
                 'nominal_t_s':nom['t_s'],'nominal_cost_J':nom['cost_model_J'],
                 'max_same_command_deviation_m':max(r['deviation_m'] for r in rows),
-                'complete_saved_physics_event_replay':True})
+                'complete_saved_physics_event_replay':True,
+                'nominal_saved_actions_replayed':nominal_steps,
+                'online_measured_work_J':result['measured_joint_work_J']})
     assert apps<=3 and queries<=30 and physical<=6 and nominal<=6 and steps<=60000 and wall<=10800
     methods={}
     for method in ('uncalibrated','full'):

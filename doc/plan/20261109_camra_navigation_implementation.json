@@ -14327,6 +14327,50 @@
             "实际复核全部预算封存、200Hz事件/机械功、名义保存动作及资源台账后追加结论并提交；当前45秒/位置裕度缺口未解决，不签NAV-043/G5。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T19:24:00+08:00",
+          "summary": "NAV-043首L1应用结束并转入L2；两条保存名义轨迹/能量记账复核通过，修正审阅器求和来源比较",
+          "actions": [
+            "继续核对原协调器PID38516。L1应用PID38860正常结束，EXIT累计1863.919620秒；原协调器启动既定L2应用PID173883，无重启/新分配或额度转移。",
+            "主agent只读审阅L1首条9000个物理状态后，在派生metrics逐位比较处失败；保存原脚本和first-saved-review.log。定位独立能量求和与在线累计相差1.5916e-12J，非物理失败，不改原结果、预算或成功边界。",
+            "修正未封存的只读审阅器：独立能量积分仍沿用audit_episode原误差检查，业务派生字段按原在线累计值逐位重现，避免把求和顺序差异当语义失败；抽出同一生产名义重放函数供首图证据复核，原物理/名义生产代码及规则保持。",
+            "tiger11/tmux %608实际调用同一名义审阅函数，L1两方法共726个保存动作的观测/状态/预算/安全/目标距离/终态逐项一致；9000+8381子步的命令/时钟/机械功记账通过。完整物理事件重放和全分配验收仍待原%601统一审阅。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/audit_nav043_exploration.py",
+            ".worklog-testing/NAV-043/exploration-v1/review_first_saved.py",
+            ".worklog-testing/NAV-043/exploration-v1/first-saved-review.log",
+            ".worklog-testing/NAV-043/exploration-v1/review_first_nominal.py",
+            ".worklog-testing/NAV-043/exploration-v1/first-nominal-review.json",
+            ".worklog-testing/NAV-043/exploration-v1/first-nominal-review.log",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux %607，/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/exploration-v1/review_first_saved.py；保留逐位派生指标比较失败的原日志，不重跑物理。",
+            "同主机/tmux %608，OMP_NUM_THREADS=1及同绝对解释器运行review_first_nominal.py，日志first-nominal-review.log、报告first-nominal-review.json；不加载actor/critic推理。"
+          ],
+          "results": [
+            "完整方法L1：预算527.505420J，41.905秒goal_reached、安全历史0、实际449.096733J、内部成本507.003978J；实际预算利用率85.14%，内部/实际预算成功均true。名义配对34.3秒到达、407.595315J。单配置一次描述，不给总体可靠性或最低预算效率结论。",
+            "无校准L1：391.974928J，45秒timeout、实际443.321331J、超支13.10%；名义38.3秒到达、333.443941J。原超时和失败不改。",
+            "两方法在线/离线机械功之差分别1.5916e-12J和-1.1369e-12J；保存业务字段精确复现，726个名义保存动作重放通过。不是全物理事件或G5验收通过。",
+            "该只读复核/修复新增应用/回合/W/训练0；原有限分配L2继续，NAV-043=false、55/67及45秒/位置裕度缺口保持。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/exploration-v1/first-saved-review.log",
+            ".worklog-testing/NAV-043/exploration-v1/first-nominal-review.json",
+            ".worklog-testing/NAV-043/exploration-v1/first-nominal-review.log",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/FINISHED.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/EXIT.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/PROCESS.json"
+          ],
+          "remaining_work": [
+            "等待同一协调器完成剩余预定L2/L3；按实际结果保留拒绝、超时、超支或基础设施失败，不自动重试。",
+            "原%601在全分配终态后只读重放全部物理事件、名义动作及资源计数；修复只读审阅不更改科学标准，收尾另追加并提交。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
