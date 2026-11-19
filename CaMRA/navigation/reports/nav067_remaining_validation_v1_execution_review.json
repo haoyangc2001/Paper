@@ -1,0 +1,126 @@
+{
+  "status": "HELD_ACTUAL_CLONE_ORIGIN_CONFIGURATION_FAILURE",
+  "at": "2026-11-19T11:28:11.620871+08:00",
+  "task": "NAV-067",
+  "plan_version": "1.4.1",
+  "NAV_067_status": false,
+  "completed_tasks": 54,
+  "preparation_commit": "a70214edab165e5d3bb553c1c83932521d574490",
+  "original_execution_sha256": "5e7fc139288177c7675c486bb4eec5dafb8971ce9e58c18c7dc1788912ef2475",
+  "applications_started": 1,
+  "controlled_cases_passed": 0,
+  "new_navigation_episodes": 0,
+  "explicit_warmup_policy_calls_reached": 0,
+  "controlled_measurement_ticks_reached": 0,
+  "unobserved_initialization_physics_steps": "not recorded; do not claim zero total simulator steps",
+  "error": {
+    "at": "2026-11-19T11:22:59.226722+08:00",
+    "error_type": "ValueError",
+    "message": "actual clone origins are not separated",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav067_runtime.py\", line 45, in guarded_application\n    return work()\n           ^^^^^^\n  File \"/home/caohy/repositories/Paper/CaMRA/navigation/scripts/run_nav067_remaining_validation.py\", line 141, in work\n    return simulate(execution['fixtures'][slot],out,manifest,prereg,device)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav067_controlled_simulation.py\", line 75, in simulate\n    raise ValueError('actual clone origins are not separated')\nValueError: actual clone origins are not separated\n"
+  },
+  "terminal_coordinator": {
+    "at": "2026-11-19T11:24:40.298031+08:00",
+    "error": "slot failed; no retry allowed: C01",
+    "kit_starts": 1,
+    "reserved_environment_ticks": 408,
+    "cumulative_gpu_wall_s": 118.44418772985227,
+    "no_automatic_retry": true
+  },
+  "child_exit": {
+    "exit_code": 0,
+    "wall_s": 118.44418772985227,
+    "cumulative_gpu_wall_s": 118.44418772985227,
+    "timeout": false,
+    "command": [
+      "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+      "-B",
+      "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/run_nav067_remaining_validation.py",
+      "--child",
+      "C01",
+      "--device",
+      "cuda:0"
+    ]
+  },
+  "exit_zero_is_not_success": true,
+  "stopped_on_saved_error": true,
+  "all_attempts_preserved": true,
+  "failure_category": "fixture/environment wiring; no inference about policy performance",
+  "root_cause": "Preparation used /pub/data/caohy/IsaacLab source instead of the imported /pub/data/caohy/IsaacLab_v0472 installation. The installed generator always samples the single terrain origin and ignores the added newer use_terrain_origins field.",
+  "actual_origin_numeric_values": "not saved before the guard raised; exact values unavailable",
+  "CPU_source_check_only": {
+    "single_cell_example_origins": [
+      [
+        7.0,
+        11.0,
+        0.0
+      ],
+      [
+        7.0,
+        11.0,
+        0.0
+      ]
+    ],
+    "grid_example_origins": [
+      [
+        31.5,
+        0.0,
+        0.0
+      ],
+      [
+        -31.5,
+        0.0,
+        0.0
+      ]
+    ],
+    "not_new_physical_evidence": true
+  },
+  "actual_isaaclab_origin": "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/__init__.py",
+  "actual_terrain_importer_sha256": "48fcd31dbdba2f17fb35311e2afd0cbd3c0db2a10c4b63d24b5d3dfab171fc78",
+  "failed_cleanup": {
+    "at": "2026-11-19T11:24:38.797679+08:00",
+    "pid": 2425474,
+    "error_sha256": "b585efde2696025f3fc28e1db2e8c7a2827de18876140a52c309fe0b4e74c3b2",
+    "action": "Terminate already-failed child during application cleanup; do not restart or proceed.",
+    "signals": [
+      "SIGTERM"
+    ],
+    "no_retry": true,
+    "new_applications": 0,
+    "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "tmux": "/tmp/tmux-39400170/default,2639274,25",
+    "observed_cmdline": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/CaMRA/navigation/scripts/run_nav067_remaining_validation.py --child C01 --device cuda:0 ",
+    "still_present": false,
+    "actual_isaaclab_origin": "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/__init__.py",
+    "actual_isaaclab_search_locations": [
+      "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab"
+    ],
+    "actual_terrain_importer": {
+      "path": "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/terrains/terrain_importer.py",
+      "sha256": "48fcd31dbdba2f17fb35311e2afd0cbd3c0db2a10c4b63d24b5d3dfab171fc78"
+    }
+  },
+  "failure_evidence_hashes": {
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/C01/APP_READY.json": "c618bc0236e341c31d9a4973c488c549417cd94d4f6741716e94abdf452ac216",
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/C01/ENTRY.json": "ceae3895e222d61191862e6c43ccaeddf026e1fd7560e3d4ac6977c990954d28",
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/C01/ERROR.json": "b585efde2696025f3fc28e1db2e8c7a2827de18876140a52c309fe0b4e74c3b2",
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/C01/EXIT.json": "2eff17154123fc0c96eb499e6fccea55cccc40b0bdd5e1072e2521b1108f5630",
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/C01/PROCESS.json": "d6275ae16ec73208518ac62da702defebb5deca88af6e2013be744575934a5c9",
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/C01/STARTED.json": "a1c99b3f24e9cd60a7edde915387bd7121459d0e676531cd855fea2496830804",
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/C01/stdout.log": "a11080195efe4160644cbcae2ca887713cf8c820ad9f2923a2ee0084fc54fc59",
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/HELD.json": "25122e39bdfc3609ee49b639b2a388019084f662084b9d17bb91c4b1a775dbf8",
+    "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/OWNER.json": "cc09e860b4763f6be52c502aa617300be4372787d33e47a060ff19251cce64a8"
+  },
+  "unchanged": [
+    "selected pair",
+    "v2 complete frozen system",
+    "old six pilot traces",
+    "RC-PPO objective",
+    "all benchmark maps/budgets",
+    "sealed v1 sources/fixtures/approval/execution",
+    "old scientific FAIL",
+    "NAV-043 unexecuted",
+    "final_* sealed"
+  ],
+  "next": "Prepared isolated plane/grid recovery requires explicit one-time approval; no automatic retry or quota reuse."
+}

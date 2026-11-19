@@ -1,5 +1,13 @@
 # Agent 接手说明
 
+## 最新更正（2026-11-19，NAV-067首个受控病例失败并停下，恢复未批准）
+
+已封存的剩余包实际启动1次应用，在C01环境原点隔离检查报`actual clone origins are not separated`后停止；受控通过0、额外导航回合0，C02–C06及六个导航重复均未启动。失败应用已清理，原ERROR/EXIT/HELD和日志全部保留；显式warmup/测量循环尚未到达，但初始化物理步未完整记录，不能宣称总物理步为0。NAV-067仍false、54/67，NAV-043未执行。下方“尚未启动”是保留的准备时点。
+
+准备时误核对了另一份较新IsaacLab源码；实际解释器使用`/pub/data/caohy/IsaacLab_v0472/`，其generator始终使用地形单元原点，新增开关无效，单地形单元导致双环境同原点。这是受控夹具接入失败，不能当作策略失败；实际原点数值未落盘，不以CPU示例回填。见[失败审阅](CaMRA/navigation/reports/nav067_remaining_validation_v1_execution_review.json)。
+
+已准备隔离plane/grid修复、拒绝前原点落盘及一次恢复入口，主agent26项CPU基本检查通过；原v1源码/封存文件、原六条pilot、导航重复配置、固定v2和科学FAIL均保留，尚无恢复物理验证。恢复[提案](CaMRA/navigation/config/nav067_remaining_validation_recovery_proposal_v2.json)仍PROPOSED、pin为`e8b70cb9d7c81177d576189772b5aecb6054410df71dde867aa5ad1c4c034cac`，独立APPROVED登记不存在。请求C01/attempt2一次恢复及原未启动项，累计应用上限9→10；累计4小时含已用118.444秒、60000环境子步上限不变，精确含失败槽预留57830。原协议禁止自动重试且资源上限变化，必须取得新确认后才能运行；不得重启旧协调器或更换输出根目录。详见[恢复说明](CaMRA/navigation/docs/nav067_remaining_recovery_v2_20261119.md)。
+
 ## 当前补充（2026-11-19，NAV-067剩余验证已获批准并封存）
 
 用户已确认剩余受控/重复包；独立APPROVED登记及执行清单见`CaMRA/navigation/config/nav067_remaining_validation_{approval,execution}_v1.json`，原PROPOSED提案保留。主agent基本检查及24项测试通过，原六条保存轨迹复核通过；精确夹具/容差/源码/证据/单次槽位已封存，执行pin为`5e7fc139288177c7675c486bb4eec5dafb8971ce9e58c18c7dc1788912ef2475`。本时点尚未启动新增应用。

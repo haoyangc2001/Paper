@@ -1,5 +1,19 @@
 # 上层导航实施交接
 
+## 2026-11-19 NAV-067首个受控病例真实失败，已停止并准备隔离恢复
+
+准备版本先提交`a70214e`，随后在tiger11原tmux会话`nav064-r14-repair-20261115:nav067-remaining-plan`（%600）、GPU6启动剩余包。C01在创建环境后、warmup/测量循环前报`actual clone origins are not separated`，按原失败规则停止。新增应用1、受控通过0、额外导航回合0；C02–C06和六次导航重复未启动。初始化物理步未完整记录，不能把未到达测量循环写成总物理步0。
+
+失败应用清理阶段已终止，进程已释放；即使退出码为0，协调器仍根据ERROR和缺失FINISHED保存HELD，未继续或自动重试。输出`/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1`原样保留；实际累计GPU进程时间118.444秒，失败槽位408环境子步仍计入预留。完整异常、hash和局限见[失败审阅](../reports/nav067_remaining_validation_v1_execution_review.json)及`.worklog-testing/NAV-067/remaining-v1/`。
+
+根因已用实际安装源码核对：准备误读`/pub/data/caohy/IsaacLab/`，实际解释器导入`/pub/data/caohy/IsaacLab_v0472/`。该版本generator不支持新增原点开关，总从单地形单元分配，导致双环境原点不分离。异常前实际原点数值未保存；CPU复算只能说明接口行为，不能充当旧运行的实际原点证据。此失败属于夹具/环境接入，不判导航策略性能失败。
+
+新增`controlled_terrain_v2.py`、`nav067_controlled_simulation_v2.py`及`run_nav067_remaining_recovery_v2.py`，只为人工受控夹具改用当前版本支持的plane/grid原点接口，并在拒绝前保存原点。原v1五份源码/执行清单/批准、地图/目标/位姿时序、导航重复生产链、原六条pilot和固定v2整套均不改。主agent26项CPU基本检查通过，包含实际安装方法复算和缺批准拒绝；没有新增恢复应用，不是实际物理验收通过。
+
+[恢复提案](../config/nav067_remaining_validation_recovery_proposal_v2.json)为PROPOSED，pin `e8b70cb9d7c81177d576189772b5aecb6054410df71dde867aa5ad1c4c034cac`，APPROVED登记尚不存在。请求只恢复C01一次到原目录`C01/attempt2`，之后按原顺序执行未启动项；累计启动上限从9改10，仍一张GPU6串行、累计4小时含失败118.444秒、60000环境子步，精确含失败预留57830。首次新实际证据/入口/运行/轨迹失败仍保存停下，无自动再试。原批准不覆盖本恢复例外，不能重启旧协调器；先取得明确确认、另存批准/pin并核验后才能用v2入口。详见[通俗恢复说明](nav067_remaining_recovery_v2_20261119.md)。
+
+NAV-067保持false、54/67，原G4/效率FAIL和已接受局限保留；不训练、不查询W、不执行NAV-043/final_*、不改共享框架或冻结资源、不推送。受控和重复性实际证据仍须补齐，不能以26项基本检查替代NAV-067六项验收及全局生产链一致性。以下是保留的先前时点。
+
 ## 2026-11-19 NAV-067剩余包已批准、隔离实现和基本检查已封存
 
 用户确认了6短病例及6次同配置导航重复，主agent按legacy执行，无测试子agent。新增`controlled_cases_v1.py`、原生物理夹具入口、被动碰撞体几何读回、保存轨迹审计和串行协调器；原physical_v2/clean_v3/nav067_simulation_v3及冻结v2全部保持hash。C01–C05明确为写入测试位姿后读真实物理状态的事件检查，C06要求base到指定障碍的原生过滤接触力，地面支撑力不作替代。

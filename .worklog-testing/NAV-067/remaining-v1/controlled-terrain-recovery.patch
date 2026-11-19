@@ -1,0 +1,46 @@
+--- /home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav067_controlled_simulation.py
++++ /home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav067_controlled_simulation_v2.py
+@@ -1,4 +1,4 @@
+-"""Bounded synthetic event/contact fixtures using the unchanged v2 physical loop."""
++"""Recovery proposal: actual 0.47.2 plane/grid API; original v1 preserved."""
+ import sys
+ import numpy as np
+ from nav067_sources import NAV, E, write_new
+@@ -13,7 +13,6 @@
+     import isaaclab.sim as sim_utils
+     from isaaclab.assets import RigidObjectCfg
+     from isaaclab.sensors import ContactSensorCfg
+-    from isaaclab.terrains.trimesh.mesh_terrains_cfg import MeshPlaneTerrainCfg
+     from unitree_rl_lab.utils.external_command import DEFAULT_LIMITS, ExternalCommandWrapper
+     from unitree_rl_lab.utils.parser_cfg import parse_env_cfg
+     from camra_calibration.profiles import sample_applied
+@@ -37,15 +36,8 @@
+     proof=configure_clean(cfg,configure_env_for_profile,applied)
+     tile=float(layout.env_spacing_m)
+     gen=cfg.scene.terrain.terrain_generator
+-    # A flat mesh covering all isolated clones, with grid origins instead of
+-    # sampling both robots onto the same single generated terrain origin.
+-    ground_size=tile*n
+-    gen.size,gen.num_rows,gen.num_cols,gen.border_width=(ground_size,ground_size),1,1,1.
+-    gen.sub_terrains={'flat':MeshPlaneTerrainCfg(size=(ground_size,ground_size))}
+-    cfg.scene.terrain.terrain_type='generator'
+-    cfg.scene.terrain.use_terrain_origins=False
+-    cfg.scene.terrain.env_spacing=tile
+-    cfg.scene.env_spacing=tile
++    from camra_navigation.envs.controlled_terrain_v2 import configure_fixture_plane
++    terrain_proof=configure_fixture_plane(cfg,tile)
+     material=cfg.scene.terrain.physics_material
+     material.static_friction,material.dynamic_friction,material.restitution=1.,1.,0.
+     for j,box in enumerate(boxes):
+@@ -71,6 +63,11 @@
+     mass=apply_mass(robot,ids,applied.added_mass_kg)
+     if not friction['ok'] or not mass['ok']:
+         raise ValueError('controlled clean material/mass readback failed')
++    # Persist measured origins before rejecting; an error must not discard them.
++    write_new(out/'origin_readback.json',{'actual_origins':low.origins.tolist(),
++        'required_spacing_m':tile,'terrain_configuration':terrain_proof,
++        'actual_isaaclab_module':__import__('isaaclab').__file__,
++        'warmup_policy_calls_completed':0,'measurement_ticks_completed':0})
+     if n>1 and np.linalg.norm(low.origins[0,:2]-low.origins[1,:2])<tile-1.e-4:
+         raise ValueError('actual clone origins are not separated')
+     runtime={'config':proof,'friction':friction,'mass':mass,'event_terms':u.event_manager.active_terms,
