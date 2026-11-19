@@ -1,5 +1,11 @@
 # 上层导航实施交接
 
+## 2026-11-19 NAV-043委托择路后启动有限探索路线
+
+用户已授权择路并继续，选择已展示的有限探索性自选预算验证。独立[协议](nav043_exploration_protocol_20261119.md)/config/nav043_exploration_v1.json封存3应用、6物理、6配对名义、30初始W、单GPU3小时；使用原两候选、原W规则和已暴露三张integration_pilot图。每病例实际warmup状态五档W决定先写出及pin再行动；名义配对从同一实际平面初态/速度出发，物理费用与内部成本分列。拒绝保留无回退；业务失败保留并执行剩余预定项，工程/证据失败保存停止，禁止重试或扩额。
+
+主agent5组基本检查和生产context295保护身份核验通过，没有专用测试子agent；准备时无真实W/新回合。先本地提交，再在tiger11/tmux %599、GPU6运行scripts/run_nav043_exploration.py。唯一输出`/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1`，先看OWNER/进程及FINISHED/HELD，不能重复启动。NAV-043=false、55/67及原裕度适用性缺口保持，本轮不签G5、不访问final、不训练、不改v2/alpha/delta、不推送。结果以实际保存输出及主agent复核追加；以下为历史时点。
+
 ## 2026-11-19 NAV-043补充已保存跟踪诊断
 
 本轮只消费已有12条轨迹；完整方法三配置平均实际机身前向速度较指令低约16%–18%，净转向指令/实际分别为61.1°/−8.8°、124.8°/38.9°、122.9°/43.5°。这支持跟踪偏差长期累积的描述，不定位唯一物理根因；机身wz与Euler航向、几何向量记账与因果贡献均分开处理。来源及逐项数值见[补充审阅](nav043_saved_tracking_review_20261119.md)与[报告](../reports/nav043_saved_tracking_diagnostic_v1.json)，代码/原始日志/主agent基本核验位于.worklog-testing/NAV-043/tracking-v1/。

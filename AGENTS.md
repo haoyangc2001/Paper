@@ -1,5 +1,9 @@
 # Agent 接手说明
 
+## 最新推进（2026-11-19，NAV-043有限探索性自选预算验证）
+
+用户已委托选择路线并继续，现选此前提出的有限探索性预算验证。隔离入口/独立协议及pin见`CaMRA/navigation/config/nav043_exploration_v1.json`与`scripts/run_nav043_exploration.py`；主agent5组基本检查及295保护身份核验通过。先本地提交，再按一次独立分配执行：3应用/6物理/6配对名义/30初始W/单GPU3小时，tiger11/tmux/GPU6；不重试、不训练、不改v2/alpha/delta、不推送。实际warmup初态先封存W预算再行动，拒绝保留，工程失败停下；检查唯一输出`/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1`及进程，不重复启动。NAV-043=false、55/67，原45秒/位置裕度适用性缺口保留、不签G5。见[协议](CaMRA/navigation/docs/nav043_exploration_protocol_20261119.md)；下方等待路线裁定为保留历史。
+
 ## 最新补充（2026-11-19，NAV-043已保存跟踪诊断）
 
 完整方法原/重复轨迹的描述性核查显示，机身前向平均速度低于指令约16%–18%，L2指令/实际净转向约125°/39°；同命令轨迹的航向与平移差可严格作向量记账，不能当作唯一物理根因或因果百分比。60份原始输入及295项保护身份基本核验通过，没有新应用/回合/W/拟合/训练，不改冻结系统或验收。NAV-043=false、55/67及科学范围/新额度未决保持。见[补充诊断](CaMRA/navigation/docs/nav043_saved_tracking_review_20261119.md)；下方为保留的上一时点。

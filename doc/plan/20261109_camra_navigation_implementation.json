@@ -14181,6 +14181,75 @@
           "blockers": [
             "上一轮已请求的科学范围及新增NAV-043额度决定仍未收到；自动目标续行不是批准。已授权独立离线补充完成，不启动依赖该决定的试验或修改冻结值。"
           ]
+        },
+        {
+          "timestamp": "2026-11-19T18:41:51+08:00",
+          "summary": "NAV-043用户委托择路后续行：选择有限探索性自选预算物理验证，开始隔离实现",
+          "actions": [
+            "用户明确要求基于项目选择最合适路线并继续；采用前次已展示的有限探索路线及上限，解决实际初态W预算决策与200Hz物理闭环衔接。计划1.4.1、55/67，上游NAV-066接受效率局限及NAV-067工程通过。",
+            "已读取AGENTS、legacy规则、全文解析计划及NAV-043记录、上游身份、实际clean实现；仅新增导航隔离协议/入口/基本检查。固定v2、两候选及双critic、W规则、45秒obs-v7、200/50/10Hz、机械功J、alpha/delta及旧失败不变。",
+            "独立上限3应用、6物理回合、6配对名义回合、30初始W查询、单GPU3小时；不移用旧额度，不重试、不换地图、不训练、不访问final、不推送。逐病例实际warmup初态先封存预算再行动，全部规则在首应用前封存。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "核对HEAD=4992a9b、干净工作树、tiger11/tmux及当前任务依赖；主agent基本验证，无测试子agent。"
+          ],
+          "results": [
+            "选择决定已由用户委托解决，不重复询问同一范围；入口尚未执行，新增应用/回合/W均0。",
+            "NAV-043保持false；已有位置及45秒裕度适用性缺口不因探索消失，不签G5，下游正式评估仍阻塞。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/nav043_saved_applicability_review_20261119.md",
+            "CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json",
+            "CaMRA/navigation/config/nav066_decision_prereg_v2.json"
+          ],
+          "remaining_work": [
+            "完成协议、入口、资源核验、基本检查、封存并本地提交后，执行一次有限探索并复算。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T18:46:09.976078+08:00",
+          "summary": "NAV-043探索性入口、独立范围及封存完成，基本验证通过；先提交再启动一次执行",
+          "actions": [
+            "新增隔离actual-state决策、配对名义初始化及物理入口；复用原clean v3和200Hz事件/能量，实际warmup初态五档W查询先封存再行动。拒绝不回退，业务失败保留，工程失败停止。",
+            "独立登记用户委托择路及前次已展示的保守上限，封存源码/上游身份及实际IsaacLab_v0472来源；GPU6当前4MiB且无计算进程。单次目录、3应用/6物理/6名义/30W/3小时及60000显式物理步预留受入口约束。",
+            "主agent完成5组CPU基本测试、真实生产context身份和legacy校验；未调用真实critic values或启动新应用。准备结果不签NAV-043/G5。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/nav043_budget.py",
+            "CaMRA/navigation/scripts/nav043_simulation.py",
+            "CaMRA/navigation/scripts/run_nav043_exploration.py",
+            "CaMRA/navigation/config/nav043_exploration_v1.json",
+            "CaMRA/navigation/config/nav043_exploration_v1.json.sha256",
+            "CaMRA/navigation/docs/nav043_exploration_protocol_20261119.md",
+            ".worklog-testing/NAV-043/exploration-v1/verify_basic.py",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-evidence-close %599；cwd=/home/caohy/repositories/Paper；绝对解释器/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B；CUDA_VISIBLE_DEVICES=6。",
+            "上述tmux运行verify_basic.py、run_nav043_exploration.py --check及legacy validate_worklog.py --mode update，日志basic-final.log/context.log/plan-validation.log；只本地提交，不推送。"
+          ],
+          "results": [
+            "5组基本测试PASS：实际初态/观测一致，J编码及五档只改预算，拒绝保留，输出拒绝覆盖，物理/内部成本分列，源码及状态保留。",
+            "生产context核验295项保护hash及两候选全部网络角色通过；5测试仅用人工critic，无真实W查询或回合。",
+            "当前仍55/67、NAV-043=false；原位置/45秒适用性缺口及全部科学失败保留。本次选探索范围不修改原验收。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/exploration-v1/resources.log",
+            ".worklog-testing/NAV-043/exploration-v1/basic-final.log",
+            ".worklog-testing/NAV-043/exploration-v1/context.log",
+            ".worklog-testing/NAV-043/exploration-v1/plan-validation.log",
+            "CaMRA/navigation/config/nav043_exploration_v1.json"
+          ],
+          "remaining_work": [
+            "本地提交已验证封存版本后，在同一tmux执行一次run_nav043_exploration.py；只读复核所有决定、实际事件/机械功、名义配对与资源台账，不能据此直接放行G5。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
