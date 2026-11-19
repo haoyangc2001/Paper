@@ -14696,6 +14696,73 @@
             "downstream_disposition": "原等待器后续读取修复审阅器，无需重启；全事件及G5仍待验。",
             "closure_state": "validated"
           }
+        },
+        {
+          "timestamp": "2026-11-19T20:44:16.699128+08:00",
+          "summary": "NAV-043探索终态收尾开工：原3应用已结束，继续原只读审阅链并准备下一范围建议",
+          "actions": [
+            "续接计划1.4.1及legacy；重新读取AGENTS、执行规则、计划和当前交接，现场核对原协调器与L3应用已退出，唯一根FINISHED存在。原59048已启动唯一只读审阅子进程534400，317768仍等待原审阅身份；不重启应用或手动重复入口。",
+            "消费原NAV-066最优配对及W规则、NAV-067工程接入、本轮ecbac001协议和16封存来源，结算实际初态自选预算后的物理可用性及裕度适用性，为下一范围提供证据。",
+            "允许只读审阅、准备研究范围提案/交接/证据索引及本地提交；原RC-PPO目标、模型与v2、alpha/delta、45秒/评分/数据用途及旧失败保持。缺口未解保持NAV-043/G5未通过，正式评估不执行。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11现场检查原PID、FINISHED和六份result/nominal；原tmux %601审阅器及%612适用性后续器继续，不手动重复调用。"
+          ],
+          "results": [
+            "原3应用结束，累计6893.246332秒。六份在线结果已齐，等待全事件/适用性审阅，不写科学通过。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/FINISHED.json",
+            "CaMRA/navigation/config/nav043_exploration_v1.json",
+            ".worklog-testing/NAV-043/exploration-v1/saved-review.log",
+            ".worklog-testing/NAV-043/exploration-v1/applicability-followup.log"
+          ],
+          "remaining_work": [
+            "读取原两步审阅实际终态，核验全量事件/能量/决定/计数/保护身份及适用性；追加局部及全局验收和下一范围建议，完成legacy/仅追加校验后本地提交。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T20:56:52.081202+08:00",
+          "summary": "NAV-043原有限分配执行终态已整理，下一运动模型路线仅PROPOSED；原全事件CPU审阅继续",
+          "actions": [
+            "主agent在tiger11/tmux %621运行save_completed_allocation.py，仅整理六份保存result/nominal及决定pin、同初态预算、应用EXIT/FINISHED和显式计数，snapshot来源hash和16封存来源核对通过；未重新执行原全事件或适用性入口。",
+            "新增下一范围建议：固定v2，先研究简单运动响应模型，拟只复用18条已暴露轨迹、三折分组诊断、三套候选/九次轴向线性求解、CPU1小时，新增物理/名义/W/actor或critic更新0。提案PROPOSED，新拟合未执行；独立校准/上层训练/物理验证不自动授权。",
+            "同步AGENTS及交接，将原协调器与物理应用已退出、原59048/534400 CPU审阅和317768等待链写清。全事件及适用性报告尚未生成，收尾验证器仅准备未运行；保留本项false及全部科学缺口，不借原工程true放行正式评估。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav043_exploration_execution_review_20261119.md",
+            "CaMRA/navigation/docs/nav043_motion_model_route_proposal_20261119.md",
+            ".worklog-testing/NAV-043/exploration-v1/save_completed_allocation.py",
+            ".worklog-testing/NAV-043/exploration-v1/execution-finished-progress.json",
+            ".worklog-testing/NAV-043/exploration-v1/verify_exploration_close.py"
+          ],
+          "commands": [
+            "tiger11/tmux %621：OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/exploration-v1/save_completed_allocation.py > .worklog-testing/NAV-043/exploration-v1/execution-finished-progress.log 2>&1。",
+            "提交前运行legacy update及snapshot来源/仅追加/受保护路径/语法基本检查，白名单本地提交，不推送。"
+          ],
+          "results": [
+            "原分配3应用累计6893.246332秒；30初态W、6物理/6名义、54581显式物理步含53381测量，2257名义步，均在已批上限内。整理新增应用/回合/W/拟合0。",
+            "完整方法物理L1成功，L2/L3预算有余但45秒超时；无校准三图超时且超预算；名义两方法各3/3可行。六在线y均0但全程安全事件尚待原审阅，不能签G5。",
+            "RC-PPO目标、原生产调用链和观测/动作/预算/单位/时序版本、模型/v2/alpha/delta/45秒/评分与旧失败保持，未继续下游。NAV-043=false、55/67，当前为已验证执行整理及正常CPU等待，不是阻塞或科学通过。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/exploration-v1/execution-finished-progress.json",
+            ".worklog-testing/NAV-043/exploration-v1/execution-finished-progress.log",
+            "CaMRA/navigation/docs/nav043_exploration_execution_review_20261119.md",
+            "CaMRA/navigation/docs/nav043_motion_model_route_proposal_20261119.md"
+          ],
+          "remaining_work": [
+            "继续原CPU审阅534400及原317768适用性后续器，不重启或另行手动调用；原报告齐备后主agent逐项核对，运行准备的收尾检查、追加实际结论并再提交。",
+            "下一模型拟合、校准或上层训练仍待单独范围决定，不能按本提案自动执行或使用旧试验余量。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
