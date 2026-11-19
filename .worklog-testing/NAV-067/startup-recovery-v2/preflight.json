@@ -1,0 +1,348 @@
+{
+  "timestamp": "2026-11-19T08:18:45.899883+08:00",
+  "host": "tiger11.ios.ac.cn",
+  "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "python_version": "3.11.15",
+  "tmux": "nav064-r14-repair-20261115:nav067-clean-v2 @587 %587",
+  "cwd": "/home/caohy/repositories/Paper",
+  "sys_path": [
+    "/home/caohy/repositories/Paper/CaMRA/calibration/src",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/src",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts",
+    "/home/caohy/repositories/Paper/CaMRA/calibration/src",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/src",
+    "/home/caohy/repositories/Paper/CaMRA/calibration/src",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/src",
+    "/home/caohy/repositories/Paper/.worklog-testing/NAV-067/startup-recovery-v2",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/src",
+    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts",
+    "/home/caohy/repositories/Paper/CaMRA/calibration/src",
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python311.zip",
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11",
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/lib-dynload",
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages",
+    "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages/cmeel.prefix/lib/python3.11/site-packages"
+  ],
+  "modules": {
+    "unitree_rl_lab": {
+      "found": false,
+      "origin": null,
+      "locations": []
+    },
+    "isaaclab": {
+      "found": true,
+      "origin": "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/__init__.py",
+      "locations": [
+        "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab"
+      ]
+    },
+    "isaaclab_tasks": {
+      "found": true,
+      "origin": "/pub/data/caohy/IsaacLab_v0472/source/isaaclab_tasks/isaaclab_tasks/__init__.py",
+      "locations": [
+        "/pub/data/caohy/IsaacLab_v0472/source/isaaclab_tasks/isaaclab_tasks"
+      ]
+    },
+    "isaacsim": {
+      "found": true,
+      "origin": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages/isaacsim/__init__.py",
+      "locations": [
+        "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages/isaacsim"
+      ]
+    },
+    "gymnasium": {
+      "found": true,
+      "origin": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages/gymnasium/__init__.py",
+      "locations": [
+        "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/lib/python3.11/site-packages/gymnasium"
+      ]
+    }
+  },
+  "local_unitree_source": "/home/caohy/repositories/Paper/CaMRA/locomotion/source/unitree_rl_lab",
+  "local_unitree_init_exists": true,
+  "plan_sha256": "fda1e75506d310d0c7db5492c7c26d84c991bff0e8a1df1f54dd5f3dbbc91077",
+  "plan_version": "1.4.1",
+  "tasks_fully_parsed": 67,
+  "records_fully_parsed": 227,
+  "current_task": {
+    "id": "NAV-067",
+    "phase": "预算与闭环",
+    "goal": "修正clean物理配置与子步事件采集，用新版候选重验在线接入",
+    "status": false,
+    "depends_on": [
+      "NAV-066"
+    ],
+    "constraints_and_notes": [
+      "依赖NAV-066，绑定新版候选、观测/动作、预算和事件契约；修正旧NAV-042环境声明时同时保留旧代码/配置/报告，旧6回合不是新clean证据。",
+      "在创建环境前逐项固定/关闭启动与复位随机化、摩擦/质量/推搡、reset位姿/关节扰动、观测噪声及命令重采样；核对实际event_manager与运行参数。固定值来自同v2 clean协议，不改机器人资产/PD/策略或历史校准。",
+      "检查观测项是否含上一动作/历史buffer及wrapper自动reset，warmup后一次对齐名义起点。命令写入后重算观测；缺失obs_command/时钟/子步证据应拒绝，不能用期望命令伪造实际观测证明新鲜度。",
+      "物理200Hz保存用于事件的实际位姿/接触或几何证据并累计碰撞、边界、危险历史、到达、跌倒；不能只查0.1秒两端弦线或50Hz末态。事件顺序、结束快照、200Hz机械功和不足整周期区间遵循新契约，无跨自动复位污染。",
+      "核验地图世界/局部坐标往返、墙体/障碍真实碰撞体、物理与名义观测一致；覆盖中间子步穿障后退出、转弯扫掠、同刻到达/碰撞、批内异步结束。不能仅用桩测试证明实际Isaac适配器正确。",
+      "先做NAV-061预登记6回合修正pilot；method_selected无解不得伪造预算，接线可使用明确登记的common_budget。重复性需独立同配置样本和明确额外额度；旧带扰动与新clean结果的对照不算同配置重复性。"
+    ],
+    "acceptance_criteria": [
+      "clean事件开关和实际摩擦/质量/复位/噪声参数有可追溯证据，训练环境默认项不会泄漏；v2及校准hash不变。",
+      "新版候选6回合接入trace通过ID、命令真实观测、10/50/200Hz、完整复位、原始200Hz能量复算与事件检测；部分周期按真实时间和active掩码对账。",
+      "人工中间子步碰撞/危险后退出/同刻事件/终止后剩余子步反例及实际适配器受控验证通过；报告区分桩测试与真实仿真证据。",
+      "amendment说明原clean声明修正、受影响任务/门禁与新版结果，不覆盖原报告；与原pilot差异不能都归因于clean（候选/契约也已改变）。",
+      "同配置重复性按已授权配额测量并给分母/偏差，不承诺物理逐位一致；额度不足先报告，不静默在6回合外加跑。",
+      "工程接入与方法效果分开；新候选完整闭环适用性仍由NAV-043验证，不能以本任务接线通过直接签G5。"
+    ],
+    "verification_result": "",
+    "planned_outputs": [
+      "scripts/evaluate_navigation.py、src/camra_navigation/envs/physical.py及隔离clean配置",
+      "tests/test_physical_loop.py与真实子步验证入口",
+      "reports/nav042_clean_pilot.json",
+      "reports/nav042_report_amendment.json"
+    ],
+    "work_records": [
+      {
+        "timestamp": "2026-11-19T07:51:48+08:00",
+        "summary": "NAV-067开工：按legacy接通已测候选与固定v2，修正clean及200Hz事件接口",
+        "actions": [
+          "重新读取根AGENTS、legacy技能及execution-rules、计划全文解析、当前任务与全局/回修约束，核对54/67及NAV-066经接受局限结案。",
+          "本项将已测无校准seed2 guarded-v4和完整方法seed0 original接到固定v2；保留原科学效率FAIL及旧G4 FAIL，输出供NAV-043检查实际闭环适用性。",
+          "仅新增隔离导航适配/入口/配置，不改原注册绑定源码、模型、RC-PPO目标、45秒冻结任务、底层v2及校准锁。",
+          "已确认tiger11/tmux、Python3.11.15及GPU现场信息；继承用户批准同机执行例外。实际仿真前继续核验v2资源及有效配额。",
+          "旧入口仍加载NAV-042旧候选，physical.py默认30秒、旧观测和50Hz事件，不能直接复用作为新版证据。新接线需逐子步记录位姿、终止掩码、真实机械功及实际命令观测。"
+        ],
+        "files_changed": [
+          "doc/plan/20261109_camra_navigation_implementation.json"
+        ],
+        "commands": [
+          "tmux nav064-r14-repair-20261115:nav067-clean-v2: <absolute Python> -B .worklog-testing/NAV-067/clean-v2/inspect.py",
+          "<absolute Python> -B <legacy skill>/scripts/validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+        ],
+        "results": [
+          "计划update校验通过；NAV-067是首个依赖满足的false任务；原有221条工作记录全部读取并保留；本项尚无新训练/物理回合。"
+        ],
+        "evidence": [
+          ".worklog-testing/NAV-067/clean-v2/baseline.json",
+          ".worklog-testing/NAV-067/clean-v2/current-task.json",
+          ".worklog-testing/NAV-067/clean-v2/inspect.log",
+          "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"
+        ],
+        "remaining_work": [
+          "实现隔离clean配置、新模型/45秒观测接口与200Hz事件及能量停止链，主agent基本验证。",
+          "核对6回合新pilot及重复性/真实受控验证独立额度；未授权额度不启动。",
+          "实际适配器和pilot验收后才判定NAV-067；NAV-043及后续依赖继续false。"
+        ],
+        "blockers": []
+      },
+      {
+        "timestamp": "2026-11-19T07:57:13.236466+08:00",
+        "summary": "NAV-067阶段保存：200Hz事件基础实现及16项基本检查通过，真实接线未验收",
+        "actions": [
+          "新增隔离physical_v2与clean_v2：显式obs-v7/45秒、实际物理子步、不可逆安全历史、真实终止快照、部分周期模型计费和活跃掩码。",
+          "Isaac适配按v2 action_manager每子步施加PD，使用实际观测命令及时钟，绕开gym.step自动复位；此处仅代码准备，尚未在真实Isaac运行。",
+          "主agent完成中间穿障后退出、危险历史、旋转扫掠、同时到达碰撞、异步结束、部分周期计费和缺失/陈旧命令拒绝等16项基本测试。",
+          "校验原注册绑定的291个源码/配置/资源/模型hash不变，原67项顺序/依赖/状态及全部旧记录前缀保留。"
+        ],
+        "files_changed": [
+          "/home/caohy/repositories/Paper/CaMRA/navigation/src/camra_navigation/envs/physical_v2.py",
+          "/home/caohy/repositories/Paper/CaMRA/navigation/src/camra_navigation/envs/clean_v2.py",
+          "/home/caohy/repositories/Paper/CaMRA/navigation/tests/test_physical_v2.py",
+          "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav067_substep_preparation_v1.json",
+          "/home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json"
+        ],
+        "commands": [
+          "tmux nav064-r14-repair-20261115:nav067-clean-v2; cwd=/home/caohy/repositories/Paper/CaMRA/navigation; PYTHONPATH=src:scripts:../calibration/src PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -m pytest -q tests/test_physical_v2.py"
+        ],
+        "results": [
+          "16项基本测试通过；三个新文件语法解析通过；无新训练/物理回合/W查询。",
+          "本次仅基础实现检查，尚未接通新版完整生产入口，不构成NAV-067或物理性能通过。"
+        ],
+        "evidence": [
+          "CaMRA/navigation/reports/nav067_substep_preparation_v1.json",
+          ".worklog-testing/NAV-067/clean-v2/basic-tests.log"
+        ],
+        "remaining_work": [
+          "新版候选绑定与可执行生产入口；实际clean参数/资产/碰撞体读回。",
+          "有效登记后执行6回合pilot、真实受控反例和同配置重复性，受资源边界约束。",
+          "依照所有局部及全局标准验收后再进入NAV-043。"
+        ],
+        "blockers": []
+      },
+      {
+        "timestamp": "2026-11-19T08:03:09+08:00",
+        "summary": "NAV-067续跑：补齐冻结候选绑定、唯一pilot清单和物理生产入口",
+        "actions": [
+          "重新读取根AGENTS、legacy执行规则和实际1.4.1计划，核对NAV-066接受局限记录及NAV-067两条历史记录；54/67不变。",
+          "本次把已测两候选、原45秒/obs-v7及固定v2接到新的200Hz物理链；只新增隔离文件，保护原注册绑定源码、模型及校准输入。",
+          "仅沿用NAV-061 resource_ledger.physical_pilot.clean_6_episodes=6，按旧接线三图seed3001、每方法一次准备唯一清单；common_budget沿用k=1.0锚点，45秒参考单独派生、相同J供两方法，明确不是价值搜索结果。",
+          "生产入口须核验hash/候选/依赖/额度，输出实际clean读回、子步trace与机械功复算；同配置重复和受控物理反例不能自动扩额。"
+        ],
+        "files_changed": [
+          "doc/plan/20261109_camra_navigation_implementation.json"
+        ],
+        "commands": [
+          "只读核对当前计划/原NAV-042入口/NAV-066注册/保护清单及固定v2资源路径；执行继续tiger11/tmux和绝对Python3.11.15。"
+        ],
+        "results": [
+          "上一轮仅核实28f5b7c提交，本轮继续实现；无新增训练、价值查询或物理回合。"
+        ],
+        "evidence": [
+          "CaMRA/navigation/config/training_loop_protocol_v1.json",
+          "CaMRA/navigation/config/nav066_decision_prereg_v2.json",
+          "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"
+        ],
+        "remaining_work": [
+          "冻结候选及唯一清单；主agent基本验证；实际6回合接线与clean参数、子步及能量核验；额外受控/重复额度仍需独立确定。"
+        ],
+        "blockers": []
+      },
+      {
+        "timestamp": "2026-11-19T08:08:08+08:00",
+        "summary": "NAV-067阶段保存：新候选与6回合唯一清单已绑定，24项基本检查通过，尚未运行物理",
+        "actions": [
+          "新增nav067_sources.py，单独消费NAV-066已测身份和接受处置，不调用已结束的NAV-066入口或复用其额度；实际核验295项受保护源码/资源/六模型hash并CPU重载选定actor和双critic。",
+          "新增evaluate_navigation_v2.py，把obs-v7/45秒、原归一化动作映射、固定v2低层、50/200Hz适配、200Hz事件与机械功记录连接到实际入口；每level独占两槽、拒绝重复目录。",
+          "封存三图seed3001的唯一6回合清单：共同预算340.847764/413.776269/340.961039J由45秒名义参考独立派生，相同J供两方法，非W选择、非独立科学评估。",
+          "发现原冻结training_loop_protocol_v1.json的无关development总数字段含算式，标准JSON解析失败；保留失败日志及原hash不改，只读取散列匹配文件里唯一的clean_6_episodes=6标量，不执行算式。",
+          "主agent完成24项基本检查、真实绑定重载/保护核验、生产动作映射和计划追加/状态保留检查，无测试子agent。"
+        ],
+        "files_changed": [
+          "CaMRA/navigation/scripts/nav067_sources.py",
+          "CaMRA/navigation/scripts/evaluate_navigation_v2.py",
+          "CaMRA/navigation/tests/test_nav067_binding.py",
+          "CaMRA/navigation/reports/nav067_pilot_binding_v1.json",
+          "CaMRA/navigation/docs/implementation_handoff.md",
+          "doc/plan/20261109_camra_navigation_implementation.json"
+        ],
+        "commands": [
+          "tmux nav064-r14-repair-20261115:nav067-clean-v2; cwd=/home/caohy/repositories/Paper/CaMRA/navigation; PYTHONPATH=src:scripts:../calibration/src OMP_NUM_THREADS=1 <absolute Python3.11.15> -B -m pytest -q tests/test_nav067_binding.py tests/test_physical_v2.py",
+          "同tmux/解释器执行scripts/nav067_sources.py及.worklog-testing/NAV-067/entry-v1/review.py；legacy validate_worklog --mode update通过。"
+        ],
+        "results": [
+          "24项通过；295项保护身份不变；原actor/critic/目标/校准不变；物理0、训练0、W查询0。",
+          "新生产入口尚待真实Isaac证明，NAV-067保持false；正式性能/闭环裕度与下游门禁均未通过。"
+        ],
+        "evidence": [
+          "CaMRA/navigation/reports/nav067_pilot_binding_v1.json",
+          "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/manifest.json",
+          ".worklog-testing/NAV-067/entry-v1/basic-tests.log",
+          ".worklog-testing/NAV-067/entry-v1/legacy-format-failure.log"
+        ],
+        "remaining_work": [
+          "现场GPU核验后执行已登记6回合pilot，检查实际clean参数/命令观测/复位/地图碰撞体/200Hz计量与部分周期。",
+          "真实受控反例及同配置重复须独立明确额度；不能默认在6回合之外加跑。",
+          "逐条完成本项局部和全局验收后才允许进入NAV-043。"
+        ],
+        "blockers": []
+      },
+      {
+        "timestamp": "2026-11-19T08:11:44.503579+08:00",
+        "summary": "NAV-067首次物理入口启动未产生有效轨迹；保留attempt1并核对阶段提交，不据退出0放行",
+        "actions": [
+          "在tiger11原tmux窗口@587/%587用绝对Python3.11.15、GPU6和原封存清单启动一次L1入口；保留PID1232883、原命令、启动/退出标记及日志。",
+          "恢复后重读根AGENTS、legacy技能及执行/字段规则，完整解析当前1.4.1计划，核对NAV-067任务约束和原4条记录，保留NAV-066接受局限及旧科学FAIL。",
+          "核对进程已退出、有效runtime/结果/子步及FINISHED均未生成；登记材质插件缺失错误，未将其未经证实地认定为退出直接根因。",
+          "原launch记录tmux窗口取值未指定pane，另以实际@587/%587记录更正，不改写原启动记录；保留原始证据并做主agent只读绑定及追加式检查。"
+        ],
+        "files_changed": [
+          "doc/plan/20261109_camra_navigation_implementation.json",
+          "CaMRA/navigation/docs/implementation_handoff.md",
+          ".worklog-testing/NAV-067/entry-v1/launch.py",
+          ".worklog-testing/NAV-067/entry-v1/diagnose.py",
+          ".worklog-testing/NAV-067/entry-v1/checkpoint_startup.py",
+          ".worklog-testing/NAV-067/entry-v1/startup-attempt1/"
+        ],
+        "commands": [
+          "tmux=nav064-r14-repair-20261115:nav067-clean-v2 @587/%587; cwd=/home/caohy/repositories/Paper; PYTHONPATH=CaMRA/navigation/src:CaMRA/navigation/scripts:CaMRA/calibration/src PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-067/entry-v1/launch.py L1_empty",
+          "实际子命令：/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/CaMRA/navigation/scripts/evaluate_navigation_v2.py --level L1_empty --device cuda:0",
+          "同机tmux运行diagnose.py及checkpoint_startup.py；legacy validate_worklog.py --mode update。"
+        ],
+        "results": [
+          "本地阶段提交28f5b7c及22a23cc存在，未推送；源码和清单未因本次启动检查而修改。",
+          "启动attempt1一次，退出码0但有效物理回合完成0；L1两槽保留占用，L2/L3四槽未启动，无自动重试或额度释放。",
+          "Isaac原日志确认材质插件库缺失和omni.UsdMdl导入错误；Kit随后到达app ready再关闭，缺少有效轨迹的直接根因仍待定位，不归因为策略性能。",
+          "无新训练、W查询或恢复试跑；24项基本测试仍仅证明代码准备。实际生产调用链/clean参数/200Hz证据未验收，NAV-067保持false、54/67，下游不开启。"
+        ],
+        "evidence": [
+          "22a23ccbe552b5d80f171da3590bcd849ae886ed",
+          "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/launch-L1_empty.json",
+          "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/exit-L1_empty.json",
+          ".worklog-testing/NAV-067/entry-v1/diagnostic-1.json",
+          ".worklog-testing/NAV-067/entry-v1/startup-attempt1/verification.json"
+        ],
+        "remaining_work": [
+          "先定位真实入口/启动故障并保留原版后回修；核对恢复授权和清单/两槽状态，不自动重跑或更改共享Isaac依赖。",
+          "有效6回合接线、实际适配器受控反例、同配置重复及本项全部验收仍待完成；额外额度不明时先报告。"
+        ],
+        "blockers": [
+          "L1首次入口只有启动证据，真实接线尚未验收；原失败策略禁止自动重跑。",
+          "真实受控反例与同配置重复的独立额度尚未分配。"
+        ]
+      },
+      {
+        "timestamp": "2026-11-19T08:20:00+08:00",
+        "summary": "NAV-067/1.4.1启动故障诊断续跑开工：只读核对依赖与入口，不重跑已占用pilot",
+        "actions": [
+          "重读完整根AGENTS、legacy技能和执行规则、当前计划和交接，现场核对645275d及原attempt1终态；继续固定tiger11/tmux和已批准同机例外。",
+          "本项先定位阻断实际200Hz物理链的启动问题；只允许新增隔离导航诊断及必要实现回修，不改actor/critic、45秒/obs-v7、RC-PPO目标、v2/旧校准或共享框架。",
+          "使用原清单/295项保护身份和已退出PID1232883为上游证据；验收看确定的故障证据、可恢复新旧版本及生产异常记录，不凭退出0或基本测试放行。"
+        ],
+        "files_changed": [
+          "doc/plan/20261109_camra_navigation_implementation.json",
+          ".worklog-testing/NAV-067/startup-recovery-v2/preflight.py"
+        ],
+        "commands": [
+          "tiger11/tmux @587/%587，以绝对Python3.11.15和原启动PYTHONPATH执行startup-recovery-v2/preflight.py；仅查询模块定位，不创建Kit应用、环境或轨迹。"
+        ],
+        "results": [
+          "当前仍NAV-067=false、54/67；L1两槽保留占用，不自动释放/重试；L2/L3及下游未启动。"
+        ],
+        "evidence": [
+          ".worklog-testing/NAV-067/entry-v1/startup-attempt1/verification.json",
+          "645275d956987dd77ef55976d982f5b8a369aeb2"
+        ],
+        "remaining_work": [
+          "只读定位导入/启动异常，按确定证据准备最小回修并基本验证；涉及共享依赖或重试额度的变化另行明确。"
+        ],
+        "blockers": [
+          "有效物理接入未证明；原pilot失败政策及尚未分配的受控/重复额度保持。"
+        ]
+      }
+    ],
+    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
+    "reference_ids": [
+      "R05",
+      "R06",
+      "R07",
+      "R09",
+      "R11",
+      "R12",
+      "R16"
+    ]
+  },
+  "binding": {
+    "decision_prereg_sha256": "6e783599f76e68cc483bfc9f4d3e7649e4b312f48335a5c7c578f974ab9d126c",
+    "training_prereg_sha256": "6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4",
+    "protected_hashes_checked": 295,
+    "plan_version": "1.4.1",
+    "controller": {
+      "id": "camra_go2_velocity_it2999_v2",
+      "bundle": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
+      "bundle_tree_sha256": "d0f0ec3cf0dc56bf7943ff0f7853483123eb82497476b9a5786d5f17a1954d1f",
+      "checkpoint_sha256": "1c8f5aad38c2b763c7bceeda66d9a8f9e95eb463a358d768001868430f95efc9",
+      "policy_entry": "exported/policy.pt (RecursiveScriptModule, 45 -> 12)"
+    },
+    "accepted_scientific_verdict": "FAIL_BUDGET_EFFICIENCY"
+  },
+  "source_hashes": {
+    "scripts/nav067_sources.py": "384dd00528b635dd9a0af501a1222860fa617f35484f7bf39d85e3114d37fe1b",
+    "scripts/evaluate_navigation_v2.py": "f9224ab092901cb9a0d013650cc0d2308a4d3a4d0e936bb9741abfdd0c5dc472",
+    "src/camra_navigation/envs/clean_v2.py": "848ca77b45772e64bd7ae11275e7e7cfce78f6f3e1247d9d1f3b01b7e90bd859",
+    "src/camra_navigation/envs/physical_v2.py": "c04249573fd15f89751d1dd20aa9e35c94fbce88278d41e2d437854b25afba07"
+  },
+  "git_head": "645275d956987dd77ef55976d982f5b8a369aeb2",
+  "submodule_status": [
+    " 6a05af55521e5f6668c50e9f90cf7049b3e35cd9 HiRA (heads/master)"
+  ],
+  "gpu6": "6, GPU-ae8422a0-8130-a384-1ec6-8ba59fe59d3a, NVIDIA GeForce RTX 4090, 24108 MiB",
+  "previous_pilot_pid_live": false,
+  "new_navigation_episodes": 0,
+  "new_physics_steps": 0,
+  "new_training_updates": 0,
+  "new_W_queries": 0
+}

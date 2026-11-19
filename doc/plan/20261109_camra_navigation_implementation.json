@@ -13129,6 +13129,43 @@
      "evidence": ["22a23ccbe552b5d80f171da3590bcd849ae886ed", "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/launch-L1_empty.json", "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/exit-L1_empty.json", ".worklog-testing/NAV-067/entry-v1/diagnostic-1.json", ".worklog-testing/NAV-067/entry-v1/startup-attempt1/verification.json"],
      "remaining_work": ["先定位真实入口/启动故障并保留原版后回修；核对恢复授权和清单/两槽状态，不自动重跑或更改共享Isaac依赖。", "有效6回合接线、实际适配器受控反例、同配置重复及本项全部验收仍待完成；额外额度不明时先报告。"],
      "blockers": ["L1首次入口只有启动证据，真实接线尚未验收；原失败策略禁止自动重跑。", "真实受控反例与同配置重复的独立额度尚未分配。"]
+   },
+   {
+     "timestamp": "2026-11-19T08:20:00+08:00",
+     "summary": "NAV-067/1.4.1启动故障诊断续跑开工：只读核对依赖与入口，不重跑已占用pilot",
+     "actions": ["重读完整根AGENTS、legacy技能和执行规则、当前计划和交接，现场核对645275d及原attempt1终态；继续固定tiger11/tmux和已批准同机例外。", "本项先定位阻断实际200Hz物理链的启动问题；只允许新增隔离导航诊断及必要实现回修，不改actor/critic、45秒/obs-v7、RC-PPO目标、v2/旧校准或共享框架。", "使用原清单/295项保护身份和已退出PID1232883为上游证据；验收看确定的故障证据、可恢复新旧版本及生产异常记录，不凭退出0或基本测试放行。"],
+     "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json", ".worklog-testing/NAV-067/startup-recovery-v2/preflight.py"],
+     "commands": ["tiger11/tmux @587/%587，以绝对Python3.11.15和原启动PYTHONPATH执行startup-recovery-v2/preflight.py；仅查询模块定位，不创建Kit应用、环境或轨迹。"],
+     "results": ["当前仍NAV-067=false、54/67；L1两槽保留占用，不自动释放/重试；L2/L3及下游未启动。"],
+     "evidence": [".worklog-testing/NAV-067/entry-v1/startup-attempt1/verification.json", "645275d956987dd77ef55976d982f5b8a369aeb2"],
+     "remaining_work": ["只读定位导入/启动异常，按确定证据准备最小回修并基本验证；涉及共享依赖或重试额度的变化另行明确。"],
+     "blockers": ["有效物理接入未证明；原pilot失败政策及尚未分配的受控/重复额度保持。"]
+   },
+   {
+     "timestamp": "2026-11-19T08:22:21.370762+08:00",
+     "summary": "NAV-067启动回修准备完成：确定本地模块路径缺陷，29项基本检查及零物理启动配置检查通过，未执行恢复",
+     "actions": ["在原解释器/启动路径下只读确认unitree_rl_lab不可定位，但仓库源码在位；旧simulate在创建gym环境前导入它。", "新增隔离nav067_runtime.py和evaluate_navigation_v3.py，绑定本地来源并在Kit清理前保存异常；复用原封存simulate，未改原四源码、模型或清单。", "主agent完成29项基本检查；另一次实际Kit启动检查只做导入与clean配置构建，未创建机器人环境、reset或物理步。", "封存PROPOSED恢复方案、绑定新源码及旧证据hash，保留原L1失败并拟在同目录attempt2恢复两方法，L2/L3仍为原四个未启动槽；同步交接，未创建批准登记。"],
+     "files_changed": ["CaMRA/navigation/scripts/nav067_runtime.py", "CaMRA/navigation/scripts/evaluate_navigation_v3.py", "CaMRA/navigation/tests/test_nav067_runtime.py", "CaMRA/navigation/config/nav067_startup_recovery_proposal_v2.json", "CaMRA/navigation/reports/nav067_startup_recovery_preparation_v2.json", "CaMRA/navigation/docs/implementation_handoff.md", "doc/plan/20261109_camra_navigation_implementation.json", ".worklog-testing/NAV-067/startup-recovery-v2/"],
+     "commands": ["tiger11/tmux nav064-r14-repair-20261115:nav067-clean-v2 @587/%587; PYTHONPATH=CaMRA/navigation/src:CaMRA/navigation/scripts:CaMRA/calibration/src PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B -u .worklog-testing/NAV-067/startup-recovery-v2/launch_probe.py", "同环境绝对解释器 -B -m pytest -q CaMRA/navigation/tests/test_nav067_runtime.py CaMRA/navigation/tests/test_nav067_binding.py CaMRA/navigation/tests/test_physical_v2.py", "同环境prepare.py封存PROPOSED；legacy validate_worklog.py --mode update。"],
+     "results": ["29项基本检查通过；295项保护身份、原封存四源码及manifest保持。", "真实Kit导入/配置检查PASS_IMPORT_AND_CONFIG_ONLY，dt=0.005/decimation=4及v2资产路径匹配；零机器人环境、零物理步、零导航回合，不构成实际接入通过。", "材质插件错误仍出现但未阻断上述导入/配置；没有修改共享框架，不能证明对实际物理无影响。原异常未被保存，因此不伪造原始异常栈。", "本次原pilot恢复/训练/W查询均0；PROPOSED不是批准，L1两槽未释放、L2/L3未启动；NAV-067=false、54/67，实际物理验收和下游仍受阻。"],
+     "evidence": ["CaMRA/navigation/reports/nav067_startup_recovery_preparation_v2.json", "CaMRA/navigation/config/nav067_startup_recovery_proposal_v2.json", ".worklog-testing/NAV-067/startup-recovery-v2/preflight.json", ".worklog-testing/NAV-067/startup-recovery-v2/probe-attempt1/RESULT.json", ".worklog-testing/NAV-067/startup-recovery-v2/probe-exit.json", ".worklog-testing/NAV-067/startup-recovery-v2/basic-tests.log"],
+     "remaining_work": ["确认原封存no-automatic-restart策略的一次L1恢复例外后，新建批准登记/pin并执行原6回合及实际证据核验，不再自动重试。", "实际适配器受控反例与同配置重复额度仍需单独明确；本提案不替代这些验收或放行NAV-043。"],
+     "blockers": ["原清单禁止自动重启，恢复提案尚未批准；不以准备通过代替实际运行。", "真实受控反例和同配置重复仍无独立额度。"],
+     "correction": {
+       "correction_id": "NAV-067-C02-startup-source-and-error-capture",
+       "discovered_in_task": "NAV-067",
+       "upstream_task_ids": [],
+       "problem_and_evidence": "原启动PYTHONPATH缺少已存在的本地unitree_rl_lab；原finally关闭Kit前未持久记录异常，退出0无有效trace。preflight模块定位与零物理实际导入检查确认路径修复有效，原异常栈缺失保留。",
+       "original_artifact_references": ["22a23ccbe552b5d80f171da3590bcd849ae886ed", "原manifest SHA256 f33d829896347b4efef4217ba4ec191d4b9b24f69f7576d7b77120003cb02402", ".worklog-testing/NAV-067/entry-v1/startup-attempt1/verification.json"],
+       "affected_task_ids": ["NAV-067", "NAV-043", "NAV-044", "NAV-045"],
+       "affected_gate_ids": ["G5"],
+       "authorization_basis": "既有导航范围内确定实现缺陷可回修；只新增隔离源码并基本检查。原pilot恢复例外尚未授权，不在本次运行。",
+       "changes_and_versions": ["新增nav067_runtime.py、evaluate_navigation_v3.py；旧v2脚本和manifest不变；恢复提案v2为PROPOSED。"],
+       "revalidation_evidence": ["29项基本检查", "probe-attempt1/RESULT.json：PASS_IMPORT_AND_CONFIG_ONLY，零物理步"],
+       "status_changes": [],
+       "downstream_disposition": "保持NAV-067 false；真实接入和附加受控/重复验收完成前不进入NAV-043/G5。",
+       "closure_state": "blocked"
+     }
    }
   ],
    "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
