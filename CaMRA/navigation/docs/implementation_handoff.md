@@ -1,5 +1,11 @@
 # 上层导航实施交接
 
+## 2026-11-20 仿射v2限定诊断已获用户确认
+
+用户明确确认上一条“原18条/九次CPU求解/最多1小时、不新增训练”的具体范围，APPROVED登记`config/nav043_affine_response_approval_v2.json`绑定原提案98fe679c及支持清单70869ac8。原PROPOSED/所有封存源码/旧失败保持，先在tiger11/tmux预检295保护身份/90输入/历史记录、登记提交，再仅一次运行已有启动器；本段不是运行结果。主agent按legacy基本验证，无专用测试子agent。
+
+唯一输出`/pub/data/caohy/work/camra_navigation/nav043_affine_response_probe_v2`；先看`.worklog-testing/NAV-043/affine-response-v2/launch.lock`、launch/exit和实际进程/FINISHED/HELD，不重启或更换目录。终态后运行保存输出复核器，不新增求解；失败原样保留停止，不动阈值或挪额度。NAV-043=false/G5未过、55/67历史记录保持，90秒仍候选；本次新增回合/W/网络更新/校准/GPU0，训练、物理和新校准范围仍另行具体登记。
+
 ## 2026-11-20 仿射v2一次性入口及保存输出复核准备
 
 主agent按legacy继续NAV-043的准备工作，没有新范围批准，没有测试子agent。新增`scripts/launch_nav043_affine_response_once.py`和`scripts/audit_nav043_affine_response.py`；前者在精确批准及封存来源核对后才创建持久锁，单线程CPU/GPU不可见，最多3600秒、一次子进程、不重试；后者只用保存参数作法方程/残差/谱矩核对及整图分折自由递推，核验9解/3模型/18条和全部前缀、原门槛，不增加拟合或选优部署。全量真实仿射输出尚不存在，因此该实际全输出验收未执行。

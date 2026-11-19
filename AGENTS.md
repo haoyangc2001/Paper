@@ -1,5 +1,11 @@
 # Agent 接手说明
 
+## 当前授权（2026-11-20，仿射v2一次诊断已确认）
+
+用户对原18条/三折九次CPU求解/最多1小时明确回复“确认”。独立APPROVED登记`CaMRA/navigation/config/nav043_affine_response_approval_v2.json`绑定原提案98fe679c及支持清单70869ac8；原PROPOSED、拟合源码和旧失败不改。先预检/提交，再在tiger11/tmux运行一次`launch_nav043_affine_response_once.py`，唯一原输出根`nav043_affine_response_probe_v2`，检查既有进程/launch.lock/FINISHED/HELD，不重启或换目录。
+
+本时点尚未运行新求解，20基本检查来源未变。新回合/W/网络更新/校准/GPU均0；保存输出后主agent只读复核，不追加求解，首个失败保留停下。NAV-043=false、55/67、G5未通过，90秒仍候选、旧45秒链和固定v2/alpha/delta保持。本次不授权后续训练/物理或新校准。下方未批准为历史时点。
+
 ## 当前补充（2026-11-20，仿射v2启动及保存输出复核准备完成）
 
 仍是NAV-043=false、55/67历史完成、G5未通过，未获新拟合批准。新增一次性启动器及无额外求解的保存输出复核器，主agent在tiger11/tmux %648完成20项合成/拒绝检查；首次夹具漏建合成批准文件导致1项失败，日志保留，修复后全过。%648核验295保护身份/90原始输入/历史记录，%649封存支持清单`config/nav043_affine_response_readiness_v2.json`（70869ac8），并实际验证两入口缺批准均退出1，未建launch.lock、正式输出或审阅报告。
