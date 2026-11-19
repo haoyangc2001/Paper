@@ -13758,6 +13758,46 @@
             "核对历史未提交文件，补交应保留的报告，解释大快照及备份的保留方式。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T12:03:11.333067+08:00",
+          "summary": "NAV-067六项实际受控与离线复算通过；六导航重复运行中，历史未跟踪证据已补交，任务不提前结案",
+          "actions": [
+            "按已批准一次恢复执行原C01/attempt2，C01–C06实际检查全过，生产事件链重放及能量复算再次核验。",
+            "保持原两模型/45秒/obs-v7/200-50-10Hz/J/固定v2，六导航重复由同一协调器串行继续；只读审阅器等待原分配终态，不增加物理额度或自动重试。",
+            "逐项核对196未跟踪文件：188小文件原样补交，7大型明细和1备份核验外部归档、原件保留、Git登记精确索引；未执行旧脚本或更改旧失败。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav067_remaining_recovery_v2_progress_20261119.json",
+            "CaMRA/navigation/docs/nav067_recovery_v2_progress_20261119.md",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-evidence-close %599；cwd=/home/caohy/repositories/Paper；/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-067/remaining-recovery-v2-execution/checkpoint_running.py",
+            "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-067/remaining-recovery-v2-execution/review_saved.py",
+            "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-067/remaining-recovery-v2-execution/watch_saved_review.py",
+            "git commit 3ca89c2 chore(nav): archive missing historical evidence and index large reports"
+          ],
+          "results": [
+            "六项实际病例通过；受控检查不作为自然导航成功率。机械功离线复算最大相对差<4e-16，事件/终止后active屏蔽一致。",
+            "当前六导航重复尚未完成；NAV-067=false、54/67、NAV-043未执行。原科学FAIL和所有原始失败保持，不凭接线通过宣称物理性能通过。",
+            "196原文件hash保持，122份JSON/41份Python语法检查；历史空JSON失败保留而非伪造通过。188份补交及8份归档索引已提交3ca89c2。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav067_remaining_recovery_v2_progress_20261119.json",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/actual-controlled-review.json",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/launch.json",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/saved-review-watcher-start.json",
+            "CaMRA/navigation/reports/historical_worktree_archive_20261119_v1.json"
+          ],
+          "remaining_work": [
+            "等待同一已启动分配完成6导航重复；逐条审阅全部12原/新回合、实际clean/碰撞体/重复偏差，补齐amendment及上下游一致性后再判NAV-067。",
+            "实际终态及完整离线审阅报告生成后再提交；本次不执行NAV-043或额外物理/训练/W查询/final_*。"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
