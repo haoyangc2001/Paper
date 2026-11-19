@@ -1,0 +1,85 @@
+{
+  "schema": "navigation-horizon-v2",
+  "status": "CANDIDATE_IMPLEMENTED_NOT_SCIENTIFICALLY_VALIDATED",
+  "task": "NAV-043",
+  "created_at": "2026-11-19T23:56:32.902955+08:00",
+  "time_binding": {
+    "time_profile": "navigation-t90-v1",
+    "t_max_s": 90.0,
+    "observation_version": "obs-v8-t90"
+  },
+  "authority": {
+    "user_instruction": "那就结合项目的各项重新定制合理的时限，然后按照要求继续推进后续任务",
+    "scope": "Delegated deadline selection and isolated candidate interfaces. No retroactive model or performance approval."
+  },
+  "deadline_design": {
+    "longest_saved_reference_route_m": 17.1188,
+    "assumed_actual_progress_mps": 0.25,
+    "assumed_start_turn_finish_allowance_s": 20.0,
+    "computed_design_seconds": 88.4752,
+    "round_up_unit_s": 10.0,
+    "selected_seconds": 90.0,
+    "interpretation": "Engineering assumptions for current ~14-17m maps, not measured speed floor or confidence bound. Uniform across both methods and three levels. Early arrival remains preferable; no change to command limits."
+  },
+  "clock_caps": {
+    "navigation_10Hz": 900,
+    "low_level_50Hz": 4500,
+    "physics_200Hz": 18000,
+    "warmup_seconds_separate": 1.0
+  },
+  "cost_semantics": {
+    "budget_automatic_multiplier": 1.0,
+    "z_ref_J": 550.0,
+    "policy": "Keep signed J accounting and frozen power/alpha. No automatic budget doubling or overspend waiver. Preserve E_ref(T=45) provenance; future reference costs use declared executable profiles, not blindly v=L/90."
+  },
+  "safety_semantics": "Footprint, alpha/delta, event priority and stagnation unchanged. No 90-second calibration claim; saved position deviations already exceed old delta at 45s.",
+  "reference_basis": {
+    "paper": "Original PDF p3 eq3 optimizes terminal time; appendix theorem uses finite Tmax. No universal 45-second mandate.",
+    "code": "Reference environments have task-specific max_steps: wind/F16 5000, pendulum 2000. Steps are not common seconds.",
+    "old_45s": "Nominal route/45 speed near analytic energy optimum, not physical detour proof."
+  },
+  "source_hashes": {
+    "CaMRA/navigation/reports/map_feasibility.json": "658f3f2140fb001140d9197bd624bdccdd263e87def8d78a746e37a5234203ec",
+    "CaMRA/navigation/reports/train_map_reference_energy_t45.json": "41c4c41718217ba26401fa42bad812ea265908dda858fe86c71a494eb48fd5bf",
+    "CaMRA/navigation/reports/low_speed_energy_executability.json": "77cd434c2955eaee9c38c446efc77d8e61e9da0543c355b2886e70845825d466",
+    "CaMRA/navigation/reports/nav043_exploration_applicability_v1.json": "1f58cfe1608343792cac02a5a9f227bd9d5cb2badc10c26113273363a8f5395c",
+    "CaMRA/navigation/config/training_loop_prereg_terminal_tail_v1.json": "6ba8f849d9487cbaf1141f60ff0228997a03bb9f0e681909741a8d187ca8feb4",
+    "CaMRA/navigation/src/camra_navigation/observation.py": "c00d4be40bea875c9371a70458aa3e4c22f179d3474f8916ffa2311e17ae89ef",
+    "CaMRA/navigation/src/camra_navigation/envs/nominal.py": "b20bebeb1e3e45a426b977cd8d253d8ae0b8e826008a550c7c06e324356cb922",
+    "CaMRA/navigation/src/camra_navigation/envs/vector.py": "7c1cdf901bc8cc6d51de0283c6564e734ab004977f672c7e94cf16badac99357",
+    "CaMRA/navigation/src/camra_navigation/envs/physical_v2.py": "c04249573fd15f89751d1dd20aa9e35c94fbce88278d41e2d437854b25afba07"
+  },
+  "model_reuse": "Old 45s actor/critics are not validated 90s models even with the same 61-dimensional shape. Explicit compatible binding and new evidence required.",
+  "next_stages": [
+    {
+      "stage": "saved-response diagnosis",
+      "scope": "Previously presented 18 traces/3 folds/9 solves/CPU1h, separate approval, no new episodes."
+    },
+    {
+      "stage": "motion model and reference cost",
+      "scope": "Use diagnosis to choose next model study and executable reference profiles; define residual-calibration scope before new data."
+    },
+    {
+      "stage": "actor and double critic",
+      "scope": "Prepare bounded 90s train/development protocol; this revision grants no GPU or update allocation."
+    },
+    {
+      "stage": "budget and physical validation",
+      "scope": "Bind actor, critics, search and all clocks to 90s. Independently register sources, gates and quotas before new execution."
+    }
+  ],
+  "historical_status": {
+    "completed_original_tasks": 55,
+    "NAV043_passed": false,
+    "G5_passed": false,
+    "legacy_45s_results_preserved": true
+  },
+  "new_science_limits": {
+    "new_physical_episodes": 0,
+    "new_nominal_episodes": 0,
+    "W_queries": 0,
+    "actor_critic_updates": 0,
+    "calibration_fits": 0
+  },
+  "basic_fixtures": "Synthetic boundary calls to nominal/event monitors are basic checks, not Isaac episodes or performance evidence."
+}

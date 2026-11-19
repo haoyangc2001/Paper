@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 固定 v2 上层最小成本到达避障实施计划",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "created_at": "2026-11-09",
     "mode": "update",
     "source_plan": "本轮用户确认的六阶段实施顺序及逐阶段源码参考；前置过程见 doc/plan/20261103_camra_calibration_implementation.json 和 doc/plan/20261105_camra_hira_policy_calibration.json。",
@@ -94,6 +94,15 @@
         "added_task_ids": [],
         "preserved_task_ids": "67项顺序、ID、依赖和全部历史记录保留；仅NAV-066 false→true表示经授权的流程结案。",
         "authority": "CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json"
+      },
+      {
+        "version": "1.5.0",
+        "date": "2026-11-19",
+        "kind": "用户委托重新设计时限；隔离90秒候选与保存响应诊断续行",
+        "summary": "统一候选90秒、obs-v8-t90及900/4500/18000步；保留原45秒生产链及结果。历史55项完成不自动成为90秒通过。",
+        "added_task_ids": [],
+        "preserved_task_ids": "67项顺序/ID/依赖/status/verification_result及历史工作记录保留，当前NAV-043追加新证据。",
+        "authority": "CaMRA/navigation/config/navigation_horizon_v2.json"
       }
     ]
   },
@@ -14930,6 +14939,83 @@
           "blockers": [
             "主计划uncertainty_policy及legacy执行规则要求新范围明确；当前新运动响应拟合尚未批准，不将推荐方案自动视为批准。"
           ]
+        },
+        {
+          "timestamp": "2026-11-19T23:49:49.478321+08:00",
+          "summary": "NAV-043用户授权重新制定任务时限：90秒独立候选设计与旧保存响应诊断续行开工",
+          "actions": [
+            "重新完整读取AGENTS、legacy技能及执行规则；完整解析1.4.1计划67项及全部记录，核对NAV-066/067均true，NAV-043仍false、55/67。",
+            "用户本轮委托结合项目重新确定合理时限并继续推进；按最长约17米参考路线、实际设计进度0.25m/s及20秒转弯/起停余量，选择90秒作为新版本统一任务上限，原45秒结果和冻结模型保留。0.25m/s与20秒是工程假设，不是执行下界或概率保证。",
+            "允许在navigation内新增隔离时间协议/编码与标量、向量及200Hz监视接口；不修改旧295项身份、原actor/双critic、v2、功率/足迹/alpha/delta或原评分报告。旧45秒critic不能直接用于90秒预算判断。",
+            "按本轮继续指令在此前已展示的响应模型具体提案内续行：原18条暴露保存轨迹、三折/九次轴求解、CPU最多1小时、GPU0；独立记录本次授权，原提案和限制不改。新应用/回合/W/actor或critic更新/校准拟合额度均0。",
+            "本轮先完成时间一致性与不混用旧模型的主agent基本验证，再按封存入口运行一次保存响应诊断；只把真实结果追加本任务，不跳至NAV-044或签G5。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "只读核对论文第3页公式3、RC-PPO最大回合步数、旧30/45秒契约、train路线长度、NAV-059低速失败、NAV-043实际跟踪及终态证据；尚未运行真实求解或仿真。"
+          ],
+          "results": [
+            "首个可执行任务仍NAV-043；原45秒探索完整方法1/3，无校准0/3，位置留量适用性失败保留。",
+            "本条记录开工与设计授权，不表示90秒模型、预算搜索、校准或物理性能通过。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/train_map_reference_energy_t45.json",
+            "CaMRA/navigation/reports/low_speed_energy_executability.json",
+            "CaMRA/navigation/docs/nav043_exploration_final_review_20261119.md",
+            "CaMRA/navigation/config/nav043_motion_response_proposal_v1.json"
+          ],
+          "remaining_work": [
+            "形成90秒精确协议、生产候选接口和基本验证；登记响应诊断独立APPROVED及pin并检查原输出/进程后执行一次。",
+            "根据诊断制定90秒模型/预算/残余校准和有限物理检验的具体新范围；未确认的新GPU/回合/训练不得启动。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T23:59:16.050116+08:00",
+          "summary": "NAV-043独立90秒时限与三接口完成基本验证，保存响应诊断批准登记就绪",
+          "actions": [
+            "落实navigation-t90-v1/obs-v8-t90；统一900上层/4500底层/18000物理步，1秒warmup另计；新标量/向量/物理事件适配器复用原成本/安全历史/终止优先级。",
+            "主agent在tiger11/tmux %633执行17项基本检查，%634执行旧295身份、90输入身份和旧任务/工作记录保护核对；不派测试子agent。",
+            "独立APPROVED/pin绑定原9e557462响应诊断提案及原限额；用户继续指令作为此前完整方案的限定续行解释，未声称用户逐字批准数字。",
+            "计划原位升1.5.0；新增horizon_revision_v2说明旧45秒契约保留及90秒门禁待重验，67项编号/依赖/顺序/status/旧记录不变。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/navigation_horizon_v2.json",
+            "CaMRA/navigation/config/nav043_motion_response_approval_v1.json",
+            "CaMRA/navigation/src/camra_navigation/horizon.py",
+            "CaMRA/navigation/src/camra_navigation/envs/horizon90.py",
+            "CaMRA/navigation/tests/test_horizon90.py",
+            "CaMRA/navigation/scripts/audit_nav043_horizon90.py",
+            "CaMRA/navigation/docs/nav043_horizon90_design_20261119.md",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tmux %633: registered absolute Python -B -m pytest CaMRA/navigation/tests/test_horizon90.py -q --junitxml=.worklog-testing/NAV-043/horizon90-v1/basic.xml",
+            "tmux %634: registered absolute Python -B CaMRA/navigation/scripts/audit_nav043_horizon90.py --out .worklog-testing/NAV-043/horizon90-v1/identity.json --plan-before /tmp/nav043_horizon_original_plan_20261119.json",
+            "tmux %634: validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update"
+          ],
+          "results": [
+            "17 passed；identity及legacy检查exit0。三环境时钟一致，旧45秒编码仍拒绝>45秒，旧时间绑定不兼容时拒绝。",
+            "新业务物理/名义回合0、Isaac步0、W0、网络更新0；人工边界调用标量2步、向量2环境步、物理事件active2/inactive2单列，不称总步为0。",
+            "NAV-043=false、55/67、G5未通过；90秒生产启动器/模型/预算/校准未通过，不把接口通过当性能通过。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/horizon90-v1/basic.xml",
+            ".worklog-testing/NAV-043/horizon90-v1/identity.json",
+            ".worklog-testing/NAV-043/horizon90-v1/plan-check.log",
+            "CaMRA/navigation/config/navigation_horizon_v2.json.sha256",
+            "CaMRA/navigation/config/nav043_motion_response_approval_v1.json.sha256"
+          ],
+          "remaining_work": [
+            "本地提交后按原封存入口执行一次保存响应诊断，核对FINISHED/HELD及每项结果并追加原任务。",
+            "依据诊断制定90秒运动模型/参考成本/残余校准及训练范围；旧actor/双critic不能直接作为90秒通过。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
@@ -15314,5 +15400,14 @@
     "NAV-061–067在真实调用链验证t/t+1、预算、y、共同停止、三个估计器、终端/切片、动作概率、多轮PPO、价值预算搜索及200Hz物理事件。",
     "NAV-064仅以train/development关闭；选择/最终数据隔离可审计，旧数据暴露如实登记，90回合与种子覆盖范围一致，资源无暗中扩额。",
     "后续各任务有AGENTS必读及开工对齐记录、局部与全局一致性验收和下游交付证据；每阶段门禁完成跨任务复核。未满足项保留阻塞，不因局部测试通过或旧true状态越过门禁。"
-  ]
+  ],
+  "horizon_revision_v2": {
+    "profile": "CaMRA/navigation/config/navigation_horizon_v2.json",
+    "profile_sha256": "c597d82b1888240159e1beb7831dd63416a9229ef35510e6e96c8f7806aacc5e",
+    "active_candidate_seconds": 90,
+    "legacy_production_seconds": 45,
+    "precedence": "用户授权的新候选时限取代旧30/45秒候选设计限制；不覆写原契约、校准、评分。旧runtime/method/evaluation契约仍描述旧封存版本。",
+    "completed_status_interpretation": "55/67是历史流程记录；受影响NAV-064/065/066/067及G3/G4/G5须在NAV-043回修记录中建立90秒证据后才允许下游。",
+    "new_gpu_or_episode_allocation": false
+  }
 }
