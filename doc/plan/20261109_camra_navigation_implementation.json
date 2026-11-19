@@ -14371,6 +14371,75 @@
             "原%601在全分配终态后只读重放全部物理事件、名义动作及资源计数；修复只读审阅不更改科学标准，收尾另追加并提交。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T19:37:19+08:00",
+          "summary": "NAV-043原分配继续；补齐自选预算保存轨迹的适用性复核入口",
+          "actions": [
+            "同一任务连续推进，核对1.4.1计划/NAV-043、原PID38516及L2应用173883存活，原只读审阅等待进程59048仍在；上一轮属于已核实的运行等待，不是试验失败或新增重试授权。",
+            "本项需区分自选预算业务结果与冻结裕度适用性。旧k=1轨迹不能替代本轮预算条件下的新动作；准备只读消费本轮审阅报告及其原始hash，复用旧analyze_trial比较费用和位置的5/10/20/30/45秒前缀及指令域。",
+            "允许增加隔离的保存数据审阅入口及主agent基本核验；不修改任何封存生产源码、预算规则、actor/critic、v2或alpha/delta，不新增物理/名义回合、W推理、训练或校准。原%601仍只负责一次全物理事件复核，不重复启动。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "只读核对原进程、输出、audit_nav043_saved_applicability.py、旧geometry_margin_closedloop_v1和calibration_applicability_prereg_v1；新入口按legacy主agent基本验证，不派子agent。"
+          ],
+          "results": [
+            "L2尚无终态结果；本轮仍55/67、NAV-043=false、G5未通过。适用性复核只作描述，不能把本轮已暴露数据拟合成新裕度或改科学门槛。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/scripts/audit_nav043_saved_applicability.py",
+            "CaMRA/navigation/config/nav043_exploration_v1.json",
+            "CaMRA/navigation/config/geometry_margin_closedloop_v1.json"
+          ],
+          "remaining_work": [
+            "实现只读适用性复核并验证生产调用、来源一致及无输出覆盖；全分配审阅报告生成后再运行本轮完整描述性诊断。",
+            "继续原有限分配并保留全部失败；旧45秒/位置适用性缺口未解决前不签G5或进入final。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T19:39:43+08:00",
+          "summary": "NAV-043只读适用性入口基本验证通过；L2无校准超时并超支，完整方法继续",
+          "actions": [
+            "新增隔离audit_nav043_exploration_applicability.py，原物理事件审阅报告完成后才能读取其原始输入索引，复用未改的analyze_trial生成本轮自选预算轨迹的5/10/20/30/45秒费用/位置/指令域诊断；拒绝和未完成项保留，不外推旧表有效域。",
+            "主agent在tiger11/tmux %610用L1两条真实保存轨迹检查原始机械功、模型费用和10Hz偏差前缀的一致性；实际调用新生产入口确认原物理事件审阅未完成时拒绝且不产生输出。基本验证通过，无子agent、模拟器、模型推理、拟合或新回合。",
+            "核对封存16来源、全部首图原始hash和原计划定义/历史前缀不变。新报告只作诊断，不因费用在alpha内或成功一次就宣告位置/45秒适用性和G5通过。",
+            "继续核对同一PID38516/173883。本轮L2无校准result和nominal已保存，完整方法实际初态W决定及NAVIGATION_STARTED已落盘并继续运行，不重启或追加额度。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/audit_nav043_exploration_applicability.py",
+            ".worklog-testing/NAV-043/exploration-v1/verify_applicability_ready.py",
+            ".worklog-testing/NAV-043/exploration-v1/applicability-ready-v1.json",
+            ".worklog-testing/NAV-043/exploration-v1/applicability-ready-v1.log",
+            ".worklog-testing/NAV-043/exploration-v1/applicability-premature-refusal.log",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav043-applicability-ready %610；cwd=/home/caohy/repositories/Paper；OMP_NUM_THREADS=1 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B .worklog-testing/NAV-043/exploration-v1/verify_applicability_ready.py；日志applicability-ready-v1.log。",
+            "legacy validate_worklog.py <current NAV plan> --mode update、追加历史不变及git diff --check；本地提交，不推送。"
+          ],
+          "results": [
+            "准备状态PASS_BASIC_L1_SAVED_PREFIX_CHECKS_COMPLETE_REVIEW_PENDING。L1完整方法实际/同命令基础费用偏差5.45%在原alpha19.05%内；最大位置偏差10Hz为9.508248m、200Hz为9.510286m，原delta2.613866m不覆盖。到达成功和旧裕度适用性是不同结论。",
+            "L2无校准原始结果：预算475.842709J、45秒timeout、安全历史0、实际485.877977J、超支10.035269J/2.11%，距终点1.091476m；内部436.096172J未超预算。名义同初态/预算37.2秒到达、356.671819J。最终结果仍须原%601全物理事件审阅。",
+            "只读准备新增应用/物理或名义回合/W/训练/校准0；全分配仍运行，NAV-043=false、55/67、G5未通过和原位置/45秒缺口保持。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/exploration-v1/applicability-ready-v1.json",
+            ".worklog-testing/NAV-043/exploration-v1/applicability-premature-refusal.log",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/uncalibrated/result.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/uncalibrated/nominal.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/NAVIGATION_STARTED.json"
+          ],
+          "remaining_work": [
+            "同一有限分配L2完整方法和L3结束后，先接原%601全物理事件审阅，再执行新只读适用性入口；不重跑旧分配或失败验证。",
+            "保存全部原始结果、拒绝、超支、超时及独立计数，复核后追加结论并提交；任何新校准/物理额度仍需独立范围和批准。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
