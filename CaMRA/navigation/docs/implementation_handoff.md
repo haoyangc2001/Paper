@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-19 NAV-067剩余包已批准、隔离实现和基本检查已封存
+
+用户确认了6短病例及6次同配置导航重复，主agent按legacy执行，无测试子agent。新增`controlled_cases_v1.py`、原生物理夹具入口、被动碰撞体几何读回、保存轨迹审计和串行协调器；原physical_v2/clean_v3/nav067_simulation_v3及冻结v2全部保持hash。C01–C05明确为写入测试位姿后读真实物理状态的事件检查，C06要求base到指定障碍的原生过滤接触力，地面支撑力不作替代。
+
+基本CPU检查、24项既有相关测试、原六条轨迹复核通过，证据在`.worklog-testing/NAV-067/remaining-v1/`。首次GPU0显存不足的预检保留，封存前固定空闲GPU6；新应用/物理步仍0，不是实际门禁通过。执行清单pin `5e7fc139288177c7675c486bb4eec5dafb8971ce9e58c18c7dc1788912ef2475`，绑定具体夹具/时序/容差/源文件/测试证据；APPROVED登记与历史PROPOSED分开保存。
+
+下一入口为`run_nav067_remaining_validation.py`，tiger11/tmux `%600`，绝对Python3.11.15；输出只用`/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1`。固定一张物理GPU6、串行C01–C06→L1/L2/L3，最多9应用/4小时/60000环境子步，精确槽位上限57422，不转移余量。任何实际受控证据/入口/运行/轨迹失败均保存停下且不重试；受控全过才重复，重复业务失败保留。NAV-067=false、54/67，NAV-043未执行。以下为历史准备时点。
+
 ## 2026-11-19 NAV-067剩余验收提案已准备，未执行新增物理测试
 
 在已提交六回合接线结果的基础上，形成[说明与资源表](nav067_remaining_validation_proposal_20261119.md)及[机器提案](../config/nav067_remaining_validation_proposal_v1.json)，状态PROPOSED。建议仅补6个短受控病例及原6配置各1次重复，单GPU累计上限4小时、最多9次应用启动；包含warmup的上限为300环境秒/60000环境子步。病例覆盖中间碰撞后退出、危险历史、转弯足迹、同刻事件、批内异步和原生接触；人为位姿夹具与自然接触证据分列。

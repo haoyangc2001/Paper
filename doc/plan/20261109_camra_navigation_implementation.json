@@ -13605,6 +13605,77 @@
           "blockers": [
             "旧批准明确不含真实受控病例及额外重复，本提案尚未获得新授权；实际受控入口尚未实现。"
           ]
+        },
+        {
+          "timestamp": "2026-11-19T11:05:00+08:00",
+          "summary": "NAV-067新增受控及重复包获用户确认，恢复静态实现准备；实际执行须先基本检查并封存",
+          "actions": [
+            "用户明确确认27d10fe中的受控/重复提案，另存APPROVED登记绑定原提案b5c52145，不改PROPOSED历史原件。",
+            "重新读取AGENTS和legacy执行规则、当前计划/交接与真实clean_v2/v3、physical_v2、计量及场景适配源码；核对NAV-067仍为唯一依赖满足的未完成项。",
+            "开工对齐：为固定v2分层最小成本导航补齐实际事件可信性和同配重复证据，允许隔离夹具/入口/审计及基本测试，不改原数学目标或冻结资源。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/nav067_remaining_validation_approval_v1.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "Static reads of AGENTS/legacy/current NAV plan and actual adapter, scene, recorder and Isaac contact-sensor APIs; tiger11/tmux %600 retained."
+          ],
+          "results": [
+            "本包已授权最多6短病例+6重复导航、单GPU累计4小时、9应用启动、60000环境子步；无自动重试/训练/W查询，不执行NAV-043或final_*。",
+            "实际新应用和物理步仍0；先实现与基本检查，再封存精确夹具/时序/容差/hash及独占槽位，受控通过才重复。",
+            "上游manifest f33d8298、已完成报告a837518e、原双模型和固定v2不变；下游交付需真实受控/重复证据，不能由本登记直接标记NAV-067完成。"
+          ],
+          "evidence": [
+            "User confirmation 2026-11-19",
+            "CaMRA/navigation/config/nav067_remaining_validation_approval_v1.json",
+            "CaMRA/navigation/config/nav067_remaining_validation_proposal_v1.json"
+          ],
+          "remaining_work": [
+            "完成隔离入口、精确夹具、基本检查与封存后，在批准上限内执行并按原验收审阅。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T11:23:00+08:00",
+          "summary": "NAV-067剩余验证准备收尾：隔离实现、基本检查和精确执行清单已封存，真实执行尚未开始",
+          "actions": [
+            "实现受控真实读回/接触入口及只读碰撞体几何审计；原生产物理监视器、底层步进和重复仿真函数保持字节身份。",
+            "CPU验证五类夹具/事件/异步掩码、缺批准拒绝及前序槽位约束，24项相关测试通过；用新增保存轨迹审计复核原六回合。",
+            "封存APPROVED登记pin、六个精确夹具、时序/容差、新源码及证据hash、槽位/额度和完整命令；实际单卡固定GPU6，GPU0显存不足的预检失败保留。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/nav067_remaining_validation_approval_v1.json",
+            "CaMRA/navigation/config/nav067_remaining_validation_execution_v1.json",
+            "CaMRA/navigation/scripts/run_nav067_remaining_validation.py",
+            "CaMRA/navigation/scripts/nav067_controlled_simulation.py",
+            "CaMRA/navigation/scripts/nav067_collider_readback.py",
+            "CaMRA/navigation/scripts/nav067_remaining_audit.py",
+            "CaMRA/navigation/src/camra_navigation/envs/controlled_cases_v1.py",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            ".worklog-testing/NAV-067/remaining-v1/"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-remaining-plan %600；cwd=/home/caohy/repositories/Paper；Python=/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+            "CUDA_VISIBLE_DEVICES=6 <absolute Python> -B .worklog-testing/NAV-067/remaining-v1/basic_review.py；final_basic.py；完整argv见final-verification.json与execution清单。"
+          ],
+          "results": [
+            "基本检查通过、相关pytest 24/24通过、原六条保存轨迹审计通过；不是实际受控/重复验收。",
+            "执行pin=5e7fc139288177c7675c486bb4eec5dafb8971ce9e58c18c7dc1788912ef2475；精确单次槽位预留57422环境步，小于已批准60000；9应用/4小时上限不变，余量不转移。",
+            "295项保护身份和原三源码不变；新应用/物理步/训练/W查询0，RC-PPO目标与固定v2不变。NAV-067仍false、54/67，NAV-043不执行。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-067/remaining-v1/verification.json",
+            ".worklog-testing/NAV-067/remaining-v1/final-verification.json",
+            ".worklog-testing/NAV-067/remaining-v1/baseline-final-audit.json",
+            "CaMRA/navigation/config/nav067_remaining_validation_execution_v1.json.sha256"
+          ],
+          "remaining_work": [
+            "提交准备版本，验证封存生产上下文后只执行一次协调器；C01–C06全过才复测，首次实际失败保存停下。",
+            "对原NAV-067六项验收和全局调用链逐项审阅实际证据，未满足保持false，不凭退出码或基本测试结案。"
+          ],
+          "blockers": []
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",

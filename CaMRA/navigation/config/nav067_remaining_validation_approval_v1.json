@@ -1,0 +1,30 @@
+{
+  "schema": "camra-nav067-remaining-validation-approval-v1",
+  "status": "APPROVED",
+  "task": "NAV-067",
+  "approval_source": "User explicitly confirmed the submitted bounded package on 2026-11-19; no further permission is needed for its implementation or execution within these limits.",
+  "approved_proposal": {
+    "path": "CaMRA/navigation/config/nav067_remaining_validation_proposal_v1.json",
+    "sha256": "b5c521458d2782384646676abde0edd6db1d908dfcb5d5cac47dca59685cf391",
+    "git_commit": "27d10fecbe5401fb6ae3aaabae1eebe335fe2e54"
+  },
+  "limits": {
+    "navigation_episodes": 6,
+    "controlled_cases": 6,
+    "environments_per_controlled_case_max": 2,
+    "controlled_case_seconds_including_warmup_max": 2,
+    "repetition_seconds_including_warmup_max": 46,
+    "environment_ticks_including_warmup_max": 60000,
+    "kit_starts_max": 9,
+    "gpu_wall_clock_s_max": 14400,
+    "gpus_max": 1,
+    "concurrent_processes_max": 1,
+    "automatic_retries": 0,
+    "training_updates": 0,
+    "W_queries": 0,
+    "nominal_episodes": 0
+  },
+  "before_first_simulation": "Main-agent basic checks and a separately sealed fixture/source/evidence manifest; implementation preparation consumes no physical quota.",
+  "stop_policy": "Save and stop on missing actual controlled evidence, identity/entry/runtime/trace failure or any quota boundary; no fixture changes, retries, replacement attempts or quota transfer after observing results.",
+  "excluded": ["NAV-043", "final_*", "new training", "shared framework edits", "frozen v2/calibration changes", "remote Git push"]
+}
