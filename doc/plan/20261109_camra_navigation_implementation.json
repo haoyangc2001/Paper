@@ -27,7 +27,7 @@
       "remaining_work",
       "blockers"
     ],
-    "updated_at": "2026-11-19",
+    "updated_at": "2026-11-20",
     "revisions": [
       {
         "version": "1.1.0",
@@ -15016,6 +15016,56 @@
             "依据诊断制定90秒运动模型/参考成本/残余校准及训练范围；旧actor/双critic不能直接作为90秒通过。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-20T00:05:55.001058+08:00",
+          "summary": "NAV-043九求解保存响应诊断结束并复核：误差改善28.5%，90秒候选接口准备通过但G5仍未通过",
+          "actions": [
+            "先本地提交6c2f2e4，再在tiger11/tmux %636执行原唯一目录一次诊断；OMP/OPENBLAS/MKL各1线程、GPU不可见，18暴露轨迹整图三折。",
+            "%637主agent逐条复算18条/158797保存tick的自由递推、完整前缀及预登记门槛，核验九解法方程/残差及分折身份，无新增拟合。",
+            "%638将41份小型原始输出逐字节保存到Git证据目录并比对SHA，仓库外原件和旧大轨迹保持；追加结果和后续依赖说明。",
+            "区分90秒接口准备、旧<=45秒保存数据诊断与尚未执行的90秒科学验证；不选优部署三折模型。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/audit_nav043_motion_response.py",
+            "CaMRA/navigation/reports/nav043_motion_response_review_v1.json",
+            "CaMRA/navigation/docs/nav043_motion_response_result_20261120.md",
+            ".worklog-testing/NAV-043/horizon90-v1/launch_response_once.py",
+            ".worklog-testing/NAV-043/horizon90-v1/response-output/",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tmux %636: registered Python -B .worklog-testing/NAV-043/horizon90-v1/launch_response_once.py -> nav043_motion_response.py --run; probe PID1344341",
+            "tmux %637: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 registered Python -B CaMRA/navigation/scripts/audit_nav043_motion_response.py",
+            "tmux %638: copy 41 output JSON files and compare SHA256; originals retained"
+          ],
+          "results": [
+            "FINISHED存在、HELD不存在、exit0；三套模型/九次轴求解均有效，18检查轨迹完整；CPU20.996224秒，无重试，原分配结束不挪墙钟余量。",
+            "诊断PASS：L1 RMSE4.3522485→2.9872421m，L2 4.3575524→3.4577756m，L3 4.4737484→2.9447651m；全体4.3955791→3.1415754m，下降28.5287%。",
+            "最大/末端残余7.5448173m仍超原delta2.6138664m。暴露数据整图留出不是未知独立验证或90秒验证，不能签旧留量适用性。",
+            "新业务物理/名义回合0、W0、actor/critic更新0、校准0、GPU0；295保护身份及90原始输入保持。主agent额外求解0，无测试子agent。",
+            "计划1.5.0、55/67历史完成、NAV-043=false/G5未过，NAV-044/final_*未进入；固定v2/旧45秒模型/alpha/delta/旧科学FAIL保留。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_motion_response_review_v1.json",
+            ".worklog-testing/NAV-043/horizon90-v1/response-launch.json",
+            ".worklog-testing/NAV-043/horizon90-v1/response-exit.json",
+            ".worklog-testing/NAV-043/horizon90-v1/response-audit.exit",
+            ".worklog-testing/NAV-043/horizon90-v1/response-save.log",
+            ".worklog-testing/NAV-043/horizon90-v1/response-output/FINISHED.json",
+            "CaMRA/navigation/docs/nav043_motion_response_result_20261120.md"
+          ],
+          "remaining_work": [
+            "先明确下一确定性运动模型的可观测状态/响应初始化及实际测量接口，不把指令或未来真值当实际响应。",
+            "再落实可执行参考程序/J成本与90秒残余适用性协议，保留固定v2及旧冻结值；新校准版本/数据范围须明确。",
+            "模型/时间生产链一致后准备有限训练、双critic/预算及物理小批具体协议；未分配新采样/求解/GPU训练额度，不自动运行。"
+          ],
+          "blockers": [
+            "残余误差超原delta，90秒模型/预算/残余校准无实测适用性证据；不能用旧45秒模型自动放行或直接扩大资源。"
+          ]
         }
       ],
       "constraints_and_notes": [
@@ -15408,6 +15458,17 @@
     "legacy_production_seconds": 45,
     "precedence": "用户授权的新候选时限取代旧30/45秒候选设计限制；不覆写原契约、校准、评分。旧runtime/method/evaluation契约仍描述旧封存版本。",
     "completed_status_interpretation": "55/67是历史流程记录；受影响NAV-064/065/066/067及G3/G4/G5须在NAV-043回修记录中建立90秒证据后才允许下游。",
-    "new_gpu_or_episode_allocation": false
+    "new_gpu_or_episode_allocation": false,
+    "saved_response_diagnostic": {
+      "report": "CaMRA/navigation/reports/nav043_motion_response_review_v1.json",
+      "sha256": "3dabaab8ad8ef88bf7ede59d25dc3f703a3ad40acf24633ecc2f7d924359a024",
+      "actual_axis_solves": 9,
+      "actual_heldout_rows": 18,
+      "cpu_wall_s": 20.99622412212193,
+      "diagnostic_pass": true,
+      "deployment_model_selected": false,
+      "ninety_second_validation": false,
+      "allocation_ended": true
+    }
   }
 }
