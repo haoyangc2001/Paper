@@ -1,5 +1,23 @@
 # 上层导航实施交接
 
+## 2026-11-19 NAV-067已批准一次恢复的实际结果
+
+NAV-067一次恢复结束：6回合接线轨迹核验完成，受控/重复验收尚未完成。本次保存6个实际回合结果，6个通过接线轨迹核验。状态`PILOT_TRACE_PASS_NAV067_INCOMPLETE`，不以退出码或基本测试代替实际证据；故障及原L1 attempt1全部保留。批准登记、原manifest和295项保护身份匹配，无训练/W查询/自动重试。
+
+| 地图 | 方法 | 结束原因 | 时间(s) | 安全历史y | 实际机械功(J) | 共同预算(J) | 实际超支 |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| l1_empty-s3001 | full | goal_reached | 39.030 | 0.0 | 426.473 | 340.848 | 25.1% |
+| l1_empty-s3001 | uncalibrated | timeout | 45.000 | 0.0 | 453.423 | 340.848 | 33.0% |
+| l2_single_detour-s3001 | full | timeout | 45.000 | 0.0 | 509.394 | 413.776 | 23.1% |
+| l2_single_detour-s3001 | uncalibrated | timeout | 45.000 | 0.0 | 492.399 | 413.776 | 19.0% |
+| l3_multi_path-s3001 | full | goal_reached | 44.510 | 0.0 | 482.318 | 340.961 | 41.5% |
+| l3_multi_path-s3001 | uncalibrated | timeout | 45.000 | 0.0 | 473.726 | 340.961 | 38.9% |
+
+以上为共同预算接线pilot，非W所选预算的正式物理性能；超时/超支保留，不能写成安全可行成功，也不能据此证明所有策略均无解。
+
+实际审阅见[本轮报告](../reports/nav067_recovery_v3_execution_review.json)和`.worklog-testing/NAV-067/recovery-v3-execution/`。NAV-067仍false、54/67；真实受控反例及同配置重复未获额外额度，NAV-043未执行。以下为此前时点。
+
+
 ## 2026-11-19 NAV-067接口回修v3：补齐刚体读回与直接循环复位初始化
 
 继续只读核对实际IsaacLab0.47.2源码，发现旧循环还有两处确定的接口阻断：RigidObject的RigidBodyView应读`get_transforms()`，旧入口误用Articulation的`get_root_transforms()`；ManagerBasedRLEnv的`reset_buf`在常规`step()`才首次创建，直接子步循环不能提前读取它。新增`clean_v3.py`只补齐本次环境实例的复位记账，并按实际刚体接口读回；`nav067_simulation_v3.py`从封存函数独立派生，只有适配器导入和刚体读回两处变化。新入口为`evaluate_navigation_v4.py`，旧四源码、v2恢复提案及此前入口保持原样。

@@ -13460,6 +13460,81 @@
           "blockers": [
             "真实受控反例和同配置重复尚无独立额度；本次确认仅解除原pilot一次启动恢复阻塞。"
           ]
+        },
+        {
+          "timestamp": "2026-11-19T10:46:04.474418+08:00",
+          "summary": "NAV-067一次恢复结束：6回合接线轨迹核验完成，受控/重复验收尚未完成",
+          "actions": [
+            "按用户确认执行v3批准登记及v4生产入口；先完成本地阶段提交再启动，在原tiger11/tmux %587运行。",
+            "逐level核对真实runtime、退出/ERROR/FINISHED、命令观测、时钟、子步、复位及机械功；基础设施或轨迹异常即停，不以进程退出0放行。",
+            "主agent对每个已保存回合运行离线原始轨迹核验，已有核验不重跑；新增仿真0，失败单列且不覆盖原始数据。",
+            "复核295项保护身份、全部已有任务字段和历史记录；保留原attempt1及PROPOSED提案，新增独立实际审阅报告。",
+            "首次提交被Git忽略日志规则拦截，没有启动仿真；保留失败日志后以明确路径纳入证据并成功提交。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav067_recovery_v3_execution_review.json",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            ".worklog-testing/NAV-067/recovery-v3-execution"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-clean-v2 @587/%587; absolute Python3.11.15 -B recovery-v3-execution/launch.py",
+            "Terminal review tmux: nav064-r14-repair-20261115:nav067-result-review @591 %591; absolute interpreter /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+            "同环境finish_review.py与legacy validate_worklog.py --mode update"
+          ],
+          "results": [
+            "真实启动地图数3，保存回合结果6，接线trace核验回合6；PILOT_TRACE_PASS_NAV067_INCOMPLETE",
+            "主agent已保存回合离线核验6项，失败0项。",
+            "主agent运行时readback核验3项，失败0项；不替代实际碰撞受控反例。",
+            "描述性业务结果逐回合保存：到达/超时、安全历史、共同预算、实际机械功及超支；不作为W所选预算的性能验收。",
+            "新增训练/W查询/自动重试均0；固定v2/模型/45秒/obs-v7/RC-PPO目标/旧校准及原清单保持。",
+            "NAV-067保持false、54/67；本次不替代真实受控反例、同配置重复性或NAV-043闭环适用性。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav067_recovery_v3_execution_review.json",
+            ".worklog-testing/NAV-067/recovery-v3-execution/COORDINATOR_STARTED.json",
+            ".worklog-testing/NAV-067/recovery-v3-execution/FINISHED.json"
+          ],
+          "remaining_work": [
+            "明确真实受控反例及同配置重复性的独立额度，逐条完成NAV-067验收后再进入NAV-043。"
+          ],
+          "blockers": [
+            "真实受控反例与同配置重复无独立额度。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-19T10:49:05.545873+08:00",
+          "summary": "NAV-067收尾复核：保留自动提交失败，恢复原计划换行并显式提交实际证据",
+          "actions": [
+            "核实原协调器及三地图进程已结束，6回合与6轨迹/3运行时核验均已保存通过；重新核验295项保护身份。",
+            "自动收尾已生成真实报告，但Git空白检查因原始日志及计划CRLF转换返回2；保留REVIEW_HELD和失败计划快照，不重跑仿真或离线核验。",
+            "以当前HEAD计划原字节为基础仅追加本任务收尾记录，逐项确认全部旧字段/状态/记录不变；原始日志逐字保留，源码/JSON/文档单独做空白检查。",
+            "明确路径纳入6回合主agent核验、3项运行时核验、L1描述性诊断与自动提交失败证据，仅本地提交。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            ".worklog-testing/NAV-067/recovery-v3-execution"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-evidence-close @599/%599; /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B close_after_log_check.py",
+            "legacy validate_worklog.py <NAV plan> --mode update; git diff --cached --check excluding unchanged raw log files; git commit (no push)"
+          ],
+          "results": [
+            "6/6接线轨迹与3/3运行时readback核验通过，0新增仿真/训练/W查询；NAV-067仍false、54/67。",
+            "完整方法L1/L3安全及时到达、L2超时；无校准三图超时；六回合均超过共同预算，不构成W所选预算性能通过。",
+            "本项工程证据不替代实际受控反例、同配置重复及NAV-043适用性验收；旧科学FAIL保留。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav067_recovery_v3_execution_review.json",
+            ".worklog-testing/NAV-067/recovery-v3-execution/REVIEW_HELD.json",
+            ".worklog-testing/NAV-067/recovery-v3-execution/manual-review-receipt.json"
+          ],
+          "remaining_work": [
+            "取得真实受控反例和同配置重复的独立额度并完成NAV-067剩余验收，再按依赖进入NAV-043。"
+          ],
+          "blockers": [
+            "本次批准六回合已结束，真实受控反例与同配置重复仍无独立额度。"
+          ]
         }
       ],
       "inserted_by": "user request 2026-11-12 (after NAV-042; the plan's remaining evaluation chain is re-pointed to the end of this block)",
