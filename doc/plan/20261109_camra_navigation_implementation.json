@@ -13004,7 +13004,7 @@
       "id": "NAV-067",
       "phase": "预算与闭环",
       "goal": "修正clean物理配置与子步事件采集，用新版候选重验在线接入",
-      "status": false,
+      "status": true,
       "depends_on": [
         "NAV-066"
       ],
@@ -13024,7 +13024,7 @@
         "同配置重复性按已授权配额测量并给分母/偏差，不承诺物理逐位一致；额度不足先报告，不静默在6回合外加跑。",
         "工程接入与方法效果分开；新候选完整闭环适用性仍由NAV-043验证，不能以本任务接线通过直接签G5。"
       ],
-      "verification_result": "",
+      "verification_result": "PASS_ENGINEERING_INTEGRATION_NOT_NAVIGATION_PERFORMANCE; CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json SHA256 54da0a72821f31dffe8dd5c6c4f314430ece66fb048a6adcde3a7a570d46a530; six criteria and global chain reviewed; n=2 per configuration; NAV-043/G5 pending; historical scientific FAIL retained.",
       "planned_outputs": [
         "scripts/evaluate_navigation.py、src/camra_navigation/envs/physical.py及隔离clean配置",
         "tests/test_physical_loop.py与真实子步验证入口",
@@ -13860,6 +13860,46 @@
           ],
           "remaining_work": [
             "等待L2/L3原四重复回合和既有只读审阅器的终态核验；全部逐条验收后再判定NAV-067并提交最终证据。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-19T13:39:14.666345+08:00",
+          "summary": "NAV-067逐条与全局验收完成：真实clean/200Hz事件/6受控/6同配重复通过，仅工程接入结案",
+          "actions": [
+            "审阅原协调器终态、既有只读审阅器全量报告及原始结果；核验6实际受控、原6加新6导航轨迹和每配置n=2差异，不凭退出码放行。",
+            "复核295项保护输入及全部封存源/证据/旧六轨迹hash；原数学目标、固定v2/校准/两模型/45秒obs-v7/200-50-10Hz/J均保持。",
+            "补充独立clean声明amendment的最终重复结果，不覆盖旧报告；逐条登记工程验收和全局实际调用链/接口版本及下游限制。",
+            "只将NAV-067标true，NAV-043和G5保持未执行/未通过；提交实际证据和索引，不推送。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json",
+            "CaMRA/navigation/docs/nav067_engineering_acceptance_20261119.md",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/README.md",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/"
+          ],
+          "commands": [
+            "tiger11/tmux nav064-r14-repair-20261115:nav067-evidence-close %599；cwd=/home/caohy/repositories/Paper；CUDA_VISIBLE_DEVICES=6 /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-067/remaining-recovery-v2-execution/close_verified_task.py",
+            "Original read-only watcher: /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B /home/caohy/repositories/Paper/.worklog-testing/NAV-067/remaining-recovery-v2-execution/review_saved.py --full",
+            "legacy validate_worklog.py <current NAV plan> --mode update; explicit local git commit, no push"
+          ],
+          "results": [
+            "六项验收及全局一致性通过；NAV-067 true、55/67；这是工程接入，不是方法性能或G5通过。",
+            "原六pilot加六重复完整保存，全部业务失败和超支如实记录，每配置两次差异只作描述；原科学FAIL不改。",
+            "批准恢复含原失败共10应用，墙钟和预留环境步均在上限内；训练/更新/W查询/final访问/NAV-043执行0。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/actual-full-review.json",
+            ".worklog-testing/NAV-067/remaining-recovery-v2-execution/saved-review-watcher-exit.json",
+            "CaMRA/navigation/reports/nav042_report_amendment_nav067_v1.json",
+            "/pub/data/caohy/work/camra_navigation/nav067_remaining_validation_v1/RECOVERY_V2_FINISHED.json"
+          ],
+          "remaining_work": [
+            "本项工程缺口关闭；下一项NAV-043按45秒新版候选/预算规则和自身适用性/配额准备，未获其执行额度不运行。"
           ],
           "blockers": []
         }
