@@ -15391,6 +15391,28 @@
           "blockers": [
             "新的物理采集范围尚未获确认，APPROVED和物理采集器/启动器不存在；当前准备不替代实际闭环和裕度适用性证据。"
           ]
+        },
+        {
+          "timestamp": "2026-11-20T07:50:00+08:00",
+          "summary": "NAV-043自动续行开工：在不运行物理的边界内准备可复用采集核心和合成验证",
+          "actions": ["复读根AGENTS/legacy技能/执行规则、1.5.0计划当前NAV-043及交接/PROPOSED协议、clean_v2/v3、200Hz状态和能量接口；上一轮d92a6bf/fa9c2f9的数据盘点与协议提交属于实际进展。", "继续可逆工程准备，新增注入低层适配器/真实时钟/能量记录器的隔离采集核心，不创建Isaac应用、不实现或启动未批准的物理入口；仍等待原12工况新额度问题的答复，未把自动续行当成批准。", "主agent在tiger11/tmux %673以CPU合成适配器验证正常2200tick、实际warmup端点/q与瞬时速度分列、J分窗、跌倒/中断尾段和漏步拒绝；原始15项通过日志及初版源码保留。静态复查发现float32横向边界比较精度问题，按冻结float32域比较并补充六端点基本检查。"],
+          "files_changed": ["CaMRA/navigation/src/camra_navigation/envs/motion_capture_v1.py", "CaMRA/navigation/tests/test_motion_capture.py", ".worklog-testing/NAV-043/motion-capture-v1/", "doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["tiger11/tmux %673: bash .worklog-testing/NAV-043/motion-capture-v1/basic.sh -> 15 passed; absolute Python /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python"],
+          "results": ["仅CPU合成采样/能量验证，实际新应用/物理步/拟合/W/网络更新/校准/GPU0；仍NAV-043=false、55/67历史完成、G5未过。核心未接实际物理创建入口，不作为真实warmup/控制器响应或90秒证据。"],
+          "evidence": [".worklog-testing/NAV-043/motion-capture-v1/basic.log", ".worklog-testing/NAV-043/motion-capture-v1/basic.xml", ".worklog-testing/NAV-043/motion-capture-v1/initial-motion_capture_v1.py", ".worklog-testing/NAV-043/motion-capture-v1/initial-test_motion_capture.py"],
+          "remaining_work": ["完成端点比较及生产适配器字段接口的基本核对，保存最终来源/历史检查并提交；实际入口和采集仍须原PROPOSED新范围确认。"],
+          "blockers": ["独立APPROVED尚不存在，没有新的物理/GPU/拟合额度；不重启旧诊断，不使用final_*或新科学数据。"]
+        },
+        {
+          "timestamp": "2026-11-20T07:55:00+08:00",
+          "summary": "NAV-043隔离采集核心完成23项CPU基本验证，物理入口和新范围确认仍缺，保持false",
+          "actions": ["完成warmup/测量全200Hz状态流、实际时钟与连续tick检查、已完成区间q和瞬时body速度分列、原能量记录器分窗J及命令证据复核、中断/跌倒时原始数据和不完整尾段保存。核心不创建应用/复位或重试、不拟合，无生产调用消费者。", "按冻结float32命令域处理端点比较，补六端点检查；主agent按legacy在tiger11/tmux %675最终23项通过。%674两项失败是新增用例误包含中断断言，修回正确测试位置，原源码和日志保持，不改冻结v2/数值目标/评分。", "同步AGENTS/README/交接/原提案补充说明；实际物理创建/批准/资源保护入口仍未实现，旧PROPOSED pin9eb3caf0不改，不把自动续行当作新物理授权。"],
+          "files_changed": ["CaMRA/navigation/src/camra_navigation/envs/motion_capture_v1.py", "CaMRA/navigation/tests/test_motion_capture.py", ".worklog-testing/NAV-043/motion-capture-v1/", "AGENTS.md", "CaMRA/navigation/README.md", "CaMRA/navigation/docs/implementation_handoff.md", "CaMRA/navigation/docs/nav043_motion_probe_proposal_20261120.md", "doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["tiger11/tmux %675: bash .worklog-testing/NAV-043/motion-capture-v1/basic-v3.sh -> 23 passed; absolute Python /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python"],
+          "results": ["23项仅是CPU合成适配器/实际格式能量记录器检查，不是Isaac物理回合、真实warmup或90秒适用性；新应用/物理步/拟合/业务回合/W/网络更新/校准/GPU均0。", "仍1.5.0、55/67历史完成、NAV-043=false/G5未过；原RC-PPO目标、冻结v2/功率/足迹/alpha/delta/数据锁、45秒旧生产链/全部原失败保持。上一轮数据盘点与本轮核心属于实际工程进展，不能替代本任务的闭环及裕度验收。"],
+          "evidence": [".worklog-testing/NAV-043/motion-capture-v1/basic-v3.xml", ".worklog-testing/NAV-043/motion-capture-v1/basic-v3.log", ".worklog-testing/NAV-043/motion-capture-v1/basic-final.log", ".worklog-testing/NAV-043/motion-capture-v1/second-test_motion_capture.py"],
+          "remaining_work": ["仍等待上一条12工况/单应用单环境/物理GPU6累计2小时及32000显式step新科学范围确认，不重复启动旧诊断。", "确认后实现实际独立APPROVED/一次性物理入口及资源保护、来源封存和实际采集后审阅，核心通过不等于实际调用链通过；后续运动模型/参考J/90秒及训练/部署门禁按依赖验证。"],
+          "blockers": ["新物理额度未确认，APPROVED/物理启动器/真实受控轨迹不存在；仍无全域运动模型、参考成本和90秒残余适用性证据，NAV-044/final_*不开。"]
         }
       ],
       "constraints_and_notes": [

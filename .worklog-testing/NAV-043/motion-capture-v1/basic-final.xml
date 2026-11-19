@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="23" time="4.864" timestamp="2026-11-20T07:51:27.354244+08:00" hostname="tiger11.ios.ac.cn"><testcase classname="tests.test_motion_capture" name="test_whole_case_captures_real_warmup_q_and_separate_work" time="0.346" /><testcase classname="tests.test_motion_capture" name="test_fall_retains_tail_and_stops[17]" time="0.033" /><testcase classname="tests.test_motion_capture" name="test_fall_retains_tail_and_stops[200]" time="0.025" /><testcase classname="tests.test_motion_capture" name="test_fall_retains_tail_and_stops[237]" time="0.030" /><testcase classname="tests.test_motion_capture" name="test_fall_retains_tail_and_stops[2200]" time="0.245" /><testcase classname="tests.test_motion_capture" name="test_interruption_preserves_partial_data_without_retry" time="0.030" /><testcase classname="tests.test_motion_capture" name="test_malformed_command_proof_cannot_pass[stale]" time="0.253"><failure message="assert 2200 == 237&#10; +  where 2200 = &lt;test_motion_capture.test_malformed_command_proof_cannot_pass.&lt;locals&gt;.WrongProof object at 0x7c500f08e850&gt;.tick">tmp_path = PosixPath('/tmp/pytest-of-caohy/pytest-29/test_malformed_command_proof_c0')
+fault = 'stale'
+
+    @pytest.mark.parametrize('fault', ['stale', 'gap'])
+    def test_malformed_command_proof_cannot_pass(tmp_path, fault):
+        class WrongProof(FakeLow):
+            def policy_step(self, *args, **kwargs):
+                super().policy_step(*args, **kwargs)
+                if self.tick == 2200:
+                    if fault == 'stale':
+                        self.evidence[-1]['command_seen'] = [[0.,0.,0.]]
+                    else:
+                        self.evidence[-1]['tick_before'] -= 1
+        low = WrongProof()
+        with pytest.raises(ValueError, match='stale|gapped'):
+            capture_case(low, [.4,0,0], tmp_path, low.clock, recorder())
+        assert (tmp_path/'actual.jsonl').is_file() and (tmp_path/'commands.json').is_file()
+&gt;       assert low.tick == 237
+E       assert 2200 == 237
+E        +  where 2200 = &lt;test_motion_capture.test_malformed_command_proof_cannot_pass.&lt;locals&gt;.WrongProof object at 0x7c500f08e850&gt;.tick
+
+CaMRA/navigation/tests/test_motion_capture.py:113: AssertionError</failure></testcase><testcase classname="tests.test_motion_capture" name="test_malformed_command_proof_cannot_pass[gap]" time="0.254"><failure message="assert 2200 == 237&#10; +  where 2200 = &lt;test_motion_capture.test_malformed_command_proof_cannot_pass.&lt;locals&gt;.WrongProof object at 0x7c500f2bbed0&gt;.tick">tmp_path = PosixPath('/tmp/pytest-of-caohy/pytest-29/test_malformed_command_proof_c1')
+fault = 'gap'
+
+    @pytest.mark.parametrize('fault', ['stale', 'gap'])
+    def test_malformed_command_proof_cannot_pass(tmp_path, fault):
+        class WrongProof(FakeLow):
+            def policy_step(self, *args, **kwargs):
+                super().policy_step(*args, **kwargs)
+                if self.tick == 2200:
+                    if fault == 'stale':
+                        self.evidence[-1]['command_seen'] = [[0.,0.,0.]]
+                    else:
+                        self.evidence[-1]['tick_before'] -= 1
+        low = WrongProof()
+        with pytest.raises(ValueError, match='stale|gapped'):
+            capture_case(low, [.4,0,0], tmp_path, low.clock, recorder())
+        assert (tmp_path/'actual.jsonl').is_file() and (tmp_path/'commands.json').is_file()
+&gt;       assert low.tick == 237
+E       assert 2200 == 237
+E        +  where 2200 = &lt;test_motion_capture.test_malformed_command_proof_cannot_pass.&lt;locals&gt;.WrongProof object at 0x7c500f2bbed0&gt;.tick
+
+CaMRA/navigation/tests/test_motion_capture.py:113: AssertionError</failure></testcase><testcase classname="tests.test_motion_capture" name="test_missing_duplicate_samples_rejected[0]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_missing_duplicate_samples_rejected[2]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_missing_duplicate_samples_rejected[-1]" time="0.001" /><testcase classname="tests.test_motion_capture" name="test_actual_clock_mismatch_retains_readback" time="0.001" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command0]" time="0.004" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command1]" time="0.005" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command2]" time="0.004" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command3]" time="0.003" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command4]" time="0.003" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command5]" time="0.003" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command0]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command1]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command2]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command3]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command4]" time="0.003" /></testsuite></testsuites>

@@ -1,0 +1,54 @@
+......FF...............                                                  [100%]
+=================================== FAILURES ===================================
+_______________ test_malformed_command_proof_cannot_pass[stale] ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-caohy/pytest-29/test_malformed_command_proof_c0')
+fault = 'stale'
+
+    @pytest.mark.parametrize('fault', ['stale', 'gap'])
+    def test_malformed_command_proof_cannot_pass(tmp_path, fault):
+        class WrongProof(FakeLow):
+            def policy_step(self, *args, **kwargs):
+                super().policy_step(*args, **kwargs)
+                if self.tick == 2200:
+                    if fault == 'stale':
+                        self.evidence[-1]['command_seen'] = [[0.,0.,0.]]
+                    else:
+                        self.evidence[-1]['tick_before'] -= 1
+        low = WrongProof()
+        with pytest.raises(ValueError, match='stale|gapped'):
+            capture_case(low, [.4,0,0], tmp_path, low.clock, recorder())
+        assert (tmp_path/'actual.jsonl').is_file() and (tmp_path/'commands.json').is_file()
+>       assert low.tick == 237
+E       assert 2200 == 237
+E        +  where 2200 = <test_motion_capture.test_malformed_command_proof_cannot_pass.<locals>.WrongProof object at 0x7c500f08e850>.tick
+
+CaMRA/navigation/tests/test_motion_capture.py:113: AssertionError
+________________ test_malformed_command_proof_cannot_pass[gap] _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-caohy/pytest-29/test_malformed_command_proof_c1')
+fault = 'gap'
+
+    @pytest.mark.parametrize('fault', ['stale', 'gap'])
+    def test_malformed_command_proof_cannot_pass(tmp_path, fault):
+        class WrongProof(FakeLow):
+            def policy_step(self, *args, **kwargs):
+                super().policy_step(*args, **kwargs)
+                if self.tick == 2200:
+                    if fault == 'stale':
+                        self.evidence[-1]['command_seen'] = [[0.,0.,0.]]
+                    else:
+                        self.evidence[-1]['tick_before'] -= 1
+        low = WrongProof()
+        with pytest.raises(ValueError, match='stale|gapped'):
+            capture_case(low, [.4,0,0], tmp_path, low.clock, recorder())
+        assert (tmp_path/'actual.jsonl').is_file() and (tmp_path/'commands.json').is_file()
+>       assert low.tick == 237
+E       assert 2200 == 237
+E        +  where 2200 = <test_motion_capture.test_malformed_command_proof_cannot_pass.<locals>.WrongProof object at 0x7c500f2bbed0>.tick
+
+CaMRA/navigation/tests/test_motion_capture.py:113: AssertionError
+=========================== short test summary info ============================
+FAILED CaMRA/navigation/tests/test_motion_capture.py::test_malformed_command_proof_cannot_pass[stale]
+FAILED CaMRA/navigation/tests/test_motion_capture.py::test_malformed_command_proof_cannot_pass[gap]
+2 failed, 21 passed in 4.87s
