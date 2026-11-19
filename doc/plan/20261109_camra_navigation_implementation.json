@@ -15223,6 +15223,49 @@
           "evidence": ["CaMRA/navigation/config/nav043_affine_response_proposal_v2.json", "CaMRA/navigation/config/nav043_affine_response_readiness_v2.json", ".worklog-testing/NAV-043/affine-response-v2/final-basic.xml"],
           "remaining_work": ["身份预检/提交后运行一次隔离诊断；接终态复核保存输出、实际资源和预登记门槛，记录并提交结果。"],
           "blockers": ["旧delta和90秒科学适用性仍无证据，本次明确批准仅解除这一次九求解诊断的范围阻塞。"]
+        },
+        {
+          "timestamp": "2026-11-20T07:22:00+08:00",
+          "summary": "NAV-043仿射v2九求解及保存输出复核通过，保留90秒生产与G5缺口",
+          "actions": [
+            "批准登记和295保护身份/90输入/历史记录预检先提交0734784，再于tiger11/tmux %655只启动一次原封存入口；检查持久锁、FINISHED/HELD及两PID实际终态，不重启或转移余量。",
+            "%656运行原封存保存输出审阅器，核验九个保存解/法方程/谱矩、三折分组、18条200Hz自由递推/全部前缀及原预登记门槛，额外拟合0。",
+            "%657将41份小JSON按审阅报告索引逐字节核验复制到Git证据目录，原件保留；同步结果、任务验收、生产调用链边界及下一依赖，不部署诊断模型。",
+            "按legacy由主agent完成收尾身份/历史/源码及计划结构核对；固定v2、旧45秒链、原alpha/delta和RC-PPO核心目标不改，无测试子agent。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav043_affine_response_review_v2.json",
+            "CaMRA/navigation/docs/nav043_affine_response_result_20261120.md",
+            "CaMRA/navigation/docs/nav043_response_model_v2_plan_20261120.md",
+            ".worklog-testing/NAV-043/affine-response-v2/",
+            "AGENTS.md", "CaMRA/navigation/README.md", "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tmux %654: approval-commit.sh -> 0734784",
+            "tmux %655: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python -B CaMRA/navigation/scripts/launch_nav043_affine_response_once.py",
+            "tmux %656: bash .worklog-testing/NAV-043/affine-response-v2/audit-saved.sh",
+            "tmux %657: bash .worklog-testing/NAV-043/affine-response-v2/preserve-result.sh"
+          ],
+          "results": [
+            "9轴求解/3模型/18条/158797保存tick；CPU拟合墙钟4.313875秒、wrapper4.741489秒，FINISHED有、HELD无，两进程已退出。无新增业务回合/W/actor或critic更新/校准/GPU，额外审阅求解0。",
+            "位置RMSE3.141575→0.783680米（减少75.05%），L1/L2/L3分别0.702052/0.866715/0.769127米且均改善；末端航向MAE51.0400→11.1734度（减少78.11%）。九解数值有效，全部原诊断门槛PASS。",
+            "保存输出审阅PASS，41份小证据副本逐字节一致；295保护身份/90输入保持。最大残余2.416512米虽小于旧delta2.613866米，但暴露/重复的<=45秒数据不能验证90秒、继承校准或放行G5。",
+            "三折模型均未选优部署；非零截距是局部统计近似，不外推静止/未见状态，不作为唯一物理根因。计划1.5.0、55/67历史状态不改，NAV-043=false/G5未过，NAV-044及final_*不开启。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_affine_response_review_v2.json",
+            ".worklog-testing/NAV-043/affine-response-v2/launch.json",
+            ".worklog-testing/NAV-043/affine-response-v2/exit.json",
+            ".worklog-testing/NAV-043/affine-response-v2/audit-saved.exit",
+            ".worklog-testing/NAV-043/affine-response-v2/result-summary.json",
+            ".worklog-testing/NAV-043/affine-response-v2/saved-output/"
+          ],
+          "remaining_work": [
+            "先建立已完成区间q/warmup端点、独立运动模型/观测与参考命令程序/J成本，再制定90秒残余适用性协议。",
+            "后续有限训练/双critic/独立预算选择/物理小批需新的具体来源、门槛及额度；不因本次诊断通过沿用旧45秒actor/critic或挑选留出折部署。"
+          ],
+          "blockers": ["90秒生产模型/状态/参考成本及残余证据尚未建立；本次有限九求解已经结束，不含下一阶段新拟合、校准、GPU或物理授权。"]
         }
       ],
       "constraints_and_notes": [

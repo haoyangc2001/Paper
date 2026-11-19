@@ -1,5 +1,15 @@
 # 上层导航实施交接
 
+## 2026-11-20 仿射v2限定诊断完成，保存输出复核通过
+
+批准/预检已先提交0734784。唯一输出`/pub/data/caohy/work/camra_navigation/nav043_affine_response_probe_v2`有FINISHED、无HELD；%655 wrapper2577764/probe2577766一次正常退出，实际9轴求解/3整图折模型/18条/158797保存tick，拟合墙钟4.314秒、wrapper4.741秒。锁和全部输出保留，不重启或借用剩余CPU时间。两方法新业务回合/W/actor或critic更新/校准/GPU均0。
+
+相对响应v1，全体位置RMSE3.1416→0.7837米（减少75.05%），三个留出地图均改善；末端wrapped航向MAE51.040→11.173°（减少78.11%）。九解全部满秩、稳定且正输入系数，原预登记筛选条件PASS。%656主agent核验9个保存解/法方程/谱矩、18条全部200Hz自由递推及所有前缀，额外拟合0；295保护身份/90输入保持。%657将41份小JSON按报告hash逐字节复制到`.worklog-testing/NAV-043/affine-response-v2/saved-output/`，原件仍在原目录。
+
+最大保存位置残余2.4165米，虽小于旧delta2.6139米，不能视为新校准、90秒或G5通过。数据已暴露且有重复，三折模型未选优部署；截距是局部统计近似，不能外推零命令/未见状态，旧warmup缺失端点仍无法补出新q初态。下一先建立可观测q/warmup、独立运动模型版本、可执行参考程序/J成本和90秒残余协议，再具体登记有限训练/采集额度。旧actor/critics不因61维相同而兼容新语义。
+
+详见[本轮结果与逐项验收](nav043_affine_response_result_20261120.md)及`reports/nav043_affine_response_review_v2.json`。计划1.5.0、55/67历史状态保持，NAV-043=false/G5未通过，NAV-044/final_*不进入；固定v2/alpha/delta/原45秒生产链和全部失败保留。本次一次诊断已结束，不是后续训练/物理授权。下方待执行/未批准是保留历史。
+
 ## 2026-11-20 仿射v2限定诊断已获用户确认
 
 用户明确确认上一条“原18条/九次CPU求解/最多1小时、不新增训练”的具体范围，APPROVED登记`config/nav043_affine_response_approval_v2.json`绑定原提案98fe679c及支持清单70869ac8。原PROPOSED/所有封存源码/旧失败保持，先在tiger11/tmux预检295保护身份/90输入/历史记录、登记提交，再仅一次运行已有启动器；本段不是运行结果。主agent按legacy基本验证，无专用测试子agent。
