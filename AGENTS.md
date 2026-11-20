@@ -1,5 +1,10 @@
 # Agent 接手说明
 
+## 当前授权（2026-11-20，响应v4一次CPU诊断已确认）
+
+用户本轮明确确认响应v4：原30已暴露病例、三折最多9个CPU轴解、累计1小时的一次诊断。独立APPROVED绑定原提案f7b5ba4a/readiness8dc215b3；先tiger11/tmux实际预检并本地提交，再一次原启动器及主agent保存复核，无测试子agent。本时点尚未求解，新应用/回合/W/更新/校准/GPU0；NAV-043=false、1.5.0/55/67、G5未过，旧v2/alpha/delta/45秒链及失败保持。下方待确认均为历史。
+
+
 ## 当前补充（2026-11-20，响应v4批准后预检入口已准备）
 
 仅补齐`.worklog-testing/NAV-043/coupled-response-v4/preflight.py/sh`；%737主agent核验原来源/295身份并实际验证Python入口缺APPROVED时拒绝、不建正式预检或执行产物。原提案f7b5ba4a/readiness8dc215b3和封存源码不改，原11项有效基本证据复用，新真实/合成求解均0，无测试子agent。批准后的实际预检分支尚未执行，不能写成放行。

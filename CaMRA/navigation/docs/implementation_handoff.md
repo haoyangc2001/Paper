@@ -1,5 +1,10 @@
 # 上层导航实施交接
 
+## 当前授权（2026-11-20，响应v4一次CPU诊断已确认）
+
+用户本轮明确确认响应v4：原30已暴露病例、三折最多9个CPU轴解、累计1小时的一次诊断。独立APPROVED绑定原提案f7b5ba4a/readiness8dc215b3；先tiger11/tmux实际预检并本地提交，再一次原启动器及主agent保存复核，无测试子agent。本时点尚未求解，新应用/回合/W/更新/校准/GPU0；NAV-043=false、1.5.0/55/67、G5未过，旧v2/alpha/delta/45秒链及失败保持。下方待确认均为历史。
+
+
 ## 2026-11-20 响应v4批准后预检入口补齐，尚未获新批准
 
 只补齐`.worklog-testing/NAV-043/coupled-response-v4/preflight.py/sh`，不改原提案/readiness/模型及执行源码。%736完整解析计划，%737主agent核对来源/295保护身份/90输入/29包体/30病例并实际验证缺APPROVED的Python入口拒绝且不建正式预检/执行产物；证据`preflight-preparation.json`。原11项有效基本证据复用，没有新合成或真实系数求解，无测试子agent；批准后的实际检查分支仍未执行，不能当作放行。

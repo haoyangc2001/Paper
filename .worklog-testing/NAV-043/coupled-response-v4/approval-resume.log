@@ -1,0 +1,405 @@
+PLAN_BYTES 1400136
+TOP_KEYS ['document', 'budget_decision_acceptance_revision_v2', 'budget_decision_stage_disposition_v1', 'background', 'goal', 'scope', 'execution_focus', 'alignment_review', 'global_constraints', 'execution_alignment_policy', 'uncertainty_policy', 'upstream_correction_policy', 'runtime_contract', 'method_contract', 'map_contract', 'evaluation_contract', 'reference_map', 'paths', 'gates', 'tasks', 'final_acceptance', 'horizon_revision_v2']
+global_constraints [
+  "执行主机固定为 tiger11 / 192.168.20.11；禁止使用192.168.20.10，不能因登录失败、资源短缺或依赖缺失而自动切换192.168.20.12或其他节点。",
+  "服务器终端、依赖安装、环境探测、导出、测试、仿真、训练、采集、评估和复算在tmux中运行，记录会话/窗口、hostname、GPU、cwd、绝对解释器、非敏感完整命令、日志和产物；首次hostname确认和最小tmux引导、本地文档/静态检查为例外。",
+  "控制器固定camra_go2_velocity_it2999_v2；权重、资产、观测/动作映射、PD、频率、功率模型、足迹、α/δ及锁必须整套匹配。缺资源先核验恢复，不替换HiRA。",
+  "保持物理200 Hz、低层50 Hz、上层10 Hz；每个上层周期含5次低层重新观测推理和20个物理子步，不能把一次关节输出保持0.1秒。",
+  "上层输出机身系[vx,vy,yaw_rate]；域按匹配冻结协议核验，当前参考为[-1,1]m/s、[-0.4,0.4]m/s、[-1,1]rad/s。应用限幅后同一实际命令用于运动、成本、低层观测与日志。",
+  "成本为逐关节正机械功，单位J；名义每0.1秒用冻结功率模型，预算按(1+α)c_nom扣减，实际执行功单独记录；不能混用旧a.u.、墙钟时间或电池能量。",
+  "危险集合计入物理占地足迹，再额外膨胀δ且只膨胀一次；物理碰撞体保留原始几何，名义安全约束与真实碰撞指标分开记录。",
+  "宽通道必须有膨胀后可达路径及运动/时限可行证据；7–8m只是初始净宽设计，不是全地图或全部执行的安全证明。地图边界、转弯和起终点同样检查。",
+  "RC-PPO/和HiRA/只读；新代码写CaMRA/navigation。共享校准/底层优先导入只读模块或新增隔离适配器，不改旧锁内源码；确需修改须保留原快照并询问用户。",
+  "manuscripts/**、所有*.tex/*.bib、投稿源文件与PDF、docs/paper*、submission*禁止写入，不编译。允许只读对照；差异清单仅写导航模块docs并交作者处理。",
+  "先通过环境、物理接口和算法数值门禁，再扩大训练；固定部署策略及评价网络后才预算选择；冻结全部选择后才查看最终clean/扰动结果。",
+  "确定性指名义状态转移；可以随机采样训练地图、初态、预算和策略动作。clean物理仿真仍有模型执行偏差，不等于名义模型。",
+  "首轮扰动阶段固定上层策略、评价网络、预算规则和α/δ，只评估；若要随机环境再训练、延长校准窗口或新增校准必须询问用户。",
+  "所有run/attempt/trial保留；不自动覆盖、挑最好attempt、删除业务失败或把崩溃当成成功。基础设施故障和业务失败分开登记，未完成事件保留分母状态。",
+  "训练/开发/预算选择/最终评估按地图与种子族隔离；不得用最终指标选checkpoint、调裕度、调预算阈值或改地图后继续冒充原测试。",
+  "每次启动前检查主仓库/子模块和既有tmux、进程、输出锁、run_id、恢复标记；中断后先恢复原任务，不重复并发写同一split。大型产物在tiger11登记的独立目录，不能混入旧校准目录。",
+  "任何会改变来源、范围、数据、核心依赖、评分口径、资源预算、已有产物、远程Git状态或外部费用的不确定决策必须暂停并询问用户；已确认约束不重复征询，计划内正常实现和输出不逐文件索要许可。",
+  "本地既有文档修改属于现有工作，保留并记录；Git提交/推送按当次明确授权。绝不写入凭证、环境秘密或账户密码。",
+  "不能把PPO损失下降、进程退出0、模型能加载或校准覆盖率当成收敛、导航成功或形式化随机安全证明；验收看实际字段及独立证据。",
+  "NAV-055先解决协议/裕度元数据/功率模型/真实applied命令的速度域冲突；旧文件只读，以独立导航契约记录来源裁定，未核实不能采用更大范围。",
+  "NAV-056冻结成本价值尺度、折扣与共同停止时刻；NAV-057冻结位置/航向误差下的几何处理。任何目标、评分或核心假设变化先询问用户，不以实现方便替代方法对齐。",
+  "NAV-059、060及G2A在任何上层学习前通过；NAV-034对短训练所得指令复查，NAV-043在正式物理评估前复查实际候选。早期规则控制pilot不能证明未来学习策略与原校准同分布。",
+  "NAV-058与NAV-021在正式训练前冻结共同物理J预算和各方法独立选择预算两种比较口径及配额；只保留两种已授权方法，不默认新增单裕度训练或大规模消融。",
+  "后续任务发现前置实现有问题时，按upstream_correction_policy回修；工作记录主体追加到发现问题的当前任务，保留原记录及原始证据。受影响验收失效时先停止推进、登记影响并重验；既定范围内且依据明确的导航代码修复可继续，受保护系统或未授权范围仍须先询问用户。",
+  "本轮原理对齐目标：预算增广状态、不可逆安全历史、共同停止时刻、两个critic和联合策略优势必须形成同一学习目标；Go2观测/速度动作/J单位/PyTorch是适配点，不能用普通奖励PPO、额外惩罚或经验扫描静默替代。",
+  "采样记录统一为x_t/y_t/z_t、u_t、c_t、x_{t+1}/y_{t+1}/z_{t+1}；训练、重拟合、评估共享版本化转换。价值在x_t计算时不得搭配扣费后的z_{t+1}；终态只追加一次。",
+  "NAV-063数值门禁和实际训练入口证明三套估计器/共同停止/边界一致后，才允许NAV-064学习。旧G4负结果、单次测试或只在未调用辅助函数中的修复不能放行。",
+  "循环调参只用train/development；budget_selection只在候选冻结后用于NAV-066，final_*保持封存。旧选择集已被NAV-041查看，须登记暴露历史和是否需新独立选择清单，不能声称旧数据从未被看过。",
+  "当前67项任务状态及旧记录在计划修订时不变；执行阶段按回修政策判定哪些验收失效、顺序重验。不得把48项历史结案解释为新算法或新物理模式已经通过。",
+  "部署预算主线恢复同一部署actor和双critic的联合价值判据搜索；有限名义轨迹只独立验证搜索与做诊断，不能不说明就替代学习价值搜索。critic未达要求时保持对应任务false，不自动退回旧O-3负结果路线。",
+  "每项任务开始、续跑、切换和上下文恢复后，先重新完整读取根AGENTS.md及适用的目录级AGENTS.md，再按execution_alignment_policy完成开工对齐。只记得文件位置、旧会话摘要或一句“已阅读”不替代实际阅读和约束核对。",
+  "每项任务同时满足自身acceptance_criteria及execution_alignment_policy的全局一致性检查，才可标记完成；程序能跑、单测通过或产物存在不单独构成方法与系统验收。",
+  "阶段门禁与交接前重新核对全局目标、实际生产调用链、上下游版本和证据有效性。发现偏差按upstream_correction_policy处理；涉及目标、评分、数据或资源等未授权变化时按uncertainty_policy暂停询问，不自行降低标准。"
+]
+uncertainty_policy {
+  "rule": "只锁定用户已确认的设计。运行来源不唯一、结果异常或需扩展授权时暂停，任务保持false并追加blocker；不为了完成任务自行改变事实。",
+  "must_pause_and_ask": [
+    "tiger11无法登录、hostname不符、GPU资源不可用或需换服务器/新增费用。",
+    "v2权重、资产或匹配校准配置缺失/散列不符，多个候选不能由权威清单唯一确定；换行差异不能直接更新旧散列。",
+    "需要选择或修改未登记的核心框架/依赖版本、升级共享Isaac环境，或资源预算无法由已授权约束确定。",
+    "需要收窄/滤波指令域、修改控制频率、任务时限、能量定义、终止优先级、比较分母或安全判据。",
+    "膨胀后无路、30秒内无法完成，或闭环指令超出原校准条件；不能减δ、拉长窗口或丢弃困难地图来过验收。",
+    "共享代码问题可能影响v2冻结结果、数值oracle不一致或无法区分业务与基础设施失败。",
+    "需要覆盖/删除/移动已有成果、重采校准、随机训练、改变正式试验次数、增加外部基线、写入论文或未经授权提交推送。",
+    "速度域元数据与锁定协议/原始命令不能唯一解释，或需要更改折扣目标、停止时刻、姿态安全近似和任务评分；不能静默修改旧冻结配置。",
+    "NAV-059/060或候选指令复查显示显著停滞、快速切换或提前终止使旧裕度缺乏适用性；报告继续作探索性检验、新版校准或调整任务的选项与代价，等待用户裁定，不自动重校准。"
+  ],
+  "planned_decisions": [
+    {
+      "topic": "上层实现框架与依赖",
+      "task": "NAV-008",
+      "state": "创建时待决描述保留在historical_state；已完成任务的实际决定以work_records及冻结产物为准。本轮是否受影响由NAV-061复核，不能照此旧描述重新选型或重跑。",
+      "rule": "列兼容方案及对数值对照/成本的影响，冻结前解决会改变核心依赖的选择。",
+      "historical_state": "待依据tiger11环境核验；PyTorch便于接入但未在本计划中假定已获准替换原JAX实现"
+    },
+    {
+      "topic": "任务事件、观测与预算归一化",
+      "task": "NAV-012–015",
+      "state": "创建时待决描述保留在historical_state；已完成任务的实际决定以work_records及冻结产物为准。本轮是否受影响由NAV-061复核，不能照此旧描述重新选型或重跑。",
+      "rule": "凡改变评分/终止语义的未决点在正式实现和训练前询问，不依据结果倒选规则。",
+      "historical_state": "需形成正式契约；保留确认的物理单位、频率、时限边界"
+    },
+    {
+      "topic": "正式种子、试验次数、迭代数和GPU小时",
+      "task": "NAV-011及NAV-021",
+      "state": "创建时待决描述保留在historical_state；已完成任务的实际决定以work_records及冻结产物为准。本轮是否受影响由NAV-061复核，不能照此旧描述重新选型或重跑。",
+      "rule": "冻结前展示具体资源表并取得必要授权；未冻结只能做已登记短测试，不能无限加跑。",
+      "historical_state": "设备和算力未知，不在计划中虚构已确定配额"
+    },
+    {
+      "topic": "速度域冲突与导航有效域",
+      "task": "NAV-055",
+      "state": "创建时待决描述保留在historical_state；已完成任务的实际决定以work_records及冻结产物为准。本轮是否受影响由NAV-061复核，不能照此旧描述重新选型或重跑。",
+      "rule": "形成来源裁定与独立导航契约；来源无法唯一确定时暂停询问。",
+      "historical_state": "待核验原始applied命令；较大范围元数据不构成授权"
+    },
+    {
+      "topic": "累计机械功、价值尺度与停止目标",
+      "task": "NAV-056及NAV-012",
+      "state": "创建时待决描述保留在historical_state；已完成任务的实际决定以work_records及冻结产物为准。本轮是否受影响由NAV-061复核，不能照此旧描述重新选型或重跑。",
+      "rule": "先以手算短轨迹确定语义；改变目标或评分须询问。",
+      "historical_state": "未折扣J目标已定；具体critic归一化、折扣配置与事件表尚待推导"
+    },
+    {
+      "topic": "位置裕度与姿态足迹",
+      "task": "NAV-057",
+      "state": "创建时待决描述保留在historical_state；已完成任务的实际决定以work_records及冻结产物为准。本轮是否受影响由NAV-061复核，不能照此旧描述重新选型或重跑。",
+      "rule": "明确保守性与碰撞/净空指标边界后冻结；需改变假设时询问。",
+      "historical_state": "外接圆是候选保守近似，不是已确认设计或实测航向界"
+    },
+    {
+      "topic": "同预算及各自预算的公平对照",
+      "task": "NAV-058和NAV-021",
+      "state": "创建时待决描述保留在historical_state；已完成任务的实际决定以work_records及冻结产物为准。本轮是否受影响由NAV-061复核，不能照此旧描述重新选型或重跑。",
+      "rule": "冻结后才正式训练；不以最终结果选择预算或改变分母。",
+      "historical_state": "比较口径、预算网格、配额与最小预算可行标准待登记"
+    },
+    {
+      "topic": "低速与闭环裕度提前放行",
+      "task": "NAV-059、060及NAV-034/043",
+      "state": "创建时待决描述保留在historical_state；已完成任务的实际决定以work_records及冻结产物为准。本轮是否受影响由NAV-061复核，不能照此旧描述重新选型或重跑。",
+      "rule": "区分来源/工程正确性与经验适用性；不达标保持false并报告，不自动改v2/裕度。",
+      "historical_state": "待限额内真实pilot，不能由解析省能速度或旧覆盖率代替"
+    },
+    {
+      "topic": "原理对齐、数据隔离及下一轮资源",
+      "task": "NAV-061",
+      "state": "本次仅授权修订计划；原理目标已确认，具体新契约与有限执行额度在本任务按证据冻结。",
+      "rule": "区分确定实现缺陷与实质方法变更。必要的新选择清单、动作变换、资源配额、终止评分等决定先说明依据及影响；已有明确授权不重复询问。"
+    }
+  ],
+  "question_format": "给出NAV任务ID、证据、具体不确定点、2–3个方案及其对范围/数据/依赖/费用的影响，等待用户明确选择。",
+  "record_policy": "blocker也必须追加timestamp/actions/files_changed/commands/results/evidence/remaining_work/blockers，不覆盖旧记录，不把未知写成已完成。前置回修记录的主体放在发现问题的当前任务下，依upstream_correction_policy关联旧任务及下游影响。"
+}
+execution_alignment_policy {
+  "applies_to": "全部67项NAV任务的后续执行、恢复、回修和阶段交接。此全局规则不新增任务，不追改历史记录，不把旧记录缺少本轮对齐字段视为已重新验收。",
+  "global_goal_card": {
+    "objective": "在Go2仿真中交付与RC-PPO核心原理一致、固定v2的分层最小成本到达避障导航；在预算内安全到达并尽量降低正关节机械功。",
+    "principle_to_preserve": "预算增广状态、不可逆安全历史、共同停止时刻、双评价目标、成本/reach/联合三套估计器及联合GAE、最小化PPO和部署价值预算搜索形成同一方法链。",
+    "allowed_adaptation": "按Go2环境定制状态/观测、速度输入输出、PyTorch组织和J单位；适配必须保持已确认的数学目标与评分语义，并提供对应证据。",
+    "fixed_boundaries": [
+      "固定camra_go2_velocity_it2999_v2及整套执行/校准身份，保留其已知局限，不换模型、不改旧功率模型/足迹/α/δ或冻结锁。",
+      "物理200 Hz、底层50 Hz、上层10 Hz，机身系[vx,vy,yaw_rate]；内部模型成本和实际正机械功分列，单位J。",
+      "执行固定tiger11（192.168.20.11）+tmux；运行前现场核验资源，Windows文档/静态检查例外。",
+      "train/development、独立预算选择与final_*用途隔离，历史暴露如实登记，全部失败和原始证据保留，资源不暗中扩额。",
+      "RC-PPO/、HiRA/、论文和历史冻结成果保持只读；计划内明确的导航实现缺陷可按回修规则修复。"
+    ],
+    "success_test": "本项不仅局部可用，还须保持方法目标不变、实际接入生产链、上下游版本一致，并由真实证据支持；负结果按原样记录，不伪装成通过。"
+  },
+  "mandatory_reading": {
+    "triggers": [
+      "开始一项任务",
+      "断线/暂停后的任务续跑",
+      "切换到另一项任务",
+      "新agent或新上下文接手、摘要/压缩后的恢复",
+      "约束文件、计划或关键依赖发生变化后继续修改或运行"
+    ],
+    "order": [
+      "重新完整读取工作区根AGENTS.md；检查并读取拟修改/运行路径适用的目录级AGENTS.md，不能仅搜索关键词。",
+      "首次接手或上下文恢复时完整读取本计划；每项任务均重新核对当前计划版本、global_constraints、execution_alignment_policy、uncertainty_policy、upstream_correction_policy和相关门禁。",
+      "按tasks数组和真实状态选择首个依赖满足的未完成任务，读取其goal、constraints_and_notes、acceptance_criteria、已有work_records及上游证据。",
+      "读取本次涉及模块README、当前交接及相关接口/代码版本，核实哪些是历史快照、已有实现、待修方案或拟建入口。"
+    ],
+    "failure_rule": "必需文件无法读取、缺失或存在影响范围/评分的未解冲突时，先记录已确认事实与缺口，暂停受影响动作并请求澄清，不猜测规则继续。",
+    "frequency_note": "同一任务连续工作且约束未变化，不要求每条shell命令前全文重读；上述触发点必须重新阅读，摘要与记忆不作替代。"
+  },
+  "preflight": {
+    "timing": "完成阅读和必要只读核查后、任何代码/配置修改或实验启动前，先输出简短开工对齐，并追加到当前任务work_records；无需暴露内部推演过程。",
+    "required_items": [
+      "当前任务ID、计划版本、当前依赖状态及本次工作范围。",
+      "本项对全局目标的作用：解决哪个方法/接口缺口，为什么现在做。",
+      "本次消费的上游代码/配置/数据证据、版本/hash及已知局限。",
+      "必须保持的约束与允许修改的路径/接口，说明不改项。",
+      "本次验收证据、实际生产消费者及给下游交付的内容；列明尚未解决的阻塞。"
+    ],
+    "decision_rule": "目标与约束一致、授权明确则直接按计划执行；只在uncertainty_policy规定的实质不确定性上暂停询问，不把每项开工简报变成额外人工审批。"
+  },
+  "acceptance_review": {
+    "local_checks": "逐条核验当前acceptance_criteria，记录实际命令、结果、文件与证据；区分静态检查、受控测试、真实仿真和科学指标。",
+    "global_checks": [
+      "方法目标与global_goal_card及已冻结契约一致，未用额外奖励/惩罚、改指标或放宽阈值代替原问题。",
+      "本项函数/接口实际被训练、部署或评估生产入口调用，不只在未使用的辅助函数或孤立单测中正确。",
+      "上游输入与下游输出的控制器身份、观测/动作、预算/单位、时序、终止/停止规则、数据划分及版本/hash相容；按本项相关接口验证。",
+      "明确本次变化影响哪些任务/门禁及旧证据；受影响部分已重验或保持阻塞，未把历史true当作新版本放行。",
+      "说明产物可以支持和不能支持的结论，失败、资源缺口及下游注意事项如实保留。"
+    ],
+    "evidence_rule": "在收尾work_records中记录局部验收、全局一致性和下游交付结论及证据。任一必需项未满足保持status=false，写remaining_work/blockers，不凭简报、单测或进程退出码标true。"
+  },
+  "stage_review": {
+    "timing": "每个阶段门禁签署前，以及阶段交接或发现跨任务影响时。",
+    "checks": "复查该阶段与总目标的对应、生产入口贯通、算法/控制/成本/安全/数据契约版本一致和前置证据有效；缺口按依赖处理后再放行。",
+    "ownership": "当前执行agent依据可复算证据完成跨任务复核；此规则不自动授权新建agent、跨任务并行或额外实验。"
+  },
+  "drift_handling": {
+    "in_scope": "依据明确且不改目标的导航实现偏差，按upstream_correction_policy保留原版本并在当前任务回修、重验和记录下游影响。",
+    "requires_confirmation": "改变算法目标、冻结系统、成本/评分、数据用途、核心依赖、试验或算力额度、受保护成果及其他未授权范围时，按uncertainty_policy暂停并说明证据、选项和影响。",
+    "no_shortcut": "不为完成当前任务而掩盖上游错误、删除失败、改旧日志或跳过受影响门禁；根因未解决时不继续依赖它的下游工作。"
+  },
+  "recording_rule": "复用当前任务work_records的九个标准字段，开工与收尾各追加相应记录；记录实际读取的路径/计划版本及必要hash、简短对齐结论和证据，不新建一套平行任务状态，不改旧记录，不写凭证。",
+  "revision_boundary": "本次仅新增全局要求与说明入口，67项任务对象完全保留；所有执行、验收和开工记录由后续获授权的任务运行产生。"
+}
+upstream_correction_policy {
+  "applies_to": "全部67项NAV任务；本次原位修订未新增任务，历史记录和状态保留。",
+  "user_authorization": "用户同意：后面的工作发现前面的工作有问题时，可以同步纠正；原工作记录必须保留，修正过程在当前任务下记录。",
+  "scope_rule": "依据明确、目标不变且在既定代码范围和已登记资源内的实现缺陷，可以在当前任务中回修，无需为普通修复重复申请。此授权不允许更改来源、科学目标、评分、依赖、资源配额或受保护成果；相关不确定决策仍按uncertainty_policy暂停询问。",
+  "history_rule": "原work_records、失败、旧判定、原始日志、冻结文件与数据锁不删除、不改写。修正前登记版本/路径/hash并保留可恢复源码或快照；新报告、锁和重跑产物使用独立版本及run/attempt身份，不覆盖旧产物，不以更新旧hash掩盖变更。",
+  "record_owner_rule": "问题发现、影响分析、修复动作、用户决定、验证和解除阻塞的主体记录，全部追加在发现问题的当前任务work_records内。保持九个标准记录字段，并以correction子对象关联前置任务；必要时只在相关旧任务追加交叉引用，不搬走或改写当前任务中的主体记录。",
+  "workflow": [
+    "发现问题后保持当前任务status=false，先追加事实、复现证据和受影响前置任务；暂停依赖该错误结果的后续动作，不以已有true状态或旧门禁继续放行。",
+    "定位根因和影响范围，登记原代码/配置/结果的版本与hash，列出受影响任务、门禁、训练模型、数据锁和评估产物；不受影响的历史结论保留。",
+    "核对授权边界。在新导航实现内修复确定的错误；若涉及v2冻结系统、旧校准、参考仓库或需改变既定契约/资源，先记录blocker并询问用户。论文禁止写入规则始终有效。",
+    "在可恢复的代码版本中修复，追加说明具体改动和新旧差异；不能回填旧日志，把原错误运行改写成修复后的结果。",
+    "针对根因及下游影响完成必要重验。优先复用未受影响的有效证据；需要重训、重采或重跑正式试验时先核对授权与预算，不自行无限加跑或覆盖正式数据。",
+    "把命令、文件、修正后版本、验证证据、状态变化及下游处理结论追加到当前任务，明确哪些旧结论仅作历史记录、哪些证据仍然适用。",
+    "先按依赖恢复受影响的验收与门禁，再继续当前任务本身；只有当前任务全部验收也满足后才能标记true。每轮状态更新后运行update校验。"
+  ],
+  "correction_record_required_fields": [
+    "correction_id：当前任务下唯一的回修编号",
+    "discovered_in_task：发现问题的当前任务ID",
+    "upstream_task_ids：问题涉及的前置任务ID",
+    "problem_and_evidence：问题、根因与可复现证据",
+    "original_artifact_references：原版本、文件/hash和历史验收引用",
+    "affected_task_ids：受影响的当前及下游任务",
+    "affected_gate_ids：需重验的门禁，无则为空数组",
+    "authorization_basis：既有授权依据或新增用户决定",
+    "changes_and_versions：修复文件、改动及新版本/产物身份",
+    "revalidation_evidence：复验命令、结果和证据路径",
+    "status_changes：前后status/verification_result及变化依据，无变化则为空数组",
+    "downstream_disposition：继续、失效待重验或仍受阻的结论及理由",
+    "closure_state：open、blocked或validated"
+  ],
+  "task_and_gate_state_rules": [
+    "发现问题的当前任务在回修和相关重验结束前保持false；不得单凭修复代码已写完就算当前任务完成。",
+    "若证据表明前置验收实际失效，先在当前任务记录原status、verification_result及证据引用，再将失效任务和受影响的已完成依赖任务同步退回false；原work_records和历史验收报告保持不变，避免true依赖false的无效状态。",
+    "回修是为恢复已承诺前置条件的受控操作，不是越过依赖推进后续目标。受影响任务按依赖完成重验；恢复true时追加指向当前任务回修证据的记录，并填写新的verification_result，旧判定已在追加记录中保留。",
+    "旧门禁报告保留为原版本证据；新版本只有在相应重验通过并产出新门禁记录后才能放行。失效的模型、数据锁和结果明确标记用途，不能直接用于新版本最终结论。"
+  ],
+  "protected_boundaries": [
+    "v2控制器及其权重、资产、PD、功率模型、足迹、α/δ和旧数据锁维持冻结；不因回修自动替换、重训或重校准。",
+    "RC-PPO/、HiRA/继续只读；旧校准源码确需改动仍先保留原快照并询问用户。",
+    "manuscripts/**、tex/bib、投稿源文件与PDF等禁止写入，回修不得突破论文保护规则。",
+    "执行主机、tmux、数据隔离、全部失败保留、资源上限及Git提交/推送授权规则继续适用。"
+  ],
+  "closure_rule": "所有回修均有完整历史引用、修复及重验依据；受影响任务/门禁已恢复有效，或明确保持受阻。未解除的问题留在当前任务remaining_work/blockers内，不作无条件最终交付。",
+  "plan_revision_boundary": "2026-11-12仅修订未来要求；NAV-061执行时为每项审查问题登记前置任务、旧版本、受影响门禁及重验入口。确证原验收失效后仍按task_and_gate_state_rules回退依赖状态并重验，不在本次无运行证据的文档修订中伪造新判定。"
+}
+STATES {'NAV-001': True, 'NAV-002': True, 'NAV-003': True, 'NAV-004': True, 'NAV-005': True, 'NAV-006': True, 'NAV-007': True, 'NAV-008': True, 'NAV-009': True, 'NAV-010': True, 'NAV-055': True, 'NAV-011': True, 'NAV-012': True, 'NAV-013': True, 'NAV-056': True, 'NAV-014': True, 'NAV-057': True, 'NAV-015': True, 'NAV-016': True, 'NAV-017': True, 'NAV-018': True, 'NAV-019': True, 'NAV-020': True, 'NAV-058': True, 'NAV-021': True, 'NAV-022': True, 'NAV-023': True, 'NAV-024': True, 'NAV-025': True, 'NAV-026': True, 'NAV-027': True, 'NAV-059': True, 'NAV-028': True, 'NAV-060': True, 'NAV-029': True, 'NAV-030': True, 'NAV-031': True, 'NAV-032': True, 'NAV-033': True, 'NAV-034': True, 'NAV-035': True, 'NAV-036': True, 'NAV-037': True, 'NAV-038': True, 'NAV-039': True, 'NAV-040': True, 'NAV-041': True, 'NAV-042': True, 'NAV-061': True, 'NAV-062': True, 'NAV-063': True, 'NAV-064': True, 'NAV-065': True, 'NAV-066': True, 'NAV-067': True, 'NAV-043': False, 'NAV-044': False, 'NAV-045': False, 'NAV-046': False, 'NAV-047': False, 'NAV-048': False, 'NAV-049': False, 'NAV-050': False, 'NAV-051': False, 'NAV-052': False, 'NAV-053': False, 'NAV-054': False} ELIGIBLE ['NAV-043'] PANE %741
+CURRENT_DEFINITION {
+  "id": "NAV-043",
+  "phase": "预算与闭环",
+  "goal": "完成clean完整导航小批验证",
+  "status": false,
+  "depends_on": [
+    "NAV-066",
+    "NAV-067"
+  ],
+  "constraints_and_notes": [
+    "仅用integration_pilot，依次验证无障碍、绕行和多路径，使用固定actor/critics/预算规则。",
+    "核查低速停滞、30秒任务长度与地图尺度的实际影响；问题不能靠换控制器或缩δ解决。",
+    "正式物理评估前对冻结部署候选重做NAV-060口径的闭环指令、能量前缀与位置偏差诊断，只用integration_pilot，匹配NAV-021登记条件及限额。",
+    "若部署候选分布不同于短actor或旧命令程序，更新适用性结论而非旧α/δ；改变科学范围或需新校准时暂停询问。",
+    "只消费NAV-065新版候选、NAV-066价值搜索和NAV-067实际clean配置；核对hash、新G3/G4及原始200Hz事件/能量。无解不伪造预算，common_budget诊断另列。"
+  ],
+  "acceptance_criteria": [
+    "小批导航具备完整成功与失败trace，实际碰撞和膨胀约束违反区分清楚。",
+    "两方法场景/起点/时序/能量判据一致，达到预登记闭环放行条件。",
+    "候选复查通过已登记放行规则；报告与NAV-060/NAV-034对照，未解决适用性缺口不签G5。",
+    "新版候选达到真实闭环可用性和裕度适用性标准，物理SR与内部y/预算可行性分列；旧接线pilot不代替本任务证据。"
+  ],
+  "verification_result": "",
+  "reference_ids": [
+    "R05",
+    "R06",
+    "R07",
+    "R11",
+    "R12"
+  ],
+  "planned_outputs": [
+    "reports/clean_closed_loop_pilot.json",
+    "reports/deployment_actor_applicability.json"
+  ],
+  "depends_on_note": "2026-11-12 由 ['NAV-042'] 改为 [NAV-066, NAV-067]：用户要求把训练对齐（预算随机化/观测/终止语义）与物理 clean 修正插在 NAV-042 之后，原评估链改接到新链条末端。任务目标与验收标准未改。"
+}
+LATEST_RECORDS [
+  {
+    "timestamp": "2026-11-20T12:50:21+08:00",
+    "summary": "NAV-043/1.5.0响应v4准备完成：全q记忆/前进转向交互候选及11项基本检查通过，真实拟合新范围待确认",
+    "actions": [
+      "承接原v3已结束诊断，%727只读检查30保存病例和设计矩阵；旧导航五指令特征秩4不代表原完整矩阵秩不足，新三折均秩11/11、条件数90.21至126.26，没有求解真实系数。",
+      "新增隔离全q记忆及vx平方/转向交互特征、一次性启动器和无额外拟合的保存结果审阅器；原零输入约束、动作域、频率、同折分组/权重和原五项诊断门槛保持。",
+      "主agent%728/%729两次合成基本运行，最终11项通过，共6个合成轴解；合成生产输出审阅采用9个已知解见证，不增加参数求解，无测试子agent。",
+      "%730核对提案/readiness和基本检查来源、295保护身份/90原输入/29包体、30病例及原v3保存输出，实际缺批准拒绝且不建锁/输出/报告；%731恢复后完整解析计划与当前范围。",
+      "同步AGENTS、README及导航交接，明确本项对RC-PPO确定性名义转移的支持作用、候选无生产消费者和后续参考命令J/90秒/学习部署依赖；仅追加本任务记录和准备新提案，不更改任何任务定义/状态或旧历史。"
+    ],
+    "files_changed": [
+      "CaMRA/navigation/scripts/nav043_coupled_response.py",
+      "CaMRA/navigation/scripts/run_nav043_coupled_response.py",
+      "CaMRA/navigation/scripts/launch_nav043_coupled_response_once.py",
+      "CaMRA/navigation/scripts/audit_nav043_coupled_response.py",
+      "CaMRA/navigation/tests/test_coupled_response_v4.py",
+      "CaMRA/navigation/config/nav043_coupled_response_proposal_v4.json",
+      "CaMRA/navigation/config/nav043_coupled_response_readiness_v4.json",
+      "CaMRA/navigation/docs/nav043_coupled_response_preparation_20261120.md",
+      ".worklog-testing/NAV-043/coupled-response-v4",
+      "AGENTS.md",
+      "README.md",
+      "CaMRA/navigation/README.md",
+      "CaMRA/navigation/docs/implementation_handoff.md",
+      "doc/plan/20261109_camra_navigation_implementation.json"
+    ],
+    "commands": [
+      "%727: bash .worklog-testing/NAV-043/coupled-response-v4/support.sh -> exit0, real solves0",
+      "%728/%729: 主agent合成基本运行 -> 最终11项通过，共6合成轴解",
+      "%730: bash .worklog-testing/NAV-043/coupled-response-v4/verify.sh -> exit0, PREPARED_ONLY_VERIFIED",
+      "%731: python -B .worklog-testing/NAV-043/coupled-response-v4/resume-inspect.py -> 完整计划解析及当前范围核对",
+      "收尾执行 .worklog-testing/NAV-043/coupled-response-v4/finalize.sh：来源/旧历史/保护身份/新版文档及legacy update校验；实际结果见finalize.json"
+    ],
+    "results": [
+      "独立PROPOSED提案pin f7b5ba4a、PREPARED_ONLY清单pin8dc215b3；新范围为原30已暴露病例、三折最多9轴解/CPU1小时，GPU及新应用/回合/W/网络更新/校准0。",
+      "独立APPROVED、正式输出、launch.lock和正式审阅报告不存在；原响应v3的一次批准已结束，本次未真实拟合或借旧余量。",
+      "候选结构和满秩仅是下一次筛查的工程准备，不保证低速/长时预测或未知场景成功；原v3诊断FAIL、原物理HELD和全部原始失败保持。",
+      "固定v2/功率模型/足迹/alpha/delta/锁、旧45秒actor双critic及RC-PPO目标均不改；NAV-043=false、55/67、G5未过，90秒仍候选，final_*未访问。"
+    ],
+    "evidence": [
+      ".worklog-testing/NAV-043/coupled-response-v4/support.json",
+      ".worklog-testing/NAV-043/coupled-response-v4/final-basic.log",
+      ".worklog-testing/NAV-043/coupled-response-v4/verify.json",
+      ".worklog-testing/NAV-043/coupled-response-v4/resume-inspect.log",
+      ".worklog-testing/NAV-043/coupled-response-v4/finalize.json",
+      "CaMRA/navigation/docs/nav043_coupled_response_preparation_20261120.md"
+    ],
+    "remaining_work": [
+      "取得新30病例/三折最多9个CPU轴解/累计1小时的具体范围确认后，独立登记APPROVED并绑定现有提案/readiness；来源/环境/无既有锁输出预检提交后一次执行。",
+      "完整输出后主agent只读审阅9保存解/三模型稳定性/30数组/前缀/原门槛和启动退出；任何失败保留停下，不重试/扫描/全数据追加拟合或选部署模型。",
+      "即使诊断通过，仍需运动状态/支持域、可执行参考命令及冻结功率J、独立90秒适用性与受影响学习/部署/物理门禁，不能据准备签NAV-043或G5。"
+    ],
+    "blockers": [
+      "新响应v4拟合范围/数字额度尚未确认；本轮只完成可逆准备，不能使用原v3或物理采集余量。",
+      "实际闭环/长时预测与裕度适用性缺口未关闭，NAV-043验收保持未通过。"
+    ]
+  },
+  {
+    "timestamp": "2026-11-20T12:54:13+08:00",
+    "summary": "NAV-043/1.5.0自动续行开工：上一轮v4准备已提交，补齐批准后预检入口，不执行新拟合",
+    "actions": [
+      "重新读取AGENTS、legacy技能及执行规则、当前源码和交接，完整解析现有计划；首个依赖满足的未完成任务仍NAV-043。",
+      "上一目标回合已提交79bd77a，属于准备进展；本次没有收到响应v4新范围确认，不将自动续行当成APPROVED，不重启旧诊断或挪额度。",
+      "仅完善批准后将使用的只读预检入口，使精确批准/来源/原记录/进程/一次锁检查可直接执行；保持现有提案/readiness及封存模型/启动器/审阅器不动。",
+      "继续由主agent做必要基础核验，无测试子agent；不求解真实或合成系数，不创建生产消费者，不改变RC-PPO目标、固定v2/alpha/delta/旧45秒链。"
+    ],
+    "files_changed": [
+      "doc/plan/20261109_camra_navigation_implementation.json",
+      ".worklog-testing/NAV-043/coupled-response-v4"
+    ],
+    "commands": [
+      "预定tiger11/tmux：只读预检入口缺批准拒绝、原准备证据来源有效性及legacy update校验"
+    ],
+    "results": [
+      "上一轮正式拟合新范围问题仍待答复；本时点新求解/应用/回合/W/网络更新/校准0。",
+      "NAV-043=false、55/67、G5未过；原响应v3 FAIL与全部物理失败保持。"
+    ],
+    "evidence": [
+      "CaMRA/navigation/docs/nav043_coupled_response_preparation_20261120.md",
+      ".worklog-testing/NAV-043/coupled-response-v4/precommit.json"
+    ],
+    "remaining_work": [
+      "实现并基本核验预检入口及保存拒绝证据，追加收尾记录并提交。",
+      "等待新30病例/最多9轴解/CPU1小时范围明确确认，之后才独立批准和一次执行。"
+    ],
+    "blockers": [
+      "没有新的响应v4明确确认；自动目标续行不解除科学范围和资源审批约束。"
+    ]
+  },
+  {
+    "timestamp": "2026-11-20T12:55:08.000+08:00",
+    "summary": "NAV-043/1.5.0响应v4启动前检查准备完成：缺批准实际拒绝及原准备来源核对通过，未执行正式预检/求解",
+    "actions": [
+      "新增隔离preflight.py/sh：批准校验先于数据、进程查询和报告写入；批准后核对原提案/readiness、295身份、既有进程/锁/输出、30病例、原62记录/任务定义和legacy计划，不调用参数求解。",
+      "%736在tiger11/tmux完整解析当前计划及约束；%737主agent实际验证缺APPROVED的Python入口退出1、不建preflight报告/日志/退出或launch锁，295/90/29身份、30病例和原v3输出来源有效。",
+      "原封存提案f7b5ba4a/readiness8dc215b3及模型core/run/launcher/audit不改；原11项有效基本证据复用，不重跑合成求解，无测试子agent。",
+      "同步当前交接与准备说明，将预检准备通过、批准后实际预检尚未执行及科学诊断未执行分列；保留全部失败、原62记录和67项状态定义。"
+    ],
+    "files_changed": [
+      ".worklog-testing/NAV-043/coupled-response-v4/preflight.py",
+      ".worklog-testing/NAV-043/coupled-response-v4/preflight.sh",
+      ".worklog-testing/NAV-043/coupled-response-v4/prepare-preflight.py",
+      ".worklog-testing/NAV-043/coupled-response-v4/preflight-preparation.json",
+      "CaMRA/navigation/docs/nav043_coupled_response_preparation_20261120.md",
+      "CaMRA/navigation/docs/implementation_handoff.md",
+      "AGENTS.md",
+      "doc/plan/20261109_camra_navigation_implementation.json"
+    ],
+    "commands": [
+      "%736: python -B .worklog-testing/NAV-043/coupled-response-v4/resume-inspect.py -> 完整计划解析，原源码和证据不改",
+      "%737: python -B .worklog-testing/NAV-043/coupled-response-v4/prepare-preflight.py -> PREPARED_ONLY_PREFLIGHT_REFUSAL_VERIFIED",
+      "收尾本地提交前legacy validate_worklog.py --mode update及git diff --check；实际日志见/tmp/nav043-v4-preflight-commit.log"
+    ],
+    "results": [
+      "缺批准拒绝与准备来源核验通过，不代表批准后实际预检或新响应模型诊断通过。",
+      "本轮真实及合成参数求解、新应用/导航回合/W/网络更新/校准/GPU均0；APPROVED/正式输出/launch.lock仍不存在。",
+      "候选仍无生产消费者；固定v2/功率模型/足迹/alpha/delta/锁/旧45秒actor双critic及RC-PPO目标保持，NAV-043=false、55/67、G5未过。"
+    ],
+    "evidence": [
+      ".worklog-testing/NAV-043/coupled-response-v4/preflight-preparation.json",
+      "/tmp/nav043-coupled-preflight-preparation.log",
+      "/tmp/nav043-v4-preflight-plan-read.log",
+      "CaMRA/navigation/docs/nav043_coupled_response_preparation_20261120.md"
+    ],
+    "remaining_work": [
+      "等待同一个新30保存病例/三折最多9个CPU轴解/累计1小时范围的明确确认，不重复提案或借旧额度。",
+      "确认后独立批准登记，运行preflight.sh并核对报告/环境/无既有进程，提交后仅一次启动原封存launcher，再由主agent只读审阅。",
+      "参考命令J、独立90秒适用性及受影响学习/部署/物理门禁仍未完成；不能签NAV-043/G5。"
+    ],
+    "blockers": [
+      "响应v4新的范围确认尚未收到；自动续行不能视为批准，必要执行准备已补齐。"
+    ]
+  }
+]
+GIT 
+HEAD e5e2f9c0b098b28c7ffa0ff0a0334ab9c6cb5e1c
+
+COMPLETE_PLAN_READ_AND_PARSED 67
