@@ -16403,6 +16403,129 @@
             "响应v4原诊断FAIL，未达到各图导航及全部短工况共同要求；本次单次批准已结束，不追加拟合或自动扩额。",
             "实际闭环与90秒/新运动模型下的alpha/delta适用性仍未验证，候选不能覆盖旧生产链。"
           ]
+        },
+        {
+          "timestamp": "2026-11-20T14:00:23+08:00",
+          "summary": "NAV-043/1.5.0保存响应v4支持域与误差累积审阅开工，不新增拟合或业务试验",
+          "actions": [
+            "按用户继续推进及legacy工作流恢复；重新完整读取根AGENTS、执行规则、当前计划/交接，%751完整解析67任务及当前约束，依赖NAV-066/067已满足、首项仍NAV-043。",
+            "承接f187b6f及原v4审阅4eaf3d0a，新增隔离只读分析：核对整折指令覆盖、单步残差与保存自由递推误差的精确记账，据实际证据制定下一方案。",
+            "只允许新增导航诊断脚本、基本检查、独立报告/说明和本任务追加记录；固定v2/功率/足迹/alpha/delta/锁/45秒actor双critic与RC-PPO目标保持，final封存，无生产模型替换。",
+            "主agent在tiger11/tmux/绝对CPU解释器验证来源、数组对齐和误差等式；不安排测试子agent，旧失败和原一次性额度保持。"
+          ],
+          "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json"],
+          "commands": ["%751: coupled-response-v4/resume-inspect.py -> COMPLETE_PLAN_READ_AND_PARSED 67"],
+          "results": [
+            "本轮新增参数求解/应用/名义或物理回合/W/网络更新/校准/GPU均0；支持域范围检查不是完整凸包或观测充分性证明。",
+            "交付给后续模型协议评审，不是生产消费者；NAV-043=false、55/67、G5未过。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/docs/nav043_coupled_response_result_20261120.md",
+            "CaMRA/navigation/reports/nav043_coupled_response_review_v4.json",
+            "/tmp/nav043-v4-review-resume-20261120.log"
+          ],
+          "remaining_work": [
+            "完成保存数据只读审阅、必要基本检查及上下游边界核对，基于实际结果给出下一路线。",
+            "若新方案需改变科学范围/资源，先完成具体可审阅方案与必要工程准备再请求确认，不自动追加拟合。"
+          ],
+          "blockers": ["旧v4诊断FAIL和90秒适用性缺口保持，未获新的拟合或物理额度。"]
+        },
+        {
+          "timestamp": "2026-11-20T14:11:43+08:00",
+          "summary": "NAV-043/1.5.0保存覆盖与误差核查完成，同训练覆盖结构对照已准备，新18轴解范围待确认",
+          "actions": [
+            "%752主agent6项支持/误差基本检查及legacy update通过；%753只读审阅30原病例，核对原83输出、295/90/29身份、指令逐轴范围及一步/自由预测误差精确递推；%754仅汇总已有报告，无参数求解。",
+            "12短工况有6个在对应原折超出训练逐轴范围，M06原训练无反向；同时M02等范围内病例仍失败。保留原v4 FAIL，不以满秩、范围内或稳定性宣称模型准确或唯一物理根因。",
+            "完成隔离同覆盖v5入口、一次性启动/实际预检保护与保存审阅：三折各12导航+全部12短工况训练、6导航整图留出，两原结构同权重对照；短工况只作训练内诊断，不建立替代旧门槛或自动选模型。",
+            "%755七项已知系数全输出/审阅检查通过，只有求解调用替身，无系数求解；补充预检绑定后%756四项启动/批准保护通过，并核对18矩阵秩/条件数及真实缺批准三入口拒绝。无测试子agent。",
+            "新提案71d5a31e和readiness364fe158通过apply_patch独立登记为PROPOSED/PREPARED_ONLY；仅申请一次18新CPU轴解/累计1小时，APPROVED/正式输出/launch锁和实际预检均不存在。同步AGENTS/README/交接，收尾核对追加历史及源身份后本地提交，不推送。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/analyze_nav043_v4_support.py",
+            "CaMRA/navigation/reports/nav043_v4_support_review_v1.json",
+            "CaMRA/navigation/docs/nav043_v4_support_review_20261120.md",
+            "CaMRA/navigation/scripts/nav043_matched_support_v5.py",
+            "CaMRA/navigation/config/nav043_matched_support_proposal_v5.json",
+            "CaMRA/navigation/config/nav043_matched_support_readiness_v5.json",
+            ".worklog-testing/NAV-043/v4-support-review",
+            ".worklog-testing/NAV-043/matched-support-v5",
+            "AGENTS.md",
+            "README.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "%752: v4-support-review/basic.sh -> 6 checks PASS; legacy update VALID",
+            "%753: v4-support-review/analyze.sh -> SAVED_SUPPORT_AND_ERROR_ACCOUNTING_PASS, 30 cases, extra fits 0",
+            "%754: v4-support-review/summarize.py -> only saved report statistics",
+            "%755: matched-support-v5/basic.sh -> 7 checks PASS, known coefficients, actual and synthetic coefficient solves 0",
+            "%756: matched-support-v5/launch-basic.sh -> 4 checks PASS; prepare.py -> PREPARED_ONLY_PATCH, 18 rank checks, actual fit 0",
+            "最终tmux只读来源/计划校验与提交命令、结果记录于v4-support-review/final-verify及commit日志"
+          ],
+          "results": [
+            "短工况1200完整区间有600超出原折逐轴指令范围，旧导航7921可对齐区间有103超出；范围检查不是凸包或状态充分性证明。",
+            "短工况一步/自由转向RMSE0.121297/0.143760rad/s；M06单步已0.369654，不能把全部错误归因于累积。精确递推闭合3.61e-16，末端航向记账闭合2.74e-13rad。",
+            "17项主agent基本检查通过；原始数据/旧失败保留，新增真实或合成系数求解/应用/业务回合/W/网络更新/校准/GPU均0。",
+            "新工具无生产消费者，不改RC-PPO目标、v2/功率/足迹/alpha/delta/锁/旧45秒actor双critic；90秒仍候选。NAV-043=false、55/67、G5未过。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_v4_support_review_v1.json",
+            "CaMRA/navigation/docs/nav043_v4_support_review_20261120.md",
+            "CaMRA/navigation/config/nav043_matched_support_proposal_v5.json",
+            "CaMRA/navigation/config/nav043_matched_support_readiness_v5.json",
+            ".worklog-testing/NAV-043/v4-support-review/basic.log",
+            ".worklog-testing/NAV-043/v4-support-review/analyze.log",
+            ".worklog-testing/NAV-043/matched-support-v5/basic.log",
+            ".worklog-testing/NAV-043/matched-support-v5/launch-basic.log",
+            ".worklog-testing/NAV-043/matched-support-v5/prepare.log"
+          ],
+          "remaining_work": [
+            "等待同覆盖v5一次18轴解/CPU1小时新科学范围明确确认；确认后独立APPROVED、实际预检提交、一次执行及保存审阅。",
+            "依对照结果决定数据支持/状态/长期目标下一步，不默认重复拟合或导航重训；参考命令/J、独立90秒适用性及受影响生产门禁仍需按依赖完成。"
+          ],
+          "blockers": [
+            "旧v4一次诊断额度已结束，不能借余量或把本轮继续推进自动扩大为新18求解批准；新范围尚未确认。",
+            "实际闭环、90秒残余及新运动模型适用性未关闭，准备通过不能签NAV-043/G5。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-20T14:14:51+08:00",
+          "summary": "NAV-043保存支持审阅收尾检查器误报已纠正，失败保留，v2最终来源核验通过",
+          "actions": [
+            "%757首次final-verify在生产消费者搜索断言误报：检查器要求两个隔离文件都必须引用自身模块名，而分析脚本没有自引用；此前来源、17基本检查、83原输出与追加历史核对均已完成。",
+            "%758保存原失败检查器源码及原exit1/log；实际rg只返回隔离v5自身。仅将断言修为不得存在隔离诊断以外的消费者，不改模型、评分、数据或提案。",
+            "%759使用新日志/退出路径运行修正检查器，原错误证据不覆盖；SAVED_REVIEW_AND_MATCHED_PREPARATION_PASS、exit0，全部源pin/原83输出/295身份、原66记录及67任务定义状态核对通过。",
+            "本记录仍只追加，随后提交脚本再核对69条记录和legacy update，完成已授权本地提交，不推送。"
+          ],
+          "files_changed": [
+            ".worklog-testing/NAV-043/v4-support-review/final-verify.py",
+            ".worklog-testing/NAV-043/v4-support-review/final-verify-v1-failed-source.py",
+            ".worklog-testing/NAV-043/v4-support-review/final-verify-v2.sh",
+            ".worklog-testing/NAV-043/v4-support-review/final-verify.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "%757: final-verify.sh -> exit1，消费者搜索预期错误，原源码/日志保留",
+            "%758: 保存原检查器，rg实际消费者仅隔离v5自身",
+            "%759: final-verify-v2.sh -> SAVED_REVIEW_AND_MATCHED_PREPARATION_PASS / exit0",
+            "收尾commit.py进行最终追加历史/legacy/原pin核对并本地提交，实际提交号及干净状态见/tmp/nav043-v4-support-commit.log"
+          ],
+          "results": [
+            "检查器错误不构成模型或生产运行失败；原科学FAIL、所有物理/名义失败及本次误报记录均保留。",
+            "修正后只读检查通过，无生产消费者；新提案71d5a31e/readiness364fe158、APPROVED不存在和新拟合0保持。",
+            "NAV-043=false、55/67、G5未过，固定v2/旧45秒链/alpha/delta和90秒待验证保持。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/v4-support-review/final-verify.log",
+            ".worklog-testing/NAV-043/v4-support-review/final-verify.exit",
+            ".worklog-testing/NAV-043/v4-support-review/final-verify-v1-failed-source.py",
+            ".worklog-testing/NAV-043/v4-support-review/final-verify-v2.log",
+            ".worklog-testing/NAV-043/v4-support-review/final-verify-v2.exit",
+            ".worklog-testing/NAV-043/v4-support-review/final-verify.json"
+          ],
+          "remaining_work": ["同覆盖v5新18轴解/CPU1小时范围待明确确认；不重启旧v4，不自动训练或执行物理。"],
+          "blockers": ["旧诊断失败、独立90秒/生产适用性缺口和新拟合范围授权仍未关闭。"]
         }
       ],
       "constraints_and_notes": [
