@@ -1,7 +1,7 @@
 {
   "document": {
     "name": "CaMRA 固定 v2 上层最小成本到达避障实施计划",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "created_at": "2026-11-09",
     "mode": "update",
     "source_plan": "本轮用户确认的六阶段实施顺序及逐阶段源码参考；前置过程见 doc/plan/20261103_camra_calibration_implementation.json 和 doc/plan/20261105_camra_hira_policy_calibration.json。",
@@ -103,6 +103,15 @@
         "added_task_ids": [],
         "preserved_task_ids": "67项顺序/ID/依赖/status/verification_result及历史工作记录保留，当前NAV-043追加新证据。",
         "authority": "CaMRA/navigation/config/navigation_horizon_v2.json"
+      },
+      {
+        "version": "1.5.1",
+        "date": "2026-11-20",
+        "kind": "用户指定迁移后续NAV任务的执行主机",
+        "summary": "自NAV-043起在本机tiger12及tmux运行，使用已核验的隔离Python环境和本机独立输出目录。旧实验记录原执行主机。",
+        "added_task_ids": [],
+        "preserved_task_ids": "67项任务顺序、依赖、验收、状态及既有记录保留。",
+        "authority": "用户指令：改一下计划文档，后续都在本台机器上跑，然后按照计划继续推进后续任务。"
       }
     ]
   },
@@ -140,7 +149,7 @@
       "后续整套固定使用 camra_go2_velocity_it2999_v2，不重新训练或更换低层。",
       "先实现名义环境，提前接通低层做小测试，再在确定性名义环境训练上层，完成预算选择和 clean 闭环，最后固定策略做扰动检验。",
       "障碍物间距适当加宽，必须在加入 v2 几何裕度之后仍有通路。",
-      "所有执行实验使用 tiger11（192.168.20.11）及 tmux；论文只读。",
+      "后续NAV实验使用本机tiger12（192.168.20.12）及tmux。迁移前实验按原证据记录执行主机。论文只读。",
       "随机物理环境中的上层再训练不属于首轮必做工作。",
       "本次把审查改进原位融入既有67项任务，不再追加任务；下一轮先做原理/数据对齐和数值验证，再训练、预算搜索与物理检验。"
     ],
@@ -174,7 +183,7 @@
   "scope": {
     "included": [
       "新上下文完整学习方法、RC-PPO、HiRA、v2及校准实现，并形成理解证据。",
-      "在 tiger11 按实际设备配置隔离环境；实现并验证名义环境及固定v2的物理调用。",
+      "按计划指定主机配置隔离环境；实现并验证名义环境及固定v2的物理调用。后续运行使用tiger12。",
       "首轮使用仿真真值平面状态与地图几何，建立双方一致的观测；不引入感知系统。",
       "无校准基线（α=0、δ=0，仍包含机器人足迹）与完整方法的名义训练、预算选择、clean和扰动检验。",
       "训练、开发、预算选择、最终评估分离；真实日志、全体分母、失败与复算证据完整交付。",
@@ -195,7 +204,7 @@
     "completed_at_creation": 0,
     "first_task": "NAV-001",
     "creation_only": false,
-    "next_executor_instruction": "新上下文先读AGENTS、README、本计划全文和导航交接当前段；按源码复核已有阅读记录，不重跑NAV-001–060。获执行授权后从NAV-061开始，先冻结契约、数据和有限资源，再按NAV-062→063→064→065→066→067→043及原下游链执行。旧status是原版本记录，NAV-061建立回修台账，受影响门禁须重验；未取得新放行证据不得启动正式评估。",
+    "next_executor_instruction": "先读AGENTS、README、本计划和导航交接。在本机tiger12按任务依赖继续NAV-043，取得并核验冻结输入，再登记90秒配对小批的地图、预算口径、放行条件和配额。NAV-044及正式评估依赖本项验收。",
     "stages": [
       {
         "name": "背景学习与源码追踪",
@@ -319,8 +328,8 @@
         ]
       }
     ],
-    "completed_at_revision": 48,
-    "current_task": "NAV-061",
+    "completed_at_revision": 55,
+    "current_task": "NAV-043",
     "revision_only": true
   },
   "alignment_review": {
@@ -602,7 +611,7 @@
     }
   },
   "global_constraints": [
-    "执行主机固定为 tiger11 / 192.168.20.11；禁止使用192.168.20.10，不能因登录失败、资源短缺或依赖缺失而自动切换192.168.20.12或其他节点。",
+    "后续NAV任务在tiger12（192.168.20.12）本机执行。可按冻结清单从tiger11只读取回历史产物，历史任务保留原执行主机。",
     "服务器终端、依赖安装、环境探测、导出、测试、仿真、训练、采集、评估和复算在tmux中运行，记录会话/窗口、hostname、GPU、cwd、绝对解释器、非敏感完整命令、日志和产物；首次hostname确认和最小tmux引导、本地文档/静态检查为例外。",
     "控制器固定camra_go2_velocity_it2999_v2；权重、资产、观测/动作映射、PD、频率、功率模型、足迹、α/δ及锁必须整套匹配。缺资源先核验恢复，不替换HiRA。",
     "保持物理200 Hz、低层50 Hz、上层10 Hz；每个上层周期含5次低层重新观测推理和20个物理子步，不能把一次关节输出保持0.1秒。",
@@ -617,7 +626,7 @@
     "首轮扰动阶段固定上层策略、评价网络、预算规则和α/δ，只评估；若要随机环境再训练、延长校准窗口或新增校准必须询问用户。",
     "所有run/attempt/trial保留；不自动覆盖、挑最好attempt、删除业务失败或把崩溃当成成功。基础设施故障和业务失败分开登记，未完成事件保留分母状态。",
     "训练/开发/预算选择/最终评估按地图与种子族隔离；不得用最终指标选checkpoint、调裕度、调预算阈值或改地图后继续冒充原测试。",
-    "每次启动前检查主仓库/子模块和既有tmux、进程、输出锁、run_id、恢复标记；中断后先恢复原任务，不重复并发写同一split。大型产物在tiger11登记的独立目录，不能混入旧校准目录。",
+    "每次启动前检查主仓库/子模块和既有tmux、进程、输出锁、run_id、恢复标记；中断后先恢复原任务，不重复并发写同一split。新产物在tiger12登记的独立目录，旧校准目录只读。",
     "任何会改变来源、范围、数据、核心依赖、评分口径、资源预算、已有产物、远程Git状态或外部费用的不确定决策必须暂停并询问用户；已确认约束不重复征询，计划内正常实现和输出不逐文件索要许可。",
     "本地既有文档修改属于现有工作，保留并记录；Git提交/推送按当次明确授权。绝不写入凭证、环境秘密或账户密码。",
     "不能把PPO损失下降、进程退出0、模型能加载或校准覆盖率当成收敛、导航成功或形式化随机安全证明；验收看实际字段及独立证据。",
@@ -645,7 +654,7 @@
       "fixed_boundaries": [
         "固定camra_go2_velocity_it2999_v2及整套执行/校准身份，保留其已知局限，不换模型、不改旧功率模型/足迹/α/δ或冻结锁。",
         "物理200 Hz、底层50 Hz、上层10 Hz，机身系[vx,vy,yaw_rate]；内部模型成本和实际正机械功分列，单位J。",
-        "执行固定tiger11（192.168.20.11）+tmux；运行前现场核验资源，Windows文档/静态检查例外。",
+        "后续执行固定tiger12（192.168.20.12）及tmux，运行前现场核验资源，本地文档和静态检查为例外。",
         "train/development、独立预算选择与final_*用途隔离，历史暴露如实登记，全部失败和原始证据保留，资源不暗中扩额。",
         "RC-PPO/、HiRA/、论文和历史冻结成果保持只读；计划内明确的导航实现缺陷可按回修规则修复。"
       ],
@@ -706,7 +715,7 @@
   "uncertainty_policy": {
     "rule": "只锁定用户已确认的设计。运行来源不唯一、结果异常或需扩展授权时暂停，任务保持false并追加blocker；不为了完成任务自行改变事实。",
     "must_pause_and_ask": [
-      "tiger11无法登录、hostname不符、GPU资源不可用或需换服务器/新增费用。",
+      "本机hostname不符、所需GPU不可用、冻结输入无法从权威来源取得，或需再换服务器或新增费用。",
       "v2权重、资产或匹配校准配置缺失/散列不符，多个候选不能由权威清单唯一确定；换行差异不能直接更新旧散列。",
       "需要选择或修改未登记的核心框架/依赖版本、升级共享Isaac环境，或资源预算无法由已授权约束确定。",
       "需要收窄/滤波指令域、修改控制频率、任务时限、能量定义、终止优先级、比较分母或安全判据。",
@@ -830,13 +839,16 @@
   },
   "runtime_contract": {
     "required_host": {
-      "ssh_target": "192.168.20.11",
-      "hostname": "tiger11",
+      "address": "192.168.20.12",
+      "hostname": "tiger12",
+      "hostname_fqdn": "tiger12.ios.ac.cn",
+      "connection": "local",
       "forbidden_nodes": [
         "192.168.20.10",
-        "192.168.20.12"
+        "192.168.20.11"
       ],
-      "login_precheck": "ssh 192.168.20.11 hostname"
+      "host_precheck": "hostname -f",
+      "historical_artifact_source": "192.168.20.11"
     },
     "tmux": {
       "session_name_prefix": "camra-nav-v2-",
@@ -845,12 +857,14 @@
     },
     "resource_resolution": {
       "repository_hint": "/home/caohy/repositories/Paper",
-      "python_hint": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+      "python_hint": "/pub/data/caohy/run/camra-tiger12-navigation/venv/bin/python",
+      "isaaclab_root_hint": "/pub/data/caohy/IsaacLab",
+      "local_opengl_library_hint": "/pub/data/caohy/run/camra-tiger12-navigation/os-libraries/root/usr/lib/x86_64-linux-gnu",
       "v2_bundle_hint": "/pub/data/caohy/camra_bundles/frozen/camra_go2_velocity_it2999_v2",
       "asset_root_hint": "/pub/data/caohy/unitree_model",
       "proposed_navigation_work_root": "/pub/data/caohy/work/camra_navigation",
       "proposed_navigation_output_root": "/pub/data/caohy/logs/camra_navigation",
-      "path_status": "上述路径为NAV-007–010和docs/runtime_environment.json记录的历史运行位置；NAV-061恢复时在tiger11/tmux再次核验可用性、占用、锁与版本，不假定本机有资源。",
+      "path_status": "解释器和Isaac Lab路径已在tiger12核验。/pub为节点本地盘，按清单核对迁入的上层模型、旧试跑证据、v2及校准文件。每次在tiger12现场核验GPU、路径、版本和输出锁。docs/runtime_environment.json保存原tiger11记录。",
       "isolation_rule": "新导航环境和输出独立命名，旧v2/HiRA包体、原始数据、锁和共享运行目录不作写入目标。",
       "shared_filesystem_rule": "/home共享NFS，文件可见不证明执行节点正确；每个run保存hostname和GPU身份。",
       "dependency_rule": "优先复用经核验的兼容依赖；不静默升级共享环境、切仿真器或复制另一个节点的解释器路径。"
@@ -16848,6 +16862,93 @@
             "若旧模型仍有局限，依据实际诊断确定后续；不默认训练、响应拟合或宣告通用性/G5。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-20T22:33:55+08:00",
+          "summary": "收录90秒执行诊断终态，核对NAV-043下一批真实闭环的前置条件",
+          "actions": [
+            "按计划1.5.0选择首个依赖已结案的未完任务NAV-043，核对NAV-066冻结候选和预算规则、NAV-067 clean工程接入及本项四条验收要求。",
+            "从共享仓库的已保存报告、启动记录及退出标记复核既有90秒诊断，逐图分列实测机械功与内部成本。",
+            "核对原integration_pilot清单、冻结模型位置和执行主机的SSH连通性，形成独立90秒闭环小批的待登记范围。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "CaMRA/navigation/docs/nav043_timeout_extension_20261120.md",
+            "AGENTS.md"
+          ],
+          "commands": [
+            "validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update",
+            "jq 读取90秒报告及NAV-043任务，核对run.exit和audit.exit",
+            "ssh -o BatchMode=yes -o ConnectTimeout=6 192.168.20.11 hostname -f",
+            "从NAV-066冻结清单逐项检查checkpoint路径，从90秒协议检查NAV-067 pilot manifest及原始输出目录"
+          ],
+          "results": [
+            "原90秒诊断FINISHED，执行与审阅退出均为0，三张已暴露图全程安全且实测预算内到达。用时41.815、52.445、46.120秒，L2/L3超过旧45秒截止时点。",
+            "L1/L2/L3实测机械功为447.767、570.273、491.042J。L2实测570.273J低于640.372J预算，其内部成本644.378J超过预算4.006J。",
+            "原审阅验证3应用、15次初态W、28676次显式物理调用和295项受保护身份。本轮仅核对保存报告，在tiger12未新增仿真、训练、标定或预算查询。",
+            "三条轨迹支持已知图延时诊断。两方法90秒公平小批、未见图表现和留量适用性仍待验证。NAV-043维持false，55/67，G5待验收。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_timeout_extension_review_v1.json SHA256=9bbaaa5124ab25a7dad9e53c64a16a2b009583e027b4ab92ef43b4bc245d2325",
+            ".worklog-testing/NAV-043/timeout-extension-v1/run.exit",
+            ".worklog-testing/NAV-043/timeout-extension-v1/audit.exit",
+            "CaMRA/navigation/config/split_manifest_v1.json",
+            "CaMRA/navigation/docs/nav043_timeout_extension_20261120.md"
+          ],
+          "remaining_work": [
+            "恢复tiger11的SSH访问并核验模型、资产及运行配置。若改用tiger12，先明确修改当前任务的执行主机约束并取得、核验冻结输入。",
+            "独立登记NAV-043新地图和初态，预先锁定比较口径、验收项和资源上限，再让两种方法接同一Go2 v2和Isaac环境执行90秒配对小批。",
+            "逐例审阅200Hz事件、真实机械功、内部成本、预算拒绝和残差适用性。仅在同类失败可重复时展开针对性诊断。"
+          ],
+          "blockers": [
+            "计划绑定tiger11。tiger12到192.168.20.11在SSH banner交换阶段超时，退出255。tiger12缺NAV-066冻结清单的6个上层checkpoint、NAV-067 pilot manifest及90秒原始输出目录。",
+            "当前integration_pilot只登记种子101的3张已暴露图。生成器仅变换起点、终点和朝向。新增障碍布局及初态所需的独立测试清单、配额和放行标准需在运行前登记。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-20T22:43:12+08:00",
+          "summary": "按用户决定切换后续NAV执行到tiger12，完成冻结输入和本机运行环境盘点",
+          "actions": [
+            "统一计划1.5.1、仓库说明和导航交接的后续执行主机，记录本机tmux、隔离解释器和Isaac路径。保留原tiger11实验的协议、结果、失败和数据归属。",
+            "从NAV-066和NAV-067证据确认当前小批使用full_s0和uncalibrated_s2两组冻结上层模型。按原注册核对166项保护文件及六个候选checkpoint，查找本机和共享工作区的可用备份。",
+            "通过配置SSH路径及直连发起限时只读探测，确认原主机暂不可取回文件。复核本机的Go2 v2、Blackwell推理和Isaac短仿真已有证据。"
+          ],
+          "files_changed": [
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "README.md",
+            "doc/README.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav043_timeout_extension_20261120.md"
+          ],
+          "commands": [
+            "hostname -f；hostname -I；tmux -L camra-tiger12 list-sessions",
+            "NAV-066 protected_hashes逐项sha256sum；核对six_candidates、selected_candidates路径和备份",
+            "ssh -o BatchMode=yes -o ConnectTimeout=7 192.168.20.11 hostname -f；复核直连SSH",
+            "validate_worklog.py doc/plan/20261109_camra_navigation_implementation.json --mode update；git diff --check"
+          ],
+          "results": [
+            "本机身份为tiger12.ios.ac.cn / 192.168.20.12。NAV-066的166项保护文件均匹配，六候选checkpoint路径均缺失。",
+            "本机已有53项导航和248项校准测试通过记录，Go2 v2 GPU推理与20物理步无头仿真通过。仿真以快速退出完成，正式导航入口及其退出流程待独立验证。",
+            "tiger11两条访问路径均在SSH握手阶段超时。新物理回合、训练、标定和W查询均为0。NAV-043保持待验收，55/67。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/nav066_decision_prereg_v2.json",
+            "CaMRA/navigation/config/nav043_timeout_extension_v1.json",
+            "CaMRA/navigation/docs/nav043_timeout_extension_20261120.md",
+            "/pub/data/caohy/run/camra-tiger12-navigation/cpu-regression-verified-path.log",
+            "/pub/data/caohy/run/camra-tiger12-navigation/blackwell-verify-final.log",
+            "/pub/data/caohy/run/camra-tiger12-navigation/isaac-physics-smoke-final.log"
+          ],
+          "remaining_work": [
+            "取得原冻结checkpoint和试跑清单并逐文件核对SHA256。优先恢复本轮直接消费的两组候选，再补齐新入口实际需要的历史来源。",
+            "登记独立小批地图、起点、预算口径、验收门槛及配额，在tiger12独立入口执行两方法90秒闭环对照并复核完整轨迹。"
+          ],
+          "blockers": [
+            "本机缺少配对的两份冻结上层模型及原试跑清单。原主机SSH握手超时，已查目录没有匹配备份。",
+            "新小批地图、资源和放行条件待独立登记。旧一次性协议已结束。"
+          ]
         }
       ],
       "constraints_and_notes": [
@@ -17101,7 +17202,7 @@
       "work_records": [],
       "constraints_and_notes": [
         "打包导航代码/依赖/配置/模型/清单/运行命令和日志索引，v2与旧校准只读引用并验证身份。",
-        "在tiger11独立输出目录恢复一个登记小回合和离线复算；不覆盖正式评估或旧冻结包。",
+        "在tiger12独立输出目录恢复一个登记小回合和离线复算，正式评估和冻结包只读。",
         "复现入口显式传新契约/候选/搜索/clean配置，禁止依赖可变v1默认文件或仅验actor不验双critic；旧版独立可追溯。"
       ],
       "acceptance_criteria": [
@@ -17215,7 +17316,7 @@
   ],
   "final_acceptance": [
     "NAV-001–067共67项按数组和依赖验收；保留48项历史记录，新版受影响契约/目标/学习/部署/搜索/物理门禁必须重验，缺口不靠旧true放行。",
-    "执行证据全部归属tiger11及tmux，运行路径、解释器、GPU、Git/dirty快照、控制器和资产散列可追溯。",
+    "新执行证据归属tiger12及tmux，历史证据归属原执行主机，运行路径、解释器、GPU、Git/dirty快照、控制器和资产散列可追溯。",
     "固定v2与精确匹配的功率/足迹/α/δ/锁，参考仓库、旧校准、历史任务和论文无未授权修改。",
     "地图使用统一原始几何，δ只计一次，存在经连续几何及速度/时限检查的可行路线，空间克隆互不干扰。",
     "名义环境、成本J、y/z、终止/截断和原RC-PPO最小化目标通过独立数学及反例检查。",

@@ -64,9 +64,9 @@
 | --- | --- | --- |
 | [locomotion](CaMRA/locomotion/README.md) | v2 已冻结；HiRA 历史包保留 | 后续固定使用 v2，不替换模型与执行契约 |
 | [calibration](CaMRA/calibration/README.md) | v2 与 HiRA 双套历史校准均已建立 | 主线使用 v2 配套校准，HiRA 复核独立保留；稿件由作者修改 |
-| [navigation](CaMRA/navigation/README.md) | 已有实现和负结果；67项中48项记录完成 | 从NAV-061按原理回修、重训及闭环重验 |
+| [navigation](CaMRA/navigation/README.md) | 55/67项结案。90秒诊断在三张已见图达标 | NAV-043恢复冻结上层权重后，在tiger12做配对闭环验证 |
 
-本阶段仅做 Isaac Lab 仿真，执行主机固定 tiger11（192.168.20.11），终端任务使用 tmux。先完成原理与生产调用链重验，再有限训练、独立预算选择和clean复验，最后固定策略做正式clean与扰动检验。运行前按计划核验环境、模型和资产；Agent 接手先读 [AGENTS.md](AGENTS.md)。
+后续导航仿真使用本机 tiger12（192.168.20.12）及 tmux。当前先完成冻结策略的正常条件小批验证，再按计划推进正式对照和扰动检验。运行前核对环境、模型和资产。 [接手说明](AGENTS.md)
 
 ## 目录与阅读入口
 

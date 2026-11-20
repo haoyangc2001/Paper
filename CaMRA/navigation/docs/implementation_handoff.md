@@ -1,5 +1,11 @@
 # 上层导航实施交接
 
+## NAV-043 在 tiger12 续行（2026-11-20）
+
+计划 v1.5.1 指定后续 NAV 任务在本机 `tiger12.ios.ac.cn`（`192.168.20.12`）及 tmux 执行。绝对解释器为 `/pub/data/caohy/run/camra-tiger12-navigation/venv/bin/python`，Isaac Lab 源码在 `/pub/data/caohy/IsaacLab`，OpenGL 兼容库路径在计划 `runtime_contract.resource_resolution` 登记。当前机器已验证 Go2 v2 推理和短仿真。NAV-066 清单的166项保护文件逐条复核均匹配。
+
+NAV-043 仍待验收（55/67）。冻结完整方法 `full_s0`、无校准基线 `uncalibrated_s2` 以及另四个已登记 checkpoint 在本机均缺失，原 NAV-067 pilot manifest 与旧90秒源数据位于原记录路径。tiger11 直连及配置的SSH路径均在握手阶段超时，本机已查目录内没有匹配备份。优先取回两组冻结权重和原清单，再按实际入口的清单填齐所需来源。文件、模型参数和历史证据按原 SHA256 核验。旧报告已记录3/3安全且实测预算内到达，仍须完成本机90秒配对小批。 [计划](../../../doc/plan/20261109_camra_navigation_implementation.json) · [诊断和续行范围](nav043_timeout_extension_20261120.md)
+
 ## 当前结果（2026-11-20，同覆盖v5对照已保存复核）
 
 批准/实际预检先提交53f7aca，%768一次完成6模型/18轴解/108保存指令预测，拟合11.001秒、退出0、无HELD；%769/%770主agent保存复核/归档通过，额外求解0，无测试子agent。同数据下短工况训练内位置RMSE对角/耦合0.246/0.149米，留出导航1.015/1.026米，长导航没有整体优势；短工况三折复用不当独立验证。260原件及152小JSON/108外置NPZ索引保留，旧FAIL/HELD保持。见[结果与后续依据](nav043_matched_support_result_20261120.md)。
