@@ -1,0 +1,121 @@
+*** Begin Patch
+*** Add File: /home/caohy/repositories/Paper/CaMRA/navigation/config/nav043_timeout_extension_v1.json
++{
++  "schema": "nav043-execution-timeout-diagnostic-v1",
++  "task": "NAV-043",
++  "status": "APPROVED_CURRENT_USER_REQUEST",
++  "approved_at": "2026-11-20T17:04:30.414825+08:00",
++  "authorization": {
++    "user_instruction": "先做一下延长超时时间 看一下效果吧 我理解上层训练后应该具有通用性 我们的核心目标是训练一套这样的到达避障系统",
++    "interpretation": "Current explicit timeout-extension instruction authorizes one minimal diagnostic on the three existing integration cases; use already designed 90s execution limit. No new training or approval question.",
++    "new_allocation": true,
++    "old_allocation_reused": false
++  },
++  "output_root": "/pub/data/caohy/work/camra_navigation/nav043_timeout_extension_v1",
++  "pilot_manifest": "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/manifest.json",
++  "old_exploration_root": "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1",
++  "physical_gpu_uuid": "GPU-ae8422a0-8130-a384-1ec6-8ba59fe59d3a",
++  "physical_gpu_index": 6,
++  "isaaclab_origin": "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/__init__.py",
++  "limits": {
++    "applications": 3,
++    "physical_navigation_episodes": 3,
++    "W_queries": 15,
++    "nominal_episodes": 0,
++    "gpu_wall_s": 10800,
++    "explicit_physics_calls": 60000,
++    "per_application_physics_calls": 20000,
++    "automatic_retries": 0,
++    "training_updates": 0,
++    "calibration_fits": 0
++  },
++  "order": [
++    "L1_empty",
++    "L2_single_detour",
++    "L3_multi_path"
++  ],
++  "methods": [
++    "full"
++  ],
++  "execution_horizon_s": 90.0,
++  "actor_observation_horizon_s": 45.0,
++  "warmup_s": 1.0,
++  "actor_time_semantics": "Original obs-v7: max(0,45-elapsed)/45, zero after 45s; not obs-v8-t90 and no model or critic reinterpretation.",
++  "budget_semantics": "Same original five W queries from actual warmup state, grid and reserve; no raised budget after observing failure. Selected budget and all predictions sealed before physical action.",
++  "execution": "Fixed full policy/v2/clean Go2/200-50-10Hz, one attempt per exposed map; retain all failures. Physical budget deficit is recorded using unchanged physical event semantics, no budget top-up.",
++  "stopping": "Business terminal retains result and proceeds to fixed next map; infrastructure/evidence failure stops allocation. No retries or automatic alternate GPU.",
++  "reporting": "Describe reach, safety, actual J and internal budget separately, including 45s prefix. Not independent generalization, calibration or G5 evidence; original FAIL/HELD and frozen production remain.",
++  "sealed_hashes": {
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav043_budget.py": "baaed3ecd6fdaca79a8c2b01e818bba566ad942729f712f730a50db1bae92634",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav043_simulation.py": "1e8429d565c1064744754a6cdb3e9006d34f5a621b0f0d801ac102499558647e",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/run_nav043_exploration.py": "c8e7c379f8f86d37ded8ad1797892b6a941c07aa90ecd77482baaf4160bf851a",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav067_simulation_v3.py": "ea2402e82bb07f1eab7014a7c944189584ebd7b0b9133cd1df4a5c5e023c6849",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav067_sources.py": "384dd00528b635dd9a0af501a1222860fa617f35484f7bf39d85e3114d37fe1b",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav067_runtime.py": "f0719aa15e46879c221633ccec292d3eae4ba86f11348c65944227546e54791c",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/run_nav066_decision_validation.py": "78865aba2870adb61d645e554a65c0081dfd14692de99db81c9a0e9a3ba10eea",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/src/camra_navigation/envs/clean_v2.py": "848ca77b45772e64bd7ae11275e7e7cfce78f6f3e1247d9d1f3b01b7e90bd859",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/src/camra_navigation/envs/clean_v3.py": "2dc118aa351fa8e97858f485d1776ecbfa52eade0746a5f8df191960ab975b09",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/src/camra_navigation/envs/physical_v2.py": "c04249573fd15f89751d1dd20aa9e35c94fbce88278d41e2d437854b25afba07",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/config/nav066_decision_prereg_v2.json": "6e783599f76e68cc483bfc9f4d3e7649e4b312f48335a5c7c578f974ab9d126c",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav067_engineering_acceptance_v1.json": "54da0a72821f31dffe8dd5c6c4f314430ece66fb048a6adcde3a7a570d46a530",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/reports/nav066_efficiency_limitation_acceptance_v1.json": "c87d263eacb94741638d29e56fcd0679d0910dacdfacb373cb76776f77382505",
++    "/home/caohy/repositories/Paper/.worklog-testing/NAV-043/exploration-v1/verify_basic.py": "c68b4398d54cdd41176b54197b6e507420d79f4c94957cb27d6893a7b349bc93",
++    "/pub/data/caohy/work/camra_navigation/nav067_clean_pilot_v1/manifest.json": "f33d829896347b4efef4217ba4ec191d4b9b24f69f7576d7b77120003cb02402",
++    "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/sim/simulation_context.py": "340450726276d321c48b57de35f846c5a231c30a358b4922b5b7dbb8d42ec80e",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav043_timeout.py": "899a4cddaded1e06ca1af739e532be0199a853fc0657172f5ffa49fabde290e1",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/nav043_timeout_simulation.py": "62d2908677759001d7693ec40841680254bcf52b8bf22b97440484f0705e7ab2",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/run_nav043_timeout.py": "dbfa92ab39fa0c293a373d5716eea91777f329512762f5cf219a8fe6d037215f",
++    "/home/caohy/repositories/Paper/CaMRA/navigation/scripts/audit_nav043_timeout.py": "145a2747560f072ffed54fd7427601f86bcd1f2ab2a9e7eb32f1ee9e047e9a87",
++    "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/full/decision.json": "baaf9961b91a6776fa602f4121f808b3e07bd7d8159549abb020824a052a2132",
++    "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L1_empty/full/result.json": "fc7bd43fd67daa611ad5da09d01169058471b750c2ddb31f451ebd4143abdebc",
++    "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/decision.json": "e448ca7f0d3c4d80062e273794a2259d7183aa4fea67582256e78547368cd9ad",
++    "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L2_single_detour/full/result.json": "0ead807e5f3f9b3e91d964e7c32211d8575411a2d38383e1fed267872101235a",
++    "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/full/decision.json": "39427fa6fa59854343079447dfdee1c94f620807d4be022cd6fe0dd12f040ef3",
++    "/pub/data/caohy/work/camra_navigation/nav043_budget_exploration_v1/L3_multi_path/full/result.json": "b14c6a443a76842dc5d44d7091f6c6ac72a4f80ce1dc3429e979faeb5e957834"
++  },
++  "NAV_043_pass": false,
++  "G5_pass": false
++}
+*** Add File: /home/caohy/repositories/Paper/CaMRA/navigation/config/nav043_timeout_extension_v1.json.sha256
++7b7aed931c355795ae78002c5e5db2d3243693d7f665ce5c4098eb32445a0848
+*** Update File: /home/caohy/repositories/Paper/doc/plan/20261109_camra_navigation_implementation.json
+@@
+           "blockers": [
+             "现有训练内改善不能作为长导航/90秒适用性或G5放行；无新拟合、物理或校准配额，不自动扩展本次已结束范围。"
+           ]
++        },
++        {
++          "timestamp": "2026-11-20T17:04:30.414825+08:00",
++          "summary": "用户明确要求先延长超时直接看效果；登记旧45秒actor的90秒执行诊断，不训练或继续拟合",
++          "actions": [
++            "完整读取根AGENTS、legacy技能/规则和当前计划；核对NAV-043依赖与55/67状态及旧45秒物理结果。",
++            "直接落实用户本轮延时测试授权，不重复询问；登记新独立3应用/3完整方法integration回合/最多15初态W、60000显式步、GPU6累计3小时的一次诊断。",
++            "新增隔离90秒执行监视器，原obs-v7仍按45秒归一化并在45秒后保持0；保持原actor/双critic、底层v2、预算选择、安全/成本/停滞规则，不重训练。",
++            "先基本检查、实际资源预检和本地提交，再一次物理启动，完成后主agent保存复核；无测试子agent。"
++          ],
++          "files_changed": [
++            "CaMRA/navigation/scripts/nav043_timeout.py",
++            "CaMRA/navigation/scripts/nav043_timeout_simulation.py",
++            "CaMRA/navigation/scripts/run_nav043_timeout.py",
++            "CaMRA/navigation/scripts/audit_nav043_timeout.py",
++            "CaMRA/navigation/config/nav043_timeout_extension_v1.json"
++          ],
++          "commands": [
++            "tiger11/tmux: timeout-extension-v1/basic.sh; prepare.py生成待应用追加patch"
++          ],
++          "results": [
++            "当前尚无新增应用/物理步/W查询/训练/校准；所有原始失败保持。",
++            "本次只诊断现有到达避障策略能否靠增加执行时间完成；不宣称旧critic或alpha/delta覆盖90秒。"
++          ],
++          "evidence": [
++            "CaMRA/navigation/config/nav043_timeout_extension_v1.json",
++            ".worklog-testing/NAV-043/timeout-extension-v1/prepare.log"
++          ],
++          "remaining_work": [
++            "基本检查/预检通过后提交并运行一次；独立保存能量/200Hz事件/观测和45秒前缀复核，按实际结果分析。"
++          ],
++          "blockers": []
+         }
+       ],
+       "constraints_and_notes": [
+*** End Patch

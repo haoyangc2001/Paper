@@ -16777,6 +16777,38 @@
           "blockers": [
             "现有训练内改善不能作为长导航/90秒适用性或G5放行；无新拟合、物理或校准配额，不自动扩展本次已结束范围。"
           ]
+        },
+        {
+          "timestamp": "2026-11-20T17:04:30.414825+08:00",
+          "summary": "用户明确要求先延长超时直接看效果；登记旧45秒actor的90秒执行诊断，不训练或继续拟合",
+          "actions": [
+            "完整读取根AGENTS、legacy技能/规则和当前计划；核对NAV-043依赖与55/67状态及旧45秒物理结果。",
+            "直接落实用户本轮延时测试授权，不重复询问；登记新独立3应用/3完整方法integration回合/最多15初态W、60000显式步、GPU6累计3小时的一次诊断。",
+            "新增隔离90秒执行监视器，原obs-v7仍按45秒归一化并在45秒后保持0；保持原actor/双critic、底层v2、预算选择、安全/成本/停滞规则，不重训练。",
+            "先基本检查、实际资源预检和本地提交，再一次物理启动，完成后主agent保存复核；无测试子agent。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/scripts/nav043_timeout.py",
+            "CaMRA/navigation/scripts/nav043_timeout_simulation.py",
+            "CaMRA/navigation/scripts/run_nav043_timeout.py",
+            "CaMRA/navigation/scripts/audit_nav043_timeout.py",
+            "CaMRA/navigation/config/nav043_timeout_extension_v1.json"
+          ],
+          "commands": [
+            "tiger11/tmux: timeout-extension-v1/basic.sh; prepare.py生成待应用追加patch"
+          ],
+          "results": [
+            "当前尚无新增应用/物理步/W查询/训练/校准；所有原始失败保持。",
+            "本次只诊断现有到达避障策略能否靠增加执行时间完成；不宣称旧critic或alpha/delta覆盖90秒。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/nav043_timeout_extension_v1.json",
+            ".worklog-testing/NAV-043/timeout-extension-v1/prepare.log"
+          ],
+          "remaining_work": [
+            "基本检查/预检通过后提交并运行一次；独立保存能量/200Hz事件/观测和45秒前缀复核，按实际结果分析。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
