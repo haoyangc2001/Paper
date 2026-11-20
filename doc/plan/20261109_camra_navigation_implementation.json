@@ -16724,6 +16724,59 @@
           "blockers": [
             "本次只解除精确CPU对照范围授权阻塞，不授权新增物理、训练、全量部署拟合或签G5；实际适用性缺口保持。"
           ]
+        },
+        {
+          "timestamp": "2026-11-20T14:37:32.587498+08:00",
+          "summary": "NAV-043/1.5.0同覆盖v5一次CPU对照与保存复核结束，短工况改善但长导航未见整体优势",
+          "actions": [
+            "用户本轮确认后独立APPROVED pin54e59adf绑定原提案71d5a31e/readiness364fe158；%765实际预检通过，295/90/29身份、30病例及原83输出核对，拟合0。",
+            "%766首次提交检查因原始opening.log末尾空行失败，原脚本/log保留；%767只对原始日志保留字节，所有非日志文件继续严格diff检查，批准/预检先提交53f7aca，工作区干净。",
+            "%768原一次launch.sh完成6模型/18轴解/108保存指令预测，拟合11.001秒、包装11.205秒，FINISHED、退出0、无HELD/重试。",
+            "%769原audit.sh主agent核对18保存解法方程/谱、108全预测数组与指标/角色、260完整输出及启动账本通过；额外拟合0，无测试子agent。",
+            "%770保存归档/来源复核通过，152小JSON逐字节另存Git，108NPZ外部原件/完整hash索引保持；汇总各工况和导航前缀，未做额外预测拟合或生产变更。",
+            "更新结果文档与交接，保留原门槛/旧FAIL/HELD，不设新PASS门槛、不选部署模型、不追加全量拟合。按legacy核验追加记录和全局一致性后提交，不推送。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav043_matched_support_review_v5.json",
+            "CaMRA/navigation/docs/nav043_matched_support_result_20261120.md",
+            ".worklog-testing/NAV-043/matched-support-v5",
+            "doc/plan/20261109_camra_navigation_implementation.json",
+            "AGENTS.md",
+            "README.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md"
+          ],
+          "commands": [
+            "%765: matched-support-v5/preflight.sh -> APPROVED_MATCHED_SUPPORT_PREFLIGHT_PASS / exit0",
+            "%767: prelaunch-commit-v2.py -> 53f7aca / WORKTREE_CLEAN",
+            "%768: matched-support-v5/launch.sh -> 18 axis solves / FINISHED / exit0",
+            "%769: matched-support-v5/audit.sh -> SAVED_MATCHED_SUPPORT_EXECUTION_AUDIT_PASS / exit0",
+            "%770: matched-support-v5/close.py -> MATCHED_SUPPORT_V5_ARCHIVE_AND_SCOPE_PASS",
+            "finish.py --commit在tmux核验71记录/全部任务定义状态/来源/归档并完成本地提交"
+          ],
+          "results": [
+            "同覆盖下短工况训练内位置RMSE：对角0.245565m、耦合0.149317m；末端航向MAE7.6829°/5.9273°。36记录/结构来自12工况三折复用，不作独立验证。",
+            "留出导航18条位置RMSE1.015271m/1.026430m，末端航向MAE14.6483°/13.5504°；L2耦合稍好、L1/L3位置稍差，无整体择优部署依据。",
+            "同18条导航5/10/20/30秒前缀位置RMSE约0.068/0.137/0.320/0.572m及0.067/0.136/0.330/0.592m；45秒仅13条，不能直接同分母比较。训练内M02/M03仍有明显残差，不能仅归因覆盖或唯一物理机制。",
+            "执行完整性通过且全部260原件/12388563字节保持；新应用/物理与名义业务回合/W/网络更新/校准/GPU0。固定v2/旧alpha/delta/功率/足迹/锁/45秒actor双critic和RC-PPO不变，无生产消费者。",
+            "本次一次18解已用完，不借旧额度或重试；NAV-043=false、1.5.0/55/67、G5未过，90秒/obs-v9仍候选。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_matched_support_review_v5.json",
+            "CaMRA/navigation/docs/nav043_matched_support_result_20261120.md",
+            ".worklog-testing/NAV-043/matched-support-v5/close.json",
+            ".worklog-testing/NAV-043/matched-support-v5/launch.json",
+            ".worklog-testing/NAV-043/matched-support-v5/exit.json",
+            ".worklog-testing/NAV-043/matched-support-v5/prelaunch-commit-v1-failed.log",
+            ".worklog-testing/NAV-043/matched-support-v5/final.json"
+          ],
+          "remaining_work": [
+            "优先依据保存输出评审长期预测目标、低速/转向状态和结构，再冻结单一候选/独立验证协议，不默认加数据、复杂结构或上层重训。",
+            "参考命令与J、独立90秒残余适用性、受影响训练/价值预算/物理链及NAV-043自身预登记放行标准尚未满足。"
+          ],
+          "blockers": [
+            "现有训练内改善不能作为长导航/90秒适用性或G5放行；无新拟合、物理或校准配额，不自动扩展本次已结束范围。"
+          ]
         }
       ],
       "constraints_and_notes": [
