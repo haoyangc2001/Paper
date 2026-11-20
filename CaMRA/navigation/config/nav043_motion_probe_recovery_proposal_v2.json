@@ -1,0 +1,271 @@
+{
+  "schema": "nav043-motion-probe-recovery-proposal-v2",
+  "status": "PROPOSED",
+  "task_id": "NAV-043",
+  "plan_version": "1.5.0",
+  "purpose": "One isolated recovery of the failed capture: original M01 retained, recapture M01 then unstarted M02-M12. No navigation, fit, training or calibration.",
+  "approval_required": true,
+  "approval_path": "CaMRA/navigation/config/nav043_motion_probe_recovery_approval_v2.json",
+  "previous_allocation_reused": false,
+  "production_enabled": false,
+  "execution_readiness": "ISOLATED_IMPLEMENTATION_BASIC_CPU_CHECKED_NOT_APPROVED",
+  "output_root": "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/recovery_v2",
+  "environment": {
+    "host": "tiger11",
+    "tmux_required": true,
+    "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "physical_gpu_index": 6,
+    "physical_gpu_uuid": "GPU-ae8422a0-8130-a384-1ec6-8ba59fe59d3a",
+    "logical_device": "cuda:0",
+    "isaaclab_origin": "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/__init__.py",
+    "controller": "camra_go2_velocity_it2999_v2",
+    "scene": "single environment, isolated clean infinite plane, no navigation goal or obstacles",
+    "seed": 100,
+    "reset_each_case": "same default joints, zero velocities and previous action, planar origin and yaw zero; no pose writes during warmup or measurement",
+    "physics_dt_s": 0.005,
+    "low_policy_dt_s": 0.02,
+    "command_dt_s": 0.1,
+    "command_limits": [
+      [
+        -1.0,
+        1.0
+      ],
+      [
+        -0.4,
+        0.4
+      ],
+      [
+        -1.0,
+        1.0
+      ]
+    ]
+  },
+  "schedule": {
+    "warmup_s": 1.0,
+    "warmup_command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "warmup_ticks_per_case": 200,
+    "measurement_s": 10.0,
+    "measurement_ticks_per_case": 2000,
+    "warmup_q_endpoint_ticks": [
+      180,
+      200
+    ],
+    "case_order": "array order, exactly one attempt per case; no adaptation, replacement, extra settling or retry",
+    "measurement": "constant requested command in the table, actual bridge command verified at every 50Hz inference; 200Hz actual state capture",
+    "cases": [
+      {
+        "id": "M01",
+        "kind": "zero",
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": "M02",
+        "kind": "slow_forward",
+        "command": [
+          0.1,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": "M03",
+        "kind": "slow_forward",
+        "command": [
+          0.2,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": "M04",
+        "kind": "navigation_forward",
+        "command": [
+          0.4,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": "M05",
+        "kind": "forward_endpoint",
+        "command": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": "M06",
+        "kind": "reverse_endpoint",
+        "command": [
+          -1.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": "M07",
+        "kind": "lateral_positive",
+        "command": [
+          0.0,
+          0.4,
+          0.0
+        ]
+      },
+      {
+        "id": "M08",
+        "kind": "lateral_negative",
+        "command": [
+          0.0,
+          -0.4,
+          0.0
+        ]
+      },
+      {
+        "id": "M09",
+        "kind": "turn_positive",
+        "command": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "id": "M10",
+        "kind": "turn_negative",
+        "command": [
+          0.0,
+          0.0,
+          -1.0
+        ]
+      },
+      {
+        "id": "M11",
+        "kind": "combined_positive",
+        "command": [
+          0.4,
+          0.1,
+          0.4
+        ]
+      },
+      {
+        "id": "M12",
+        "kind": "combined_negative",
+        "command": [
+          0.4,
+          -0.1,
+          -0.4
+        ]
+      }
+    ]
+  },
+  "limits": {
+    "applications": 1,
+    "simultaneous_environments": 1,
+    "controlled_physical_cases": 12,
+    "warmup_and_measurement_environment_ticks": 26400,
+    "all_explicit_simulation_step_calls": 31105,
+    "setup_reset_reserve_step_calls": 4705,
+    "gpus": 1,
+    "gpu_wall_s": 6300,
+    "automatic_retries": 0,
+    "physical_navigation_episodes": 0,
+    "nominal_episodes": 0,
+    "W_queries": 0,
+    "response_parameter_fits": 0,
+    "actor_critic_updates": 0,
+    "calibration_fits": 0
+  },
+  "capture": {
+    "case_initial": "save reset proof and actual stamped pose before warmup, scene origins, actual installed module, runtime clean/material/mass/dt/decimation readbacks",
+    "every_physics_tick": "all warmup and measurement actual x/y/yaw, body vx/vy/wz, height, quaternion and simulator clock; requested/applied/observed command evidence and case/phase/tick identities",
+    "energy": "save applied and requested joint torques, pre/post joint velocities, positive mechanical work at 200Hz; keep warmup and measurement J subtotals separate and independently recomputable",
+    "motion_state": "derive q only from consecutive actual poses using se2-completed-interval-v1; initial q uses warmup ticks 180 and 200; keep raw instantaneous body velocities separately",
+    "partial_failure": "stream raw actual rows during execution, save partial energy/commands/error and last completed q plus unpadded tail on termination; never fabricate missing samples",
+    "files": [
+      "runtime.json",
+      "execution_ledger.json",
+      "per-case reset.json",
+      "per-case actual.jsonl",
+      "per-case commands.json",
+      "per-case energy.npz",
+      "per-case completed_q.json",
+      "per-case result.json",
+      "FINISHED.json or HELD.json"
+    ],
+    "clock_v2": "Save raw actual simulator time and integer current_time_step_index at reset/every substep. Check consecutive index and registered float32/float64 callback representations; nominal J/q dt stays .005.",
+    "terminal_v2": "Save primary application ERROR independently; parent HELD and process_cleanup retain cleanup timeouts and unconfirmed process state without fabricating missing child records."
+  },
+  "stop_rules": {
+    "first_fall": "save terminal substep and stop entire allocation if actual height < 0.15m or tilt > 60 degrees, matching the existing physical monitor",
+    "integrity_or_runtime_error": "save partial evidence and stop entire allocation on missing/nonfinite/gapped state, stale command, dt mismatch, resource limit or simulator error",
+    "response_quality": "slow motion, nonzero zero-command motion or poor tracking are descriptive outcomes, not grounds to discard a case or select a replacement",
+    "resource_guard": "New explicit cap31105 and reserve4705, plus prior895 within cumulative32000. Native internal initialization steps remain unobservable, not zero.",
+    "wall_clock": "At most one additional application, 6300s including startup/cleanup, plus prior slot charged 900s; cumulative cap 7200s unchanged. No automatic retry or alternate root."
+  },
+  "interpretation": {
+    "data_role": "exposed exploratory system-identification candidates only; not heldout/final performance or calibration data",
+    "sample_unit": "one controlled case per command; ticks are correlated measurements, not independent repeated trials",
+    "allowed_analysis": "saved-state/command/timing/energy integrity, completed q capture and descriptive per-case transient/late-window tracking; no parameter estimation or policy calls",
+    "not_established": [
+      "full joint state/command domain validity",
+      "a deployment response model",
+      "steady-state equilibrium or universal zero-command drift",
+      "90-second path residuals or old delta applicability",
+      "new alpha/delta or probabilistic safety guarantee",
+      "navigation success, G5 or NAV-043 acceptance"
+    ],
+    "next_dependency": "review measured support and physical behavior before a separately bounded model-fitting/validation proposal; then reference program/J cost, independent 90-second residual protocol and affected learning/deployment gates"
+  },
+  "implementation_before_launch": [
+    "Obtain separate recovery APPROVED binding exact proposal/readiness, environment/schedule/limits/recovery; preserve original proposal/approval/data/failure.",
+    "Recheck fixed tiger11/tmux/Python/GPU6 UUID, protected inputs and original PID absence; commit approval before one launch.",
+    "Use only run_nav043_motion_probe_recovery_v2.py and the sealed recovery_v2 root, retain first failure and stop.",
+    "Main agent reviews saved actual clock/index/state/command/q/J/accounting; basic CPU preparation is not physical or G5 acceptance."
+  ],
+  "source_hashes": {
+    "CaMRA/navigation/src/camra_navigation/motion_state.py": "f2264ae6e599b956f48bf29d9f6d3586023e9cee6d62a657e9f64f7c27cb0b6c",
+    "CaMRA/navigation/config/motion_state_candidate_v1.json": "27f899bd6fcce714c5f6ac95df0926f74a90937b83a42b1825be4f1e2ebaf210",
+    "CaMRA/navigation/reports/nav043_motion_data_availability_v1.json": "09ae95d7d9d692aa598f006cec55194da498da17bf4778c71739cb48f2f5572b",
+    "CaMRA/navigation/reports/nav043_affine_support_review_v1.json": "65dab10e8e2fc89a797ecb84526186e15d4290019d44b4ef5788fea9f89a94c9",
+    "CaMRA/navigation/src/camra_navigation/envs/clean_v2.py": "848ca77b45772e64bd7ae11275e7e7cfce78f6f3e1247d9d1f3b01b7e90bd859",
+    "CaMRA/navigation/src/camra_navigation/envs/clean_v3.py": "2dc118aa351fa8e97858f485d1776ecbfa52eade0746a5f8df191960ab975b09",
+    "CaMRA/navigation/src/camra_navigation/envs/controlled_terrain_v2.py": "353eceab6a71a7d8da3b2dab7d0351b276a88b512dee5d442ad51c11fb496d56",
+    "CaMRA/navigation/src/camra_navigation/evaluation/recorder.py": "2f18d4773c68600f0ad78ef0dd7720453bde640de1ba3f674caee7d5231049ab",
+    "CaMRA/navigation/src/camra_navigation/envs/physical_v2.py": "c04249573fd15f89751d1dd20aa9e35c94fbce88278d41e2d437854b25afba07",
+    "CaMRA/navigation/config/nav043_motion_probe_proposal_v1.json": "9eb3caf00523a65d4848dc07e11a8fcafab87d8a01fa6c33a0459398ba7444bb",
+    "CaMRA/navigation/config/nav043_motion_probe_approval_v1.json": "22332bf5b29d1d2a5e64a297039967a50141a053d91b978a9affea16bd656e6c",
+    "CaMRA/navigation/config/nav043_motion_probe_readiness_v1.json": "51b64b3f212c885d61b32fc164cde9afabacee8341c9456ee1451c7c3977d1ef",
+    "CaMRA/navigation/reports/nav043_motion_probe_first_failure_v1.json": "d1a184882512fcdf4637691d996ae2c49a9d35e5916cef0bbde1334c4a2cb252"
+  },
+  "protection": "Frozen whole v2, old 45-second production actor/critics, power/footprint/alpha/delta and locks unchanged; readonly reference/manuscripts and final_* isolation retained; no push.",
+  "NAV043_passed": false,
+  "G5_passed": false,
+  "recovery": {
+    "source_proposal_sha256": "9eb3caf00523a65d4848dc07e11a8fcafab87d8a01fa6c33a0459398ba7444bb",
+    "first_failure_review_sha256": "d1a184882512fcdf4637691d996ae2c49a9d35e5916cef0bbde1334c4a2cb252",
+    "original_output_root": "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1",
+    "prior_applications_started": 1,
+    "prior_controlled_cases_started": 1,
+    "prior_completed_cases": 0,
+    "prior_explicit_calls": 895,
+    "prior_reported_launcher_wall_s": 104.59358141385019,
+    "failed_slot_wall_charge_s": 900,
+    "wall_charge_basis": "Conservatively charge 900s from original OWNER time to saved review confirming both PIDs absent (less than 900s); original cleanup wall gap is not called zero.",
+    "cumulative_applications_cap": 2,
+    "cumulative_controlled_cases_started_cap": 13,
+    "cumulative_explicit_step_cap": 32000,
+    "cumulative_wall_cap_s": 7200,
+    "M01_identity": "original incomplete M01 retained; recovery_v2/M01 is its single second attempt",
+    "remaining_cases": "M02-M12 exactly once, unchanged order and commands",
+    "no_further_retry": true
+  }
+}

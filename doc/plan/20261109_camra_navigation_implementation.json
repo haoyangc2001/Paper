@@ -15529,6 +15529,116 @@
             "运动模型拟合/选择、参考程序J和90秒残余/训练/正式导航仍为后续单独范围，旧45秒链/v2/功率/足迹/alpha/delta/数据锁及原失败保持。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-20T09:46:00+08:00",
+          "summary": "NAV-043批准后一次实际采集在M01第895显式step失败停下，隔离保留原始证据及终态保存缺口",
+          "actions": [
+            "批准/预检已先提交05c52f4，在tiger11/tmux %685运行一次原入口；登记协调器2769697、子应用2769713均已退出，不重试、不换目录、不转移余量。",
+            "核对首个原ERROR为累计时钟检查：实际float32回调dt约0.004999999888241291，895步相对理想0.005的累计差约-1.00024e-7秒；原1e-7全局检查触发。保存实际895调用/返回和原状态/能量，不能将此误拒绝解释为物理漏步或策略失败。",
+            "发现清理wait超时再次逃逸，使原HELD及最终child账本缺失，原ERROR/清理前账本/exit/日志和锁原样保留。启动扩展报错亦见历史成功启动，本次APP_READY/runtime已存在，更正先前主因判断；停止辅助脚本在身份断言时拒绝，未发信号。",
+            "主agent在%687运行一次只读保存数据/q/J/命令/账本及保护身份审阅。当前该原进程2777894在共享文件系统RPC等待，尚无最终report/exit；不重复启动审阅或把待完成复核写成通过。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/docs/nav043_motion_probe_first_failure_20261120.md",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            ".worklog-testing/NAV-043/motion-launch-v1/stop-startup.py",
+            ".worklog-testing/NAV-043/motion-launch-v1/startup-stop.log",
+            ".worklog-testing/NAV-043/motion-launch-v1/review-first-failure.py",
+            ".worklog-testing/NAV-043/motion-launch-v1/review-first-failure.sh",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %685: bash .worklog-testing/NAV-043/motion-launch-v1/launch-approved.sh；原绝对Python/CUDA_VISIBLE_DEVICES=6，launch.exit=1",
+            "tiger11/tmux %687: bash .worklog-testing/NAV-043/motion-launch-v1/review-first-failure.sh；同绝对Python，CUDA_VISIBLE_DEVICES为空，只读审阅进行中"
+          ],
+          "results": [
+            "实际1应用、M01开始但未完成、完整工况0/12；M02–M12未启动。895显式调用/返回、895原始状态和能量，894接受tick（warmup200/measurement694），已完成q截至880、部分尾14。223完整命令证明只到892tick，末893–895未完成证明不能回填。",
+            "原生初始化内部步不可观测，不能因显式reserve=0宣称初始化物理步为0；协调器exit记录104.593581秒，不等于成功GPU测量包。原HELD缺失及清理超时均作为真实工程缺口记录。",
+            "仍NAV-043=false、1.5.0/55/67历史完成、G5未过；本次新增拟合/导航/W/上层更新/校准0。原v2、45秒链、功率/足迹/alpha/delta/数据锁和全部旧失败保持。"
+          ],
+          "evidence": [
+            "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/ERROR.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/pre_cleanup_step_accounting.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/step_calls.jsonl",
+            "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/M01/",
+            ".worklog-testing/NAV-043/motion-launch-v1/launch.lock",
+            ".worklog-testing/NAV-043/motion-launch-v1/exit.json",
+            ".worklog-testing/NAV-043/motion-launch-v1/launch.log",
+            ".worklog-testing/NAV-043/motion-launch-v1/startup-stop.log"
+          ],
+          "remaining_work": [
+            "接原2777894只读审阅终态，核对报告/退出码后追加复核结论，不重复审阅。",
+            "隔离修正实际整数步索引/原始时钟数值表示检查及清理异常下的持久终态保存，完成反例CPU基本检查与新来源封存；再具体登记恢复提案，不能直接重启原包。"
+          ],
+          "blockers": [
+            "原单应用额度已使用且本轮实际失败，M01恢复/剩余工况须新的精确范围及额度授权；当前不执行第二应用。",
+            "保存审阅原进程仍在共享文件系统RPC等待，最终保存证据验收尚未完成，不能签实际采集/模型/90秒或G5通过。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-20T10:08:00+08:00",
+          "summary": "NAV-043首例失败只读审阅结束，开始隔离回修时钟与异常终态接口，第二应用未授权",
+          "actions": [
+            "恢复后复读根AGENTS、legacy执行规则、当前1.5.0计划/策略、NAV-043及依赖证据、模块说明/交接和实际代码；仍为首个依赖满足的未完成任务。",
+            "原%687审阅exit0；895实际状态/能量/显式调用、35个q区间及223份完成命令证明核对通过，295保护/90输入/29包身份不变。缺失的893–895命令证明及原HELD/child终态账本不补造。",
+            "按既定回修授权，仅在新隔离版本准备实际整数步索引与原始时钟数值表示检查，以及不掩盖首错的异常收尾；主agent进行基本CPU反例验证，不派测试子agent。"
+          ],
+          "files_changed": ["doc/plan/20261109_camra_navigation_implementation.json", "CaMRA/navigation/reports/nav043_motion_probe_first_failure_v1.json", "CaMRA/navigation/docs/nav043_motion_probe_first_failure_20261120.md", ".worklog-testing/NAV-043/motion-launch-v1/"],
+          "commands": ["tiger11/tmux %687: bash .worklog-testing/NAV-043/motion-launch-v1/review-first-failure.sh -> exit0；复用保存数据，没有重采"],
+          "results": [
+            "实际采集仍1应用、0/12完整；时钟小数表示误拒绝是采集接口缺陷，不是物理漏步或策略失败证据。保存数据基本复核不构成采集/90秒/G5通过。",
+            "允许修复导航实现缺陷和CPU检查；原v1源码/提案/批准/输出/锁及失败保持。固定v2/原功率/足迹/alpha/delta/45秒生产链不改；仍55/67、NAV-043=false。"
+          ],
+          "evidence": ["CaMRA/navigation/reports/nav043_motion_probe_first_failure_v1.json", ".worklog-testing/NAV-043/motion-launch-v1/first-failure-review.exit", ".worklog-testing/NAV-043/motion-launch-v1/first-failure-review.log"],
+          "remaining_work": ["完成隔离时钟/收尾修复及针对895步、全2200步、缺步/重步/陈旧读回和wait超时的主agent基本检查，准备恢复入口/范围及来源封存后本地提交。", "只有具体恢复包完成且取得新一次应用批准后才能恢复；不把原未用时长/步数自动转成重试。"],
+          "blockers": ["原单应用已消费；第二应用未授权。实际受控数据包和运动模型/参考J/90秒残余证据仍未完成，NAV-044及G5不放行。"]
+        },
+        {
+          "timestamp": "2026-11-20T10:11:00+08:00",
+          "summary": "NAV-043隔离采集回修和恢复包完成20项CPU基本验证及来源/历史核对，待新增一次应用确认",
+          "actions": [
+            "保留原v1封存源/提案/批准/输出/锁/首错及终态缺口。新simulation_clock_v2/motion_capture_v2同时保存真实时钟和实际整数仿真step索引，明确允许float32/float64回调表示，J/q/频率/评分不变；新启动器/接线/保存审阅器组成独立链。",
+            "新增有限process-group清理返回结构，保留TERM/KILL/wait错误及未确认退出状态；parent HELD保存原应用错误且不补造child记录。主agent%688运行20项基本CPU反例，包括实际895tick数值反例、两种表示完整2200tick到保存审阅调用、缺/重/陈旧索引/时钟、中断尾段和反复wait超时。没有测试子agent。",
+            "%689只读核验295保护/90输入/29冻结包身份、原17份保存文件/hash、所有封存源、67项旧定义/状态/记录前缀及四入口实际缺批准拒绝；全部通过。原OWNER至审阅确认两PID不存在为673.939303秒，保守占900秒，不把cleanup缺口当0。",
+            "恢复提案1a5afe8d及支持清单6093d64f仅PROPOSED/PREPARED_ONLY：拟新增一次应用，累计应用1到2；原输出下recovery_v2单独重采M01并继续原未启动M02–M12，顺序/固定v2/GPU6不变。累计2小时和32000step不变，新包最多6300秒/31105step，其中26400采集及4705reserve；不授权自动重试或后续拟合/训练。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/src/camra_navigation/envs/simulation_clock_v2.py",
+            "CaMRA/navigation/src/camra_navigation/envs/motion_capture_v2.py",
+            "CaMRA/navigation/scripts/nav043_process_cleanup_v2.py",
+            "CaMRA/navigation/scripts/nav043_motion_probe_recovery_guard.py",
+            "CaMRA/navigation/scripts/nav043_motion_probe_recovery_simulation.py",
+            "CaMRA/navigation/scripts/run_nav043_motion_probe_recovery_v2.py",
+            "CaMRA/navigation/scripts/audit_nav043_motion_probe_recovery_v2.py",
+            "CaMRA/navigation/tests/test_motion_recovery_v2.py",
+            "CaMRA/navigation/config/nav043_motion_probe_recovery_proposal_v2.json",
+            "CaMRA/navigation/config/nav043_motion_probe_recovery_readiness_v2.json",
+            "CaMRA/navigation/reports/nav043_motion_probe_recovery_preparation_v2.json",
+            "CaMRA/navigation/docs/nav043_motion_probe_recovery_v2_20261120.md",
+            ".worklog-testing/NAV-043/motion-recovery-v2/",
+            "AGENTS.md", "CaMRA/navigation/README.md", "CaMRA/navigation/docs/implementation_handoff.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %688: bash .worklog-testing/NAV-043/motion-recovery-v2/basic.sh -> 20 passed in 2.23s",
+            "tiger11/tmux %689: bash .worklog-testing/NAV-043/motion-recovery-v2/verify.sh -> exit0, legacy update VALID, git diff --check通过"
+          ],
+          "results": [
+            "只通过隔离回修CPU及准备核验，不是实际Isaac恢复链/12工况/90秒/G5通过。当前新增应用/物理step/拟合/导航/W/网络更新/校准均0；原实际1应用0/12完整保持。",
+            "局部根因修复接入独立恢复生产入口和审阅器，原RC-PPO目标、v2/功率/足迹/alpha/delta/锁和45秒链不变；其真实物理接入待新批准后核验。上下游运动模型/参考J/90秒残余及受影响学习部署门禁仍受阻，NAV-043=false、55/67不变。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_motion_probe_first_failure_v1.json",
+            "CaMRA/navigation/reports/nav043_motion_probe_recovery_preparation_v2.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/basic.xml",
+            ".worklog-testing/NAV-043/motion-recovery-v2/verify.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/plan-update.log"
+          ],
+          "remaining_work": ["本地提交失败证据、修复、提案和计划；用户确认新增一次应用后建立独立APPROVED/pin，重新核对资源/来源并提交批准，再运行单次恢复/主agent保存数据审阅。", "如恢复仍失败保存停下；完成有限数据采集后另评运动模型/参考J/90秒残余范围，不自动训练或放行下游。"],
+          "blockers": ["原协议单应用已用且禁止自动重试，新增一次应用的精确恢复包未批准；独立APPROVED/新输出/launch.lock均不存在，不执行第二应用。"]
         }
       ],
       "constraints_and_notes": [
