@@ -1,6 +1,15 @@
 # 上层导航实施交接
 
 
+## 2026-11-20 响应v3一次执行与保存审阅已结束
+
+用户本轮确认后，独立APPROVED pin6b13b47f及预检先提交9f2d197。%722原启动器完成9轴解/3折/30病例/182797测量tick，拟合10.213秒、wrapper10.416秒；FINISHED存在、无HELD、两个PID已退出，launch.lock保留，不重启或借余量。%723原封存审阅器实际核对83份输出、保存解法方程/谱/残差、30例数组/前缀/基线及门槛通过；%724主agent补分工况保存分析、295/90/29身份和108旧文件核对，额外参数求解0。
+
+科学诊断FAIL：短工况RMSE2.411062→0.559292米，旧导航0.783680→0.906828米，L1 0.702052→1.172337米；L2/L3稍改善。M01静止3.929毫米比理想1.310毫米差，M02则改善；M05终点航向误差-43.393度，L1 full baseline/repeat约+29.685度。不能仅以毫米项或单一物理原因解释；当前响应结构及一步平均拟合尚不能兼顾长期运动。
+
+报告reports/nav043_supported_response_review_v3.json；保存证据.worklog-testing/NAV-043/supported-execution-v3/close.json、saved-small-output（53JSON）及saved-launcher；83原件共5053682字节、30NPZ外置原件/索引保持。详见[结果与下一依赖](nav043_supported_response_result_20261120.md)。新增应用/回合/W/网络更新/校准/GPU0，无新模型部署，旧v2/alpha/delta/45秒链/原物理HELD保留；NAV-043=false、1.5.0/55/67、G5未过。下一先制定模型结构/支持域/参考命令J及90秒适用性协议，不自动加拟合/训练。下方为历史时点。
+
+
 ## 2026-11-20 响应v3新确认开工
 
 用户本轮明确确认原30已暴露病例/三折最多9次CPU轴求解/1小时范围；独立APPROVED登记config/nav043_supported_response_approval_v3.json及pin，保留原PROPOSED、readiness、源码与原HELD。主agent按legacy先在tiger11/tmux预检/本地提交，再一次运行封存launch_nav043_supported_response_once.py；完整输出后只运行已准备只读审阅器，不重试/追加求解或借旧额度。此处不是原物理恢复授权，本次已明确不用再问。
