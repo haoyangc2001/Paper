@@ -2,7 +2,7 @@
 
 ## 当前推进（2026-11-20，用户要求先延长超时看效果）
 
-按本轮明确指令直接执行现有完整方法的90秒执行诊断，不继续响应模型拟合或上层训练；独立协议`CaMRA/navigation/config/nav043_timeout_extension_v1.json`，三张已暴露integration图各一次，GPU6最多3应用/3物理回合/15初态W/60000显式步/累计3小时，无重试、无测试子agent。仅延长执行截止时间；原45秒obs-v7时间观测在45秒后保持0，原actor/双critic/v2/预算/安全/功率/alpha/delta保持。15项主agent基本检查通过，先实际预检和本地提交，再一次新启动器；旧一次性入口不重启。见[诊断说明](CaMRA/navigation/docs/nav043_timeout_extension_20261120.md)。本时点尚无新增物理回合，执行/复核后据实追加；不是90秒价值或裕度验证，NAV-043=false、55/67、G5未过。下方为历史。
+按本轮明确指令直接执行现有完整方法的90秒执行诊断，不继续响应模型拟合或上层训练；独立协议`CaMRA/navigation/config/nav043_timeout_extension_v1.json`，三张已暴露integration图各一次，GPU6最多3应用/3物理回合/15初态W/60000显式步/累计3小时，无重试、无测试子agent。仅延长执行截止时间；原45秒obs-v7时间观测在45秒后保持0，原actor/双critic/v2/预算/安全/功率/alpha/delta保持。15项主agent基本检查和%787实际295身份/GPU6预检通过，准备先提交14fda95；%790新launch.sh已启动，唯一OWNER3951135和L1应用3951181已保存，APP_READY/runtime/首条PROGRESS已出现。结束后原shell自动保存复核；先查进程/原标记，不重启%790或旧入口。见[诊断说明](CaMRA/navigation/docs/nav043_timeout_extension_20261120.md)及`.worklog-testing/NAV-043/timeout-extension-v1/execution-started.json`。当前三图结果未齐，不报告成功率；不是90秒价值或裕度验证，NAV-043=false、55/67、G5未过。下方为历史。
 
 ## 当前结果（2026-11-20，同覆盖v5对照已保存复核）
 
