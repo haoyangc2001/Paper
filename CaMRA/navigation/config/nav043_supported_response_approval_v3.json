@@ -1,0 +1,61 @@
+{
+  "schema": "nav043-supported-response-approval-v3",
+  "status": "APPROVED",
+  "task_id": "NAV-043",
+  "plan_version": "1.5.0",
+  "approved_at": "2026-11-20T12:32:19.193804+08:00",
+  "user_response": "确认 开始行动吧",
+  "authorization_context": "User explicitly confirmed the pending response-v3 30 saved cases / at most 9 CPU axis solves / 3600 seconds proposal in the current turn; distinct from prior physical recovery.",
+  "proposal_sha256": "a3b67ab3943c1b675f5fada4e933bcc8d5906326166a52511785877eaca2d746",
+  "readiness_sha256": "965fbf8e24110be1e1b6603db127b3b86a41d119718361654820d913479f11da",
+  "limits": {
+    "models": 3,
+    "axis_solves": 9,
+    "cpu_wall_s": 3600,
+    "applications": 0,
+    "new_physical_episodes": 0,
+    "new_nominal_episodes": 0,
+    "W_queries": 0,
+    "actor_critic_updates": 0,
+    "calibration_fits": 0,
+    "automatic_retries": 0
+  },
+  "output_root": "/pub/data/caohy/work/camra_navigation/nav043_supported_response_probe_v3",
+  "environment": {
+    "host": "tiger11",
+    "tmux_required": true,
+    "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "CUDA_VISIBLE_DEVICES": "",
+    "OMP_NUM_THREADS": 1,
+    "OPENBLAS_NUM_THREADS": 1,
+    "MKL_NUM_THREADS": 1
+  },
+  "data_scope": {
+    "old_navigation_cases": 18,
+    "controlled_cases": 12,
+    "old_navigation_measurement_ticks": 158797,
+    "probe_measurement_ticks": 24000,
+    "probe_warmup_ticks": 2400,
+    "role": "previously exposed exploratory identification only, not independent unknown/final data",
+    "original_recovery_protocol": "HELD remains HELD; only separately verified complete saved cases reused",
+    "include_failed_navigation": true,
+    "retries_independent": false,
+    "sample_unit": "whole trace/case; correlated ticks are not independent repetitions",
+    "navigation_initial_q": "unknown pre-window q: exclude first fitting pair; zero only for diagnostic free prediction",
+    "probe_initial_q": "actual warmup 180/200 endpoints; include first measurement transition",
+    "partial_interval": "exclude incomplete fitting pairs, retain all physics ticks in free prediction"
+  },
+  "once_only": {
+    "launcher": "CaMRA/navigation/scripts/launch_nav043_supported_response_once.py",
+    "persistent_lock": ".worklog-testing/NAV-043/motion-candidate-v3/launch.lock",
+    "refusal": "missing approval/readiness, changed pins, existing output or lock; before any new data fitting/marker",
+    "no_reuse_of_previous_allocations": true,
+    "no_automatic_extension": true
+  },
+  "production_enabled": false,
+  "calibration_passed": false,
+  "NAV043_passed": false,
+  "G5_passed": false,
+  "no_push": true,
+  "no_test_subagents": true
+}

@@ -1,5 +1,12 @@
 # 上层导航实施交接
 
+
+## 2026-11-20 响应v3新确认开工
+
+用户本轮明确确认原30已暴露病例/三折最多9次CPU轴求解/1小时范围；独立APPROVED登记config/nav043_supported_response_approval_v3.json及pin，保留原PROPOSED、readiness、源码与原HELD。主agent按legacy先在tiger11/tmux预检/本地提交，再一次运行封存launch_nav043_supported_response_once.py；完整输出后只运行已准备只读审阅器，不重试/追加求解或借旧额度。此处不是原物理恢复授权，本次已明确不用再问。
+
+本时点尚未求解；应用/回合/GPU/W/网络更新/校准0。诊断与执行完整性分列，不能据此签NAV-043/G5、选部署模型或继承旧alpha/delta。计划1.5.0、55/67、NAV-043=false；下方待批准是保留历史。
+
 ## 2026-11-20 响应v3保存复核入口准备通过，未启动真实拟合
 
 新增只读scripts/audit_nav043_supported_response.py，不改原封存候选、启动器、提案a3b67ab3/readiness965fbf8e。%712主agent5项基本检查通过：无需参数求解的保存解证据、参数/谱/残差异常拒绝、缺批准/不完整输出提前拒绝和全数组/部分尾段异常拒绝；没有测试子agent，真实及合成参数求解均0。%713核对原13项检查来源、295保护身份/90输入/29冻结包及108原文件，实际缺批准拒绝且无新锁/输出/报告。

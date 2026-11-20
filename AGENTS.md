@@ -1,5 +1,10 @@
 # Agent 接手说明
 
+
+## 当前授权（2026-11-20，响应v3一次CPU诊断已确认）
+
+用户本轮明确回复“确认 开始行动吧”，批准原30已暴露保存病例、三折/最多9次CPU轴求解/累计1小时；独立APPROVED登记config/nav043_supported_response_approval_v3.json绑定提案a3b67ab3及readiness965fbf8e。先tiger11/tmux核对来源/295保护身份/108原文件/无既有锁或输出并本地提交，再一次执行原封存启动器，主agent只读审阅，不安排测试子agent。当前尚未实际求解，不重复询问本次批准。新增应用/回合/GPU/W/网络更新/校准0，无重试/全数据追加拟合/部署选模；NAV-043=false、1.5.0/55/67、G5未过，旧v2/alpha/delta/45秒生产链及原HELD保持。下方待确认均为历史时点。
+
 ## 当前补充（2026-11-20，响应v3保存复核入口准备通过，拟合仍待确认）
 
 仅新增只读`audit_nav043_supported_response.py`及主agent5项合成基本检查，%712全部通过、参数求解0；%713核对原提案/readiness/13项检查来源、295/90/29身份和108原文件，并实际验证缺批准拒绝、不建报告或锁。独立支持清单在`.worklog-testing/NAV-043/supported-audit-v3/support.json`，仅PREPARED_ONLY，不替换原965fbf8e清单，也不构成APPROVED。
