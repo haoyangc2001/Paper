@@ -1,5 +1,13 @@
 # 上层导航实施交接
 
+## 2026-11-20 12工况一次性入口及保存审阅准备完成，物理仍待确认
+
+原PROPOSED pin9eb3caf0不改；新增`run_nav043_motion_probe.py`、`nav043_motion_probe_guard.py`、`nav043_motion_probe_simulation.py`及`audit_nav043_motion_probe.py`。固定单应用/单环境plane和v2，不导入上层网络；应用创建前查精确APPROVED及PREPARED_ONLY来源，缺批准不扫描GPU/建marker/建输出。持久独占锁/原目录、GPU身份/可用性、显式step调用前日志及总32000/预留5600/每例2200限制、12固定顺序、进程组时限和保留HELD。实际200Hz核心复用上一提交，SIGTERM进入部分保存；硬杀/原生初始化不可观测步如实保留，不能称为0。保存审阅重算q/命令/时钟/J及step日志，不拟合或调用W。
+
+主agent在tiger11/tmux %678初50项通过；%679新增超时/并发输出/终态检查时三项因合成环境漏填python而失败，原源码/日志保留，修夹具后%680最终54项CPU合成检查通过。不安排测试子agent；证据`.worklog-testing/NAV-043/motion-launch-v1/`。这不等于安装环境物理接入通过，实际应用/物理/GPU/拟合/W/训练/校准仍0。支持来源已封存到`config/nav043_motion_probe_readiness_v1.json`及pin，仅PREPARED_ONLY；独立APPROVED/正式输出/launch.lock不存在。
+
+NAV-043=false、55/67、G5未过，原12工况新范围问题仍待答复。确认后须独立登记绑定原提案、readiness、环境/顺序/全部额度和唯一输出，再运行一次及主agent保存证据审阅；任何失败停止，不重启/换根/挪额度。不能把此准备当成90秒数据、运动模型/参考J/新校准或训练授权。下方为保留历史。
+
 ## 2026-11-20 隔离采集核心基本验证，物理范围仍待确认
 
 在不启动仿真的边界内，新增`src/camra_navigation/envs/motion_capture_v1.py`和`tests/test_motion_capture.py`。`capture_case`仅消费调用方已复位的clean_v3兼容适配器/真实时钟/新记录器，不创建Isaac应用、不复位/重试或拟合。逐tick保存实际位姿及瞬时速度、warmup第180/200端点q、命令书写/观测证据；warmup和测量J分开，沿用原正机械功记录器并离线复算。跌倒或中断保留不完整尾段和最后完成q，错误继续抛出以便未来入口停止分配。当前没有生产消费者或物理启动器，因此实际接口、清洁配置、资源保护和真实响应仍未验收。

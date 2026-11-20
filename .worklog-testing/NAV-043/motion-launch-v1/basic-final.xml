@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="54" time="5.472" timestamp="2026-11-20T08:04:48.619755+08:00" hostname="tiger11.ios.ac.cn"><testcase classname="tests.test_nav043_motion_launch" name="test_exact_synthetic_approval_and_sources" time="0.002" /><testcase classname="tests.test_nav043_motion_launch" name="test_changed_scope_is_not_approved[status]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_changed_scope_is_not_approved[proposal_sha256]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_changed_scope_is_not_approved[readiness_sha256]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_changed_scope_is_not_approved[output_root]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_changed_scope_is_not_approved[limits]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_changed_scope_is_not_approved[environment]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_changed_scope_is_not_approved[schedule]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_prepared_readiness_is_not_approval" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_changed_support_cannot_launch" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_existing_attempt_refuses_without_overwrite[formal]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_existing_attempt_refuses_without_overwrite[lock]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_step_accounting_includes_setup_case_reset_and_cleanup" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_cap_refusal_happens_before_original_step[total]" time="0.002" /><testcase classname="tests.test_nav043_motion_launch" name="test_cap_refusal_happens_before_original_step[reserve]" time="0.002" /><testcase classname="tests.test_nav043_motion_launch" name="test_cap_refusal_happens_before_original_step[case]" time="0.003" /><testcase classname="tests.test_nav043_motion_launch" name="test_first_failed_physical_call_is_retained_and_blocks_more_steps" time="0.002" /><testcase classname="tests.test_nav043_motion_launch" name="test_wrong_case_order_and_retry_are_refused" time="0.002" /><testcase classname="tests.test_nav043_motion_launch" name="test_cleanup_kills_descendants_even_after_leader_exit" time="0.002" /><testcase classname="tests.test_nav043_motion_launch" name="test_output_appearing_after_preflight_is_never_modified" time="0.008" /><testcase classname="tests.test_nav043_motion_launch" name="test_wall_timeout_stops_one_group_and_preserves_held" time="0.005"><failure message="KeyError: 'python'">documents = ({'environment': {'physical_gpu_index': 6}, 'limits': {'gpu_wall_s': 7200}, 'output_root': '/tmp/pytest-of-caohy/pytes...out_stops_one_gr0/formal', 'proposal_sha256': '536a2846936c865845c64f848e3f6241c9e6b26c61b2d162a8f1b16cbbae378f', ...})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fc92115b1d0&gt;
+
+    def test_wall_timeout_stops_one_group_and_preserves_held(documents, monkeypatch):
+        p, _ = documents
+        fake_coordinate(monkeypatch, p)
+        times, started, stopped = iter([0.,0.]), [], []
+        monkeypatch.setattr(L.time, 'monotonic', lambda:next(times,7201.))
+        class Process:
+            pid = 87654321
+            returncode = None
+            def poll(self):
+                return self.returncode
+        process = Process()
+        def popen(*a, **k):
+            started.append(k)
+            return process
+        def stop(proc):
+            stopped.append(proc.pid)
+            proc.returncode = -15
+        monkeypatch.setattr(L.subprocess, 'Popen', popen)
+        monkeypatch.setattr(L, 'stop_group', stop)
+        with pytest.raises(ValueError, match='first application failure'):
+&gt;           L.coordinate()
+
+CaMRA/navigation/tests/test_nav043_motion_launch.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def coordinate():
+        started = time.monotonic()
+        p, context, identities = prepare()
+        gpu = guard.gpu_ready(p)
+        output = Path(p['output_root'])
+        guard.EVIDENCE.mkdir(exist_ok=True)
+        owner = {'pid':os.getpid(), 'at':datetime.now().astimezone().isoformat(),
+            'proposal_sha256':guard.sha(guard.PROPOSAL),
+            'approval_sha256':guard.sha(guard.APPROVAL),
+            'readiness_sha256':guard.sha(guard.READINESS), 'output_root':str(output),
+            'context':context, 'identities':identities, 'gpu':gpu,
+            'git_head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=guard.ROOT,text=True).strip()}
+        guard.persist(guard.EVIDENCE/'launch.lock', owner)
+        process, error, timed_out, code, owns_output = None, None, False, -1, False
+        try:
+            output.mkdir(exist_ok=False)
+            owns_output = True
+            guard.persist(output/'OWNER.json', owner)
+            # Ten seconds remain inside the total cap for TERM/KILL/accounting.
+            deadline = started+p['limits']['gpu_wall_s']-10.
+            if time.monotonic() &gt;= deadline:
+                raise TimeoutError('allocation exhausted during preflight')
+&gt;           command = [p['environment']['python'], '-B', str(Path(__file__).resolve()), '--child']
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'python'
+
+CaMRA/navigation/scripts/run_nav043_motion_probe.py:114: KeyError</failure></testcase><testcase classname="tests.test_nav043_motion_launch" name="test_finished_ledger_is_checked_before_marking_finished[11]" time="0.006"><failure message="KeyError: 'python'">documents = ({'environment': {'physical_gpu_index': 6}, 'limits': {'gpu_wall_s': 7200}, 'output_root': '/tmp/pytest-of-caohy/pytes...ledger_is_checke0/formal', 'proposal_sha256': '1a19002d9d5203e1fdf10dde8d66160812e69dae05143d661b70df8f0e15cb13', ...})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fc92111da90&gt;
+completed_cases = 11
+
+    @pytest.mark.parametrize('completed_cases', [11,12])
+    def test_finished_ledger_is_checked_before_marking_finished(documents, monkeypatch, completed_cases):
+        p, _ = documents
+        fake_coordinate(monkeypatch, p)
+        output = Path(p['output_root'])
+        class Process:
+            pid = 87654321
+            returncode = 0
+            def poll(self):
+                return 0
+        def popen(*a, **k):
+            G.persist(output/'CAPTURE_FINISHED.json', {'synthetic':True})
+            G.persist(output/'child_step_accounting.json', {
+                'completed_cases':completed_cases, 'in_flight':False, 'case_id':None,
+                'explicit_step_calls':26402, 'returned_calls':26402, 'reserve_calls':2})
+            return Process()
+        monkeypatch.setattr(L.subprocess, 'Popen', popen)
+        monkeypatch.setattr(L, 'stop_group', lambda *_:None)
+        if completed_cases == 11:
+            with pytest.raises(ValueError, match='allocation/evidence mismatch'):
+&gt;               L.coordinate()
+
+CaMRA/navigation/tests/test_nav043_motion_launch.py:241: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def coordinate():
+        started = time.monotonic()
+        p, context, identities = prepare()
+        gpu = guard.gpu_ready(p)
+        output = Path(p['output_root'])
+        guard.EVIDENCE.mkdir(exist_ok=True)
+        owner = {'pid':os.getpid(), 'at':datetime.now().astimezone().isoformat(),
+            'proposal_sha256':guard.sha(guard.PROPOSAL),
+            'approval_sha256':guard.sha(guard.APPROVAL),
+            'readiness_sha256':guard.sha(guard.READINESS), 'output_root':str(output),
+            'context':context, 'identities':identities, 'gpu':gpu,
+            'git_head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=guard.ROOT,text=True).strip()}
+        guard.persist(guard.EVIDENCE/'launch.lock', owner)
+        process, error, timed_out, code, owns_output = None, None, False, -1, False
+        try:
+            output.mkdir(exist_ok=False)
+            owns_output = True
+            guard.persist(output/'OWNER.json', owner)
+            # Ten seconds remain inside the total cap for TERM/KILL/accounting.
+            deadline = started+p['limits']['gpu_wall_s']-10.
+            if time.monotonic() &gt;= deadline:
+                raise TimeoutError('allocation exhausted during preflight')
+&gt;           command = [p['environment']['python'], '-B', str(Path(__file__).resolve()), '--child']
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'python'
+
+CaMRA/navigation/scripts/run_nav043_motion_probe.py:114: KeyError</failure></testcase><testcase classname="tests.test_nav043_motion_launch" name="test_finished_ledger_is_checked_before_marking_finished[12]" time="0.005"><failure message="KeyError: 'python'">documents = ({'environment': {'physical_gpu_index': 6}, 'limits': {'gpu_wall_s': 7200}, 'output_root': '/tmp/pytest-of-caohy/pytes...ledger_is_checke1/formal', 'proposal_sha256': '055a48ee65797a7b6c73b741d68da47c4089b12b384337314be74f4d741b542c', ...})
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fc92115af90&gt;
+completed_cases = 12
+
+    @pytest.mark.parametrize('completed_cases', [11,12])
+    def test_finished_ledger_is_checked_before_marking_finished(documents, monkeypatch, completed_cases):
+        p, _ = documents
+        fake_coordinate(monkeypatch, p)
+        output = Path(p['output_root'])
+        class Process:
+            pid = 87654321
+            returncode = 0
+            def poll(self):
+                return 0
+        def popen(*a, **k):
+            G.persist(output/'CAPTURE_FINISHED.json', {'synthetic':True})
+            G.persist(output/'child_step_accounting.json', {
+                'completed_cases':completed_cases, 'in_flight':False, 'case_id':None,
+                'explicit_step_calls':26402, 'returned_calls':26402, 'reserve_calls':2})
+            return Process()
+        monkeypatch.setattr(L.subprocess, 'Popen', popen)
+        monkeypatch.setattr(L, 'stop_group', lambda *_:None)
+        if completed_cases == 11:
+            with pytest.raises(ValueError, match='allocation/evidence mismatch'):
+                L.coordinate()
+            assert (output/'HELD.json').exists() and not (output/'FINISHED.json').exists()
+        else:
+&gt;           assert L.coordinate() == 0
+                   ^^^^^^^^^^^^^^
+
+CaMRA/navigation/tests/test_nav043_motion_launch.py:244: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def coordinate():
+        started = time.monotonic()
+        p, context, identities = prepare()
+        gpu = guard.gpu_ready(p)
+        output = Path(p['output_root'])
+        guard.EVIDENCE.mkdir(exist_ok=True)
+        owner = {'pid':os.getpid(), 'at':datetime.now().astimezone().isoformat(),
+            'proposal_sha256':guard.sha(guard.PROPOSAL),
+            'approval_sha256':guard.sha(guard.APPROVAL),
+            'readiness_sha256':guard.sha(guard.READINESS), 'output_root':str(output),
+            'context':context, 'identities':identities, 'gpu':gpu,
+            'git_head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=guard.ROOT,text=True).strip()}
+        guard.persist(guard.EVIDENCE/'launch.lock', owner)
+        process, error, timed_out, code, owns_output = None, None, False, -1, False
+        try:
+            output.mkdir(exist_ok=False)
+            owns_output = True
+            guard.persist(output/'OWNER.json', owner)
+            # Ten seconds remain inside the total cap for TERM/KILL/accounting.
+            deadline = started+p['limits']['gpu_wall_s']-10.
+            if time.monotonic() &gt;= deadline:
+                raise TimeoutError('allocation exhausted during preflight')
+&gt;           command = [p['environment']['python'], '-B', str(Path(__file__).resolve()), '--child']
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'python'
+
+CaMRA/navigation/scripts/run_nav043_motion_probe.py:114: KeyError</failure></testcase><testcase classname="tests.test_nav043_motion_launch" name="test_saved_actual_pose_q_work_and_commands_are_recomputed" time="0.389" /><testcase classname="tests.test_nav043_motion_launch" name="test_saved_capture_tampering_cannot_pass[pose]" time="0.353" /><testcase classname="tests.test_nav043_motion_launch" name="test_saved_capture_tampering_cannot_pass[clock]" time="0.288" /><testcase classname="tests.test_nav043_motion_launch" name="test_saved_capture_tampering_cannot_pass[command]" time="0.327" /><testcase classname="tests.test_nav043_motion_launch" name="test_saved_capture_tampering_cannot_pass[q]" time="0.371" /><testcase classname="tests.test_nav043_motion_launch" name="test_saved_capture_tampering_cannot_pass[work]" time="0.326" /><testcase classname="tests.test_nav043_motion_launch" name="test_saved_capture_tampering_cannot_pass[missing_tick]" time="0.288" /><testcase classname="tests.test_nav043_motion_launch" name="test_whole_journal_and_missing_final_return" time="0.418" /><testcase classname="tests.test_motion_capture" name="test_whole_case_captures_real_warmup_q_and_separate_work" time="0.267" /><testcase classname="tests.test_motion_capture" name="test_fall_retains_tail_and_stops[17]" time="0.006" /><testcase classname="tests.test_motion_capture" name="test_fall_retains_tail_and_stops[200]" time="0.026" /><testcase classname="tests.test_motion_capture" name="test_fall_retains_tail_and_stops[237]" time="0.029" /><testcase classname="tests.test_motion_capture" name="test_fall_retains_tail_and_stops[2200]" time="0.292" /><testcase classname="tests.test_motion_capture" name="test_interruption_preserves_partial_data_without_retry" time="0.030" /><testcase classname="tests.test_motion_capture" name="test_malformed_command_proof_cannot_pass[stale]" time="0.256" /><testcase classname="tests.test_motion_capture" name="test_malformed_command_proof_cannot_pass[gap]" time="0.255" /><testcase classname="tests.test_motion_capture" name="test_missing_duplicate_samples_rejected[0]" time="0.004" /><testcase classname="tests.test_motion_capture" name="test_missing_duplicate_samples_rejected[2]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_missing_duplicate_samples_rejected[-1]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_actual_clock_mismatch_retains_readback" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command0]" time="0.004" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command1]" time="0.006" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command2]" time="0.003" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command3]" time="0.004" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command4]" time="0.003" /><testcase classname="tests.test_motion_capture" name="test_float32_frozen_endpoints_are_accepted[command5]" time="0.004" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command0]" time="0.002" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command1]" time="0.005" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command2]" time="0.004" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command3]" time="0.007" /><testcase classname="tests.test_motion_capture" name="test_bad_command_refused_before_output[command4]" time="0.005" /></testsuite></testsuites>
