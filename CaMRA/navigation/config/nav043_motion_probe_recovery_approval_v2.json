@@ -1,0 +1,212 @@
+{
+  "schema": "nav043-motion-probe-recovery-approval-v2",
+  "status": "APPROVED",
+  "task_id": "NAV-043",
+  "plan_version": "1.5.0",
+  "authorized_at": "2026-11-20T10:27:02+08:00",
+  "authorization_basis": "User explicitly replied 确认 开始行动吧 to the pending exact recovery: one additional application, recapture M01 once then unchanged M02-M12, cumulative 2h/32000 explicit steps. Prior failed application/output remains retained; this confirmation authorizes only this isolated recovery.",
+  "proposal_sha256": "1a5afe8d2b801a105a714cdb742cbbdf476d49a2eb376e485adc344a5e4c984f",
+  "readiness_sha256": "6093d64f9d889e8fc8f21803a47a81c8f7d7192f292d6c1bfde595ec448743b8",
+  "output_root": "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/recovery_v2",
+  "environment": {
+    "host": "tiger11",
+    "tmux_required": true,
+    "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "physical_gpu_index": 6,
+    "physical_gpu_uuid": "GPU-ae8422a0-8130-a384-1ec6-8ba59fe59d3a",
+    "logical_device": "cuda:0",
+    "isaaclab_origin": "/pub/data/caohy/IsaacLab_v0472/source/isaaclab/isaaclab/__init__.py",
+    "controller": "camra_go2_velocity_it2999_v2",
+    "scene": "single environment, isolated clean infinite plane, no navigation goal or obstacles",
+    "seed": 100,
+    "reset_each_case": "same default joints, zero velocities and previous action, planar origin and yaw zero; no pose writes during warmup or measurement",
+    "physics_dt_s": 0.005,
+    "low_policy_dt_s": 0.02,
+    "command_dt_s": 0.1,
+    "command_limits": [
+      [
+        -1,
+        1
+      ],
+      [
+        -0.4,
+        0.4
+      ],
+      [
+        -1,
+        1
+      ]
+    ]
+  },
+  "schedule": {
+    "warmup_s": 1,
+    "warmup_command": [
+      0,
+      0,
+      0
+    ],
+    "warmup_ticks_per_case": 200,
+    "measurement_s": 10,
+    "measurement_ticks_per_case": 2000,
+    "warmup_q_endpoint_ticks": [
+      180,
+      200
+    ],
+    "case_order": "array order, exactly one attempt per case; no adaptation, replacement, extra settling or retry",
+    "measurement": "constant requested command in the table, actual bridge command verified at every 50Hz inference; 200Hz actual state capture",
+    "cases": [
+      {
+        "id": "M01",
+        "kind": "zero",
+        "command": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "M02",
+        "kind": "slow_forward",
+        "command": [
+          0.1,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "M03",
+        "kind": "slow_forward",
+        "command": [
+          0.2,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "M04",
+        "kind": "navigation_forward",
+        "command": [
+          0.4,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "M05",
+        "kind": "forward_endpoint",
+        "command": [
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "M06",
+        "kind": "reverse_endpoint",
+        "command": [
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "M07",
+        "kind": "lateral_positive",
+        "command": [
+          0,
+          0.4,
+          0
+        ]
+      },
+      {
+        "id": "M08",
+        "kind": "lateral_negative",
+        "command": [
+          0,
+          -0.4,
+          0
+        ]
+      },
+      {
+        "id": "M09",
+        "kind": "turn_positive",
+        "command": [
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "id": "M10",
+        "kind": "turn_negative",
+        "command": [
+          0,
+          0,
+          -1
+        ]
+      },
+      {
+        "id": "M11",
+        "kind": "combined_positive",
+        "command": [
+          0.4,
+          0.1,
+          0.4
+        ]
+      },
+      {
+        "id": "M12",
+        "kind": "combined_negative",
+        "command": [
+          0.4,
+          -0.1,
+          -0.4
+        ]
+      }
+    ]
+  },
+  "limits": {
+    "applications": 1,
+    "simultaneous_environments": 1,
+    "controlled_physical_cases": 12,
+    "warmup_and_measurement_environment_ticks": 26400,
+    "all_explicit_simulation_step_calls": 31105,
+    "setup_reset_reserve_step_calls": 4705,
+    "gpus": 1,
+    "gpu_wall_s": 6300,
+    "automatic_retries": 0,
+    "physical_navigation_episodes": 0,
+    "nominal_episodes": 0,
+    "W_queries": 0,
+    "response_parameter_fits": 0,
+    "actor_critic_updates": 0,
+    "calibration_fits": 0
+  },
+  "recovery": {
+    "source_proposal_sha256": "9eb3caf00523a65d4848dc07e11a8fcafab87d8a01fa6c33a0459398ba7444bb",
+    "first_failure_review_sha256": "d1a184882512fcdf4637691d996ae2c49a9d35e5916cef0bbde1334c4a2cb252",
+    "original_output_root": "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1",
+    "prior_applications_started": 1,
+    "prior_controlled_cases_started": 1,
+    "prior_completed_cases": 0,
+    "prior_explicit_calls": 895,
+    "prior_reported_launcher_wall_s": 104.59358141385019,
+    "failed_slot_wall_charge_s": 900,
+    "wall_charge_basis": "Conservatively charge 900s from original OWNER time to saved review confirming both PIDs absent (less than 900s); original cleanup wall gap is not called zero.",
+    "cumulative_applications_cap": 2,
+    "cumulative_controlled_cases_started_cap": 13,
+    "cumulative_explicit_step_cap": 32000,
+    "cumulative_wall_cap_s": 7200,
+    "M01_identity": "original incomplete M01 retained; recovery_v2/M01 is its single second attempt",
+    "remaining_cases": "M02-M12 exactly once, unchanged order and commands",
+    "no_further_retry": true
+  },
+  "execution": "Preflight and local approval commit before exactly one sealed launch-once.sh execution in tiger11/tmux/GPU6. Main agent reviews saved actual evidence. First new failure stops; no further retry, root switch or allocation transfer.",
+  "exclusions": [
+    "No fitting/model selection/navigation/W queries/upper actor-critic update/calibration",
+    "No changes to whole frozen v2, alpha/delta, power, footprint, data locks or old45-second production",
+    "No final_* access, manuscript/reference edits or push"
+  ],
+  "NAV043_passed": false,
+  "G5_passed": false
+}

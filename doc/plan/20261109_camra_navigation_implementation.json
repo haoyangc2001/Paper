@@ -15639,6 +15639,82 @@
           ],
           "remaining_work": ["本地提交失败证据、修复、提案和计划；用户确认新增一次应用后建立独立APPROVED/pin，重新核对资源/来源并提交批准，再运行单次恢复/主agent保存数据审阅。", "如恢复仍失败保存停下；完成有限数据采集后另评运动模型/参考J/90秒残余范围，不自动训练或放行下游。"],
           "blockers": ["原协议单应用已用且禁止自动重试，新增一次应用的精确恢复包未批准；独立APPROVED/新输出/launch.lock均不存在，不执行第二应用。"]
+        },
+        {
+          "timestamp": "2026-11-20T10:27:02+08:00",
+          "summary": "NAV-043恢复v2新增一次应用已获明确确认，登记精确批准并准备预检提交后执行",
+          "actions": [
+            "按legacy继续计划1.5.0 NAV-043，依赖NAV-066/067满足，55/67历史状态保持；本项补充固定v2运动模型所需受控响应数据，不改RC-PPO目标或旧生产链，不以采集成功替代G5。",
+            "用户明确回复“确认 开始行动吧”，批准此前展示的恢复提案1a5afe8d及支持清单6093d64f：新增应用1次，累计应用上限2；原M01失败保留，在原目录recovery_v2重采M01并顺序继续M02-M12。",
+            "新包上限6300秒/31105显式step，连同原失败槽保守900秒/895step保持累计7200秒/32000step；固定tiger11/tmux/绝对Python/GPU6/v2，各例1秒warmup+10秒测量，不重试或挪额度。",
+            "新增独立APPROVED及pin，原PROPOSED/PREPARED_ONLY、v1批准/源/锁/17份失败证据不改。复用来源未变的20项CPU检查；实际预检资源/来源/历史通过并本地提交后才运行封存单次入口，保存审阅由主agent执行。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/config/nav043_motion_probe_recovery_approval_v2.json",
+            "CaMRA/navigation/config/nav043_motion_probe_recovery_approval_v2.json.sha256",
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-preflight.py",
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-preflight.sh",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav043_motion_probe_recovery_v2_20261120.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "用户明确确认：确认 开始行动吧",
+            "随后tiger11/tmux运行approval-preflight.sh、legacy update和git diff --check；具体结果另记，不提前宣称通过。"
+          ],
+          "results": [
+            "仅完成恢复范围批准登记；本记录时新增实际应用/物理step/拟合/W/训练/校准0，NAV-043=false/G5未过、55/67不变。",
+            "原采集根因修复已提交2de0b21；新真实Isaac调用链及12工况完整性仍须由实际执行/保存数据复核证明。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/config/nav043_motion_probe_recovery_proposal_v2.json",
+            "CaMRA/navigation/config/nav043_motion_probe_recovery_readiness_v2.json",
+            "CaMRA/navigation/config/nav043_motion_probe_recovery_approval_v2.json",
+            "CaMRA/navigation/reports/nav043_motion_probe_recovery_preparation_v2.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/basic.xml"
+          ],
+          "remaining_work": [
+            "实际预检并提交批准后执行一次封存恢复入口；主agent核验保存状态/真实时钟与索引/命令/q/J/资源及全部身份，失败保留停止。",
+            "采集结束仍须另评运动模型/参考J/90秒残余与受影响学习部署门禁；本批准不自动扩展到这些工作。"
+          ],
+          "blockers": []
+        },
+        {
+          "timestamp": "2026-11-20T10:29:00+08:00",
+          "summary": "NAV-043恢复v2实际预检通过，批准与预检证据先行提交后启动唯一恢复入口",
+          "actions": [
+            "tiger11/tmux %694完成独立approval-preflight.sh，实际解释器/IsaacLab路径/GPU6 UUID及空闲状态核对通过。",
+            "精确APPROVED/pin71f23223绑定提案1a5afe8d/readiness6093d64f；295保护身份、90原输入、29冻结包文件、原17份保存数据及全部封存源核验通过。复用来源未变的20项CPU基本检查，未重复训练或新建测试子agent。",
+            "逐项比较2de0b21基线：67任务定义/状态/未知字段及全部旧记录保持，只追加NAV-043开工记录；legacy update VALID及git diff --check通过。"
+          ],
+          "files_changed": [
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-preflight.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-preflight.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-preflight.exit",
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-plan.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-diff-check.log",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %694: bash .worklog-testing/NAV-043/motion-recovery-v2/approval-preflight.sh -> exit0",
+            "后续本地git commit批准/证据；提交成功后封存launch-once.sh只执行一次，实际启动信息另记。"
+          ],
+          "results": [
+            "APPROVED_PREFLIGHT_PASS；本记录时新应用/物理step/拟合/导航/W/网络更新/校准0。",
+            "批准与工程预检不是12工况/90秒/模型/G5通过；NAV-043=false、55/67及全部旧科学失败保持。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-preflight.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-preflight.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/approval-plan.log"
+          ],
+          "remaining_work": [
+            "先提交批准和实际预检；再一次运行恢复入口并接收保存终态，主agent复核数据和资源；首个新失败停止不重试。",
+            "后续运动模型/参考J/90秒残余仍按独立范围推进，不自动借本次额度。"
+          ],
+          "blockers": []
         }
       ],
       "constraints_and_notes": [
