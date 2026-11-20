@@ -1,5 +1,11 @@
 # Agent 接手说明
 
+## 当前授权（2026-11-20，12工况一次采集范围已确认）
+
+用户对原12工况/单应用单环境/物理GPU6累计2小时及32000显式step明确回复“确认”。独立APPROVED/pin为`config/nav043_motion_probe_approval_v1.json`（22332bf5），绑定原提案9eb3caf0与readiness51b64b3f；原PROPOSED和封存源码不改。先在tiger11/tmux核验实际资源、295/90/29身份及54项保存CPU检查有效性，本地提交后只执行一次原入口/原输出，首次实际失败保留停止，不重试/换目录/挪额度。当前尚未启动实际应用。
+
+本次只采集及主agent保存数据审阅，无拟合/导航/W/上层更新/校准，不安排测试子agent。仍NAV-043=false、1.5.0/55/67历史完成、G5未过，旧45秒链和固定v2/alpha/delta/全部失败保持；后续以实际结果更新，不把批准写成通过。下方待确认均为保留历史时点。
+
 ## 当前补充（2026-11-20，12工况一次性入口已准备，仍未运行物理）
 
 新增隔离`run_nav043_motion_probe.py`、单plane接线及显式step保护/保存审阅器，原PROPOSED pin9eb3caf0不改。%680最终54项CPU合成检查通过，%679三项失败来自合成协议漏填python字段，原源码/日志保留；只补夹具字段，没有改物理协议。PREPARED_ONLY来源清单`config/nav043_motion_probe_readiness_v1.json`不是批准，也不证明实际Isaac调用链通过。缺独立APPROVED时所有入口在应用、GPU扫描和marker前拒绝。

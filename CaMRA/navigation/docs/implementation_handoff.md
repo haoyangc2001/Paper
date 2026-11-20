@@ -1,5 +1,11 @@
 # 上层导航实施交接
 
+## 2026-11-20 原12工况一次物理采集范围已确认
+
+用户明确回复“确认”，独立APPROVED/pin22332bf5绑定原PROPOSED9eb3caf0及支持清单51b64b3f，完整顺序/环境/额度/原输出不变。先tiger11/tmux预检295保护身份/90输入/29包体及54项保存CPU检查、来源和GPU6可用性，提交批准后只启动一次`run_nav043_motion_probe.py`。原输出`/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1`；断线先检查launch.lock/PROCESS/FINISHED/HELD，不重启。首次实际失败保存停下，保存数据审阅由主agent执行，不派测试子agent。
+
+本段仅登记批准，尚无新实际应用或物理数据。只含12工况、单应用/单环境、总2小时/32000显式step，不含拟合/导航/W/上层更新/校准。NAV-043=false、1.5.0/55/67、G5未过，旧45秒/v2/alpha/delta/全部失败保持。下方未批准描述为历史。
+
 ## 2026-11-20 12工况一次性入口及保存审阅准备完成，物理仍待确认
 
 原PROPOSED pin9eb3caf0不改；新增`run_nav043_motion_probe.py`、`nav043_motion_probe_guard.py`、`nav043_motion_probe_simulation.py`及`audit_nav043_motion_probe.py`。固定单应用/单环境plane和v2，不导入上层网络；应用创建前查精确APPROVED及PREPARED_ONLY来源，缺批准不扫描GPU/建marker/建输出。持久独占锁/原目录、GPU身份/可用性、显式step调用前日志及总32000/预留5600/每例2200限制、12固定顺序、进程组时限和保留HELD。实际200Hz核心复用上一提交，SIGTERM进入部分保存；硬杀/原生初始化不可观测步如实保留，不能称为0。保存审阅重算q/命令/时钟/J及step日志，不拟合或调用W。
