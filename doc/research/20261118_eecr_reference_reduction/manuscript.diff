@@ -1,0 +1,65 @@
+--- EECR/latex/1114/main.tex
++++ EECR/latex/1118/main.tex
+@@ -1,5 +1,5 @@
+ \documentclass[conference]{IEEEtran}
+-% EECR official IEEEtran conference format. [ADAPTED: venue annotation only]
++% EECR official IEEEtran conference format. Reference-reduction revision 2026-11-18.
+ \IEEEoverridecommandlockouts
+ \usepackage{cite}
+ \usepackage{amsmath,amssymb,amsfonts}
+@@ -78,7 +78,7 @@
+ reward terms therefore makes the desired trade-off depend on hand-tuned weights.
+ Minimum-cost reach-avoid (MCRA) control provides a more direct task description by
+ requiring goal reachability and trajectory-wide avoidance while minimizing a
+-cumulative cost~\cite{bansal2017,ganai2024survey}.\footnote{The CaMRA implementation
++cumulative cost~\cite{bansal2017}.\footnote{The CaMRA implementation
+ is publicly available at \url{https://github.com/haoyangc2001/NaVILA_CaMRA}.}
+ 
+ Practical MCRA learning has been enabled by Reachability-Constrained Proximal
+@@ -145,7 +145,7 @@
+ \subsection{Minimum-Cost Reach-Avoid Learning}
+ In reach-avoid reinforcement learning, reaching a target and avoiding an unsafe
+ set are treated as trajectory-level requirements rather than competing reward terms
+-\cite{bansal2017,hsu2021,ganai2023}. This formulation is extended to minimum-cost
++\cite{bansal2017,hsu2021}. This formulation is extended to minimum-cost
+ reach-avoid control in RC-PPO through state augmentation with a safety indicator
+ and remaining budget, budget-conditioned policy and reachability-critic learning,
+ and a search for the least feasible initial budget~\cite{so2024}. This formulation
+@@ -155,16 +155,15 @@
+ \subsection{Safe Quadruped Navigation}
+ Quadruped navigation in challenging environments is supported by
+ learning-based locomotion controllers. Robust locomotion on natural terrain
+-using proprioceptive feedback was demonstrated by Lee et al.~\cite{lee2020},
+-while rapid motor adaptation was introduced by Kumar et al.~\cite{kumar2021}
+-to accommodate changes in terrain and payload. At the navigation level, a policy
++using proprioceptive feedback was demonstrated by Lee et al.~\cite{lee2020}.
++At the navigation level, a policy
+ was trained by Jin et al.~\cite{jin2023resilient} to issue velocity commands to an
+ existing locomotion controller and respond to perception failures using
+ locomotion-level observations. In contrast, a joint-level agile policy was
+ developed by He et al.~\cite{he2024abs}, with reach-avoid-guided switching to a
+ recovery policy for collision avoidance. Visual navigation and reusable motor
+ skills are connected through hierarchical policies in prior
+-work~\cite{jain2021pixels,hoeller2024}. At the local-planning level, smooth,
++work~\cite{jain2021pixels}. At the local-planning level, smooth,
+ collision-free paths are learned from depth observations using differentiable
+ cost maps in iPlanner~\cite{yang2023iplanner}. A hierarchical architecture is
+ adopted here, with a frozen velocity tracker handling
+@@ -175,13 +174,12 @@
+ Model uncertainty is addressed through domain and dynamics randomization by
+ broadening the training distribution~\cite{tobin2017,tan2018simreal},
+ or through robust reinforcement learning by optimizing performance across uncertain
+-dynamics~\cite{smirnova2019,wang2021,liu2022drql}. The need for dynamics randomization
++dynamics~\cite{wang2021}. The need for dynamics randomization
+ also depends on the control design and deployment conditions~\cite{xie2021randomization}.
+ In chance-constrained and risk-aware planning, uncertainty is instead incorporated
+-into planning constraints or risk measures~\cite{theurkauf2023,fan2021step,schmittle2024}. For example, STEP
+-is used to estimate stochastic traversability for risk-aware off-road
+-planning~\cite{fan2021step}, while multiple long-range planning samples are used by Schmittle et al.
+-to account for sensing uncertainty~\cite{schmittle2024}.
++into planning constraints or risk measures~\cite{theurkauf2023,fan2021step}.
++For example, STEP estimates stochastic traversability for risk-aware off-road
++planning~\cite{fan2021step}.
+ Planning--tracking mismatch is bounded through reachability analysis in
+ FaSTrack~\cite{herbert2017fastrack}, while model-based planning and learned tracking
+ are combined in DTC to improve accuracy and robustness~\cite{jenelten2024dtc}.

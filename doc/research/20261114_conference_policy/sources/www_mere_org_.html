@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!--Meta Informations-->
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!--Site Title-->
+	<title>MERE 2027 | Wuhan, China | Mechanical, Electronic and Robotics Engineering </title>
+	
+	<!--Favicons-->	
+	<link rel="apple-touch-icon" sizes="60x60" href="assets/favicon/apple-touch-icon.png">
+	<link rel="icon" type="image/png" href="assets/favicon/favicon.png" sizes="32x32">
+	<link rel="icon" type="image/png" href="assets/favicon/favicon-16x16.png" sizes="16x16">
+	<link rel="manifest" href="assets/favicon/manifest.json">
+	<link rel="mask-icon" href="assets/favicon/safari-pinned-tab.svg" color="#5bbad5">
+	<link rel="shortcut icon" href="assets/favicon/favicon.ico">
+	<meta name="msapplication-config" content="assets/favicon/browserconfig.xml">
+	<meta name="theme-color" content="#ffffff">
+	
+	<!--Style Assets-->
+	<link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	
+	<style>
+		/* 整体间距优化，不改变字体字号 */
+		body { line-height: 1.6; color: #333; }
+		section { padding: 60px 0; }
+		
+		/* 导航栏优化：增加阴影和呼吸感 */
+		.navbar-style1 {
+			background: rgba(255, 255, 255, 0.98);
+			box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+			border: none;
+			padding: 5px 0;
+		}
+		
+		/* Banner 区域占位及优化 */
+		.home-slider {
+			margin-top: 50px;
+			background: #2c3e50;
+			min-height: 400px;
+			position: relative;
+			overflow: hidden;
+		}
+		/* 两张 Banner 自动轮播：slide1 ↔ slide2，每张显示 2.5s，平滑淡入淡出 */
+		.home-slider .slide {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-size: cover;
+			background-position: center;
+		}
+		.home-slider .slide-1 { animation: mereSlide1 5s infinite; }
+		.home-slider .slide-2 { animation: mereSlide2 5s infinite; }
+		@keyframes mereSlide1 {
+			0%   { opacity: 1; }
+			40%  { opacity: 1; }
+			50%  { opacity: 0; }
+			90%  { opacity: 0; }
+			100% { opacity: 1; }
+		}
+		@keyframes mereSlide2 {
+			0%   { opacity: 0; }
+			40%  { opacity: 0; }
+			50%  { opacity: 1; }
+			90%  { opacity: 1; }
+			100% { opacity: 0; }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.home-slider .slide { animation: none !important; }
+			.home-slider .slide-2 { opacity: 0 !important; }
+		}
+
+		/* Tab 导航样式：还原并美化按钮感 */
+		.hstab { border-bottom: none; margin-bottom: 40px; }
+		.hstab > li > a {
+			margin: 0 5px;
+			background: #f8f9fa;
+			border: 1px solid #ddd !important;
+			color: #666;
+			transition: all 0.3s;
+			border-radius: 4px;
+		}
+		.hstab > li.active > a, .hstab > li.active > a:hover {
+			background: #337ab7 !important;
+			color: #fff !important;
+			border-color: #337ab7 !important;
+			box-shadow: 0 4px 10px rgba(51, 122, 183, 0.3);
+		}
+
+		/* 右侧 Key Dates 卡片：增强视觉层次 */
+		.hst-plan {
+			background: #fff;
+			border: 1px solid #eee;
+			border-radius: 8px;
+			padding: 25px;
+			box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+		}
+		.plan-list li {
+			padding: 12px 0;
+			border-bottom: 1px dashed #eee;
+			list-style: none;
+		}
+		.plan-list li:last-child { border-bottom: none; }
+		.hst-plan-price { margin-top: 15px; border-top: 1px solid #f0f0f0; padding-top: 15px; }
+
+		/* 提示框美化 */
+		.alert-info {
+			border-left: 5px solid #31708f;
+			background-color: #f4f8fa;
+			border-radius: 4px;
+			padding: 20px;
+		}
+
+		/* 论文集板块优化 */
+		.c2a-plan { background: #fdfdfd; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 50px 0; }
+		.c2ap-title { font-weight: bold; margin-bottom: 20px; }
+		.c2ap-list li { margin-bottom: 10px; }
+
+		/* 底部 Key Information 卡片美化 */
+		.pricing-plan .pp-inner {
+			background: #fff;
+			border-radius: 8px;
+			padding: 30px 20px;
+			border: 1px solid #eee;
+			height: 100%;
+			transition: transform 0.3s, box-shadow 0.3s;
+		}
+		.pricing-plan .pp-inner:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+		}
+		.pp-title { font-weight: bold; color: #337ab7; margin-bottom: 20px; text-align: center; }
+		.pp-list { padding: 0; list-style: none; }
+
+		/* 页脚美化 */
+		.site-footer-top { background: #222; color: #999; padding: 40px 0; }
+		/* 解决下拉菜单在右侧导航栏中偏移的问题 */
+.navbar-right .dropdown-menu {
+    left: 0 !important; /* 强制左对齐 */
+    right: auto !important; /* 取消右侧定位 */
+    margin-top: 0; /* 根据需要微调与顶部的间距 */
+}
+
+/* 可选：增加下拉菜单与导航条的视觉关联 */
+.dropdown-menu {
+    border-radius: 0 0 4px 4px; /* 下方圆角 */
+    border: 1px solid #ddd;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.175);
+}
+	</style>
+</head>
+<body>
+	
+<div id="page" class="site row">
+
+<h1 class="sr-only"><em></em></h1>
+
+<header id="header" class="site-header">
+	<nav class="navbar navbar-defatult navbar-fixed-top fluid-navbar navbar-style1" style="min-height: 70px;"> <!-- 增加导航栏最小高度 -->
+		<div class="container">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-nav" aria-expanded="false">
+					<span class="sr-only"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<!-- 优化后的 Logo 容器 -->
+				<a class="navbar-brand" href="index.html" style="height: 70px; padding: 15px 0; display: flex; align-items: center;">
+					<img src="images/logo.png" alt="Logo" style="max-height: 40px; width: auto;">
+				</a>
+			</div>
+			<div class="collapse navbar-collapse" id="main-nav">
+    <ul class="nav navbar-nav navbar-right" style="margin-top: 10px;">
+        <li class="active"><a href="index.html">Home</a></li>
+        <li><a href="cfp.html">CFP</a></li>
+        <li><a href="committee.html">Committee</a></li>
+        <li><a href="speaker.html">Speakers</a></li>
+        <li><a href="sub.html">Submission</a></li>
+        <li><a href="reg.html">Registration</a></li>
+        
+        <!-- Participation 下拉菜单 -->
+        <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                Participation <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a href="program.html">Program</a></li>
+                <li><a href="venue.html">Venue</a></li>
+                <li><a href="visa.html">Visa</a></li>
+            </ul>
+        </li>
+
+        <li><a href="2019.html">History</a></li>
+        <li><a href="news.html">News</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="cn.html">Chinese</a></li>
+    </ul>
+</div>			
+		</div>
+	</nav>
+</header>
+
+<main id="contents" class="site-contnts">
+	
+	<!--Slider-->
+	<!--Slider-->
+	<div class="home-slider" style="margin-top: 70px; height: 500px;"> <!-- 这里的 margin-top 要对应导航栏的高度 -->
+		<div class="slide slide-1" style="background-image: url('images/slide1.jpg');"></div>
+		<div class="slide slide-2" style="background-image: url('images/slide2.jpg');"></div>
+		<div class="container" style="position: relative; z-index: 2; height: 100%; display: flex; align-items: center;">
+			<div class="row">
+                <!-- 你可以在这里添加 Banner 上的文字 -->
+            </div>
+		</div>
+	</div>
+	
+	<!--Find Domain--><!--Hosting Services - Tab-->
+	<style>
+    /* 核心样式美化 */
+    .mere-2027-section {
+        padding: 60px 0;
+        background-color: #f8f9fa;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .section-title h2 {
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 40px;
+        position: relative;
+    }
+
+    /* 丝滑的 Tab 导航 */
+    .hstab-custom {
+        border-bottom: none !important;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: -1px;
+    }
+
+    .hstab-custom li a {
+        border: none !important;
+        background: #e9ecef !important;
+        color: #6c757d !important;
+        border-radius: 12px 12px 0 0 !important;
+        padding: 12px 25px !important;
+        transition: all 0.3s ease !important;
+        font-weight: 600;
+        margin-right: 0 !important;
+    }
+
+    .hstab-custom li.active a, 
+    .hstab-custom li a:hover {
+        background: #fff !important;
+        color: #007bff !important;
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+    }
+
+    /* 内容容器 */
+    .hst-contents-custom {
+        background: #fff;
+        padding: 40px;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        min-height: 400px;
+    }
+
+    /* 动画效果 */
+    .tab-pane {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 侧边栏 Key Dates 样式 */
+    .date-card {
+        background: linear-gradient(145deg, #ffffff, #f0f0f0);
+        border-left: 4px solid #007bff;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 5px 5px 15px #d1d1d1;
+    }
+
+    .plan-list-custom {
+        list-style: none;
+        padding: 0;
+    }
+
+    .plan-list-custom li {
+        margin-bottom: 15px;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .date-label {
+        display: block;
+        color: #7f8c8d;
+        font-size: 12px;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .btn-submit-custom {
+        background: #007bff;
+        color: white !important;
+        border-radius: 25px;
+        padding: 10px 30px;
+        font-weight: bold;
+        display: inline-block;
+        margin-top: 20px;
+        transition: transform 0.2s;
+        text-decoration: none !important;
+    }
+
+    .btn-submit-custom:hover {
+        transform: scale(1.05);
+        background: #0056b3;
+    }
+
+    .alert-notice {
+        background: #fff4e5;
+        border-left: 4px solid #ffa117;
+        padding: 15px;
+        margin-top: 20px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+</style>
+
+<section class="mere-2027-section">
+    <div class="container">
+        <div class="row section-title text-center">
+            <h2>MERE 2027 - Welcome!</h2>
+        </div>
+
+        <!-- 丝滑 Tab 导航 -->
+        <ul class="nav nav-tabs hstab-custom" role="tablist">
+            <li role="presentation" class="active"><a href="#hst-1" aria-controls="hst-1" role="tab" data-toggle="tab">Welcome Message</a></li>
+            <li role="presentation"><a href="#hst-2" aria-controls="hst-2" role="tab" data-toggle="tab">For Authors</a></li>
+            <li role="presentation"><a href="#hst-3" aria-controls="hst-3" role="tab" data-toggle="tab">For Presenters</a></li>
+            <li role="presentation"><a href="#hst-4" aria-controls="hst-4" role="tab" data-toggle="tab">For Listeners</a></li>
+        </ul>
+
+        <!-- Tab 内容 -->
+        <div class="tab-content hst-contents-custom">
+            <!-- 关键日期公共部分（为了丝滑，我们把日期卡片统一布局） -->
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="tab-content">
+                        <!-- Tab 1: Welcome -->
+                        <div role="tabpanel" class="tab-pane active" id="hst-1">
+    <h3 class="au-title">Welcome Message</h3>
+    <p align="justify">
+        We are pleased to announce and cordially invite you to 2027 the <strong>2nd International Conference on Mechanical, Electronic and Robotics Engineering (MERE 2027)</strong>, which will be held in <strong>Wuhan, China from May 21-23, 2027</strong>.
+    </p>
+    <p align="justify">
+        MERE 2027 serves as a high-level international platform designed to bring together global researchers, engineers, and industry representatives. The conference is dedicated to fostering frontier technological innovation and promoting cross-disciplinary integration within the fields of mechanical, electronic, and robotics engineering.
+    </p>
+    <p align="justify"><strong>Wuhan Polytechnic University</strong> will serve as the host, with <strong>China University of Geosciences (Wuhan)</strong> as the co-host. This edition is organized by the School of Mechanical Engineering and the School of Electrical & Electronic Engineering at Wuhan Polytechnic University.
+    We warmly welcome experts, scholars, and technical professionals from around the world to participate in this event to share your latest research findings and engage in profound academic exchange.
+    </p>
+							<hr>
+
+    <!-- Chinese Version -->
+    <p align="justify">
+        我们诚挚地邀请您参加即将在<strong>2027年5月21日至23日</strong>于<strong>中国武汉</strong>举行的<strong>第二届机械、电子与机器人工程国际会议 (MERE 2027)</strong>。
+    MERE 2027 旨在打造一个高水平的国际交流平台，汇聚全球研究人员、工程师和行业代表。会议致力于推动机械、电子和机器人工程领域的前沿技术创新，促进跨学科融合与发展。
+    </p>
+    <p align="justify">
+        本次会议由<strong>武汉轻工大学</strong>主办，<strong>中国地质大学（武汉）</strong>联合主办，并由武汉轻工大学机械工程学院和电气与电子工程学院联合承办。
+    我们热忱欢迎世界各地的专家、学者和技术人员莅临本次盛会，分享最新研究成果，开展深入的学术交流。
+    </p>
+    
+    
+</div>
+
+                        <!-- Tab 2: Authors -->
+                        <div role="tabpanel" class="tab-pane" id="hst-2">
+    <h3 class="au-title">Authors - Full Paper Submission / 作者全文投稿</h3>
+
+    <p><strong>[Definition]</strong> The "Author" category is specifically for participants who submit full-length manuscripts for peer review and formal publication.针对提交全文稿件、参加同行评审并寻求正式出版的参会人员。</p>
+
+    <p><strong>[Submission Standards]</strong> Submissions must be original, unpublished, and written in English. All papers will undergo a plagiarism check (Similarity index below 20%).稿件须为原创且未经发表的英文论文。所有投稿均需经过学术查重（重复率须低于 20%）。</p>
+
+    <p><strong>[Paper Length]</strong> A full paper submission should typically range from 4 to 6 pages, including all figures, tables, and references.全文投稿通常建议长度为 4 至 6 页，包含所有图表及参考文献。</p>
+
+    <p><strong>[Presentation & Publication]</strong> Accepted authors are required to present their work (Oral or Poster) at the conference to ensure the paper's inclusion in the proceedings.录用作者须在会议上进行学术报告（口头或海报展示），以确保论文收录于论文集。</p>
+
+    
+</div>
+
+                        <!-- Tab 3: Presenters -->
+                        <div role="tabpanel" class="tab-pane" id="hst-3">
+    <h3 class="au-title">Presenters - Abstract Submission / 报告人 - 摘要投稿</h3>
+
+    <p><strong>[Definition]</strong> The "Presenter" category is designed for participants who wish to deliver an oral or poster presentation to share their latest research or work-in-progress, without publishing a full paper in the proceedings.适用于希望通过口头报告或海报展示分享最新研究成果或在研项目，但**不需要**在会议论文集中正式出版全文的参会人员。</p>
+
+    <p><strong>[Submission Standards]</strong> A descriptive abstract (typically 200-400 words) should be submitted for review. 需提交一份描述性摘要（通常为 200-400 字）。</p>
+
+    <p><strong>[Presentation & Certificate]</strong> Accepted presenters will be assigned a 15-minute oral presentation slot or a poster display space. An official presentation certificate will be issued on-site.录用的报告人将被安排 15 分钟的口头报告或海报展示位。组委会将在现场颁发正式的参会报告证书。</p>
+
+    <p><strong>[Note on Publication]</strong> Please note that abstract-only submissions will be included in the conference program for communication purposes but will <strong>NOT</strong> be sent for indexing in digital libraries.请注意，仅摘要投稿的内容将收录于会议程序册供交流参考，但**不会**提交至数字图书馆检索或出版。</p>
+
+  
+</div>
+
+                        <!-- Tab 4: Listeners -->
+                        <div role="tabpanel" class="tab-pane" id="hst-4">
+    <h3 class="au-title">Listener Registration / 听众注册</h3>
+    
+    <p><strong>[Definition]</strong> The "Listener" category is for participants who wish to attend the conference without submitting a paper or making a presentation.适用于希望参加会议但**不提交论文且不做报告**的参会人员。</p>
+
+    <p><strong>[Benefits]</strong> Listeners have full access to all keynote speeches, technical sessions, and workshops. 听众可以全程参与所有主旨演讲、技术分会场及工作坊。</p>
+
+
+    <div class="well">
+        <strong>How to Register / 注册流程:</strong>
+        <ol>
+            <li>
+                <strong>Online Registration:</strong> Complete your registration via the <a href="https://confsys.iconf.org/register/mere2027" target="_blank">Online Registration System</a>.
+                <br><em>在线支付：通过在线支付系统完成缴费。</em>
+            </li>
+            <li>
+                <strong>Confirmation:</strong> Email your Payment ID and Registration Form to <a href="mailto:mere_conf@chairmen.org
+">mere_conf@chairmen.org
+</a> to confirm your attendance.
+                <br><em>邮件确认：将您的支付 ID 及注册表发送至邮箱以确认参会。</em>
+            </li>
+        </ol>
+    </div>
+</div>
+                    </div>
+                </div>
+
+                <!-- 右侧统一的 Key Dates 卡片 -->
+                <div class="col-md-4">
+                    <div class="date-card">
+                        <h4 style="margin-top:0; color:#2c3e50;">Key Dates <span style="font-size:12px;font-weight:600;color:#007bff;background:#eef4fb;border:1px solid #d6e6f5;border-radius:10px;padding:1px 8px;margin-left:6px;">Round 1</span></h4>
+                        <ul class="plan-list-custom">
+                            <li>
+                                <span class="date-label">Submission Deadline</span> <strong class="text-danger">December 15, 2026 </strong>
+                          </li>
+                            <li>
+                                <span class="date-label">Notification Deadline</span>
+                                <strong>January 10, 2027</strong>
+                            </li>
+                            <li>
+                                <span class="date-label">Registration Deadline</span>
+                                <strong>January 25, 2027</strong>
+                            </li>
+							<li>
+                                <span class="date-label">Listener Deadline</span>
+                                <strong>May 16, 2027</strong></li>
+                            <li>
+                                <span class="date-label">Camera-Ready Deadline</span>
+                                <strong>April 25, 2027</strong>
+                            </li>
+                        </ul>
+                        <a href="https://confsys.iconf.org/submission/mere2027" class="btn-submit-custom">Submit Your Paper</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+    <!--Call to Action-->
+    
+    <section class="row c2a-plan" style="padding: 20px 0;">
+    <div class="container">
+        
+        <!-- 模块一：Conference Proceedings (紧凑型横条) -->
+        <div style="display: flex; align-items: center; background: #f8f9fa; border-left: 5px solid #1a73e8; padding: 20px; margin-bottom: 20px;">
+            <div style="flex: 0 0 80px; text-align: center; margin-right: 20px;">
+                <!-- 纯 SVG 图标，无外部依赖 -->
+                <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+            </div>
+            <div style="flex: 1;">
+                <h4 style="margin: 0 0 5px 0; font-weight: bold; color: #1a73e8; font-size: 18px;">Conference Proceedings / 会议出版</h4>
+                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #333;">
+                    Accepted papers of MERE 2027 will be published in the Conference Proceedings and indexed by <strong>Ei Compendex</strong> and <strong>Scopus</strong>.
+                    <span style="color: #666; margin-left: 10px;">(所有录用论文将收录于论文集并提交 EI 和 Scopus 检索)</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- 模块二：Call for Tracks (卡片组合型) -->
+        <div style="border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden;">
+            <!-- 顶部蓝色邀请区 -->
+            <div style="background: #f0f7ff; border: 1px solid #d1e3fa; border-radius: 16px; padding: 25px 30px; display: flex; align-items: center; justify-content: space-between; gap: 30px;">
+    <!-- 左侧文字详细描述区 -->
+    <div style="flex: 1;">
+        <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <div style="background: #1a73e8; width: 4px; height: 18px; border-radius: 2px; margin-right: 10px;"></div>
+            <h4 style="margin: 0; font-weight: bold; font-size: 19px; color: #1a73e8; letter-spacing: 0.5px;">
+                Call for Tracks & Topics / 专题分会主席邀请
+            </h4>
+        </div>
+        
+        <div style="font-size: 14px; line-height: 1.6; color: #444;">
+            <p style="margin: 0 0 8px 0;">
+                We are looking for <strong>Track Chairs</strong> to lead specialized sessions within the scope of MERE 2027. This role offers a unique platform to curate cutting-edge research, invite fellow experts, and enhance your academic leadership within the global robotics community.
+            </p>
+            <p style="margin: 0; color: #666; font-size: 13.5px;">诚邀相关领域专家学者作为 <strong>专题主席</strong> 组建分会。您将负责审阅该方向的高质量论文、邀请领域内知名学者交流，并直接参与 MERE 2027 技术委员会的议程制定，提升个人学术影响力。
+            </p>
+        </div>
+    </div>
+
+    <!-- 右侧申请按钮区 -->
+    <div style="flex: 0 0 auto; text-align: center; border-left: 1px solid #d1e3fa; padding-left: 30px;">
+        <p style="font-size: 12px; color: #777; margin-bottom: 10px; font-weight: 500;">Interested in joining us?</p>
+        <a href="mailto:mere_conf@chairmen.org" 
+           style="display: inline-block; background: #1a73e8; color: #fff; padding: 10px 24px; border-radius: 30px; text-decoration: none; font-size: 13px; font-weight: bold; box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2); transition: all 0.3s ease;">
+            Apply to be a Chair to mere_conf@chairmen.org
+        </a>
+        <div style="margin-top: 8px;">
+            <span style="font-size: 11px; color: #999;">Deadline: Rolling Basis</span>
+        </div>
+    </div>
+</div>
+            
+            <!-- 内容列表区 (多列紧凑排列) -->
+            <div style="padding: 25px; background: #fff; border: 1px solid #eef2f6; border-top: none; border-radius: 0 0 16px 16px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 0;">
+        <!-- Left Column -->
+        <div style="flex: 0 0 50%; font-size: 13px;">
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T1.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">AI-Driven Robotics & Autonomous Systems</div>
+                            <div style="color: #888; font-size: 12px;">AI驱动的机器人与自主系统</div>
+                        </div>
+                    </div>
+                </li>
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T2.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Human-Robot Interaction & Collaboration</div>
+                            <div style="color: #888; font-size: 12px;">人机交互与协作</div>
+                        </div>
+                    </div>
+                </li>
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T3.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Intelligent Control & Mechatronics</div>
+                            <div style="color: #888; font-size: 12px;">智能控制与机电一体化</div>
+                        </div>
+                    </div>
+                </li>
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T4.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Bio-inspired & Soft Robotics Engineering</div>
+                            <div style="color: #888; font-size: 12px;">仿生与软体机器人工程</div>
+                        </div>
+                    </div>
+                </li>
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T5.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Low-altitude Economy & Unmanned Systems</div>
+                            <div style="color: #888; font-size: 12px;">低空经济与无人系统</div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Right Column -->
+        <div style="flex: 0 0 50%; font-size: 13px;">
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T6.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Micro-Nano Robotics & Sensing</div>
+                            <div style="color: #888; font-size: 12px;">微纳机器人与传感技术</div>
+                        </div>
+                    </div>
+                </li>
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T7.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Smart Manufacturing & Smart Factory</div>
+                            <div style="color: #888; font-size: 12px;">智能制造与智能工厂</div>
+                        </div>
+                    </div>
+                </li>
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T8.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Sustainable Energy & Green Electronics</div>
+                            <div style="color: #888; font-size: 12px;">可持续能源与绿色电子</div>
+                        </div>
+                    </div>
+                </li>
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T9.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Computer Vision & Pattern Recognition</div>
+                            <div style="color: #888; font-size: 12px;">计算机视觉与模式识别</div>
+                        </div>
+                    </div>
+                </li>
+                <li style="margin-bottom: 12px; line-height: 1.4;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <strong style="color: #1a73e8; margin-right: 8px; font-family: monospace;">T10.</strong>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">Wearable Robotics & Exoskeletons</div>
+                            <div style="color: #888; font-size: 12px;">穿戴式机器人与外骨骼</div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 底部 Tag 区域 -->
+    <div style="margin-top: 10px; padding-top: 15px; border-top: 1px solid #f0f4f8; display: flex; align-items: center;">
+        <span style="font-size: 11px; font-weight: bold; color: #1a73e8; margin-right: 15px; text-transform: uppercase; letter-spacing: 1px;">Hot Topics:</span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 11px; color: #5a769a; background: #eef4fb; padding: 2px 10px; border-radius: 4px; border: 1px solid #ddecfa;">#UAVs / 无人机</span>
+            <span style="font-size: 11px; color: #5a769a; background: #eef4fb; padding: 2px 10px; border-radius: 4px; border: 1px solid #ddecfa;">#AI_Control / AI控制</span>
+            <span style="font-size: 11px; color: #5a769a; background: #eef4fb; padding: 2px 10px; border-radius: 4px; border: 1px solid #ddecfa;">#HCI / 人机协作</span>
+        </div>
+    </div>
+</div>
+        </div>
+
+    </div>
+</section>
+    <!--Pricing Tabs-->
+    <section class="row pricing-tabs-section" style="padding-top: 30px; padding-bottom: 0; margin-bottom: 10px;">
+    <div class="container" style="max-width: 1200px;"> <div class="row section-title text-center" style="margin-bottom: 20px;">
+            <h2 style="font-size: 26px; color: #333;">Key Information</h2>
+        </div>
+
+        <div class="tab-content pricing-tab-contents">
+            <div role="tabpanel" class="tab-pane active fade in" id="pricing-tab1">
+                <div class="row" style="display: flex; flex-wrap: wrap; margin-left: -10px; margin-right: -10px;">
+                    
+                    <div class="col-sm-4" style="padding: 0 10px; margin-bottom: 15px;">
+                        <div style="background: #ffffff; border: 1px solid #e3eefc; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 100%;">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="background: #eef4fb; padding: 6px; border-radius: 8px; margin-right: 10px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                </div>
+                                <h2 style="margin: 0; font-size: 18px; color: #1a73e8; font-weight: bold;">Paper Submission</h2>
+                            </div>
+                            <div style="margin-bottom: 15px; font-size: 13px;">
+                                <div style="font-weight: bold; color: #333; display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span>1. Full Paper</span>
+                                    <a href="files/Template.docx" style="color: #1a73e8; text-decoration: none; border-bottom: 1px dashed #1a73e8;">[Template]</a>
+                                </div>
+                                <div style="font-weight: bold; color: #333; display: flex; justify-content: space-between;">
+                                    <span>2. Abstract</span>
+                                    <a href="files/Abstract-Template.doc" style="color: #1a73e8; text-decoration: none; border-bottom: 1px dashed #1a73e8;">[Template]</a>
+                                </div>
+                            </div>
+                            <div style="background: #f8fbff; border-radius: 10px; padding: 10px; border: 1px dashed #d1e3fa;">
+                                <a href="https://confsys.iconf.org/submission/mere2027" target="_blank" style="display: block; background: #1a73e8; color: #fff; text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;">Online Submission ↗</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-4" style="padding: 0 10px; margin-bottom: 15px;">
+                        <div style="background: #ffffff; border: 1px solid #e3eefc; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 100%;">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="background: #eef4fb; padding: 6px; border-radius: 8px; margin-right: 10px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                </div>
+                                <h2 style="margin: 0; font-size: 18px; color: #1a73e8; font-weight: bold;">Quick Links</h2>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <a href="https://confsys.iconf.org/submission/mere2027" target="_blank" style="padding: 8px; background: #f8fbff; border: 1px solid #ddecfa; border-radius: 8px; text-decoration: none; font-size: 13px; color: #333;">Online Submission →</a>
+                                <a href="https://confsys.iconf.org/register/mere2027" target="_blank" style="padding: 8px; background: #f8fbff; border: 1px solid #ddecfa; border-radius: 8px; text-decoration: none; font-size: 13px; color: #333;">Registration →</a>
+                                <a href="files/MERE-CFP-CN.pdf" target="_blank" style="padding: 8px; background: #fdfdfd; border: 1px solid #eee; border-radius: 8px; text-decoration: none; font-size: 13px; color: #333;">Call for Papers (CN)</a>
+                                <a href="files/MERE-CFP-EN.pdf" target="_blank" style="padding: 8px; background: #fdfdfd; border: 1px solid #eee; border-radius: 8px; text-decoration: none; font-size: 13px; color: #333;">Call for Papers (EN)</a>
+                                <a href="files/IEEE-conference-proceeding-Latex.rar" target="_blank" style="padding: 8px; background: #fdfdfd; border: 1px solid #eee; border-radius: 8px; text-decoration: none; font-size: 13px; color: #333;">LaTeX Template</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-4" style="padding: 0 10px; margin-bottom: 15px;">
+                        <div style="background: #ffffff; border: 1px solid #e3eefc; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 100%;">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="background: #eef4fb; padding: 6px; border-radius: 8px; margin-right: 10px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                </div>
+                                <h2 style="margin: 0; font-size: 18px; color: #1a73e8; font-weight: bold;">Contact Us</h2>
+                            </div>
+                            <div style="font-size: 12px; margin-bottom: 15px;">
+                                <div style="color: #999;">Secretary: <span style="color: #333; font-weight: 500;">Ms. Leah Gao</span></div>
+                                <div style="color: #999; margin-top: 4px;">Hours: <span style="color: #555;">10:00-18:00 (GMT+8)</span></div>
+                            </div>
+                            <div style="background: #f8fbff; border-radius: 10px; padding: 10px; display: flex; justify-content: space-around; align-items: center;">
+                                <div style="text-align: center;">
+                                    <img src="images/公众号 RAS.jpg" width="60" height="60" style="border-radius: 4px;">
+                                    <div style="font-size: 9px; color: #666; margin-top: 3px;">Official</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <img src="images/微信号 RAS.jpg" width="60" height="60" style="border-radius: 4px;">
+                                    <div style="font-size: 9px; color: #666; margin-top: 3px;">Consultation</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 紧接着放置你的 Logo 区域代码 -->
+	
+	<section class="row organizer-logos-section" style="padding: 30px 0; background: #fff;">
+    <div class="container">
+        <div style="display: flex; align-items: center; margin-bottom: 25px;">
+            <div style="width: 4px; height: 18px; background: #1a73e8; margin-right: 10px; border-radius: 2px;"></div>
+            <h3 style="margin: 0; font-size: 18px; color: #333; font-weight: bold;">Organizers & Sponsors / 组织机构</h3>
+        </div>
+
+        <style>
+            .logo-group { margin-bottom: 30px; }
+            .group-title { font-size: 13px; color: #1a73e8; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
+            .logo-list { display: flex; flex-wrap: wrap; gap: 15px; }
+            .logo-item { width: 140px; height: 70px; border: 1px solid #eee; border-radius: 4px; padding: 5px; display: flex; align-items: center; justify-content: center; }
+            .logo-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        </style>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 30px;">
+            <div class="logo-group">
+                <div class="group-title">Hosted By / 主办</div>
+                <div class="logo-list">
+                    <div class="logo-item"><img src="images/logo/武汉轻工大学.png" width="100" class="logo-img"></div>
+                </div>
+            </div>
+            <div class="logo-group">
+                <div class="group-title">Co-Hosted By / 联合主办</div>
+                <div class="logo-list">
+                    <div class="logo-item"><img src="images/logo/中国地质大学.png" width="100" class="logo-img"></div>
+                </div>
+            </div>
+            <div class="logo-group">
+                <div class="group-title">Organized By / 承办</div>
+                <div class="logo-list">
+                    <div class="logo-item"><img src="images/logo/机械工程.jpg" class="logo-img"></div>
+                    <div class="logo-item"><img src="images/logo/电子电气.png" class="logo-img"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="logo-group">
+            <div class="group-title" style="color: #666;">Supported By / 协办</div>
+            <div class="logo-list">
+                <div class="logo-item"><img src="images/logo/武汉大学.png" width="100" class="logo-img"></div>
+                <div class="logo-item"><img src="images/logo/华中科技大学.png" class="logo-img"></div>
+                <div class="logo-item"><img src="images/logo/西安电子科技大学.png" width="100" class="logo-img"></div>
+                <div class="logo-item"><img src="images/logo/合肥理工学院.png" class="logo-img"></div>
+                <div class="logo-item"><img src="images/logo/三峡大学.png" width="100" class="logo-img"></div>
+                <div class="logo-item"><img src="images/logo/武汉理工大学.png" width="100" class="logo-img"></div>
+            </div>
+        </div>
+    </div>
+</section>
+    
+  <!--Client testimonial--></main>
+
+<!--Footer-->
+<!--Footer-->
+<footer id="footer" class="site-footer">
+    <!--Footer Top-->
+    <!-- 关键修改：padding 从原来的 40px 或 60px 减小到 20px 0 -->
+    <section class="row site-footer-top" style="background: #222; color: #999; padding: 20px 0;">
+        <div class="container">
+            <div class="row">
+                <!-- 使用 flex 布局确保 Logo 和文字在较窄的高度内依然垂直居中 -->
+                <div class="media" style="display: flex; align-items: center; margin: 0;">
+                    <div class="col-sm-3 media-left" style="padding-right: 20px;">
+                        <a href="index.html" class="media-object">
+                            <!-- 稍微缩小一点 Logo 的显示高度，有助于进一步压缩页脚总高度 -->
+                            <img src="images/logo-.png" alt="Logo" style="max-height: 35px; width: auto;">
+                        </a>
+                    </div>
+                    <div class="col-sm-9 media-body" style="padding: 0;">
+                        <!-- 去掉 p 标签默认的上下外边距，防止撑开高度 -->
+                        <p style="margin: 0;">Copyright &copy; MERE 2027 - All rights reserved</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+  <!--Footer Bottom--></footer>
+
+</div>
+
+<!-- jQuery -->
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+[
+  {
+    "id": "P01",
+    "original": "Quadruped robots are increasingly used for inspection, exploration, and service\ntasks in environments where a navigation policy must do more than reach a target.\nThe robot must remain collision-free throughout each maneuver while avoiding\nunnecessary motion and energy expenditure. These requirements are coupled in\ncluttered scenes: a short route may pass close to obstacles, whereas a safer route\nmay consume more time and actuation. Treating safety and efficiency as independent\nreward terms therefore makes the desired trade-off depend on hand-tuned weights.\nMinimum-cost reach-avoid (MCRA) control provides a more direct task description by\nrequiring goal reachability and trajectory-wide avoidance while minimizing a\ncumulative cost~\\cite{bansal2017}.\\footnote{The CaMRA implementation\nis publicly available at \\url{https://github.com/haoyangc2001/NaVILA_CaMRA}.}",
+    "revised": "Quadruped inspection, exploration, and service tasks require collision-free goal\nreaching without unnecessary motion or energy expenditure. In cluttered scenes,\nshort routes may approach obstacles, whereas safer routes may require more time\nand actuation. Encoding safety and efficiency as separate reward terms makes\nthis trade-off depend on hand-tuned weights. Minimum-cost reach-avoid (MCRA)\ncontrol instead specifies goal reachability and trajectory-wide avoidance while\nminimizing cumulative cost~\\cite{bansal2017}.\\footnote{The CaMRA implementation\nis publicly available at \\url{https://github.com/haoyangc2001/NaVILA_CaMRA}.}",
+    "reason": "压缩应用背景和安全/效率动机，保留短路与安全路线的条件性权衡及MCRA定义。",
+    "original_line": 72,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P02",
+    "original": "Practical MCRA learning has been enabled by Reachability-Constrained Proximal\nPolicy Optimization (RC-PPO)~\\cite{so2024}.\nWithin RC-PPO, the state is augmented with a safety indicator and remaining budget,\na reachability value function and budget-conditioned policy are learned, and\nthe least feasible initial budget is then sought. Safety and cost feasibility in\nquadruped navigation are represented jointly through these components.",
+    "revised": "Reachability-Constrained Proximal Policy Optimization (RC-PPO)~\\cite{so2024}\nenables practical MCRA learning by augmenting the state with a safety indicator\nand remaining budget, learning a reachability value function and\nbudget-conditioned policy, and seeking the least feasible initial budget.\nThese components jointly represent safety and cost feasibility.",
+    "reason": "合并RC-PPO步骤介绍，保留状态增广、价值函数、策略与最小可行预算四项。",
+    "original_line": 84,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P03",
+    "original": "Deploying this formulation on a physical quadruped requires connecting navigation\ndecisions to joint-level motion. With direct joint commands, the policy must learn\nbalance and gait coordination together with collision-free goal reaching. Although\nfalls, excessive body tilt, and obstacle collisions can be encoded as unsafe\nstates, these constraints alone do not fully specify coordinated and smooth\nlocomotion. During early training, informative navigation rollouts may be\ninterrupted by unstable motion, hindering the learning of route selection and\ncost optimization. A low-level velocity tracker is therefore pretrained\nto address balance, gait coordination, and action smoothness, and is frozen before\nhigh-level learning. Navigation is then learned through a fixed velocity-command\ninterface using RC-PPO.",
+    "revised": "Physical deployment also requires translating navigation decisions into joint\nmotion. Direct joint-level learning must acquire balance and gait coordination\nalongside collision-free goal reaching. Encoding falls, excessive body tilt, and\ncollisions as unsafe states does not fully specify smooth, coordinated locomotion;\nearly instability may interrupt navigation rollouts and hinder route selection\nand cost optimization. We therefore pretrain a velocity tracker for balance,\ngait coordination, and action smoothness, freeze it, and learn RC-PPO navigation\nthrough its fixed velocity-command interface.",
+    "reason": "缩短分层控制动机，保留不安全状态约束的不足、早期训练中断和先预训练后冻结的时序。",
+    "original_line": 91,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P04",
+    "original": "Although the low-level controller improves locomotion stability and attenuates\ndisturbances, residual mismatch remains between the nominal model and actual\nexecution. The same velocity-command sequence may incur additional cost or produce\npath deviations, causing the high-level planner to underestimate budget\nconsumption or overestimate obstacle clearance. To address these discrepancies,\nthe low-level controller is frozen, and paired nominal and executed\nrollouts are collected with identical initial conditions and command sequences. A\ncost margin $\\alpha$ and a geometric safety margin $\\delta$ are then calibrated from the\nempirical distributions of cost overruns and path deviations, respectively. The\nrunning cost used in budget updates is increased by the cost margin to account for\nexecution-induced overhead, while the unsafe set is expanded by the geometric margin to\naccommodate path deviations. High-level policy learning and budget search are\nsubsequently performed using the calibrated model, and the resulting policy is\ndeployed through the same frozen controller.",
+    "revised": "The tracker improves stability and attenuates disturbances, but identical velocity\ncommands may still incur extra cost or path deviations, leading to underestimated\nbudget consumption or overestimated clearance. With the tracker frozen, we pair\nnominal and executed rollouts using identical initial conditions and commands.\nEmpirical cost overruns and path deviations determine a cost margin $\\alpha$ and\ngeometric margin $\\delta$, respectively. These increase the running cost in\nbudget updates and expand the unsafe set before high-level learning and budget\nsearch. Deployment uses the same frozen tracker.",
+    "reason": "合并残余误差与两类裕度流程，保留相同初态/命令、分别校准和学习前修正。",
+    "original_line": 103,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P05",
+    "original": "An ideal MCRA learner is connected to physical closed-loop execution through the\ncalibrated minimum-cost reach-avoid (CaMRA) deployment pipeline. No strict\nstochastic safety guarantee or extension of RC-PPO's deterministic theory to general\nstochastic systems is claimed; the scope is limited to empirical robustness under\nthe execution distribution used to calibrate the margins. The pipeline is evaluated\nthrough controlled mismatch studies, component-wise ablations, sensitivity tests,\nand a quantitative physical-robot deployment study. The experiments are designed to\nquantify execution mismatch through this fixed interface, assess whether\n$\\alpha$ and $\\delta$ address different failure modes, and evaluate how the\ncomplete system behaves on hardware.",
+    "revised": "This calibrated minimum-cost reach-avoid (CaMRA) pipeline connects nominal MCRA\nlearning to physical closed-loop execution. Its scope is empirical robustness\nunder the calibration execution distribution; we claim neither strict stochastic\nsafety guarantees nor an extension of RC-PPO's deterministic theory to general\nstochastic systems. Controlled mismatch studies, component-wise ablations,\nsensitivity tests, and quantitative hardware evaluation assess execution\nmismatch, the distinct failure modes addressed by $\\alpha$ and $\\delta$, and\nsystem behavior on a physical robot.",
+    "reason": "合并研究范围与评估目的，明确保留经验稳健性边界和两个不作理论保证的限定。",
+    "original_line": 118,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P06",
+    "original": "The main contributions are summarized as follows:\n\\begin{enumerate}\n\\item A hierarchical framework is developed for quadruped minimum-cost reach-avoid\n      navigation. Locomotion stabilization is separated from navigation learning\n      through a pretrained, frozen velocity tracker, which provides a consistent\n      interface for calibration and deployment.\n\\item Two execution margins are calibrated from paired nominal and executed\n      trajectories. Budget accounting and unsafe-set geometry are corrected\n      separately to incorporate execution mismatch into high-level learning and\n      budget selection.\n\\item The roles of both margins and their deployment trade-offs are examined\n      through navigation comparisons, ablations, held-out calibration tests, and\n      physical-robot evaluation.\n\\end{enumerate}",
+    "revised": "The main contributions are:\n\\begin{enumerate}\n\\item A hierarchical quadruped MCRA framework separates locomotion stabilization\n      from navigation learning through a pretrained, frozen velocity tracker,\n      providing a consistent calibration and deployment interface.\n\\item Two margins calibrated from paired nominal and executed trajectories\n      separately correct budget accounting and unsafe-set geometry for\n      high-level learning and budget selection.\n\\item Navigation comparisons, ablations, held-out calibration tests, and\n      physical-robot evaluation examine both margins' roles and deployment\n      trade-offs.\n\\end{enumerate}",
+    "reason": "压缩三项贡献的重复修饰，保留三项贡献及各自作用。",
+    "original_line": 129,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P07",
+    "original": "In reach-avoid reinforcement learning, reaching a target and avoiding an unsafe\nset are treated as trajectory-level requirements rather than competing reward terms\n\\cite{bansal2017,hsu2021}. This formulation is extended to minimum-cost\nreach-avoid control in RC-PPO through state augmentation with a safety indicator\nand remaining budget, budget-conditioned policy and reachability-critic learning,\nand a search for the least feasible initial budget~\\cite{so2024}. This formulation\nis adopted as the algorithmic foundation for connecting nominal MCRA decisions\nto quadruped execution.",
+    "revised": "Reach-avoid reinforcement learning treats target reaching and unsafe-set\navoidance as trajectory-level requirements rather than competing reward\nterms~\\cite{bansal2017,hsu2021}. RC-PPO extends this to MCRA through safety/budget\nstate augmentation, budget-conditioned policy and reachability-critic learning,\nand least-feasible-budget search~\\cite{so2024}. We adopt this foundation to\nconnect nominal MCRA decisions to quadruped execution.",
+    "reason": "相关工作不重复展开算法步骤，保留原引用与算法继承关系。",
+    "original_line": 146,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P08",
+    "original": "Quadruped navigation in challenging environments is supported by\nlearning-based locomotion controllers. Robust locomotion on natural terrain\nusing proprioceptive feedback was demonstrated by Lee et al.~\\cite{lee2020}.\nAt the navigation level, a policy\nwas trained by Jin et al.~\\cite{jin2023resilient} to issue velocity commands to an\nexisting locomotion controller and respond to perception failures using\nlocomotion-level observations. In contrast, a joint-level agile policy was\ndeveloped by He et al.~\\cite{he2024abs}, with reach-avoid-guided switching to a\nrecovery policy for collision avoidance. Visual navigation and reusable motor\nskills are connected through hierarchical policies in prior\nwork~\\cite{jain2021pixels}. At the local-planning level, smooth,\ncollision-free paths are learned from depth observations using differentiable\ncost maps in iPlanner~\\cite{yang2023iplanner}. A hierarchical architecture is\nadopted here, with a frozen velocity tracker handling\nlocomotion stabilization and a high-level MCRA policy addressing goal reaching,\nobstacle avoidance, and cumulative cost.",
+    "revised": "Learned locomotion supports quadruped navigation: Lee et al.~\\cite{lee2020}\ndemonstrated robust natural-terrain locomotion using proprioception. Jin et\nal.~\\cite{jin2023resilient} trained navigation policies to command an existing\nlocomotion controller and use locomotion-level observations to respond to\nperception failures. He et al.~\\cite{he2024abs} instead developed a joint-level\nagile policy with reach-avoid-guided switching to collision-avoidance recovery.\nHierarchical policies connect visual navigation and reusable motor\nskills~\\cite{jain2021pixels}, while iPlanner learns smooth, collision-free paths\nfrom depth observations through differentiable cost maps~\\cite{yang2023iplanner}.\nHere, a frozen tracker stabilizes locomotion, while high-level MCRA addresses\ngoal reaching, obstacle avoidance, and cumulative cost.",
+    "reason": "压缩被动表达，保留五类工作的差异及本稿与它们的关系。",
+    "original_line": 156,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P09",
+    "original": "Model uncertainty is addressed through domain and dynamics randomization by\nbroadening the training distribution~\\cite{tobin2017,tan2018simreal},\nor through robust reinforcement learning by optimizing performance across uncertain\ndynamics~\\cite{wang2021}. The need for dynamics randomization\nalso depends on the control design and deployment conditions~\\cite{xie2021randomization}.\nIn chance-constrained and risk-aware planning, uncertainty is instead incorporated\ninto planning constraints or risk measures~\\cite{theurkauf2023,fan2021step}.\nFor example, STEP estimates stochastic traversability for risk-aware off-road\nplanning~\\cite{fan2021step}.\nPlanning--tracking mismatch is bounded through reachability analysis in\nFaSTrack~\\cite{herbert2017fastrack}, while model-based planning and learned tracking\nare combined in DTC to improve accuracy and robustness~\\cite{jenelten2024dtc}.\nHere, residual execution errors under a fixed velocity interface are addressed:\nempirical quantiles of paired nominal and executed rollout errors are\nused to calibrate cost and geometric margins for MCRA learning and deployment.",
+    "revised": "Domain and dynamics randomization broaden training\ndistributions~\\cite{tobin2017,tan2018simreal}, whereas robust reinforcement\nlearning optimizes performance across uncertain dynamics~\\cite{wang2021}.\nThe need for dynamics randomization depends on control design and deployment\nconditions~\\cite{xie2021randomization}. Chance-constrained and risk-aware planning\nincorporate uncertainty into constraints or risk\nmeasures~\\cite{theurkauf2023,fan2021step}; STEP, for example, estimates stochastic\ntraversability for off-road planning~\\cite{fan2021step}. FaSTrack bounds\nplanning--tracking mismatch using reachability~\\cite{herbert2017fastrack}, while\nDTC combines model-based planning and learned tracking for accuracy and\nrobustness~\\cite{jenelten2024dtc}. We calibrate cost and geometric margins\nfrom empirical quantiles of paired nominal/executed errors under a fixed velocity\ninterface for MCRA learning and deployment.",
+    "reason": "保留随机化、鲁棒RL、风险规划、FaSTrack/DTC各路线与本文经验校准的区别。",
+    "original_line": 174,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P10",
+    "original": "The navigation layer is modeled as a discrete-time process with state $x_t\\in\n\\mathcal{X}$, high-level velocity command $u_t\\in\\mathcal{U}^{\\mathrm{high}}$,\ntransition kernel $P$, running cost $c$, and initial-state distribution $\\rho_0$.\nThe MCRA objective is to reach a goal set $\\mathcal{G}$, avoid an unsafe set\n$\\mathcal{F}$ at every step, and minimize the accumulated cost up to a freely\nchosen terminal time $T$:\n\\begin{equation}\n\\min_{\\pi,T}\\quad \\sum_{t=0}^{T-1}c(x_t,\\pi(x_t))\n\\label{eq:mcra_objective}\n\\end{equation}\n\\begin{equation}\n\\begin{gathered}\n\\mathrm{s.t.}\\quad x_T\\in\\mathcal{G},\\\\\nx_t\\notin\\mathcal{F}\\ \\forall t\\leq T,\\\\\nx_{t+1}\\sim P(\\cdot\\mid x_t,\\pi(x_t)).\n\\end{gathered}\n\\label{eq:mcra_constraints}\n\\end{equation}\nThe sets are represented using signed functions $g$ and $h$ as\n$\\mathcal{G}=\\{x:g(x)\\leq0\\}$ and $\\mathcal{F}=\\{x:h(x)>0\\}$. Following\nRC-PPO~\\cite{so2024}, the state is augmented to $\\hat{x}_t=(x_t,y_t,z_t)$,\nwhere $y_t\\in\\{-1,1\\}$ records whether the unsafe set has been entered, and $z_t$\ndenotes the remaining cost budget, initialized at $z_0$. The shifted indicator is\n$I_{b\\in\\mathcal{B}}=+1$ when $b\\in\\mathcal{B}$ and $-1$ otherwise; thus\n$y_{t+1}=\\max\\{I_{x_{t+1}\\in\\mathcal{F}},y_t\\}$ and\n$z_{t+1}=z_t-c(x_t,u_t)$. The augmented goal function is\n\\begin{equation}\n\\hat{g}(x,y,z)=\\max\\{g(x),Cy,-z\\},\n\\label{eq:augmented_goal}\n\\end{equation}\nwhere $C>0$ is an arbitrary safety-violation constant. RC-PPO notes that a\npractical choice is $C=\\max_{x\\in\\mathcal{X}}g(x)$~\\cite{so2024}. Reaching the\nzero sublevel set of $\\hat{g}$ therefore encodes goal reaching, trajectory-wide\navoidance, and the upper-bound property $z_0\\geq\\sum_t c_t$. The reachability critic,\nbudget-conditioned actor, and two-phase minimum-budget search from RC-PPO are\nadopted as the high-level decision backbone.",
+    "revised": "The navigation layer has state $x_t\\in\n\\mathcal{X}$, high-level velocity command $u_t\\in\\mathcal{U}^{\\mathrm{high}}$,\ntransition kernel $P$, running cost $c$, and initial-state distribution $\\rho_0$.\nMCRA minimizes accumulated cost while reaching $\\mathcal{G}$ at a freely chosen\nterminal time $T$ and avoiding $\\mathcal{F}$ at every step:\n\\begin{equation}\n\\min_{\\pi,T}\\quad \\sum_{t=0}^{T-1}c(x_t,\\pi(x_t))\n\\label{eq:mcra_objective}\n\\end{equation}\n\\begin{equation}\n\\begin{gathered}\n\\mathrm{s.t.}\\quad x_T\\in\\mathcal{G},\\\\\nx_t\\notin\\mathcal{F}\\ \\forall t\\leq T,\\\\\nx_{t+1}\\sim P(\\cdot\\mid x_t,\\pi(x_t)).\n\\end{gathered}\n\\label{eq:mcra_constraints}\n\\end{equation}\nThe sets are represented using signed functions $g$ and $h$ as\n$\\mathcal{G}=\\{x:g(x)\\leq0\\}$ and $\\mathcal{F}=\\{x:h(x)>0\\}$. Following\nRC-PPO~\\cite{so2024}, the state is augmented to $\\hat{x}_t=(x_t,y_t,z_t)$,\nwhere $y_t\\in\\{-1,1\\}$ records whether the unsafe set has been entered, and $z_t$\ndenotes the remaining cost budget, initialized at $z_0$. The shifted indicator is\n$I_{b\\in\\mathcal{B}}=+1$ when $b\\in\\mathcal{B}$ and $-1$ otherwise; thus\n$y_{t+1}=\\max\\{I_{x_{t+1}\\in\\mathcal{F}},y_t\\}$ and\n$z_{t+1}=z_t-c(x_t,u_t)$. The augmented goal function is\n\\begin{equation}\n\\hat{g}(x,y,z)=\\max\\{g(x),Cy,-z\\},\n\\label{eq:augmented_goal}\n\\end{equation}\nwhere $C>0$ is an arbitrary safety-violation constant. RC-PPO notes that a\npractical choice is $C=\\max_{x\\in\\mathcal{X}}g(x)$~\\cite{so2024}. Reaching the\nzero sublevel set of $\\hat{g}$ therefore encodes goal reaching, trajectory-wide\navoidance, and the upper-bound property $z_0\\geq\\sum_t c_t$. The reachability critic,\nbudget-conditioned actor, and two-phase minimum-budget search from RC-PPO are\nadopted as the high-level decision backbone.",
+    "reason": "只压缩问题设置导语，公式、符号、增广状态更新及RC-PPO理论回顾逐字保留。",
+    "original_line": 193,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P11",
+    "original": "On hardware, $u_t$ is a desired body velocity that is realized by a locomotion\ncontroller. Let $P_{\\mathrm{cl}}$ denote the closed-loop transition induced by\nthis controller. The nominal model used for high-level learning is\n$x_{t+1}=\\bar f_{\\mathrm{cl}}(x_t,u_t)$, while the executed transition is sampled\nfrom $P_{\\mathrm{cl}}(\\cdot\\mid x_t,u_t)$. The difference is the deployment gap\naddressed by CaMRA. For a paired nominal/executed rollout, the relative\ncost overrun and a trajectory-deviation statistic are defined as\n\\begin{equation}\n\\varepsilon_c=\\frac{J_{\\mathrm{exec}}-J_{\\mathrm{nom}}}{J_{\\mathrm{nom}}},\n\\qquad\n\\varepsilon_d=d(\\tau_{\\mathrm{exec}},\\tau_{\\mathrm{nom}}),\n\\label{eq:execution_errors}\n\\end{equation}\nHere $J$ is a nonnegative navigation proxy cost in arbitrary units (a.u.),\nnot measured electrical energy. The same command program and time window are\nused for both rollouts in a pair;\n$d$ is the maximum planar distance between their time-aligned positions.",
+    "revised": "On hardware, a locomotion controller realizes desired body velocity $u_t$ through\nthe closed-loop transition $P_{\\mathrm{cl}}$. CaMRA addresses the gap between the\nnominal learning model $x_{t+1}=\\bar f_{\\mathrm{cl}}(x_t,u_t)$ and execution sampled\nfrom $P_{\\mathrm{cl}}(\\cdot\\mid x_t,u_t)$. Paired-rollout relative cost overrun\nand trajectory deviation are\n\\begin{equation}\n\\varepsilon_c=\\frac{J_{\\mathrm{exec}}-J_{\\mathrm{nom}}}{J_{\\mathrm{nom}}},\n\\qquad\n\\varepsilon_d=d(\\tau_{\\mathrm{exec}},\\tau_{\\mathrm{nom}}),\n\\label{eq:execution_errors}\n\\end{equation}\nHere $J$ is a nonnegative navigation proxy cost in arbitrary units (a.u.),\nnot measured electrical energy. Paired rollouts share the command program and\ntime window; $d$ is the maximum planar distance between time-aligned positions.",
+    "reason": "压缩名义/执行转移定义的句法，不改变转移、成本单位、配对和距离统计定义。",
+    "original_line": 231,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P12",
+    "original": "The deployment objective is to retain the RC-PPO MCRA semantics while accounting\nfor the measured distribution of $(\\varepsilon_c,\\varepsilon_d)$. These quantities\nare treated as empirical descriptions of the nominal-to-execution gap rather\nthan as a new stochastic reachability model. This gap is addressed through a\nfixed velocity interface, paired rollout data, and calibrated margins for\nhigh-level learning and deployment.",
+    "revised": "We retain RC-PPO's MCRA semantics while accounting for the measured distribution\nof $(\\varepsilon_c,\\varepsilon_d)$ through a fixed velocity interface, paired\nrollouts, and calibrated margins. These errors empirically describe the\nnominal-to-execution gap, rather than define a new stochastic reachability model.",
+    "reason": "压缩部署目标，保留误差仅为经验描述、不定义新随机可达性模型的边界。",
+    "original_line": 250,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P13",
+    "original": "The CaMRA architecture is shown in Fig.~\\ref{fig:system_overview}. A high-level\nMCRA navigation policy is coupled with a pretrained, frozen low-level velocity\ntracker. System development is divided into two stages. First, the tracker is\ntrained and frozen, and paired nominal and executed rollouts are collected to calibrate the\ncost margin $\\alpha$ and geometric margin $\\delta$. Second, these margins are\nincorporated into RC-PPO-based high-level learning and initial-budget selection.\nDuring deployment, body-velocity commands are generated by the navigation policy\nand converted into joint commands by the frozen tracker for closed-loop execution.",
+    "revised": "CaMRA couples high-level MCRA navigation to a pretrained, frozen velocity tracker\n(Fig.~\\ref{fig:system_overview}). Development has two stages: train and freeze\nthe tracker, then calibrate $\\alpha$ and $\\delta$ from paired nominal/executed\nrollouts; subsequently incorporate the margins into RC-PPO learning and\ninitial-budget selection. At deployment, the tracker converts navigation\nbody-velocity commands into joint commands for closed-loop execution.",
+    "reason": "合并系统概述与前文重复流程，保留两个开发阶段及部署调用链。",
+    "original_line": 261,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P14",
+    "original": "With direct joint-level MCRA learning, stable locomotion would have to be learned\nalongside goal reaching, obstacle avoidance, and cost reduction.\nAlthough falls and excessive body tilt can be represented as unsafe states,\navoiding these states alone provides limited guidance for learning coordinated and\nsmooth locomotion. Frequent loss of balance during early training can also\ninterrupt navigation exploration. A hierarchical architecture is therefore adopted\nto separate locomotion stabilization from high-level reach-avoid decisions.",
+    "revised": "Direct joint-level MCRA learning couples stable locomotion with goal reaching,\nobstacle avoidance, and cost reduction. Avoiding falls and excessive tilt alone\ngives limited guidance for coordinated, smooth locomotion, and early balance\nloss can interrupt navigation exploration. Hierarchical control therefore\nseparates locomotion stabilization from high-level reach-avoid decisions.",
+    "reason": "保留分层控制的完整因果链，删去与引言重复的展开和冗余被动句。",
+    "original_line": 281,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P15",
+    "original": "The low-level tracker is pretrained using PPO and domain randomization to track\nvelocity commands while maintaining balance, gait coordination, and action\nsmoothness. Proprioceptive observations and body-velocity commands\n$u_t=[v_x^*,v_y^*,\\omega_z^*]^\\top$ are mapped to joint commands. Execution\ndisturbances are attenuated through closed-loop feedback within the trained\ncommand domain. The tracker is then frozen before mismatch calibration and\nhigh-level learning, so the execution interface is not altered by subsequent\nlow-level parameter updates. The high-level policy is consequently trained to\nissue velocity commands rather than coordinate joint actions directly.",
+    "revised": "The tracker is pretrained with PPO and domain randomization to maintain balance,\ngait coordination, and action smoothness while tracking velocity commands.\nIt maps proprioception and body-velocity commands\n$u_t=[v_x^*,v_y^*,\\omega_z^*]^\\top$ to joint commands, attenuating disturbances\nthrough closed-loop feedback within its trained command domain. Freezing it\nbefore calibration and high-level learning prevents subsequent low-level\nparameter changes; the navigation policy learns velocity commands rather than\njoint coordination.",
+    "reason": "保留PPO、随机化、观测/动作映射、训练域限定与冻结时序，缩短重复表达。",
+    "original_line": 289,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P16",
+    "original": "The nominal map $\\bar f_{\\mathrm{cl}}$ abstracts this interface by integrating\ncommanded body velocities over each high-level decision interval under ideal\ntracking. Deviations from this abstraction can arise from contact variation,\nfriction, actuation latency, and state-estimation errors. The same frozen\ntracker and command domain are retained for calibration, high-level learning, and\ndeployment, providing a consistent basis for measuring residual mismatch and\ncalibrating the execution margins.",
+    "revised": "The nominal map $\\bar f_{\\mathrm{cl}}$ integrates commanded body velocities over\neach high-level interval under ideal tracking. Contact variation, friction,\nactuation latency, and state-estimation errors can cause deviations. Calibration,\nhigh-level learning, and deployment share the frozen tracker and command domain,\nproviding a consistent basis for residual-error measurement and margin calibration.",
+    "reason": "保留理想跟踪假设、四类误差来源与跨阶段一致接口。",
+    "original_line": 299,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P17",
+    "original": "To convert execution mismatch into cost and safety margins, paired nominal and\nexecuted rollouts are collected through the frozen velocity interface. For each\npair, identical initial states, maps, goals, and high-level command sequences are\nused for the nominal rollout and its perturbed execution. For a rollout of length $T$, let\n$J_{\\rm nom}=\\sum_{t=0}^{T-1}c(x_t^{\\rm nom},u_t)$ and\n$J_{\\rm exec}=\\sum_{t=0}^{T-1}c(x_t^{\\rm exec},u_t)$. Disjoint rollout sets are\nused for calibration and independent evaluation, with evaluation data excluded\nfrom margin selection.",
+    "revised": "Paired nominal and perturbed-execution rollouts use the frozen interface with\nidentical initial states, maps, goals, and high-level commands. For length $T$,\nlet $J_{\\rm nom}=\\sum_{t=0}^{T-1}c(x_t^{\\rm nom},u_t)$ and\n$J_{\\rm exec}=\\sum_{t=0}^{T-1}c(x_t^{\\rm exec},u_t)$. Calibration and independent\nevaluation use disjoint rollout sets; evaluation data do not select margins.",
+    "reason": "压缩校准采集描述，保留四项配对条件、成本定义、数据互斥与不使用评估调参。",
+    "original_line": 309,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P18",
+    "original": "For $J_{\\rm nom}>0$, the relative cost overrun $\\varepsilon_c$ is computed from\nthe paired cumulative costs using the definition in Section~\\ref{sec:problem_setup}.\nGeometric deviation is measured as the maximum planar distance between\ntime-aligned base positions,\n\\begin{equation}\n\\varepsilon_d=\\max_{0\\leq t\\leq T} \\left\\|p_t^{\\rm exec}-p_t^{\\rm nom}\\right\\|_2,\n\\label{eq:max_planar_deviation}\n\\end{equation}\nwhere $p_t$ is the base position.",
+    "revised": "For $J_{\\rm nom}>0$, paired costs give $\\varepsilon_c$ as defined in\nSection~\\ref{sec:problem_setup}. Geometric deviation is the maximum planar\ndistance between time-aligned base positions,\n\\begin{equation}\n\\varepsilon_d=\\max_{0\\leq t\\leq T} \\left\\|p_t^{\\rm exec}-p_t^{\\rm nom}\\right\\|_2,\n\\label{eq:max_planar_deviation}\n\\end{equation}\nwhere $p_t$ is the base position.",
+    "reason": "保留正分母条件与几何偏差的时间对齐、基座位置和最大值定义。",
+    "original_line": 318,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P19",
+    "original": "The two errors are calibrated separately to account for their effects on different\nMCRA constraints. For quantile levels $p_c$ and $p_d$, the margins are set to\n\\begin{equation}\n\\alpha=Q_{p_c}(\\varepsilon_c),\\qquad\n\\delta=Q_{p_d}(\\varepsilon_d),\n\\label{eq:calibration_margins}\n\\end{equation}\nwhere $Q_p$ denotes the empirical $p$-quantile of the calibration samples. The\ncalibrated running cost is\n$\\tilde c(x_t,u_t)=(1+\\alpha)c(x_t,u_t)$, so the remaining budget evolves as\n$z_{t+1}=z_t-\\tilde c(x_t,u_t)$. The unsafe set is dilated to\n$\\mathcal{F}_\\delta=\\{x:d(x,\\mathcal{F})\\leq\\delta\\}$. Both margins are determined\nbefore high-level learning and are held fixed, with empirical coverage dependent on the\nexecution conditions represented in the calibration data.",
+    "revised": "The errors affect different MCRA constraints and are calibrated separately at\nquantile levels $p_c$ and $p_d$:\n\\begin{equation}\n\\alpha=Q_{p_c}(\\varepsilon_c),\\qquad\n\\delta=Q_{p_d}(\\varepsilon_d),\n\\label{eq:calibration_margins}\n\\end{equation}\nwhere $Q_p$ is the empirical calibration-sample $p$-quantile. The corrected cost\n$\\tilde c(x_t,u_t)=(1+\\alpha)c(x_t,u_t)$ gives budget updates\n$z_{t+1}=z_t-\\tilde c(x_t,u_t)$, and the unsafe set becomes\n$\\mathcal{F}_\\delta=\\{x:d(x,\\mathcal{F})\\leq\\delta\\}$. Both margins are fixed\nbefore high-level learning; empirical coverage depends on the execution\nconditions represented in calibration.",
+    "reason": "缩短裕度说明，保留单独分位数、成本/预算/集合公式及覆盖的分布依赖边界。",
+    "original_line": 328,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P20",
+    "original": "A budget-conditioned navigation policy is trained using the calibrated cost and\nexpanded unsafe set, and an initial budget is selected for execution through the\nfrozen velocity interface. The margins are incorporated into learning, so navigation\ndecisions are optimized under the corrected cost and safety conditions.",
+    "revised": "Budget-conditioned navigation learning and initial-budget selection use the\ncorrected cost and expanded unsafe set, incorporating both margins into decisions\nexecuted through the frozen velocity interface.",
+    "reason": "合并鲁棒学习小节的两句同义导语，不删算法细节。",
+    "original_line": 344,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P21",
+    "original": "In Phase I, budget updates are computed using the calibrated running cost $\\tilde c$,\nwhile the safety indicator and augmented goal are determined from the expanded\nunsafe set $\\mathcal{F}_\\delta$. A stochastic actor\n$\\pi_\\theta(u\\mid o,y,z)$ and two critics are used: goal reaching and safety\nare evaluated by $V_h$, while corrected cumulative cost is estimated by $V_c$\nover the same stopping horizon. With cost normalized by the scene-specific\nreference budget $z_{\\rm ref}>0$, the combined residual is\n\\begin{equation}\nW=\\max\\{V_h,V_c-z/z_{\\rm ref}\\}.\n\\label{eq:combined_residual}\n\\end{equation}\nThe actor is optimized to reduce this residual. Accordingly, cost targets and\nbudget updates are modified through $\\alpha$, whereas reachability targets are\nmodified through $\\delta$ via the safety indicator.",
+    "revised": "In Phase I, $\\tilde c$ updates the budget, while $\\mathcal{F}_\\delta$ determines\nthe safety indicator and augmented goal. A stochastic actor\n$\\pi_\\theta(u\\mid o,y,z)$ uses two critics: $V_h$ evaluates goal reaching and\nsafety, and $V_c$ estimates corrected cumulative cost over the same stopping\nhorizon. Normalizing cost by the scene-specific reference budget\n$z_{\\rm ref}>0$ gives\n\\begin{equation}\nW=\\max\\{V_h,V_c-z/z_{\\rm ref}\\}.\n\\label{eq:combined_residual}\n\\end{equation}\nThe actor is optimized to reduce this residual. Thus $\\alpha$ modifies cost targets and budget\nupdates, while $\\delta$ modifies reachability targets through the safety indicator.",
+    "reason": "保留同停止时域、双critic各自目标、归一化残差与alpha/delta修改对象。",
+    "original_line": 349,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P22",
+    "original": "In Phase II, a deterministic deployment policy is obtained from the actor's mean\naction, and the critics are refitted with the actor fixed. Candidate initial\nbudgets are evaluated under the calibrated model, and the smallest tested budget\nsatisfying the prescribed goal-reaching, collision, and budget-violation criteria\nis selected.",
+    "revised": "In Phase II, the actor's mean action defines a deterministic deployment policy;\nthe actor is fixed and the critics are refitted. Under the calibrated model,\nwe select the smallest tested initial budget satisfying the prescribed\ngoal-reaching, collision, and budget-violation criteria.",
+    "reason": "保留先固定部署actor再重拟合critic，以及最小已测预算而非连续最优预算。",
+    "original_line": 364,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P23",
+    "original": "During deployment, navigation observations and the remaining budget are supplied\nto the policy. The resulting body-velocity commands are executed through the\nfrozen tracker. The calibrated cost used to update the remaining budget is\nobtained from a parallel nominal rollout driven by the same commands.",
+    "revised": "At deployment, the policy receives navigation observations and remaining budget,\nand the frozen tracker executes its body-velocity commands. A parallel nominal\nrollout driven by the same commands supplies the calibrated budget-update cost.",
+    "reason": "保留执行与并行名义记账的区别及相同命令条件。",
+    "original_line": 370,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P24",
+    "original": "Navigation performance, execution-error calibration, margin contributions and\nsensitivity, budget selection, robustness to execution disturbances, and physical\ndeployment are evaluated. High-level decisions made through the velocity interface are\nassessed in the planar navigation benchmark, while quadruped execution is examined\nin the hardware study.",
+    "revised": "The evaluation covers navigation performance, execution-error calibration, margin\ncontributions and sensitivity, budget selection, disturbance robustness, and\nphysical deployment. The planar benchmark assesses high-level velocity-interface\ndecisions; the hardware study examines quadruped execution.",
+    "reason": "压缩实验导航语，保留平面决策评估与硬件执行评估的界限。",
+    "original_line": 380,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P25",
+    "original": "The navigation benchmark comprises moderately cluttered, narrow-passage, and\ndensely obstructed maps, each spanning $8\\times8$ m. Test maps, navigation\nobservations, command limits, and the frozen velocity tracker are shared across\nmethods, with matched training interaction budgets and network widths. The\nhigh-level decision interval is 0.2 s, and the episode horizon is 30 s. Each method\nis evaluated using three policies trained with different random seeds. With\n100 trials per policy and scenario, 300 trials are obtained per scenario and\n900 overall. Separate rollout sets are used for calibration, training, budget\nselection, and final evaluation.",
+    "revised": "The benchmark uses moderately cluttered, narrow-passage, and densely obstructed\n$8\\times8$ m maps. Methods share test maps, navigation observations, command\nlimits, and the frozen tracker, with matched training interaction budgets and network\nwidths. The decision interval is 0.2 s and horizon 30 s. Each method has three\npolicies trained with different seeds: 100 trials per policy and scenario give\n300 per scenario and 900 overall. Calibration, training, budget selection, and\nfinal evaluation use separate rollout sets.",
+    "reason": "保留三场景、同条件比较、全部频率/时域/种子/分母与数据划分条件。",
+    "original_line": 386,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P26",
+    "original": "Five metrics are reported: success rate (SR), mean executed cost (Cost), physical\ncollision rate (CR), budget violation rate (BVR), and mean per-trial minimum\nclearance (MC). Success requires collision-free goal reaching before timeout;\nbudget compliance is assessed separately. Collision and clearance are measured\nagainst a common physical robot footprint. Cost and MC are computed over all\ntrials up to goal reaching, collision, or timeout; evaluation continues after\nthe budget is exceeded. The reference budgets\n$z_{\\rm ref}$ are 120, 140, and 190 a.u. for the moderately cluttered,\nnarrow-passage, and densely obstructed scenarios, respectively. The normalized\ninitial budget $z_0/z_{\\rm ref}$ expresses the initial budget relative to the\ncorresponding reference value. Equally weighted means across scenarios are\nreported in the tables at $z_0/z_{\\rm ref}=1$. Scenario-level intervals describe\ntest-case variability conditional on the trained policies.",
+    "revised": "Metrics are success rate (SR), mean executed cost (Cost), physical collision rate\n(CR), budget violation rate (BVR), and mean per-trial minimum clearance (MC).\nSuccess requires collision-free goal reaching before timeout; budget compliance\nis separate. Collision and clearance use a common physical footprint. Cost and\nMC include all trials until goal reaching, collision, or timeout; evaluation\ncontinues after budget exceedance. Reference budgets $z_{\\rm ref}$ are 120, 140,\nand 190 a.u. for the moderately cluttered, narrow-passage, and densely obstructed\nscenes, respectively. The ratio $z_0/z_{\\rm ref}$ normalizes initial budget.\nTables report equally weighted scene means at $z_0/z_{\\rm ref}=1$; scene-level\nintervals describe test-case variability conditional on the trained policies.",
+    "reason": "缩短五指标说明，保留失败分母、超预算继续评估、参考预算对应关系与条件区间定义。",
+    "original_line": 396,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P27",
+    "original": "The baselines comprise uncalibrated RC-PPO, reach-avoid learning (RA), reward-based\nproximal policy optimization (PPO), and a constrained PPO implementation (CPPO).\nThe same frozen velocity tracker is used for all methods. For uncalibrated RC-PPO,\nboth execution margins are set to zero. RA retains goal reaching and obstacle\navoidance but omits cost minimization and the budget input. For PPO and CPPO,\nthe collision penalty is weighted by $\\beta_L=1$ or $\\beta_H=5$, representing\nlower and higher penalty weights, respectively. CPPO additionally imposes the\nexpected cumulative-cost constraint $\\mathbb{E}[J/z_{\\rm ref}]\\leq1$.",
+    "revised": "Baselines are uncalibrated RC-PPO, reach-avoid learning (RA), reward-based proximal\npolicy optimization (PPO), and constrained PPO (CPPO), all using the same frozen\ntracker. Uncalibrated RC-PPO sets both margins to zero. RA retains goal reaching and avoidance\nbut omits cost minimization and budget input. PPO and CPPO use lower/higher\ncollision-penalty weights $\\beta_L=1$/$\\beta_H=5$; CPPO additionally imposes\n$\\mathbb{E}[J/z_{\\rm ref}]\\leq1$ on expected cumulative cost.",
+    "reason": "保留各基线具体差别、两组惩罚权重与期望成本约束，不把它写成逐轨迹预算保证。",
+    "original_line": 410,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P28",
+    "original": "The complete pipeline is compared with the baselines in Table~\\ref{tab:main_results},\nand the same five metrics are reported by scenario in Fig.~\\ref{fig:metrics_draft}.\nCompared with uncalibrated RC-PPO, mean SR is increased from 70.7\\% to\n73.3\\%, mean executed cost is reduced from 91.7 to 88.3 a.u., and BVR is lowered from\n14.0\\% to 9.0\\% with CaMRA; CR remains similar (15.7\\% versus 15.0\\%). Lower CR\nand greater clearance are obtained with RA and CPPO$_{\\beta_L}$, at the expense of\nlower SR and higher cost and BVR. A joint success--safety--cost trade-off is thus observed.",
+    "revised": "Table~\\ref{tab:main_results} compares overall performance;\nFig.~\\ref{fig:metrics_draft} reports the five metrics by scene. Relative to\nuncalibrated RC-PPO, CaMRA raises mean SR from 70.7\\% to 73.3\\%, reduces Cost\nfrom 91.7 to 88.3 a.u. and BVR from 14.0\\% to 9.0\\%, with similar CR\n(15.7\\% for RC-PPO versus 15.0\\% for CaMRA). RA and CPPO$_{\\beta_L}$ achieve lower CR and greater\nclearance but lower SR and higher Cost and BVR, illustrating the joint\nsuccess--safety--cost trade-off.",
+    "reason": "保留全部性能数值与对比方向，以及RA/CPPO更安全但成功/成本较弱的限定。",
+    "original_line": 421,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P29",
+    "original": "Navigation behavior in one paired example is illustrated in\nFig.~\\ref{fig:trajectory_sync}. With the geometric margin $\\delta$, a slightly\nlonger, more costly route with greater obstacle clearance is followed with CaMRA.\nObstacle passages are marked in the synchronized curves of clearance, executed\ncost, and tracking error. The role of $\\alpha$ in budget accounting is illustrated\nby the corrected nominal charge. The common budget is satisfied by both methods,\nillustrating a safety--cost trade-off. The same proxy cost definition is used in\nthis separate diagnostic case, which is excluded from Table~\\ref{tab:main_results}.",
+    "revised": "In the paired example of Fig.~\\ref{fig:trajectory_sync}, CaMRA follows a slightly\nlonger, costlier route with greater clearance under the geometric margin $\\delta$.\nObstacle passages are marked in synchronized clearance, executed-cost, and\ntracking-error curves; the corrected nominal charge illustrates $\\alpha$'s\nbudget-accounting role. Both methods satisfy the common budget, illustrating a\nsafety--cost trade-off. This separate diagnostic uses the same proxy cost and\nis excluded from Table~\\ref{tab:main_results}.",
+    "reason": "压缩单例诊断，保留不是主表样本、同代理成本和双方均预算合规等限定。",
+    "original_line": 464,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P30",
+    "original": "The contributions of the two execution margins are examined in\nTable~\\ref{tab:ablation_draft}, with the same frozen velocity tracker retained in\nall variants. For the single-margin ablations, either $\\alpha=0$ or $\\delta=0$\nis imposed, while the other margin is retained at its calibrated value. With both\nmargins set to zero, the uncalibrated RC-PPO baseline is recovered.\nThese comparisons are visualized in\nFig.~\\ref{fig:ablation_margins}. Without $\\alpha$, BVR is increased by\n13.4 percentage points; without $\\delta$, CR is increased by 11.3 percentage\npoints and clearance is reduced.",
+    "revised": "Table~\\ref{tab:ablation_draft} and Fig.~\\ref{fig:ablation_margins} compare margin\nablations with the same frozen tracker. Single-margin variants set $\\alpha=0$\nor $\\delta=0$, retaining the other's calibrated value; removing both recovers\nuncalibrated RC-PPO. Without $\\alpha$, BVR rises by 13.4 percentage points;\nwithout $\\delta$, CR rises by 11.3 percentage points and clearance decreases.",
+    "reason": "保留两种单裕度和双移除设定、差值单位percentage points及安全/预算不同影响。",
+    "original_line": 510,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P31",
+    "original": "The CaMRA and RC-PPO results from Table~\\ref{tab:main_results} are reused for\nthe full and zero-margin rows. Each single-margin variant is trained separately\nwith the corresponding margin removed during both learning and evaluation.\nThe effects are non-additive, and lower cost can be associated with more failed\ntrials or shorter trajectories. Cost must therefore be interpreted jointly with\nsuccess rate.",
+    "revised": "Full and zero-margin rows reuse the CaMRA and RC-PPO results in\nTable~\\ref{tab:main_results}. Single-margin variants are trained separately with\nthe margin removed in both learning and evaluation. Effects are non-additive;\nmore failures or shorter trajectories can lower Cost, which must be interpreted\njointly with SR.",
+    "reason": "保留主结果复用、分别重训、训练和评估均移除，以及成本不能脱离成功率解释。",
+    "original_line": 542,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P32",
+    "original": "With policy parameters and margins fixed, the effect of initial budget on\nnavigation performance is evaluated. Budget selection is performed on a separate\nrollout set, while Fig.~\\ref{fig:budget_draft} reports performance on the final\nevaluation set. Since RA is not conditioned on budget, the same trajectories are\nevaluated at each threshold, and only its BVR changes. Under the criteria\nSR $\\geq60\\%$, CR $\\leq20\\%$, and BVR $\\leq15\\%$, the smallest tested budget\nratios satisfying all three criteria on the final response curves are $0.90$\nfor CaMRA, $0.96$ for RC-PPO, and $1.12$ for RA. The same evaluation criteria\nare therefore met at a lower tested budget with CaMRA.",
+    "revised": "With policy and margins fixed, budget selection uses separate rollouts, while\nFig.~\\ref{fig:budget_draft} shows final-evaluation budget responses. RA reuses\nthe same trajectories at every threshold, so only BVR changes. Under SR\n$\\geq60\\%$, CR $\\leq20\\%$, and BVR $\\leq15\\%$, the smallest tested ratios\nsatisfying all criteria on the final curves are $0.90$ for CaMRA, $0.96$ for\nRC-PPO, and $1.12$ for RA. CaMRA thus meets the same criteria at a lower tested\nbudget.",
+    "reason": "保留预算选择集和最终响应曲线的区别，及RA同轨迹、阈值、三个已测最小值。",
+    "original_line": 572,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P33",
+    "original": "A Unitree Go2 is used in two cluttered indoor settings. An obstacle-filled\ncorridor is shown in Fig.~\\ref{fig:hardware_sequences}(a), where collision\navoidance during traversal is examined. A chair arrangement with multiple\navailable routes is shown in Fig.~\\ref{fig:hardware_sequences}(b), where low-cost\nroute selection under obstacle constraints is examined.",
+    "revised": "A Unitree Go2 is evaluated in two cluttered indoor settings:\nFig.~\\ref{fig:hardware_sequences}(a) examines collision avoidance in an\nobstacle-filled corridor; Fig.~\\ref{fig:hardware_sequences}(b) examines low-cost\nroute selection among multiple chair-obstacle passages.",
+    "reason": "合并硬件场景描述，保留两个场景及分别检验的能力。",
+    "original_line": 608,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P34",
+    "original": "CaMRA is compared with uncalibrated RC-PPO in Table~\\ref{tab:hardware_comparison}\nunder matched scene conditions, starts, goals, and budget. The same frozen tracker\nand navigation inputs are used for both methods; their high-level policies are fixed\nthroughout evaluation.",
+    "revised": "Table~\\ref{tab:hardware_comparison} compares CaMRA and uncalibrated RC-PPO with\nmatched scenes, starts, goals, and budget. Both share the frozen tracker and\nnavigation inputs; high-level policies remain fixed throughout evaluation.",
+    "reason": "保留硬件配对比较条件和不再更新策略。",
+    "original_line": 638,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P35",
+    "original": "The deployment of minimum-cost reach-avoid navigation on quadrupedal robots is\naddressed through hierarchical control and execution calibration in CaMRA. The\ndifficulty of jointly learning locomotion and navigation is mitigated by assigning\nmotion stabilization to a frozen low-level controller and navigation decisions to\na high-level policy. Remaining discrepancies between nominal and executed behavior\nare accounted for through separate cost and geometric margins. The reported\nevaluations illustrate the effects of these corrections on budget compliance,\nobstacle clearance, and goal reachability.\nBuilding on the current geometric navigation formulation, future work will be\ndirected toward semantic task understanding and a stochastic formulation in which\nexecution uncertainty can be incorporated into formal reach-avoid and cost\nguarantees.",
+    "revised": "CaMRA connects quadruped MCRA navigation to execution through hierarchical control\nand calibration. A frozen low-level controller stabilizes motion while a\nhigh-level policy learns navigation, mitigating coupled learning. Separate cost\nand geometric margins account for residual nominal/execution mismatch. The\nevaluations illustrate their effects on budget compliance, obstacle clearance,\nand goal reachability. Future work will explore semantic task understanding and\nstochastic formulations in which execution uncertainty can be incorporated into\nformal reach-avoid and cost guarantees.",
+    "reason": "压缩结论，保留分层、双裕度、经验结果与未来才考虑随机形式化保证的时序。",
+    "original_line": 672,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  },
+  {
+    "id": "P36",
+    "original": "Success counts are $35/50$ for CaMRA and $32/50$ for RC-PPO. Both methods\nhave three localization aborts; the remaining failures comprise four timeouts and eight contacts\nfor CaMRA, versus five timeouts and ten contacts for RC-PPO. BVR decreases\nfrom 22.0\\% to 14.0\\%, while mean cost increases from 176.0 to 182.0 a.u.\nThese results indicate a clearance--cost trade-off: shorter routes and\nearlier failures can lower mean cost without reducing its upper tail.\nAll terminal outcomes are included in Cost and MC. Results are reported separately\nfrom the planar benchmark because the route, horizon, and footprint differ.",
+    "revised": "CaMRA succeeds in $35/50$ trials versus $32/50$ for RC-PPO. Both have three\nlocalization aborts; remaining failures are four timeouts and eight contacts for\nCaMRA, versus five timeouts and ten contacts for RC-PPO. BVR decreases from\n22.0\\% to 14.0\\%, while mean cost increases from 176.0 to 182.0 a.u. These\nresults indicate a clearance--cost trade-off: shorter routes and earlier failures\ncan lower mean cost without reducing its upper tail. Cost and MC include all\nterminal outcomes. Hardware results are separate from the planar benchmark\nbecause route, horizon, and footprint differ.",
+    "reason": "压缩硬件失败分析的冗余句法，保留成功/失败分类、全部数字、不利成本对比、全分母及场景不可合并条件。",
+    "original_line": 662,
+    "meaning_check": "PRESERVED (author review remains appropriate)",
+    "risk_flags": "none"
+  }
+]
