@@ -1,0 +1,100 @@
+{
+  "schema": "nav043-matched-support-approval-v5",
+  "status": "APPROVED",
+  "task_id": "NAV-043",
+  "plan_version": "1.5.0",
+  "approved_at": "2026-11-20T14:32:11.717409+08:00",
+  "user_response": "可以  继续推进",
+  "authorization_context": "Explicit current confirmation following the pending exact 18 CPU axis solves / 3600 seconds / old-data-only matched-support v5 proposal; no reuse of exhausted v4 allocation.",
+  "proposal_sha256": "71d5a31efe3890a713681d3e95600e87541563197e698c3a32446331a0e178d6",
+  "readiness_sha256": "364fe158b8bacedde45681137f8b4bb9e050560ead4ff5983a9962f8f1c0e982",
+  "limits": {
+    "models": 6,
+    "axis_solves": 18,
+    "saved_case_predictions": 108,
+    "cpu_wall_s": 3600,
+    "applications": 0,
+    "new_physical_episodes": 0,
+    "new_nominal_episodes": 0,
+    "W_queries": 0,
+    "actor_critic_updates": 0,
+    "calibration_fits": 0,
+    "automatic_retries": 0
+  },
+  "output_root": "/pub/data/caohy/work/camra_navigation/nav043_matched_support_probe_v5",
+  "environment": {
+    "host": "tiger11",
+    "tmux_required": true,
+    "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+    "CUDA_VISIBLE_DEVICES": "",
+    "OMP_NUM_THREADS": 1,
+    "OPENBLAS_NUM_THREADS": 1,
+    "MKL_NUM_THREADS": 1
+  },
+  "data_scope": {
+    "total_exposed_cases": 30,
+    "navigation_cases": 18,
+    "probe_cases": 12,
+    "measurement_ticks": 182797,
+    "probe_warmup_ticks": 2400,
+    "all_previously_exposed": true,
+    "new_independent_validation": false,
+    "original_probe_recovery_HELD_retained": true,
+    "original_v3_v4_failures_retained": true,
+    "nav_first_fitting_pair_excluded": true,
+    "probe_actual_warmup_q_required": true,
+    "partial_tail_excluded_from_fitting_but_retained_in_prediction": true
+  },
+  "splits": {
+    "folds": 3,
+    "train_each_fold": {
+      "navigation": 12,
+      "probes": 12
+    },
+    "held_each_fold": {
+      "navigation": 6,
+      "probes": 0
+    },
+    "in_sample_probe_predictions_each_fold": 12,
+    "all_twelve_probes_in_training_each_fold": true,
+    "navigation_whole_map_held_together": true,
+    "all_failures_retained": true
+  },
+  "fitting": {
+    "objective": "original equal-cohort, equal-case, equal-row one-step weighted least squares",
+    "feature_versions": [
+      "origin-preserving-hinge-v1",
+      "full-q-forward-curvature-turn-interaction-v1"
+    ],
+    "extra_features": false,
+    "parameter_sweep": false,
+    "regularization": false,
+    "diagonal_stability": "all memory coefficients in [0,1)",
+    "coupled_stability": "spectral radius of full A < 1",
+    "invalid_fit": "save and stop; no clipping/retry"
+  },
+  "interpretation": {
+    "probe_metrics": "training diagnostics only, 36 rows per structure, correlated fold reuse",
+    "navigation_metrics": "18 whole-map omitted but already exposed cases per structure",
+    "summaries": "all cases and per map tick-weighted RMSE, terminal heading, prefixes and saved arrays",
+    "new_acceptance_gate": false,
+    "old_acceptance_thresholds_unchanged": true,
+    "automatic_model_selection": false,
+    "additional_all_data_fit": false,
+    "no_unique_physical_cause_claim": true,
+    "no_90second_or_G5_release": true
+  },
+  "once_only": {
+    "durable_exclusive_lock": true,
+    "original_output_only": true,
+    "no_retry": true,
+    "expected_output_files": 260,
+    "preflight_before_commit_before_launch": true,
+    "audit_reads_saved_outputs_without_extra_fits": true
+  },
+  "production_enabled": false,
+  "NAV043_passed": false,
+  "G5_passed": false,
+  "no_test_subagents": true,
+  "no_push": true
+}
