@@ -1,5 +1,15 @@
 # 上层导航实施交接
 
+## 2026-11-20 恢复12工况保存复核完成，原退出HELD保留
+
+批准/预检先提交c8d6f71，%697运行唯一恢复应用。12/12各2200tick完成，child2825628退出0、协调器2825601/包装退出1，进程组已不存在。父进程读取app.close后未产生的child_step_accounting.json时HELD；原缺失execution_ledger/FINISHED不补造，原严格审阅器仍拒绝。原生关闭具体终止机制未证实，安装源码和封存v2保持。
+
+%701保存数据审阅exit0：26400实际状态/时钟/整数索引/J、6600命令证明/1212q、12result/CAPTURE_FINISHED/清理前账本/journal及实际clean配置读回通过，295/90/29身份和原17失败文件保持。首轮保存审阅误把reset buffer首次创建标志当每次reset标志，%699失败及源码保留；按clean_v3实际语义纠正后全过，没有改变物理数据/阈值或新增应用。见[结果说明](nav043_motion_probe_recovery_result_20261120.md)及[机器报告](../reports/nav043_motion_probe_recovery_held_review_v2.json)。
+
+108份原件29543786字节保留于原recovery_v2；原始文件索引和小型证据副本在`.worklog-testing/NAV-043/motion-recovery-v2/`。新应用墙钟142.357577秒/26400显式step，加原失败保守900秒/895step为1042.357577秒/27295step，累计2应用槽已用，禁止重启/借余量。原生初始化不可观测步不写0。
+
+末2秒前向q在指令0.1/0.2/0.4下约0/0.074/0.329m/s；仅各一次工况，不是死区边界或稳态校准。本轮新拟合/导航/W/网络更新/校准0，90秒与obs-v9-t90-q仍候选。下一先制定响应模型/低速支持域、参考J和独立验证协议；不能自动拟合或开始训练/物理。仍NAV-043=false、1.5.0/55/67、G5未过，旧45秒链/v2/alpha/delta/原失败保持，下方未启动均为历史。
+
 ## 当前授权（2026-11-20，隔离恢复v2已确认）
 
 用户明确回复“确认 开始行动吧”，批准一次隔离恢复：独立APPROVED登记`CaMRA/navigation/config/nav043_motion_probe_recovery_approval_v2.json`绑定原提案1a5afe8d及readiness6093d64f，原PROPOSED/失败/锁和封存源码不改。先核对tiger11/tmux/Python/GPU6、295/90/29身份、原17份文件和20项有效CPU检查，提交批准后运行封存入口一次。新包6300秒/31105step，加原失败槽900秒/895step，保持累计2小时/32000step；重采M01后原序M02–M12，无自动重试。本时点尚未启动新应用；不含拟合/导航/W/训练/校准，NAV-043=false、1.5.0/55/67、G5未过。下方待确认均为保留历史时点。

@@ -15715,6 +15715,134 @@
             "后续运动模型/参考J/90秒残余仍按独立范围推进，不自动借本次额度。"
           ],
           "blockers": []
+        },
+        {
+          "timestamp": "2026-11-20T10:33:24+08:00",
+          "summary": "NAV-043已批准唯一恢复完成12工况采集，关闭后child账本缺失使协调器HELD，保留停止",
+          "actions": [
+            "批准与预检先提交c8d6f7158e9f9f8dc44c93743ad5e05519ce069c；tiger11/tmux %697固定物理GPU6及绝对Python运行封存launch-once.sh一次，原v1失败不覆盖。",
+            "应用2825628完整保存M01-M12，各200预热+2000测量tick、CAPTURE_FINISHED及清理前账本。应用退出0，父协调器2825601读取不存在的child_step_accounting.json时报错并保存HELD，包装退出1。",
+            "实际process_cleanup确认进程组不存在、错误列表空；两个登记PID均已消失。没有应用ERROR，但缺child最终账本、execution_ledger和FINISHED；原缺口不补造，不重启，不以child退出0冒充协议通过。"
+          ],
+          "files_changed": [
+            ".worklog-testing/NAV-043/motion-recovery-v2/launch.lock",
+            ".worklog-testing/NAV-043/motion-recovery-v2/launch.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/launch.exit",
+            ".worklog-testing/NAV-043/motion-recovery-v2/exit.json",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %697: bash .worklog-testing/NAV-043/motion-recovery-v2/launch-once.sh -> wrapper exit1; child exit0。"
+          ],
+          "results": [
+            "本次新增1应用/26400显式step，12份完整受控结果存在；原生内部初始化物理步不可观测，不宣称0。",
+            "新应用墙钟142.35757658910006秒；加原失败保守900秒/895step，累计1042.3575765891秒/27295显式step、2应用。两个应用槽均已用，不自动挪剩余时间/步数。",
+            "本时点完整保存数据审阅尚未通过，原严格协议HELD；无响应拟合/导航/W/网络更新/校准，NAV-043=false/G5未过、55/67不变。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/motion-recovery-v2/launch.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/exit.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/recovery_v2/HELD.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/recovery_v2/CAPTURE_FINISHED.json",
+            "/pub/data/caohy/work/camra_navigation/nav043_motion_probe_v1/recovery_v2/pre_cleanup_step_accounting.json"
+          ],
+          "remaining_work": [
+            "只读复核12例原始状态/时钟/命令/q/J、账本及全部来源，区分可用数据和退出协议缺口。",
+            "复核后再制定模型/参考J/90秒适用性协议，不能由本次采集批准直接启动新拟合或训练。"
+          ],
+          "blockers": [
+            "app.close后的child最终保存未产生；原协调器严格完成条件未满足，保持HELD。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-20T10:50:00+08:00",
+          "summary": "NAV-043的12工况保存数据完整性复核通过，退出HELD及未通过导航/G5分列保留",
+          "actions": [
+            "恢复上下文后重读根AGENTS、legacy技能/执行规则、完整计划约束及NAV-043定义/历史、README和交接；%698完整加载计划并核对NAV-066/067依赖true，1.5.0/55/67，首个可执行仍NAV-043。只做已批准采集收尾，不新增实验。",
+            "%701主agent调用未改封存审阅器的review_steps/review_case复核12例26400行时钟/索引/实际状态/J、6600实际命令证明、1212完成q及全部结果/预清理账本；实际clean配置/质量/材质/策略/PD读回通过。",
+            "%699首轮保存审阅将首次创建reset buffer误断言为每例创建，在M02停止；保留源码和日志，依据clean_v3实际语义仅纠正审阅标志，后续每例实际buffer仍要求清零。没有改物理数据、封存源或阈值。",
+            "原审阅器main实际运行仍拒绝HELD，原child/ledger/FINISHED缺口不回填。安装SimulationApp close调用原生shutdown的来源片段及hash保存，只陈述后续保存缺失，具体原生终止机制未证实。",
+            "108份原输出/29543786字节逐文件hash索引保存，必要小型证据逐字节另存Git目录；原件及17份原失败数据保持。前后核验295保护身份/90原输入/29冻结包文件及全部封存来源。"
+          ],
+          "files_changed": [
+            "CaMRA/navigation/reports/nav043_motion_probe_recovery_held_review_v2.json",
+            "CaMRA/navigation/docs/nav043_motion_probe_recovery_result_20261120.md",
+            ".worklog-testing/NAV-043/motion-recovery-v2/review-held-capture.py",
+            ".worklog-testing/NAV-043/motion-recovery-v2/review-held-capture-attempt1.py",
+            ".worklog-testing/NAV-043/motion-recovery-v2/held-raw-output-index.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/held-saved-small/",
+            ".worklog-testing/NAV-043/motion-recovery-v2/shutdown-source-review.json",
+            "AGENTS.md",
+            "CaMRA/navigation/README.md",
+            "CaMRA/navigation/docs/implementation_handoff.md",
+            "CaMRA/navigation/docs/nav043_motion_probe_recovery_v2_20261120.md",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %698: inspect-held.sh -> exit0；其未指定target的display-message显示当时活动pane，实际执行为%698。",
+            "tiger11/tmux %699: review-held-capture.sh -> exit1（审阅脚本buffer语义错误，源码/日志保留）。",
+            "tiger11/tmux %701: review-held-capture-v2.sh -> exit0；GPU不可见，仅复核保存证据，无新采样或拟合。"
+          ],
+          "results": [
+            "SAVED_12_CASE_INTEGRITY_PASS_WITH_TERMINAL_PROTOCOL_HELD；数据完整性PASS与原退出协议HELD并列，不签导航或G5。",
+            "本次各一例末2秒完成区间q：前向指令0.1/0.2/0.4下约0/0.074/0.329m/s，支持明确低速响应差异；不是稳态、完整动作域或90秒校准保证。",
+            "新增保存审阅应用/响应拟合/导航/W/网络更新/校准均0，未建测试子agent；原v2/alpha/delta/45秒生产链及RC-PPO目标不变。",
+            "对照NAV-043四验收：本次受控数据不等于新版真实导航或适用性放行，仍false/55/67/G5未过，NAV-044/final_*不执行。"
+          ],
+          "evidence": [
+            "CaMRA/navigation/reports/nav043_motion_probe_recovery_held_review_v2.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/review-held-capture-v2.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/strict-review-retains-held.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/held-raw-output-index.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/shutdown-source-review.json"
+          ],
+          "remaining_work": [
+            "收尾核对历史追加/产物来源、legacy update及diff检查后本地提交，不推送。",
+            "先制定运动模型来源/低速支持域与独立验证协议，明确参考命令程序/J成本，再登记90秒学习与残余适用性范围。",
+            "未来物理入口应在关闭前封存child证据并由父进程核对退出及journal，原HELD不追改；不为修结束记录重采12例。"
+          ],
+          "blockers": [
+            "原严格采集完成协议仍HELD；本次数据复核不将其改成PASS。",
+            "新运动模型/参考J/90秒学习与裕度适用性未实现或验证，后续拟合/物理/训练尚无具体批准。"
+          ]
+        },
+        {
+          "timestamp": "2026-11-20T10:54:00+08:00",
+          "summary": "NAV-043恢复采集收尾核对通过：原始数据及全部历史保持，legacy计划校验通过，科学状态不变",
+          "actions": [
+            "tiger11/tmux %702执行close-review.sh，重核108原文件及46份小型逐字节副本、来源/批准/20项有效CPU证据、原HELD及缺失终态均保持。",
+            "逐项比较c8d6f71：67任务定义/状态/未知字段及全部旧work_records前缀不变，仅NAV-043追加本次两条执行/保存审阅记录；当前收尾再追加本记录。",
+            "legacy update返回VALID，git diff --check通过；受控数据完整性PASS与原严格协议HELD分列，生产45秒/固定v2/alpha/delta和RC-PPO目标不改。"
+          ],
+          "files_changed": [
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-review.py",
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-review.sh",
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-review.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-plan.log",
+            "doc/plan/20261109_camra_navigation_implementation.json"
+          ],
+          "commands": [
+            "tiger11/tmux %702: bash .worklog-testing/NAV-043/motion-recovery-v2/close-review.sh -> exit0；close-review、legacy update及diff检查通过。"
+          ],
+          "results": [
+            "SAVED_DATA_AND_HISTORY_RECHECK_PASS；26400实际采集tick的完整性证据有效，严格退出HELD保持，NAV-043四项导航验收缺口未解除。",
+            "无新应用/拟合/导航/W/网络更新/校准、无测试子agent；55/67、NAV-043=false、G5未过保持。"
+          ],
+          "evidence": [
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-review.json",
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-review.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-review.exit",
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-plan.log",
+            ".worklog-testing/NAV-043/motion-recovery-v2/close-diff-check.log",
+            "CaMRA/navigation/docs/nav043_motion_probe_recovery_result_20261120.md"
+          ],
+          "remaining_work": [
+            "本地提交本次批准执行后的结果、索引、小证据和交接，不推送。",
+            "按已列依赖制定运动模型/低速支持域与参考J、90秒独立验证协议；新拟合/物理/训练先具体登记。"
+          ],
+          "blockers": [
+            "原退出协议仍HELD，不回填或重采；新运动模型/90秒导航及裕度适用性尚未放行。"
+          ]
         }
       ],
       "constraints_and_notes": [
