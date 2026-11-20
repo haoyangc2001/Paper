@@ -1,0 +1,168 @@
+{
+  "status": "RETAINED_ANALYSIS_PASS_DIAGNOSTIC_FAIL",
+  "host": "tiger11.ios.ac.cn",
+  "pane": "%748",
+  "python": "/pub/data/caohy/miniconda/envs/env_isaaclab_v0472/bin/python",
+  "execution_audit": "SAVED_COUPLED_RESPONSE_EXECUTION_AUDIT_PASS",
+  "actual_axis_solves": 9,
+  "extra_parameter_solves": 0,
+  "source_cases": 30,
+  "measurement_ticks": 182797,
+  "controlled_warmup_ticks": 2400,
+  "candidate_wall_s": 9.146668372210115,
+  "wrapper_wall_s": 9.321665874216706,
+  "original_processes_absent": true,
+  "identities": {
+    "protected_identities": 295,
+    "existing_raw_input_hashes": 90,
+    "bundle_files": 29
+  },
+  "gate": {
+    "checks": {
+      "navigation_no_worse_global_and_each_map": false,
+      "controlled_RMSE_lower_than_affine": true,
+      "controlled_RMSE_lower_than_ideal": false,
+      "controlled_terminal_heading_no_worse_than_affine": false,
+      "M01_M02_each_position_RMSE_no_worse_than_ideal": false
+    },
+    "groups": {
+      "navigation": {
+        "candidate_RMSE_m": 0.6637109939017711,
+        "affine_RMSE_m": 0.7836801537592033
+      },
+      "controlled": {
+        "candidate_RMSE_m": 1.905855076637174,
+        "affine_RMSE_m": 2.411062260714328
+      },
+      "L1_empty": {
+        "candidate_RMSE_m": 0.8388143624499929,
+        "affine_RMSE_m": 0.7020517731611434
+      },
+      "L2_single_detour": {
+        "candidate_RMSE_m": 0.42749346859174764,
+        "affine_RMSE_m": 0.866715212502855
+      },
+      "L3_multi_path": {
+        "candidate_RMSE_m": 0.6707169315039678,
+        "affine_RMSE_m": 0.769127033405934
+      }
+    },
+    "diagnostic_pass": false,
+    "independent_validation": false,
+    "deployment_model": false,
+    "NAV043_passed": false,
+    "G5_passed": false
+  },
+  "terminal_heading_MAE_deg": {
+    "navigation": {
+      "candidate": 9.95255382189617,
+      "affine": 11.17339901846075,
+      "ideal": 68.3986729533997,
+      "previous_v3": 11.278552092748908
+    },
+    "probe": {
+      "candidate": 32.2910488450137,
+      "affine": 16.577110990938944,
+      "ideal": 14.49383077629628,
+      "previous_v3": 12.237671967866909
+    }
+  },
+  "cohort_position_RMSE_m": {
+    "navigation": {
+      "candidate": 0.6697514459378773,
+      "affine": 0.7776429369669121,
+      "ideal": 4.3949315297115366,
+      "previous_v3": 0.9192779757699207
+    },
+    "probe": {
+      "candidate": 1.905855076637174,
+      "affine": 2.411062260714328,
+      "ideal": 0.5766690067455538,
+      "previous_v3": 0.5592919729087417
+    }
+  },
+  "model_stability": [
+    {
+      "level": "L1_empty",
+      "stability": {
+        "spectral_radius": 0.6241984703149998,
+        "eigenvalues": [
+          [
+            0.6241984703149998,
+            0.0
+          ],
+          [
+            0.24549392801555556,
+            0.2080658013044813
+          ],
+          [
+            0.24549392801555556,
+            -0.2080658013044813
+          ]
+        ]
+      }
+    },
+    {
+      "level": "L2_single_detour",
+      "stability": {
+        "spectral_radius": 0.5992657815280048,
+        "eigenvalues": [
+          [
+            0.5992657815280048,
+            0.0
+          ],
+          [
+            0.26092414613246734,
+            0.10141748492725387
+          ],
+          [
+            0.26092414613246734,
+            -0.10141748492725387
+          ]
+        ]
+      }
+    },
+    {
+      "level": "L3_multi_path",
+      "stability": {
+        "spectral_radius": 0.6136791842584844,
+        "eigenvalues": [
+          [
+            0.6136791842584844,
+            0.0
+          ],
+          [
+            0.2569284139149886,
+            0.15575402881157685
+          ],
+          [
+            0.2569284139149886,
+            -0.15575402881157685
+          ]
+        ]
+      }
+    }
+  ],
+  "original_files": 83,
+  "original_bytes": 5219988,
+  "saved_small_files": 53,
+  "external_npz_files": 30,
+  "new_applications": 0,
+  "new_physical_episodes": 0,
+  "new_nominal_episodes": 0,
+  "W_queries": 0,
+  "actor_critic_updates": 0,
+  "calibration_fits": 0,
+  "original_physical_HELD_preserved": true,
+  "production_enabled": false,
+  "NAV043": false,
+  "G5_passed": false,
+  "plan_true": 55,
+  "limitations": [
+    "One-step errors use observed previous q; free prediction receives no truth correction.",
+    "Observed prediction errors do not identify one unique physical cause.",
+    "Overall navigation improves but L1 and several controlled checks fail; no diagnostic pass.",
+    "All data exposed and correlated: no independent unknown/final/90s validation or calibration.",
+    "No deployment model, production consumer, actor training, automatic retries or additional fit."
+  ]
+}
